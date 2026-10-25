@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Borg Command line</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@600;700&amp;family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#7ff09a}a:hover{color:#b8f8c8}
+.w1{stroke-width:1}.w15{stroke-width:1.5}.w2{stroke-width:2}.w3{stroke-width:3}.w4{stroke-width:4}
+.grid{stroke-dasharray:2 4}.lit{stroke-dasharray:3 4}
+.rc{stroke-linecap:round}
+.soft{opacity:.55}.faint{opacity:.3}
+</style>
+</helmet>
+<div style="width: 1180px; height: 760px; box-sizing: border-box; padding: 56px; background: #070908; color: #e2ebe4; font-family: Barlow, 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #5fe07a">Command line · Borg Collective · 3 levels</div>
+<h1 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 48px; font-weight: 700; line-height: 1; text-transform: uppercase; letter-spacing: 0.02em">Assimilation Spire to Unicomplex</h1>
+<p style="margin: 0; font-size: 16px; color: #8f9c93; max-width: 820px">The Borg never found colonies; they take them. The command line starts with a spire driven into someone else's world, spreads until the planet is covered, and ends off-world at the Unicomplex, the Queen's seat.</p>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: flex-start">
+
+<!-- L1 Assimilation Spire -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #141a16">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Level 1 Assimilation Spire: a black spike driven into a conquered world, with tubing spreading across the ground like roots and creeping over a native building">
+<rect width="300" height="240" fill="#141a16"/>
+<circle cx="236" cy="50" r="16" fill="#8a9a90" class="soft"/>
+<path d="M0 156 L50 140 L100 150 L160 130 L220 148 L300 136 L300 240 L0 240 Z" fill="#1e2420"/>
+<rect x="0" y="174" width="300" height="66" fill="#2a2e2c"/>
+<rect x="34" y="138" width="64" height="38" fill="#6a7a8a"/>
+<path d="M30 140 L66 118 L102 140 Z" fill="#5a6a7a"/>
+<rect x="46" y="150" width="10" height="8" fill="#9aaab8"/><rect x="76" y="150" width="10" height="8" fill="#9aaab8"/>
+<path d="M66 176 L66 156 L98 150 L98 176 Z" fill="#2a2e2c"/>
+<path d="M66 128 L102 140 L98 150 L66 156 Z" fill="#3e4440"/>
+<line x1="74" y1="160" x2="94" y2="160" stroke="#5fe07a" class="w1 grid"/>
+<path d="M150 176 Q110 182 66 168" fill="none" stroke="#3e4440" class="w3"/>
+<path d="M150 176 Q200 190 270 184" fill="none" stroke="#3e4440" class="w3"/>
+<path d="M150 176 Q130 200 90 216" fill="none" stroke="#3e4440" class="w3"/>
+<path d="M150 176 Q186 204 230 222" fill="none" stroke="#3e4440" class="w2"/>
+<circle cx="110" cy="178" r="2" fill="#5fe07a"/><circle cx="220" cy="186" r="2" fill="#5fe07a"/><circle cx="110" cy="208" r="2" fill="#5fe07a"/><circle cx="200" cy="212" r="2" fill="#5fe07a"/>
+<path d="M140 178 L145 48 L155 48 L160 178 Z" fill="#3e4440"/>
+<path d="M150 48 L155 48 L160 178 L150 178 Z" fill="#2a2e2c"/>
+<path d="M140 48 L150 26 L160 48 Z" fill="#5a605a"/>
+<line x1="150" y1="58" x2="150" y2="172" stroke="#5fe07a" class="w15 lit"/>
+<line x1="144" y1="80" x2="156" y2="80" stroke="#5fe07a" class="w1"/><line x1="143" y1="110" x2="157" y2="110" stroke="#5fe07a" class="w1"/><line x1="142" y1="140" x2="158" y2="140" stroke="#5fe07a" class="w1"/>
+<circle cx="150" cy="30" r="3" fill="#5fe07a"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #12301a; color: #5fe07a">LV 1</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Assimilation Spire</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #c6d2ca">A spike driven into a conquered or native world. Its tubing spreads across the ground, absorbing existing buildings and turning the population into drones over time. It can't be placed on an empty world.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #8f9c93">Requires</span><span style="text-align: right; font-weight: 600">Populated world</span>
+<span style="color: #8f9c93">Assimilation</span><span style="text-align: right; font-weight: 600">1 pop → drones / cycle</span>
+<span style="color: #8f9c93">Cost</span><span style="text-align: right; font-weight: 600">100 Dur · 20 Nanoprobes</span>
+</div>
+</div>
+
+<div style="padding-top: 114px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4 L16 12 L8 20" fill="none" stroke="#5fe07a" class="w3 rc"/></svg></div>
+
+<!-- L2 Planetary Hive -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #141a16">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Level 2 Planetary Hive: a city completely covered in black Borg blocks and tubing with green grid lights, and a Borg sphere hovering overhead">
+<rect width="300" height="240" fill="#141a16"/>
+<circle cx="236" cy="54" r="22" fill="#2a2e2c"/>
+<ellipse cx="236" cy="54" rx="22" ry="8" fill="none" stroke="#5fe07a" class="w1 grid"/>
+<ellipse cx="236" cy="54" rx="8" ry="22" fill="none" stroke="#5fe07a" class="w1 grid"/>
+<line x1="214" y1="54" x2="258" y2="54" stroke="#5fe07a" class="w1 grid"/>
+<circle cx="236" cy="54" r="3" fill="#5fe07a"/>
+<path d="M0 156 L50 140 L100 150 L160 130 L220 148 L300 136 L300 240 L0 240 Z" fill="#1e2420"/>
+<rect x="0" y="176" width="300" height="64" fill="#2a2e2c"/>
+<rect x="20" y="120" width="40" height="56" fill="#3e4440"/>
+<rect x="64" y="96" width="34" height="80" fill="#2a2e2c"/>
+<rect x="102" y="70" width="48" height="106" fill="#3e4440"/>
+<rect x="154" y="104" width="36" height="72" fill="#2a2e2c"/>
+<rect x="194" y="86" width="44" height="90" fill="#3e4440"/>
+<rect x="242" y="128" width="40" height="48" fill="#2a2e2c"/>
+<line x1="20" y1="140" x2="60" y2="140" stroke="#5fe07a" class="w1 grid"/><line x1="40" y1="120" x2="40" y2="176" stroke="#5fe07a" class="w1 grid"/>
+<line x1="102" y1="100" x2="150" y2="100" stroke="#5fe07a" class="w1 grid"/><line x1="102" y1="130" x2="150" y2="130" stroke="#5fe07a" class="w1 grid"/><line x1="126" y1="70" x2="126" y2="176" stroke="#5fe07a" class="w1 grid"/>
+<line x1="194" y1="116" x2="238" y2="116" stroke="#5fe07a" class="w1 grid"/><line x1="216" y1="86" x2="216" y2="176" stroke="#5fe07a" class="w1 grid"/>
+<line x1="81" y1="96" x2="81" y2="176" stroke="#5fe07a" class="w1 grid"/><line x1="172" y1="104" x2="172" y2="176" stroke="#5fe07a" class="w1 grid"/>
+<path d="M60 130 Q62 120 64 118" fill="none" stroke="#5a605a" class="w4"/>
+<path d="M98 110 Q100 100 102 96" fill="none" stroke="#5a605a" class="w4"/>
+<path d="M150 120 Q152 114 154 112" fill="none" stroke="#5a605a" class="w4"/>
+<path d="M190 120 Q192 110 194 106" fill="none" stroke="#5a605a" class="w4"/>
+<line x1="126" y1="70" x2="126" y2="50" stroke="#5a605a" class="w2"/><circle cx="126" cy="48" r="2.5" fill="#5fe07a"/>
+<rect x="114" y="150" width="6" height="4" fill="#5fe07a"/><rect x="206" y="140" width="6" height="4" fill="#5fe07a"/><rect x="30" y="156" width="5" height="3" fill="#5fe07a"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #12301a; color: #5fe07a">LV 2</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Planetary Hive</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #c6d2ca">The whole city is built over in blocks and tubing. There is no morale and no unrest: just output. Damaged structures repair themselves, and every building the world had before is converted to Borg production.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #8f9c93">Supply range</span><span style="text-align: right; font-weight: 600">2</span>
+<span style="color: #8f9c93">Morale / unrest</span><span style="text-align: right; font-weight: 600">None</span>
+<span style="color: #8f9c93">Cost</span><span style="text-align: right; font-weight: 600">320 Par · 40 Nanoprobes</span>
+</div>
+</div>
+
+<div style="padding-top: 114px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4 L16 12 L8 20" fill="none" stroke="#5fe07a" class="w3 rc"/></svg></div>
+
+<!-- L3 Unicomplex -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #0b0e0c; box-shadow: inset 0 0 0 2px #f3cb5b">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Unicomplex, max level: a vast sprawl of black blocks joined by tubular spokes radiating from a glowing central hub in deep space, with cubes docked around it">
+<rect width="300" height="240" fill="#0b0e0c"/>
+<circle cx="20" cy="20" r="1" fill="#e2ebe4"/><circle cx="284" cy="18" r="1.2" fill="#e2ebe4"/><circle cx="20" cy="220" r="0.8" fill="#e2ebe4"/>
+<line x1="150" y1="120" x2="40" y2="60" stroke="#3e4440" class="w4"/>
+<line x1="150" y1="120" x2="260" y2="56" stroke="#3e4440" class="w4"/>
+<line x1="150" y1="120" x2="40" y2="190" stroke="#3e4440" class="w4"/>
+<line x1="150" y1="120" x2="262" y2="186" stroke="#3e4440" class="w4"/>
+<line x1="150" y1="120" x2="150" y2="22" stroke="#3e4440" class="w4"/>
+<line x1="150" y1="120" x2="150" y2="220" stroke="#3e4440" class="w4"/>
+<line x1="150" y1="120" x2="40" y2="60" stroke="#5fe07a" class="w1 lit"/><line x1="150" y1="120" x2="262" y2="186" stroke="#5fe07a" class="w1 lit"/><line x1="150" y1="120" x2="150" y2="22" stroke="#5fe07a" class="w1 lit"/>
+<rect x="20" y="44" width="40" height="30" fill="#3e4440"/><rect x="28" y="36" width="20" height="10" fill="#2a2e2c"/>
+<rect x="240" y="40" width="40" height="32" fill="#2a2e2c"/><rect x="252" y="30" width="18" height="12" fill="#3e4440"/>
+<rect x="18" y="176" width="44" height="30" fill="#2a2e2c"/>
+<rect x="240" y="172" width="44" height="32" fill="#3e4440"/>
+<rect x="132" y="10" width="36" height="20" fill="#2a2e2c"/>
+<rect x="130" y="210" width="40" height="22" fill="#3e4440"/>
+<rect x="80" y="86" width="34" height="24" fill="#2a2e2c"/><rect x="190" y="132" width="34" height="24" fill="#2a2e2c"/>
+<rect x="186" y="84" width="30" height="22" fill="#3e4440"/><rect x="84" y="134" width="30" height="22" fill="#3e4440"/>
+<line x1="20" y1="59" x2="60" y2="59" stroke="#5fe07a" class="w1 grid"/><line x1="240" y1="56" x2="280" y2="56" stroke="#5fe07a" class="w1 grid"/><line x1="18" y1="191" x2="62" y2="191" stroke="#5fe07a" class="w1 grid"/><line x1="240" y1="188" x2="284" y2="188" stroke="#5fe07a" class="w1 grid"/>
+<circle cx="150" cy="120" r="24" fill="#2a2e2c" stroke="#3e4440" class="w4"/>
+<circle cx="150" cy="120" r="14" fill="#0c2a14" stroke="#5fe07a" class="w2"/>
+<circle cx="150" cy="120" r="6" fill="#5fe07a"/>
+<circle cx="150" cy="120" r="34" fill="none" stroke="#5fe07a" class="w1 faint"/>
+<rect x="38" y="56" width="5" height="3" fill="#5fe07a"/><rect x="258" y="64" width="5" height="3" fill="#5fe07a"/><rect x="96" y="96" width="4" height="3" fill="#5fe07a"/><rect x="200" y="142" width="4" height="3" fill="#5fe07a"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #3a2f12; color: #f3cb5b">MAX · BORG ONLY</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Unicomplex</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #c6d2ca">The Collective's heart, a vast sprawl in deep space around a central hub. It holds the Collective's adaptation memory for the whole match and is where the Queen appears. If it's destroyed, every Borg unit loses its adaptations at once.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #8f9c93">Adaptations</span><span style="text-align: right; font-weight: 600">Kept all match</span>
+<span style="color: #8f9c93">Hero unit</span><span style="text-align: right; font-weight: 600">Borg Queen</span>
+<span style="color: #8f9c93">Cost</span><span style="text-align: right; font-weight: 600">2,000 Par · 200 Nanoprobes</span>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1424 @@
+{
+  "_notes": "layer: surface | orbital | deep_space | asteroid. Surface slots scale with planet size/class; each body has orbital ring slots; deep-space structures are placed freely near lanes/Lagrange points. cost/upkeep are placeholder numbers using resources.json ids. source: canon | beta | original.",
+  "layers": {
+    "surface":    "Built on planets/moons. Slot count = body size × habitability modifier. Airless bodies need a Pressure Dome first.",
+    "orbital":    "Ring slots around any body (3–8). Shipyards, refineries, defense platforms.",
+    "deep_space": "Free placement. Needs a construction ship and must be inside your supply range (except Outposts, which extend it).",
+    "asteroid":   "Hollowed asteroid slots (2–4). Cheap, hard to see, vulnerable to tractor-beam theft."
+  },
+  "shipyard_tiers": {
+    "_notes": "Max hull size a facility can build (see ships.json hull.size).",
+    "orbital_drydock": 3, "orbital_shipyard": 5, "spacedock": 6, "fleet_yards": 8
+  },
+  "buildings": [
+    { "id": "colony_hub", "name": "Colony Hub", "layer": "surface", "category": "core", "source": "original",
+      "cost": { "duranium": 100, "crew": 50 }, "effect": "Founds a colony; supply range 1; 1 build queue.", "upgrades_to": "colonial_administration" },
+    { "id": "colonial_administration", "name": "Colonial Administration", "layer": "surface", "category": "core", "source": "original",
+      "cost": { "duranium": 300, "tritanium": 150 }, "effect": "Supply range 2; unlocks districts tier 2.", "upgrades_to": "planetary_capital" },
+    { "id": "planetary_capital", "name": "Planetary Capital", "layer": "surface", "category": "core", "source": "original",
+      "cost": { "parasteel": 400, "isolinear_chips": 50 }, "limit": "1 per system", "effect": "Supply range 3; system-wide morale bonus." },
+
+    { "id": "prefab_habitat", "name": "Prefab Habitat", "layer": "surface", "category": "habitation", "source": "canon",
+      "cost": { "duranium": 60 }, "effect": "+Pop cap (small). Shown in many TOS/TNG colonies." },
+    { "id": "pressure_dome", "name": "Pressure Dome", "layer": "surface", "category": "habitation", "source": "canon",
+      "cost": { "transparent_aluminum": 40, "topaline": 10 }, "requires_tech": "pressure_domes",
+      "effect": "Enables surface building on airless/hostile bodies; +Pop cap. Breach risk under bombardment." },
+    { "id": "arcology", "name": "Arcology", "layer": "surface", "category": "habitation", "source": "original",
+      "cost": { "parasteel": 300 }, "requires_tech": "industrial_replicators", "effect": "+Pop cap (large); uses 1 slot for 4 habitats' worth." },
+    { "id": "underground_shelter", "name": "Kelbonite Shelter", "layer": "surface", "category": "habitation", "source": "original",
+      "cost": { "kelbonite": 30, "duranium": 50 }, "effect": "Population immune to scans, transporter raids, Crystalline Entity, thalaron sweeps." },
+
+    { "id": "mine", "name": "Mining Complex", "layer": "surface", "category": "resource", "source": "canon",
+      "cost": { "duranium": 80 }, "effect": "Extracts the body's primary ore deposit." },
+    { "id": "deep_core_mine", "name": "Deep-Core Mine", "layer": "surface", "category": "resource", "source": "canon",
+      "cost": { "parasteel": 120 }, "requires_tech": "deep_core_mining", "effect": "Reopens depleted deposits; seismic collapse risk." },
+    { "id": "dilithium_mine", "name": "Dilithium Mine", "layer": "surface", "category": "resource", "source": "canon",
+      "cost": { "tritanium": 150 }, "effect": "Raw dilithium. Prime target for raids. (Rura Penthe / Remus style labor variants are faction options.)" },
+    { "id": "recrystallizer", "name": "Dilithium Recrystallization Plant", "layer": "surface", "category": "resource", "source": "canon",
+      "cost": { "parasteel": 100 }, "requires_tech": "dilithium_recrystallization", "effect": "Restores spent dilithium; +refined dilithium." },
+    { "id": "refinery", "name": "Ore Refinery", "layer": "surface", "category": "industry", "source": "original",
+      "cost": { "duranium": 120 }, "effect": "Raw ore → Tritanium/Duranium/strategic metals." },
+    { "id": "foundry", "name": "Alloy Foundry", "layer": "surface", "category": "industry", "source": "original",
+      "cost": { "duranium": 150, "tritanium": 50 }, "effect": "Produces Parasteel, Transparent Aluminum, Plasma Conduits." },
+    { "id": "component_fab", "name": "Component Fabrication Plant", "layer": "surface", "category": "industry", "source": "original",
+      "cost": { "parasteel": 150 }, "requires_tech": "isolinear", "effect": "Isolinear chips, bio-neural gel packs, warp coils." },
+    { "id": "verterium_synth", "name": "Verterium Synthesis Lab", "layer": "surface", "category": "industry", "source": "original",
+      "cost": { "parasteel": 120, "energy": 50 }, "effect": "Synthesizes Verterium Cortenide for warp coils." },
+    { "id": "industrial_replicator", "name": "Industrial Replicator Center", "layer": "surface", "category": "industry", "source": "canon",
+      "cost": { "isolinear_chips": 60, "parasteel": 100 }, "requires_tech": "industrial_replicators",
+      "effect": "Energy → basic materials (5:1). Cannot make dilithium/latinum/strategics. Bajor's post-occupation gift is canon." },
+
+    { "id": "fusion_reactor", "name": "Fusion Reactor", "layer": "surface", "category": "power", "source": "canon",
+      "cost": { "duranium": 80, "deuterium": 20 }, "effect": "+Energy; burns deuterium." },
+    { "id": "geothermal_tap", "name": "Geothermal Tap", "layer": "surface", "category": "power", "source": "original",
+      "cost": { "duranium": 100 }, "effect": "+Energy on volcanic/Class H/Y bodies; no fuel." },
+    { "id": "pergium_reactor", "name": "Pergium Reactor", "layer": "surface", "category": "power", "source": "original",
+      "cost": { "parasteel": 100, "pergium": 20 }, "effect": "+Large energy. Janus VI–style; Horta events possible nearby." },
+
+    { "id": "science_lab", "name": "Research Lab", "layer": "surface", "category": "research", "source": "original",
+      "cost": { "duranium": 100 }, "effect": "+Research." },
+    { "id": "observatory", "name": "Stellar Observatory", "layer": "surface", "category": "research", "source": "original",
+      "cost": { "duranium": 80, "transparent_aluminum": 20 }, "effect": "+Research; reveals anomalies in adjacent systems." },
+    { "id": "xenobiology_center", "name": "Xenobiology Center", "layer": "surface", "category": "research", "source": "original",
+      "cost": { "parasteel": 80 }, "effect": "+Biology research; reduces plague severity; enables native-life negotiation." },
+
+    { "id": "garrison", "name": "Security Garrison", "layer": "surface", "category": "military", "source": "original",
+      "cost": { "duranium": 100, "crew": 50 }, "effect": "Trains ground troops; defends against invasion/boarding." },
+    { "id": "phaser_bank", "name": "Planetary Phaser Bank", "layer": "surface", "category": "military", "source": "canon",
+      "cost": { "tritanium": 120, "energy": 30 }, "requires_tech": "phaser", "effect": "Surface-to-orbit beam; hits ships in orbit." },
+    { "id": "torpedo_silo", "name": "Torpedo Launcher Silo", "layer": "surface", "category": "military", "source": "canon",
+      "cost": { "tritanium": 100, "antimatter": 20 }, "effect": "Long-range surface-to-orbit torpedoes (DS9-style launchers)." },
+    { "id": "planetary_shield", "name": "Planetary Shield Generator", "layer": "surface", "category": "military", "source": "canon",
+      "cost": { "parasteel": 250, "energy": 80 }, "requires_tech": "regenerative_shields", "limit": "1 per body",
+      "effect": "Blocks bombardment and transporters until depleted." },
+    { "id": "sensor_grid_ground", "name": "Planetary Sensor Grid", "layer": "surface", "category": "military", "source": "original",
+      "cost": { "duranium": 60, "isolinear_chips": 10 }, "effect": "+Vision; detects Changeling/infiltrator events." },
+
+    { "id": "hospital", "name": "Medical Center", "layer": "surface", "category": "civic", "source": "canon",
+      "cost": { "duranium": 80 }, "effect": "+Pop growth; crew recovery; plague resistance." },
+    { "id": "replicator_center", "name": "Food Replicator Center", "layer": "surface", "category": "civic", "source": "canon",
+      "cost": { "duranium": 60, "energy": 20 }, "requires_tech": "replicators", "effect": "Removes food upkeep." },
+    { "id": "holosuite_bar", "name": "Holosuite Bar", "layer": "surface", "category": "civic", "source": "canon",
+      "cost": { "duranium": 80, "latinum": 20 }, "requires_tech": "holotechnology",
+      "effect": "+Morale, +Latinum; crew XP trickle. (Quark's)" },
+    { "id": "embassy", "name": "Embassy", "layer": "surface", "category": "civic", "source": "canon",
+      "cost": { "parasteel": 100, "latinum": 50 }, "effect": "Opens diplomacy with a faction; espionage defense." },
+    { "id": "weather_control", "name": "Weather Control Network", "layer": "surface", "category": "terraforming", "source": "canon",
+      "cost": { "parasteel": 200, "isolinear_chips": 30 }, "effect": "+Habitability, +morale, resists stellar flare damage. (Risa)" },
+    { "id": "terraforming_station", "name": "Terraforming Station", "layer": "surface", "category": "terraforming", "source": "canon",
+      "cost": { "parasteel": 150, "energy": 50 }, "requires_tech": "atmospheric_processors",
+      "effect": "Advances class over time (L→M, K→L). Velara III–style: may discover native life and have to stop." },
+
+    { "id": "orbital_drydock", "name": "Orbital Drydock", "layer": "orbital", "category": "shipyard", "source": "canon",
+      "cost": { "duranium": 200, "tritanium": 100 }, "effect": "Builds hulls ≤ size 3; repairs ships." },
+    { "id": "orbital_shipyard", "name": "Orbital Shipyard", "layer": "orbital", "category": "shipyard", "source": "canon",
+      "cost": { "parasteel": 300, "plasma_conduits": 40 }, "effect": "Builds hulls ≤ size 5." },
+    { "id": "deuterium_refinery", "name": "Orbital Deuterium Refinery", "layer": "orbital", "category": "resource", "source": "original",
+      "cost": { "duranium": 150 }, "valid_on": ["class_j", "class_t", "class_n"], "effect": "+Deuterium from gas giants/oceans." },
+    { "id": "antimatter_plant", "name": "Antimatter Generation Facility", "layer": "orbital", "category": "industry", "source": "original",
+      "cost": { "parasteel": 200, "energy": 60 }, "effect": "Deuterium + Energy → Antimatter. Orbital only — catastrophic if destroyed (damages ring)." },
+    { "id": "orbital_habitat", "name": "Orbital Habitat Ring", "layer": "orbital", "category": "habitation", "source": "original",
+      "cost": { "parasteel": 180 }, "effect": "+Pop around any body, even gas giants." },
+    { "id": "defense_platform", "name": "Orbital Weapons Platform", "layer": "orbital", "category": "military", "source": "canon",
+      "cost": { "tritanium": 200, "antimatter": 20 }, "requires": "platform_power_generator",
+      "effect": "Heavy automated weapons. Chin'toka-style: all platforms in system go dark if their generator is destroyed." },
+    { "id": "platform_power_generator", "name": "Platform Power Generator", "layer": "surface", "category": "military", "source": "canon",
+      "cost": { "parasteel": 150 }, "effect": "Powers every Orbital Weapons Platform in the system. Usually on a moon — a juicy commando target." },
+    { "id": "orbital_sensor_array", "name": "Sensor Array", "layer": "orbital", "category": "military", "source": "canon",
+      "cost": { "duranium": 80, "isolinear_chips": 10 }, "effect": "+Vision radius; anomaly early warning." },
+    { "id": "cargo_depot", "name": "Orbital Cargo Depot", "layer": "orbital", "category": "logistics", "source": "original",
+      "cost": { "duranium": 100 }, "effect": "+Storage; freighter trade-route endpoint." },
+    { "id": "genesis_launcher", "name": "Genesis Launch Platform", "layer": "orbital", "category": "terraforming", "source": "canon",
+      "cost": { "parasteel": 300, "protomatter": 10 }, "requires_tech": "genesis", "forbidden": true,
+      "effect": "Instantly converts a Class D body / nebula to Class M. 40% later destabilization. Can be fired at an inhabited world." },
+
+    { "id": "outpost", "name": "Outpost", "layer": "deep_space", "category": "station", "source": "canon",
+      "cost": { "duranium": 120, "rodinium": 10 }, "effect": "Claims territory; +supply range; small garrison. (Neutral Zone outposts, cast rodinium)", "upgrades_to": "deep_space_station" },
+    { "id": "deep_space_station", "name": "Deep Space Station", "layer": "deep_space", "category": "station", "source": "canon",
+      "cost": { "parasteel": 300 }, "effect": "Trade hub (+Latinum), repairs, docking for 4 ships. (K-7)", "upgrades_to": "starbase" },
+    { "id": "starbase", "name": "Starbase", "layer": "deep_space", "category": "station", "source": "canon",
+      "cost": { "parasteel": 600, "isolinear_chips": 50 }, "effect": "Heavy defense, fleet command aura, research, supply range 3.", "upgrades_to": "spacedock" },
+    { "id": "spacedock", "name": "Spacedock", "layer": "deep_space", "category": "shipyard", "source": "canon",
+      "cost": { "parasteel": 1200, "plasma_conduits": 150 }, "limit": "2 per player",
+      "effect": "Builds hulls ≤ size 6 inside its bay; full repairs; Earth Spacedock 'mushroom'.", "upgrades_to": "yorktown_station" },
+    { "id": "yorktown_station", "name": "Yorktown-type Megastation", "layer": "deep_space", "category": "wonder", "source": "canon",
+      "cost": { "parasteel": 4000, "isolinear_chips": 300, "dilithium": 200 }, "limit": "1 per player",
+      "effect": "Massive population, research and trade; a world in a snow globe." },
+    { "id": "research_station", "name": "Research Station", "layer": "deep_space", "category": "research", "source": "canon",
+      "cost": { "parasteel": 200 }, "effect": "Placed next to an anomaly: studies it for research/eureka techs. (Regula I)" },
+    { "id": "listening_post", "name": "Listening Post", "layer": "deep_space", "category": "intel", "source": "canon",
+      "cost": { "duranium": 120, "isolinear_chips": 20 }, "effect": "Long-range intel across a border; detects fleet movements in neighboring systems." },
+    { "id": "subspace_relay", "name": "Subspace Relay", "layer": "deep_space", "category": "logistics", "source": "canon",
+      "cost": { "duranium": 60 }, "requires_tech": "subspace_relays", "effect": "+Supply range, +comms (faster AI/ally coordination); hackable." },
+    { "id": "tachyon_node", "name": "Tachyon Detection Node", "layer": "deep_space", "category": "intel", "source": "canon",
+      "cost": { "duranium": 80, "energy": 20 }, "requires_tech": "tachyon_grid", "effect": "Pairs of nodes form a beam line that reveals cloaked ships crossing it." },
+    { "id": "minefield", "name": "Self-Replicating Minefield", "layer": "deep_space", "category": "military", "source": "canon",
+      "cost": { "antimatter": 60, "parasteel": 100 }, "effect": "Cloaked mines that rebuild themselves; seals a lane/wormhole." },
+    { "id": "salvage_yard", "name": "Salvage Station", "layer": "deep_space", "category": "resource", "source": "original",
+      "cost": { "duranium": 100 }, "effect": "Placed at battle sites/derelicts: slow resource + tech-fragment income." },
+    { "id": "fleet_yards", "name": "Fleet Yards", "layer": "orbital", "category": "wonder", "source": "canon",
+      "cost": { "parasteel": 3000, "warp_coils": 200 }, "limit": "1 per player",
+      "effect": "Builds Titans; -20% build time all ships. (Utopia Planitia)" }
+  ],
+  "faction_buildings": [
+    { "faction": "federation", "id": "starfleet_academy", "name": "Starfleet Academy", "source": "canon", "effect": "Recruit/train Captains; crew XP bonus." },
+    { "faction": "federation", "id": "daystrom_institute", "name": "Daystrom Institute", "source": "canon", "effect": "Large research bonus; unlocks positronic research early." },
+    { "faction": "federation", "id": "memory_alpha_archive", "name": "Memory Alpha Archive", "source": "canon", "effect": "Shared research with allies; tech-loss protection." },
+    { "faction": "federation", "id": "federation_council", "name": "Federation Council Chamber", "source": "canon", "effect": "Member Worlds votes; diplomatic victory progress." },
+
+    { "faction": "klingon", "id": "great_hall", "name": "Great Hall", "source": "canon", "effect": "Spend Honor to summon Great House fleets; High Council politics." },
+    { "faction": "klingon", "id": "warrior_training_ground", "name": "Warrior Training Ground", "source": "original", "effect": "Elite boarding parties." },
+    { "faction": "klingon", "id": "penal_colony", "name": "Penal Colony", "source": "canon", "effect": "Prisoner labor dilithium mine (Rura Penthe). Huge output, escape/rebellion events." },
+    { "faction": "klingon", "id": "asteroid_fortress", "name": "Asteroid Fortress", "source": "canon", "effect": "Hollowed asteroid base with heavy disruptors (Ty'Gokor)." },
+
+    { "faction": "romulan", "id": "tal_shiar_hq", "name": "Tal Shiar Headquarters", "source": "canon", "effect": "Espionage operations; internal security." },
+    { "faction": "romulan", "id": "singularity_forge", "name": "Singularity Forge", "source": "original", "effect": "Produces Artificial Singularity cores." },
+    { "faction": "romulan", "id": "reman_mines", "name": "Reman Dilithium Mines", "source": "canon", "effect": "Forced-labor dilithium; Reman uprising risk; Reman shock troops." },
+    { "faction": "romulan", "id": "cloaked_outpost", "name": "Cloaked Outpost", "source": "original", "effect": "Invisible station; reveals itself when firing." },
+
+    { "faction": "cardassian", "id": "nor_station", "name": "Nor-type Ore Processing Station", "source": "canon", "effect": "Doubles refined output in system; forced labor variant. (Terok Nor / Empok Nor)" },
+    { "faction": "cardassian", "id": "obsidian_order_office", "name": "Obsidian Order Office", "source": "canon", "effect": "Surveillance: suppresses Resistance, reveals spies." },
+    { "faction": "cardassian", "id": "labor_camp", "name": "Labor Camp", "source": "canon", "effect": "Occupied-world output boost; Resistance generation." },
+
+    { "faction": "dominion", "id": "ketracel_facility", "name": "Ketracel-white Facility", "source": "canon", "effect": "Produces White; destroying it cripples nearby Jem'Hadar." },
+    { "faction": "dominion", "id": "cloning_facility", "name": "Jem'Hadar Birthing/Cloning Facility", "source": "canon", "effect": "Fast troop and crew production — no population needed." },
+    { "faction": "dominion", "id": "internment_camp", "name": "Internment Camp", "source": "canon", "effect": "Holds captured captains; enables Changeling replacement ops." },
+    { "faction": "dominion", "id": "great_link_pool", "name": "Great Link", "source": "canon", "effect": "Capital wonder: Changeling infiltrator production; Founder morale aura." },
+
+    { "faction": "ferengi", "id": "tower_of_commerce", "name": "Tower of Commerce", "source": "canon", "effect": "Capital; unlocks Rules of Acquisition perks." },
+    { "faction": "ferengi", "id": "latinum_exchange", "name": "Latinum Exchange", "source": "original", "effect": "Convert any resource ↔ Latinum at market rates (player-driven prices)." },
+    { "faction": "ferengi", "id": "mercenary_guild", "name": "Mercenary Contract Office", "source": "original", "effect": "Hire pirate/minor-faction ships for Latinum." },
+
+    { "faction": "borg", "id": "unicomplex", "name": "Unicomplex", "source": "canon", "effect": "Capital; Queen spawn point; collective-wide adaptation memory." },
+    { "faction": "borg", "id": "vinculum", "name": "Vinculum Node", "source": "canon", "effect": "Links ships/colonies; destroying it disconnects drones in range." },
+    { "faction": "borg", "id": "transwarp_hub", "name": "Transwarp Hub", "source": "canon", "effect": "Opens conduits to any other hub instantly." },
+    { "faction": "borg", "id": "assimilation_complex", "name": "Assimilation Complex", "source": "original", "effect": "Converts captured population into drones; disassembles captured ships into tech." }
+  ],
+  "relics": {
+    "_notes": "Map-placed, unbuildable. Capture/study for unique bonuses. Great late-game objectives in multiplayer.",
+    "list": [
+      { "id": "guardian_of_forever", "name": "Guardian of Forever", "source": "canon", "effect": "One-time temporal action: undo a lost battle or rewind a colony." },
+      { "id": "iconian_gateway", "name": "Iconian Gateway", "source": "canon", "effect": "Teleports ships/troops to any visible system; dangerous if left open." },
+      { "id": "dyson_sphere", "name": "Dyson Sphere", "source": "canon", "effect": "Enormous habitable interior and energy; very hard to enter." },
+      { "id": "caretaker_array", "name": "Caretaker-type Array", "source": "canon", "effect": "Pulls a random fleet across the galaxy; can be controlled or destroyed." },
+      { "id": "celestial_temple", "name": "Celestial Temple (Wormhole)", "source": "canon", "effect": "Stable wormhole; Bajoran-faith morale; Prophets/Pah-wraith events." },
+      { "id": "genesis_planet", "name": "Genesis Planet", "source": "canon", "effect": "Rich, unstable world — rapid regeneration effects, then collapse." }
+    ]
+  },
+  "_notes_faction_lines": "faction_lines: per-faction upgrade chains shown on the structure-concept canvas. Each line is ordered level 1 -> max; a level replaces the previous one in place. building_ref points at a fuller entry in buildings[] or faction_buildings[] where one exists. All costs are placeholders.",
+  "faction_lines": {
+    "federation": {
+      "deep_space": [
+        {
+          "id": "outpost",
+          "name": "Outpost",
+          "cost": {
+            "duranium": 120,
+            "rodinium": 10
+          },
+          "effect": "Claims the system.",
+          "stats": {
+            "supply_range": 1,
+            "docking": 0
+          },
+          "building_ref": "outpost"
+        },
+        {
+          "id": "deep_space_station",
+          "name": "Deep Space Station",
+          "cost": {
+            "parasteel": 300
+          },
+          "effect": "K-7 style trade hub.",
+          "stats": {
+            "supply_range": 2,
+            "docking": 4
+          },
+          "building_ref": "deep_space_station"
+        },
+        {
+          "id": "starbase",
+          "name": "Starbase",
+          "cost": {
+            "parasteel": 600,
+            "isolinear_chips": 50
+          },
+          "effect": "Saucer command deck, fleet aura.",
+          "stats": {
+            "supply_range": 3,
+            "docking": 8
+          },
+          "building_ref": "starbase"
+        },
+        {
+          "id": "spacedock",
+          "name": "Spacedock",
+          "cost": {
+            "parasteel": 1200,
+            "plasma_conduits": 150
+          },
+          "effect": "Interior bay; builds size-6 hulls.",
+          "stats": {
+            "hull_cap": 6,
+            "docking": 16
+          },
+          "building_ref": "spacedock"
+        },
+        {
+          "id": "yorktown_station",
+          "name": "Yorktown",
+          "cost": {
+            "parasteel": 4000,
+            "isolinear_chips": 300,
+            "dilithium": 200
+          },
+          "effect": "Habitable rings inside a transparent shell.",
+          "stats": {
+            "docking": 24
+          },
+          "tag": "wonder",
+          "building_ref": "yorktown_station"
+        }
+      ],
+      "command": [
+        {
+          "id": "colony_hub",
+          "name": "Colony Hub",
+          "cost": {
+            "duranium": 100,
+            "crew": 50
+          },
+          "effect": "Three linked prefab modules.",
+          "stats": {
+            "supply_range": 1,
+            "build_queues": 1
+          },
+          "building_ref": "colony_hub"
+        },
+        {
+          "id": "colonial_administration",
+          "name": "Colonial Administration",
+          "cost": {
+            "duranium": 300,
+            "tritanium": 150
+          },
+          "effect": "Admin block and comms tower.",
+          "stats": {
+            "supply_range": 2,
+            "build_queues": 2
+          },
+          "building_ref": "colonial_administration"
+        },
+        {
+          "id": "planetary_capital",
+          "name": "Planetary Capital",
+          "cost": {
+            "parasteel": 400,
+            "isolinear_chips": 50
+          },
+          "effect": "City of towers; system-wide morale.",
+          "stats": {
+            "supply_range": 3
+          },
+          "building_ref": "planetary_capital"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "orbital_drydock",
+          "name": "Orbital Drydock",
+          "cost": {
+            "duranium": 200,
+            "tritanium": 100
+          },
+          "effect": "Open frame; escorts and frigates.",
+          "stats": {
+            "hull_cap": 3,
+            "build_slots": 1
+          },
+          "building_ref": "orbital_drydock"
+        },
+        {
+          "id": "orbital_shipyard",
+          "name": "Orbital Shipyard",
+          "cost": {
+            "parasteel": 300,
+            "plasma_conduits": 40
+          },
+          "effect": "Double frame with cranes; cruisers.",
+          "stats": {
+            "hull_cap": 5,
+            "build_slots": 2
+          },
+          "building_ref": "orbital_shipyard"
+        },
+        {
+          "id": "fleet_yards",
+          "name": "Fleet Yards",
+          "cost": {
+            "parasteel": 3000,
+            "warp_coils": 200
+          },
+          "effect": "Utopia Planitia; titan berth, -20% build time.",
+          "stats": {
+            "hull_cap": "titan"
+          },
+          "tag": "wonder",
+          "building_ref": "fleet_yards"
+        }
+      ],
+      "habitation": [
+        {
+          "id": "prefab_habitat",
+          "name": "Prefab Habitat",
+          "cost": {
+            "duranium": 60
+          },
+          "effect": "Sealed modules on Class K/M/L/H.",
+          "stats": {
+            "pop_cap": 1
+          },
+          "building_ref": "prefab_habitat"
+        },
+        {
+          "id": "pressure_dome",
+          "name": "Pressure Domes",
+          "cost": {
+            "transparent_aluminum": 40,
+            "topaline": 10
+          },
+          "effect": "Domes on any solid body; breach risk.",
+          "stats": {
+            "pop_cap": 2
+          },
+          "building_ref": "pressure_dome"
+        },
+        {
+          "id": "arcology",
+          "name": "Arcology",
+          "cost": {
+            "parasteel": 300
+          },
+          "effect": "Terraced megastructure; needs industrial replicators.",
+          "stats": {
+            "pop_cap": 8
+          },
+          "building_ref": "arcology"
+        }
+      ]
+    },
+    "klingon": {
+      "deep_space": [
+        {
+          "id": "kli_border_outpost",
+          "name": "Border Outpost",
+          "cost": {
+            "duranium": 140,
+            "rodinium": 10
+          },
+          "effect": "Spear tower armed with 2 disruptors from day one.",
+          "stats": {
+            "supply_range": 1,
+            "weapons": 2
+          }
+        },
+        {
+          "id": "kli_battle_station",
+          "name": "Battle Station",
+          "cost": {
+            "parasteel": 320
+          },
+          "effect": "Armored hub with wing arms; cloaked ships rearm without decloaking.",
+          "stats": {
+            "supply_range": 2,
+            "docking": 3
+          }
+        },
+        {
+          "id": "kli_starbase",
+          "name": "Klingon Starbase",
+          "cost": {
+            "parasteel": 600,
+            "isolinear_chips": 40
+          },
+          "effect": "War platform with spires; fleet aura, Honor for kills nearby.",
+          "stats": {
+            "supply_range": 3,
+            "docking": 6
+          }
+        },
+        {
+          "id": "asteroid_fortress",
+          "name": "Asteroid Fortress",
+          "cost": {
+            "parasteel": 1000,
+            "kelbonite": 80
+          },
+          "effect": "Ty'Gokor style hollowed asteroid; kelbonite hides hangars from scans.",
+          "stats": {
+            "hidden_hangars": 8,
+            "requires": "asteroid_in_system"
+          },
+          "tag": "faction_only",
+          "building_ref": "asteroid_fortress"
+        }
+      ],
+      "command": [
+        {
+          "id": "kli_house_encampment",
+          "name": "House Encampment",
+          "cost": {
+            "duranium": 90,
+            "crew": 60
+          },
+          "effect": "Shelters, brazier, House banner; trains warriors.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "kli_governors_keep",
+          "name": "Governor's Keep",
+          "cost": {
+            "duranium": 280,
+            "tritanium": 160
+          },
+          "effect": "Walled keep; +50% garrison defense, 2nd build queue.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "great_hall",
+          "name": "Great Hall",
+          "cost": {
+            "parasteel": 450,
+            "honor": 100
+          },
+          "effect": "High Council seat; spend Honor for Great House fleets.",
+          "stats": {
+            "supply_range": 3
+          },
+          "tag": "faction_only",
+          "building_ref": "great_hall"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "kli_cradle",
+          "name": "Cradle",
+          "cost": {
+            "duranium": 180,
+            "tritanium": 100
+          },
+          "effect": "Claw cradle; -15% build time on escorts.",
+          "stats": {
+            "hull_cap": 3,
+            "build_slots": 1
+          }
+        },
+        {
+          "id": "kli_imperial_shipyard",
+          "name": "Imperial Shipyard",
+          "cost": {
+            "parasteel": 300,
+            "plasma_conduits": 40
+          },
+          "effect": "Three claw pairs; battlecruisers.",
+          "stats": {
+            "hull_cap": 5,
+            "build_slots": 2
+          }
+        },
+        {
+          "id": "kli_imperial_fleet_yards",
+          "name": "Imperial Fleet Yards",
+          "cost": {
+            "parasteel": 2800,
+            "warp_coils": 200
+          },
+          "effect": "Titan berth (Negh'Var); Great House sponsorship cuts cost 30%.",
+          "stats": {
+            "hull_cap": "titan"
+          },
+          "tag": "wonder"
+        }
+      ],
+      "habitation": [
+        {
+          "id": "kli_clan_longhouse",
+          "name": "Clan Longhouse",
+          "cost": {
+            "duranium": 70
+          },
+          "effect": "Stone hall; +1 militia strength.",
+          "stats": {
+            "pop_cap": 1
+          }
+        },
+        {
+          "id": "kli_fortified_settlement",
+          "name": "Fortified Settlement",
+          "cost": {
+            "duranium": 160,
+            "tritanium": 60
+          },
+          "effect": "Walled compound; +2 vs invasion.",
+          "stats": {
+            "pop_cap": 3
+          }
+        },
+        {
+          "id": "kli_warrior_citadel",
+          "name": "Warrior Citadel",
+          "cost": {
+            "parasteel": 320,
+            "rodinium": 60
+          },
+          "effect": "Crag city; trains elite warriors, hardest to invade.",
+          "stats": {
+            "pop_cap": 7
+          }
+        }
+      ]
+    },
+    "cardassian": {
+      "deep_space": [
+        {
+          "id": "car_outpost",
+          "name": "Outpost",
+          "cost": {
+            "duranium": 120,
+            "rodinium": 10
+          },
+          "effect": "Ribbed spindle; +1 system sensor range.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "car_monitoring_station",
+          "name": "Monitoring Station",
+          "cost": {
+            "parasteel": 280,
+            "isolinear_chips": 20
+          },
+          "effect": "Oval hub; reveals fleet movement in neighbouring systems.",
+          "stats": {
+            "supply_range": 2,
+            "docking": 2
+          }
+        },
+        {
+          "id": "nor_station",
+          "name": "Nor-type Station",
+          "cost": {
+            "parasteel": 700,
+            "uridium": 60
+          },
+          "effect": "Terok Nor layout; x2 refined output in system.",
+          "stats": {
+            "docking": 12
+          },
+          "tag": "faction_only",
+          "building_ref": "nor_station"
+        },
+        {
+          "id": "car_nor_bastion",
+          "name": "Nor-type Bastion",
+          "cost": {
+            "parasteel": 1100,
+            "antimatter": 80
+          },
+          "effect": "War refit: 6 arrays + 4 weapons platforms; keeps refining bonus.",
+          "stats": {
+            "weapons": 10
+          },
+          "tag": "faction_only"
+        }
+      ],
+      "command": [
+        {
+          "id": "car_garrison_post",
+          "name": "Garrison Post",
+          "cost": {
+            "duranium": 110,
+            "crew": 40
+          },
+          "effect": "Ribbed bunker; trains Cardassian soldiers.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "car_prefecture",
+          "name": "Prefecture",
+          "cost": {
+            "duranium": 300,
+            "tritanium": 140
+          },
+          "effect": "Governs occupied worlds; -1 Resistance.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "car_central_command",
+          "name": "Central Command",
+          "cost": {
+            "parasteel": 450,
+            "isolinear_chips": 60
+          },
+          "effect": "Unlocks Obsidian Order and Union occupation policies.",
+          "stats": {
+            "supply_range": 3
+          },
+          "tag": "faction_only"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "car_rib_dock",
+          "name": "Rib Dock",
+          "cost": {
+            "duranium": 200,
+            "tritanium": 100
+          },
+          "effect": "Hideki, Groumall; cheaper with a Nor-type in system.",
+          "stats": {
+            "hull_cap": 3,
+            "build_slots": 1
+          }
+        },
+        {
+          "id": "car_fleet_shipyard",
+          "name": "Fleet Shipyard",
+          "cost": {
+            "parasteel": 300,
+            "plasma_conduits": 40
+          },
+          "effect": "Galor and Keldon.",
+          "stats": {
+            "hull_cap": 5,
+            "build_slots": 2
+          }
+        },
+        {
+          "id": "car_assembly_yards",
+          "name": "Assembly Yards",
+          "cost": {
+            "parasteel": 2400,
+            "uridium": 120
+          },
+          "effect": "3 parallel lines, cruisers -25%; no titan berth.",
+          "stats": {
+            "hull_cap": 5,
+            "build_slots": 3
+          },
+          "tag": "wonder"
+        }
+      ],
+      "habitation": [
+        {
+          "id": "car_labor_barracks",
+          "name": "Labor Barracks",
+          "cost": {
+            "duranium": 60
+          },
+          "effect": "On occupied worlds: +50% output, rising Resistance.",
+          "stats": {
+            "pop_cap": 1
+          }
+        },
+        {
+          "id": "car_civic_arcade",
+          "name": "Civic Arcade",
+          "cost": {
+            "duranium": 150,
+            "transparent_aluminum": 40
+          },
+          "effect": "Broadcast screens; spies found faster.",
+          "stats": {
+            "pop_cap": 3
+          }
+        },
+        {
+          "id": "car_capital_district",
+          "name": "Capital District",
+          "cost": {
+            "parasteel": 320,
+            "uridium": 40
+          },
+          "effect": "Monument city; -1 Resistance in system.",
+          "stats": {
+            "pop_cap": 7
+          }
+        }
+      ]
+    },
+    "romulan": {
+      "deep_space": [
+        {
+          "id": "rom_cloaked_outpost",
+          "name": "Cloaked Outpost",
+          "cost": {
+            "duranium": 130,
+            "isolinear_chips": 20
+          },
+          "effect": "Hidden from enemy maps until it fires.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "rom_listening_post",
+          "name": "Listening Post",
+          "cost": {
+            "parasteel": 260,
+            "isolinear_chips": 40
+          },
+          "effect": "Neutral Zone sensor wings; intel 2 systems out.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "rom_warbird_aerie",
+          "name": "Warbird Aerie",
+          "cost": {
+            "parasteel": 620,
+            "isolinear_chips": 60
+          },
+          "effect": "Hawk-shaped starbase; ships launch cloaked.",
+          "stats": {
+            "supply_range": 3,
+            "docking": 6
+          }
+        },
+        {
+          "id": "rom_singularity_bastion",
+          "name": "Singularity Bastion",
+          "cost": {
+            "parasteel": 1200,
+            "singularity_core": 2
+          },
+          "effect": "No antimatter upkeep in range; gravity well if destroyed.",
+          "tag": "faction_only"
+        }
+      ],
+      "command": [
+        {
+          "id": "rom_colonial_garrison",
+          "name": "Colonial Garrison",
+          "cost": {
+            "duranium": 110,
+            "crew": 40
+          },
+          "effect": "Enemy scans see no colony details.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "rom_proconsulate",
+          "name": "Proconsulate",
+          "cost": {
+            "duranium": 300,
+            "tritanium": 140
+          },
+          "effect": "2nd build queue, 1 Tal Shiar op slot.",
+          "stats": {
+            "supply_range": 2,
+            "tal_shiar_slots": 1
+          }
+        },
+        {
+          "id": "rom_imperial_senate",
+          "name": "Imperial Senate",
+          "cost": {
+            "parasteel": 450,
+            "isolinear_chips": 80
+          },
+          "effect": "Unlocks Tal Shiar HQ and Senate politics (bribable senators).",
+          "stats": {
+            "supply_range": 3,
+            "tal_shiar_slots": 3
+          },
+          "tag": "faction_only"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "rom_aerie_dock",
+          "name": "Aerie Dock",
+          "cost": {
+            "duranium": 200,
+            "isolinear_chips": 30
+          },
+          "effect": "Half-cloaked arches; hidden build queue.",
+          "stats": {
+            "hull_cap": 3
+          }
+        },
+        {
+          "id": "rom_imperial_shipyard",
+          "name": "Imperial Shipyard",
+          "cost": {
+            "parasteel": 320,
+            "plasma_conduits": 40
+          },
+          "effect": "Valdore-class cruisers.",
+          "stats": {
+            "hull_cap": 5,
+            "build_slots": 2
+          }
+        },
+        {
+          "id": "rom_singularity_yards",
+          "name": "Singularity Yards",
+          "cost": {
+            "parasteel": 3000,
+            "singularity_core": 4
+          },
+          "effect": "D'deridex and (Picard era) Scimitar; all hulls launch cloaked.",
+          "stats": {
+            "hull_cap": "titan"
+          },
+          "tag": "wonder"
+        }
+      ],
+      "habitation": [
+        {
+          "id": "rom_colonial_villa",
+          "name": "Colonial Villa",
+          "cost": {
+            "duranium": 70
+          },
+          "effect": "Courtyard homes; +1 morale.",
+          "stats": {
+            "pop_cap": 1
+          }
+        },
+        {
+          "id": "rom_terraced_quarter",
+          "name": "Terraced Quarter",
+          "cost": {
+            "duranium": 170,
+            "tritanium": 40
+          },
+          "effect": "Informant network; spies and Changelings found faster.",
+          "stats": {
+            "pop_cap": 3
+          }
+        },
+        {
+          "id": "rom_spire_city",
+          "name": "Spire City",
+          "cost": {
+            "parasteel": 320,
+            "isolinear_chips": 50
+          },
+          "effect": "Ki Baratan style; +2 research, system-wide informants.",
+          "stats": {
+            "pop_cap": 7
+          }
+        }
+      ]
+    },
+    "dominion": {
+      "deep_space": [
+        {
+          "id": "dom_jemhadar_outpost",
+          "name": "Jem'Hadar Outpost",
+          "cost": {
+            "duranium": 130
+          },
+          "effect": "No crew upkeep; costs 1 White per cycle.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "ketracel_facility",
+          "name": "Ketracel-white Facility",
+          "cost": {
+            "parasteel": 300,
+            "zenite": 30
+          },
+          "effect": "+6 White/cycle; losing it makes nearby Jem'Hadar feral.",
+          "stats": {
+            "supply_range": 2
+          },
+          "tag": "faction_only",
+          "building_ref": "ketracel_facility"
+        },
+        {
+          "id": "dom_vorta_command_station",
+          "name": "Vorta Command Station",
+          "cost": {
+            "parasteel": 600,
+            "isolinear_chips": 50
+          },
+          "effect": "Fleet aura; Vorta diplomacy with neighbours.",
+          "stats": {
+            "supply_range": 3,
+            "docking": 8
+          }
+        },
+        {
+          "id": "dom_wormhole_citadel",
+          "name": "Wormhole Citadel",
+          "cost": {
+            "parasteel": 1400,
+            "isolinear_chips": 100
+          },
+          "effect": "On a stable wormhole; free reinforcement wave every 10 min.",
+          "stats": {
+            "requires": "stable_wormhole"
+          },
+          "tag": "faction_only"
+        }
+      ],
+      "command": [
+        {
+          "id": "dom_vorta_field_post",
+          "name": "Vorta Field Post",
+          "cost": {
+            "duranium": 110,
+            "ketracel_white": 2
+          },
+          "effect": "Vorta supervisor + Jem'Hadar squad; clone replaces a killed Vorta.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "dom_vorta_administration",
+          "name": "Vorta Administration",
+          "cost": {
+            "duranium": 300,
+            "tritanium": 140
+          },
+          "effect": "Client-world pacts with minor factions.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "great_link_pool",
+          "name": "Founders' Sanctuary",
+          "cost": {
+            "parasteel": 500,
+            "isolinear_chips": 60
+          },
+          "effect": "The Great Link; trains Changeling infiltrators, loyalty aura.",
+          "stats": {
+            "supply_range": 3
+          },
+          "tag": "faction_only",
+          "building_ref": "great_link_pool"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "dom_attack_ship_cradle",
+          "name": "Attack Ship Cradle",
+          "cost": {
+            "duranium": 200,
+            "tritanium": 100
+          },
+          "effect": "Attack ships built in pairs, crewed from vats.",
+          "stats": {
+            "hull_cap": 3,
+            "build_slots": 2
+          }
+        },
+        {
+          "id": "dom_shipyard",
+          "name": "Dominion Shipyard",
+          "cost": {
+            "parasteel": 500,
+            "plasma_conduits": 60
+          },
+          "effect": "Skips cruisers; Jem'Hadar battle cruiser.",
+          "stats": {
+            "hull_cap": 6,
+            "build_slots": 1
+          }
+        },
+        {
+          "id": "dom_stellar_forge",
+          "name": "Stellar Forge",
+          "cost": {
+            "parasteel": 2800,
+            "warp_coils": 200
+          },
+          "effect": "Star-powered; Jem'Hadar battleship; no energy upkeep.",
+          "stats": {
+            "hull_cap": "titan"
+          },
+          "tag": "wonder"
+        }
+      ],
+      "clones": [
+        {
+          "id": "dom_birthing_chamber",
+          "name": "Birthing Chamber",
+          "cost": {
+            "duranium": 90,
+            "zenite": 20
+          },
+          "effect": "1 Jem'Hadar squad/cycle, no population needed.",
+          "stats": {
+            "squads_per_cycle": 1
+          }
+        },
+        {
+          "id": "cloning_facility",
+          "name": "Cloning Facility",
+          "cost": {
+            "parasteel": 260,
+            "zenite": 40
+          },
+          "effect": "3 squads/cycle; Vorta revival.",
+          "stats": {
+            "squads_per_cycle": 3
+          },
+          "building_ref": "cloning_facility"
+        },
+        {
+          "id": "dom_cloning_complex",
+          "name": "Cloning Complex",
+          "cost": {
+            "parasteel": 600,
+            "zenite": 80
+          },
+          "effect": "8 squads/cycle, instant crews in system; huge White demand.",
+          "stats": {
+            "squads_per_cycle": 8
+          },
+          "tag": "faction_only"
+        }
+      ]
+    },
+    "ferengi": {
+      "deep_space": [
+        {
+          "id": "fer_trading_post",
+          "name": "Trading Post",
+          "cost": {
+            "duranium": 100,
+            "latinum": 20
+          },
+          "effect": "+1 Latinum per passing freighter, any faction.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "fer_bazaar_station",
+          "name": "Bazaar Station",
+          "cost": {
+            "parasteel": 280,
+            "latinum": 60
+          },
+          "effect": "10% cut of all trades docked here; sells repairs.",
+          "stats": {
+            "docking": 6
+          }
+        },
+        {
+          "id": "fer_marauder_station",
+          "name": "Marauder Station",
+          "cost": {
+            "parasteel": 560,
+            "latinum": 150
+          },
+          "effect": "Horseshoe starbase; mercenary contracts.",
+          "stats": {
+            "supply_range": 3
+          },
+          "building_ref": "mercenary_guild"
+        },
+        {
+          "id": "fer_grand_exchange",
+          "name": "Grand Exchange",
+          "cost": {
+            "parasteel": 2000,
+            "latinum": 1000
+          },
+          "effect": "Sets market prices for all players; attack = market crash.",
+          "tag": "wonder",
+          "building_ref": "latinum_exchange"
+        }
+      ],
+      "command": [
+        {
+          "id": "fer_trade_office",
+          "name": "Trade Office",
+          "cost": {
+            "duranium": 90,
+            "latinum": 30
+          },
+          "effect": "+2 Latinum; no garrison.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "fer_commerce_authority_office",
+          "name": "Commerce Authority Office",
+          "cost": {
+            "duranium": 260,
+            "latinum": 120
+          },
+          "effect": "Sells trade licences; 1 Rule of Acquisition perk.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "tower_of_commerce",
+          "name": "Tower of Commerce",
+          "cost": {
+            "parasteel": 400,
+            "latinum": 500
+          },
+          "effect": "All Rules perks; bribe AI factions and rival governors.",
+          "stats": {
+            "supply_range": 3
+          },
+          "tag": "faction_only",
+          "building_ref": "tower_of_commerce"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "fer_shuttle_dock",
+          "name": "Shuttle Dock",
+          "cost": {
+            "duranium": 180,
+            "latinum": 40
+          },
+          "effect": "Shuttles, freighters (+25% cargo), small raiders.",
+          "stats": {
+            "hull_cap": 3
+          }
+        },
+        {
+          "id": "fer_marauder_yard",
+          "name": "Marauder Yard",
+          "cost": {
+            "parasteel": 280,
+            "latinum": 100
+          },
+          "effect": "D'Kora Marauder.",
+          "stats": {
+            "hull_cap": 4,
+            "build_slots": 2
+          }
+        },
+        {
+          "id": "fer_acquisition_yards",
+          "name": "Acquisition Yards",
+          "cost": {
+            "parasteel": 1800,
+            "latinum": 800
+          },
+          "effect": "Refit any acquired foreign hull; no cap.",
+          "stats": {
+            "hull_cap": "any_acquired",
+            "build_slots": 3
+          },
+          "tag": "wonder"
+        }
+      ],
+      "habitation": [
+        {
+          "id": "fer_rental_habitat",
+          "name": "Rental Habitat",
+          "cost": {
+            "duranium": 60
+          },
+          "effect": "Adjustable rent: latinum vs morale.",
+          "stats": {
+            "pop_cap": 1
+          }
+        },
+        {
+          "id": "fer_market_quarter",
+          "name": "Market Quarter",
+          "cost": {
+            "duranium": 150,
+            "latinum": 60
+          },
+          "effect": "Rent + 10% of sales; luxury goods.",
+          "stats": {
+            "pop_cap": 3
+          }
+        },
+        {
+          "id": "fer_resort_spire",
+          "name": "Resort Spire",
+          "cost": {
+            "parasteel": 300,
+            "latinum": 150
+          },
+          "effect": "Holosuites + dabo; +3 Latinum per trade partner.",
+          "stats": {
+            "pop_cap": 6
+          }
+        }
+      ]
+    },
+    "borg": {
+      "deep_space": [
+        {
+          "id": "borg_probe_node",
+          "name": "Probe Node",
+          "cost": {
+            "duranium": 120,
+            "nanoprobes": 10
+          },
+          "effect": "Full system vision; records enemy weapons.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "borg_interlink_node",
+          "name": "Interlink Node",
+          "cost": {
+            "parasteel": 300,
+            "nanoprobes": 30
+          },
+          "effect": "Adaptations shared with all Borg units in range.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "vinculum",
+          "name": "Vinculum Station",
+          "cost": {
+            "parasteel": 650,
+            "nanoprobes": 60
+          },
+          "effect": "Fast regeneration; destroyed = drones in range offline.",
+          "stats": {
+            "supply_range": 3
+          },
+          "tag": "faction_only",
+          "building_ref": "vinculum"
+        },
+        {
+          "id": "transwarp_hub",
+          "name": "Transwarp Hub",
+          "cost": {
+            "parasteel": 1400,
+            "nanoprobes": 120
+          },
+          "effect": "Instant hub-to-hub travel; capturable.",
+          "stats": {
+            "apertures": 3
+          },
+          "tag": "faction_only",
+          "building_ref": "transwarp_hub"
+        }
+      ],
+      "command": [
+        {
+          "id": "borg_assimilation_spire",
+          "name": "Assimilation Spire",
+          "cost": {
+            "duranium": 100,
+            "nanoprobes": 20
+          },
+          "effect": "Only on populated worlds; converts pop to drones.",
+          "stats": {
+            "requires": "populated_world"
+          }
+        },
+        {
+          "id": "borg_planetary_hive",
+          "name": "Planetary Hive",
+          "cost": {
+            "parasteel": 320,
+            "nanoprobes": 40
+          },
+          "effect": "No morale/unrest; self-repairing.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "unicomplex",
+          "name": "Unicomplex",
+          "cost": {
+            "parasteel": 2000,
+            "nanoprobes": 200
+          },
+          "effect": "Match-long adaptation memory; Borg Queen; loss wipes adaptations.",
+          "tag": "faction_only",
+          "building_ref": "unicomplex"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "borg_assembly_matrix",
+          "name": "Assembly Matrix",
+          "cost": {
+            "duranium": 180,
+            "nanoprobes": 20
+          },
+          "effect": "Probes; wrecks in system return resources.",
+          "stats": {
+            "hull_cap": 2
+          }
+        },
+        {
+          "id": "borg_sphere_matrix",
+          "name": "Sphere Matrix",
+          "cost": {
+            "parasteel": 360,
+            "nanoprobes": 40
+          },
+          "effect": "Spheres; can mount any assimilated tech.",
+          "stats": {
+            "hull_cap": 5
+          }
+        },
+        {
+          "id": "borg_cube_matrix",
+          "name": "Cube Matrix",
+          "cost": {
+            "parasteel": 3000,
+            "nanoprobes": 250
+          },
+          "effect": "Cube, Tactical Cube, Queen's Diamond (with Unicomplex).",
+          "stats": {
+            "hull_cap": "titan"
+          },
+          "tag": "wonder"
+        }
+      ],
+      "drones": [
+        {
+          "id": "borg_alcove_block",
+          "name": "Alcove Block",
+          "cost": {
+            "duranium": 80,
+            "nanoprobes": 10
+          },
+          "effect": "Stores and regenerates 10 drones.",
+          "stats": {
+            "drone_storage": 10
+          }
+        },
+        {
+          "id": "borg_maturation_chamber",
+          "name": "Maturation Chamber",
+          "cost": {
+            "parasteel": 240,
+            "nanoprobes": 40
+          },
+          "effect": "+3 drones/cycle, +25% adaptation speed.",
+          "stats": {
+            "drones_per_cycle": 3
+          }
+        },
+        {
+          "id": "assimilation_complex",
+          "name": "Assimilation Complex",
+          "cost": {
+            "parasteel": 700,
+            "nanoprobes": 80
+          },
+          "effect": "Captured crews -> drones; each new hull type -> tech.",
+          "tag": "faction_only",
+          "building_ref": "assimilation_complex"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dominion Clone line</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@600;700&amp;family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#c8b4ff}a:hover{color:#e2d8ff}
+.w1{stroke-width:1}.w15{stroke-width:1.5}.w2{stroke-width:2}.w3{stroke-width:3}
+.lit{stroke-dasharray:3 4}
+.rc{stroke-linecap:round}
+.soft{opacity:.55}.faint{opacity:.3}
+</style>
+</helmet>
+<div style="width: 1180px; height: 760px; box-sizing: border-box; padding: 56px; background: #09080e; color: #ebe6f4; font-family: Barlow, 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #b49aff">Clone line · The Dominion · 3 levels</div>
+<h1 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 48px; font-weight: 700; line-height: 1; text-transform: uppercase; letter-spacing: 0.02em">Birthing Chamber to Cloning Complex</h1>
+<p style="margin: 0; font-size: 16px; color: #9c95ad; max-width: 820px">The Dominion doesn't grow colonies; it grows soldiers. In place of a habitation line it has cloning facilities. Glowing pods turn into Jem'Hadar and Vorta, so its army never depends on population, only on resources and White.</p>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: flex-start">
+
+<!-- L1 Birthing Chamber -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #1a1426">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Level 1 Jem'Hadar Birthing Chamber: a low ridged violet shell with arched openings showing four glowing blue-white incubation pods">
+<rect width="300" height="240" fill="#1a1426"/>
+<circle cx="230" cy="50" r="16" fill="#c8a0e8" class="soft"/>
+<path d="M0 158 L40 136 L70 146 L110 122 L160 142 L200 120 L250 144 L300 132 L300 240 L0 240 Z" fill="#241d30"/>
+<rect x="0" y="174" width="300" height="66" fill="#2e2638"/>
+<rect x="0" y="174" width="300" height="3" fill="#3a3046"/>
+<path d="M40 176 Q40 118 150 112 Q260 118 260 176 Z" fill="#6a5a8a"/>
+<path d="M150 112 Q260 118 260 176 L150 176 Z" fill="#4a3e66"/>
+<path d="M52 140 Q150 120 248 140" fill="none" stroke="#3a3052" class="w2"/>
+<path d="M68 176 L68 150 Q84 136 100 150 L100 176 Z" fill="#120e1c"/>
+<path d="M112 176 L112 150 Q128 136 144 150 L144 176 Z" fill="#120e1c"/>
+<path d="M156 176 L156 150 Q172 136 188 150 L188 176 Z" fill="#120e1c"/>
+<path d="M200 176 L200 150 Q216 136 232 150 L232 176 Z" fill="#120e1c"/>
+<ellipse cx="84" cy="162" rx="9" ry="12" fill="#9ad8ff"/><ellipse cx="84" cy="164" rx="4" ry="6" fill="#e8f4ff"/>
+<ellipse cx="128" cy="162" rx="9" ry="12" fill="#9ad8ff"/><ellipse cx="128" cy="164" rx="4" ry="6" fill="#e8f4ff"/>
+<ellipse cx="172" cy="162" rx="9" ry="12" fill="#9ad8ff"/><ellipse cx="172" cy="164" rx="4" ry="6" fill="#e8f4ff"/>
+<ellipse cx="216" cy="162" rx="9" ry="12" fill="#9ad8ff" class="soft"/>
+<line x1="150" y1="112" x2="150" y2="90" stroke="#6a5a8a" class="w2"/><circle cx="150" cy="88" r="2.5" fill="#9ad8ff"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #261c3e; color: #b49aff">LV 1</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Birthing Chamber</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #cdc6da">A ridged shell with four incubation pods. It grows Jem'Hadar to full adulthood in days, providing both crew and ground troops without any population.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #9c95ad">Output</span><span style="text-align: right; font-weight: 600">1 squad / cycle</span>
+<span style="color: #9c95ad">Upkeep</span><span style="text-align: right; font-weight: 600">White per squad</span>
+<span style="color: #9c95ad">Cost</span><span style="text-align: right; font-weight: 600">90 Dur · 20 Zenite</span>
+</div>
+</div>
+
+<div style="padding-top: 114px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4 L16 12 L8 20" fill="none" stroke="#b49aff" class="w3 rc"/></svg></div>
+
+<!-- L2 Cloning Facility -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #1a1426">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Level 2 Cloning Facility: a two-level ridged hall with two rows of glowing pods, pipes feeding from White canisters, and a slender Vorta tower">
+<rect width="300" height="240" fill="#1a1426"/>
+<circle cx="230" cy="50" r="16" fill="#c8a0e8" class="soft"/>
+<path d="M0 158 L40 136 L70 146 L110 122 L160 142 L200 120 L250 144 L300 132 L300 240 L0 240 Z" fill="#241d30"/>
+<rect x="0" y="176" width="300" height="64" fill="#2e2638"/>
+<path d="M30 178 L34 104 Q120 90 206 104 L210 178 Z" fill="#6a5a8a"/>
+<path d="M120 96 Q164 98 206 104 L210 178 L120 178 Z" fill="#4a3e66"/>
+<rect x="44" y="112" width="152" height="28" rx="6" fill="#120e1c"/>
+<rect x="44" y="146" width="152" height="28" rx="6" fill="#120e1c"/>
+<ellipse cx="60" cy="126" rx="7" ry="10" fill="#9ad8ff"/><ellipse cx="90" cy="126" rx="7" ry="10" fill="#9ad8ff"/><ellipse cx="120" cy="126" rx="7" ry="10" fill="#9ad8ff"/><ellipse cx="150" cy="126" rx="7" ry="10" fill="#9ad8ff"/><ellipse cx="180" cy="126" rx="7" ry="10" fill="#9ad8ff" class="soft"/>
+<ellipse cx="60" cy="160" rx="7" ry="10" fill="#9ad8ff"/><ellipse cx="90" cy="160" rx="7" ry="10" fill="#9ad8ff"/><ellipse cx="120" cy="160" rx="7" ry="10" fill="#9ad8ff"/><ellipse cx="150" cy="160" rx="7" ry="10" fill="#9ad8ff" class="soft"/><ellipse cx="180" cy="160" rx="7" ry="10" fill="#c8b4ff"/>
+<rect x="232" y="150" width="12" height="26" rx="5" fill="#e8f4ff"/><rect x="248" y="150" width="12" height="26" rx="5" fill="#e8f4ff"/>
+<path d="M232 158 Q220 158 210 150" fill="none" stroke="#9ad8ff" class="w2"/>
+<path d="M262 176 L266 70 Q270 58 274 70 L278 176 Z" fill="#8a7aaa"/>
+<circle cx="270" cy="62" r="2.5" fill="#9ad8ff"/>
+<line x1="270" y1="80" x2="270" y2="140" stroke="#9ad8ff" class="w1 lit"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #261c3e; color: #b49aff">LV 2</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Cloning Facility</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #cdc6da">Two rows of pods fed by White lines, beside a Vorta tower. It also stores Vorta clones (lilac pod): a killed Vorta commander comes back here with their memories.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #9c95ad">Output</span><span style="text-align: right; font-weight: 600">3 squads / cycle</span>
+<span style="color: #9c95ad">Vorta revival</span><span style="text-align: right; font-weight: 600">Yes</span>
+<span style="color: #9c95ad">Cost</span><span style="text-align: right; font-weight: 600">260 Par · 40 Zenite</span>
+</div>
+</div>
+
+<div style="padding-top: 114px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4 L16 12 L8 20" fill="none" stroke="#b49aff" class="w3 rc"/></svg></div>
+
+<!-- L3 Cloning Complex -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #160f22; box-shadow: inset 0 0 0 2px #f3cb5b">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Cloning Complex, max level: three tall ridged towers lined with columns of glowing pods, a walkway leading to a landed troop transport, and White canisters stacked below">
+<rect width="300" height="240" fill="#160f22"/>
+<circle cx="250" cy="36" r="12" fill="#c8a0e8" class="soft"/>
+<path d="M0 164 L40 146 L80 154 L120 136 L170 152 L220 136 L270 150 L300 144 L300 240 L0 240 Z" fill="#241d30"/>
+<rect x="0" y="190" width="300" height="50" fill="#2e2638"/>
+<path d="M30 190 L36 64 Q50 50 64 64 L70 190 Z" fill="#6a5a8a"/>
+<path d="M110 190 L116 30 Q130 14 144 30 L150 190 Z" fill="#8a7aaa"/>
+<path d="M130 22 Q144 30 150 190 L130 190 Z" fill="#6a5a8a"/>
+<path d="M190 190 L196 74 Q210 60 224 74 L230 190 Z" fill="#6a5a8a"/>
+<ellipse cx="50" cy="84" rx="6" ry="8" fill="#9ad8ff"/><ellipse cx="50" cy="106" rx="6" ry="8" fill="#9ad8ff"/><ellipse cx="50" cy="128" rx="6" ry="8" fill="#9ad8ff"/><ellipse cx="50" cy="150" rx="6" ry="8" fill="#9ad8ff"/><ellipse cx="50" cy="172" rx="6" ry="8" fill="#9ad8ff" class="soft"/>
+<ellipse cx="130" cy="50" rx="7" ry="9" fill="#9ad8ff"/><ellipse cx="130" cy="74" rx="7" ry="9" fill="#9ad8ff"/><ellipse cx="130" cy="98" rx="7" ry="9" fill="#9ad8ff"/><ellipse cx="130" cy="122" rx="7" ry="9" fill="#c8b4ff"/><ellipse cx="130" cy="146" rx="7" ry="9" fill="#9ad8ff"/><ellipse cx="130" cy="170" rx="7" ry="9" fill="#9ad8ff"/>
+<ellipse cx="210" cy="94" rx="6" ry="8" fill="#9ad8ff"/><ellipse cx="210" cy="116" rx="6" ry="8" fill="#9ad8ff"/><ellipse cx="210" cy="138" rx="6" ry="8" fill="#9ad8ff" class="soft"/><ellipse cx="210" cy="160" rx="6" ry="8" fill="#9ad8ff"/>
+<circle cx="130" cy="18" r="2.5" fill="#9ad8ff"/><circle cx="50" cy="56" r="2" fill="#9ad8ff"/><circle cx="210" cy="66" r="2" fill="#9ad8ff"/>
+<line x1="150" y1="182" x2="246" y2="182" stroke="#8a7aaa" class="w3"/>
+<line x1="150" y1="182" x2="246" y2="182" stroke="#9ad8ff" class="w1 lit"/>
+<path d="M236 190 Q244 168 276 172 L290 184 L284 190 Z" fill="#8a7aaa"/>
+<line x1="248" y1="184" x2="280" y2="184" stroke="#9ad8ff" class="w15 rc"/>
+<rect x="80" y="176" width="10" height="14" rx="4" fill="#e8f4ff"/><rect x="92" y="176" width="10" height="14" rx="4" fill="#e8f4ff"/><rect x="86" y="162" width="10" height="14" rx="4" fill="#e8f4ff"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #3a2f12; color: #f3cb5b">MAX · DOMINION ONLY</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Cloning Complex</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #cdc6da">Towers of pods feed troop transports on a walkway. It mass-produces Jem'Hadar and crews every hull in the system instantly, but its White demand is enormous. Starve it and the newest clones turn on you first.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #9c95ad">Output</span><span style="text-align: right; font-weight: 600">8 squads / cycle</span>
+<span style="color: #9c95ad">Ship crews</span><span style="text-align: right; font-weight: 600">Instant in system</span>
+<span style="color: #9c95ad">Cost</span><span style="text-align: right; font-weight: 600">600 Par · 80 Zenite</span>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

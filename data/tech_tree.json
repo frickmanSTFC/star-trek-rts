@@ -1,0 +1,65 @@
+{
+  "_notes": "tier ≈ era cap (1=ENT, 2=TOS, 3=TNG, 4=DS9/VOY, 5=Picard, 6=32nd c.). Era start grants all techs below its cap tier minus one; players research the rest. unlocks = buildings/modules/abilities ids.",
+  "trees": ["propulsion", "weapons", "defense", "sensors_stealth", "engineering", "computing", "biology_colonization"],
+  "techs": [
+    { "id": "warp_5", "name": "Warp 5 Engine", "tree": "propulsion", "tier": 1, "prereqs": [], "unlocks": ["warp_lane_travel"] },
+    { "id": "dilithium_recrystallization", "name": "Dilithium Recrystallization", "tree": "propulsion", "tier": 2, "prereqs": ["warp_5"], "unlocks": ["recrystallizer"], "effect": "Dilithium degrades 50% slower." },
+    { "id": "warp_8", "name": "Warp 8 Drive", "tree": "propulsion", "tier": 2, "prereqs": ["warp_5"], "unlocks": ["lane_speed_2"] },
+    { "id": "transwarp_experimental", "name": "Experimental Transwarp", "tree": "propulsion", "tier": 3, "prereqs": ["warp_8"], "effect": "Excelsior-style project; 30% failure on first use.", "risky": true },
+    { "id": "warp_9_9", "name": "Warp 9.9 Envelope", "tree": "propulsion", "tier": 3, "prereqs": ["warp_8"], "unlocks": ["lane_speed_3"] },
+    { "id": "quantum_slipstream", "name": "Quantum Slipstream", "tree": "propulsion", "tier": 4, "prereqs": ["warp_9_9"], "requires_resource": "benamite", "effect": "Skip one lane node per jump." },
+    { "id": "transwarp_conduits", "name": "Transwarp Conduits", "tree": "propulsion", "tier": 4, "prereqs": ["warp_9_9"], "faction_only": ["borg"], "unlocks": ["transwarp_hub"] },
+    { "id": "spore_drive", "name": "Displacement-Activated Spore Hub Drive", "tree": "propulsion", "tier": 6, "prereqs": ["quantum_slipstream"], "effect": "Instant jump anywhere; requires a 'navigator' captain." },
+
+    { "id": "phase_cannon", "name": "Phase Cannons", "tree": "weapons", "tier": 1, "prereqs": [], "unlocks": ["mod_phase_cannon"] },
+    { "id": "spatial_torpedo", "name": "Spatial Torpedoes", "tree": "weapons", "tier": 1, "prereqs": [], "unlocks": ["mod_spatial_torpedo"] },
+    { "id": "photon_torpedo", "name": "Photon Torpedoes", "tree": "weapons", "tier": 1, "prereqs": ["spatial_torpedo"], "requires_resource": "antimatter", "unlocks": ["mod_photon_torpedo"] },
+    { "id": "phaser", "name": "Phasers", "tree": "weapons", "tier": 2, "prereqs": ["phase_cannon"], "unlocks": ["mod_phaser_array"] },
+    { "id": "disruptor", "name": "Disruptors", "tree": "weapons", "tier": 1, "prereqs": [], "faction_only": ["klingon", "romulan", "cardassian"], "effect": "+hull damage, -shield damage vs phasers." },
+    { "id": "plasma_torpedo", "name": "Plasma Torpedoes", "tree": "weapons", "tier": 2, "prereqs": ["photon_torpedo"], "faction_only": ["romulan"] },
+    { "id": "pulse_phaser", "name": "Pulse Phaser Cannons", "tree": "weapons", "tier": 4, "prereqs": ["phaser"], "unlocks": ["mod_pulse_phaser"] },
+    { "id": "quantum_torpedo", "name": "Quantum Torpedoes", "tree": "weapons", "tier": 4, "prereqs": ["photon_torpedo"], "unlocks": ["mod_quantum_torpedo"] },
+    { "id": "polaron", "name": "Phased Polaron Beams", "tree": "weapons", "tier": 4, "prereqs": ["phaser"], "faction_only": ["dominion"], "effect": "Partially bypasses shields." },
+    { "id": "tetryon_weapons", "name": "Tetryon Cannons", "tree": "weapons", "tier": 4, "prereqs": ["phaser"], "faction_only": ["hirogen"] },
+    { "id": "transphasic_torpedo", "name": "Transphasic Torpedoes", "tree": "weapons", "tier": 5, "prereqs": ["quantum_torpedo"], "effect": "Ignores Borg adaptation." },
+    { "id": "metreon_cascade", "name": "Metreon Cascade", "tree": "weapons", "tier": 4, "prereqs": ["quantum_torpedo"], "requires_resource": "metreon_gas", "forbidden": true, "effect": "Planet-scale weapon; massive diplomatic penalty." },
+    { "id": "trilithium_weapon", "name": "Trilithium Stellar Inhibitor", "tree": "weapons", "tier": 4, "prereqs": ["quantum_torpedo"], "requires_resource": "trilithium", "forbidden": true, "effect": "Collapses a star; destroys a system." },
+    { "id": "thalaron", "name": "Thalaron Radiation", "tree": "weapons", "tier": 4, "prereqs": [], "faction_only": ["romulan"], "forbidden": true, "effect": "Kills all organic life on a target; leaves infrastructure intact." },
+
+    { "id": "polarized_hull", "name": "Polarized Hull Plating", "tree": "defense", "tier": 1, "prereqs": [] },
+    { "id": "deflector_shields", "name": "Deflector Shields", "tree": "defense", "tier": 1, "prereqs": ["polarized_hull"], "unlocks": ["mod_shield_generator"] },
+    { "id": "rodinium_armor", "name": "Cast Rodinium Armor", "tree": "defense", "tier": 2, "prereqs": ["polarized_hull"], "requires_resource": "rodinium", "unlocks": ["station_armor_1"] },
+    { "id": "regenerative_shields", "name": "Regenerative Shielding", "tree": "defense", "tier": 3, "prereqs": ["deflector_shields"] },
+    { "id": "ablative_armor", "name": "Ablative Armor", "tree": "defense", "tier": 4, "prereqs": ["rodinium_armor"], "unlocks": ["mod_ablative_armor"] },
+    { "id": "trellium_lining", "name": "Trellium-D Hull Lining", "tree": "defense", "tier": 1, "prereqs": ["polarized_hull"], "requires_resource": "trellium_d", "effect": "Immunity to spatial-anomaly damage; Vulcan crew penalty." },
+    { "id": "neutronium_armor", "name": "Neutronium Plating", "tree": "defense", "tier": 6, "prereqs": ["ablative_armor"], "requires_resource": "neutronium", "unlocks": ["titan_hull"] },
+
+    { "id": "long_range_sensors", "name": "Long-Range Sensors", "tree": "sensors_stealth", "tier": 1, "prereqs": [] },
+    { "id": "cloaking_device", "name": "Cloaking Device", "tree": "sensors_stealth", "tier": 2, "prereqs": ["long_range_sensors"], "faction_only": ["klingon", "romulan"], "unlocks": ["mod_cloak"] },
+    { "id": "tachyon_grid", "name": "Tachyon Detection Grid", "tree": "sensors_stealth", "tier": 3, "prereqs": ["long_range_sensors"], "effect": "Reveals cloaked ships crossing a network." },
+    { "id": "phase_cloak", "name": "Phasing Cloak", "tree": "sensors_stealth", "tier": 3, "prereqs": ["cloaking_device"], "forbidden": true, "effect": "Pass through matter while cloaked. Federation use violates the Treaty of Algeron." },
+    { "id": "subspace_relays", "name": "Subspace Relay Network", "tree": "sensors_stealth", "tier": 2, "prereqs": ["long_range_sensors"], "unlocks": ["subspace_relay"], "effect": "+supply range, +vision." },
+
+    { "id": "transporter", "name": "Transporters", "tree": "engineering", "tier": 1, "prereqs": [], "unlocks": ["boarding", "evacuation"] },
+    { "id": "tractor_beam", "name": "Tractor Beams", "tree": "engineering", "tier": 2, "prereqs": [] },
+    { "id": "deep_core_mining", "name": "Deep-Core Mining", "tree": "engineering", "tier": 2, "prereqs": [], "effect": "Reopen depleted deposits at 50% yield." },
+    { "id": "replicators", "name": "Food Replicators", "tree": "engineering", "tier": 2, "prereqs": ["transporter"], "effect": "Colonies no longer need food imports." },
+    { "id": "industrial_replicators", "name": "Industrial Replicators", "tree": "engineering", "tier": 3, "prereqs": ["replicators"], "effect": "Energy → Tritanium/Duranium at 5:1. Cannot make dilithium or latinum." },
+    { "id": "holotechnology", "name": "Holotechnology", "tree": "engineering", "tier": 3, "prereqs": ["replicators"], "unlocks": ["holodeck"], "effect": "Train crew XP; morale." },
+    { "id": "programmable_matter", "name": "Programmable Matter", "tree": "engineering", "tier": 6, "prereqs": ["industrial_replicators"], "effect": "Ships reconfigure module loadout in the field." },
+
+    { "id": "duotronic", "name": "Duotronic Computers", "tree": "computing", "tier": 2, "prereqs": [] },
+    { "id": "isolinear", "name": "Isolinear Computing", "tree": "computing", "tier": 3, "prereqs": ["duotronic"], "unlocks": ["isolinear_chips"] },
+    { "id": "bioneural", "name": "Bio-neural Circuitry", "tree": "computing", "tier": 4, "prereqs": ["isolinear"], "unlocks": ["bioneural_gel"] },
+    { "id": "emh", "name": "Emergency Medical Hologram", "tree": "computing", "tier": 4, "prereqs": ["holotechnology"], "effect": "Crew losses reduced 25%." },
+    { "id": "positronic", "name": "Positronic Brain", "tree": "computing", "tier": 5, "prereqs": ["bioneural"], "unlocks": ["synth_workers"], "effect": "Synth labor; risk of synth-ban political event." },
+
+    { "id": "pressure_domes", "name": "Pressure Domes", "tree": "biology_colonization", "tier": 1, "prereqs": [], "requires_resource": "topaline", "effect": "Colonize Class D/K bodies." },
+    { "id": "atmospheric_processors", "name": "Atmospheric Processors", "tree": "biology_colonization", "tier": 2, "prereqs": ["pressure_domes"], "effect": "Slow terraform: L→M, K→L." },
+    { "id": "zenite_medicine", "name": "Zenite Medicine", "tree": "biology_colonization", "tier": 2, "prereqs": [], "requires_resource": "zenite", "effect": "Cures botanical plague / colony disease events." },
+    { "id": "genesis", "name": "Genesis Device", "tree": "biology_colonization", "tier": 2, "prereqs": ["atmospheric_processors"], "requires_resource": "protomatter", "forbidden": true, "effect": "Instant Class M from Class D/nebula; 40% chance planet destabilizes later; can be weaponized." },
+    { "id": "subspace_terraforming", "name": "Subspace Terraforming", "tree": "biology_colonization", "tier": 4, "prereqs": ["atmospheric_processors"] },
+
+    { "id": "omega_stabilization", "name": "Omega Molecule Stabilization", "tree": "engineering", "tier": 5, "prereqs": ["industrial_replicators"], "requires_resource": "boronite", "victory_project": true, "effect": "Science victory. Failure = permanent no-warp zone around your capital." }
+  ]
+}

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ferengi Command line</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@600;700&amp;family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#f0d070}a:hover{color:#f8e6a8}
+.w1{stroke-width:1}.w15{stroke-width:1.5}.w2{stroke-width:2}.w3{stroke-width:3}
+.lit{stroke-dasharray:3 4}.tick{stroke-dasharray:2 3}
+.rc{stroke-linecap:round}
+.soft{opacity:.55}.rain{opacity:.28}
+</style>
+</helmet>
+<div style="width: 1180px; height: 760px; box-sizing: border-box; padding: 56px; background: #0b0907; color: #f0e8dc; font-family: Barlow, 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #e8c04a">Command line · Ferengi Alliance · 3 levels</div>
+<h1 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 48px; font-weight: 700; line-height: 1; text-transform: uppercase; letter-spacing: 0.02em">Trade Office to Tower of Commerce</h1>
+<p style="margin: 0; font-size: 16px; color: #a89a86; max-width: 820px">On Ferenginar it always rains. Ferengi government is a business, so the command line is a chain of offices that sells licenses, collects fees and unlocks Rules of Acquisition as the colony's profit grows.</p>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: flex-start">
+
+<!-- L1 Trade Office -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #1c2420">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Level 1 Ferengi Trade Office: a small bulbous copper dome with a lime sign and gold door, on muddy ground in steady rain">
+<rect width="300" height="240" fill="#1c2420"/>
+<path d="M0 160 Q50 140 100 152 Q160 132 220 150 Q260 140 300 146 L300 240 L0 240 Z" fill="#2a322a"/>
+<rect x="0" y="172" width="300" height="68" fill="#3a3424"/>
+<ellipse cx="60" cy="200" rx="30" ry="4" fill="#4a5a50" class="soft"/><ellipse cx="230" cy="212" rx="40" ry="5" fill="#4a5a50" class="soft"/>
+<path d="M90 174 Q90 112 150 108 Q210 112 210 174 Z" fill="#b8743a"/>
+<path d="M150 108 Q210 112 210 174 L150 174 Z" fill="#7a4a24"/>
+<path d="M96 150 Q150 138 204 150" fill="none" stroke="#e8c04a" class="w2"/>
+<rect x="114" y="122" width="72" height="12" rx="2" fill="#c8e86a"/>
+<line x1="120" y1="128" x2="180" y2="128" stroke="#3a4a1a" class="w1 tick"/>
+<path d="M138 174 L138 156 Q150 146 162 156 L162 174 Z" fill="#e8c04a"/>
+<rect x="104" y="158" width="10" height="6" fill="#c8e86a"/><rect x="186" y="158" width="10" height="6" fill="#c8e86a"/>
+<path d="M150 108 L150 90" stroke="#d08c4a" class="w2"/><circle cx="150" cy="88" r="2.5" fill="#c8e86a"/>
+<line x1="20" y1="20" x2="12" y2="44" stroke="#8aa09a" class="w1 rain"/><line x1="60" y1="60" x2="52" y2="84" stroke="#8aa09a" class="w1 rain"/><line x1="110" y1="30" x2="102" y2="54" stroke="#8aa09a" class="w1 rain"/><line x1="170" y1="50" x2="162" y2="74" stroke="#8aa09a" class="w1 rain"/><line x1="230" y1="24" x2="222" y2="48" stroke="#8aa09a" class="w1 rain"/><line x1="280" y1="70" x2="272" y2="94" stroke="#8aa09a" class="w1 rain"/><line x1="40" y1="120" x2="32" y2="144" stroke="#8aa09a" class="w1 rain"/><line x1="260" y1="120" x2="252" y2="144" stroke="#8aa09a" class="w1 rain"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #3a2c10; color: #e8c04a">LV 1</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Trade Office</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #d2c8b8">A copper dome with a lit sign and a gold door. It founds the colony and starts earning latinum right away, but has no garrison. Defense is something you buy.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #a89a86">Supply range</span><span style="text-align: right; font-weight: 600">1</span>
+<span style="color: #a89a86">Income</span><span style="text-align: right; font-weight: 600">+2 Latinum</span>
+<span style="color: #a89a86">Cost</span><span style="text-align: right; font-weight: 600">90 Dur · 30 Latinum</span>
+</div>
+</div>
+
+<div style="padding-top: 114px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4 L16 12 L8 20" fill="none" stroke="#e8c04a" class="w3 rc"/></svg></div>
+
+<!-- L2 FCA Office -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #1c2420">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Level 2 Ferengi Commerce Authority Office: stacked bulbous copper tiers with flared ear-like fins on both sides, a gold door, lime windows, in the rain">
+<rect width="300" height="240" fill="#1c2420"/>
+<path d="M0 160 Q50 140 100 152 Q160 132 220 150 Q260 140 300 146 L300 240 L0 240 Z" fill="#2a322a"/>
+<rect x="0" y="172" width="300" height="68" fill="#3a3424"/>
+<ellipse cx="60" cy="200" rx="30" ry="4" fill="#4a5a50" class="soft"/>
+<path d="M100 126 Q60 118 44 84 Q70 108 102 112 Z" fill="#d08c4a"/>
+<path d="M200 126 Q240 118 256 84 Q230 108 198 112 Z" fill="#b8743a"/>
+<path d="M84 174 Q84 130 150 126 Q216 130 216 174 Z" fill="#b8743a"/>
+<path d="M150 126 Q216 130 216 174 L150 174 Z" fill="#7a4a24"/>
+<path d="M104 130 Q104 92 150 88 Q196 92 196 130 Z" fill="#d08c4a"/>
+<path d="M150 88 Q196 92 196 130 L150 130 Z" fill="#b8743a"/>
+<path d="M124 92 Q124 66 150 62 Q176 66 176 92 Z" fill="#b8743a"/>
+<path d="M90 150 Q150 140 210 150" fill="none" stroke="#e8c04a" class="w2"/>
+<path d="M108 112 Q150 104 192 112" fill="none" stroke="#e8c04a" class="w15"/>
+<line x1="112" y1="160" x2="188" y2="160" stroke="#c8e86a" class="w2 lit"/>
+<line x1="118" y1="120" x2="182" y2="120" stroke="#c8e86a" class="w15 lit"/>
+<rect x="134" y="72" width="32" height="8" rx="2" fill="#c8e86a"/>
+<path d="M138 174 L138 156 Q150 146 162 156 L162 174 Z" fill="#e8c04a"/>
+<line x1="20" y1="20" x2="12" y2="44" stroke="#8aa09a" class="w1 rain"/><line x1="60" y1="40" x2="52" y2="64" stroke="#8aa09a" class="w1 rain"/><line x1="110" y1="20" x2="102" y2="44" stroke="#8aa09a" class="w1 rain"/><line x1="200" y1="40" x2="192" y2="64" stroke="#8aa09a" class="w1 rain"/><line x1="250" y1="20" x2="242" y2="44" stroke="#8aa09a" class="w1 rain"/><line x1="280" y1="100" x2="272" y2="124" stroke="#8aa09a" class="w1 rain"/><line x1="24" y1="120" x2="16" y2="144" stroke="#8aa09a" class="w1 rain"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #3a2c10; color: #e8c04a">LV 2</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Commerce Authority Office</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #d2c8b8">A branch of the Ferengi Commerce Authority: stacked domes with flared fins. It sells trade licenses to other players and unlocks the first Rule of Acquisition perk.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #a89a86">Supply range</span><span style="text-align: right; font-weight: 600">2</span>
+<span style="color: #a89a86">Unlocks</span><span style="text-align: right; font-weight: 600">1 Rule perk · licenses</span>
+<span style="color: #a89a86">Cost</span><span style="text-align: right; font-weight: 600">260 Dur · 120 Latinum</span>
+</div>
+</div>
+
+<div style="padding-top: 114px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4 L16 12 L8 20" fill="none" stroke="#e8c04a" class="w3 rc"/></svg></div>
+
+<!-- L3 Tower of Commerce -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #18201c; box-shadow: inset 0 0 0 2px #f3cb5b">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Tower of Commerce, max level: a tall copper tower of stacked bulbous tiers under a wide flaring crown with gold trim and lime windows, shuttles circling it in the rain">
+<rect width="300" height="240" fill="#18201c"/>
+<g transform="translate(60 44)"><ellipse cx="0" cy="0" rx="8" ry="3" fill="#d08c4a"/><circle cx="0" cy="0" r="1.2" fill="#c8e86a"/></g>
+<g transform="translate(240 70)"><ellipse cx="0" cy="0" rx="8" ry="3" fill="#d08c4a"/><circle cx="0" cy="0" r="1.2" fill="#c8e86a"/></g>
+<path d="M0 166 Q50 150 100 160 Q160 140 220 158 Q260 150 300 154 L300 240 L0 240 Z" fill="#2a322a"/>
+<rect x="0" y="186" width="300" height="54" fill="#3a3424"/>
+<ellipse cx="150" cy="210" rx="80" ry="7" fill="#4a5a50" class="soft"/>
+<path d="M40 186 Q40 160 70 158 Q100 160 100 186 Z" fill="#7a4a24"/>
+<path d="M200 186 Q200 160 230 158 Q260 160 260 186 Z" fill="#7a4a24"/>
+<rect x="132" y="70" width="36" height="116" fill="#b8743a"/>
+<rect x="150" y="70" width="18" height="116" fill="#7a4a24"/>
+<ellipse cx="150" cy="166" rx="40" ry="14" fill="#d08c4a"/>
+<ellipse cx="150" cy="132" rx="34" ry="12" fill="#d08c4a"/>
+<ellipse cx="150" cy="100" rx="28" ry="10" fill="#d08c4a"/>
+<ellipse cx="150" cy="166" rx="40" ry="3" fill="none" stroke="#e8c04a" class="w2"/>
+<ellipse cx="150" cy="132" rx="34" ry="3" fill="none" stroke="#e8c04a" class="w2"/>
+<ellipse cx="150" cy="100" rx="28" ry="3" fill="none" stroke="#e8c04a" class="w2"/>
+<line x1="150" y1="76" x2="150" y2="180" stroke="#c8e86a" class="w15 lit"/>
+<path d="M150 70 Q90 66 62 36 Q100 50 150 52 Q200 50 238 36 Q210 66 150 70 Z" fill="#d0a040"/>
+<path d="M150 52 Q200 50 238 36 Q210 66 150 70 Z" fill="#a87a2a"/>
+<path d="M136 52 Q150 20 164 52 Z" fill="#d08c4a"/>
+<circle cx="150" cy="24" r="3" fill="#c8e86a"/>
+<circle cx="62" cy="36" r="2.5" fill="#c8e86a"/><circle cx="238" cy="36" r="2.5" fill="#c8e86a"/>
+<path d="M140 186 L140 174 Q150 166 160 174 L160 186 Z" fill="#e8c04a"/>
+<line x1="20" y1="20" x2="12" y2="44" stroke="#8aa09a" class="w1 rain"/><line x1="100" y1="12" x2="92" y2="36" stroke="#8aa09a" class="w1 rain"/><line x1="200" y1="90" x2="192" y2="114" stroke="#8aa09a" class="w1 rain"/><line x1="270" y1="20" x2="262" y2="44" stroke="#8aa09a" class="w1 rain"/><line x1="30" y1="100" x2="22" y2="124" stroke="#8aa09a" class="w1 rain"/><line x1="280" y1="110" x2="272" y2="134" stroke="#8aa09a" class="w1 rain"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #3a2f12; color: #f3cb5b">MAX · FERENGI ONLY</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Tower of Commerce</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #d2c8b8">The Grand Nagus's seat: stacked copper tiers under a gold crown shaped like spread ears. It unlocks every Rule of Acquisition perk and lets you bribe AI factions and rival governors.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #a89a86">Supply range</span><span style="text-align: right; font-weight: 600">3</span>
+<span style="color: #a89a86">Unlocks</span><span style="text-align: right; font-weight: 600">All Rules · bribery</span>
+<span style="color: #a89a86">Cost</span><span style="text-align: right; font-weight: 600">400 Par · 500 Latinum</span>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

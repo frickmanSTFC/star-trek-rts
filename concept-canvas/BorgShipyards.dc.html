@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Borg Shipyard line</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@600;700&amp;family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#7ff09a}a:hover{color:#b8f8c8}
+.w1{stroke-width:1}.w15{stroke-width:1.5}.w2{stroke-width:2}.w3{stroke-width:3}
+.grid{stroke-dasharray:2 4}.plan{stroke-dasharray:4 4}
+.rc{stroke-linecap:round}
+.soft{opacity:.55}.faint{opacity:.3}
+</style>
+</helmet>
+<div style="width: 1180px; height: 760px; box-sizing: border-box; padding: 56px; background: #070908; color: #e2ebe4; font-family: Barlow, 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #5fe07a">Shipyard line · Borg Collective · 3 levels</div>
+<h1 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 48px; font-weight: 700; line-height: 1; text-transform: uppercase; letter-spacing: 0.02em">Assembly Matrix to Cube Matrix</h1>
+<p style="margin: 0; font-size: 16px; color: #8f9c93; max-width: 820px">Borg yards are lattices that a hull grows inside. Each level is shaped like the ship it builds: a probe frame, then a spherical cage, then a cube. Hulls are partly made from the wrecks of ships the Collective has destroyed.</p>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: flex-start">
+
+<!-- L1 Assembly Matrix -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #0b0e0c">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Level 1 Borg Assembly Matrix: a flat square lattice of girders with green nodes, holding a Borg probe whose left half is built and right half is a green outline">
+<rect width="300" height="240" fill="#0b0e0c"/>
+<circle cx="30" cy="30" r="1" fill="#e2ebe4"/><circle cx="262" cy="24" r="1.2" fill="#e2ebe4"/>
+<circle cx="150" cy="440" r="250" fill="#1a201c"/>
+<circle cx="150" cy="440" r="250" fill="none" stroke="#3e5444" class="w15 soft"/>
+<rect x="90" y="66" width="120" height="100" fill="none" stroke="#5a605a" class="w3"/>
+<line x1="110" y1="66" x2="110" y2="166" stroke="#3e4440" class="w1"/><line x1="130" y1="66" x2="130" y2="166" stroke="#3e4440" class="w1"/><line x1="150" y1="66" x2="150" y2="166" stroke="#3e4440" class="w1"/><line x1="170" y1="66" x2="170" y2="166" stroke="#3e4440" class="w1"/><line x1="190" y1="66" x2="190" y2="166" stroke="#3e4440" class="w1"/>
+<line x1="90" y1="86" x2="210" y2="86" stroke="#3e4440" class="w1"/><line x1="90" y1="106" x2="210" y2="106" stroke="#3e4440" class="w1"/><line x1="90" y1="126" x2="210" y2="126" stroke="#3e4440" class="w1"/><line x1="90" y1="146" x2="210" y2="146" stroke="#3e4440" class="w1"/>
+<path d="M116 116 L122 104 L150 102 L150 130 L122 128 Z" fill="#3e4440"/>
+<path d="M116 116 L122 104 L150 102 L150 116 Z" fill="#5a605a"/>
+<line x1="126" y1="110" x2="146" y2="110" stroke="#5fe07a" class="w1 grid"/>
+<path d="M150 102 L178 104 L186 116 L178 128 L150 130" fill="none" stroke="#5fe07a" class="w15 plan"/>
+<circle cx="90" cy="66" r="3" fill="#5fe07a"/><circle cx="210" cy="66" r="3" fill="#5fe07a"/><circle cx="90" cy="166" r="3" fill="#5fe07a"/><circle cx="210" cy="166" r="3" fill="#5fe07a"/><circle cx="150" cy="66" r="2" fill="#5fe07a"/><circle cx="150" cy="166" r="2" fill="#5fe07a"/>
+<path d="M232 150 L246 146 L252 154 L238 160 Z" fill="#6a7a8a" class="soft"/><line x1="232" y1="150" x2="210" y2="146" stroke="#5fe07a" class="w1 plan"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #12301a; color: #5fe07a">LV 1</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Assembly Matrix</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #c6d2ca">A flat lattice that grows Borg probes. It tractors in wreckage from the system (bottom right) and returns part of the cost of every hull it builds as salvage.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #8f9c93">Hull cap</span><span style="text-align: right; font-weight: 600">Size 2</span>
+<span style="color: #8f9c93">Salvage</span><span style="text-align: right; font-weight: 600">Wrecks → resources</span>
+<span style="color: #8f9c93">Cost</span><span style="text-align: right; font-weight: 600">180 Dur · 20 Nanoprobes</span>
+</div>
+</div>
+
+<div style="padding-top: 114px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4 L16 12 L8 20" fill="none" stroke="#5fe07a" class="w3 rc"/></svg></div>
+
+<!-- L2 Sphere Matrix -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #0b0e0c">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Level 2 Borg Sphere Matrix: a square lattice cage holding a Borg sphere whose left half is built with grid lines and right half is a green outline">
+<rect width="300" height="240" fill="#0b0e0c"/>
+<circle cx="24" cy="24" r="1" fill="#e2ebe4"/><circle cx="276" cy="30" r="1.2" fill="#e2ebe4"/>
+<circle cx="150" cy="450" r="250" fill="#1a201c"/>
+<circle cx="150" cy="450" r="250" fill="none" stroke="#3e5444" class="w15 soft"/>
+<rect x="80" y="46" width="140" height="140" fill="none" stroke="#5a605a" class="w3"/>
+<line x1="80" y1="46" x2="220" y2="186" stroke="#3e4440" class="w1"/><line x1="220" y1="46" x2="80" y2="186" stroke="#3e4440" class="w1"/>
+<line x1="150" y1="46" x2="150" y2="186" stroke="#3e4440" class="w1"/><line x1="80" y1="116" x2="220" y2="116" stroke="#3e4440" class="w1"/>
+<path d="M150 66 A50 50 0 0 0 150 166 Z" fill="#3e4440"/>
+<path d="M150 66 A50 50 0 0 0 100 116 L150 116 Z" fill="#5a605a"/>
+<path d="M150 66 A18 50 0 0 0 150 166" fill="none" stroke="#5fe07a" class="w1 grid"/>
+<path d="M100 116 L150 116 M106 92 L150 92 M106 140 L150 140" fill="none" stroke="#5fe07a" class="w1 grid"/>
+<path d="M150 66 A50 50 0 0 1 150 166" fill="none" stroke="#5fe07a" class="w15 plan"/>
+<path d="M150 66 A18 50 0 0 1 150 166" fill="none" stroke="#5fe07a" class="w1 plan faint"/>
+<circle cx="80" cy="46" r="3" fill="#5fe07a"/><circle cx="220" cy="46" r="3" fill="#5fe07a"/><circle cx="80" cy="186" r="3" fill="#5fe07a"/><circle cx="220" cy="186" r="3" fill="#5fe07a"/>
+<rect x="122" y="104" width="5" height="3" fill="#5fe07a"/><rect x="132" y="128" width="5" height="3" fill="#5fe07a"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #12301a; color: #5fe07a">LV 2</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Sphere Matrix</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #c6d2ca">The lattice closes into a cage that grows Borg spheres, half by half. Spheres can launch from inside a cube later. Any foreign tech the Collective has assimilated can be built into them.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #8f9c93">Hull cap</span><span style="text-align: right; font-weight: 600">Size 5</span>
+<span style="color: #8f9c93">Modules</span><span style="text-align: right; font-weight: 600">Any assimilated tech</span>
+<span style="color: #8f9c93">Cost</span><span style="text-align: right; font-weight: 600">360 Par · 40 Nanoprobes</span>
+</div>
+</div>
+
+<div style="padding-top: 114px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4 L16 12 L8 20" fill="none" stroke="#5fe07a" class="w3 rc"/></svg></div>
+
+<!-- L3 Cube Matrix -->
+<div style="width: 316px; display: flex; flex-direction: column; gap: 12px">
+<div style="width: 316px; height: 253px; border-radius: 10px; overflow: hidden; background: #0b0e0c; box-shadow: inset 0 0 0 2px #f3cb5b">
+<svg viewBox="0 0 300 240" width="316" height="253" role="img" aria-label="Cube Matrix wonder: a giant wireframe cube lattice with a Borg cube growing inside it, its sides built and its top still an outline, and a small Borg diamond nearby">
+<rect width="300" height="240" fill="#0b0e0c"/>
+<circle cx="20" cy="20" r="1" fill="#e2ebe4"/><circle cx="20" cy="220" r="0.8" fill="#e2ebe4"/>
+<circle cx="150" cy="480" r="280" fill="#1a201c"/>
+<circle cx="150" cy="480" r="280" fill="none" stroke="#3e5444" class="w15 soft"/>
+<polygon points="150,86 200,111 150,136 100,111" fill="none" stroke="#5fe07a" class="w15 plan"/>
+<polygon points="100,111 150,136 150,186 100,161" fill="#3e4440"/>
+<polygon points="150,136 200,111 200,161 150,186" fill="#2a2e2c"/>
+<line x1="125" y1="124" x2="125" y2="174" stroke="#5fe07a" class="w1 grid"/><line x1="175" y1="124" x2="175" y2="174" stroke="#5fe07a" class="w1 grid"/>
+<line x1="100" y1="136" x2="150" y2="161" stroke="#5fe07a" class="w1 grid"/><line x1="150" y1="161" x2="200" y2="136" stroke="#5fe07a" class="w1 grid"/>
+<line x1="112" y1="117" x2="112" y2="167" stroke="#3e4440" class="w1"/><line x1="188" y1="117" x2="188" y2="167" stroke="#3e4440" class="w1"/>
+<rect x="132" y="150" width="5" height="3" fill="#5fe07a"/><rect x="170" y="144" width="5" height="3" fill="#5fe07a"/>
+<polygon points="150,46 224,83 224,157 150,194 76,157 76,83" fill="none" stroke="#5a605a" class="w3"/>
+<polyline points="76,83 150,120 224,83" fill="none" stroke="#5a605a" class="w2"/>
+<line x1="150" y1="120" x2="150" y2="194" stroke="#5a605a" class="w2"/>
+<line x1="150" y1="46" x2="150" y2="86" stroke="#3e4440" class="w1"/><line x1="76" y1="120" x2="100" y2="132" stroke="#3e4440" class="w1"/><line x1="224" y1="120" x2="200" y2="132" stroke="#3e4440" class="w1"/>
+<circle cx="150" cy="46" r="3" fill="#5fe07a"/><circle cx="224" cy="83" r="3" fill="#5fe07a"/><circle cx="76" cy="83" r="3" fill="#5fe07a"/><circle cx="224" cy="157" r="3" fill="#5fe07a"/><circle cx="76" cy="157" r="3" fill="#5fe07a"/><circle cx="150" cy="194" r="3" fill="#5fe07a"/>
+<polygon points="258,30 272,46 258,62 244,46" fill="#3e4440"/>
+<polygon points="258,30 272,46 258,46" fill="#5a605a"/>
+<circle cx="258" cy="46" r="2.5" fill="#5fe07a"/>
+</svg>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 9px; border-radius: 10px; background: #3a2f12; color: #f3cb5b">MAX · WONDER</span>
+<h2 style="margin: 0; font-family: Antonio, 'Arial Narrow', sans-serif; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em">Cube Matrix</h2>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.45; color: #c6d2ca">A giant wireframe cube that grows Borg cubes, tactical cubes and, with the Unicomplex, the Queen's diamond. Cubes leave the matrix able to regenerate and to carry spheres inside.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px">
+<span style="color: #8f9c93">Hull cap</span><span style="text-align: right; font-weight: 600">Titan</span>
+<span style="color: #8f9c93">Builds</span><span style="text-align: right; font-weight: 600">Cube · Tactical · Diamond</span>
+<span style="color: #8f9c93">Cost</span><span style="text-align: right; font-weight: 600">3,000 Par · 250 Nanoprobes</span>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

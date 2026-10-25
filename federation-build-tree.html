@@ -1,0 +1,758 @@
+<title>Federation Build Tree</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: LCARS-style console frame; swimlane grid (lanes = building families, columns = colony tier gates) with SVG prerequisite links, detail readout below. Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --ink: #e9e4f2;
+  --ink-dim: #9a97ad;
+  --ink-faint: #5d5b70;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --sky: #7fc4e8;
+  --gold: #f3cb5b;
+  --rose: #e2787a;
+  --mint: #8fd3b0;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.page {
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1720px;
+  margin: 0 auto;
+  display: grid;
+  gap: 22px;
+}
+
+/* ---------- LCARS header frame ---------- */
+.frame {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  grid-template-rows: auto auto;
+  gap: 0 8px;
+}
+.elbow {
+  grid-row: 1 / span 2;
+  background: var(--orange);
+  border-radius: 44px 0 0 44px;
+  position: relative;
+  min-height: 112px;
+}
+.elbow::after {
+  content: "";
+  position: absolute;
+  right: -8px; bottom: 0;
+  width: 8px; height: 22px;
+  background: var(--orange);
+}
+.bars {
+  display: flex;
+  gap: 6px;
+  height: 22px;
+}
+.bars span { border-radius: 0; }
+.bars .b1 { flex: 5; background: var(--orange); }
+.bars .b2 { flex: 1.2; background: var(--lilac); }
+.bars .b3 { flex: 2; background: var(--periwinkle); }
+.bars .b4 { flex: .8; background: var(--peach); border-radius: 0 11px 11px 0; }
+.titleblock {
+  padding: 14px 0 6px 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(30px, 5vw, 54px);
+  line-height: 1;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--peach);
+  margin: 0;
+  text-wrap: balance;
+}
+.readout {
+  font-family: var(--label);
+  font-size: 13px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+.readout b { color: var(--orange); font-weight: 600; }
+.intro {
+  max-width: 68ch;
+  color: var(--ink-dim);
+  margin: 0;
+  padding-left: 6px;
+}
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  font-family: var(--label);
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.sw {
+  width: 26px; height: 14px; border-radius: 7px;
+  border: 1.5px solid var(--ink-dim);
+  background: var(--panel);
+}
+.sw.fed { border-color: var(--lilac); border-style: dashed; }
+.sw.won { border-color: var(--gold); border-width: 2.5px; }
+.sw.lit { background: var(--periwinkle); border-color: var(--periwinkle); }
+.tg {
+  font-family: var(--label); font-size: 11px; letter-spacing: .06em;
+  padding: 0 6px; border-radius: 3px;
+  background: var(--panel-2); color: var(--sky);
+}
+
+/* ---------- chart ---------- */
+.chart-wrap {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border-top: 2px solid var(--panel-2);
+  border-bottom: 2px solid var(--panel-2);
+  padding-block: 14px;
+  scrollbar-color: var(--ink-faint) transparent;
+}
+.chart {
+  position: relative;
+  display: grid;
+  grid-template-columns: 118px repeat(7, 186px);
+  gap: 14px 26px;
+  width: max-content;
+}
+.links {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+.links path {
+  fill: none;
+  stroke-width: 1.4;
+  opacity: .28;
+  transition: opacity .2s, stroke-width .2s;
+}
+.chart.focus .links path { opacity: .06; }
+.chart.focus .links path.on { opacity: 1; stroke-width: 2.4; }
+
+.colhead {
+  position: relative; z-index: 1;
+  display: grid;
+  gap: 2px;
+  padding-bottom: 4px;
+  border-bottom: 6px solid var(--panel-2);
+}
+.colhead .tier {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.colhead .gate {
+  font-family: var(--label);
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.corner {
+  font-family: var(--label);
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  align-self: end;
+  padding-bottom: 10px;
+}
+
+.lane {
+  position: relative; z-index: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px 8px 14px;
+  border-radius: 22px 0 0 22px;
+  background: var(--lc);
+  color: var(--void);
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.cell {
+  position: relative; z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+}
+
+.node {
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  display: grid;
+  gap: 2px;
+  padding: 7px 12px 8px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1.5px solid color-mix(in srgb, var(--lc) 70%, transparent);
+  color: var(--ink);
+  transition: background .18s, color .18s, opacity .18s, border-color .18s;
+}
+.node .nm {
+  font-family: var(--label);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.15;
+  letter-spacing: .02em;
+}
+.node .meta {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  align-items: center;
+}
+.node .units {
+  font-family: var(--label); font-size: 11px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--lc);
+}
+.node.fed { border-style: dashed; border-color: var(--lilac); }
+.node.won { border: 2.5px solid var(--gold); }
+.node:hover { background: var(--panel-2); }
+.node:focus-visible { outline: 2px solid var(--peach); outline-offset: 3px; }
+
+.chart.focus .node { opacity: .32; }
+.chart.focus .node.up,
+.chart.focus .node.down { opacity: 1; }
+.chart.focus .node.down { background: color-mix(in srgb, var(--lc) 18%, var(--panel)); }
+.chart.focus .node.up { background: color-mix(in srgb, var(--lc) 26%, var(--panel)); }
+.chart.focus .node.sel {
+  opacity: 1;
+  background: var(--lc);
+  border-color: var(--lc);
+  color: var(--void);
+}
+.chart.focus .node.sel .units { color: var(--void); }
+.chart.focus .node.sel .tg { background: rgba(0,0,0,.22); color: var(--void); }
+
+/* ---------- detail readout ---------- */
+.detail {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 0 16px;
+}
+.detail .rail { background: var(--sel, var(--orange)); border-radius: 7px; }
+.detail-body {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+  padding-block: 4px;
+}
+.dhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+.dhead h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(26px, 3.4vw, 38px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  line-height: 1.05;
+  color: var(--sel, var(--orange));
+}
+.dhead .where {
+  font-family: var(--label);
+  font-size: 13px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.effect { margin: 0; max-width: 70ch; font-size: 16px; }
+.dgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 18px 28px;
+}
+.dgrid section { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.dgrid h3 {
+  margin: 0;
+  font-family: var(--label);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--panel-2);
+  padding-bottom: 4px;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  appearance: none;
+  font: inherit;
+  font-family: var(--label);
+  font-size: 14px;
+  letter-spacing: .02em;
+  padding: 3px 11px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid transparent;
+}
+button.chip { cursor: pointer; border-color: var(--ink-faint); }
+button.chip:hover { border-color: var(--peach); }
+button.chip:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+.chip small { color: var(--ink-dim); font-size: 12px; margin-left: 4px; }
+.none { color: var(--ink-faint); font-style: italic; }
+.cost {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  gap: 2px 18px;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+.cost dt { color: var(--ink-dim); }
+.cost dd { margin: 0; text-align: right; font-family: var(--label); font-weight: 600; font-size: 16px; color: var(--peach); }
+.footnote {
+  font-size: 13px;
+  color: var(--ink-faint);
+  max-width: 80ch;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .frame { grid-template-columns: 40px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; min-height: 90px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div>
+      <div class="titleblock">
+        <h1>Federation Build Tree</h1>
+        <div class="readout">
+          <span>Ruleset <b>Dominion War · SD 50000–52999</b></span>
+          <span>Structures <b id="countNodes">0</b></span>
+          <span>Units unlocked <b id="countUnits">0</b></span>
+        </div>
+      </div>
+      <p class="intro">Select a structure to trace its chain. Everything it needs lights up, everything it unlocks is tinted, and the readout below lists cost, tech gate and the ships or units it builds. Columns are colony tiers; a structure needs every link pointing into it.</p>
+    </div>
+  </header>
+
+  <div class="legend" aria-label="Legend">
+    <span><i class="sw"></i>Standard structure</span>
+    <span><i class="sw fed"></i>Federation-only</span>
+    <span><i class="sw won"></i>Wonder (1 per player)</span>
+    <span><i class="sw lit"></i>Selected</span>
+    <span><i class="tg">TECH</i>Research gate</span>
+  </div>
+
+  <div class="chart-wrap" id="wrap">
+    <div class="chart" id="chart">
+      <svg class="links" id="links" aria-hidden="true"></svg>
+    </div>
+  </div>
+
+  <section class="detail" id="detail" aria-live="polite">
+    <div class="rail"></div>
+    <div class="detail-body" id="detailBody"></div>
+  </section>
+
+  <p class="footnote">Costs are placeholder numbers from the design data files (<code>design/data/buildings.json</code>, <code>ships.json</code>, <code>vehicles.json</code>). Hull size caps: Drydock ≤ 3, Orbital Shipyard ≤ 5, Spacedock ≤ 6, Fleet Yards builds Titans. Era tags mark units that only appear outside the Dominion War ruleset.</p>
+</div>
+
+<script>
+const LANES = [
+  { id: "command",  name: "Command & Diplomacy", color: "var(--orange)" },
+  { id: "hab",      name: "Habitation",          color: "var(--peach)" },
+  { id: "res",      name: "Resources",           color: "var(--mint)" },
+  { id: "yard",     name: "Industry & Shipyards",color: "var(--periwinkle)" },
+  { id: "sci",      name: "Research & Starfleet",color: "var(--lilac)" },
+  { id: "def",      name: "Defense",             color: "var(--rose)" },
+  { id: "deep",     name: "Deep Space",          color: "var(--sky)" }
+];
+const COLS = [
+  { tier: "Landfall",      gate: "Colony transport lands" },
+  { tier: "Founding",      gate: "Requires Colony Hub" },
+  { tier: "Settlement",    gate: "Requires Colonial Admin" },
+  { tier: "Colony",        gate: "Colonial Admin + tier-2 tech" },
+  { tier: "Core World",    gate: "Requires Planetary Capital" },
+  { tier: "Fleet Power",   gate: "Capital + Starbase in range" },
+  { tier: "Wonders",       gate: "One per player" }
+];
+const TECH = {
+  pressure_domes: "Pressure Domes", replicators: "Food Replicators", atmospheric_processors: "Atmospheric Processors",
+  dilithium_recrystallization: "Dilithium Recrystallization", deep_core_mining: "Deep-Core Mining", isolinear: "Isolinear Computing",
+  industrial_replicators: "Industrial Replicators", phaser: "Phasers", regenerative_shields: "Regenerative Shielding",
+  subspace_relays: "Subspace Relay Network", tachyon_grid: "Tachyon Detection Grid", photon_torpedo: "Photon Torpedoes",
+  holotechnology: "Holotechnology"
+};
+
+// u: [name, note]
+const NODES = [
+  // ---- col 0
+  { id: "colony_hub", name: "Colony Hub", lane: "command", col: 0, req: [],
+    cost: { Duranium: 100, Crew: 50 }, effect: "Founds the colony. Supply range 1, one build queue. Starting point of every Federation world.",
+    u: [["Construction Ship","civilian hull"],["Colony Transport","civilian hull"],["Colonial Militia","ground"]] },
+
+  // ---- col 1
+  { id: "colonial_admin", name: "Colonial Administration", lane: "command", col: 1, req: ["colony_hub"],
+    cost: { Duranium: 300, Tritanium: 150 }, effect: "Supply range 2. Unlocks Settlement-tier construction on this world." },
+  { id: "prefab_habitat", name: "Prefab Habitat", lane: "hab", col: 1, req: ["colony_hub"],
+    cost: { Duranium: 60 }, effect: "Small population cap increase. The standard TOS/TNG colony module." },
+  { id: "mine", name: "Mining Complex", lane: "res", col: 1, req: ["colony_hub"],
+    cost: { Duranium: 80 }, effect: "Extracts the body's primary ore deposit (tritanium, duranium, pergium…)." },
+  { id: "fusion_reactor", name: "Fusion Reactor", lane: "res", col: 1, req: ["colony_hub"],
+    cost: { Duranium: 80, Deuterium: 20 }, effect: "Energy output. Burns deuterium." },
+  { id: "deuterium_refinery", name: "Orbital Deuterium Refinery", lane: "res", col: 1, req: ["colony_hub"],
+    cost: { Duranium: 150 }, effect: "Skims deuterium from a gas giant, ultra giant or ocean world in the system. Orbital slot." },
+  { id: "science_lab", name: "Research Lab", lane: "sci", col: 1, req: ["colony_hub"],
+    cost: { Duranium: 100 }, effect: "Research output." },
+  { id: "garrison", name: "Security Garrison", lane: "def", col: 1, req: ["colony_hub"],
+    cost: { Duranium: 100, Crew: 50 }, effect: "Trains ground troops and defends against invasion and boarding.",
+    u: [["Starfleet Security Team","ground"],["Hover APC","ground vehicle"],["Mobile Phaser Artillery","ground vehicle"]] },
+  { id: "outpost", name: "Outpost", lane: "deep", col: 1, req: ["colony_hub"],
+    cost: { Duranium: 120, Rodinium: 10 }, effect: "Claims territory and extends supply range. Cast rodinium armor, Neutral Zone style. Built by a construction ship.",
+    u: [["Sensor Buoy","probe"],["Warning Beacon","probe"]] },
+
+  // ---- col 2
+  { id: "embassy", name: "Embassy", lane: "command", col: 2, req: ["colonial_admin"],
+    cost: { Parasteel: 100, Latinum: 50 }, effect: "Opens diplomacy with one faction. Defends against espionage.",
+    u: [["Diplomatic Courier","scout hull"]] },
+  { id: "pressure_dome", name: "Pressure Dome", lane: "hab", col: 2, req: ["colonial_admin", "prefab_habitat"], tech: "pressure_domes",
+    cost: { "Transparent Aluminum": 40, Topaline: 10 }, effect: "Opens surface building on airless or hostile bodies (Class D/K). Breach risk under bombardment." },
+  { id: "hospital", name: "Medical Center", lane: "hab", col: 2, req: ["colonial_admin"],
+    cost: { Duranium: 80 }, effect: "Population growth, crew recovery and plague resistance." },
+  { id: "refinery", name: "Ore Refinery", lane: "res", col: 2, req: ["mine"],
+    cost: { Duranium: 120 }, effect: "Raw ore into refined tritanium, duranium and strategic metals." },
+  { id: "dilithium_mine", name: "Dilithium Mine", lane: "res", col: 2, req: ["mine"],
+    cost: { Tritanium: 150 }, effect: "Raw dilithium. The most raided structure in the game." },
+  { id: "drydock", name: "Orbital Drydock", lane: "yard", col: 2, req: ["colonial_admin", "fusion_reactor"],
+    cost: { Duranium: 200, Tritanium: 100 }, effect: "Builds hulls up to size 3 and repairs ships. Spawns Work Bees.",
+    u: [["Work Bee","construction craft"],["Type-6 Shuttle","small craft"],["Class-8 Probe","probe"],["Danube Runabout","small craft"],
+        ["Freighter","civilian"],["Mining Barge","civilian"],["Deuterium Tanker","civilian"],["Space Tug","civilian"],
+        ["Oberth Survey Ship","scout · size 2"],["Miranda","frigate · size 3"],["New Orleans","frigate · size 3"],
+        ["Steamrunner","frigate · size 3"],["Saber","escort · size 3"],["Defiant","escort · size 3"]] },
+  { id: "observatory", name: "Stellar Observatory", lane: "sci", col: 2, req: ["science_lab"],
+    cost: { Duranium: 80, "Transparent Aluminum": 20 }, effect: "Research output. Reveals anomalies in neighboring systems." },
+  { id: "sensor_array", name: "Orbital Sensor Array", lane: "def", col: 2, req: ["colonial_admin"],
+    cost: { Duranium: 80, "Isolinear Chips": 10 }, effect: "Wider vision radius and early warning of roaming anomalies." },
+  { id: "relay", name: "Subspace Relay", lane: "deep", col: 2, req: ["outpost"], tech: "subspace_relays",
+    cost: { Duranium: 60 }, effect: "Extends supply range and comms. Can be hacked." },
+
+  // ---- col 3
+  { id: "capital", name: "Planetary Capital", lane: "command", col: 3, req: ["colonial_admin", "hospital"],
+    cost: { Parasteel: 400, "Isolinear Chips": 50 }, effect: "Supply range 3 and system-wide morale. One per system. Unlocks Core World tier." },
+  { id: "replicator_center", name: "Food Replicator Center", lane: "hab", col: 3, req: ["hospital"], tech: "replicators",
+    cost: { Duranium: 60, Energy: 20 }, effect: "Removes the colony's food upkeep." },
+  { id: "terraforming", name: "Terraforming Station", lane: "hab", col: 3, req: ["pressure_dome"], tech: "atmospheric_processors",
+    cost: { Parasteel: 150, Energy: 50 }, effect: "Slowly upgrades the planet class (K→L→M). Like Velara III, it may uncover native life and force a choice." },
+  { id: "foundry", name: "Alloy Foundry", lane: "yard", col: 3, req: ["refinery"],
+    cost: { Duranium: 150, Tritanium: 50 }, effect: "Makes parasteel, transparent aluminum and plasma conduits." },
+  { id: "recrystallizer", name: "Dilithium Recrystallizer", lane: "res", col: 3, req: ["dilithium_mine"], tech: "dilithium_recrystallization",
+    cost: { Parasteel: 100 }, effect: "Restores spent dilithium crystals, so the fleet wears through them more slowly." },
+  { id: "antimatter", name: "Antimatter Generation Facility", lane: "res", col: 3, req: ["deuterium_refinery", "fusion_reactor"],
+    cost: { Parasteel: 200, Energy: 60 }, effect: "Deuterium + energy into antimatter. Orbital only. If destroyed, it damages every structure in its orbital ring." },
+  { id: "xenobio", name: "Xenobiology Center", lane: "sci", col: 3, req: ["observatory"],
+    cost: { Parasteel: 80 }, effect: "Biology research, milder plagues, and the option to negotiate with native life.",
+    u: [["Hazard Team","ground · Delta Quadrant ruleset"]] },
+  { id: "academy", name: "Starfleet Academy", lane: "sci", col: 3, req: ["colonial_admin", "garrison"], fed: true,
+    cost: { Parasteel: 250, Latinum: 40 }, effect: "Recruits and trains Captains (hero units). Crew XP bonus across the empire.",
+    u: [["Starfleet Captain","hero"],["Captain's Yacht","small craft"]] },
+  { id: "phaser_bank", name: "Planetary Phaser Bank", lane: "def", col: 3, req: ["garrison"], tech: "phaser",
+    cost: { Tritanium: 120, Energy: 30 }, effect: "Surface-to-orbit beam weapon." },
+  { id: "torpedo_silo", name: "Torpedo Launcher Silo", lane: "def", col: 3, req: ["garrison"], tech: "photon_torpedo",
+    cost: { Tritanium: 100, Antimatter: 20 }, effect: "Long-range surface-to-orbit torpedoes, DS9 style." },
+  { id: "dss", name: "Deep Space Station", lane: "deep", col: 3, req: ["relay"],
+    cost: { Parasteel: 300 }, effect: "Trade hub generating latinum. Repairs and docks four ships. K-7 style." },
+  { id: "listening_post", name: "Listening Post", lane: "deep", col: 3, req: ["relay"],
+    cost: { Duranium: 120, "Isolinear Chips": 20 }, effect: "Tracks fleet movement in neighboring systems across a border." },
+
+  // ---- col 4
+  { id: "orbital_habitat", name: "Orbital Habitat Ring", lane: "hab", col: 4, req: ["capital", "pressure_dome"],
+    cost: { Parasteel: 180 }, effect: "Population capacity around any body, gas giants included." },
+  { id: "weather_control", name: "Weather Control Network", lane: "hab", col: 4, req: ["capital", "terraforming"],
+    cost: { Parasteel: 200, "Isolinear Chips": 30 }, effect: "Habitability and morale, plus resistance to stellar flares. Risa style." },
+  { id: "deep_core", name: "Deep-Core Mine", lane: "res", col: 4, req: ["mine", "foundry"], tech: "deep_core_mining",
+    cost: { Parasteel: 120 }, effect: "Reopens depleted deposits at 50% yield. Seismic collapse risk." },
+  { id: "shipyard", name: "Orbital Shipyard", lane: "yard", col: 4, req: ["drydock", "foundry", "capital"],
+    cost: { Parasteel: 300, "Plasma Conduits": 40 }, effect: "Builds hulls up to size 5.",
+    u: [["Nebula","cruiser · size 4"],["Intrepid","cruiser · size 4"],["Ambassador","heavy cruiser · size 5"],
+        ["Akira","carrier · size 5"],["Prometheus","heavy cruiser · size 5 · MVAM"],["Olympic Hospital Ship","support"],
+        ["Troop Transport","support"],["Federation Attack Fighter","carrier wing"],["Delta Flyer","unique · Delta Quadrant ruleset"]] },
+  { id: "verterium", name: "Verterium Synthesis Lab", lane: "yard", col: 4, req: ["foundry"],
+    cost: { Parasteel: 120, Energy: 50 }, effect: "Synthesizes verterium cortenide for warp coils." },
+  { id: "component_fab", name: "Component Fab Plant", lane: "yard", col: 4, req: ["foundry"], tech: "isolinear",
+    cost: { Parasteel: 150 }, effect: "Isolinear chips, bio-neural gel packs and warp coils." },
+  { id: "daystrom", name: "Daystrom Institute", lane: "sci", col: 4, req: ["academy", "xenobio"], fed: true,
+    cost: { Parasteel: 300, "Isolinear Chips": 60 }, effect: "Large research bonus. Early access to positronic research.",
+    u: [["Holographic Decoy Drone","probe"]] },
+  { id: "platform_gen", name: "Platform Power Generator", lane: "def", col: 4, req: ["torpedo_silo", "capital"],
+    cost: { Parasteel: 150 }, effect: "Powers every orbital weapons platform in the system, Chin'toka style. Usually on a moon, which makes it a commando target." },
+  { id: "research_station", name: "Research Station", lane: "deep", col: 4, req: ["dss", "xenobio"],
+    cost: { Parasteel: 200 }, effect: "Placed beside an anomaly, it studies it for research and breakthrough techs. Regula I style." },
+  { id: "starbase", name: "Starbase", lane: "deep", col: 4, req: ["dss", "capital"],
+    cost: { Parasteel: 600, "Isolinear Chips": 50 }, effect: "Heavy defense, fleet command aura, research. Supply range 3. Unlocks Fleet Power tier." },
+
+  // ---- col 5
+  { id: "council", name: "Federation Council Chamber", lane: "command", col: 5, req: ["capital", "embassy"], fed: true,
+    cost: { Parasteel: 500, Latinum: 200 }, effect: "Member Worlds votes and progress toward diplomatic victory. Wars need a council vote." },
+  { id: "arcology", name: "Arcology", lane: "hab", col: 5, req: ["orbital_habitat", "component_fab"], tech: "industrial_replicators",
+    cost: { Parasteel: 300 }, effect: "Large population cap. One slot holds four habitats' worth." },
+  { id: "ind_replicator", name: "Industrial Replicator Center", lane: "yard", col: 5, req: ["component_fab", "replicator_center"], tech: "industrial_replicators",
+    cost: { "Isolinear Chips": 60, Parasteel: 100 }, effect: "Converts energy to basic materials at 5:1. Cannot make dilithium, latinum or strategic resources." },
+  { id: "spacedock", name: "Spacedock", lane: "yard", col: 5, req: ["shipyard", "starbase"],
+    cost: { Parasteel: 1200, "Plasma Conduits": 150 }, effect: "Builds hulls up to size 6 inside its bay. Full repairs. Two per player.",
+    u: [["Galaxy","explorer · size 6 · saucer separation"],["Sovereign","battleship · size 6"],["Excelsior","explorer · size 6"]] },
+  { id: "memory_alpha", name: "Memory Alpha Archive", lane: "sci", col: 5, req: ["daystrom"], fed: true,
+    cost: { Parasteel: 400, "Isolinear Chips": 120 }, effect: "Shares research with allies and protects against tech loss." },
+  { id: "planetary_shield", name: "Planetary Shield Generator", lane: "def", col: 5, req: ["capital", "component_fab"], tech: "regenerative_shields",
+    cost: { Parasteel: 250, Energy: 80 }, effect: "Blocks bombardment and transporters until depleted. One per body." },
+  { id: "weapons_platform", name: "Orbital Weapons Platform", lane: "def", col: 5, req: ["platform_gen", "antimatter"],
+    cost: { Tritanium: 200, Antimatter: 20 }, effect: "Heavy automated weapons. All go dark if the system's power generator falls." },
+  { id: "tachyon_node", name: "Tachyon Detection Node", lane: "deep", col: 5, req: ["starbase", "listening_post"], tech: "tachyon_grid",
+    cost: { Duranium: 80, Energy: 20 }, effect: "Pairs of nodes form a beam line that reveals cloaked ships crossing it." },
+  { id: "minefield", name: "Self-Replicating Minefield", lane: "deep", col: 5, req: ["starbase", "antimatter"],
+    cost: { Antimatter: 60, Parasteel: 100 }, effect: "Cloaked mines that rebuild themselves. Seals a lane or a wormhole mouth." },
+
+  // ---- col 6
+  { id: "fleet_yards", name: "Fleet Yards", lane: "yard", col: 6, req: ["spacedock", "verterium"], won: true,
+    cost: { Parasteel: 3000, "Warp Coils": 200 }, effect: "Builds Titans and cuts build time 20% for all ships. Utopia Planitia style.",
+    u: [["Odyssey","titan · Picard-era ruleset"]] },
+  { id: "yorktown", name: "Yorktown Megastation", lane: "deep", col: 6, req: ["spacedock", "ind_replicator"], won: true,
+    cost: { Parasteel: 4000, "Isolinear Chips": 300, Dilithium: 200 }, effect: "Huge population, research and trade. A world inside a station shell." }
+];
+
+const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
+const laneById = Object.fromEntries(LANES.map(l => [l.id, l]));
+const children = {};
+NODES.forEach(n => n.req.forEach(r => (children[r] ||= []).push(n.id)));
+
+const chart = document.getElementById("chart");
+const svg = document.getElementById("links");
+const nodeEls = {};
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+// header row
+chart.appendChild(el("div", "corner", "Lane / Tier"));
+COLS.forEach(c => {
+  const h = el("div", "colhead");
+  h.appendChild(el("div", "tier", c.tier));
+  h.appendChild(el("div", "gate", c.gate));
+  chart.appendChild(h);
+});
+
+// lanes
+LANES.forEach(l => {
+  const lab = el("div", "lane", l.name);
+  lab.style.setProperty("--lc", l.color);
+  chart.appendChild(lab);
+  COLS.forEach((_, ci) => {
+    const cell = el("div", "cell");
+    NODES.filter(n => n.lane === l.id && n.col === ci).forEach(n => {
+      const b = el("button", "node" + (n.fed ? " fed" : "") + (n.won ? " won" : ""));
+      b.type = "button";
+      b.id = "n-" + n.id;
+      b.style.setProperty("--lc", l.color);
+      b.appendChild(el("span", "nm", n.name));
+      const meta = el("span", "meta");
+      if (n.tech) meta.appendChild(el("span", "tg", TECH[n.tech] || n.tech));
+      if (n.u) meta.appendChild(el("span", "units", n.u.length + (n.u.length === 1 ? " unit" : " units")));
+      if (meta.childNodes.length) b.appendChild(meta);
+      b.addEventListener("click", () => select(n.id, true));
+      nodeEls[n.id] = b;
+      cell.appendChild(b);
+    });
+    chart.appendChild(cell);
+  });
+});
+
+document.getElementById("countNodes").textContent = NODES.length;
+document.getElementById("countUnits").textContent = NODES.reduce((s, n) => s + (n.u ? n.u.length : 0), 0);
+
+// links
+const paths = [];
+function drawLinks() {
+  const box = chart.getBoundingClientRect();
+  svg.setAttribute("width", chart.scrollWidth);
+  svg.setAttribute("height", chart.scrollHeight);
+  svg.setAttribute("viewBox", `0 0 ${chart.scrollWidth} ${chart.scrollHeight}`);
+  svg.innerHTML = "";
+  paths.length = 0;
+  NODES.forEach(n => n.req.forEach(r => {
+    const a = nodeEls[r].getBoundingClientRect();
+    const b = nodeEls[n.id].getBoundingClientRect();
+    const x1 = a.right - box.left, y1 = a.top + a.height / 2 - box.top;
+    const x2 = b.left - box.left, y2 = b.top + b.height / 2 - box.top;
+    const dx = Math.max(22, (x2 - x1) * 0.5);
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`);
+    p.setAttribute("stroke", laneById[byId[r].lane].color);
+    p.dataset.from = r;
+    p.dataset.to = n.id;
+    svg.appendChild(p);
+    paths.push(p);
+  }));
+  if (current) markChain(current);
+}
+
+function ancestors(id, acc = new Set()) {
+  byId[id].req.forEach(r => { if (!acc.has(r)) { acc.add(r); ancestors(r, acc); } });
+  return acc;
+}
+function descendants(id, acc = new Set()) {
+  (children[id] || []).forEach(c => { if (!acc.has(c)) { acc.add(c); descendants(c, acc); } });
+  return acc;
+}
+
+let current = null;
+function markChain(id) {
+  const up = ancestors(id), down = descendants(id);
+  chart.classList.add("focus");
+  NODES.forEach(n => {
+    const e = nodeEls[n.id];
+    e.classList.toggle("sel", n.id === id);
+    e.classList.toggle("up", up.has(n.id));
+    e.classList.toggle("down", down.has(n.id));
+    e.setAttribute("aria-pressed", n.id === id ? "true" : "false");
+  });
+  const chainUp = new Set([...up, id]), chainDown = new Set([...down, id]);
+  paths.forEach(p => {
+    const on = (chainUp.has(p.dataset.from) && chainUp.has(p.dataset.to)) ||
+               (chainDown.has(p.dataset.from) && chainDown.has(p.dataset.to));
+    p.classList.toggle("on", on);
+  });
+}
+
+function chipList(ids) {
+  const wrap = el("div", "chips");
+  if (!ids.length) { wrap.appendChild(el("span", "none", "None")); return wrap; }
+  ids.forEach(i => {
+    const c = el("button", "chip", byId[i].name);
+    c.type = "button";
+    c.addEventListener("click", () => select(i, true, true));
+    wrap.appendChild(c);
+  });
+  return wrap;
+}
+
+function renderDetail(n) {
+  const lane = laneById[n.lane];
+  const detail = document.getElementById("detail");
+  detail.style.setProperty("--sel", lane.color);
+  const body = document.getElementById("detailBody");
+  body.innerHTML = "";
+
+  const head = el("div", "dhead");
+  head.appendChild(el("h2", null, n.name));
+  const kind = n.won ? "Wonder" : n.fed ? "Federation-only" : "Structure";
+  head.appendChild(el("span", "where", `${lane.name} · ${COLS[n.col].tier} tier · ${kind}`));
+  body.appendChild(head);
+  body.appendChild(el("p", "effect", n.effect));
+
+  const grid = el("div", "dgrid");
+
+  const sReq = el("section"); sReq.appendChild(el("h3", null, "Requires"));
+  sReq.appendChild(chipList(n.req));
+  if (n.tech) {
+    const t = el("div", "chips");
+    const c = el("span", "chip"); c.textContent = TECH[n.tech];
+    const s = el("small", null, "research"); c.appendChild(s);
+    t.appendChild(c); sReq.appendChild(t);
+  }
+  grid.appendChild(sReq);
+
+  const sCost = el("section"); sCost.appendChild(el("h3", null, "Cost"));
+  const dl = el("dl", "cost");
+  Object.entries(n.cost).forEach(([k, v]) => { dl.appendChild(el("dt", null, k)); dl.appendChild(el("dd", null, v.toLocaleString())); });
+  sCost.appendChild(dl);
+  grid.appendChild(sCost);
+
+  const sU = el("section"); sU.appendChild(el("h3", null, "Builds / trains"));
+  const uw = el("div", "chips");
+  if (n.u) n.u.forEach(([nm, note]) => { const c = el("span", "chip", nm); c.appendChild(el("small", null, note)); uw.appendChild(c); });
+  else uw.appendChild(el("span", "none", "No units"));
+  sU.appendChild(uw);
+  grid.appendChild(sU);
+
+  const sNext = el("section"); sNext.appendChild(el("h3", null, "Leads to"));
+  sNext.appendChild(chipList(children[n.id] || []));
+  grid.appendChild(sNext);
+
+  body.appendChild(grid);
+}
+
+function select(id, fromUser, scrollTo) {
+  current = id;
+  markChain(id);
+  renderDetail(byId[id]);
+  if (scrollTo) nodeEls[id].scrollIntoView({ block: "nearest", inline: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && current) {
+    current = null;
+    chart.classList.remove("focus");
+    paths.forEach(p => p.classList.remove("on"));
+    NODES.forEach(n => { nodeEls[n.id].classList.remove("sel", "up", "down"); nodeEls[n.id].setAttribute("aria-pressed", "false"); });
+  }
+});
+
+new ResizeObserver(() => drawLinks()).observe(chart);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawLinks);
+drawLinks();
+select("shipyard");
+</script>
