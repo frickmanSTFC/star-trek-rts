@@ -11,8 +11,6 @@ import os
 import random
 import sys
 
-OUT = sys.argv[1]
-os.makedirs(OUT, exist_ok=True)
 
 W, H = 800, 600
 CX, CY, S = 400, 158, 3.1
@@ -691,7 +689,10 @@ def v_level5():
     return sc
 
 
-for i, fn in enumerate([v_level1, v_level2, v_level3, v_level4, v_level5], start=1):
-    with open(os.path.join(OUT, f"colony-hub-L{i}.svg"), "w") as f:
-        f.write(fn().render())
-print("ok")
+if __name__ == "__main__":
+    OUT = sys.argv[1]
+    os.makedirs(OUT, exist_ok=True)
+    for i, fn in enumerate([v_level1, v_level2, v_level3, v_level4, v_level5], start=1):
+        with open(os.path.join(OUT, f"colony-hub-L{i}.svg"), "w") as f:
+            f.write(fn().render())
+    print("ok")

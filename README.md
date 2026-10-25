@@ -8,6 +8,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 - `federation-build-tree.html`: interactive Federation build tree. Open it in any browser.
 - `art/`: detailed isometric artwork. `art/federation-colony-hub/` has the Colony Hub at all five levels (SVG, open in any browser).
 - `tools/gen_colony_hub.py`: the script that draws that artwork (Starfleet style: saucers, capsule modules, glow strips), so the levels stay consistent: `python3 tools/gen_colony_hub.py art/federation-colony-hub`.
+- `animation/colony-pod-drop.html`: animated prototype of the colony pod drop with a scrubbable timeline. Open it in any browser. Online: https://claude.ai/artifact/935ziqLQi7xFFeowTrP2sm. Rebuild with `python3 tools/anim_build.py animation/colony-pod-drop.html`.
 - `concept-canvas/`: source for the structure concept boards (7 factions × 4 upgrade lines). These files render inside the online canvas, not in a plain browser.
 
 ## Online versions
