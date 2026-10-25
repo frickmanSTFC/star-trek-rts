@@ -64,14 +64,18 @@ for i, (cx, cy) in enumerate(CAPSULES):
     sc.disc(cx, cy, 4.2, "#3b4a2e", opacity=0.55)
     layer(f"capscorch{i}", sc, ' opacity="0"')
 
-pod = G.FedScene(1)
-G.lander(pod, POD_Z, legs=False)
-layers.append(f'<g id="podshadow" opacity="0">{"".join(pod.shadows)}</g>')
-pod.shadows = []
+# the pod is animated in parts: legs, saucer, command capsule
+saucer = G.FedScene(1)
+saucer.saucer(X, Y, 10, 3.2, POD_Z, depth=100)
+layers.append(f'<g id="podshadow" opacity="0">{"".join(saucer.shadows)}</g>')
+saucer.shadows = []
 legs = G.FedScene(1)
 legs.legs(X, Y, 10, POD_Z)
 layer("legs", legs)
-layer("pod", pod)
+layer("saucer", saucer)
+capsule = G.FedScene(1)
+capsule.cylg(X, Y, 5, 4.6, z=POD_Z + 3.2, band=(3.6,), windows=(1.8,), cap="dome", shadow=False, depth=100.1)
+layer("capsule", capsule)
 ramp = G.FedScene(1)
 ramp.ramp(X, Y, 8.5, 19, POD_Z, deg=0, w=2.4)
 layer("ramp", ramp)
