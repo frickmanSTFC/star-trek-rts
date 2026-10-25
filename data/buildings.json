@@ -1420,5 +1420,524 @@
         }
       ]
     }
+  },
+  "_notes_starting_sets": "starting_sets: buildings each faction can place in the opening minutes of a Class M colony, one per role (core, housing, extraction, power, research, defense, signature). Federation is the baseline; other factions trade cost or capability. Costs are placeholders.",
+  "starting_sets": {
+    "planet_class": "class_m",
+    "factions": {
+      "federation": {
+        "identity": "Balanced baseline; fastest research.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "colony_hub",
+            "name": "Colony Hub",
+            "cost": {
+              "duranium": 100,
+              "crew": 50
+            },
+            "effect": "Supply range 1, 1 build queue.",
+            "building_ref": "colony_hub"
+          },
+          {
+            "role": "housing",
+            "id": "prefab_habitat",
+            "name": "Prefab Habitat",
+            "cost": {
+              "duranium": 60
+            },
+            "effect": "+1 population.",
+            "building_ref": "prefab_habitat"
+          },
+          {
+            "role": "extraction",
+            "id": "mine",
+            "name": "Mining Complex",
+            "cost": {
+              "duranium": 80
+            },
+            "effect": "Normal yield.",
+            "building_ref": "mine"
+          },
+          {
+            "role": "power",
+            "id": "fusion_reactor",
+            "name": "Fusion Reactor",
+            "cost": {
+              "duranium": 80,
+              "deuterium": 20
+            },
+            "effect": "+10 energy.",
+            "building_ref": "fusion_reactor"
+          },
+          {
+            "role": "research",
+            "id": "science_lab",
+            "name": "Research Lab",
+            "cost": {
+              "duranium": 100
+            },
+            "effect": "+25% research (best in game).",
+            "building_ref": "science_lab"
+          },
+          {
+            "role": "defense",
+            "id": "garrison",
+            "name": "Security Garrison",
+            "cost": {
+              "duranium": 100,
+              "crew": 50
+            },
+            "effect": "1 security team.",
+            "building_ref": "garrison"
+          },
+          {
+            "role": "signature",
+            "id": "fed_xenology_post",
+            "name": "Xenology Observation Post",
+            "cost": {
+              "duranium": 60
+            },
+            "effect": "Hidden study of natives: research bonus; Prime Directive penalty if discovered.",
+            "requires": "natives_present"
+          }
+        ]
+      },
+      "klingon": {
+        "identity": "Cheap and aggressive; weak economy and research.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "kli_house_encampment",
+            "name": "House Encampment",
+            "cost": {
+              "duranium": 90,
+              "crew": 60
+            },
+            "effect": "Trains Klingon Warriors immediately."
+          },
+          {
+            "role": "housing",
+            "id": "kli_clan_longhouse",
+            "name": "Clan Longhouse",
+            "cost": {
+              "duranium": 70
+            },
+            "effect": "+1 population, +1 militia."
+          },
+          {
+            "role": "extraction",
+            "id": "kli_strip_mine",
+            "name": "Strip Mine",
+            "cost": {
+              "duranium": 60
+            },
+            "effect": "+25% yield; deposit depletes 25% faster."
+          },
+          {
+            "role": "power",
+            "id": "kli_battle_reactor",
+            "name": "Battle Reactor",
+            "cost": {
+              "duranium": 60,
+              "deuterium": 20
+            },
+            "effect": "+10 energy; explodes and damages neighbours if destroyed."
+          },
+          {
+            "role": "research",
+            "id": "kli_weapons_forge",
+            "name": "Weapons Forge",
+            "cost": {
+              "duranium": 80
+            },
+            "effect": "Weapons-tree research only, at -25%."
+          },
+          {
+            "role": "defense",
+            "id": "kli_disruptor_battery",
+            "name": "Disruptor Battery",
+            "cost": {
+              "tritanium": 110
+            },
+            "effect": "Surface-to-orbit gun from turn one."
+          },
+          {
+            "role": "signature",
+            "id": "kli_warriors_arena",
+            "name": "Warrior's Arena",
+            "cost": {
+              "duranium": 80
+            },
+            "effect": "+1 Honor per cycle; ground troop XP."
+          }
+        ]
+      },
+      "cardassian": {
+        "identity": "Industry and control; slow research.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "car_garrison_post",
+            "name": "Garrison Post",
+            "cost": {
+              "duranium": 110,
+              "crew": 40
+            },
+            "effect": "Includes a garrison; no separate defense building needed."
+          },
+          {
+            "role": "housing",
+            "id": "car_labor_barracks",
+            "name": "Labor Barracks",
+            "cost": {
+              "duranium": 60
+            },
+            "effect": "+1 population."
+          },
+          {
+            "role": "extraction",
+            "id": "car_ore_extraction_site",
+            "name": "Ore Extraction Site",
+            "cost": {
+              "duranium": 100
+            },
+            "effect": "+50% yield; uridium bonus on Class M."
+          },
+          {
+            "role": "power",
+            "id": "fusion_reactor",
+            "name": "Fusion Reactor",
+            "cost": {
+              "duranium": 80,
+              "deuterium": 20
+            },
+            "effect": "+10 energy.",
+            "building_ref": "fusion_reactor"
+          },
+          {
+            "role": "research",
+            "id": "car_state_archive",
+            "name": "State Archive",
+            "cost": {
+              "duranium": 120
+            },
+            "effect": "-25% research."
+          },
+          {
+            "role": "defense",
+            "id": "car_surveillance_grid",
+            "name": "Surveillance Grid",
+            "cost": {
+              "duranium": 60,
+              "isolinear_chips": 10
+            },
+            "effect": "Reveals spies; -1 Resistance."
+          },
+          {
+            "role": "signature",
+            "id": "car_occupation_office",
+            "name": "Occupation Office",
+            "cost": {
+              "duranium": 80
+            },
+            "effect": "Natives put to work: +output, rising Resistance.",
+            "requires": "natives_present"
+          }
+        ]
+      },
+      "romulan": {
+        "identity": "Hidden and paranoid; pricier.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "rom_colonial_garrison",
+            "name": "Colonial Garrison",
+            "cost": {
+              "duranium": 110,
+              "crew": 40
+            },
+            "effect": "Enemy scans see no colony details."
+          },
+          {
+            "role": "housing",
+            "id": "rom_colonial_villa",
+            "name": "Colonial Villa",
+            "cost": {
+              "duranium": 70
+            },
+            "effect": "+1 population, +1 morale."
+          },
+          {
+            "role": "extraction",
+            "id": "rom_shrouded_mine",
+            "name": "Shrouded Mine",
+            "cost": {
+              "duranium": 100
+            },
+            "effect": "-20% yield; invisible to scans and raids."
+          },
+          {
+            "role": "power",
+            "id": "rom_plasma_reactor",
+            "name": "Plasma Reactor",
+            "cost": {
+              "duranium": 90,
+              "isolinear_chips": 10
+            },
+            "effect": "+12 energy; no deuterium."
+          },
+          {
+            "role": "research",
+            "id": "rom_science_ministry_lab",
+            "name": "Science Ministry Lab",
+            "cost": {
+              "duranium": 110,
+              "isolinear_chips": 10
+            },
+            "effect": "Normal research; +50% on stealth techs."
+          },
+          {
+            "role": "defense",
+            "id": "rom_cloaked_emplacement",
+            "name": "Cloaked Disruptor Emplacement",
+            "cost": {
+              "tritanium": 120
+            },
+            "effect": "Invisible until it fires."
+          },
+          {
+            "role": "signature",
+            "id": "rom_tal_shiar_field_office",
+            "name": "Tal Shiar Field Office",
+            "cost": {
+              "duranium": 80,
+              "isolinear_chips": 20
+            },
+            "effect": "1 spy operation slot from the start."
+          }
+        ]
+      },
+      "dominion": {
+        "identity": "Clones and Ketracel-white; no native population growth.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "dom_vorta_field_post",
+            "name": "Vorta Field Post",
+            "cost": {
+              "duranium": 110,
+              "ketracel_white": 2
+            },
+            "effect": "Comes with a Jem'Hadar squad."
+          },
+          {
+            "role": "housing",
+            "id": "dom_birthing_chamber",
+            "name": "Birthing Chamber",
+            "cost": {
+              "duranium": 90,
+              "zenite": 20
+            },
+            "effect": "Grows Jem'Hadar squads instead of population."
+          },
+          {
+            "role": "extraction",
+            "id": "dom_jemhadar_work_site",
+            "name": "Jem'Hadar Work Site",
+            "cost": {
+              "duranium": 80
+            },
+            "effect": "No crew needed.",
+            "upkeep": {
+              "ketracel_white": 1
+            }
+          },
+          {
+            "role": "power",
+            "id": "fusion_reactor",
+            "name": "Fusion Reactor",
+            "cost": {
+              "duranium": 80,
+              "deuterium": 20
+            },
+            "effect": "+10 energy.",
+            "building_ref": "fusion_reactor"
+          },
+          {
+            "role": "research",
+            "id": "dom_vorta_analysis_lab",
+            "name": "Vorta Analysis Lab",
+            "cost": {
+              "duranium": 120
+            },
+            "effect": "-30% research; double research from captured wrecks."
+          },
+          {
+            "role": "defense",
+            "id": "dom_polaron_battery",
+            "name": "Polaron Battery",
+            "cost": {
+              "tritanium": 110
+            },
+            "effect": "Partly bypasses shields."
+          },
+          {
+            "role": "signature",
+            "id": "dom_white_depot",
+            "name": "White Depot",
+            "cost": {
+              "duranium": 60,
+              "zenite": 20
+            },
+            "effect": "Keeps troops supplied 2 cycles if White supply is cut."
+          }
+        ]
+      },
+      "ferengi": {
+        "identity": "Everything costs latinum; everything earns it.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "fer_trade_office",
+            "name": "Trade Office",
+            "cost": {
+              "duranium": 90,
+              "latinum": 30
+            },
+            "effect": "+2 Latinum per cycle; no garrison."
+          },
+          {
+            "role": "housing",
+            "id": "fer_rental_habitat",
+            "name": "Rental Habitat",
+            "cost": {
+              "duranium": 60
+            },
+            "effect": "+1 population; adjustable rent."
+          },
+          {
+            "role": "extraction",
+            "id": "fer_mining_concession",
+            "name": "Mining Concession",
+            "cost": {},
+            "effect": "Leased, no upfront cost; rights can be sold to another player.",
+            "upkeep": {
+              "latinum": 2
+            }
+          },
+          {
+            "role": "power",
+            "id": "fer_leased_reactor",
+            "name": "Leased Reactor",
+            "cost": {
+              "latinum": 30
+            },
+            "effect": "+10 energy; paid in latinum."
+          },
+          {
+            "role": "research",
+            "id": "fer_patent_exchange",
+            "name": "Patent Exchange",
+            "cost": {
+              "duranium": 80,
+              "latinum": 40
+            },
+            "effect": "No own research; buy techs other players already have."
+          },
+          {
+            "role": "defense",
+            "id": "fer_mercenary_board",
+            "name": "Mercenary Contract Board",
+            "cost": {
+              "latinum": 50
+            },
+            "effect": "Defenders hired on demand, paid per use."
+          },
+          {
+            "role": "signature",
+            "id": "fer_bar_holosuites",
+            "name": "Bar & Holosuites",
+            "cost": {
+              "duranium": 80,
+              "latinum": 20
+            },
+            "effect": "+morale, +Latinum; gossip reveals nearby enemy plans."
+          }
+        ]
+      },
+      "borg": {
+        "identity": "Can only take worlds that are already inhabited; no research.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "borg_assimilation_spire",
+            "name": "Assimilation Spire",
+            "cost": {
+              "duranium": 100,
+              "nanoprobes": 20
+            },
+            "effect": "Converts natives or captured population into drones.",
+            "requires": "populated_world"
+          },
+          {
+            "role": "housing",
+            "id": "borg_alcove_block",
+            "name": "Alcove Block",
+            "cost": {
+              "duranium": 80,
+              "nanoprobes": 10
+            },
+            "effect": "Stores drones, not population."
+          },
+          {
+            "role": "extraction",
+            "id": "borg_strip_harvester",
+            "name": "Strip Harvester",
+            "cost": {
+              "duranium": 100
+            },
+            "effect": "+60% yield; planet class degrades over time."
+          },
+          {
+            "role": "power",
+            "id": "borg_power_node",
+            "name": "Collective Power Node",
+            "cost": {
+              "duranium": 80,
+              "nanoprobes": 5
+            },
+            "effect": "Energy shared across every Borg colony."
+          },
+          {
+            "role": "research",
+            "id": null,
+            "name": "None",
+            "cost": {},
+            "effect": "No research; tech comes from assimilation."
+          },
+          {
+            "role": "defense",
+            "id": "borg_adaptive_shield_node",
+            "name": "Adaptive Shield Node",
+            "cost": {
+              "duranium": 120
+            },
+            "effect": "Adapts to whatever weapon hits the colony."
+          },
+          {
+            "role": "signature",
+            "id": "borg_nanoprobe_beacon",
+            "name": "Nanoprobe Beacon",
+            "cost": {
+              "duranium": 60,
+              "nanoprobes": 10
+            },
+            "effect": "Speeds up turning natives into drones.",
+            "requires": "natives_present"
+          }
+        ]
+      }
+    }
   }
 }

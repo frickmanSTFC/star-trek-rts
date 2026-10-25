@@ -26,7 +26,7 @@ These links only open for people the owner has shared them with (Share menu on e
 | `tech_tree.json` | Research tree across seven branches |
 | `ships.json` | Hull sizes, module slots and ship classes per faction |
 | `vehicles.json` | Small craft, probes, civilian/support ships, ground forces and vehicles |
-| `buildings.json` | All structures, faction-only buildings, relics, and `faction_lines`: the level-1-to-max upgrade chains for all seven factions |
+| `buildings.json` | All structures, faction-only buildings, relics, `faction_lines` (level-1-to-max upgrade chains for all seven factions) and `starting_sets` (each faction's Class M opening buildings) |
 | `hazards.json` | Anomalies, habitat dangers, raiders, crisis entities and wildcards |
 
 Each entry is tagged `canon` (on screen), `beta` (licensed books/games) or `original` (invented for this game). All costs and stats are placeholders.
