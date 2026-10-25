@@ -5,7 +5,7 @@ effects, camera, lights) and keys the timeline used in animation/colony-pod-drop
 
 Run inside Blender 5.2:  Scripting tab -> open this file -> Run Script
 Or from a terminal:      blender --background --python build_colony_pod.py -- --out colony_pod.blend
-Preview frames:          ... -- --preview previews/ --frames 4.5,8.0,12.0 --res 640
+Preview frames:          ... -- --preview previews/ --frames 4.5,8.0,12.0 --res 640 [--zoom 4]
 """
 import math
 import random
@@ -111,6 +111,73 @@ def smooth(ob, bevel=0.0, segments=2):
     return ob
 
 
+def lathe(name, profile, segs=96, parent=None, sharp=35):
+    """Surface of revolution around Z from (r, z) points; r = 0 closes the end."""
+    import bmesh
+    verts, rings = [], []
+    for r, z in profile:
+        if r == 0:
+            rings.append([len(verts)])
+            verts.append((0, 0, z))
+        else:
+            rings.append(list(range(len(verts), len(verts) + segs)))
+            verts += [(r * math.cos(2 * math.pi * k / segs), r * math.sin(2 * math.pi * k / segs), z) for k in range(segs)]
+    faces = []
+    for a, b in zip(rings, rings[1:]):
+        for k in range(segs):
+            k1 = (k + 1) % segs
+            if len(a) == 1:
+                faces.append((a[0], b[k], b[k1]))
+            elif len(b) == 1:
+                faces.append((a[k], a[k1], b[0]))
+            else:
+                faces.append((a[k], a[k1], b[k1], b[k]))
+    ob = mesh_obj(name, verts, faces, parent)
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(ob.data)
+    bm.free()
+    smooth(ob)
+    ob.data.set_sharp_from_angle(angle=math.radians(sharp))
+    return ob
+
+
+def profile_z(profile, r):
+    """Height of a lathe profile's upper surface at radius r."""
+    for (r0, z0), (r1, z1) in zip(profile, profile[1:]):
+        if r0 <= r <= r1 and r1 > r0:
+            return z0 + (z1 - z0) * (r - r0) / (r1 - r0)
+    return profile[0][1]
+
+
+def on_slope(name, parent, profile, shapes, lift=0.03):
+    """Flat decals lying on a lathe's upper surface. shapes: list of (angle, [(r, t), ...]) polygons,
+    r along the radius and t sideways (same units), fanned from the first point."""
+    verts, faces = [], []
+    for a, poly in shapes:
+        c, s_ = math.cos(a), math.sin(a)
+        base = len(verts)
+        for r, t in poly:
+            verts.append((r * c - t * s_, r * s_ + t * c, profile_z(profile, r) + lift))
+        faces += [(base, base + i, base + i + 1) for i in range(1, len(poly) - 1)]
+    return mesh_obj(name, verts, faces, parent)
+
+
+def ring_quads(name, parent, n, r, z0, z1, hw, phase=0.0):
+    """n small rectangles on a vertical cylinder wall (windows, doors, panels)."""
+    verts, faces = [], []
+    for k in range(n):
+        a = 2 * math.pi * (k + phase) / n
+        c, s_ = math.cos(a), math.sin(a)
+        base = len(verts)
+        for dz in (z0, z1):
+            for dt in (-hw, hw):
+                verts.append((r * c - dt * s_, r * s_ + dt * c, dz))
+        faces.append((base, base + 1, base + 3, base + 2))
+    return mesh_obj(name, verts, faces, parent)
+
+
 def set_mat(ob, mat):
     ob.data.materials.clear()
     ob.data.materials.append(mat)
@@ -201,10 +268,12 @@ CYAN = hex_rgb("#7fd4ff")
 WHITE_CYAN = hex_rgb("#d8f2ff")
 
 
-def mat_tx(name, color, rough=0.4, metal=0.0, emit=None, emit_strength=0.0, transmission=0.0, lit_prop=False):
+def mat_tx(name, color, rough=0.4, metal=0.0, emit=None, emit_strength=0.0, transmission=0.0, lit_prop=False, panels=0.0, cells=None):
     """Principled surface with a transporter dissolve driven by the object's ["tx"] (0 = gone, 1 = solid).
 
     If lit_prop, emission strength is multiplied by the object's ["lit"].
+    panels > 0 adds hull plating: panel seams and slight per-plate tone changes at that scale.
+    cells = (scale, line colour) draws a rectangular cell grid in object XY (solar panels).
     """
     mat = bpy.data.materials.new(name)
     nt, nodes, links = nodes_of(mat)
@@ -213,6 +282,40 @@ def mat_tx(name, color, rough=0.4, metal=0.0, emit=None, emit_strength=0.0, tran
     bsdf.inputs["Base Color"].default_value = (*hex_rgb(color), 1)
     bsdf.inputs["Roughness"].default_value = rough
     bsdf.inputs["Metallic"].default_value = metal
+    if panels:
+        pc = nodes.new("ShaderNodeTexCoord")
+        seams = nodes.new("ShaderNodeTexVoronoi")
+        seams.feature = "DISTANCE_TO_EDGE"
+        seams.inputs["Scale"].default_value = panels
+        plates = nodes.new("ShaderNodeTexVoronoi")
+        plates.inputs["Scale"].default_value = panels
+        for v in (seams, plates):
+            links.new(pc.outputs["Object"], v.inputs["Vector"])
+        line = math_node(nodes, links, "LESS_THAN", seams.outputs["Distance"], 0.018)
+        tone = math_node(nodes, links, "MULTIPLY_ADD", plates.outputs["Distance"], 0.08)
+        nodes[-1].inputs[2].default_value = 0.95
+        shade = math_node(nodes, links, "MULTIPLY", tone, math_node(nodes, links, "SUBTRACT", 1.0, math_node(nodes, links, "MULTIPLY", line, 0.16)))
+        tint = nodes.new("ShaderNodeMix")
+        tint.data_type, tint.blend_type = "RGBA", "MULTIPLY"
+        tint.inputs["Factor"].default_value = 1.0
+        tint.inputs["A"].default_value = (*hex_rgb(color), 1)
+        links.new(shade, tint.inputs["B"])
+        links.new(tint.outputs["Result"], bsdf.inputs["Base Color"])
+        links.new(math_node(nodes, links, "MULTIPLY_ADD", line, 0.15), bsdf.inputs["Roughness"])
+        nodes[-1].inputs[2].default_value = rough
+    if cells:
+        cc = nodes.new("ShaderNodeTexCoord")
+        brick = nodes.new("ShaderNodeTexBrick")
+        brick.offset, brick.squash = 0.0, 1.0
+        brick.inputs["Scale"].default_value = cells[0]
+        brick.inputs["Mortar Size"].default_value = 0.025
+        brick.inputs["Brick Width"].default_value = 0.5
+        brick.inputs["Row Height"].default_value = 0.5
+        brick.inputs["Color1"].default_value = (*hex_rgb(color), 1)
+        brick.inputs["Color2"].default_value = tuple(c * 0.85 for c in hex_rgb(color)) + (1,)
+        brick.inputs["Mortar"].default_value = (*hex_rgb(cells[1]), 1)
+        links.new(cc.outputs["Object"], brick.inputs["Vector"])
+        links.new(brick.outputs["Color"], bsdf.inputs["Base Color"])
     if transmission:
         bsdf.inputs["Transmission Weight"].default_value = transmission
         bsdf.inputs["IOR"].default_value = 1.45
@@ -356,15 +459,19 @@ def build():
     random.seed(11)
 
     M = {
-        "hull": mat_tx("Hull", "#e8ecf2", 0.32, 0.15),
+        "hull": mat_tx("Hull", "#e8ecf2", 0.32, 0.15, panels=0.55),
         "hull_dk": mat_tx("HullDark", "#9aa4b4", 0.45, 0.3),
-        "under": mat_tx("Underside", "#7d889a", 0.5, 0.35),
+        "under": mat_tx("Underside", "#7d889a", 0.5, 0.35, panels=0.7),
+        "trim": mat_tx("TrimDark", "#4b5463", 0.5, 0.5),
+        "green": mat_tx("GreenLight", "#4ae07a", 0.3, 0.0, emit="#4ae07a", emit_strength=10.0),
+        "strobe": mat_tx("Strobe", "#ffffff", 0.3, 0.0, emit="#ffffff", emit_strength=40.0, lit_prop=True),
+        "landing": mat_tx("LandingLights", "#fff2cc", 0.3, 0.0, emit="#fff2cc", emit_strength=16.0, lit_prop=True),
         "glass": mat_tx("DomeGlass", "#bfe4ff", 0.05, 0.0, emit="#9fd8ff", emit_strength=3.0, transmission=0.85, lit_prop=True),
         "windows": mat_tx("Windows", "#3a3a30", 0.4, 0.0, emit="#ffd98a", emit_strength=6.0, lit_prop=True),
-        "stripe": mat_tx("StarfleetBlue", "#4a7fd6", 0.35, 0.1, emit="#4a7fd6", emit_strength=1.5),
+        "stripe": mat_tx("StarfleetBlue", "#3f78e0", 0.35, 0.1, emit="#4a7fd6", emit_strength=2.5),
         "glowring": mat_tx("GlowRing", "#7fd4ff", 0.3, 0.0, emit="#7fd4ff", emit_strength=8.0),
         "red": mat_tx("RedLight", "#e0574a", 0.3, 0.0, emit="#e0574a", emit_strength=10.0),
-        "solar": mat_tx("Solar", "#1f3a66", 0.25, 0.6),
+        "solar": mat_tx("Solar", "#1f3a66", 0.25, 0.6, cells=(1.0, "#9fb2c8")),
         "column": mat_column(),
         "tractor": mat_tractor(),
         "beam": mat_glow_prop("ConstructionBeam", "#d8f2ff", 18.0, "beam"),
@@ -428,33 +535,97 @@ def build():
 
     # ---- colony pod ----
     pod = empty("Pod", (0, 0, SHIP_Z - 10))
-    saucer = prim("cylinder", "Saucer", pod, vertices=64, radius=10, depth=3.2, location=(0, 0, 1.6))
-    set_mat(smooth(saucer, 0.5, 3), M["hull"])
+    # saucer cross-section (r, z about its centre): flat deck, sloped upper hull, window band, lower hull
+    SP = [(0, 1.6), (5.6, 1.6), (6.0, 1.5), (9.2, 0.8), (9.95, 0.5), (10.15, 0.3),
+          (10.15, -0.3), (9.95, -0.55), (9.0, -1.05), (7.8, -1.6), (0, -1.6)]
+    saucer = lathe("Saucer", SP, 96, pod)
+    saucer.location = (0, 0, 1.6)
+    set_mat(saucer, M["hull"])
     under = prim("cone", "SaucerUnderside", saucer, vertices=48, radius1=3.0, radius2=7.8, depth=2.0, location=(0, 0, -1.0 - 1.6))
     set_mat(smooth(under, 0.2), M["under"])
     ring = prim("torus", "UndersideGlow", saucer, major_radius=4.8, minor_radius=0.22, location=(0, 0, -1.65))
     set_mat(ring, M["glowring"])
+    # underside: deflector dish at the keel and a ring of landing lights
+    deflector = prim("uv_sphere", "KeelDeflector", saucer, segments=32, ring_count=12, radius=2.5, location=(0, 0, -3.6))
+    deflector.scale.z = 0.22
+    set_mat(smooth(deflector), M["glowring"])
+    keel_rim = prim("torus", "KeelRim", saucer, major_radius=2.85, minor_radius=0.2, location=(0, 0, -3.55))
+    set_mat(keel_rim, M["trim"])
+    landing = []
+    for k in range(8):
+        a = 2 * math.pi * (k + 0.5) / 8
+        ll = prim("uv_sphere", f"LandingLight{k}", saucer, segments=10, ring_count=6, radius=0.26,
+                  location=(6.4 * math.cos(a), 6.4 * math.sin(a), -2.2))
+        set_mat(prop(ll, "lit", 0), M["landing"])
+        landing.append(ll)
     top_ring = prim("torus", "PanelRing", saucer, major_radius=5.6, minor_radius=0.08, location=(0, 0, 1.62))
     set_mat(top_ring, M["hull_dk"])
-    stripe = prim("cube", "BlueStripe", saucer, location=(6.4, 0.3, 1.6))
-    stripe.scale = (0.25, 2.2, 0.05)
+    # Starfleet hull stripes and pennant delta on the sloped hull, turned toward the camera
+    sa = math.radians(28)
+    stripe = on_slope("BlueStripe", saucer, SP, [(sa, [(6.1, -1.0), (9.7, -1.0), (9.7, -0.5), (6.1, -0.5)]),
+                                                 (sa, [(6.1, 0.5), (9.7, 0.5), (9.7, 1.0), (6.1, 1.0)])], lift=0.04)
     set_mat(stripe, M["stripe"])
+    delta = on_slope("PennantDelta", saucer, SP, [(math.radians(62), [(8.6, 0), (6.6, -0.75), (7.1, 0), (6.6, 0.75)])], lift=0.04)
+    set_mat(delta, M["uni_gold"])
+    # plating seams: concentric and radial
+    seams = []
+    for r in (6.9, 8.1):
+        t = prim("torus", f"HullSeam{r:.0f}", saucer, major_radius=r, minor_radius=0.05, major_segments=96, minor_segments=6,
+                 location=(0, 0, profile_z(SP, r)))
+        seams.append(t)
+    radial = on_slope("HullSeamsRadial", saucer, SP, [(2 * math.pi * k / 24, [(6.05, -0.04), (9.15, -0.04), (9.15, 0.04), (6.05, 0.04)])
+                                                      for k in range(24) if k % 6 != 1], lift=0.025)
+    seams.append(radial)
+    for t in seams:
+        set_mat(t, M["trim"])
+    # upper deck windows on the slope
+    up_win = on_slope("DeckWindows", saucer, SP, [(2 * math.pi * (k + 0.5) / 40, [(8.35, -0.2), (8.85, -0.2), (8.85, 0.2), (8.35, 0.2)])
+                                                  for k in range(40)], lift=0.035)
+    set_mat(prop(up_win, "lit", 0.15), M["windows"])
+    # rim: airlock door over the ramp, RCS blocks, navigation lights
+    door = ring_quads("Airlock", saucer, 1, 10.18, -0.26, 0.26, 0.7, phase=0.25)
+    set_mat(prop(door, "lit", 0.15), M["windows"])
+    rcs = []
+    for k in range(6):
+        a = math.radians(15 + 60 * k)
+        b = prim("cube", f"RCS{k}", saucer, location=(10.12 * math.cos(a), 10.12 * math.sin(a), 0))
+        b.rotation_euler.z = a
+        b.scale = (0.22, 0.55, 0.36)
+        set_mat(b, M["trim"])
+        rcs.append(b)
+    navs = []
+    for nm, a, m in (("NavPort", 180, "red"), ("NavStarboard", 0, "green"), ("NavStrobeAft", 270, "strobe"), ("NavStrobeFore", 135, "strobe")):
+        a = math.radians(a)
+        ln = prim("uv_sphere", nm, saucer, segments=12, ring_count=8, radius=0.3, location=(10.25 * math.cos(a), 10.25 * math.sin(a), 0.42))
+        set_mat(ln, M[m])
+        navs.append(ln)
+    strobes = [ob for ob in navs if "Strobe" in ob.name]
+    for ob in strobes:
+        prop(ob, "lit", 0)
+    # sensor dish on the upper hull
+    dish_stub = prim("cylinder", "SensorStub", saucer, vertices=12, radius=0.22, depth=0.9, location=(0, 0, 0))
+    da = math.radians(205)
+    dish_stub.location = (7.0 * math.cos(da), 7.0 * math.sin(da), profile_z(SP, 7.0) + 0.4)
+    set_mat(dish_stub, M["hull_dk"])
+    dish = prim("cone", "SensorDish", dish_stub, vertices=24, radius1=0.1, radius2=0.95, depth=0.35, location=(0, 0, 0.55))
+    dish.rotation_euler = (math.radians(35), 0, 0)
+    set_mat(smooth(dish), M["hull"])
     # rim windows
     wverts, wfaces = [], []
     for k in range(44):
         a = 2 * math.pi * k / 44
         c, s_ = math.cos(a), math.sin(a)
         base = len(wverts)
-        r, hw, z0, z1 = 10.02, 0.22, -0.25, 0.25
+        r, hw, z0, z1 = 10.17, 0.2, -0.18, 0.18
         for dz in (z0, z1):
             for dt in (-hw, hw):
                 wverts.append((r * c - dt * s_, r * s_ + dt * c, dz))
         wfaces.append((base, base + 1, base + 3, base + 2))
     windows = mesh_obj("RimWindows", wverts, wfaces, saucer)
     set_mat(prop(windows, "lit", 0.15), M["windows"])
-    for ob in (saucer, under, ring, top_ring, stripe, windows):
+    saucer_detail = [stripe, delta, *seams, up_win, door, *rcs, *navs, dish_stub, dish, deflector, keel_rim, *landing]
+    for ob in (saucer, under, ring, top_ring, windows, *saucer_detail):
         prop(ob, "tx", 0)
-    saucer.location = (0, 0, 1.6)  # (kept: saucer centre; underside at 0 after scaling pivot below)
 
     capsule = prim("cylinder", "CommandCapsule", pod, vertices=48, radius=5, depth=4.6, location=(0, 0, 3.2 + 2.3))
     set_mat(smooth(capsule, 0.3, 2), M["hull"])
@@ -494,7 +665,39 @@ def build():
     mast_light = prim("uv_sphere", "MastLight", mast, segments=12, ring_count=8, radius=0.45, location=(0, 0, 1.0))
     mast_light.scale = (1, 1, 1 / 9.0)
     set_mat(mast_light, M["red"])
-    for ob in (capsule, band, cwin, dome, mast, mast_ring, mast_light):
+    # capsule trim, ribs and a second window row
+    cap_detail = []
+    flare = prim("torus", "CapsuleFlare", capsule, major_radius=5.05, minor_radius=0.32, location=(0, 0, -2.15))
+    crown = prim("torus", "DomeCollar", capsule, major_radius=4.5, minor_radius=0.24, location=(0, 0, 2.3))
+    cap_detail += [flare, crown]
+    for k in range(8):
+        a = 2 * math.pi * k / 8 + math.pi / 28
+        rib = prim("cube", f"CapsuleRib{k}", capsule, location=(5.03 * math.cos(a), 5.03 * math.sin(a), 0.15))
+        rib.rotation_euler.z = a
+        rib.scale = (0.08, 0.12, 2.0)
+        cap_detail.append(rib)
+    for ob in cap_detail:
+        set_mat(ob, M["trim"])
+    cwin2 = ring_quads("CapsuleWindowsUpper", capsule, 28, 5.02, 0.35, 0.8, 0.22, phase=0.5)
+    set_mat(prop(cwin2, "lit", 0.15), M["windows"])
+    cap_detail.append(cwin2)
+    # dome lattice (meridians + latitudes) with a lit bridge console inside
+    for k in range(4):
+        m_ = prim("torus", f"DomeRib{k}", dome, major_radius=4.33, minor_radius=0.06, major_segments=64, minor_segments=6)
+        m_.rotation_euler = (math.radians(90), 0, math.radians(45 * k))
+        cap_detail.append(m_)
+    for phi in (30, 58):
+        lat = prim("torus", f"DomeLatitude{phi}", dome, major_radius=4.33 * math.cos(math.radians(phi)), minor_radius=0.06,
+                   major_segments=64, minor_segments=6, location=(0, 0, 4.33 * math.sin(math.radians(phi))))
+        cap_detail.append(lat)
+    for ob in cap_detail[-6:]:
+        set_mat(ob, M["trim"])
+    console = prim("cylinder", "BridgeConsole", dome, vertices=32, radius=2.0, depth=0.7, location=(0, 0, 0.35))
+    set_mat(console, M["hull_dk"])
+    console_glow = prim("torus", "BridgeConsoleGlow", dome, major_radius=2.02, minor_radius=0.1, location=(0, 0, 0.72))
+    set_mat(console_glow, M["glowring"])
+    cap_detail += [console, console_glow]
+    for ob in (capsule, band, cwin, dome, mast, mast_ring, mast_light, *cap_detail):
         prop(ob, "tx", 0)
 
     # landing legs: attach under the belly, telescope to the ground
@@ -511,7 +714,17 @@ def build():
         foot = prim("cylinder", f"LegFoot{k}", pivot, vertices=16, radius=1.0, depth=0.3, location=(0, 0, -length))
         foot.rotation_euler = (0, tilt, 0)
         set_mat(foot, M["under"])
-        for ob in (strut, foot):
+        sleeve = prim("cylinder", f"LegSleeve{k}", pivot, vertices=16, radius=0.62, depth=length * 0.42, location=(0, 0, -length * 0.21))
+        set_mat(smooth(sleeve, 0.08), M["hull"])
+        knee = prim("torus", f"LegCollar{k}", pivot, major_radius=0.62, minor_radius=0.16, location=(0, 0, -length * 0.42))
+        set_mat(knee, M["trim"])
+        piston = prim("cylinder", f"LegPiston{k}", pivot, vertices=8, radius=0.14, depth=length * 0.55, location=(0.62, 0, -length * 0.4))
+        set_mat(piston, M["hull_dk"])
+        toe = prim("torus", f"LegFootRing{k}", foot, major_radius=1.0, minor_radius=0.12, location=(0, 0, 0.12))
+        set_mat(toe, M["trim"])
+        foot_light = prim("uv_sphere", f"LegLight{k}", pivot, segments=10, ring_count=6, radius=0.2, location=(0, 0.62, -length * 0.12))
+        set_mat(foot_light, M["glowring"])
+        for ob in (strut, foot, sleeve, knee, piston, toe, foot_light):
             prop(ob, "tx", 1)
         pivot.scale = (1, 1, 0.01)
         legs.append(pivot)
@@ -656,7 +869,7 @@ def build():
         key(tractor, '["beam"]', v, tt)
 
     # pod: materializes high in the beam, lowered folded, lifted by its legs
-    pod_parts = [saucer, under, ring, top_ring, stripe, windows, capsule, band, cwin, dome]
+    pod_parts = [saucer, under, ring, top_ring, windows, capsule, band, cwin, dome, *saucer_detail, *cap_detail]
     for ob in pod_parts:
         key(ob, '["tx"]', 0.0, 2.8)
         key(ob, '["tx"]', 1.0, 2.8 + TX * 1.2)
@@ -746,9 +959,21 @@ def build():
     down = math.atan2(POD_Z, 19 - 8.5)
     key(ramp_hinge, "rotation_euler", (math.radians(75), 0, 0), 16.0)
     key(ramp_hinge, "rotation_euler", (-down, 0, 0), 16.8)
-    for ob in (windows, cwin):
+    for ob in (windows, cwin, cwin2, up_win, door):
         key(ob, '["lit"]', 0.15, 16.2)
         key(ob, '["lit"]', 1.0, 16.8)
+    # landing lights on while lowered, dim once standing; strobes blink after power-up
+    for ll in landing:
+        for tt, v in ((0, 0), (3.4, 0), (3.9, 1), (7.6, 1), (8.4, 0.25)):
+            key(ll, '["lit"]', v, tt)
+    for ob in strobes:
+        key(ob, '["lit"]', 0.0, 0, "CONSTANT")
+    t = 9.6
+    while t < DURATION:
+        for ob in strobes:
+            key(ob, '["lit"]', 1.0, t, "CONSTANT")
+            key(ob, '["lit"]', 0.0, t + 0.1, "CONSTANT")
+        t += 1.2
 
     # colonists beam down beside the ramp, then walk to their posts
     for i, (body, parts, at, to) in enumerate(walkers):
@@ -794,6 +1019,11 @@ def main():
             sc.cycles.use_denoising = True
         except Exception:
             pass
+        if "--zoom" in opts:  # close-up on the pod for checking detail
+            cam = sc.camera
+            cam.data.ortho_scale /= float(opts["--zoom"])
+            bpy.data.objects["CameraTarget"].location = (0, 0, 9)
+            cam.location = (300, 300, 9 + 300 * 0.8165)
         res = int(opts.get("--res", 640))
         sc.render.resolution_x, sc.render.resolution_y = res, res * 3 // 4
         for ts in opts.get("--frames", "4.5,8.0,12.0").split(","):
