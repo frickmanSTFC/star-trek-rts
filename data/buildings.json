@@ -268,7 +268,7 @@
             "duranium": 100,
             "crew": 50
           },
-          "effect": "Three linked prefab modules.",
+          "effect": "Colony pod set down by a drop ship: landing legs, boarding ramp, solar petals, drop capsules.",
           "stats": {
             "supply_range": 1,
             "build_queues": 1,
@@ -284,7 +284,7 @@
             "duranium": 160,
             "tritanium": 60
           },
-          "effect": "Two-storey hub with observation dome; greenhouse; +25% storage, +10% build speed.",
+          "effect": "Pod settles on a foundation; four capsule modules plug in on tubes; hydroponics dome; +25% storage, +10% build speed.",
           "stats": {
             "supply_range": 1,
             "build_queues": 1,
@@ -299,7 +299,7 @@
             "duranium": 300,
             "tritanium": 150
           },
-          "effect": "Admin block and comms tower.",
+          "effect": "Pod raised on a central column above a ring corridor of six modules; domed rotunda; comm tower.",
           "stats": {
             "supply_range": 2,
             "build_queues": 2,
@@ -315,7 +315,7 @@
             "parasteel": 280,
             "isolinear_chips": 30
           },
-          "effect": "Round office tower with glass crown, skybridge, atrium; +1 morale in system.",
+          "effect": "Column carries a starbase-style saucer deck; three-storey ring modules; second saucer building; +1 morale in system.",
           "stats": {
             "supply_range": 2,
             "build_queues": 3,
@@ -330,7 +330,7 @@
             "parasteel": 400,
             "isolinear_chips": 50
           },
-          "effect": "Central spire, ring of towers, shuttleport; +2 morale in system.",
+          "effect": "Spire of three saucer decks, ring of saucer-topped towers, Academy-style arches, pod monument; +2 morale in system.",
           "stats": {
             "supply_range": 3,
             "build_queues": 3,

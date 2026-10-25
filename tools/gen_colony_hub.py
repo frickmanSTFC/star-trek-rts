@@ -1,4 +1,4 @@
-"""Generate isometric SVG concept art for the Federation Colony Hub, levels 1-5.
+"""Generate isometric SVG concept art for the Federation Colony Hub, levels 1-5 (v2: Starfleet style, grows from a landed colony pod).
 
 One 120x120 world-unit plot, viewed isometrically. Every level reuses the same
 anchors (hub at the centre-back, landing pad front-right, comm mast back-left)
@@ -289,7 +289,12 @@ class Scene:
                '<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">'
                f'<stop offset="0" stop-color="{SKY_TOP}"/><stop offset="1" stop-color="{SKY_BOT}"/></linearGradient>'
                '<radialGradient id="vig" cx="0.5" cy="0.55" r="0.65"><stop offset="0.6" stop-color="#000000" stop-opacity="0"/>'
-               '<stop offset="1" stop-color="#000000" stop-opacity="0.45"/></radialGradient></defs>',
+               '<stop offset="1" stop-color="#000000" stop-opacity="0.45"/></radialGradient>'
+               '<linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dde3ec"/><stop offset="0.45" stop-color="#c3cbd8"/><stop offset="1" stop-color="#8e99ab"/></linearGradient>'
+               '<radialGradient id="tg" cx="0.4" cy="0.4" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d3dae5"/></radialGradient>'
+               '<linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d8f0ff"/><stop offset="1" stop-color="#6fb4e0"/></linearGradient>'
+               '<radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#bfe9ff" stop-opacity="0.9"/><stop offset="1" stop-color="#7fd4ff" stop-opacity="0"/></radialGradient>'
+               '</defs>',
                f'<rect width="{W}" height="{H}" fill="url(#sky)"/>']
         rng = random.Random(7)
         for _ in range(60):
@@ -319,6 +324,8 @@ HUB = (48, 46)   # hub anchor (centre-back)
 MAST = (22, 24)  # comm mast anchor (back-left)
 
 
+
+
 def wild(sc, trees, avoid, rocks=6, tuft=90):
     for x, y, s in trees:
         sc.tree(x, y, s)
@@ -329,203 +336,362 @@ def wild(sc, trees, avoid, rocks=6, tuft=90):
     sc.tufts(tuft, ((4, 116), (4, 116)), avoid)
 
 
-def level1():
-    sc = Scene(1)
-    avoid = [(28, 78, 30, 72), (78, 112, 74, 106), (12, 32, 14, 34)]
-    sc.quad(30, 34, 46, 34, "#8c7a5e", opacity=0.55)           # trampled clearing
-    sc.line(76, 62, PAD[0] - 8, PAD[1] - 6, "#8c7a5e", sw=6)    # dirt track to pad
-    sc.pad(*PAD, 12)
-    sc.shuttle(PAD[0], PAD[1], s=1.25)
-    # three prefab modules joined by tubes
-    sc.box(34, 40, 12, 10, 7, windows=(4.2,), door=(4, 3, 4.2))
-    sc.tube(46, 43, 5, 4)
-    sc.box(51, 38, 14, 12, 8.5, windows=(5,), band=(6.6, 7.4), door=(5, 3.2, 4.6))
-    sc.tube(55, 50, 4, 5)
-    sc.box(53, 55, 12, 10, 7, windows=(4.2,), door=(4, 3, 4.2))
-    sc.mast(*MAST, 24)
-    sc.crates(72, 66, 4)
-    sc.solar(36, 60, 3)
-    for bx, by in [(26, 28), (82, 28), (26, 82), (70, 80)]:
+# ================================================================ v2: Starfleet vocabulary
+PANEL = "#b7c0cd"
+UNDER = "#7d889a"
+
+
+def ell(r):
+    return 1.2247 * r * S, 0.7071 * r * S
+
+
+class FedScene(Scene):
+    def cylg(self, x, y, r, h, z=0.0, top="url(#tg)", windows=(), band=(), glowband=(), shadow=True, depth=None, cap=None):
+        """Vertical cylinder with a smooth gradient side. cap: None | 'dome' (glass) | 'hull' (low hull dome)."""
+        if shadow and z < 1:
+            self.shadow(x - r, y - r, 2 * r, 2 * r, h, 0.22)
+        b, t = iso(x, y, z), iso(x, y, z + h)
+        rx, ry = ell(r)
+        o = [f'<path d="M{b[0]-rx:.1f},{t[1]:.1f} L{b[0]-rx:.1f},{b[1]:.1f} A{rx:.1f},{ry:.1f} 0 0 0 {b[0]+rx:.1f},{b[1]:.1f} '
+             f'L{b[0]+rx:.1f},{t[1]:.1f} A{rx:.1f},{ry:.1f} 0 0 1 {b[0]-rx:.1f},{t[1]:.1f} Z" fill="url(#hg)"/>']
+        for bz in band:
+            yy = b[1] - bz * S
+            o.append(f'<path d="M{b[0]-rx:.1f},{yy:.1f} A{rx:.1f},{ry:.1f} 0 0 0 {b[0]+rx:.1f},{yy:.1f}" fill="none" stroke="{BLUE}" stroke-width="2.6"/>')
+        for bz in glowband:
+            yy = b[1] - bz * S
+            o.append(f'<path d="M{b[0]-rx:.1f},{yy:.1f} A{rx:.1f},{ry:.1f} 0 0 0 {b[0]+rx:.1f},{yy:.1f}" fill="none" stroke="{GLOW}" stroke-width="1.8"/>')
+        for zr in windows:
+            yy = b[1] - zr * S
+            o.append(f'<path d="M{b[0]-rx*0.94:.1f},{yy+ry*0.3:.1f} A{rx*0.94:.1f},{ry:.1f} 0 0 0 {b[0]+rx*0.94:.1f},{yy+ry*0.3:.1f}" fill="none" stroke="{WIN}" stroke-width="1.9" stroke-dasharray="2.6 2.4"/>')
+        o.append(f'<ellipse cx="{t[0]:.1f}" cy="{t[1]:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="{top}" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.6"/>')
+        if cap == "dome":
+            o.append(f'<path d="M{t[0]-rx*0.86:.1f},{t[1]:.1f} A{rx*0.86:.1f},{ry*0.86:.1f} 0 0 0 {t[0]+rx*0.86:.1f},{t[1]:.1f} A{rx*0.86:.1f},{r*S*0.8:.1f} 0 0 0 {t[0]-rx*0.86:.1f},{t[1]:.1f} Z" fill="url(#gg)" fill-opacity="0.9" stroke="#ffffff" stroke-opacity="0.7" stroke-width="0.8"/>')
+            o.append(f'<path d="M{t[0]-rx*0.45:.1f},{t[1]-r*S*0.45:.1f} Q{t[0]-rx*0.1:.1f},{t[1]-r*S*0.7:.1f} {t[0]+rx*0.25:.1f},{t[1]-r*S*0.62:.1f}" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.4"/>')
+        elif cap == "hull":
+            o.append(f'<path d="M{t[0]-rx:.1f},{t[1]:.1f} A{rx:.1f},{ry:.1f} 0 0 0 {t[0]+rx:.1f},{t[1]:.1f} A{rx:.1f},{r*S*0.5:.1f} 0 0 0 {t[0]-rx:.1f},{t[1]:.1f} Z" fill="url(#hg)"/>')
+            o.append(f'<ellipse cx="{t[0]-rx*0.15:.1f}" cy="{t[1]-r*S*0.32:.1f}" rx="{rx*0.32:.1f}" ry="{ry*0.3:.1f}" fill="#ffffff" fill-opacity="0.55"/>')
+        self.objs.append((depth if depth is not None else x + y + r * 0.5, "".join(o)))
+
+    def saucer(self, x, y, r, t, z, depth=None, shadow=True, panels=True, windows=True, glow=True):
+        """Starfleet saucer: underside bulge, rim band with windows, panelled top."""
+        if shadow:
+            c = iso(x, y)
+            rx, ry = ell(r)
+            off = min(z, 40) * 0.45 * S * 1.4
+            self.shadows.append(f'<ellipse cx="{c[0]+off:.1f}" cy="{c[1]:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="{SHADOW}" fill-opacity="0.2"/>')
+        b, tp = iso(x, y, z), iso(x, y, z + t)
+        rx, ry = ell(r)
+        u = iso(x, y, z - t * 0.35)
+        urx, ury = ell(r * 0.78)
+        o = [f'<path d="M{u[0]-urx:.1f},{b[1]:.1f} A{urx:.1f},{ury:.1f} 0 0 0 {u[0]+urx:.1f},{b[1]:.1f} Z" fill="{UNDER}"/>',
+             f'<path d="M{u[0]-urx:.1f},{b[1]:.1f} Q{u[0]:.1f},{u[1]+ury*1.6:.1f} {u[0]+urx:.1f},{b[1]:.1f}" fill="{UNDER}"/>']
+        if glow:
+            grx, gry = ell(r * 0.5)
+            o.append(f'<path d="M{u[0]-grx:.1f},{u[1]+gry*0.2:.1f} A{grx:.1f},{gry:.1f} 0 0 0 {u[0]+grx:.1f},{u[1]+gry*0.2:.1f}" fill="none" stroke="{GLOW}" stroke-width="2.2"/>')
+        o.append(f'<path d="M{b[0]-rx:.1f},{tp[1]:.1f} L{b[0]-rx:.1f},{b[1]:.1f} A{rx:.1f},{ry:.1f} 0 0 0 {b[0]+rx:.1f},{b[1]:.1f} '
+                 f'L{b[0]+rx:.1f},{tp[1]:.1f} A{rx:.1f},{ry:.1f} 0 0 1 {b[0]-rx:.1f},{tp[1]:.1f} Z" fill="url(#hg)"/>')
+        if windows:
+            ym = (b[1] + tp[1]) / 2
+            o.append(f'<path d="M{b[0]-rx*0.97:.1f},{ym+ry*0.15:.1f} A{rx*0.97:.1f},{ry:.1f} 0 0 0 {b[0]+rx*0.97:.1f},{ym+ry*0.15:.1f}" fill="none" stroke="{WIN}" stroke-width="1.7" stroke-dasharray="2.2 2.2"/>')
+        o.append(f'<ellipse cx="{tp[0]:.1f}" cy="{tp[1]:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="url(#tg)" stroke="#ffffff" stroke-opacity="0.6" stroke-width="0.7"/>')
+        if panels:
+            irx, iry = ell(r * 0.55)
+            o.append(f'<ellipse cx="{tp[0]:.1f}" cy="{tp[1]:.1f}" rx="{irx:.1f}" ry="{iry:.1f}" fill="none" stroke="{PANEL}" stroke-width="0.7"/>')
+            for deg in (-30, 5, 45, 85, 120, 160, 200, 240, 280):
+                a = math.radians(deg)
+                p1 = iso(x + r * 0.55 * math.cos(a), y + r * 0.55 * math.sin(a), z + t)
+                p2 = iso(x + r * 0.96 * math.cos(a), y + r * 0.96 * math.sin(a), z + t)
+                o.append(f'<line x1="{p1[0]:.1f}" y1="{p1[1]:.1f}" x2="{p2[0]:.1f}" y2="{p2[1]:.1f}" stroke="{PANEL}" stroke-width="0.7"/>')
+            a1, a2 = iso(x + r * 0.62, y - r * 0.15, z + t), iso(x + r * 0.62, y + r * 0.3, z + t)
+            o.append(f'<line x1="{a1[0]:.1f}" y1="{a1[1]:.1f}" x2="{a2[0]:.1f}" y2="{a2[1]:.1f}" stroke="{BLUE}" stroke-width="1.4"/>')
+        self.objs.append((depth if depth is not None else x + y, "".join(o)))
+
+    def tubeline(self, a, b, z=2.2, w=6.5, depth=None):
+        p, q = iso(a[0], a[1], z), iso(b[0], b[1], z)
+        o = (f'<line x1="{p[0]:.1f}" y1="{p[1]+1:.1f}" x2="{q[0]:.1f}" y2="{q[1]+1:.1f}" stroke="#7d889a" stroke-width="{w+1.6}" stroke-linecap="round"/>'
+             f'<line x1="{p[0]:.1f}" y1="{p[1]:.1f}" x2="{q[0]:.1f}" y2="{q[1]:.1f}" stroke="#c9d0dc" stroke-width="{w}" stroke-linecap="round"/>'
+             f'<line x1="{p[0]:.1f}" y1="{p[1]-w*0.28:.1f}" x2="{q[0]:.1f}" y2="{q[1]-w*0.28:.1f}" stroke="#f4f6fa" stroke-width="{w*0.28:.1f}" stroke-linecap="round"/>'
+             f'<line x1="{p[0]:.1f}" y1="{p[1]+w*0.2:.1f}" x2="{q[0]:.1f}" y2="{q[1]+w*0.2:.1f}" stroke="{GLOW}" stroke-opacity="0.7" stroke-width="0.9"/>')
+        self.objs.append((depth if depth is not None else (a[0] + a[1] + b[0] + b[1]) / 2, o))
+
+    def ring_corridor(self, x, y, r, z=2.4, w=6.5):
+        c = iso(x, y, z)
+        rx, ry = ell(r)
+        for sweep, dep in ((1, x + y - r), (0, x + y + r)):
+            o = (f'<path d="M{c[0]-rx:.1f},{c[1]+1:.1f} A{rx:.1f},{ry:.1f} 0 0 {sweep} {c[0]+rx:.1f},{c[1]+1:.1f}" fill="none" stroke="#7d889a" stroke-width="{w+1.6}"/>'
+                 f'<path d="M{c[0]-rx:.1f},{c[1]:.1f} A{rx:.1f},{ry:.1f} 0 0 {sweep} {c[0]+rx:.1f},{c[1]:.1f}" fill="none" stroke="#c9d0dc" stroke-width="{w}"/>'
+                 f'<path d="M{c[0]-rx:.1f},{c[1]-w*0.28:.1f} A{rx:.1f},{ry:.1f} 0 0 {sweep} {c[0]+rx:.1f},{c[1]-w*0.28:.1f}" fill="none" stroke="#f4f6fa" stroke-width="{w*0.28:.1f}"/>'
+                 f'<path d="M{c[0]-rx:.1f},{c[1]+w*0.2:.1f} A{rx:.1f},{ry:.1f} 0 0 {sweep} {c[0]+rx:.1f},{c[1]+w*0.2:.1f}" fill="none" stroke="{GLOW}" stroke-opacity="0.7" stroke-width="0.9"/>')
+            self.objs.append((dep, o))
+
+    def module(self, x, y, r=4.4, h=5.5, storeys=1, depth=None):
+        win = tuple(2.6 + 3.2 * k for k in range(storeys))
+        self.cylg(x, y, r, h, windows=win, band=(h - 0.9,), cap="hull", depth=depth)
+        # door facing the viewer
+        d0, d1 = iso(x + r * 0.62, y + r * 0.62, 0), iso(x + r * 0.62, y + r * 0.62, 2.6)
+        self.objs.append(((depth if depth is not None else x + y + r * 0.5) + 0.01,
+                          f'<rect x="{d0[0]-2:.1f}" y="{d1[1]:.1f}" width="4" height="{d0[1]-d1[1]:.1f}" rx="1.6" fill="{BLUE}"/>'))
+
+    def legs(self, x, y, r, z):
+        for deg in (0, 90, 180, 270):
+            a = math.radians(deg)
+            top = iso(x + r * 0.6 * math.cos(a), y + r * 0.6 * math.sin(a), z)
+            ft = iso(x + r * 1.05 * math.cos(a), y + r * 1.05 * math.sin(a), 0)
+            dep = x + y + r * 1.05 * (math.cos(a) + math.sin(a)) * 0.5
+            self.objs.append((dep, f'<line x1="{top[0]:.1f}" y1="{top[1]:.1f}" x2="{ft[0]:.1f}" y2="{ft[1]:.1f}" stroke="#8a94a6" stroke-width="2.6" stroke-linecap="round"/>'
+                                   f'<line x1="{top[0]:.1f}" y1="{top[1]:.1f}" x2="{ft[0]:.1f}" y2="{ft[1]:.1f}" stroke="#c9d0dc" stroke-width="1" stroke-linecap="round"/>'
+                                   f'<ellipse cx="{ft[0]:.1f}" cy="{ft[1]:.1f}" rx="4" ry="2" fill="#8a94a6"/>'))
+
+    def petals(self, x, y, r1, r2, angles, spread=20):
+        for deg in angles:
+            a0, a1 = math.radians(deg - spread / 2), math.radians(deg + spread / 2)
+            p = [iso(x + r1 * math.cos(a0), y + r1 * math.sin(a0), 0.5), iso(x + r2 * math.cos(a0), y + r2 * math.sin(a0), 0.5),
+                 iso(x + r2 * math.cos(a1), y + r2 * math.sin(a1), 0.5), iso(x + r1 * math.cos(a1), y + r1 * math.sin(a1), 0.5)]
+            o = f'<polygon points="{pts(p)}" fill="#1f3a66" stroke="#5b8def" stroke-width="0.8"/>'
+            for k in (0.33, 0.66):
+                am = a0 + (a1 - a0) * k
+                q1, q2 = iso(x + r1 * math.cos(am), y + r1 * math.sin(am), 0.5), iso(x + r2 * math.cos(am), y + r2 * math.sin(am), 0.5)
+                o += f'<line x1="{q1[0]:.1f}" y1="{q1[1]:.1f}" x2="{q2[0]:.1f}" y2="{q2[1]:.1f}" stroke="#5b8def" stroke-width="0.6"/>'
+            self.ground.append(o)
+
+    def ramp(self, x, y, r_from, r_to, z, deg=45, w=3.2):
+        a = math.radians(deg)
+        nx, ny = -math.sin(a), math.cos(a)
+        f = (x + r_from * math.cos(a), y + r_from * math.sin(a))
+        g = (x + r_to * math.cos(a), y + r_to * math.sin(a))
+        p = [iso(f[0] + nx * w, f[1] + ny * w, z), iso(f[0] - nx * w, f[1] - ny * w, z), iso(g[0] - nx * w, g[1] - ny * w, 0), iso(g[0] + nx * w, g[1] + ny * w, 0)]
+        self.objs.append((x + y + r_to, f'<polygon points="{pts(p)}" fill="#b8c1cf" stroke="#8a94a6" stroke-width="0.8"/>'
+                          f'<line x1="{(p[0][0]+p[1][0])/2:.1f}" y1="{(p[0][1]+p[1][1])/2:.1f}" x2="{(p[2][0]+p[3][0])/2:.1f}" y2="{(p[2][1]+p[3][1])/2:.1f}" stroke="{GLOW}" stroke-width="1" stroke-dasharray="3 3"/>'))
+
+    def arch(self, a, b, peak, w=6, depth=None):
+        p, q = iso(a[0], a[1]), iso(b[0], b[1])
+        m = iso((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, peak * 2)
+        o = (f'<path d="M{p[0]:.1f},{p[1]:.1f} Q{m[0]:.1f},{m[1]:.1f} {q[0]:.1f},{q[1]:.1f}" fill="none" stroke="#8e99ab" stroke-width="{w+1.5}" stroke-linecap="round"/>'
+             f'<path d="M{p[0]:.1f},{p[1]:.1f} Q{m[0]:.1f},{m[1]:.1f} {q[0]:.1f},{q[1]:.1f}" fill="none" stroke="#eef1f6" stroke-width="{w}" stroke-linecap="round"/>'
+             f'<path d="M{p[0]:.1f},{p[1]:.1f} Q{m[0]:.1f},{m[1]:.1f} {q[0]:.1f},{q[1]:.1f}" fill="none" stroke="{BLUE}" stroke-width="1.6"/>')
+        self.objs.append((depth if depth is not None else (a[0] + a[1] + b[0] + b[1]) / 2, o))
+
+    def dropship(self, x, y, z, s=1.8):
+        c = iso(x, y, z)
+        self.sky.append(f'<ellipse cx="{c[0]-2:.1f}" cy="{c[1]+14*s:.1f}" rx="{9*s:.1f}" ry="{16*s:.1f}" fill="url(#glow)" fill-opacity="0.6"/>')
+        self.shuttle(x, y, z, s=s, landed=False)
+        self.sky.append(f'<circle cx="{c[0]-4*s:.1f}" cy="{c[1]+3*s:.1f}" r="{2.4*s:.1f}" fill="{GLOW}"/><circle cx="{c[0]+8*s:.1f}" cy="{c[1]-2*s:.1f}" r="{2*s:.1f}" fill="{GLOW}"/>')
+
+    def drop_capsule(self, x, y):
+        self.disc(x, y, 4.2, "#3b4a2e", opacity=0.55)
+        self.cylg(x, y, 2.2, 4.4, glowband=(1.2,), cap="hull")
+
+    def fed_mast(self, x, y, h):
+        self.cylg(x, y, 0.8, h, shadow=False, depth=x + y + 1)
+        t, m = iso(x, y, h), iso(x, y, h * 0.75)
+        rx, ry = ell(2.6)
+        self.objs.append((x + y + 1.1,
+                          f'<ellipse cx="{m[0]:.1f}" cy="{m[1]:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="none" stroke="#c9d0dc" stroke-width="1.8"/>'
+                          f'<ellipse cx="{m[0]:.1f}" cy="{m[1]:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="none" stroke="{GLOW}" stroke-width="0.8"/>'
+                          f'<path d="M{t[0]-1:.1f},{t[1]+16:.1f} Q{t[0]+12:.1f},{t[1]+20:.1f} {t[0]-1:.1f},{t[1]+32:.1f} Z" fill="#eef1f6" stroke="#8a94a6" stroke-width="0.8"/>'
+                          f'<circle cx="{t[0]:.1f}" cy="{t[1]-2:.1f}" r="2.3" fill="{RED}"/><circle cx="{t[0]:.1f}" cy="{t[1]-2:.1f}" r="6" fill="{RED}" fill-opacity="0.2"/>'))
+
+
+HUB2 = (52, 48)
+
+
+def lander(sc, z, legs=True, depth=100):
+    """The original colony pod: saucer lander with a domed command capsule on top."""
+    x, y = HUB2
+    if legs:
+        sc.legs(x, y, 10, z)
+    sc.saucer(x, y, 10, 3.2, z, depth=depth)
+    sc.cylg(x, y, 5, 4.6, z=z + 3.2, band=(3.6,), windows=(1.8,), cap="dome", shadow=False, depth=depth + 0.1)
+    t = iso(x, y, z + 3.2 + 4.6 + 4.2)
+    sc.objs.append((depth + 0.2, f'<circle cx="{t[0]:.1f}" cy="{t[1]:.1f}" r="2" fill="{RED}"/>'))
+
+
+def v_level1():
+    sc = FedScene(11)
+    x, y = HUB2
+    sc.disc(x, y, 17, "#3b4a2e", opacity=0.45)
+    sc.disc(x, y, 12, "#2e3a24", opacity=0.45)
+    sc.petals(x, y, 11.5, 18, (100, 145, 190, 235, 280, 325, 10))
+    lander(sc, 6.5)
+    sc.ramp(x, y, 8.5, 19, 6.5, deg=0, w=2.4)
+    sc.drop_capsule(76, 34)
+    sc.drop_capsule(30, 66)
+    sc.drop_capsule(80, 64)
+    for bx, by in [(28, 26), (84, 26), (28, 84), (86, 84)]:
         sc.beacon(bx, by)
-    sc.people([(50, 54), (68, 70), (88, 84), (90, 82), (44, 52)])
+    sc.people([(66, 62), (69, 65), (72, 60), (78, 70), (34, 70)])
+    sc.dropship(92, 30, 74, s=1.9)
     trees = [(10, 12, 1.1), (16, 52, 1.0), (8, 74, 1.2), (14, 98, 1.0), (30, 106, 1.1), (52, 104, 0.9), (60, 14, 1.0),
              (78, 10, 1.2), (98, 16, 1.0), (108, 40, 1.1), (112, 62, 0.9), (104, 112, 1.0), (40, 18, 0.9), (6, 34, 0.8),
-             (24, 90, 0.9), (70, 104, 1.1), (90, 50, 0.9)]
-    wild(sc, trees, avoid)
+             (24, 90, 0.9), (70, 104, 1.1), (96, 52, 0.9), (98, 92, 1.0), (86, 104, 0.8)]
+    wild(sc, trees, [(28, 76, 26, 72)])
     return sc
 
 
-def level2():
-    sc = Scene(2)
-    avoid = [(26, 82, 28, 76), (78, 112, 74, 106), (12, 34, 14, 36)]
-    sc.quad(28, 32, 50, 40, "#a79a82", opacity=0.75)            # gravel yard
-    sc.line(78, 64, PAD[0] - 8, PAD[1] - 6, "#a79a82", sw=7)
-    sc.line(48, 72, 48, 112, "#a79a82", sw=5)
+def v_level2():
+    sc = FedScene(12)
+    x, y = HUB2
+    sc.disc(x, y, 30, "#a79a82", opacity=0.7)
+    sc.disc(x, y, 12.5, PAVE_DK)
+    sc.line(x + 14, y + 14, PAD[0] - 9, PAD[1] - 9, "#a79a82", sw=7)
     sc.pad(*PAD, 12)
     sc.shuttle(PAD[0], PAD[1], s=1.25)
-    # rebuilt two-storey hub with observation dome
-    sc.box(43, 37, 20, 16, 13, windows=(4.5, 9.5), band=(11.6, 12.6), door=(8, 4, 5))
-    sc.cyl(53, 45, 4, 2, z=13, side_l=HULL2_L, side_r=HULL2_R, top=HULL2_T, cap="dome", shadow=False, depth=110)
-    # modules, two old + two new
-    sc.box(30, 40, 11, 9, 7, windows=(4.2,), door=(4, 3, 4.2))
-    sc.tube(41, 43, 2.5, 4)
-    sc.box(46, 58, 12, 10, 7, windows=(4.2,), door=(4, 3, 4.2))
-    sc.tube(52, 53, 4, 5)
-    sc.box(64, 40, 11, 9, 7, windows=(4.2,), door=(3.5, 3, 4.2))
-    sc.tube(63, 43, 1.5, 4)
-    sc.box(30, 56, 11, 9, 7, windows=(4.2,), door=(3.5, 3, 4.2))
-    # greenhouse
-    sc.box(64, 56, 13, 9, 6, top=GLASS, left=GLASS, right="#7fb0d0", glass=True)
-    for gx in (67, 71, 75):
-        sc.tree(gx, 60, 0.45)
-    sc.mast(*MAST, 28)
-    sc.mast(36, 26, 16, dish=True)
-    sc.crates(78, 64, 5)
-    sc.solar(32, 70, 4)
+    sc.cylg(x, y, 7.5, 1.8, shadow=False, depth=99)
+    lander(sc, 1.8, legs=False)
+    for deg in (0, 90, 180, 270):
+        a = math.radians(deg)
+        mx, my = x + 19 * math.cos(a), y + 19 * math.sin(a)
+        sc.tubeline((x + 8 * math.cos(a), y + 8 * math.sin(a)), (mx - 4 * math.cos(a), my - 4 * math.sin(a)))
+        sc.module(mx, my)
+    sc.dome(70, 68, 6, inner="".join(
+        f'<circle cx="{iso(70 + dx, 68 + dy)[0]:.1f}" cy="{iso(70 + dx, 68 + dy)[1]-4:.1f}" r="3.2" fill="{TREE_LT}"/>' for dx, dy in ((-2, -1), (1.5, 1), (2, -2.5))))
+    sc.fed_mast(*MAST, 30)
+    sc.solar(18, 60, 3)
+    sc.petals(x, y, 13, 17, (135, 225), spread=24)
     sc.hover_truck(80, 76)
-    for bx, by in [(24, 26), (84, 26), (24, 84), (72, 84)]:
+    for bx, by in [(24, 26), (86, 26), (24, 86), (74, 86)]:
         sc.beacon(bx, by)
-    sc.people([(52, 56), (60, 70), (86, 84), (90, 82), (40, 54), (72, 52), (48, 76)])
-    trees = [(10, 12, 1.1), (14, 50, 1.0), (8, 74, 1.2), (14, 98, 1.0), (30, 106, 1.1), (62, 104, 0.9), (60, 14, 1.0),
-             (80, 10, 1.2), (100, 16, 1.0), (108, 40, 1.1), (112, 62, 0.9), (104, 112, 1.0), (6, 34, 0.8), (72, 104, 1.1)]
-    wild(sc, trees, avoid, rocks=4, tuft=70)
+    sc.people([(64, 60), (68, 58), (60, 70), (86, 84), (90, 82), (40, 56), (72, 48)])
+    trees = [(10, 12, 1.1), (12, 46, 1.0), (8, 76, 1.2), (14, 100, 1.0), (32, 108, 1.1), (62, 106, 0.9), (60, 10, 1.0),
+             (82, 10, 1.2), (102, 16, 1.0), (110, 40, 1.1), (112, 62, 0.9), (106, 112, 1.0), (72, 106, 1.1)]
+    wild(sc, trees, [(20, 84, 16, 80), (78, 112, 74, 106)], rocks=3, tuft=60)
     return sc
 
 
-def level3():
-    sc = Scene(3)
-    sc.quad(24, 28, 60, 52, PAVE)                               # paved plaza
-    for k in range(1, 6):
-        sc.line(24, 28 + k * 52 / 6, 84, 28 + k * 52 / 6, PAVE_LINE, sw=0.8)
-    sc.line(84, 66, 112, 66, PAVE_DK, sw=8)                     # road to pads
-    sc.line(54, 80, 54, 116, PAVE_DK, sw=8)
+def v_level3():
+    sc = FedScene(13)
+    x, y = HUB2
+    sc.disc(x, y, 34, PAVE)
+    for rr in (14, 24, 31):
+        sc.disc(x, y, rr, "none", stroke=PAVE_LINE, sw=0.9)
+    sc.line(x + 22, y + 22, PAD[0] - 9, PAD[1] - 9, PAVE_DK, sw=8)
+    sc.line(x + 30, y + 6, 112, 62, PAVE_DK, sw=8)
     sc.pad(*PAD, 12)
-    sc.pad(98, 64, 9)
+    sc.pad(100, 60, 9)
     sc.shuttle(PAD[0], PAD[1], s=1.25)
-    # L-shaped administration block
-    sc.box(40, 34, 26, 16, 18, windows=(4.5, 9, 13.5), band=(16.4, 17.4), door=(10, 5, 5.5))
-    sc.box(40, 50, 12, 14, 14, windows=(4.5, 9), band=(12.4, 13.4), door=(3, 4, 5))
-    sc.cyl(56, 41, 3.5, 1.8, z=18, side_l=HULL2_L, side_r=HULL2_R, top=HULL2_T, cap="dome", shadow=False, depth=120)
-    # comm tower replaces the mast
-    sc.box(MAST[0] - 2, MAST[1] - 2, 5, 5, 34, windows=(10, 20, 28), band=(30, 31.4))
-    sc.mast(MAST[0] + 0.5, MAST[1] + 0.5, 46)
-    # habitat ring
-    sc.box(70, 32, 11, 9, 8, windows=(4.6,), door=(3.5, 3, 4.4))
-    sc.box(70, 46, 11, 9, 8, windows=(4.6,), door=(3.5, 3, 4.4))
-    sc.box(28, 66, 11, 9, 8, windows=(4.6,), door=(3.5, 3, 4.4))
-    sc.box(58, 66, 13, 9, 6, top=GLASS, left=GLASS, right="#7fb0d0", glass=True)
-    for gx in (61, 65, 69):
-        sc.tree(gx, 70, 0.45)
-    # small garden in the plaza
-    sc.quad(60, 54, 8, 8, GRASS_LT)
-    sc.tree(64, 58, 0.8)
-    for lx, ly in [(26, 30), (82, 30), (26, 78), (82, 78), (84, 70), (96, 74)]:
+    # the pod lifted onto a column above the ring
+    sc.cylg(x, y, 7.5, 1.8, shadow=False, depth=99)
+    sc.cylg(x, y, 3.4, 12, z=1.8, glowband=(4, 8), shadow=False, depth=99.5)
+    lander(sc, 13.8, legs=False)
+    sc.shadow(x - 10, y - 10, 20, 20, 14, 0.18)
+    sc.ring_corridor(x, y, 18)
+    for deg in range(0, 360, 60):
+        a = math.radians(deg)
+        sc.module(x + 18 * math.cos(a), y + 18 * math.sin(a), r=4.6, h=7.5, storeys=2)
+    # administration rotunda
+    sc.cylg(82, 28, 8, 12, windows=(3, 6.5, 9.5), band=(11,), cap="dome")
+    sc.tubeline((74, 33), (68, 40), z=4)
+    # comm tower grows from the mast
+    sc.cylg(*MAST, 2.2, 30, windows=(8, 16, 24), band=(28,), depth=MAST[0] + MAST[1] + 1)
+    sc.saucer(MAST[0], MAST[1], 4.5, 1.6, 30, depth=MAST[0] + MAST[1] + 1.2, panels=False, shadow=False)
+    sc.fed_mast(MAST[0], MAST[1], 44)
+    sc.dome(30, 76, 6.5)
+    for lx, ly in [(22, 40), (40, 84), (84, 50), (70, 82), (88, 70), (98, 74)]:
         sc.lamp(lx, ly)
-    sc.hover_truck(86, 60)
-    sc.crates(100, 78, 3)
-    sc.people([(54, 56), (58, 62), (66, 60), (86, 86), (90, 84), (46, 68), (34, 62), (76, 58), (52, 76)])
-    trees = [(10, 12, 1.1), (8, 50, 1.0), (8, 74, 1.2), (14, 98, 1.0), (30, 106, 1.1), (70, 106, 0.9), (60, 12, 1.0),
-             (84, 10, 1.2), (104, 18, 1.0), (110, 42, 1.0), (112, 106, 1.0), (40, 96, 0.9)]
-    wild(sc, trees, [(22, 86, 26, 82), (78, 114, 56, 104), (48, 60, 80, 116), (84, 114, 62, 70)], rocks=2, tuft=45)
+    sc.hover_truck(88, 60)
+    sc.people([(62, 70), (66, 72), (72, 58), (86, 86), (90, 84), (40, 72), (36, 44), (60, 32)])
+    trees = [(8, 10, 1.1), (6, 50, 1.0), (8, 96, 1.0), (28, 108, 1.1), (76, 108, 0.9), (100, 12, 1.0), (110, 40, 1.0), (112, 106, 1.0), (12, 80, 0.9)]
+    wild(sc, trees, [(16, 88, 12, 84), (80, 114, 54, 104)], rocks=1, tuft=30)
     return sc
 
 
-def level4():
-    sc = Scene(4)
-    sc.quad(18, 22, 70, 62, PAVE)
-    for k in range(1, 8):
-        sc.line(18, 22 + k * 62 / 8, 88, 22 + k * 62 / 8, PAVE_LINE, sw=0.8)
-    sc.line(88, 66, 116, 66, PAVE_DK, sw=9)
-    sc.line(54, 84, 54, 118, PAVE_DK, sw=9)
+def v_level4():
+    sc = FedScene(14)
+    x, y = HUB2
+    sc.disc(x, y, 42, PAVE)
+    for rr in (14, 26, 38):
+        sc.disc(x, y, rr, "none", stroke=PAVE_LINE, sw=0.9)
+    sc.line(x + 28, y + 28, PAD[0] - 9, PAD[1] - 9, PAVE_DK, sw=9)
     sc.pad(*PAD, 12)
-    sc.pad(98, 62, 9)
+    sc.pad(102, 58, 9)
     sc.shuttle(PAD[0], PAD[1], s=1.25)
-    sc.shuttle(98, 62, s=1.0)
-    # reflecting pool in front of the complex
-    sc.quad(42, 68, 20, 10, "#3f78b0")
-    sc.quad(43, 69, 18, 8, "#5a9ad0", opacity=0.6)
-    # administration block (kept) + new office tower with rounded crown
-    sc.box(36, 44, 24, 14, 18, windows=(4.5, 9, 13.5), band=(16.4, 17.4), door=(9, 5, 5.5))
-    sc.cyl(52, 34, 9, 42, windows=(6, 12, 18, 24, 30, 36), band=(39.5,), depth=95)
-    sc.cyl(52, 34, 7.5, 5, z=42, side_l=HULL2_L, side_r=HULL2_R, top=HULL2_T, cap="dome", shadow=False, depth=96)
-    # skybridge to the east wing
-    sc.box(61, 32, 10, 3, 2.4, z=22, top=GLASS, left=GLASS, right="#7fb0d0", glass=True, shadow=False, depth=104)
-    sc.box(70, 28, 12, 12, 26, windows=(5, 10, 15, 20), band=(24, 25))
-    # glass atrium
-    sc.dome(70, 54, 7)
-    sc.box(MAST[0] - 2, MAST[1] - 2, 5, 5, 36, windows=(10, 20, 28), band=(32, 33.4))
-    sc.mast(MAST[0] + 0.5, MAST[1] + 0.5, 48)
-    # residential blocks
-    sc.box(22, 56, 10, 10, 12, windows=(4.5, 9), door=(3, 3, 4.4))
-    sc.box(22, 70, 10, 10, 10, windows=(4.5, 8), door=(3, 3, 4.4))
-    sc.box(70, 68, 12, 10, 12, windows=(4.5, 9), door=(4, 3, 4.4))
-    for tx, ty in [(36, 62), (64, 64), (40, 80), (66, 80), (30, 84)]:
-        sc.quad(tx - 2, ty - 2, 4, 4, "#8a7a62")
-        sc.tree(tx, ty, 0.8)
-    for lx, ly in [(20, 24), (86, 24), (20, 82), (86, 82), (88, 70), (100, 74), (58, 86)]:
+    sc.shuttle(102, 58, s=1.0)
+    sc.quad(56, 74, 16, 9, "#3f78b0")
+    sc.quad(57, 75, 14, 7, "#5a9ad0", opacity=0.6)
+    sc.ring_corridor(x, y, 18)
+    for deg in range(0, 360, 60):
+        a = math.radians(deg)
+        sc.module(x + 18 * math.cos(a), y + 18 * math.sin(a), r=4.8, h=10.5, storeys=3)
+    # central column carries a starbase-style saucer deck
+    sc.cylg(x, y, 7.5, 1.8, shadow=False, depth=99)
+    sc.cylg(x, y, 5, 26, z=1.8, windows=(5, 10, 15, 20), glowband=(23,), shadow=False, depth=99.5)
+    sc.saucer(x, y, 20, 4, 27.8, depth=100.5)
+    sc.saucer(x, y, 10, 2.6, 31.8, depth=100.6, glow=False)
+    sc.cylg(x, y, 4.2, 3, z=34.4, cap="dome", shadow=False, depth=100.7)
+    sc.shadow(x - 20, y - 20, 40, 40, 30, 0.16)
+    sc.cylg(84, 26, 9, 18, windows=(3, 6.5, 10, 13.5), band=(17,), cap="dome")
+    sc.tubeline((76, 31), (60, 42), z=14, w=5)
+    sc.cylg(*MAST, 2.2, 32, windows=(8, 16, 24), band=(30,), depth=MAST[0] + MAST[1] + 1)
+    sc.saucer(MAST[0], MAST[1], 4.5, 1.6, 32, depth=MAST[0] + MAST[1] + 1.2, panels=False, shadow=False)
+    sc.fed_mast(MAST[0], MAST[1], 46)
+    sc.cylg(24, 74, 3, 12, glowband=(6,), shadow=True)
+    sc.saucer(24, 74, 8, 2.4, 12, depth=99)
+    for tx, ty in [(40, 88), (48, 92), (78, 66), (88, 44)]:
+        sc.tree(tx, ty, 0.85)
+    for lx, ly in [(16, 44), (36, 92), (90, 50), (74, 88), (92, 70), (104, 70)]:
         sc.lamp(lx, ly)
-    sc.hover_truck(88, 56)
-    sc.hover_truck(56, 96)
-    sc.shuttle(30, 18, z=60, s=0.9, landed=False)
-    sc.people([(48, 64), (52, 66), (62, 64), (44, 82), (86, 88), (90, 86), (34, 54), (66, 50), (58, 80), (76, 60)])
-    trees = [(8, 10, 1.1), (6, 48, 1.0), (8, 96, 1.0), (28, 108, 1.1), (76, 108, 0.9), (100, 14, 1.0), (110, 40, 1.0), (112, 108, 1.0)]
-    wild(sc, trees, [(16, 90, 20, 86), (84, 116, 56, 104), (48, 60, 84, 118)], rocks=1, tuft=25)
+    sc.hover_truck(90, 60)
+    sc.shuttle(26, 14, z=62, s=1.0, landed=False)
+    sc.people([(60, 72), (64, 72), (70, 72), (86, 88), (90, 86), (40, 80), (30, 60), (76, 56)])
+    for x2, y2, s in [(6, 8, 1.1), (6, 104, 1.0), (112, 110, 1.0), (112, 8, 1.0)]:
+        sc.tree(x2, y2, s)
     return sc
 
 
-def level5():
-    sc = Scene(5)
-    sc.quad(10, 12, 92, 86, PAVE)
-    for k in range(1, 10):
-        sc.line(10, 12 + k * 86 / 10, 102, 12 + k * 86 / 10, PAVE_LINE, sw=0.7)
-    sc.line(102, 62, 118, 62, PAVE_DK, sw=10)
-    sc.line(56, 98, 56, 119, PAVE_DK, sw=10)
-    # shuttleport: original pad plus two more
-    sc.quad(84, 74, 30, 32, "#8f949c")
+def v_level5():
+    sc = FedScene(15)
+    x, y = HUB2
+    sc.quad(6, 6, 108, 108, PAVE)
+    for rr in (14, 28, 42, 56):
+        sc.disc(x, y, rr, "none", stroke=PAVE_LINE, sw=0.9)
+    sc.quad(84, 74, 30, 34, "#8f949c")
     sc.pad(*PAD, 12)
     sc.pad(106, 78, 7)
-    sc.pad(108, 100, 7)
+    sc.pad(108, 102, 7)
     sc.shuttle(PAD[0], PAD[1], s=1.25)
     sc.shuttle(106, 78, s=0.9)
-    # reflecting pool and civic lawn
-    sc.quad(40, 70, 30, 12, "#3f78b0")
-    sc.quad(41, 71, 28, 10, "#5a9ad0", opacity=0.6)
-    sc.quad(36, 84, 38, 10, GRASS_LT)
-    # ring of towers
-    sc.cyl(26, 50, 7, 48, windows=(6, 12, 18, 24, 30, 36, 42), band=(46,), depth=70)
-    sc.cyl(26, 50, 5.5, 4, z=48, side_l=HULL2_L, side_r=HULL2_R, top=HULL2_T, cap="dome", shadow=False, depth=71)
-    sc.box(68, 22, 13, 13, 54, windows=(6, 12, 18, 24, 30, 36, 42, 48), band=(51, 52.4), depth=92)
-    sc.cyl(84, 44, 6.5, 40, windows=(6, 12, 18, 24, 30, 36), band=(38,), depth=118)
-    sc.box(30, 64, 12, 12, 30, windows=(6, 12, 18, 24), band=(28, 29))
-    sc.box(70, 60, 12, 12, 26, windows=(6, 12, 18, 23), band=(24, 25))
-    # central spire on the hub's original footprint
-    sc.cyl(HUB[0] + 4, HUB[1] - 2, 11, 30, windows=(6, 12, 18, 24), band=(28,), depth=100)
-    sc.cyl(HUB[0] + 4, HUB[1] - 2, 8, 30, z=30, windows=(6, 12, 18, 24), band=(28,), shadow=False, depth=101)
-    sc.cyl(HUB[0] + 4, HUB[1] - 2, 5, 24, z=60, windows=(6, 12, 18), band=(22,), shadow=False, depth=102)
-    sc.cyl(HUB[0] + 4, HUB[1] - 2, 3.5, 3, z=84, side_l=HULL2_L, side_r=HULL2_R, top=HULL2_T, cap="dome", shadow=False, depth=103)
-    sc.shadow(HUB[0] - 7, HUB[1] - 13, 22, 22, 60, 0.22)
-    # skybridges
-    sc.box(34, 44, 9, 2.6, 2.4, z=28, top=GLASS, left=GLASS, right="#7fb0d0", glass=True, shadow=False, depth=90)
-    sc.box(63, 30, 6, 2.6, 2.4, z=36, top=GLASS, left=GLASS, right="#7fb0d0", glass=True, shadow=False, depth=96)
-    # the old comm tower, kept as a heritage landmark
-    sc.box(MAST[0] - 2, MAST[1] - 2, 5, 5, 36, windows=(10, 20, 28), band=(32, 33.4))
-    sc.mast(MAST[0] + 0.5, MAST[1] + 0.5, 48)
-    for tx, ty in [(38, 88), (46, 90), (54, 88), (62, 90), (70, 88), (16, 30), (16, 74), (96, 20)]:
+    sc.quad(40, 78, 28, 10, "#3f78b0")
+    sc.quad(41, 79, 26, 8, "#5a9ad0", opacity=0.6)
+    sc.quad(30, 92, 40, 10, GRASS_LT)
+    # surrounding towers, each crowned with a small saucer
+    for tx, ty, r, h in [(22, 40, 6, 44), (80, 20, 5.5, 52), (88, 52, 5.5, 36), (28, 76, 5, 28)]:
+        sc.cylg(tx, ty, r, h, windows=tuple(range(5, h - 2, 5)), band=(h - 1.5,), depth=tx + ty + r)
+        sc.saucer(tx, ty, r * 1.6, 2.2, h, depth=tx + ty + r + 0.1, panels=False)
+        sc.cylg(tx, ty, r * 0.6, 2.4, z=h + 2.2, cap="dome", shadow=False, depth=tx + ty + r + 0.2)
+    # the spire: the original column, now carrying three decks
+    sc.cylg(x, y, 7.5, 1.8, shadow=False, depth=99)
+    sc.cylg(x, y, 6, 28.2, z=1.8, windows=tuple(range(5, 27, 5)), glowband=(25,), shadow=False, depth=99.5)
+    sc.saucer(x, y, 22, 4.2, 30, depth=100.5)
+    sc.cylg(x, y, 5, 19.8, z=34.2, windows=(4, 9, 14), glowband=(17,), shadow=False, depth=100.55)
+    sc.saucer(x, y, 14, 3, 54, depth=100.6)
+    sc.cylg(x, y, 4, 13, z=57, windows=(4, 9), shadow=False, depth=100.65)
+    sc.saucer(x, y, 8, 2.4, 70, depth=100.7, panels=False)
+    sc.cylg(x, y, 3, 7.6, z=72.4, glowband=(4,), shadow=False, depth=100.75)
+    sc.cylg(x, y, 3.6, 3, z=80, cap="dome", shadow=False, depth=100.8)
+    sc.shadow(x - 22, y - 22, 44, 44, 60, 0.16)
+    # Academy-style arches over the plaza
+    sc.arch((34, 84), (74, 72), 22, depth=125)
+    sc.arch((60, 92), (84, 66), 16, depth=130)
+    # the original colony pod kept as a monument
+    sc.cylg(50, 92, 3, 1.6, depth=141)
+    sc.saucer(50, 92, 5, 1.6, 1.6, depth=141.1, panels=False, shadow=False)
+    sc.cylg(50, 92, 2.4, 2, z=3.2, cap="dome", shadow=False, depth=141.2)
+    sc.cylg(*MAST, 2.2, 32, windows=(8, 16, 24), band=(30,), depth=MAST[0] + MAST[1] + 1)
+    sc.saucer(MAST[0], MAST[1], 4.5, 1.6, 32, depth=MAST[0] + MAST[1] + 1.2, panels=False, shadow=False)
+    sc.fed_mast(MAST[0], MAST[1], 46)
+    for tx, ty in [(32, 96), (40, 98), (48, 100), (58, 98), (66, 96), (12, 20), (100, 16)]:
         sc.tree(tx, ty, 0.85)
-    for lx, ly in [(12, 14), (100, 14), (12, 96), (100, 60), (38, 68), (72, 68), (58, 100), (84, 72)]:
+    for lx, ly in [(10, 10), (104, 10), (10, 100), (100, 62), (38, 76), (72, 76), (84, 72)]:
         sc.lamp(lx, ly, 7)
     sc.hover_truck(98, 58)
-    sc.hover_truck(58, 104)
-    sc.shuttle(20, 10, z=70, s=0.9, landed=False)
-    sc.shuttle(96, 30, z=80, s=0.8, landed=False)
-    sc.shuttle(70, 0, z=92, s=0.7, landed=False)
-    sc.people([(46, 84), (50, 86), (58, 84), (64, 86), (42, 66), (74, 80), (88, 86), (92, 84), (60, 68), (34, 82), (22, 66), (80, 70)])
-    for x, y, s in [(4, 6, 1.0), (4, 108, 1.0), (114, 112, 1.0), (116, 6, 0.9)]:
-        sc.tree(x, y, s)
+    sc.shuttle(16, 6, z=72, s=0.9, landed=False)
+    sc.shuttle(100, 30, z=84, s=0.8, landed=False)
+    sc.shuttle(64, -6, z=96, s=0.7, landed=False)
+    sc.people([(44, 88), (48, 90), (54, 90), (60, 88), (46, 76), (74, 84), (88, 86), (92, 84), (36, 86), (66, 80), (56, 94)])
     return sc
 
 
-for i, fn in enumerate([level1, level2, level3, level4, level5], start=1):
+for i, fn in enumerate([v_level1, v_level2, v_level3, v_level4, v_level5], start=1):
     with open(os.path.join(OUT, f"colony-hub-L{i}.svg"), "w") as f:
         f.write(fn().render())
 print("ok")
