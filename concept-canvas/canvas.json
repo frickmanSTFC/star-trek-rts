@@ -10,7 +10,8 @@
     { "id": "romulan", "name": "Romulan" },
     { "id": "dominion", "name": "Dominion" },
     { "id": "ferengi", "name": "Ferengi" },
-    { "id": "borg", "name": "Borg" }
+    { "id": "borg", "name": "Borg" },
+    { "id": "detail-colony-hub", "name": "Detail: Colony Hub" }
   ],
   "boards": {
     "Main.dc.html":       { "x": 0,    "y": 0,    "w": 1920, "h": 760, "title": "Deep Space line: Outpost to Yorktown" },
@@ -40,9 +41,14 @@
     "BorgDeepSpace.dc.html":  { "x": 0,    "y": 0,    "w": 1560, "h": 760, "page": "borg", "title": "Borg Deep Space line: Probe Node to Transwarp Hub" },
     "BorgCommand.dc.html":    { "x": 0,    "y": 880,  "w": 1180, "h": 760, "page": "borg", "title": "Borg Command line: Assimilation Spire to Unicomplex" },
     "BorgShipyards.dc.html":  { "x": 1260, "y": 880,  "w": 1180, "h": 760, "page": "borg", "title": "Borg Shipyard line: Assembly Matrix to Cube Matrix" },
-    "BorgHabitation.dc.html": { "x": 0,    "y": 1760, "w": 1180, "h": 760, "page": "borg", "title": "Borg Drone line: Alcove Block to Assimilation Complex" }
+    "BorgHabitation.dc.html": { "x": 0,    "y": 1760, "w": 1180, "h": 760, "page": "borg", "title": "Borg Drone line: Alcove Block to Assimilation Complex" },
+    "HubL1.dc.html": { "x": 0,    "y": 0, "w": 1280, "h": 720, "page": "detail-colony-hub", "title": "Colony Hub, level 1 of 5" },
+    "HubL2.dc.html": { "x": 1360, "y": 0, "w": 1280, "h": 720, "page": "detail-colony-hub", "title": "Settlement Hub, level 2 of 5" },
+    "HubL3.dc.html": { "x": 2720, "y": 0, "w": 1280, "h": 720, "page": "detail-colony-hub", "title": "Colonial Administration, level 3 of 5" },
+    "HubL4.dc.html": { "x": 4080, "y": 0, "w": 1280, "h": 720, "page": "detail-colony-hub", "title": "Governor's Complex, level 4 of 5" },
+    "HubL5.dc.html": { "x": 5440, "y": 0, "w": 1280, "h": 720, "page": "detail-colony-hub", "title": "Planetary Capital, level 5 of 5" }
   },
-  "order": ["Main.dc.html", "Command.dc.html", "Shipyards.dc.html", "Habitation.dc.html", "KlingonDeepSpace.dc.html", "KlingonCommand.dc.html", "KlingonShipyards.dc.html", "KlingonHabitation.dc.html", "CardassianDeepSpace.dc.html", "CardassianCommand.dc.html", "CardassianShipyards.dc.html", "CardassianHabitation.dc.html", "RomulanDeepSpace.dc.html", "RomulanCommand.dc.html", "RomulanShipyards.dc.html", "RomulanHabitation.dc.html", "DominionDeepSpace.dc.html", "DominionCommand.dc.html", "DominionShipyards.dc.html", "DominionHabitation.dc.html", "FerengiDeepSpace.dc.html", "FerengiCommand.dc.html", "FerengiShipyards.dc.html", "FerengiHabitation.dc.html", "BorgDeepSpace.dc.html", "BorgCommand.dc.html", "BorgShipyards.dc.html", "BorgHabitation.dc.html"],
+  "order": ["Main.dc.html", "Command.dc.html", "Shipyards.dc.html", "Habitation.dc.html", "KlingonDeepSpace.dc.html", "KlingonCommand.dc.html", "KlingonShipyards.dc.html", "KlingonHabitation.dc.html", "CardassianDeepSpace.dc.html", "CardassianCommand.dc.html", "CardassianShipyards.dc.html", "CardassianHabitation.dc.html", "RomulanDeepSpace.dc.html", "RomulanCommand.dc.html", "RomulanShipyards.dc.html", "RomulanHabitation.dc.html", "DominionDeepSpace.dc.html", "DominionCommand.dc.html", "DominionShipyards.dc.html", "DominionHabitation.dc.html", "FerengiDeepSpace.dc.html", "FerengiCommand.dc.html", "FerengiShipyards.dc.html", "FerengiHabitation.dc.html", "BorgDeepSpace.dc.html", "BorgCommand.dc.html", "BorgShipyards.dc.html", "BorgHabitation.dc.html", "HubL1.dc.html", "HubL2.dc.html", "HubL3.dc.html", "HubL4.dc.html", "HubL5.dc.html"],
   "notes": {
     "title": { "x": 0, "y": -300, "text": "Federation structures, level 1 to max", "kind": "title1", "maxW": 2440 },
     "klingonTitle": { "x": 0, "y": -300, "text": "Klingon structures, level 1 to max", "kind": "title1", "maxW": 2440, "page": "klingon" },
@@ -50,7 +56,8 @@
     "romulanTitle": { "x": 0, "y": -300, "text": "Romulan structures, level 1 to max", "kind": "title1", "maxW": 2440, "page": "romulan" },
     "dominionTitle": { "x": 0, "y": -300, "text": "Dominion structures, level 1 to max", "kind": "title1", "maxW": 2440, "page": "dominion" },
     "ferengiTitle": { "x": 0, "y": -300, "text": "Ferengi structures, level 1 to max", "kind": "title1", "maxW": 2440, "page": "ferengi" },
-    "borgTitle": { "x": 0, "y": -300, "text": "Borg structures, level 1 to max", "kind": "title1", "maxW": 2440, "page": "borg" }
+    "borgTitle": { "x": 0, "y": -300, "text": "Borg structures, level 1 to max", "kind": "title1", "maxW": 2440, "page": "borg" },
+    "hubTitle": { "x": 0, "y": -300, "text": "Federation Colony Hub: landfall to planetary capital, 5 levels", "kind": "title1", "maxW": 6720, "page": "detail-colony-hub" }
   },
   "designSystems": []
 }

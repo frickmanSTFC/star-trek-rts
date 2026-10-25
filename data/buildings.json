@@ -271,9 +271,26 @@
           "effect": "Three linked prefab modules.",
           "stats": {
             "supply_range": 1,
-            "build_queues": 1
+            "build_queues": 1,
+            "pop_cap": 2
           },
-          "building_ref": "colony_hub"
+          "building_ref": "colony_hub",
+          "art": "art/federation-colony-hub/colony-hub-L1.svg"
+        },
+        {
+          "id": "fed_settlement_hub",
+          "name": "Settlement Hub",
+          "cost": {
+            "duranium": 160,
+            "tritanium": 60
+          },
+          "effect": "Two-storey hub with observation dome; greenhouse; +25% storage, +10% build speed.",
+          "stats": {
+            "supply_range": 1,
+            "build_queues": 1,
+            "pop_cap": 3
+          },
+          "art": "art/federation-colony-hub/colony-hub-L2.svg"
         },
         {
           "id": "colonial_administration",
@@ -285,9 +302,26 @@
           "effect": "Admin block and comms tower.",
           "stats": {
             "supply_range": 2,
-            "build_queues": 2
+            "build_queues": 2,
+            "pop_cap": 4
           },
-          "building_ref": "colonial_administration"
+          "building_ref": "colonial_administration",
+          "art": "art/federation-colony-hub/colony-hub-L3.svg"
+        },
+        {
+          "id": "fed_governors_complex",
+          "name": "Governor's Complex",
+          "cost": {
+            "parasteel": 280,
+            "isolinear_chips": 30
+          },
+          "effect": "Round office tower with glass crown, skybridge, atrium; +1 morale in system.",
+          "stats": {
+            "supply_range": 2,
+            "build_queues": 3,
+            "pop_cap": 6
+          },
+          "art": "art/federation-colony-hub/colony-hub-L4.svg"
         },
         {
           "id": "planetary_capital",
@@ -296,11 +330,15 @@
             "parasteel": 400,
             "isolinear_chips": 50
           },
-          "effect": "City of towers; system-wide morale.",
+          "effect": "Central spire, ring of towers, shuttleport; +2 morale in system.",
           "stats": {
-            "supply_range": 3
+            "supply_range": 3,
+            "build_queues": 3,
+            "pop_cap": 10,
+            "limit": "1_per_system"
           },
-          "building_ref": "planetary_capital"
+          "building_ref": "planetary_capital",
+          "art": "art/federation-colony-hub/colony-hub-L5.svg"
         }
       ],
       "shipyards": [
