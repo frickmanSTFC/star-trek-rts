@@ -530,7 +530,7 @@ def build():
         crown = prim("ico_sphere", f"TreeCrown{i}", subdivisions=2, radius=2.6 * s, location=(x, y, 4.2 * s))
         crown.scale.z = 1.25
         set_mat(smooth(crown), M["tree"])
-    scorch = prim("cylinder", "Scorch", vertices=48, radius=13, depth=0.05, location=(0, 0, 0.03))
+    scorch = prim("cylinder", "Scorch", vertices=48, radius=13, depth=0.05, location=(0, 0, 0.06))
     set_mat(prop(scorch, "fade", 0), M["scorch"])
 
     # ---- colony pod ----
@@ -701,7 +701,7 @@ def build():
         prop(ob, "tx", 0)
 
     # landing legs: attach under the belly, telescope to the ground
-    legs = []
+    legs, leg_parts = [], []
     for k, deg in enumerate((45, 135, 225, 315)):
         a = math.radians(deg)
         pivot = empty(f"LegPivot{k}", (3.5 * math.cos(a), 3.5 * math.sin(a), -0.5), pod)
@@ -725,7 +725,8 @@ def build():
         foot_light = prim("uv_sphere", f"LegLight{k}", pivot, segments=10, ring_count=6, radius=0.2, location=(0, 0.62, -length * 0.12))
         set_mat(foot_light, M["glowring"])
         for ob in (strut, foot, sleeve, knee, piston, toe, foot_light):
-            prop(ob, "tx", 1)
+            prop(ob, "tx", 0)
+            leg_parts.append(ob)
         pivot.scale = (1, 1, 0.01)
         legs.append(pivot)
 
@@ -869,7 +870,7 @@ def build():
         key(tractor, '["beam"]', v, tt)
 
     # pod: materializes high in the beam, lowered folded, lifted by its legs
-    pod_parts = [saucer, under, ring, top_ring, windows, capsule, band, cwin, dome, *saucer_detail, *cap_detail]
+    pod_parts = [saucer, under, ring, top_ring, windows, capsule, band, cwin, dome, mast, mast_ring, mast_light, *saucer_detail, *cap_detail, *leg_parts]
     for ob in pod_parts:
         key(ob, '["tx"]', 0.0, 2.8)
         key(ob, '["tx"]', 1.0, 2.8 + TX * 1.2)
@@ -896,8 +897,6 @@ def build():
         key(capsule, "scale", (s, s, s), tt)
     for tt, v in ((0, 0), (8.9, 0), (9.5, 1)):
         key(dome, '["lit"]', v, tt)
-    for ob in (mast, mast_ring, mast_light):
-        key(ob, '["tx"]', 1.0, 0)
     key(mast, "scale", (1, 1, 0.001), 9.4)
     key(mast, "scale", (1, 1, 9.0), 10.4)
     # scorch and dust
@@ -982,12 +981,37 @@ def build():
         key(body, "location", (at[0], at[1], 0.65), t0w + 0.7)
         key(body, "location", (to[0], to[1], 0.65), t0w + 1.7)
 
+    hide_while_gone(sc)
+
     # ---- render settings: EEVEE for your machine, 30 fps, 20 s ----
     sc.render.engine = "BLENDER_EEVEE"
     sc.render.resolution_x, sc.render.resolution_y = 1600, 1200
     sc.render.film_transparent = False
     sc.frame_set(F(DURATION))
     return sc
+
+
+FADE_PROPS = ("tx", "fade", "glow", "beam")
+
+
+def hide_while_gone(sc):
+    """Key hide_render on every part whose fade property (tx, fade, glow, beam) is 0, so unseen
+    parts cost nothing (and invisible shells can't leave dark specks in Cycles)."""
+    parts = [ob for ob in bpy.data.objects if ob.type == "MESH" and ob.animation_data
+             and any(k in ob.keys() for k in FADE_PROPS)]
+    changes = {ob.name: [] for ob in parts}
+    prev = {}
+    for f in range(sc.frame_start, sc.frame_end + 1):
+        sc.frame_set(f)
+        for ob in parts:
+            gone = next(ob[k] for k in FADE_PROPS if k in ob.keys()) <= 0.001
+            if prev.get(ob.name) != gone:
+                changes[ob.name].append((f, gone))
+                prev[ob.name] = gone
+    for ob in parts:
+        for f, gone in changes[ob.name]:
+            ob.hide_render = gone
+            ob.keyframe_insert("hide_render", frame=f)
 
 
 def _beam_mesh():
