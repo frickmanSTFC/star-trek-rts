@@ -1,7 +1,7 @@
 {
   "v": 3,
   "createdOnFiles": { "v": 1, "at": "2026-10-25T12:00:00Z" },
-  "title": "Federation Structure Concepts",
+  "title": "Faction Structure Concepts",
   "launch": { "view": "canvas" },
   "pages": [
     { "id": "federation", "name": "Federation" },
