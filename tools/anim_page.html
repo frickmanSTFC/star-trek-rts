@@ -68,7 +68,7 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
   <header>
     <div class="eyebrow">Federation · Colony Hub · Level 1 placement</div>
     <h1>Colony Pod Drop</h1>
-    <p class="lede">What the player sees when they order a new colony on a Class M world. The drop ship lowers the pod on a tractor beam, then a construction beam circles the site twice to unfold the solar petals, drop the supply capsules and light the perimeter.</p>
+    <p class="lede">What the player sees when they order a new colony on a Class M world. Twelve seconds from order to online. The pod materializes in the drop ship's tractor beam and is lowered to the surface, then a construction beam circles the site twice: the solar petals unfold, and the supply capsules, beacons and first colonists beam in.</p>
   </header>
 
   <div class="main">
@@ -80,7 +80,7 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
           <button id="replay" class="ghost" type="button">Replay</button>
           <span class="time" id="clock">0.0 s</span>
         </div>
-        <input id="scrub" type="range" min="0" max="13.2" step="0.01" value="0" aria-label="Timeline">
+        <input id="scrub" type="range" min="0" max="12" step="0.01" value="0" aria-label="Timeline">
         <div class="row">
           <label for="speed" class="check">Speed</label>
           <select id="speed">
@@ -102,11 +102,11 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
     </section>
     <section>
       <h2>Beams and effects</h2>
-      <p>The tractor cone and construction beam are shader effects in-engine (additive glow, scrolling rings) plus a particle system for the sparkles and dust. Here they are drawn live in SVG so the timing can be judged.</p>
+      <p>The tractor cone and construction beam are shader effects in-engine (additive glow, scrolling rings). The transporter shimmer is a dissolve shader on the model plus a rising-sparkle particle column. Here they are drawn live in SVG so the timing can be judged.</p>
     </section>
     <section>
       <h2>Gameplay hooks</h2>
-      <p>The building becomes selectable at touchdown (5.0 s) and finishes at 12.6 s. The drop can be interrupted: shooting down the ship during the tractor phase loses the pod.</p>
+      <p>The building becomes selectable at touchdown (4.6 s) and finishes at 12.0 s. The drop can be interrupted: shooting down the ship during the tractor phase loses the pod.</p>
     </section>
   </div>
 </div>
@@ -114,29 +114,32 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
 <script>
 (function () {
   const G = /*GEO*/;
-  const END = 13.2;
+  const END = 12.0;
   const BEATS = [
     [0.0, "Drop ship inbound"],
-    [2.0, "Tractor beam locks on"],
-    [2.4, "Pod lowered on the beam"],
-    [4.3, "Landing legs deploy"],
-    [5.0, "Touchdown: dust ring, scorch mark"],
-    [5.6, "Construction beam, lap 1: solar petals unfold"],
-    [7.6, "Lap 2: supply capsules drop, beacons light"],
-    [9.6, "Ramp lowers, pod lights come on"],
-    [10.2, "Drop ship departs, colonists walk out"],
-    [12.6, "Colony Hub online"]
+    [1.8, "Tractor beam locks on"],
+    [2.2, "Pod materializes in the beam"],
+    [2.6, "Pod lowered to the surface"],
+    [4.0, "Landing legs deploy"],
+    [4.6, "Touchdown: dust ring, scorch mark"],
+    [5.1, "Construction beam, lap 1: solar petals unfold"],
+    [7.0, "Lap 2: supply capsules and beacons beam in"],
+    [8.8, "Ramp lowers, pod lights come on"],
+    [9.4, "Drop ship departs, colonists beam down"],
+    [12.0, "Colony Hub online"]
   ];
-  const T0 = 5.9, T1 = 9.3;          // construction laps
+  const T0 = 5.4, T1 = 8.6;          // construction laps
+  const TX = 0.9;                    // transporter materialization length
   const $ = (id) => document.getElementById(id);
   const svg = $("stage");
   const NS = "http://www.w3.org/2000/svg";
 
-  // beam gradients live in the SVG so the effects layer can use them
   const defs = document.createElementNS(NS, "defs");
   defs.innerHTML =
     '<linearGradient id="cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe9ff" stop-opacity="0.75"/><stop offset="1" stop-color="#7fd4ff" stop-opacity="0.12"/></linearGradient>' +
-    '<radialGradient id="flare" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff" stop-opacity="1"/><stop offset="0.4" stop-color="#bfe9ff" stop-opacity="0.8"/><stop offset="1" stop-color="#7fd4ff" stop-opacity="0"/></radialGradient>';
+    '<radialGradient id="flare" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff" stop-opacity="1"/><stop offset="0.4" stop-color="#bfe9ff" stop-opacity="0.8"/><stop offset="1" stop-color="#7fd4ff" stop-opacity="0"/></radialGradient>' +
+    '<linearGradient id="txcol" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9fdcff" stop-opacity="0"/><stop offset="0.5" stop-color="#e6f7ff" stop-opacity="0.9"/><stop offset="1" stop-color="#9fdcff" stop-opacity="0"/></linearGradient>' +
+    '<filter id="txglow" x="-30%" y="-30%" width="160%" height="160%"><feColorMatrix type="matrix" values="0 0 0 0 0.78  0 0 0 0 0.93  0 0 0 0 1  0 0 0 1 0"/><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
   svg.insertBefore(defs, svg.firstChild);
 
   const iso = (x, y, z = 0) => [G.CX + (x - y) * 0.8660254 * G.S, G.CY + (x + y) * 0.5 * G.S - z * G.S];
@@ -149,6 +152,34 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
   const eBack = (p) => { const c = 1.7; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
   const set = (el, attr, v) => el && el.setAttribute(attr, v);
   const around = (c, sx, sy) => `translate(${c[0]} ${c[1]}) scale(${sx} ${sy}) translate(${-c[0]} ${-c[1]})`;
+  const rnd = (k) => { const s = Math.sin(k * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+  // Transporter materialization, p = 0..1 across the effect.
+  // Returns the object's own opacity; pushes the light column, sparkles and glowing silhouette into out.
+  function transporter(out, t, p, bottom, top, halfW, cloneId, seed) {
+    if (p <= 0) return 0;
+    if (p >= 1) return 1;
+    const I = Math.sin(Math.PI * p);
+    const midY = (bottom[1] + top[1]) / 2, halfH = (bottom[1] - top[1]) / 2 + 6;
+    out.push(`<rect x="${bottom[0] - halfW * 1.3}" y="${midY - halfH}" width="${halfW * 2.6}" height="${halfH * 2}" rx="${halfW}" fill="url(#txcol)" opacity="${0.55 * I}"/>`);
+    for (let k = 0; k < 18; k++) {
+      const fx = (rnd(seed + k) * 2 - 1) * halfW;
+      const rise = ((rnd(seed + k * 3.1) + t * (0.6 + rnd(seed + k * 7.7) * 0.8)) % 1);
+      const y = midY + halfH - rise * halfH * 2;
+      const tw = Math.abs(Math.sin(t * (18 + k) + k));
+      const r = 0.6 + rnd(seed + k * 5.3) * 1.1;
+      out.push(`<circle cx="${bottom[0] + fx}" cy="${y}" r="${r}" fill="#ffffff" opacity="${I * tw}"/>`);
+      if (k % 6 === 0) {
+        const s = 2.6 * tw * I;
+        out.push(`<path d="M${bottom[0] + fx - s},${y} L${bottom[0] + fx + s},${y} M${bottom[0] + fx},${y - s} L${bottom[0] + fx},${y + s}" stroke="#ffffff" stroke-width="0.8" opacity="${I}"/>`);
+      }
+    }
+    // bright silhouette that fades as the object becomes solid
+    const glow = c01(1.25 - p * 1.25) * (0.75 + 0.25 * Math.sin(t * 47 + seed));
+    if (cloneId) out.push(`<use href="#${cloneId}" filter="url(#txglow)" opacity="${glow}"/>`);
+    const solid = prog(p, 0.2, 0.85);
+    return solid * (solid < 1 ? 0.65 + 0.35 * Math.abs(Math.sin(t * 38 + seed)) : 1);
+  }
 
   const hubG = iso(G.hub[0], G.hub[1], 0);
   const fx = $("fx");
@@ -159,21 +190,23 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
     capScorch: G.capsules.map((_, i) => $("capscorch" + i)),
     beacons: G.beacons.map((_, i) => $("beacon" + i))
   };
-  // when the construction beam passes each item's angle
   const lapTime = (deg, lap) => T0 + ((lap * 360 + (((deg % 360) + 360) % 360)) / 720) * (T1 - T0);
   const petalT = G.petals.map((a) => lapTime(a, 0));
   const capT = G.capsules.map((c) => lapTime(c[2], 1));
   const beaconT = G.beacons.map((b) => lapTime(b[2], 1));
-  const walkers = [[66, 62], [69, 65], [72, 58], [78, 70], [62, 70]].map((p, i) => ({ to: p, t0: 10.4 + i * 0.32, col: ["#c8463c", "#d9a43a", "#4a7fd6", "#e8ecf3", "#c8463c"][i] }));
+  const foot = G.rampFoot;
+  const walkers = [[66, 62], [69, 66], [73, 57], [78, 70], [62, 70]].map((p, i) => ({
+    to: p, at: [foot[0] + 3 + (i % 3) * 2.5, foot[1] - 3 + Math.floor(i / 3) * 4 + (i % 2) * 1.5],
+    t0: 9.5 + i * 0.2, col: ["#c8463c", "#d9a43a", "#4a7fd6", "#e8ecf3", "#c8463c"][i]
+  }));
 
   function shipOffset(t) {
     let dx = 0, dy = 0, op = 1;
-    if (t < 2.2) { const p = eOut(prog(t, 0, 2.2)); dx = 280 * (1 - p); dy = -230 * (1 - p); }
-    if (t >= 10.2) { const p = eIn(prog(t, 10.2, 12.2)); dx = -340 * p; dy = -280 * p; op = 1 - prog(t, 11.6, 12.2); }
-    dy += Math.sin(t * 2.3) * 2.2 * prog(t, 1.6, 2.4) * (1 - prog(t, 10.2, 10.6));
+    if (t < 2.0) { const p = eOut(prog(t, 0, 2.0)); dx = 280 * (1 - p); dy = -230 * (1 - p); }
+    if (t >= 9.4) { const p = eIn(prog(t, 9.4, 11.2)); dx = -340 * p; dy = -280 * p; op = 1 - prog(t, 10.6, 11.2); }
+    dy += Math.sin(t * 2.3) * 2.2 * prog(t, 1.5, 2.2) * (1 - prog(t, 9.4, 9.8));
     return [dx, dy, op];
   }
-
   function beamRadius(lap) { return lap < 0.5 ? 16 : 16 + 16 * eIO(c01((lap - 0.5) / 0.12)); }
 
   function render(t) {
@@ -184,25 +217,13 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
     const shipC = iso(G.hub[0], G.hub[1], G.shipZ);
     const E = [shipC[0] - 2 + sdx, shipC[1] + 12 + sdy];
 
-    // ---- pod descent ----
-    const zStart = G.shipZ - 9;
-    const dp = eIO(prog(t, 2.4, 5.0));
+    // ---- pod: materializes high in the beam, then is lowered ----
+    const zStart = G.shipZ - 12;
+    const dp = eIO(prog(t, 2.6, 4.6));
     let podDy = -(zStart - G.podZ) * G.S * (1 - dp);
-    if (t > 5.0 && t < 5.45) { const p = prog(t, 5.0, 5.45); podDy -= Math.sin(Math.PI * p) * 3 * (1 - p); }
-    const podOp = prog(t, 2.4, 2.8);
+    if (t > 4.6 && t < 5.05) { const p = prog(t, 4.6, 5.05); podDy -= Math.sin(Math.PI * p) * 3 * (1 - p); }
     set(L.pod, "transform", `translate(0 ${podDy})`);
-    set(L.pod, "opacity", podOp);
-    const legAttach = iso(G.hub[0], G.hub[1], G.podZ);
-    const legP = eOut(prog(t, 4.3, 5.0));
-    set(L.legs, "transform", `translate(0 ${podDy}) ${around(legAttach, 1, 0.15 + 0.85 * legP)}`);
-    set(L.legs, "opacity", prog(t, 4.3, 4.5));
-    const shP = prog(t, 3.2, 5.0);
-    set(L.podshadow, "opacity", shP);
-    set(L.podshadow, "transform", around(hubG, 0.45 + 0.55 * shP, 0.45 + 0.55 * shP));
-    set(L.scorch, "opacity", prog(t, 5.0, 5.6));
-
-    // ---- tractor cone ----
-    const cone = prog(t, 2.0, 2.6) * (1 - prog(t, 5.2, 5.7));
+    const cone = prog(t, 1.8, 2.3) * (1 - prog(t, 4.8, 5.2));
     if (cone > 0) {
       const [rx, ry] = ell(10);
       out.push(`<polygon points="${E[0] - 7},${E[1]} ${E[0] + 7},${E[1]} ${hubG[0] + rx},${hubG[1]} ${hubG[0] - rx},${hubG[1]}" fill="url(#cone)" opacity="${0.75 * cone}"/>`);
@@ -213,19 +234,19 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
         out.push(`<ellipse cx="${cx}" cy="${cy}" rx="${7 + (rx - 7) * f}" ry="${2.5 + (ry - 2.5) * f}" fill="none" stroke="#bfe9ff" stroke-width="1.4" opacity="${cone * 0.8 * (1 - f * 0.6)}"/>`);
       }
     }
-    // sparkles around the pod while it is in the beam
-    const spark = prog(t, 2.4, 2.9) * (1 - prog(t, 4.8, 5.3));
-    if (spark > 0) {
-      const pc = iso(G.hub[0], G.hub[1], G.podZ + 4);
-      for (let k = 0; k < 16; k++) {
-        const a = k * 0.39 + t * 2.4;
-        const r = 34 + 8 * Math.sin(k * 1.7 + t * 3);
-        const x = pc[0] + Math.cos(a) * r, y = pc[1] + podDy + Math.sin(a) * r * 0.55 - 8;
-        out.push(`<circle cx="${x}" cy="${y}" r="${1 + (k % 3) * 0.6}" fill="#e6f7ff" opacity="${spark * (0.35 + 0.65 * Math.abs(Math.sin(t * 6 + k)))}"/>`);
-      }
-    }
-    // dust ring at touchdown
-    const dust = prog(t, 5.0, 6.0);
+    const podB = iso(G.hub[0], G.hub[1], G.podZ - 2), podT = iso(G.hub[0], G.hub[1], G.podZ + 13);
+    const podTx = prog(t, 2.2, 2.2 + TX * 1.3);
+    const podOp = transporter(out, t, podTx, [podB[0], podB[1] + podDy], [podT[0], podT[1] + podDy], 40, "pod", 3);
+    set(L.pod, "opacity", podOp);
+    const legAttach = iso(G.hub[0], G.hub[1], G.podZ);
+    const legP = eOut(prog(t, 4.0, 4.6));
+    set(L.legs, "transform", `translate(0 ${podDy}) ${around(legAttach, 1, 0.15 + 0.85 * legP)}`);
+    set(L.legs, "opacity", prog(t, 4.0, 4.2));
+    const shP = prog(t, 2.9, 4.6);
+    set(L.podshadow, "opacity", shP);
+    set(L.podshadow, "transform", around(hubG, 0.45 + 0.55 * shP, 0.45 + 0.55 * shP));
+    set(L.scorch, "opacity", prog(t, 4.6, 5.2));
+    const dust = prog(t, 4.6, 5.5);
     if (dust > 0 && dust < 1) {
       for (const [k, w] of [[1, 3], [0.7, 2]]) {
         const [rx, ry] = ell((10 + 22 * eOut(dust)) * k);
@@ -234,7 +255,7 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
     }
 
     // ---- construction beam ----
-    const beam = prog(t, 5.6, 5.9) * (1 - prog(t, 9.3, 9.6));
+    const beam = prog(t, 5.1, 5.4) * (1 - prog(t, 8.6, 8.9));
     const lap = prog(t, T0, T1);
     if (beam > 0) {
       const th = 720 * lap;
@@ -243,7 +264,7 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
       const P = iso(G.hub[0] + R * Math.cos(rad(th)), G.hub[1] + R * Math.sin(rad(th)), 0);
       let trail = "";
       for (let d = Math.max(0, th - 150); d <= th; d += 6) {
-        const l = d / 720, r = beamRadius(l);
+        const r = beamRadius(d / 720);
         const q = iso(G.hub[0] + r * Math.cos(rad(d)), G.hub[1] + r * Math.sin(rad(d)), 0);
         trail += (trail ? " L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1);
       }
@@ -251,61 +272,59 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
       out.push(`<line x1="${E[0]}" y1="${E[1]}" x2="${P[0]}" y2="${P[1]}" stroke="#7fd4ff" stroke-width="12" stroke-linecap="round" opacity="${0.18 * beam}"/>`);
       out.push(`<line x1="${E[0]}" y1="${E[1]}" x2="${P[0]}" y2="${P[1]}" stroke="#e6f7ff" stroke-width="2.2" stroke-linecap="round" opacity="${beam}"/>`);
       out.push(`<ellipse cx="${P[0]}" cy="${P[1]}" rx="16" ry="9" fill="url(#flare)" opacity="${beam}"/>`);
-      for (let k = 0; k < 6; k++) {
-        const a = t * 9 + k;
-        out.push(`<circle cx="${P[0] + Math.cos(a) * (6 + k * 2)}" cy="${P[1] - Math.abs(Math.sin(a)) * (4 + k * 2)}" r="1.2" fill="#ffffff" opacity="${beam * 0.8}"/>`);
-      }
     }
-    // petals pop as the beam passes on lap 1
+    // petals unfold as the beam passes on lap 1, with a short sparkle
     L.petals.forEach((el, i) => {
       const p = prog(t, petalT[i], petalT[i] + 0.4);
       const s = p <= 0 ? 0.001 : eBack(p);
       set(el, "transform", around(hubG, s, s));
       set(el, "opacity", c01(p * 2.5));
-    });
-    // capsules drop on lap 2
-    L.caps.forEach((el, i) => {
-      const land = capT[i];
-      const p = prog(t, land - 0.4, land);
-      set(el, "transform", `translate(0 ${-260 * (1 - eIn(p))})`);
-      set(el, "opacity", p > 0 ? 1 : 0);
-      set(L.capScorch[i], "opacity", prog(t, land, land + 0.4));
-      const puff = prog(t, land, land + 0.6);
-      if (puff > 0 && puff < 1) {
-        const c = iso(G.capsules[i][0], G.capsules[i][1]);
-        const [rx, ry] = ell(3 + 6 * eOut(puff));
-        out.push(`<ellipse cx="${c[0]}" cy="${c[1]}" rx="${rx}" ry="${ry}" fill="none" stroke="#d8cfb8" stroke-width="2" opacity="${0.7 * (1 - puff)}"/>`);
+      const sp = prog(t, petalT[i], petalT[i] + 0.6);
+      if (sp > 0 && sp < 1) {
+        const a = (G.petals[i] * Math.PI) / 180;
+        const c = iso(G.hub[0] + 15 * Math.cos(a), G.hub[1] + 15 * Math.sin(a), 0.5);
+        for (let k = 0; k < 5; k++) out.push(`<circle cx="${c[0] + (rnd(i * 9 + k) - 0.5) * 22}" cy="${c[1] + (rnd(i * 5 + k) - 0.5) * 10 - sp * 8}" r="1" fill="#ffffff" opacity="${1 - sp}"/>`);
       }
     });
-    // beacons light on lap 2
+    // supply capsules beam in on lap 2
+    L.caps.forEach((el, i) => {
+      const [cx, cy] = G.capsules[i];
+      const p = prog(t, capT[i] - 0.15, capT[i] - 0.15 + TX);
+      set(el, "opacity", transporter(out, t, p, iso(cx, cy, 0), iso(cx, cy, 6), 10, "cap" + i, 20 + i));
+      set(L.capScorch[i], "opacity", 0);
+    });
+    // beacons beam in, then light
     L.beacons.forEach((el, i) => {
-      const p = prog(t, beaconT[i], beaconT[i] + 0.25);
-      set(el, "opacity", p);
-      const flash = prog(t, beaconT[i], beaconT[i] + 0.7);
+      const [bx, by] = G.beacons[i];
+      const p = prog(t, beaconT[i] - 0.1, beaconT[i] - 0.1 + TX * 0.8);
+      set(el, "opacity", transporter(out, t, p, iso(bx, by, 0), iso(bx, by, 5), 6, "beacon" + i, 40 + i));
+      const flash = prog(t, beaconT[i] + TX * 0.7, beaconT[i] + TX * 0.7 + 0.6);
       if (flash > 0 && flash < 1) {
-        const c = iso(G.beacons[i][0], G.beacons[i][1], 4);
+        const c = iso(bx, by, 4);
         out.push(`<circle cx="${c[0]}" cy="${c[1]}" r="${4 + 14 * flash}" fill="none" stroke="#e0574a" stroke-width="1.5" opacity="${1 - flash}"/>`);
       }
     });
 
-    // ---- ramp, lights, colonists ----
-    const rp = eOut(prog(t, 9.6, 10.3));
+    // ---- ramp, lights ----
+    const rp = eOut(prog(t, 8.8, 9.5));
     const rTop = iso(G.rampTop[0], G.rampTop[1], G.podZ);
     set(L.ramp, "transform", around(rTop, Math.max(rp, 0.001), Math.max(rp, 0.001)));
     set(L.ramp, "opacity", rp > 0 ? 1 : 0);
-    const lights = prog(t, 9.8, 10.4);
+    const lights = prog(t, 9.0, 9.6);
     if (lights > 0) {
       const d = iso(G.hub[0], G.hub[1], G.podZ + 10);
       out.push(`<ellipse cx="${d[0]}" cy="${d[1] + podDy}" rx="34" ry="20" fill="url(#flare)" opacity="${0.35 * lights * (0.85 + 0.15 * Math.sin(t * 3))}"/>`);
     }
-    const foot = G.rampFoot;
-    walkers.forEach((w) => {
-      const p = prog(t, w.t0, w.t0 + 1.7);
-      if (p <= 0) return;
-      const x = foot[0] + (w.to[0] - foot[0]) * eOut(p), y = foot[1] + (w.to[1] - foot[1]) * eOut(p);
+    // ---- colonists beam down beside the ramp, then walk to their posts ----
+    walkers.forEach((w, i) => {
+      if (t < w.t0) return;
+      const txp = prog(t, w.t0, w.t0 + 0.7);
+      const wp = eOut(prog(t, w.t0 + 0.7, w.t0 + 1.6));
+      const x = w.at[0] + (w.to[0] - w.at[0]) * wp, y = w.at[1] + (w.to[1] - w.at[1]) * wp;
       const c = iso(x, y);
-      const bob = p < 1 ? Math.abs(Math.sin(t * 14)) * 1.2 : 0;
-      out.push(`<rect x="${c[0] - 1.1}" y="${c[1] - 4.6 - bob}" width="2.2" height="4.6" fill="${w.col}"/><circle cx="${c[0]}" cy="${c[1] - 5.7 - bob}" r="1.1" fill="#f0d4b8"/>`);
+      const op = transporter(out, t, txp, c, [c[0], c[1] - 8], 4, null, 60 + i);
+      const bob = wp > 0 && wp < 1 ? Math.abs(Math.sin(t * 14)) * 1.2 : 0;
+      out.push(`<g opacity="${op}"><rect x="${c[0] - 1.1}" y="${c[1] - 4.6 - bob}" width="2.2" height="4.6" fill="${w.col}"/><circle cx="${c[0]}" cy="${c[1] - 5.7 - bob}" r="1.1" fill="#f0d4b8"/></g>`);
     });
 
     fx.innerHTML = out.join("");
