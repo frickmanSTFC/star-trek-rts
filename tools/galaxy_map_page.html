@@ -1,0 +1,586 @@
+<title>Galaxy Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame shared with the other design pages; a large SVG star map (local space / whole galaxy) with a readout panel, then the route planner, warp scale, drives, capital distances and territories. Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --sky: #7fc4e8;
+  --gold: #f3cb5b;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --lane-warp: #3a4058;
+  --lane-wormhole: #c99ad6;
+  --lane-transwarp: #b8c46a;
+  --lane-deep: #6a687e;
+  --route: #ffc999;
+  --f-federation: #7fc4e8;
+  --f-klingon: #e2787a;
+  --f-cardassian: #f3cb5b;
+  --f-romulan: #8fd3b0;
+  --f-dominion: #c99ad6;
+  --f-ferengi: #ff9c5b;
+  --f-borg: #b8c46a;
+  --f-vulcan: #d9a46a;
+  --f-andorian: #9fd6f0;
+  --f-tellarite: #c7a98a;
+  --f-earth_uec: #a9c6e8;
+  --f-bajoran: #e8c7a0;
+  --f-maquis: #c9b35a;
+  --f-breen: #8aa3b8;
+  --f-tholian: #ffb36b;
+  --f-gorn: #7fae6a;
+  --f-orion: #5fc48a;
+  --f-nausicaan: #a88b6a;
+  --f-fenris_rangers: #b0b8c8;
+  --f-romulan_free_state: #6fb89a;
+  --f-federation_remnant: #a9d6ff;
+  --f-emerald_chain: #49c27a;
+  --f-ni_var: #b9a6e8;
+  --f-federation_lost_ship: #9ab8d8;
+  --f-kazon: #d08a5a;
+  --f-vidiian: #c48ab0;
+  --f-hirogen: #a97c5a;
+  --f-species_8472: #e0a0c0;
+  --f-none: #6a687e;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--sky); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--sky); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--sky); }
+.bars .b2 { flex: 1.2; background: var(--lilac); }
+.bars .b3 { flex: 2; background: var(--peach); }
+.bars .b4 { flex: .8; background: var(--good); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--sky); font-weight: 600; }
+.intro { max-width: 72ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--void); background: var(--sky); padding: 4px 14px; border-radius: 14px; }
+nav.jump a:nth-child(2) { background: var(--peach); }
+nav.jump a:nth-child(3) { background: var(--lilac); }
+nav.jump a:nth-child(4) { background: var(--good); }
+nav.jump a:nth-child(5) { background: var(--gold); }
+nav.jump a:nth-child(6) { background: var(--orange); }
+nav.jump a:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 76ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; max-width: 100ch; }
+
+/* ---------- controls ---------- */
+.controls { display: grid; gap: 8px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.ctl > span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); min-width: 64px; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--panel); padding: 4px; border-radius: 18px; }
+.seg button { font: 600 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 0; cursor: pointer; background: transparent; color: var(--ink-dim); padding: 8px 12px; border-radius: 14px; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--bc, var(--sky)); color: var(--void); }
+select { font: 500 14px/1.2 var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 10px; max-width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--lc); }
+.legend i.dash { border-top-style: dashed; }
+.legend i.dot { border-top-style: dotted; }
+
+/* ---------- map ---------- */
+.mapwrap { overflow-x: auto; background: #070912; border-radius: 12px; border: 1px solid var(--rule); }
+#map { display: block; width: 100%; min-width: 760px; height: auto; }
+#map text { font-family: var(--label); fill: var(--ink-dim); letter-spacing: .04em; pointer-events: none; }
+#map .lab.hid { display: none; }
+#map .sys:hover .lab.hid, #map .sys:focus .lab.hid { display: inline; }
+#map .qlabel { fill: var(--ink-faint); letter-spacing: .3em; text-transform: uppercase; }
+#map .cap-label { fill: var(--ink); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+#map .fac-label { text-transform: uppercase; letter-spacing: .12em; }
+#map .sys { cursor: pointer; }
+#map .sys:focus { outline: none; }
+#map .sys:focus-visible .ring, #map .sys.sel .ring { stroke: var(--peach); stroke-opacity: 1; }
+#map .ring { fill: none; stroke: var(--peach); stroke-opacity: 0; }
+#map .dimmed { opacity: .25; }
+.panel { background: var(--panel); border-radius: 10px; border-top: 4px solid var(--fc, var(--sky)); padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px 24px; }
+.panel > * { min-width: 0; }
+.panel h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 24px; letter-spacing: .03em; text-transform: uppercase; color: var(--fc, var(--ink)); }
+.panel h4 { margin: 0 0 4px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.panel p { margin: 0; font-size: 14px; }
+.where { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.lanelist { display: grid; gap: 3px; font-size: 14px; }
+.lanelist div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--rule); padding-bottom: 3px; }
+.lanelist span:last-child { font-family: var(--label); color: var(--ink-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.btn { font: 600 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--peach); color: var(--peach); background: transparent; padding: 8px 12px; border-radius: 14px; cursor: pointer; }
+.btn:hover { background: color-mix(in srgb, var(--peach) 14%, transparent); }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+@media (max-width: 860px) { .panel { grid-template-columns: 1fr; } }
+
+/* ---------- route ---------- */
+.route-ctl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
+.route-ctl label.chk { display: flex; align-items: center; gap: 8px; align-self: center; text-transform: none; letter-spacing: .04em; font-size: 14px; color: var(--ink-dim); }
+.route-ctl label { display: grid; gap: 4px; font-family: var(--label); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 760px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { background: var(--panel); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.tile span { font-family: var(--label); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); }
+.tile b { font-family: var(--display); font-weight: 600; font-size: 28px; line-height: 1.1; color: var(--peach); font-variant-numeric: tabular-nums; }
+.tile small { color: var(--ink-dim); font-size: 13px; }
+.warn { color: var(--bad); font-size: 14px; margin: 0; }
+
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); white-space: nowrap; }
+tbody th { background: var(--panel-2); font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--peach); white-space: nowrap; }
+tr:last-child > * { border-bottom: 0; }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sub { display: block; color: var(--ink-dim); font-size: 12px; margin-top: 2px; }
+.kind { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; border-radius: 8px; padding: 0 7px; border: 1px solid var(--lc); color: var(--lc); white-space: nowrap; }
+.fdot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: var(--fc); flex: none; }
+.fname { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+td.self { color: var(--ink-faint); }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+}
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Galaxy Map</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">Known space for the Star Trek RTS: every faction's territory, the warp lanes between systems, and how long each trip takes, both in the lore (by warp factor) and in a match (by the propulsion tech you've researched). Matches use sector maps of 6 to 24 systems cut from this master map. Positions are approximate where the shows give no figures.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#mapsec">Map</a><a href="#route">Route planner</a><a href="#warp">Warp scale</a><a href="#drives">Drives</a><a href="#capitals">Capital distances</a><a href="#territories">Territories</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="mapsec" style="--sec: var(--sky)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>Known space</h2><p>Switch between the crowded neighbourhood around Earth and the whole galaxy. Pick an era to see who holds what, and select a system to read its details.</p></div></div>
+    <div class="controls">
+      <div class="ctl"><span>View</span><div class="seg" id="vseg" role="group" aria-label="View"><button type="button" id="v-local" data-v="local" aria-pressed="true">Local space</button><button type="button" id="v-galaxy" data-v="galaxy" aria-pressed="false">Whole galaxy</button></div></div>
+      <div class="ctl"><span>Era</span><div class="seg" id="eseg" role="group" aria-label="Era"></div></div>
+      <div class="legend" aria-hidden="true">
+        <span style="--lc: var(--lane-warp)"><i style="border-top-color: #59607a"></i>Warp lane</span>
+        <span style="--lc: var(--lane-wormhole)"><i class="dash"></i>Wormhole</span>
+        <span style="--lc: var(--lane-wormhole)"><i class="dot"></i>Unstable wormhole</span>
+        <span style="--lc: var(--lane-transwarp)"><i class="dash"></i>Borg transwarp</span>
+        <span style="--lc: var(--lane-deep)"><i class="dash" style="border-top-width:1px"></i>Deep-space haul</span>
+        <span style="--lc: var(--route)"><i style="border-top-width:3px"></i>Planned route</span>
+      </div>
+    </div>
+    <div class="mapwrap"><svg id="map" role="img" aria-label="Star map of known space"></svg></div>
+    <div class="panel" id="info" aria-live="polite"></div>
+  </section>
+
+  <section id="route" style="--sec: var(--peach)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Route planner</h2><p>The shortest route along lanes and wormholes, with travel time in the lore and in a match. The route is drawn on the map above.</p></div></div>
+    <div class="route-ctl">
+      <label>From<select id="from"></select></label>
+      <label>To<select id="to"></select></label>
+      <div class="seg" id="dseg" role="group" aria-label="Drive"></div>
+      <label class="chk"><input type="checkbox" id="gamble"> Risk the unstable Barzan wormhole</label>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <p class="warn" id="rwarn" hidden></p>
+    <div class="scroll"><table id="legs"></table></div>
+  </section>
+
+  <section id="warp" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Warp scale</h2><p id="warpnote"></p></div></div>
+    <div class="scroll"><table id="warptable"></table></div>
+    <p class="note">Voyager's famous "75 years home" from the Delta Quadrant assumes cruising speed, stops for fuel and repairs, and detours; flying flat out at warp 9.975 the straight line would take under nine.</p>
+  </section>
+
+  <section id="drives" style="--sec: var(--good)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Drives in a match</h2><p>What each propulsion tech does to travel on the map. Game speed is in light-years per minute of play.</p></div></div>
+    <div class="scroll"><table id="drivetable"></table></div>
+  </section>
+
+  <section id="capitals" style="--sec: var(--gold)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Distances between capitals</h2><p>Light-years along the shortest lane route (straight-line distance below), and minutes of play at Warp 8. Routes use the stable Bajoran wormhole but not the unstable Barzan one.</p></div></div>
+    <div class="scroll"><table id="captable"></table></div>
+  </section>
+
+  <section id="territories" style="--sec: var(--orange)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 6</span><h2>Territories</h2><p>Every faction with ground on the map: its capital, quadrant, distance from Earth and the eras it appears in.</p></div></div>
+    <div class="scroll"><table id="terrtable"></table></div>
+    <ul class="plain" id="checklist"></ul>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/galaxy_map.json</code>, <code>factions.json</code>, <code>eras.json</code> and <code>tech_tree.json</code> in the star-trek-rts design repo (<code>tools/gen_galaxy_map_page.py</code>). Warp factors follow the TNG Technical Manual scale.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = /*DATA*/;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const SYS = Object.fromEntries(D.systems.map((s) => [s.id, s]));
+const FAC = D.factions;
+const fcol = (fid) => `var(--f-${fid || "none"})`;
+const fmt = (n, d = 0) => Number(n).toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
+const eraName = Object.fromEntries(D.eras.map((e) => [e.id, e.name.replace(/ Era$/, "").replace(" (optional)", "")]));
+const KIND_COL = { warp: "var(--lane-warp)", wormhole: "var(--lane-wormhole)", unstable_wormhole: "var(--lane-wormhole)", transwarp: "var(--lane-transwarp)", deep: "var(--lane-deep)" };
+const KIND_NAME = { warp: "Warp lane", wormhole: "Wormhole", unstable_wormhole: "Unstable wormhole", transwarp: "Transwarp conduit", deep: "Deep-space haul" };
+
+let view = "local", era = "any", sel = "sol";
+const route = { from: "sol", to: "qonos", drive: "warp_8", gamble: false };
+
+$("readout").innerHTML = `<span><b>${D.systems.length}</b> systems</span><span><b>${D.lanes.length}</b> lanes</span><span><b>${D.territories.length}</b> territories</span>`;
+
+// a system's holder in the chosen era: its main faction if present, else another faction that holds it then
+function holder(s) {
+  if (!s.faction && !(s.also || []).length) return "";
+  if (era === "any") return s.faction;
+  const present = (f) => f && FAC[f] && FAC[f].eras.includes(era);
+  if (present(s.faction)) return s.faction;
+  return (s.also || []).find(present) || null;
+}
+
+// ---------- map ----------
+const VIEWS = {
+  local: { vb: [-205, -205, 380, 282], rad: { capital: 30, colony: 21, starbase: 17, landmark: 12 }, blur: 7, font: 4.4, dot: 1.9, cap: 2.8, ring: 4.5, grid: 50 },
+  galaxy: { vb: [-56000, -79000, 112000, 108000], rad: { capital: 5200, colony: 3600, starbase: 3000, landmark: 2000 }, blur: 1400, font: 1700, dot: 520, cap: 800, ring: 1300, grid: 10000 },
+};
+const sx = (s) => s.x, sy = (s) => -s.y;  // +y is coreward; SVG y grows downward
+
+function spiralArms(cx, cy) {
+  let out = "";
+  for (let k = 0; k < 4; k++) {
+    const pts = [];
+    for (let t = 0; t <= 1; t += 0.02) {
+      const r = 4000 + t * 46000, th = k * Math.PI / 2 + Math.log(r / 4000) * 1.6;
+      pts.push(`${(cx + r * Math.cos(th)).toFixed(0)},${(cy + r * Math.sin(th)).toFixed(0)}`);
+    }
+    out += `<polyline points="${pts.join(" ")}" fill="none" stroke="#9aa3ff" stroke-opacity=".07" stroke-width="7000" stroke-linecap="round" filter="url(#soft)"/>`;
+  }
+  return out;
+}
+
+function laneEnds(l, v) {
+  const a = SYS[l.a], b = SYS[l.b];
+  if (v === "galaxy") return [a.local ? SYS.sol : a, b.local ? SYS.sol : b];
+  return [a, b];
+}
+
+function draw() {
+  const V = VIEWS[view], [x0, y0, w, h] = V.vb;
+  const visible = D.systems.filter((s) => (view === "local" ? s.local : !s.local));
+  let svg = `<defs>
+    <filter id="goo" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${V.blur}"/><feComponentTransfer><feFuncA type="table" tableValues="0 0 0 0.9 1 1"/></feComponentTransfer></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="${view === "galaxy" ? 2500 : 3}"/></filter>
+    <radialGradient id="disc"><stop offset="0" stop-color="#ffc999" stop-opacity=".22"/><stop offset=".25" stop-color="#9aa3ff" stop-opacity=".08"/><stop offset="1" stop-color="#9aa3ff" stop-opacity="0"/></radialGradient>
+  </defs>`;
+  svg += `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#070912"/>`;
+  if (view === "galaxy") {
+    const cx = D.core.x, cy = -D.core.y, R = D.core.galaxy_radius;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#disc)"/>` + spiralArms(cx, cy);
+    svg += `<line x1="${cx}" y1="${cy - R}" x2="${cx}" y2="${cy + R}" stroke="#262a3a" stroke-width="160"/><line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" stroke="#262a3a" stroke-width="160"/>`;
+    const q = (t, x, y) => `<text class="qlabel" x="${x}" y="${y}" font-size="2600" text-anchor="middle">${t}</text>`;
+    svg += q("Alpha Quadrant", cx - 27000, cy + 30000) + q("Beta Quadrant", cx + 27000, cy + 30000) + q("Gamma Quadrant", cx - 27000, cy - 38000) + q("Delta Quadrant", cx + 27000, cy - 38000);
+  } else {
+    for (let g = Math.ceil(x0 / V.grid) * V.grid; g < x0 + w; g += V.grid) svg += `<line x1="${g}" y1="${y0}" x2="${g}" y2="${y0 + h}" stroke="#121624" stroke-width=".4"/>`;
+    for (let g = Math.ceil(y0 / V.grid) * V.grid; g < y0 + h; g += V.grid) svg += `<line x1="${x0}" y1="${g}" x2="${x0 + w}" y2="${g}" stroke="#121624" stroke-width=".4"/>`;
+    svg += `<line x1="0" y1="${y0}" x2="0" y2="${y0 + h}" stroke="#262a3a" stroke-width=".8" stroke-dasharray="3 3"/>`;
+    svg += `<text class="qlabel" x="-100" y="${y0 + h - 8}" font-size="6" text-anchor="middle">Alpha Quadrant</text><text class="qlabel" x="100" y="${y0 + h - 8}" font-size="6" text-anchor="middle">Beta Quadrant</text>`;
+    svg += `<text class="obst" x="4" y="${y0 + 9}" font-size="4.2">↑ toward the galactic core, 26,000 ly</text>`;
+  }
+  // territories: one merged shape per holder
+  const byF = {};
+  visible.forEach((s) => { const f = holder(s); if (f) (byF[f] = byF[f] || []).push(s); });
+  if (view === "galaxy") byF.__local = [SYS.sol];
+  svg += Object.entries(byF).map(([f, list]) => `<g opacity="${f === "__local" ? .35 : .3}"><g filter="url(#goo)" fill="${f === "__local" ? "#ffc999" : fcol(f)}">${
+    list.map((s) => `<circle cx="${sx(s)}" cy="${sy(s)}" r="${f === "__local" ? 2600 : V.rad[s.kind] || V.rad.landmark}"/>`).join("")}</g></g>`).join("");
+  // lanes (and stubs that leave the local view)
+  const onRoute = new Set(), rp = planned();
+  if (rp) for (let i = 1; i < rp.path.length; i++) onRoute.add([rp.path[i - 1], rp.path[i]].sort().join("|"));
+  let lanesSvg = "", routeSvg = "";
+  D.lanes.forEach((l) => {
+    const A = SYS[l.a], B = SYS[l.b];
+    const key = [l.a, l.b].sort().join("|");
+    const sw = view === "galaxy" ? 200 : .7;
+    const dash = l.kind === "warp" ? "" : l.kind === "unstable_wormhole" ? (view === "galaxy" ? "200 900" : ".6 2") : (view === "galaxy" ? "1600 900" : "3 2");
+    let p1, p2, stub = false;
+    if (view === "local") {
+      if (!A.local && !B.local) return;
+      if (A.local && B.local) { p1 = A; p2 = B; }
+      else { // stub toward the far end
+        const near = A.local ? A : B, farS = A.local ? B : A;
+        const dx = farS.x - near.x, dy = farS.y - near.y, len = Math.hypot(dx, dy);
+        p1 = near; p2 = { x: near.x + dx / len * 34, y: near.y + dy / len * 34 }; stub = farS;
+      }
+    } else {
+      if (A.local && B.local) return;
+      [p1, p2] = laneEnds(l, "galaxy");
+    }
+    const line = `<line x1="${sx(p1)}" y1="${sy(p1)}" x2="${sx(p2)}" y2="${sy(p2)}" stroke="${l.kind === "warp" ? "#59607a" : KIND_COL[l.kind]}" stroke-width="${l.kind === "deep" ? sw * .7 : sw}" ${dash ? `stroke-dasharray="${dash}"` : ""} stroke-linecap="round"/>`;
+    lanesSvg += line;
+    if (onRoute.has(key)) routeSvg += `<line x1="${sx(p1)}" y1="${sy(p1)}" x2="${sx(p2)}" y2="${sy(p2)}" stroke="var(--route)" stroke-width="${sw * 3.2}" stroke-linecap="round" opacity=".9"/>`;
+    if (stub) lanesSvg += `<text class="lab" data-k="9" x="${sx(p2) + 1.5}" y="${sy(p2) - 1.5}" font-size="3.6" fill="${KIND_COL[l.kind]}">to ${esc(stub.name)} · ${fmt(l.ly)} ly</text>`;
+  });
+  svg += lanesSvg + routeSvg;
+  // systems
+  const sysSvg = visible.map((s) => {
+    const f = holder(s), dim = f === null;
+    const r = s.kind === "capital" ? V.cap : V.dot;
+    const shape = s.kind === "starbase" ? `<rect x="${sx(s) - r}" y="${sy(s) - r}" width="${r * 2}" height="${r * 2}" transform="rotate(45 ${sx(s)} ${sy(s)})" fill="${fcol(f)}"/>`
+      : s.kind === "landmark" ? `<circle cx="${sx(s)}" cy="${sy(s)}" r="${r}" fill="none" stroke="${fcol(f)}" stroke-width="${r * .5}"/>`
+      : `<circle cx="${sx(s)}" cy="${sy(s)}" r="${r}" fill="${fcol(f)}"/>`;
+    const must = s.kind === "capital" || s.id === sel;
+    const lab = `<g class="lab" data-x="${sx(s)}" data-y="${sy(s)}" data-r="${r}" data-k="${s.id === sel ? 0 : { capital: 1, colony: 2, starbase: 3, landmark: 4 }[s.kind]}"${must ? ` data-must="1"` : ""}>` + (s.kind === "capital"
+      ? `<text class="cap-label" x="${sx(s) + r + V.font * .4}" y="${sy(s) + V.font * .35}" font-size="${V.font * 1.05}">${esc(s.name)}</text>${f && FAC[f] ? `<text class="fac-label" x="${sx(s) + r + V.font * .4}" y="${sy(s) + V.font * 1.3}" font-size="${V.font * .72}" style="fill:${fcol(f)}">${esc(FAC[f].name)}</text>` : ""}`
+      : `<text x="${sx(s) + r + V.font * .4}" y="${sy(s) + V.font * .35}" font-size="${V.font * .9}">${esc(s.name)}</text>`) + `</g>`;
+    return `<g class="sys ${dim ? "dimmed" : ""} ${s.id === sel ? "sel" : ""}" data-id="${s.id}" tabindex="0" role="button" aria-label="${esc(s.name)}"><circle class="ring" cx="${sx(s)}" cy="${sy(s)}" r="${V.ring}" stroke-width="${V.dot * .45}"/>${shape}${lab}</g>`;
+  }).join("");
+  svg += sysSvg;
+  if (view === "galaxy") {
+    const s = SYS.sol;
+    svg += `<g class="sys" data-local="1" tabindex="0" role="button" aria-label="Open local space"><circle cx="${sx(s)}" cy="${sy(s)}" r="900" fill="#ffc999"/><g class="lab" data-x="${sx(s)}" data-y="${sy(s)}" data-r="900" data-k="0" data-must="1"><text class="cap-label" x="${sx(s) + 1600}" y="${sy(s) + 500}" font-size="1800">Earth and the Alpha & Beta powers</text><text x="${sx(s) + 1600}" y="${sy(s) + 2400}" font-size="1300">Select to open local space</text></g></g>`;
+  }
+  // scale bar
+  const sb = view === "galaxy" ? 10000 : 50, bx = x0 + w - sb - (view === "galaxy" ? 3000 : 12), by = view === "galaxy" ? y0 + h - 3000 : y0 + 12;
+  svg += `<line x1="${bx}" y1="${by}" x2="${bx + sb}" y2="${by}" stroke="#a29fb6" stroke-width="${view === "galaxy" ? 220 : .8}"/><text class="obst" x="${bx + sb / 2}" y="${by - (view === "galaxy" ? 900 : 2.5)}" font-size="${V.font * .85}" text-anchor="middle">${fmt(sb)} ly</text>`;
+  const m = $("map");
+  m.setAttribute("viewBox", V.vb.join(" "));
+  m.innerHTML = svg;
+  placeLabels(m, V);
+  m.querySelectorAll(".sys").forEach((g) => {
+    const act = () => { if (g.dataset.local) { setView("local"); return; } select(g.dataset.id); };
+    g.addEventListener("click", act);
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); act(); } });
+  });
+}
+
+// greedy label placement: try right, left, above, below; hide minor labels that find no room
+function placeLabels(m, V) {
+  const [x0, y0, w, h] = V.vb;
+  const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const inside = (b) => b.x >= x0 && b.y >= y0 && b.x + b.w <= x0 + w && b.y + b.h <= y0 + h;
+  const labs = [...m.querySelectorAll(".lab")].sort((a, b) => a.dataset.k - b.dataset.k);
+  const dots = labs.filter((l) => l.dataset.r).map((l) => { const x = +l.dataset.x, y = +l.dataset.y, r = +l.dataset.r * 1.4; return { x: x - r, y: y - r, w: r * 2, h: r * 2, own: l }; });
+  const placed = [...m.querySelectorAll(".obst")].map((t) => { const b = t.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
+  labs.forEach((l) => {
+    const b = l.getBBox();
+    let cand = [[0, 0]];
+    if (l.dataset.r) {
+      const x = +l.dataset.x, y = +l.dataset.y, gap = b.x - x, vg = +l.dataset.r + V.font * .25, cx = x - b.width / 2 - b.x;
+      const lx = -(b.width + 2 * gap), up = y - vg - (b.y + b.height), dn = y + vg - b.y;
+      cand = [[0, 0], [lx, 0], [cx, up], [cx, dn], [0, up + vg], [0, dn - vg], [lx, up + vg], [lx, dn - vg]];
+    }
+    const opts = cand.map(([dx, dy]) => {
+      const box = { x: b.x + dx, y: b.y + dy, w: b.width, h: b.height };
+      return { dx, dy, box, ok: inside(box), n: placed.filter((p) => hit(p, box)).length + dots.filter((d) => d.own !== l && hit(d, box)).length };
+    });
+    let pick = opts.find((o) => o.ok && o.n === 0);
+    if (!pick && l.dataset.must) pick = opts.filter((o) => o.ok).sort((a, c) => a.n - c.n)[0] || opts[0];
+    if (!pick) { l.classList.add("hid"); return; }
+    if (pick.dx || pick.dy) l.setAttribute("transform", `translate(${pick.dx} ${pick.dy})`);
+    placed.push(pick.box);
+  });
+}
+
+function lanesOf(id) { return D.lanes.filter((l) => l.a === id || l.b === id).map((l) => ({ ...l, other: l.a === id ? l.b : l.a })); }
+function select(id) { sel = id; draw(); renderInfo(); }
+function renderInfo() {
+  const s = SYS[sel], f = holder(s);
+  const fname = f && FAC[f] ? FAC[f].full : f === null ? "Not held in this era" : "Unclaimed";
+  const drive = D.drives.find((d) => d.id === route.drive);
+  $("info").style.setProperty("--fc", fcol(f));
+  $("info").innerHTML = `
+    <div style="display:grid;gap:6px"><span class="where">${esc(s.quadrant)} · ${esc(s.kind)} · ${fmt(s.fromSol)} ly from Earth</span><h3>${esc(s.name)}</h3>
+      <p>${esc(fname)}${(s.also || []).length ? `<span class="sub">Also held by ${esc(s.also.map((a) => FAC[a].full).join(", "))} in some eras</span>` : ""}</p>
+      ${s.note ? `<p class="sub">${esc(s.note)}</p>` : ""}
+      <div class="btns"><button type="button" class="btn" id="rfrom">Route from here</button><button type="button" class="btn" id="rto">Route to here</button></div></div>
+    <div><h4>Lanes</h4><div class="lanelist">${lanesOf(sel).map((l) => `<div><span>${esc(SYS[l.other].name)}</span><span>${KIND_NAME[l.kind]} · ${fmt(l.ly)} ly</span></div>`).join("") || `<span class="sub">No lanes: a landmark only</span>`}</div></div>
+    <div><h4>From here at ${esc(drive.name)}</h4><div class="lanelist">${lanesOf(sel).filter((l) => l.kind !== "transwarp" || route.drive === "transwarp").map((l) => {
+      const lg = legTime({ kind: l.kind, ly: l.ly }, drive);
+      return `<div><span>${esc(SYS[l.other].name)}</span><span>${lg.game} play · ${lg.lore}</span></div>`;
+    }).join("")}</div></div>`;
+  $("rfrom").addEventListener("click", () => { route.from = sel; $("from").value = sel; renderRoute(); draw(); });
+  $("rto").addEventListener("click", () => { route.to = sel; $("to").value = sel; renderRoute(); draw(); });
+}
+function setView(v) { view = v; document.querySelectorAll("#vseg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === v))); draw(); }
+document.querySelectorAll("#vseg button").forEach((b) => b.addEventListener("click", () => setView(b.dataset.v)));
+$("eseg").innerHTML = [`<button type="button" id="e-any" data-e="any" aria-pressed="true">Any</button>`]
+  .concat(D.eras.map((e) => `<button type="button" id="e-${e.id}" data-e="${e.id}" aria-pressed="false" title="${esc(e.name)}, ${e.years[0]}–${e.years[1]}">${esc(eraName[e.id])}</button>`)).join("");
+document.querySelectorAll("#eseg button").forEach((b) => b.addEventListener("click", () => {
+  era = b.dataset.e; document.querySelectorAll("#eseg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); draw(); renderInfo();
+}));
+
+// ---------- travel times ----------
+const warpC = Object.fromEntries(D.warp.map(([f, c]) => [f, c]));
+function driveC(d) { return d.lore_warp ? warpC[d.lore_warp] : d.lore_c; }
+function loreText(days) {
+  if (days === 0) return "moments";
+  const h = days * 24;
+  if (h < 1) return `${Math.max(1, Math.round(h * 60))} min`;
+  if (h < 48) return `${fmt(h, h < 10 ? 1 : 0)} hours`;
+  if (days < 730) return `${fmt(days, days < 10 ? 1 : 0)} days`;
+  return `${fmt(days / 365.25, 1)} years`;
+}
+function gameText(min) {
+  if (min < 1) return `${Math.max(1, Math.round(min * 60))} s`;
+  if (min < 120) return `${fmt(min, min < 10 ? 1 : 0)} min`;
+  return `${fmt(min / 60, 1)} h`;
+}
+const WARP99 = () => D.drives.find((d) => d.id === "warp_9_9");
+function legTime(l, d) {
+  if (l.kind.includes("wormhole")) return { gameMin: 0.3, loreDays: 0, game: gameText(0.3), lore: "moments" };
+  if (l.kind === "transwarp") return { gameMin: 0.2, loreDays: 0.01, game: gameText(0.2), lore: loreText(0.01) };
+  const dd = d.game_ly_per_min ? d : WARP99();   // transwarp ships use warp 9.9 off the conduits
+  const c = driveC(d.lore_warp || d.lore_c ? d : WARP99()) || driveC(WARP99());
+  const gameMin = l.ly / dd.game_ly_per_min, loreDays = l.ly * 365.25 / c;
+  return { gameMin, loreDays, game: gameText(gameMin), lore: loreText(loreDays) };
+}
+
+// shortest path; transwarp conduits only for the transwarp drive
+function shortest(a, b, d) {
+  const adj = {};
+  D.lanes.forEach((l) => {
+    if (l.kind === "transwarp" && d.id !== "transwarp") return;
+    if (l.kind === "unstable_wormhole" && !route.gamble) return;
+    const w = l.kind.includes("wormhole") || l.kind === "transwarp" ? 0.1 : l.ly;
+    (adj[l.a] = adj[l.a] || []).push([l.b, w, l]); (adj[l.b] = adj[l.b] || []).push([l.a, w, l]);
+  });
+  const dist = { [a]: 0 }, prev = {}, done = new Set();
+  while (true) {
+    let u = null, best = Infinity;
+    for (const k in dist) if (!done.has(k) && dist[k] < best) { best = dist[k]; u = k; }
+    if (u === null || u === b) break;
+    done.add(u);
+    (adj[u] || []).forEach(([v, w, l]) => { if (dist[u] + w < (dist[v] ?? Infinity)) { dist[v] = dist[u] + w; prev[v] = [u, l]; } });
+  }
+  if (!(b in dist)) return null;
+  const legs = [], path = [b];
+  let u = b;
+  while (u !== a) { const [p, l] = prev[u]; legs.unshift({ from: p, to: u, ...l }); u = p; path.unshift(u); }
+  return { path, legs };
+}
+function planned() {
+  const d = D.drives.find((x) => x.id === route.drive);
+  if (route.from === route.to) return null;
+  if (d.id === "spore") return { path: [route.from, route.to], legs: [{ from: route.from, to: route.to, kind: "spore", ly: Math.hypot(SYS[route.from].x - SYS[route.to].x, SYS[route.from].y - SYS[route.to].y) }] };
+  return shortest(route.from, route.to, d);
+}
+function renderRoute() {
+  const d = D.drives.find((x) => x.id === route.drive);
+  const p = planned();
+  $("rwarn").hidden = true;
+  if (!p) { $("tiles").innerHTML = ""; $("legs").innerHTML = ""; $("rwarn").hidden = false; $("rwarn").textContent = route.from === route.to ? "Pick two different systems." : "No route: these systems aren't connected by lanes or wormholes."; return; }
+  let gameMin = 0, loreDays = 0, ly = 0, folded = 0;
+  const rows = p.legs.map((l) => {
+    let t;
+    if (l.kind === "spore") t = { gameMin: 0.5, loreDays: 0, game: gameText(0.5), lore: "moments" };
+    else t = legTime(l, d);
+    gameMin += t.gameMin; loreDays += t.loreDays;
+    if (l.kind.includes("wormhole") || l.kind === "transwarp" || l.kind === "spore") folded += l.ly; else ly += l.ly;
+    return `<tr><td>${esc(SYS[l.from].name)}</td><td>${esc(SYS[l.to].name)}</td><td><span class="kind" style="--lc:${KIND_COL[l.kind] || "var(--peach)"}">${l.kind === "spore" ? "Spore jump" : KIND_NAME[l.kind]}</span></td><td class="num">${fmt(l.ly)} ly</td><td class="num">${t.lore}</td><td class="num">${t.game}</td></tr>`;
+  });
+  let jumps = p.legs.length;
+  if (d.id === "slipstream") jumps = Math.ceil(jumps / 2);
+  const notes = [];
+  if (p.legs.some((l) => l.kind === "unstable_wormhole")) notes.push("Uses the unstable Barzan wormhole, which is only open now and then.");
+  if (p.legs.some((l) => l.kind === "transwarp")) notes.push("Transwarp conduits are Borg only, unless you capture a hub.");
+  if (p.legs.some((l) => l.kind === "deep")) notes.push("Includes deep-space hauls of thousands of light-years: practical only for a stranded crew or a late-game drive.");
+  if (d.id === "slipstream") notes.push("Slipstream skips one lane node per jump, so the trip takes half as many jumps.");
+  $("tiles").innerHTML = `<div class="tile"><span>Distance flown</span><b>${fmt(ly)} ly</b><small>${p.legs.length} leg${p.legs.length === 1 ? "" : "s"}${folded ? ` · plus ${fmt(folded)} ly skipped by ${d.id === "spore" ? "spore jump" : "wormhole or conduit"}` : ""}</small></div>
+    <div class="tile"><span>In the lore</span><b>${loreText(loreDays)}</b><small>${esc(d.name)}${d.lore_warp ? ` (warp ${d.lore_warp})` : ""}</small></div>
+    <div class="tile"><span>In a match</span><b>${gameText(gameMin)}</b><small>of play</small></div>
+    <div class="tile"><span>Jumps</span><b>${jumps}</b><small>${esc(d.rule)}</small></div>`;
+  if (notes.length) { $("rwarn").hidden = false; $("rwarn").textContent = notes.join(" "); }
+  $("legs").innerHTML = `<thead><tr><th scope="col">From</th><th scope="col">To</th><th scope="col">Lane</th><th scope="col">Distance</th><th scope="col">Lore time</th><th scope="col">Match time</th></tr></thead><tbody>${rows.join("")}</tbody>`;
+}
+const order = ["Alpha/Beta border", "Alpha", "Beta", "Gamma", "Delta", "Galactic core"];
+const opts = order.map((q) => {
+  const list = D.systems.filter((s) => s.quadrant === q && (D.lanes.some((l) => l.a === s.id || l.b === s.id))).sort((a, b) => a.name.localeCompare(b.name));
+  return list.length ? `<optgroup label="${esc(q)}">${list.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("")}</optgroup>` : "";
+}).join("");
+$("from").innerHTML = opts; $("to").innerHTML = opts;
+$("from").value = route.from; $("to").value = route.to;
+$("from").addEventListener("change", (e) => { route.from = e.target.value; renderRoute(); draw(); });
+$("to").addEventListener("change", (e) => { route.to = e.target.value; renderRoute(); draw(); });
+$("gamble").addEventListener("change", (e) => { route.gamble = e.target.checked; renderRoute(); draw(); });
+$("dseg").innerHTML = D.drives.map((d) => `<button type="button" id="d-${d.id}" data-d="${d.id}" aria-pressed="${d.id === route.drive}" style="--bc: var(--peach)">${esc(d.name)}</button>`).join("");
+document.querySelectorAll("#dseg button").forEach((b) => b.addEventListener("click", () => {
+  route.drive = b.dataset.d; document.querySelectorAll("#dseg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderRoute(); draw(); renderInfo();
+}));
+
+// ---------- tables ----------
+const vul = Math.hypot(SYS.vulcan.x, SYS.vulcan.y);
+const qon = shortest("sol", "qonos", D.drives[0]).legs.reduce((s, l) => s + l.ly, 0);
+const oca = Math.hypot(SYS.ocampa.x, SYS.ocampa.y);
+$("warpnote").textContent = `${D.warpNote} Times below are flat out, with no stops.`;
+$("warptable").innerHTML = `<thead><tr><th scope="col">Warp factor</th><th scope="col">× light speed</th><th scope="col">Light-years per day</th><th scope="col">Earth to Vulcan (${fmt(vul)} ly)</th><th scope="col">Earth to Qo'noS by lanes (${fmt(qon)} ly)</th><th scope="col">Earth to Ocampa (${fmt(oca)} ly)</th></tr></thead><tbody>` +
+  D.warp.map(([f, c]) => `<tr><th scope="row">Warp ${f}</th><td class="num">${fmt(c)}</td><td class="num">${fmt(c / 365.25, c < 3653 ? 2 : 1)}</td><td class="num">${loreText(vul * 365.25 / c)}</td><td class="num">${loreText(qon * 365.25 / c)}</td><td class="num">${loreText(oca * 365.25 / c)}</td></tr>`).join("") + `</tbody>`;
+const fou = shortest("sol", "omarion", D.drives[1]);
+$("drivetable").innerHTML = `<thead><tr><th scope="col">Drive</th><th scope="col">Research</th><th scope="col">Lore speed</th><th scope="col">Game speed</th><th scope="col">Earth to Qo'noS</th><th scope="col">Earth to the Founders</th><th scope="col">Rule</th></tr></thead><tbody>` +
+  D.drives.map((d) => {
+    const t = (p) => {
+      if (d.id === "spore") return "instant";
+      if (!p) return "—";
+      return gameText(p.legs.reduce((s, l) => s + legTime(l, d).gameMin, 0));
+    };
+    const q = d.id === "transwarp" ? shortest("sol", "qonos", d) : shortest("sol", "qonos", d), f2 = shortest("sol", "omarion", d);
+    const lore = d.lore_warp ? `warp ${d.lore_warp} (${fmt(warpC[d.lore_warp])}c)` : d.lore_c ? `${fmt(d.lore_c)}c` : "instant";
+    return `<tr><th scope="row">${esc(d.name)}</th><td>${esc(d.techName)}<span class="sub">tier ${d.tier}</span></td><td class="num">${lore}</td><td class="num">${d.game_ly_per_min ? `${d.game_ly_per_min} ly/min` : "instant"}</td><td class="num">${t(q)}</td><td class="num">${t(f2)}</td><td>${esc(d.rule)}</td></tr>`;
+  }).join("") + `</tbody>`;
+const w8 = D.drives.find((d) => d.id === "warp_8");
+$("captable").innerHTML = `<thead><tr><th scope="col">From \\ To</th>${D.caps.map((c) => `<th scope="col">${esc(SYS[c].name)}</th>`).join("")}</tr></thead><tbody>` +
+  D.caps.map((a, i) => `<tr><th scope="row">${esc(SYS[a].name)}</th>${D.caps.map((b, j) => {
+    if (i === j) return `<td class="self">—</td>`;
+    const m = D.matrix[i][j];
+    return `<td class="num">${m.route != null ? `${fmt(m.route)} ly<span class="sub">${fmt(m.straight)} ly straight · ${gameText(m.route / w8.game_ly_per_min)} at Warp 8</span>` : `<span class="sub">no lane route</span>`}</td>`;
+  }).join("")}</tr>`).join("") + `</tbody>`;
+$("terrtable").innerHTML = `<thead><tr><th scope="col">Territory</th><th scope="col">Capital</th><th scope="col">Quadrant</th><th scope="col">Systems</th><th scope="col">From Earth</th><th scope="col">Eras</th></tr></thead><tbody>` +
+  D.territories.map((t) => `<tr><td><span class="fname" style="--fc:${fcol(t.id)};font-size:15px"><span class="fdot"></span>${esc(t.name)}</span></td><td>${esc(t.capital)}</td><td>${esc(t.quadrant)}</td><td class="num">${t.systems}</td><td class="num">${fmt(t.fromSol)} ly</td><td>${esc(t.eras.map((e) => eraName[e]).join(", ")) || "—"}</td></tr>`).join("") + `</tbody>`;
+$("checklist").innerHTML = D.checks.map((c) => `<li>${esc(c)}</li>`).join("");
+
+draw(); renderInfo(); renderRoute();
+</script>

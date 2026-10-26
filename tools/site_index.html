@@ -54,8 +54,8 @@ h1 { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 6vw, 
 .intro a { color: var(--peach); }
 h2 { font-family: var(--display); font-weight: 600; font-size: clamp(22px, 3vw, 30px); letter-spacing: .03em; text-transform: uppercase; color: var(--sec); margin: 0 0 12px; }
 .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-/* ten cards: the first spans the row on 3-column screens so the rest fill a 3 x 3 grid */
-@media (min-width: 901px) { .card:first-child { grid-column: 1 / -1; } }
+/* eleven cards: the first two span the row on 3-column screens so the rest fill a 3 x 3 grid */
+@media (min-width: 901px) { .card:nth-child(-n+2) { grid-column: 1 / -1; } }
 @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .cards { grid-template-columns: 1fr; } .frame { grid-template-columns: 44px 1fr; } .elbow { border-radius: 22px 0 0 22px; } }
 .card { display: grid; gap: 6px; align-content: start; background: var(--panel); border-left: 6px solid var(--cc); border-radius: 0 10px 10px 0; padding: 14px 16px 16px; text-decoration: none; color: var(--ink); transition: background .15s ease; }

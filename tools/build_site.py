@@ -18,6 +18,7 @@ REPO = "https://github.com/frickmanSTFC/star-trek-rts"
 # (source file, published name, title, one-line description, accent colour)
 PAGES = [
     ("factions.html", "factions.html", "Factions of the Galaxy", "The seven great powers side by side, full dossiers, and who appears in which era.", "#c99ad6"),
+    ("galaxy-map.html", "galaxy-map.html", "Galaxy Map", "Every territory, warp lanes and wormholes, a route planner with travel times, and the warp scale.", "#7fc4e8"),
     ("faction-buildings.html", "faction-buildings.html", "Faction Buildings", "How the seven factions differ in what they build: opening sets, upgrade lines, wonders.", "#ff9c5b"),
     ("ship-designs.html", "ship-designs.html", "Starship Designs", "Fleet doctrine, the hull reference, every class by hull and era, specials and modules.", "#9aa3ff"),
     ("tech-tree.html", "tech-tree.html", "Research Tech Tree", "All 7 branches and 6 tiers with prerequisite tracing, faction access and starting eras.", "#8fd3b0"),

@@ -13,6 +13,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 - `vehicles.html`: interactive page for small craft, probes, civilian ships, ground forces and vehicles (roster by faction, ground strength, catalog, data checks). Regenerate with `python3 tools/gen_vehicles_page.py`.
 - `resources.html`: interactive resource guide (tiers, production chains, faction demand, catalog, data checks). Regenerate with `python3 tools/gen_resources_page.py`.
 - `factions.html`: every faction: the seven great powers compared side by side with dossiers, an era map and the other powers. Regenerate with `python3 tools/gen_factions_page.py`.
+- `galaxy-map.html`: map of known space (local view and whole galaxy) with territories by era, warp lanes and wormholes, a route planner with lore and match travel times, the warp scale and capital distances. Data in `data/galaxy_map.json`. Regenerate with `python3 tools/gen_galaxy_map_page.py`.
 - `docs/faction-buildings.md`: grids comparing every faction's buildings (starting sets, upgrade lines, capabilities, wonders). Regenerate with `python3 tools/gen_faction_buildings_doc.py`.
 - `federation-build-tree.html`: interactive Federation build tree. Open it in any browser.
 - `art/`: detailed isometric artwork. `art/federation-colony-hub/` has the Colony Hub at all five levels (SVG, open in any browser).
@@ -40,6 +41,7 @@ After changing data, regenerate the pages (`python3 tools/gen_*_page.py`), then 
 - Craft and ground forces: https://claude.ai/artifact/53hsd46T61zcfcxjFLd5nu
 - Resources and materials: https://claude.ai/artifact/RvherhjUTzqwb1rWZcKZeS
 - Factions of the galaxy: https://claude.ai/artifact/38uos1h4ucJyap5PYNiKDX
+- Galaxy map: https://claude.ai/artifact/MaLME4auJSy9Q437HHN2mr
 
 These links only open for people the owner has shared them with (Share menu on each page).
 

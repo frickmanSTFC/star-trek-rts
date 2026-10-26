@@ -1,0 +1,876 @@
+{
+  "_notes": "Light-years in a Sol-centred frame: +x toward the Beta Quadrant, +y toward the galactic core, which sits 26,000 ly away at (0, 26000). The Alpha/Beta border runs through Sol to the core; the far side of the core holds Gamma (x < 0) and Delta (x > 0). Positions follow on-screen hints and Star Trek reference maps where they exist and are otherwise approximate. Lanes are the master warp network that match sector maps (6-24 systems, see GDD) are cut from; lane distances are computed from positions. kind: warp | wormhole | unstable_wormhole | transwarp | deep. also = other factions that hold the system in some era (for example Ni'Var at Vulcan in the 32nd century).",
+  "core": {
+    "x": 0,
+    "y": 26000,
+    "galaxy_radius": 50000
+  },
+  "warp_scale": {
+    "_notes": "TNG-era warp factors as multiples of light speed (Technical Manual scale). ENT-era 'warp 5' engines used an older, slower scale.",
+    "factors": [
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        10
+      ],
+      [
+        3,
+        39
+      ],
+      [
+        4,
+        102
+      ],
+      [
+        5,
+        214
+      ],
+      [
+        6,
+        392
+      ],
+      [
+        7,
+        656
+      ],
+      [
+        8,
+        1024
+      ],
+      [
+        9,
+        1516
+      ],
+      [
+        9.6,
+        1909
+      ],
+      [
+        9.9,
+        3053
+      ],
+      [
+        9.975,
+        7912
+      ]
+    ]
+  },
+  "drives": [
+    {
+      "id": "warp_5",
+      "name": "Warp 5 Engine",
+      "tech": "warp_5",
+      "lore_warp": 5,
+      "game_ly_per_min": 30,
+      "rule": "Lane travel only."
+    },
+    {
+      "id": "warp_8",
+      "name": "Warp 8 Drive",
+      "tech": "warp_8",
+      "lore_warp": 8,
+      "game_ly_per_min": 60,
+      "rule": "Lane travel only."
+    },
+    {
+      "id": "warp_9_9",
+      "name": "Warp 9.9 Envelope",
+      "tech": "warp_9_9",
+      "lore_warp": 9.9,
+      "game_ly_per_min": 110,
+      "rule": "Lane travel only."
+    },
+    {
+      "id": "slipstream",
+      "name": "Quantum Slipstream",
+      "tech": "quantum_slipstream",
+      "lore_c": 4000000,
+      "game_ly_per_min": 300,
+      "rule": "Skips one lane node per jump; needs benamite."
+    },
+    {
+      "id": "transwarp",
+      "name": "Transwarp Conduit",
+      "tech": "transwarp_conduits",
+      "lore_c": 50000000,
+      "game_ly_per_min": null,
+      "rule": "Instant between transwarp hubs and exits; Borg only."
+    },
+    {
+      "id": "spore",
+      "name": "Spore Drive",
+      "tech": "spore_drive",
+      "lore_c": null,
+      "game_ly_per_min": null,
+      "rule": "Instant jump anywhere; needs a navigator captain."
+    }
+  ],
+  "systems": [
+    {
+      "id": "sol",
+      "name": "Sol (Earth)",
+      "faction": "federation",
+      "kind": "capital",
+      "x": 0,
+      "y": 0,
+      "note": "Starfleet Command, Utopia Planitia yards at Mars.",
+      "also": [
+        "earth_uec"
+      ]
+    },
+    {
+      "id": "alpha_centauri",
+      "name": "Alpha Centauri",
+      "faction": "federation",
+      "kind": "colony",
+      "x": -3,
+      "y": 3
+    },
+    {
+      "id": "wolf_359",
+      "name": "Wolf 359",
+      "faction": "federation",
+      "kind": "landmark",
+      "x": 6,
+      "y": -5,
+      "note": "Site of the 2367 Borg battle."
+    },
+    {
+      "id": "vulcan",
+      "name": "Vulcan",
+      "faction": "vulcan",
+      "kind": "capital",
+      "x": -11,
+      "y": 12,
+      "note": "Federation founding member; Ni'Var in the 32nd century.",
+      "also": [
+        "ni_var"
+      ]
+    },
+    {
+      "id": "andoria",
+      "name": "Andoria",
+      "faction": "andorian",
+      "kind": "capital",
+      "x": 12,
+      "y": 11,
+      "note": "Federation founding member.",
+      "also": [
+        "emerald_chain"
+      ]
+    },
+    {
+      "id": "tellar",
+      "name": "Tellar Prime",
+      "faction": "tellarite",
+      "kind": "capital",
+      "x": 7,
+      "y": -9,
+      "note": "Federation founding member."
+    },
+    {
+      "id": "betazed",
+      "name": "Betazed",
+      "faction": "federation",
+      "kind": "colony",
+      "x": -24,
+      "y": 32
+    },
+    {
+      "id": "risa",
+      "name": "Risa",
+      "faction": "federation",
+      "kind": "colony",
+      "x": 26,
+      "y": -19
+    },
+    {
+      "id": "starbase_375",
+      "name": "Starbase 375",
+      "faction": "federation",
+      "kind": "starbase",
+      "x": -42,
+      "y": 50,
+      "note": "Forward base against the Dominion."
+    },
+    {
+      "id": "deneva",
+      "name": "Deneva",
+      "faction": "federation",
+      "kind": "colony",
+      "x": -18,
+      "y": -30
+    },
+    {
+      "id": "outpost_4",
+      "name": "Neutral Zone Outpost 4",
+      "faction": "federation",
+      "kind": "starbase",
+      "x": 18,
+      "y": 70,
+      "note": "Cast-rodinium outposts along the Romulan Neutral Zone."
+    },
+    {
+      "id": "qonos",
+      "name": "Qo'noS",
+      "faction": "klingon",
+      "kind": "capital",
+      "x": 112,
+      "y": 96,
+      "note": "Praxis, its moon, can explode in the TOS era."
+    },
+    {
+      "id": "khitomer",
+      "name": "Khitomer",
+      "faction": "klingon",
+      "kind": "colony",
+      "x": 70,
+      "y": 58
+    },
+    {
+      "id": "narendra",
+      "name": "Narendra III",
+      "faction": "klingon",
+      "kind": "colony",
+      "x": 58,
+      "y": 80
+    },
+    {
+      "id": "boreth",
+      "name": "Boreth",
+      "faction": "klingon",
+      "kind": "landmark",
+      "x": 96,
+      "y": 128
+    },
+    {
+      "id": "tygokor",
+      "name": "Ty'Gokor",
+      "faction": "klingon",
+      "kind": "starbase",
+      "x": 138,
+      "y": 118,
+      "note": "Hollowed-asteroid fortress."
+    },
+    {
+      "id": "romulus",
+      "name": "Romulus and Remus",
+      "faction": "romulan",
+      "kind": "capital",
+      "x": 28,
+      "y": 152,
+      "note": "Destroyed by the supernova in 2387."
+    },
+    {
+      "id": "achernar",
+      "name": "Achernar Prime",
+      "faction": "romulan",
+      "kind": "colony",
+      "x": 48,
+      "y": 116
+    },
+    {
+      "id": "galorndon",
+      "name": "Galorndon Core",
+      "faction": "romulan",
+      "kind": "landmark",
+      "x": 12,
+      "y": 98,
+      "note": "Neutral Zone world wrapped in electromagnetic storms."
+    },
+    {
+      "id": "free_state_colony",
+      "name": "Free State colonies",
+      "faction": "romulan_free_state",
+      "kind": "capital",
+      "x": 60,
+      "y": 172,
+      "note": "Refugee worlds after Romulus fell."
+    },
+    {
+      "id": "cardassia",
+      "name": "Cardassia Prime",
+      "faction": "cardassian",
+      "kind": "capital",
+      "x": -92,
+      "y": 30
+    },
+    {
+      "id": "chintoka",
+      "name": "Chin'toka",
+      "faction": "cardassian",
+      "kind": "colony",
+      "x": -76,
+      "y": 56
+    },
+    {
+      "id": "septimus",
+      "name": "Septimus III",
+      "faction": "cardassian",
+      "kind": "colony",
+      "x": -108,
+      "y": 12
+    },
+    {
+      "id": "bajor",
+      "name": "Bajor (Deep Space 9)",
+      "faction": "bajoran",
+      "kind": "capital",
+      "x": -62,
+      "y": 44,
+      "note": "Terok Nor / Deep Space 9 guards the wormhole."
+    },
+    {
+      "id": "badlands",
+      "name": "The Badlands",
+      "faction": "maquis",
+      "kind": "landmark",
+      "x": -48,
+      "y": 24,
+      "note": "Plasma storms; Maquis hideout in the Demilitarized Zone."
+    },
+    {
+      "id": "ferenginar",
+      "name": "Ferenginar",
+      "faction": "ferengi",
+      "kind": "capital",
+      "x": -152,
+      "y": 72
+    },
+    {
+      "id": "barzan",
+      "name": "Barzan",
+      "faction": "ferengi",
+      "kind": "landmark",
+      "x": -124,
+      "y": 44,
+      "note": "Unstable wormhole to the Delta Quadrant, auctioned in 2366."
+    },
+    {
+      "id": "breen",
+      "name": "Breen",
+      "faction": "breen",
+      "kind": "capital",
+      "x": -170,
+      "y": -22,
+      "note": "Homeworld location kept secret; frozen world."
+    },
+    {
+      "id": "tholia",
+      "name": "Tholia",
+      "faction": "tholian",
+      "kind": "capital",
+      "x": 38,
+      "y": 38
+    },
+    {
+      "id": "gornar",
+      "name": "Gornar",
+      "faction": "gorn",
+      "kind": "capital",
+      "x": -34,
+      "y": -44
+    },
+    {
+      "id": "orion",
+      "name": "Orion",
+      "faction": "orion",
+      "kind": "capital",
+      "x": -26,
+      "y": -18,
+      "also": [
+        "emerald_chain"
+      ]
+    },
+    {
+      "id": "nausicaa",
+      "name": "Nausicaa",
+      "faction": "nausicaan",
+      "kind": "capital",
+      "x": 14,
+      "y": -42
+    },
+    {
+      "id": "fenris",
+      "name": "Fenris Rangers base",
+      "faction": "fenris_rangers",
+      "kind": "starbase",
+      "x": -60,
+      "y": -10
+    },
+    {
+      "id": "idran",
+      "name": "Idran",
+      "faction": "dominion",
+      "kind": "landmark",
+      "x": -45000,
+      "y": 46000,
+      "note": "Gamma end of the Bajoran wormhole."
+    },
+    {
+      "id": "omarion",
+      "name": "Founders' Homeworld (Omarion Nebula)",
+      "faction": "dominion",
+      "kind": "capital",
+      "x": -44800,
+      "y": 45750
+    },
+    {
+      "id": "karemma",
+      "name": "Karemma",
+      "faction": "dominion",
+      "kind": "colony",
+      "x": -44650,
+      "y": 46150
+    },
+    {
+      "id": "kurill",
+      "name": "Kurill Prime",
+      "faction": "dominion",
+      "kind": "colony",
+      "x": -45150,
+      "y": 45600
+    },
+    {
+      "id": "white_facility",
+      "name": "Ketracel-white facility",
+      "faction": "dominion",
+      "kind": "starbase",
+      "x": -44900,
+      "y": 46350
+    },
+    {
+      "id": "unicomplex",
+      "name": "Unicomplex",
+      "faction": "borg",
+      "kind": "capital",
+      "x": 30000,
+      "y": 54000,
+      "note": "Heart of the Collective; transwarp hub."
+    },
+    {
+      "id": "borg_hub",
+      "name": "Borg transwarp hub",
+      "faction": "borg",
+      "kind": "starbase",
+      "x": 26000,
+      "y": 50000
+    },
+    {
+      "id": "borg_space",
+      "name": "Borg space (Unimatrix 01)",
+      "faction": "borg",
+      "kind": "colony",
+      "x": 33000,
+      "y": 57500
+    },
+    {
+      "id": "fluidic_rift",
+      "name": "Fluidic space rift",
+      "faction": "species_8472",
+      "kind": "landmark",
+      "x": 31500,
+      "y": 55500,
+      "note": "Where Species 8472 enters normal space."
+    },
+    {
+      "id": "ocampa",
+      "name": "Ocampa",
+      "faction": "kazon",
+      "kind": "landmark",
+      "x": 40000,
+      "y": 56000,
+      "note": "Where the Caretaker stranded Voyager, 70,000 ly from Earth.",
+      "also": [
+        "federation_lost_ship"
+      ]
+    },
+    {
+      "id": "kazon_space",
+      "name": "Kazon-Ogla territory",
+      "faction": "kazon",
+      "kind": "capital",
+      "x": 38500,
+      "y": 53000
+    },
+    {
+      "id": "vidiia",
+      "name": "Vidiia",
+      "faction": "vidiian",
+      "kind": "capital",
+      "x": 36000,
+      "y": 48500
+    },
+    {
+      "id": "hirogen_relay",
+      "name": "Hirogen relay network",
+      "faction": "hirogen",
+      "kind": "capital",
+      "x": 24000,
+      "y": 35000
+    },
+    {
+      "id": "barzan_delta",
+      "name": "Barzan wormhole (Delta end)",
+      "faction": "",
+      "kind": "landmark",
+      "x": 28500,
+      "y": 52000
+    },
+    {
+      "id": "beta_frontier",
+      "name": "Beta Quadrant frontier",
+      "faction": "",
+      "kind": "landmark",
+      "x": 7000,
+      "y": 5000,
+      "note": "Last waypoint before the long haul across the Beta Quadrant."
+    },
+    {
+      "id": "borg_exit",
+      "name": "Borg transwarp exit (Sector 001)",
+      "faction": "borg",
+      "kind": "landmark",
+      "x": 9,
+      "y": -2,
+      "note": "Conduit exit the Borg used to reach Earth."
+    },
+    {
+      "id": "galactic_core",
+      "name": "Galactic core (Great Barrier)",
+      "faction": "",
+      "kind": "landmark",
+      "x": 0,
+      "y": 26000
+    },
+    {
+      "id": "verubin",
+      "name": "Verubin Nebula",
+      "faction": "",
+      "kind": "landmark",
+      "x": 9000,
+      "y": -14000,
+      "note": "Source of the Burn (32nd century)."
+    },
+    {
+      "id": "fed_hq",
+      "name": "Federation HQ (hidden)",
+      "faction": "federation_remnant",
+      "kind": "capital",
+      "x": -1800,
+      "y": 1100,
+      "note": "Post-Burn Federation headquarters, hidden behind a shield (32nd century)."
+    }
+  ],
+  "lanes": [
+    {
+      "a": "sol",
+      "b": "alpha_centauri",
+      "kind": "warp"
+    },
+    {
+      "a": "sol",
+      "b": "wolf_359",
+      "kind": "warp"
+    },
+    {
+      "a": "sol",
+      "b": "andoria",
+      "kind": "warp"
+    },
+    {
+      "a": "alpha_centauri",
+      "b": "vulcan",
+      "kind": "warp"
+    },
+    {
+      "a": "alpha_centauri",
+      "b": "orion",
+      "kind": "warp"
+    },
+    {
+      "a": "wolf_359",
+      "b": "tellar",
+      "kind": "warp"
+    },
+    {
+      "a": "vulcan",
+      "b": "betazed",
+      "kind": "warp"
+    },
+    {
+      "a": "andoria",
+      "b": "tholia",
+      "kind": "warp"
+    },
+    {
+      "a": "tellar",
+      "b": "risa",
+      "kind": "warp"
+    },
+    {
+      "a": "tellar",
+      "b": "deneva",
+      "kind": "warp"
+    },
+    {
+      "a": "betazed",
+      "b": "starbase_375",
+      "kind": "warp"
+    },
+    {
+      "a": "betazed",
+      "b": "outpost_4",
+      "kind": "warp"
+    },
+    {
+      "a": "betazed",
+      "b": "badlands",
+      "kind": "warp"
+    },
+    {
+      "a": "risa",
+      "b": "nausicaa",
+      "kind": "warp"
+    },
+    {
+      "a": "starbase_375",
+      "b": "bajor",
+      "kind": "warp"
+    },
+    {
+      "a": "deneva",
+      "b": "gornar",
+      "kind": "warp"
+    },
+    {
+      "a": "deneva",
+      "b": "orion",
+      "kind": "warp"
+    },
+    {
+      "a": "outpost_4",
+      "b": "narendra",
+      "kind": "warp"
+    },
+    {
+      "a": "outpost_4",
+      "b": "galorndon",
+      "kind": "warp"
+    },
+    {
+      "a": "outpost_4",
+      "b": "tholia",
+      "kind": "warp"
+    },
+    {
+      "a": "qonos",
+      "b": "narendra",
+      "kind": "warp"
+    },
+    {
+      "a": "qonos",
+      "b": "boreth",
+      "kind": "warp"
+    },
+    {
+      "a": "qonos",
+      "b": "tygokor",
+      "kind": "warp"
+    },
+    {
+      "a": "khitomer",
+      "b": "narendra",
+      "kind": "warp"
+    },
+    {
+      "a": "khitomer",
+      "b": "tholia",
+      "kind": "warp"
+    },
+    {
+      "a": "narendra",
+      "b": "achernar",
+      "kind": "warp"
+    },
+    {
+      "a": "boreth",
+      "b": "achernar",
+      "kind": "warp"
+    },
+    {
+      "a": "boreth",
+      "b": "free_state_colony",
+      "kind": "warp"
+    },
+    {
+      "a": "romulus",
+      "b": "achernar",
+      "kind": "warp"
+    },
+    {
+      "a": "romulus",
+      "b": "free_state_colony",
+      "kind": "warp"
+    },
+    {
+      "a": "achernar",
+      "b": "galorndon",
+      "kind": "warp"
+    },
+    {
+      "a": "cardassia",
+      "b": "chintoka",
+      "kind": "warp"
+    },
+    {
+      "a": "cardassia",
+      "b": "septimus",
+      "kind": "warp"
+    },
+    {
+      "a": "cardassia",
+      "b": "barzan",
+      "kind": "warp"
+    },
+    {
+      "a": "chintoka",
+      "b": "bajor",
+      "kind": "warp"
+    },
+    {
+      "a": "septimus",
+      "b": "breen",
+      "kind": "warp"
+    },
+    {
+      "a": "bajor",
+      "b": "badlands",
+      "kind": "warp"
+    },
+    {
+      "a": "badlands",
+      "b": "fenris",
+      "kind": "warp"
+    },
+    {
+      "a": "ferenginar",
+      "b": "barzan",
+      "kind": "warp"
+    },
+    {
+      "a": "orion",
+      "b": "fenris",
+      "kind": "warp"
+    },
+    {
+      "a": "idran",
+      "b": "omarion",
+      "kind": "warp"
+    },
+    {
+      "a": "idran",
+      "b": "white_facility",
+      "kind": "warp"
+    },
+    {
+      "a": "omarion",
+      "b": "kurill",
+      "kind": "warp"
+    },
+    {
+      "a": "karemma",
+      "b": "white_facility",
+      "kind": "warp"
+    },
+    {
+      "a": "unicomplex",
+      "b": "fluidic_rift",
+      "kind": "warp"
+    },
+    {
+      "a": "unicomplex",
+      "b": "vidiia",
+      "kind": "warp"
+    },
+    {
+      "a": "unicomplex",
+      "b": "barzan_delta",
+      "kind": "warp"
+    },
+    {
+      "a": "borg_hub",
+      "b": "barzan_delta",
+      "kind": "warp"
+    },
+    {
+      "a": "borg_space",
+      "b": "fluidic_rift",
+      "kind": "warp"
+    },
+    {
+      "a": "borg_space",
+      "b": "kazon_space",
+      "kind": "warp"
+    },
+    {
+      "a": "ocampa",
+      "b": "kazon_space",
+      "kind": "warp"
+    },
+    {
+      "a": "kazon_space",
+      "b": "vidiia",
+      "kind": "warp"
+    },
+    {
+      "a": "bajor",
+      "b": "idran",
+      "kind": "wormhole",
+      "note": "Bajoran (Celestial Temple) wormhole: stable, near-instant."
+    },
+    {
+      "a": "barzan",
+      "b": "barzan_delta",
+      "kind": "unstable_wormhole",
+      "note": "Barzan wormhole: one end shifts; usable rarely and unpredictably."
+    },
+    {
+      "a": "borg_hub",
+      "b": "borg_exit",
+      "kind": "transwarp",
+      "note": "Borg transwarp conduit; Borg (or a captured hub) only."
+    },
+    {
+      "a": "unicomplex",
+      "b": "borg_hub",
+      "kind": "transwarp",
+      "note": "Borg transwarp conduit."
+    },
+    {
+      "a": "vidiia",
+      "b": "hirogen_relay",
+      "kind": "deep",
+      "note": "Voyager's long route home: thousands of light-years per leg."
+    },
+    {
+      "a": "hirogen_relay",
+      "b": "beta_frontier",
+      "kind": "deep"
+    },
+    {
+      "a": "beta_frontier",
+      "b": "qonos",
+      "kind": "deep"
+    },
+    {
+      "a": "fed_hq",
+      "b": "sol",
+      "kind": "deep",
+      "note": "Long haul from Earth's old neighbourhood to the hidden HQ."
+    }
+  ]
+}
