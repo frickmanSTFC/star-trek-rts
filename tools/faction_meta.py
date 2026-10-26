@@ -44,7 +44,7 @@ SHIP_DOCTRINE = {
 
 # Hand-written research model per faction for the tech tree page (the opening research building's effect comes from buildings.json).
 RESEARCH_MODEL = {
-    "federation": ("Fastest", "Best labs in the game; every shared tech is open, but no disruptors or cloaks."),
+    "federation": ("Fastest", "Best labs in the game; every shared tech is open, but no disruptors, and the only cloak is the forbidden Phasing Cloak."),
     "klingon": ("Weapons first", "The opening Weapons Forge researches only the Weapons tree, and slower than a lab; Honor and conquest make up for it."),
     "cardassian": ("Slow", "A quarter slower than baseline; the economy comes from occupation and refining instead."),
     "romulan": ("Stealth focus", "Normal speed with a big bonus on stealth techs; the only faction with plasma torpedoes and thalaron weapons."),

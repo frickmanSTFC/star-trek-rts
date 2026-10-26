@@ -194,6 +194,12 @@ tr:last-child > * { border-bottom: 0; }
 .ck { background: var(--panel); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; }
 .ck h4 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 17px; letter-spacing: .05em; text-transform: uppercase; color: var(--lilac); display: flex; justify-content: space-between; }
 .ck h4 small { font-family: var(--label); font-size: 12px; color: var(--ink-faint); }
+.msrc { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.msrc:last-child { border-bottom: 0; }
+.msrc span:last-child { text-align: right; color: var(--ink-dim); font-family: var(--label); letter-spacing: .03em; }
+.msrc .src-start { color: var(--sky) !important; }
+.msrc .src-assimilated { color: var(--f-borg) !important; }
+.msrc .src-none { color: var(--bad) !important; }
 ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; }
 
 footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
@@ -216,7 +222,7 @@ footer p { margin: 0; max-width: 90ch; }
     <div>
       <p class="intro">The research tree of the Star Trek RTS and how each of the seven playable factions moves through it. Techs sit in seven branches and six tiers; each tier roughly matches an era, and the era you start in decides what you begin with. All values are placeholders for balancing.</p>
       <nav class="jump" aria-label="Sections">
-        <a href="#factions">Factions</a><a href="#tree">Tree</a><a href="#eras">Starting eras</a><a href="#forbidden">Forbidden techs</a><a href="#resources">Resources</a><a href="#checks">Data checks</a>
+        <a href="#factions">Factions</a><a href="#tree">Tree</a><a href="#eras">Starting eras</a><a href="#forbidden">Forbidden techs</a><a href="#resources">Resources</a><a href="#checks">Modules</a>
       </nav>
     </div>
   </header>
@@ -260,7 +266,7 @@ footer p { margin: 0; max-width: 90ch; }
   </section>
 
   <section id="checks" style="--sec: var(--lilac)">
-    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 6</span><h2>Data checks</h2><p>Gaps between the tech tree and the ship data. Basic modules like impulse engines may be meant as starting equipment.</p></div></div>
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 6</span><h2>Where modules come from</h2><p>Every ship module and the tech that unlocks it. Starting equipment needs no research; Borg modules come from assimilation.</p></div></div>
     <ul class="plain" id="checklist"></ul>
     <div class="checks" id="notech"></div>
   </section>
@@ -428,7 +434,7 @@ new ResizeObserver(() => drawLinks()).observe($("treegrid"));
 if (document.fonts) document.fonts.ready.then(drawLinks);
 
 // ---- starting eras
-$("rule").textContent = `Each era has a tech cap tier. Rule from tech_tree.json: "${D.rule.split(". ").slice(1, 2).join("")}." Read here as: techs two or more tiers below the cap are granted at the start, the cap tier and the tier below it are left to research, and higher tiers are locked.`;
+$("rule").textContent = `Each era has a tech cap tier. ${D.rule}`;
 $("eratable").innerHTML = `<thead><tr><th scope="col">Era</th><th scope="col">Years</th><th scope="col">Cap tier</th><th scope="col">Granted</th><th scope="col">To research</th><th scope="col">Locked</th><th scope="col">Split of all ${D.techs.length} techs</th></tr></thead><tbody>` +
   D.eras.map((e) => `<tr><th scope="row">${esc(e.name)}</th><td class="num">${e.years[0]}–${e.years[1]}</td><td class="num">${e.cap}</td><td class="num">${e.granted}</td><td class="num">${e.research}</td><td class="num">${e.locked}</td>
     <td><div class="stack" role="img" aria-label="${e.granted} granted, ${e.research} to research, ${e.locked} locked"><i class="g" style="width:${(e.granted / D.techs.length) * 100}%"></i><i class="r" style="width:${(e.research / D.techs.length) * 100}%"></i></div></td></tr>`).join("") +
@@ -449,6 +455,8 @@ $("restable").innerHTML = `<thead><tr><th scope="col">Resource</th><th scope="co
 document.querySelectorAll("[data-jump]").forEach((b) => b.addEventListener("click", () => { select(b.dataset.jump); $("treegrid").scrollIntoView(); }));
 
 // ---- data checks
-$("checklist").innerHTML = D.checks.map((c) => `<li>${esc(c)}</li>`).join("");
-$("notech").innerHTML = Object.entries(D.noTech).map(([slot, list]) => `<div class="ck"><h4>${esc(slot)} modules with no tech<small>${list.length}</small></h4><div class="chips">${list.map((m) => `<span class="chip">${esc(m)}</span>`).join("") || `<span class="chip">None</span>`}</div></div>`).join("");
+$("checklist").innerHTML = D.checks.length ? D.checks.map((c) => `<li>${esc(c)}</li>`).join("") : `<li>No gaps: every module has a tech, starting or assimilation source, and every prerequisite sits in the same or an earlier tier.</li>`;
+const kindLabel = { start: "Starting equipment", assimilated: "Assimilated (Borg)", none: "No source" };
+$("notech").innerHTML = D.modules.map((g) => `<div class="ck"><h4>${esc(g.slot)}<small>${g.rows.length}</small></h4>${g.rows.map((r) =>
+  `<div class="msrc"><span>${esc(r.module)}</span><span class="src-${r.kind}">${r.kind === "tech" ? esc(r.techs.join(", ")) : kindLabel[r.kind]}</span></div>`).join("")}</div>`).join("");
 </script>

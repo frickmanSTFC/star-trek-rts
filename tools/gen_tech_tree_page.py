@@ -89,23 +89,33 @@ for e in ERAS:
                  "research": sum(1 for t in T["techs"] if cap - 1 <= t["tier"] <= cap),
                  "locked": sum(1 for t in T["techs"] if t["tier"] > cap)})
 
-# data checks shown at the bottom of the page
-unlocked_mods = {u[4:] for t in T["techs"] for u in t.get("unlocks", []) if u.startswith("mod_")}
-no_tech = {slot: sorted(m.replace("_", " ") for m in mods if m not in unlocked_mods and m not in techs)
-           for slot, mods in S["modules"].items()}
-checks = []
-pc = techs.get("phase_cloak")
-if pc and "Federation" in pc.get("effect", "") and "federation" not in reachable("federation") and "cloaking_device" in pc["prereqs"]:
-    checks.append("Phasing Cloak's effect mentions Federation use, but the Federation can't research its prerequisite, Cloaking Device.")
+# where every ship module comes from, plus data checks shown at the bottom of the page
+source = {}
+for t in T["techs"]:
+    for u in t.get("unlocks", []):
+        if u.startswith("mod_"):
+            source.setdefault(u[4:], []).append(t["name"])
+starting, assimilated = set(T.get("starting_modules", [])), set(T.get("assimilated_modules", []))
+module_sources = []
+for slot, mods in S["modules"].items():
+    rows = []
+    for m in mods:
+        kind = "tech" if m in source else "start" if m in starting else "assimilated" if m in assimilated else "none"
+        rows.append({"module": m.replace("_", " "), "kind": kind, "techs": source.get(m, [])})
+    module_sources.append({"slot": slot.capitalize(), "rows": rows})
+checks = [f"{r['module']} ({g['slot'].lower()}) has no tech, starting or assimilation source." for g in module_sources for r in g["rows"] if r["kind"] == "none"]
 for t in T["techs"]:
     if t.get("forbidden") and not t["prereqs"] and t["tier"] > 1:
         checks.append(f"{t['name']} (tier {t['tier']}) has no prerequisites, so it can be researched as soon as its tier opens.")
+    for p in t["prereqs"]:
+        if techs[p]["tier"] > t["tier"]:
+            checks.append(f"{t['name']} needs {techs[p]['name']}, which sits in a later tier.")
 
 data = {
     "trees": [{"id": k, "label": TREE_LABEL.get(k, k)} for k in T["trees"]],
     "tiers": [{"n": n, "era": TIER_ERA[n]} for n in sorted(TIER_ERA)],
     "techs": out_techs, "factions": factions, "eras": eras,
-    "noTech": no_tech, "checks": checks, "rule": T["_notes"],
+    "modules": module_sources, "checks": checks, "rule": T["_notes"].split(". ")[1] + ".",
 }
 tpl = open(os.path.join(HERE, "tech_tree_page.html")).read()
 html = tpl.replace("/*DATA*/", json.dumps(data, ensure_ascii=False).replace("</", "<\\/"))
