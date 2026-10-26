@@ -1,0 +1,330 @@
+<title>Craft and Ground Forces</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame shared with the other design pages; sections stack (unit groups, group x faction roster, faction rows, ground strength bars, filterable unit cards, data checks). Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --sky: #7fc4e8;
+  --gold: #f3cb5b;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --c-small_craft: #9aa3ff;
+  --c-probes_and_drones: #7fc4e8;
+  --c-civilian_and_support: #8fd3b0;
+  --c-ground_forces: #e2787a;
+  --c-ground_vehicles: #f3cb5b;
+  --f-federation: #7fc4e8;
+  --f-klingon: #e2787a;
+  --f-cardassian: #f3cb5b;
+  --f-romulan: #8fd3b0;
+  --f-dominion: #c99ad6;
+  --f-ferengi: #ff9c5b;
+  --f-borg: #b8c46a;
+  --f-any: #a29fb6;
+  --f-other: #6a687e;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--periwinkle); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--periwinkle); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--periwinkle); }
+.bars .b2 { flex: 1.2; background: var(--bad); }
+.bars .b3 { flex: 2; background: var(--gold); }
+.bars .b4 { flex: .8; background: var(--good); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--periwinkle); font-weight: 600; }
+.intro { max-width: 70ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--void); background: var(--periwinkle); padding: 4px 14px; border-radius: 14px; }
+nav.jump a:nth-child(2) { background: var(--sky); }
+nav.jump a:nth-child(3) { background: var(--good); }
+nav.jump a:nth-child(4) { background: var(--bad); }
+nav.jump a:nth-child(5) { background: var(--gold); }
+nav.jump a:nth-child(6) { background: var(--lilac); }
+nav.jump a:focus-visible, button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 72ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.fdot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: var(--fc); flex: none; }
+.fname { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--label); font-size: 12px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; background: var(--panel-2); color: var(--ink); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; max-width: 90ch; }
+
+/* ---------- groups ---------- */
+.cats { display: grid; gap: 6px; }
+.cat { display: grid; grid-template-columns: 200px 60px minmax(0, 1fr); gap: 6px 18px; align-items: center; background: var(--panel); border-left: 6px solid var(--cc); border-radius: 0 10px 10px 0; padding: 12px 16px; }
+.cat > * { min-width: 0; }
+.cat .cn { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: .04em; text-transform: uppercase; color: var(--cc); }
+.cat .cnt { font-family: var(--display); font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
+.cat p { margin: 0; font-size: 14px; color: var(--ink-dim); }
+@media (max-width: 760px) { .cat { grid-template-columns: 1fr auto; } .cat p { grid-column: 1 / -1; } }
+
+/* ---------- tables ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); white-space: nowrap; }
+thead th .fname { font-size: 15px; }
+tbody th { background: var(--panel-2); white-space: nowrap; font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--cc); border-left: 4px solid var(--cc); }
+tr:last-child > * { border-bottom: 0; }
+tfoot th, tfoot td { background: var(--panel-2); font-family: var(--label); font-size: 13px; color: var(--ink-dim); font-variant-numeric: tabular-nums; border-top: 1px solid var(--rule); border-bottom: 0; }
+.roster td { min-width: 140px; border-left: 1px solid var(--rule); }
+.u { display: block; padding: 4px 8px; margin: 0 0 4px; border-radius: 6px; background: var(--panel-2); border-left: 3px solid var(--fc); font-size: 13px; font-weight: 600; }
+.u:last-child { margin-bottom: 0; }
+.u small { display: block; font-family: var(--label); font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.none { color: var(--ink-faint); }
+.gap { color: var(--bad); font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+
+/* ---------- faction rows ---------- */
+.ov { display: grid; gap: 6px; }
+.ov-row { display: grid; grid-template-columns: 160px minmax(0, 1.3fr) minmax(0, 1fr) 190px; gap: 6px 18px; background: var(--panel); border-left: 6px solid var(--fc); border-radius: 0 10px 10px 0; padding: 12px 16px; align-items: start; }
+.ov-row > * { min-width: 0; }
+.ov-row .fname { font-size: 20px; }
+.ov-row p { margin: 0; font-size: 14px; }
+.ov-row h4 { margin: 0 0 4px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.mix { display: grid; gap: 3px; }
+.mix div { display: grid; grid-template-columns: 116px minmax(0, 1fr) 20px; gap: 8px; align-items: center; font-family: var(--label); font-size: 12px; letter-spacing: .04em; color: var(--ink-dim); }
+.mix .track { height: 8px; position: relative; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 14.285%); }
+.mix .fill { position: absolute; inset: 1px auto 1px 0; background: var(--cc); border-radius: 0 4px 4px 0; }
+.mix span:last-child { text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
+.best b { display: block; font-weight: 600; }
+.best span { font-family: var(--display); font-size: 30px; line-height: 1; color: var(--fc); }
+.best small { font-family: var(--label); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+@media (max-width: 1000px) { .ov-row { grid-template-columns: 1fr; } }
+
+/* ---------- strength chart ---------- */
+.chart { background: var(--panel); border-radius: 10px; padding: 16px 18px 12px; display: grid; gap: 8px; }
+.brow { display: grid; grid-template-columns: 220px minmax(0, 1fr) 30px minmax(0, 1.2fr); gap: 12px; align-items: center; }
+.brow > * { min-width: 0; }
+.brow .nm { font-weight: 600; font-size: 14px; }
+.brow .nm small { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--fc); font-weight: 500; }
+.brow .track { position: relative; height: 14px; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 16.6667%); }
+.brow .fill { position: absolute; inset: 2px auto 2px 0; background: var(--fc); border-radius: 0 7px 7px 0; }
+.brow .v { font-family: var(--display); font-size: 18px; font-variant-numeric: tabular-nums; text-align: right; }
+.axis { display: grid; grid-template-columns: 220px minmax(0, 1fr) 30px minmax(0, 1.2fr); gap: 12px; }
+.axis .ticks { position: relative; height: 16px; font-family: var(--label); font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.axis .ticks span { position: absolute; transform: translateX(-50%); }
+.axis .ticks span:first-child { transform: none; }
+.axis .ticks span:last-child { transform: translateX(-100%); }
+@media (max-width: 760px) {
+  .brow, .axis { grid-template-columns: 120px minmax(0, 1fr) 26px; }
+  .brow .chips, .axis > span:last-child { grid-column: 1 / -1; }
+}
+
+/* ---------- catalog ---------- */
+.controls { display: grid; gap: 8px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.ctl > span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); min-width: 70px; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--panel); padding: 4px; border-radius: 18px; }
+.seg button { font: 600 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 0; cursor: pointer; background: transparent; color: var(--ink-dim); padding: 8px 12px; border-radius: 14px; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--bc, var(--periwinkle)); color: var(--void); }
+.showing { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.showing b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border-radius: 10px; border-top: 4px solid var(--cc); padding: 12px 14px 14px; display: grid; gap: 8px; align-content: start; }
+.card > * { min-width: 0; }
+.card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 19px; line-height: 1.15; letter-spacing: .03em; text-transform: uppercase; text-wrap: balance; }
+.card .kind { font-family: var(--label); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--cc); white-space: nowrap; }
+.card dl { margin: 0; display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 4px 10px; font-size: 14px; }
+.card dt { font-family: var(--label); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); padding-top: 3px; }
+.card dd { margin: 0; }
+.src { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); border: 1px solid var(--rule); border-radius: 8px; padding: 0 6px; }
+.empty { background: var(--panel); border-radius: 10px; padding: 18px; color: var(--ink-dim); }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Craft and Ground Forces</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">The units below starship scale in the Star Trek RTS: shuttles and fighters, probes and drones, the civilian fleet, ground troops and surface vehicles. The roster and faction rows show how each faction's mix differs. Values are placeholders for balancing.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#groups">Groups</a><a href="#roster">Roster</a><a href="#factions">Factions</a><a href="#ground">Ground strength</a><a href="#catalog">Catalog</a><a href="#checks">Data checks</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="groups" style="--sec: var(--periwinkle)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>Unit groups</h2><p>Five kinds of unit, from carried shuttles to troops on the ground.</p></div></div>
+    <div class="cats" id="cats"></div>
+  </section>
+
+  <section id="roster" style="--sec: var(--sky)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Roster by faction</h2><p>Each faction's own units, plus the shared ones any faction can build. Red marks a group where a faction has nothing of its own.</p></div></div>
+    <div class="scroll"><table class="roster" id="roster-table"></table></div>
+    <div class="scroll"><table id="others"></table></div>
+  </section>
+
+  <section id="factions" style="--sec: var(--good)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>How each faction fields them</h2><p>Each faction's style, how its own units split across the groups, and its strongest ground troops.</p></div></div>
+    <div class="ov" id="ov"></div>
+  </section>
+
+  <section id="ground" style="--sec: var(--bad)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Ground strength</h2><p id="rules"></p></div></div>
+    <div class="chart" id="chart"></div>
+  </section>
+
+  <section id="catalog" style="--sec: var(--gold)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Unit catalog</h2><p>Every unit with its role, abilities and the era it arrives in. Filter by group or faction.</p></div></div>
+    <div class="controls">
+      <div class="ctl"><span>Group</span><div class="seg" id="cseg" role="group" aria-label="Group"></div></div>
+      <div class="ctl"><span>Faction</span><div class="seg" id="fseg" role="group" aria-label="Faction"></div></div>
+      <div class="showing" id="showing" aria-live="polite"></div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="checks" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 6</span><h2>Data checks</h2><p>Gaps and mismatches between vehicles.json and the rest of the design data.</p></div></div>
+    <ul class="plain" id="checklist"></ul>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/vehicles.json</code>, <code>factions.json</code>, <code>eras.json</code> and <code>ships.json</code> in the star-trek-rts design repo (<code>tools/gen_vehicles_page.py</code>). Companion pages: Faction Buildings, Starship Designs, Research Tech Tree, Galactic Hazards and Planet Classes.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = /*DATA*/;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const playable = D.factions.map((f) => f.id);
+const fkey = (id) => (id === "any" || playable.includes(id) ? id : "other");
+const fc = (id) => `--fc: var(--f-${fkey(id)})`;
+const cc = (id) => `--cc: var(--c-${id})`;
+const fname = (f) => `<span class="fname" style="${fc(f.id)}"><span class="fdot"></span>${esc(f.name)}</span>`;
+const catLabel = Object.fromEntries(D.cats.map((c) => [c.id, c.label]));
+const unitSub = (u) => [u.eras.join(", "), u.role].filter(Boolean).join(" · ");
+
+$("readout").innerHTML = `<span><b>${D.units.length}</b> units</span><span><b>${D.cats.length}</b> groups</span><span><b>${D.units.filter((u) => u.faction === "any").length}</b> shared by every faction</span>`;
+
+// ---- groups
+$("cats").innerHTML = D.cats.map((c) => `<div class="cat" style="${cc(c.id)}"><span class="cn">${esc(c.label)}</span><span class="cnt">${c.count}</span><p>${esc(c.desc)}</p></div>`).join("");
+
+// ---- roster
+const cols = D.factions.concat([{ id: "any", name: "Shared" }]);
+$("roster-table").innerHTML = `<thead><tr><th scope="col">Group</th>${cols.map((f) => `<th scope="col">${fname(f)}</th>`).join("")}</tr></thead><tbody>` +
+  D.cats.map((c) => `<tr><th scope="row" style="${cc(c.id)}">${esc(c.label)}</th>${cols.map((f) => {
+    const list = D.units.filter((u) => u.cat === c.id && u.faction === f.id);
+    if (list.length) return `<td>${list.map((u) => `<span class="u" style="${fc(u.faction)}">${esc(u.name)}${unitSub(u) ? `<small>${esc(unitSub(u))}</small>` : ""}</span>`).join("")}</td>`;
+    const shared = D.units.some((u) => u.cat === c.id && u.faction === "any");
+    return `<td>${f.id === "any" || c.id === "civilian_and_support" || shared ? `<span class="none">—</span>` : `<span class="gap">None</span>`}</td>`;
+  }).join("")}</tr>`).join("") +
+  `</tbody><tfoot><tr><th scope="row">Own units</th>${cols.map((f) => `<td>${D.units.filter((u) => u.faction === f.id).length}</td>`).join("")}</tr></tfoot>`;
+const others = D.units.filter((u) => fkey(u.faction) === "other");
+$("others").innerHTML = `<thead><tr><th scope="col">Other powers</th><th scope="col">Unit</th><th scope="col">Group</th><th scope="col">Era · role</th></tr></thead><tbody>` +
+  others.map((u) => `<tr><td style="color:var(--ink-dim)">${esc(u.factionName)}</td><td><b>${esc(u.name)}</b></td><td>${esc(catLabel[u.cat])}</td><td>${esc(unitSub(u)) || "—"}</td></tr>`).join("") + `</tbody>`;
+
+// ---- faction rows
+const maxCount = 7;
+$("ov").innerHTML = D.factions.map((f) => `<div class="ov-row" style="${fc(f.id)}">
+  <div>${fname(f)}</div>
+  <div><h4>Style</h4><p>${esc(f.text)}</p></div>
+  <div><h4>Own units by group</h4><div class="mix">${D.cats.filter((c) => c.id !== "civilian_and_support").map((c) => `<div style="${cc(c.id)}"><span>${esc(c.label)}</span><span class="track"><span class="fill" style="width:${(f.counts[c.id] / maxCount) * 100}%"></span></span><span>${f.counts[c.id]}</span></div>`).join("")}</div></div>
+  <div class="best"><h4>Strongest troops</h4>${f.best ? `<span>${f.best.strength}</span> <small>strength</small><b>${esc(f.best.name)}</b>` : `<b class="none">None</b>`}</div>
+</div>`).join("");
+
+// ---- ground strength (one scale, 0 to 6)
+const troops = D.units.filter((u) => u.strength != null).sort((a, b) => b.strength - a.strength || a.name.localeCompare(b.name));
+const maxS = Math.max(...troops.map((u) => u.strength));
+$("rules").textContent = D.rules;
+$("chart").innerHTML = troops.map((u) => `<div class="brow" style="${fc(u.faction)}"><span class="nm">${esc(u.name)}<small>${esc(u.factionName)}</small></span>
+  <div class="track" role="img" aria-label="Strength ${u.strength}"><div class="fill" style="width:${(u.strength / maxS) * 100}%"></div></div><span class="v">${u.strength}</span>
+  <div class="chips">${u.abilities.map((a) => `<span class="chip">${esc(a)}</span>`).join("")}</div></div>`).join("") +
+  `<div class="axis"><span></span><div class="ticks">${Array.from({ length: maxS + 1 }, (_, i) => `<span style="left:${(i / maxS) * 100}%">${i}</span>`).join("")}</div><span></span><span></span></div>`;
+
+// ---- catalog
+let curC = "all", curF = "all";
+function card(u) {
+  const rows = [`<dt>Faction</dt><dd><span class="fname" style="${fc(u.faction)};font-size:14px"><span class="fdot"></span>${esc(u.factionName)}</span></dd>`];
+  if (u.role) rows.push(`<dt>Role</dt><dd>${esc(u.role)}</dd>`);
+  if (u.hull) rows.push(`<dt>Hull</dt><dd>${esc(u.hull)}</dd>`);
+  if (u.strength != null) rows.push(`<dt>Strength</dt><dd>${u.strength}</dd>`);
+  if (u.slots != null) rows.push(`<dt>Hangar</dt><dd>${u.slots} carrier slot${u.slots === 1 ? "" : "s"}</dd>`);
+  rows.push(`<dt>${u.strength != null ? "Traits" : "Abilities"}</dt><dd><div class="chips">${u.abilities.map((a) => `<span class="chip">${esc(a)}</span>`).join("")}</div></dd>`);
+  if (u.modules.length) rows.push(`<dt>Pods</dt><dd>${esc(u.modules.join(", "))}</dd>`);
+  rows.push(`<dt>Era</dt><dd>${u.eras.length ? esc(u.eras.join(", ")) : "Any"}</dd>`);
+  const flags = [u.limit ? `Limit ${u.limit}` : "", u.consumed ? "Used up on launch" : ""].filter(Boolean);
+  if (flags.length) rows.push(`<dt>Rules</dt><dd>${esc(flags.join("; "))}</dd>`);
+  if (u.notes) rows.push(`<dt>Notes</dt><dd>${esc(u.notes)}</dd>`);
+  return `<article class="card" style="${cc(u.cat)}"><div class="top"><h3>${esc(u.name)}</h3><span class="kind">${esc(catLabel[u.cat])}</span></div><dl>${rows.join("")}</dl><div><span class="src">${esc(u.source)}</span></div></article>`;
+}
+function renderGrid() {
+  const list = D.units.filter((u) => (curC === "all" || u.cat === curC) && (curF === "all" || u.faction === curF || (curF === "other" && fkey(u.faction) === "other")));
+  $("grid").innerHTML = list.length ? list.map(card).join("") : `<div class="empty">No units match these filters.</div>`;
+  $("showing").innerHTML = `Showing <b>${list.length}</b> of ${D.units.length}`;
+}
+$("cseg").innerHTML = [`<button type="button" id="c-all" data-c="all" aria-pressed="true">All</button>`]
+  .concat(D.cats.map((c) => `<button type="button" id="c-${c.id}" data-c="${c.id}" style="--bc: var(--c-${c.id})" aria-pressed="false">${esc(c.label)}</button>`)).join("");
+$("fseg").innerHTML = [`<button type="button" id="f-all" data-f="all" aria-pressed="true">All</button>`]
+  .concat(cols.map((f) => `<button type="button" id="f-${f.id}" data-f="${f.id}" style="--bc: var(--f-${f.id})" aria-pressed="false">${esc(f.name)}</button>`))
+  .concat([`<button type="button" id="f-other" data-f="other" aria-pressed="false">Other powers</button>`]).join("");
+document.querySelectorAll("#cseg button").forEach((b) => b.addEventListener("click", () => {
+  curC = b.dataset.c; document.querySelectorAll("#cseg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderGrid();
+}));
+document.querySelectorAll("#fseg button").forEach((b) => b.addEventListener("click", () => {
+  curF = b.dataset.f; document.querySelectorAll("#fseg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderGrid();
+}));
+renderGrid();
+
+// ---- checks
+$("checklist").innerHTML = D.checks.length ? D.checks.map((c) => `<li>${esc(c)}</li>`).join("") : `<li>No gaps found.</li>`;
+</script>
