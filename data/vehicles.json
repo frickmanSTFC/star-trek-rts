@@ -103,7 +103,13 @@
     { "id": "obsidian_order_agent", "name": "Obsidian Order Agent", "faction": "cardassian", "source": "canon", "strength": 2, "traits": ["interrogation", "sabotage", "detect_spies"] },
     { "id": "tal_shiar_agent", "name": "Tal Shiar Agent", "faction": "romulan", "source": "canon", "strength": 2, "traits": ["steal_tech", "interrogation", "stealth"] },
     { "id": "nausicaan_bodyguards", "name": "Hired Nausicaan Bodyguards", "faction": "ferengi", "source": "original", "strength": 4, "traits": ["hired", "guards_hero"] },
-    { "id": "borg_tactical_drones", "name": "Borg Tactical Drones", "faction": "borg", "source": "original", "strength": 5, "traits": ["heavy_weapons", "personal_shield_adapts"] }
+    { "id": "borg_tactical_drones", "name": "Borg Tactical Drones", "faction": "borg", "source": "original", "strength": 5, "traits": ["heavy_weapons", "personal_shield_adapts"] },
+    { "id": "vulcan_security", "name": "Vulcan Security Force", "faction": "vulcan", "era": "ent", "source": "original", "strength": 3, "traits": ["disciplined", "mind_meld_intel"] },
+    { "id": "andorian_guard", "name": "Andorian Imperial Guard", "faction": "andorian", "era": "ent", "source": "canon", "strength": 5, "traits": ["ice_world_bonus", "ushaan_duelists"] },
+    { "id": "tellarite_engineers", "name": "Tellarite Engineers", "faction": "tellarite", "era": "ent", "source": "original", "strength": 2, "traits": ["fortify_fast", "repair_structures"] },
+    { "id": "zhat_vash", "name": "Zhat Vash Agents", "faction": "romulan_free_state", "era": "picard", "source": "canon", "strength": 3, "traits": ["sabotage", "synth_hunters"] },
+    { "id": "qowat_milat", "name": "Qowat Milat", "faction": "ni_var", "era": "far_future", "source": "canon", "strength": 4, "traits": ["absolute_candor", "bodyguard"] },
+    { "id": "chain_enforcers", "name": "Chain Enforcers", "faction": "emerald_chain", "era": "far_future", "source": "original", "strength": 3, "traits": ["intimidation", "slave_guards"] }
   ],
   "ground_vehicles": [
     { "id": "argo_buggy", "name": "Argo Ground Vehicle", "faction": "federation", "era": "picard", "source": "canon",
@@ -124,5 +130,20 @@
     { "id": "jem_hadar_walker", "name": "Jem'Hadar Assault Walker", "faction": "dominion", "source": "original", "role": "assault", "abilities": ["shroud_stealth", "breach_fortification"] },
     { "id": "ferengi_cargo_crawler", "name": "Ferengi Cargo Crawler", "faction": "ferengi", "source": "original", "role": "economy", "abilities": ["mobile_trade_post", "smuggle"] },
     { "id": "borg_nanite_crawler", "name": "Borg Nanite Crawler", "faction": "borg", "source": "original", "role": "conversion", "abilities": ["assimilate_structures", "self_repair"] }
+  ],
+  "heroes": [
+    { "id": "starfleet_captain", "name": "Starfleet Captain", "faction": "federation", "source": "canon", "role": "hero", "traits": ["diplomat", "tactician", "unorthodox"], "notes": "Gains XP; picks one trait per rank. Unorthodox captains can bluff with the Corbomite Maneuver." },
+    { "id": "dahar_master", "name": "Dahar Master", "faction": "klingon", "source": "canon", "role": "hero", "traits": ["inspire_warriors", "duelist", "honor_bonus"] },
+    { "id": "gul", "name": "Gul", "faction": "cardassian", "source": "canon", "role": "hero", "traits": ["occupation_governor", "interrogator"] },
+    { "id": "romulan_commander", "name": "Romulan Commander", "faction": "romulan", "source": "canon", "role": "hero", "traits": ["cloak_ambush", "cunning"] },
+    { "id": "vorta_supervisor", "name": "Vorta Field Supervisor", "faction": "dominion", "source": "canon", "role": "hero", "traits": ["command_jemhadar", "clone_backup"], "notes": "A killed Vorta returns as a clone after a delay." },
+    { "id": "daimon", "name": "DaiMon", "faction": "ferengi", "source": "canon", "role": "hero", "traits": ["negotiator", "bribe", "salvage_rights"] },
+    { "id": "borg_queen", "name": "Borg Queen", "faction": "borg", "source": "canon", "role": "hero", "limit": 1, "traits": ["unicomplex_link", "command_aura", "assimilation_speed"] },
+    { "id": "earth_captain", "name": "Earth Starship Captain", "faction": "earth_uec", "era": "ent", "source": "original", "role": "hero", "traits": ["explorer", "first_contact"] },
+    { "id": "vulcan_ambassador", "name": "Vulcan Ambassador", "faction": "vulcan", "era": "ent", "source": "original", "role": "hero", "traits": ["logic", "mediator"] },
+    { "id": "guard_commander", "name": "Imperial Guard Commander", "faction": "andorian", "era": "ent", "source": "original", "role": "hero", "traits": ["fleet_tactics", "ushaan_duelist"] },
+    { "id": "tellarite_ambassador", "name": "Tellarite Ambassador", "faction": "tellarite", "era": "ent", "source": "original", "role": "hero", "traits": ["hard_bargainer", "argue_down_prices"] },
+    { "id": "chain_matriarch", "name": "Emerald Chain Matriarch", "faction": "emerald_chain", "era": "far_future", "source": "original", "role": "hero", "traits": ["dilithium_leverage", "ruthless"] },
+    { "id": "ni_var_president", "name": "Ni'Var President", "faction": "ni_var", "era": "far_future", "source": "original", "role": "hero", "traits": ["consensus_builder", "science_patron"] }
   ]
 }

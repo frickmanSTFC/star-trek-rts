@@ -36,7 +36,7 @@ ERA_SHORT = {"ent": "Enterprise", "tos": "TOS", "tng": "TNG", "dominion_war": "D
              "picard": "Picard", "far_future": "32nd century", "kelvin": "Kelvin"}
 ROLE = {"great": "Great power", "era": "Era power", "minor": "Minor power", "dlc_or_minor": "Minor power",
         "pirate": "Pirates", "insurgent": "Insurgents", "crisis": "Crisis"}
-VCATS = ["small_craft", "probes_and_drones", "ground_forces", "ground_vehicles"]
+VCATS = ["small_craft", "probes_and_drones", "ground_forces", "ground_vehicles", "heroes"]
 COMMON = {"duranium", "tritanium", "parasteel", "crew", "deuterium", "energy"}
 
 
@@ -113,6 +113,7 @@ for f in FAC:
         continue
     others.append({"id": f["id"], "name": f["name"], "role": ROLE.get(role(f), words(str(role(f)))), "roleKey": role(f),
                    "signature": words(f["signature"]["id"]).title(), "desc": f["signature"]["desc"], "eras": era_status(f["id"]),
+                   "playstyle": f.get("playstyle", ""), "weakness": f.get("weakness", ""), "hero": f.get("flavor_units", {}).get("hero", ""),
                    "ships": sum(1 for c in S["classes"] if c["faction"] == f["id"]),
                    "units": sum(1 for cat in VCATS for u in V[cat] if u.get("faction") == f["id"])})
 

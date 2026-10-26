@@ -46,6 +46,7 @@
     { "id": "neutronium_armor", "name": "Neutronium Plating", "tree": "defense", "tier": 6, "prereqs": ["ablative_armor", "neutronium_harvesting"], "requires_resource": "neutronium", "unlocks": ["titan_hull", "mod_neutronium_plating"] },
 
     { "id": "long_range_sensors", "name": "Long-Range Sensors", "tree": "sensors_stealth", "tier": 1, "prereqs": [], "unlocks": ["mod_sensor_suite"] },
+    { "id": "universal_translator", "name": "Universal Translator", "tree": "sensors_stealth", "tier": 1, "prereqs": [], "faction_only": ["federation", "earth_uec"], "effect": "First contact with any species; makes Member World integration possible and doubles the first-contact bonus." },
     { "id": "cloaking_device", "name": "Cloaking Device", "tree": "sensors_stealth", "tier": 2, "prereqs": ["long_range_sensors"], "faction_only": ["klingon", "romulan"], "unlocks": ["mod_cloak"] },
     { "id": "tachyon_grid", "name": "Tachyon Detection Grid", "tree": "sensors_stealth", "tier": 3, "prereqs": ["long_range_sensors"], "effect": "Reveals cloaked ships crossing a network." },
     { "id": "deflector_improvisation", "name": "Deflector Improvisation", "tree": "sensors_stealth", "tier": 3, "prereqs": ["long_range_sensors"], "unlocks": ["mod_deflector_dish_tricks"], "effect": "Reroute the main deflector for one-off tricks: tachyon pulses, graviton beams, anomaly scans." },

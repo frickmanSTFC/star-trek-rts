@@ -98,6 +98,14 @@
     { "faction": "federation_remnant", "name": "Crossfield refit (Discovery-A)", "hull": "explorer", "era": "far_future", "source": "canon", "special": "spore_drive, detached_nacelles, programmable_matter" },
     { "faction": "federation_remnant", "name": "Voyager-J",       "hull": "explorer",      "era": "far_future", "source": "canon", "special": "programmable_matter" },
     { "faction": "emerald_chain",      "name": "Viridian",        "hull": "battleship",    "era": "far_future", "source": "canon" },
-    { "faction": "klingon",            "name": "Bird-of-Prey (32nd c.)", "hull": "escort", "era": "far_future", "source": "original", "special": "cloak, programmable_matter" }
+    { "faction": "klingon",            "name": "Bird-of-Prey (32nd c.)", "hull": "escort", "era": "far_future", "source": "original", "special": "cloak, programmable_matter" },
+
+    { "faction": "vulcan", "name": "Suurok", "hull": "cruiser", "era": "ent", "source": "canon" },
+    { "faction": "vulcan", "name": "D'Kyr", "hull": "heavy_cruiser", "era": "ent", "source": "canon", "special": "advanced_sensors" },
+    { "faction": "andorian", "name": "Charal", "hull": "escort", "era": "ent", "source": "canon" },
+    { "faction": "andorian", "name": "Kumari", "hull": "cruiser", "era": "ent", "source": "canon", "special": "ice_world_bonus" },
+    { "faction": "tellarite", "name": "Tellarite Cruiser", "hull": "cruiser", "era": "ent", "source": "canon" },
+    { "faction": "romulan_free_state", "name": "Free State Warbird", "hull": "battleship", "era": "picard", "source": "canon", "special": "cloak" },
+    { "faction": "ni_var", "name": "Ni'Var Cruiser", "hull": "cruiser", "era": "far_future", "source": "original", "special": "cloak, science_lab" }
   ]
 }

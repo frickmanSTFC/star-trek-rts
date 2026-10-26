@@ -28,7 +28,8 @@ CATS = [("small_craft", "Small craft", "Shuttles, fighters and boarding craft ca
         ("probes_and_drones", "Probes and drones", "Uncrewed scouts, buoys, mines and automation."),
         ("civilian_and_support", "Civilian and support", "The working fleet every faction shares: builders, colony ships, miners, freighters, tugs."),
         ("ground_forces", "Ground forces", "Troops that land by shuttle or transporter. Combat resolves by strength times modifiers."),
-        ("ground_vehicles", "Ground vehicles", "Surface units for recon, assault, occupation and economy.")]
+        ("ground_vehicles", "Ground vehicles", "Surface units for recon, assault, occupation and economy."),
+        ("heroes", "Heroes", "Captains and leaders: few in number, they gain XP and traits and can be captured, ransomed or killed.")]
 ERA_SHORT = {"ent": "Enterprise", "tos": "TOS", "tng": "TNG", "dominion_war": "Dominion War", "voy": "Voyager",
              "picard": "Picard", "far_future": "32nd century", "kelvin": "Kelvin"}
 
