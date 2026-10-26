@@ -107,7 +107,7 @@
     { "id": "ketracel_white", "name": "Ketracel-white", "tier": "faction", "faction": "dominion", "source": "canon",
       "uses": ["jemhadar_upkeep"], "mechanics": { "shortage_effect": "jemhadar_go_feral" } },
     { "id": "nanoprobes", "name": "Nanoprobes", "tier": "faction", "faction": "borg", "source": "canon",
-      "uses": ["assimilation", "self_repair"] },
+      "uses": ["assimilation", "self_repair", "tech_combination"] },
     { "id": "singularity_core", "name": "Artificial Singularity", "tier": "faction", "faction": "romulan", "source": "canon",
       "uses": ["warp_power_without_antimatter"], "mechanics": { "destroyed_effect": "local_gravity_well" } },
     { "id": "honor", "name": "Honor", "tier": "faction", "faction": "klingon", "source": "original",

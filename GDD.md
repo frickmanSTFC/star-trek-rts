@@ -144,7 +144,8 @@ Seven trees, each with era-gated tiers, plus a faction-unique tree:
   rift-mapping sensors; scanning a Borg wreck → partial adaptive shielding).
 - **Forbidden techs** (Genesis, Omega, Thalaron) give massive power with diplomatic/catastrophic risk.
 - **The Borg never research.** They **assimilate** tech from ships, stations and colonies they take (including other
-  factions' faction-only techs) and **combine** techs they already hold into the next one, paid in nanoprobes.
+  factions' faction-only techs) and **combine** techs they already hold into the next one, paid in nanoprobes
+  (20 × the tech's tier: a tier-3 tech costs 60, about 12 cycles of one Assimilation Spire's output).
 
 Tree → `data/tech_tree.json`.
 

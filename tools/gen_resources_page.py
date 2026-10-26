@@ -97,6 +97,13 @@ for r in RJ["resources"]:
         "demand": {f: demand[f].get(rid, 0) for f in FACTIONS},
     })
 
+# a faction that combines techs instead of researching pays in a resource; note it on that resource
+for f, rule in load("tech_tree.json").get("faction_rules", {}).items():
+    c = rule.get("combine_cost")
+    if c:
+        res = next(x for x in resources if x["id"] == c["resource"])
+        res["mechanics"].append(f"combining tech ({NAMES.get(f, f)}): {c['per_tier']} per tier of the tech")
+
 chains = [{"id": r["id"], "name": r["name"], "tier": r["tier"], "inputs": [{"id": k, "name": R[k]["name"], "tier": R[k]["tier"], "amount": v} for k, v in r["inputs"].items()]}
           for r in RJ["resources"] if r.get("inputs")]
 
