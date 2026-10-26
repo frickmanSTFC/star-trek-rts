@@ -5,6 +5,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 ## Start here
 
 - `GDD.md`: the game design document (pillars, modes, map, economy, colonization, eras, factions, research, ships, threats, multiplayer, open decisions).
+- `docs/faction-buildings.md`: grids comparing every faction's buildings (starting sets, upgrade lines, capabilities, wonders). Regenerate with `python3 tools/gen_faction_buildings_doc.py`.
 - `federation-build-tree.html`: interactive Federation build tree. Open it in any browser.
 - `art/`: detailed isometric artwork. `art/federation-colony-hub/` has the Colony Hub at all five levels (SVG, open in any browser).
 - `tools/gen_colony_hub.py`: the script that draws that artwork (Starfleet style: saucers, capsule modules, glow strips), so the levels stay consistent: `python3 tools/gen_colony_hub.py art/federation-colony-hub`.
