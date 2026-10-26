@@ -1357,7 +1357,7 @@
             "duranium": 100,
             "nanoprobes": 20
           },
-          "effect": "Only on populated worlds; converts pop to drones; +5 nanoprobes per cycle.",
+          "effect": "Only on populated worlds; converts pop to drones; +5 nanoprobes per cycle; combines assimilated tech into new tech.",
           "stats": {
             "requires": "populated_world"
           }
@@ -1920,7 +1920,7 @@
               "duranium": 100,
               "nanoprobes": 20
             },
-            "effect": "Converts natives or captured population into drones; +5 nanoprobes per cycle.",
+            "effect": "Converts natives or captured population into drones; +5 nanoprobes per cycle; combines assimilated tech into new tech.",
             "requires": "populated_world"
           },
           {
@@ -1957,7 +1957,7 @@
             "id": null,
             "name": "None",
             "cost": {},
-            "effect": "No research; tech comes from assimilation."
+            "effect": "No research: assimilates tech from others and combines what the Collective holds into new tech."
           },
           {
             "role": "defense",

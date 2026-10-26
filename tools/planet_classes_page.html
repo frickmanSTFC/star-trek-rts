@@ -329,7 +329,7 @@ $("ov").innerHTML = D.factions.map((f) => `<div class="ov-row" style="${fc(f.id)
   <div><h4>Colony rules</h4><p>${esc(f.rules)}</p></div>
   <div style="display:grid;gap:8px"><h4>Scarce resources · colony techs</h4>
     <div style="display:grid;gap:2px">${f.needs.length ? f.needs.map((n) => `<div class="need"><b>${esc(n.name)}</b> <span>${esc(n.where.join(", "))}</span></div>`).join("") : `<div class="need"><span>No scarce planet resources: its rare inputs are refined, made or traded.</span></div>`}</div>
-    <div class="chips">${f.colonyTechs.map((t) => `<span class="ctech ${t.ok ? "ok" : "no"}" title="${t.ok ? "Can research" : "Can't research"}">${esc(t.name)}</span>`).join("")}</div>
+    <div class="chips">${f.colonyTechs.map((t) => `<span class="ctech ${t.ok ? "ok" : "no"}" title="${t.ok ? (t.how === "research" ? "Can research" : "Assimilate or combine") : "Can't get"}">${esc(t.name)}</span>`).join("")}</div>
   </div></div>`).join("");
 
 // ---- checks

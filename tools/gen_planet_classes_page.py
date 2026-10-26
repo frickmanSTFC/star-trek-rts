@@ -24,7 +24,9 @@ def load(name):
 
 P = load("planet_classes.json")["classes"]
 RES = {r["id"]: r for r in load("resources.json")["resources"]}
-techs = {t["id"]: t for t in load("tech_tree.json")["techs"]}
+TT = load("tech_tree.json")
+techs = {t["id"]: t for t in TT["techs"]}
+RULES = TT.get("faction_rules", {})
 HAZ = {h["id"]: h["name"] for h in load("hazards.json")["hazards"]}
 B = load("buildings.json")
 pids = [p["id"] for p in P]
@@ -110,9 +112,10 @@ for f in FACTIONS:
         where = sorted(in_planets.get(r, set()) | in_resources.get(r, set()), key=pids.index)
         if r in RES and where and RES[r]["tier"] != "flow":
             needs.append({"name": RES[r]["name"], "where": [pname[w] for w in where]})
-    reach = reachable(techs, f)
+    reach = reachable(techs, f, RULES)
     factions.append({"id": f, "name": NAMES[f], "prefers": prefers, "rules": rules, "needs": needs[:5],
-                     "colonyTechs": [{"name": techs[t]["name"], "ok": t in reach and f != "borg"} for t in COLONY_TECHS]})
+                     "colonyTechs": [{"name": techs[t]["name"], "ok": t in reach,
+                                      "how": "assimilate or combine" if RULES.get(f, {}).get("research") is False else "research"} for t in COLONY_TECHS]})
 
 checks = []
 for r in res_rows:

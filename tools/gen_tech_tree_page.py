@@ -46,8 +46,11 @@ def unlock_kind(u):
     return "ability", u.replace("_", " ")
 
 
+RULES = T.get("faction_rules", {})
+
+
 def reachable(f):
-    return _reachable(techs, f)
+    return _reachable(techs, f, RULES)
 
 
 children = {tid: [] for tid in techs}
@@ -71,6 +74,7 @@ for f in FACTIONS:
     label, text = RESEARCH_MODEL[f]
     lab = next(b for b in start[f]["buildings"] if b["role"] == "research")
     factions.append({"id": f, "name": NAMES[f], "model": label, "text": text, "lab": lab["name"], "labEffect": lab["effect"],
+                     "researches": RULES.get(f, {}).get("research", True),
                      "reach": sorted(reach), "own": [t["name"] for t in T["techs"] if f in t.get("faction_only", [])],
                      "locked": len(techs) - len(reach)})
 
@@ -108,7 +112,7 @@ data = {
     "trees": [{"id": k, "label": TREE_LABEL.get(k, k)} for k in T["trees"]],
     "tiers": [{"n": n, "era": TIER_ERA[n]} for n in sorted(TIER_ERA)],
     "techs": out_techs, "factions": factions, "eras": eras,
-    "modules": module_sources, "checks": checks, "rule": T["_notes"].split(". ")[1] + ".",
+    "modules": module_sources, "checks": checks, "rules": RULES, "rule": T["_notes"].split(". ")[1] + ".",
 }
 tpl = open(os.path.join(HERE, "tech_tree_page.html")).read()
 html = tpl.replace("/*DATA*/", json.dumps(data, ensure_ascii=False).replace("</", "<\\/"))

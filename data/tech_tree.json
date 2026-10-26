@@ -1,7 +1,8 @@
 {
-  "_notes": "tier ≈ era cap (1=ENT, 2=TOS, 3=TNG, 4=DS9/VOY, 5=Picard, 6=32nd c.). Era start grants every tech two or more tiers below the era's cap tier; the cap tier and the tier below it are left to research; higher tiers stay locked until a later era. unlocks = buildings/modules (mod_<module id>)/abilities ids. Modules in starting_modules need no tech; assimilated_modules are Borg-only and come from assimilation, not research.",
+  "_notes": "tier ≈ era cap (1=ENT, 2=TOS, 3=TNG, 4=DS9/VOY, 5=Picard, 6=32nd c.). Era start grants every tech two or more tiers below the era's cap tier; the cap tier and the tier below it are left to research; higher tiers stay locked until a later era. unlocks = buildings/modules (mod_<module id>)/abilities ids. Modules in starting_modules need no tech; assimilated_modules are Borg-only and come from assimilation, not research. faction_rules: factions that get tech without research (the Borg assimilate and combine; they never research).",
   "starting_modules": ["impulse", "cargo_bay", "construction_rig", "mining_laser", "medical_bay", "science_lab", "troop_bay"],
   "assimilated_modules": ["cutting_beam", "borg_torpedo"],
+  "faction_rules": {"borg": {"research": false, "assimilate": "Gains any tech, including other factions' faction-only techs, by assimilating a ship, station or colony that has it.", "combine": "Once the Collective holds every prerequisite of a tech, any Borg command structure combines them into that tech, paid in nanoprobes instead of research."}},
   "trees": ["propulsion", "weapons", "defense", "sensors_stealth", "engineering", "computing", "biology_colonization"],
   "techs": [
     { "id": "warp_5", "name": "Warp 5 Engine", "tree": "propulsion", "tier": 1, "prereqs": [], "unlocks": ["warp_lane_travel", "mod_warp_core"] },

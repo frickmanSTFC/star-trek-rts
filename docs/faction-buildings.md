@@ -14,7 +14,7 @@ The Federation is the baseline. Every other faction fills the same roles but tra
 | **Romulan** | Stealth | Hidden and paranoid; pricier. | Colonies, mines, guns and docks hidden from scans; spy slot from the start; singularity tech removes antimatter upkeep. | Most expensive opening (needs isolinear chips early); shrouded mines yield -20%. |
 | **Dominion** | Ketracel-white | Clones and Ketracel-white; no native population growth. | No population needed: Jem'Hadar are grown in vats; squads arrive with the core; strong polaron defence. | Everything depends on White supply; -30% research; skips cruiser hulls. |
 | **Ferengi** | Latinum | Everything costs latinum; everything earns it. | Pays to play: leases, contracts and markets earn latinum from every faction; can buy research instead of doing it. | Nothing works without latinum; no garrison on the core; defence is rented. |
-| **Borg** | Assimilation | Can only take worlds that are already inhabited; no research. | Strongest harvesting (+60%); shared power grid; adapts to weapons; gains tech by assimilating hulls and crews. | Can only settle populated worlds; no research at all; harvesting degrades the planet. |
+| **Borg** | Assimilation | Can only take worlds that are already inhabited; no research. | Strongest harvesting (+60%); shared power grid; adapts to weapons; assimilates tech from anyone and combines it into new tech. | Can only settle populated worlds; no research at all; harvesting degrades the planet. |
 
 ## 2. Starting buildings on a Class M colony (at a glance)
 
@@ -45,7 +45,7 @@ Total units add every resource together (duranium, crew, latinum, and so on). Th
 | Romulan | Colonial Garrison | 110 duranium, 40 crew | same | Enemy scans see no colony details. |  |
 | Dominion | Vorta Field Post | 110 duranium, 2 White | -38 | Comes with a Jem'Hadar squad. |  |
 | Ferengi | Trade Office | 90 duranium, 30 latinum | -30 | +2 Latinum per cycle; no garrison. |  |
-| Borg | Assimilation Spire | 100 duranium, 20 nanoprobes | -30 | Converts natives or captured population into drones; +5 nanoprobes per cycle. | populated world |
+| Borg | Assimilation Spire | 100 duranium, 20 nanoprobes | -30 | Converts natives or captured population into drones; +5 nanoprobes per cycle; combines assimilated tech into new tech. | populated world |
 
 ### Housing
 
@@ -93,7 +93,7 @@ Total units add every resource together (duranium, crew, latinum, and so on). Th
 | Romulan | Science Ministry Lab | 110 duranium, 10 isolinear | +20 | Normal research; +50% on stealth techs. |  |
 | Dominion | Vorta Analysis Lab | 120 duranium | +20 | -30% research; double research from captured wrecks. |  |
 | Ferengi | Patent Exchange | 80 duranium, 40 latinum | +20 | No own research; buy techs other players already have. |  |
-| Borg | None | free | -100 | No research; tech comes from assimilation. |  |
+| Borg | None | free | -100 | No research: assimilates tech from others and combines what the Collective holds into new tech. |  |
 
 ### Defense
 
@@ -195,7 +195,7 @@ The number in brackets is how many levels the line has. The Federation command l
 | Ferengi | L1 | Trade Office | 90 duranium, 30 latinum | supply range 1 | +2 Latinum; no garrison. |
 |  | L2 | Commerce Authority Office | 260 duranium, 120 latinum | supply range 2 | Sells trade licences; 1 Rule of Acquisition perk. |
 |  | L3 | Tower of Commerce *(faction only)* | 400 parasteel, 500 latinum | supply range 3 | All Rules perks; bribe AI factions and rival governors. |
-| Borg | L1 | Assimilation Spire | 100 duranium, 20 nanoprobes | requires populated_world | Only on populated worlds; converts pop to drones; +5 nanoprobes per cycle. |
+| Borg | L1 | Assimilation Spire | 100 duranium, 20 nanoprobes | requires populated_world | Only on populated worlds; converts pop to drones; +5 nanoprobes per cycle; combines assimilated tech into new tech. |
 |  | L2 | Planetary Hive | 320 parasteel, 40 nanoprobes | supply range 2 | No morale/unrest; self-repairing. |
 |  | L3 | Unicomplex *(faction only)* | 2000 parasteel, 200 nanoprobes |  | Match-long adaptation memory; Borg Queen; loss wipes adaptations. |
 
@@ -263,7 +263,7 @@ Highest value each faction reaches in its upgrade lines. A dash means the data d
 | **Romulan** | 3 | 6 | titan | 7 | Normal research; +50% on stealth techs. |
 | **Dominion** | 3 | 8 | titan | — (uses clones) | -30% research; double research from captured wrecks. |
 | **Ferengi** | 3 | 6 | any acquired hull | 6 | No own research; buy techs other players already have. |
-| **Borg** | 2 | — | titan | — (uses drones) | No research; tech comes from assimilation. |
+| **Borg** | 2 | — | titan | — (uses drones) | No research: assimilates tech from others and combines what the Collective holds into new tech. |
 
 ## 6. Wonders and faction-only buildings
 

@@ -143,6 +143,8 @@ Seven trees, each with era-gated tiers, plus a faction-unique tree:
 - **Eureka moments:** studying a specific anomaly unlocks a specific tech (e.g. surviving a subspace rift →
   rift-mapping sensors; scanning a Borg wreck → partial adaptive shielding).
 - **Forbidden techs** (Genesis, Omega, Thalaron) give massive power with diplomatic/catastrophic risk.
+- **The Borg never research.** They **assimilate** tech from ships, stations and colonies they take (including other
+  factions' faction-only techs) and **combine** techs they already hold into the next one, paid in nanoprobes.
 
 Tree → `data/tech_tree.json`.
 

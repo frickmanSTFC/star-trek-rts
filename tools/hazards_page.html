@@ -212,7 +212,7 @@ footer p { margin: 0; max-width: 90ch; }
 
   <section id="counters" style="--sec: var(--orange)">
     <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Counter techs by faction</h2><p>Techs in the research tree that answer a hazard, and whether each faction can research, buy or assimilate them.</p></div></div>
-    <div class="legend" aria-hidden="true"><span class="acc"><span class="research">Research</span></span><span class="acc"><span class="buy">Buy</span> Ferengi purchase</span><span class="acc"><span class="assimilate">Assimilate</span> Borg take it</span><span class="acc"><span class="none">—</span> locked to it</span></div>
+    <div class="legend" aria-hidden="true"><span class="acc"><span class="research">Research</span></span><span class="acc"><span class="buy">Buy</span> Ferengi purchase</span><span class="acc"><span class="assimilate">Assimilate</span> Borg take or combine it</span><span class="acc"><span class="none">—</span> locked to it</span></div>
     <div class="scroll"><table id="matrix"></table></div>
   </section>
 
@@ -278,7 +278,7 @@ renderGrid();
 
 // ---- factions
 const total = D.counterTechs.length;
-const howText = { research: "", buy: "Bought from players who research them.", assimilate: "No research: counters come from assimilation." };
+const howText = { research: "", buy: "Bought from players who research them.", assimilate: "Never researches: assimilates counters or combines techs it holds." };
 $("ov").innerHTML = D.factions.map((f) => {
   const how = Object.values(f.access).find((v) => v !== "none") || "";
   return `<div class="ov-row" style="${fc(f.id)}">

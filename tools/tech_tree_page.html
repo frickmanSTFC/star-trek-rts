@@ -154,6 +154,9 @@ h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 
 .tag.risky { color: var(--void); background: var(--gold); }
 .tag.victory { color: var(--void); background: var(--good); }
 .tag.res { color: var(--peach); border: 1px solid color-mix(in srgb, var(--peach) 50%, transparent); }
+.tag.acq-assim { color: var(--f-borg); border: 1px solid var(--f-borg); }
+.tag.acq-combine { color: var(--void); background: var(--f-borg); }
+.acq { font-family: var(--label); font-size: 12px; letter-spacing: .04em; color: var(--f-borg); }
 .tag.era-granted { color: var(--void); background: var(--sky); }
 .tag.era-research { color: var(--sky); border: 1px solid var(--sky); }
 .tag.era-locked { color: var(--ink-faint); border: 1px solid var(--rule); }
@@ -228,9 +231,9 @@ footer p { margin: 0; max-width: 90ch; }
   </header>
 
   <section id="factions" style="--sec: var(--good)">
-    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>How each faction researches</h2><p>Research speed comes from each faction's opening research building; access comes from faction-only techs and their prerequisites.</p></div></div>
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>How each faction gets tech</h2><p>Research speed comes from each faction's opening research building; access comes from faction-only techs and their prerequisites. The Borg never research: they assimilate and combine.</p></div></div>
     <div class="ov">
-      <div class="ov-head"><span>Faction</span><span>Research model</span><span>Opening research building</span><span>Tree access</span></div>
+      <div class="ov-head"><span>Faction</span><span>How it gets tech</span><span>Opening research building</span><span>Tree access</span></div>
       <div class="ov" id="ov"></div>
     </div>
   </section>
@@ -241,7 +244,7 @@ footer p { margin: 0; max-width: 90ch; }
       <div class="ctl"><span>Faction</span><div class="seg" id="fseg" role="group" aria-label="Faction"></div></div>
       <div class="ctl"><span>Starting era</span><div class="seg" id="eseg" role="group" aria-label="Starting era"></div></div>
       <div class="legend" aria-hidden="true">
-        <span><span class="tag forbidden">Forbidden</span></span><span><span class="tag risky">Risky</span></span><span><span class="tag victory">Victory</span></span><span><span class="tag res">Resource</span></span>
+        <span><span class="tag forbidden">Forbidden</span></span><span><span class="tag risky">Risky</span></span><span><span class="tag victory">Victory</span></span><span><span class="tag acq-assim">Assimilate</span><span class="tag acq-combine">Combine</span> Borg filter</span><span><span class="tag res">Resource</span></span>
         <span><span class="only"><span class="fdot" style="--fc: var(--f-romulan)"></span></span>Faction-only</span>
         <span><span class="tag era-granted">Start</span> granted at start</span><span><span class="tag era-research">Research</span> researchable</span><span><span class="tag era-locked">Locked</span> above the era cap</span>
       </div>
@@ -294,13 +297,14 @@ $("readout").innerHTML = `<span><b>${D.techs.length}</b> techs</span><span><b>${
 
 // ---- faction rows
 $("ov").innerHTML = D.factions.map((f) => {
-  const n = f.id === "borg" ? 0 : f.reach.length;
+  const n = f.reach.length;
   return `<div class="ov-row" style="${fc(f.id)}">
     <div class="who">${fname(f)}<span class="hook">${esc(f.model)}</span></div>
-    <div><h4>Research model</h4><p>${esc(f.text)}</p></div>
+    <div><h4>How it gets tech</h4><p>${esc(f.text)}</p></div>
     <div class="lab"><h4>Opening research building</h4><b>${esc(f.lab)}</b><span>${esc(f.labEffect)}</span></div>
     <div class="access"><h4>Tree access</h4>
       <div class="meter"><div class="track" role="img" aria-label="${n} of ${D.techs.length} techs"><div class="fill" style="width:${(n / D.techs.length) * 100}%"></div></div><span>${n} / ${D.techs.length}</span></div>
+      ${f.researches ? "" : `<span class="acq">Every tech, by assimilation or combination</span>`}
       <div class="chips">${f.own.length ? f.own.map((t) => `<span class="chip">${esc(t)}</span>`).join("") : `<span class="chip" style="color:var(--ink-faint)">No faction-only techs</span>`}</div>
     </div>
   </div>`;
@@ -314,9 +318,9 @@ function eraState(t) {
   const cap = eraById[curE].cap;
   return t.tier < cap - 1 ? "granted" : t.tier <= cap ? "research" : "locked";
 }
+const noResearch = (fid) => fid !== "all" && !D.factions.find((f) => f.id === fid).researches;
 function canResearch(t) {
   if (curF === "all") return true;
-  if (curF === "borg") return false;
   return D.factions.find((f) => f.id === curF).reach.includes(t.id);
 }
 function related(id) {
@@ -334,6 +338,7 @@ function techCard(t) {
     t.risky ? `<span class="tag risky">Risky</span>` : "",
     t.victory ? `<span class="tag victory">Victory</span>` : "",
     t.resource ? `<span class="tag res">${esc(t.resource)}</span>` : "",
+    noResearch(curF) ? `<span class="tag ${t.prereqs.length ? "acq-combine" : "acq-assim"}">${t.prereqs.length ? "Combine" : "Assimilate"}</span>` : "",
     st ? `<span class="tag era-${st}">${st === "granted" ? "Start" : st === "research" ? "Research" : "Locked"}</span>` : "",
   ].join("");
   return `<button type="button" class="tech" id="t-${t.id}" data-id="${t.id}" style="${tc(t.tree)}" aria-pressed="false"><span class="n">${esc(t.name)}</span>${tags ? `<span class="m">${tags}</span>` : ""}</button>`;
@@ -395,7 +400,8 @@ function renderDetail() {
   const t = byId[sel];
   const link = (id) => `<button type="button" class="link" data-go="${id}" style="${tc(byId[id].tree)}">${esc(byId[id].name)}</button>`;
   const who = t.only.length ? `Only ${t.only.map(facName).join(", ")}` : "Every faction that researches";
-  const blocked = D.factions.filter((f) => f.id !== "borg" && !f.reach.includes(t.id)).map((f) => f.name);
+  const blocked = D.factions.filter((f) => !f.reach.includes(t.id)).map((f) => f.name);
+  const takers = D.factions.filter((f) => !f.researches).map((f) => `${f.name} ${t.prereqs.length ? "assimilate it or combine its prerequisites" : "assimilate it from another faction"}`);
   const flags = [t.forbidden ? "Forbidden" : "", t.risky ? "Risky" : "", t.victory ? "Victory project" : ""].filter(Boolean).join(" · ");
   $("detail").setAttribute("style", tc(t.tree));
   $("detail").innerHTML = `
@@ -408,7 +414,7 @@ function renderDetail() {
     </div>
     <div style="display:grid;gap:10px;align-content:start">
       <div><h4>Unlocks</h4><div class="ul">${t.unlocks.length ? t.unlocks.map(([k, v]) => `<span><small>${esc(k)}</small>${esc(v)}</span>`).join("") : `<span class="sub" style="margin:0">Effect only</span>`}</div></div>
-      <div><h4>Who can research it</h4><p class="sub" style="margin:0">${esc(who)}.${blocked.length ? " Not available to " + esc(blocked.join(", ")) + "." : ""} The Borg assimilate tech instead.</p></div>
+      <div><h4>Who can get it</h4><p class="sub" style="margin:0">${esc(who)}.${blocked.length ? " Not available to " + esc(blocked.join(", ")) + "." : ""}${takers.length ? " " + esc(takers.join("; ")) + "." : ""}</p></div>
     </div>`;
   document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => {
     select(b.dataset.go);
@@ -422,7 +428,7 @@ $("eseg").innerHTML = [`<button type="button" id="e-none" data-e="none" aria-pre
 document.querySelectorAll("#fseg button").forEach((b) => b.addEventListener("click", () => {
   curF = b.dataset.f;
   document.querySelectorAll("#fseg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-  applyState();
+  renderTree();
 }));
 document.querySelectorAll("#eseg button").forEach((b) => b.addEventListener("click", () => {
   curE = b.dataset.e;

@@ -27,7 +27,7 @@ PLAYSTYLE = {
                  "Everything depends on White supply; -30% research; skips cruiser hulls."),
     "ferengi": ("Latinum", "Pays to play: leases, contracts and markets earn latinum from every faction; can buy research instead of doing it.",
                 "Nothing works without latinum; no garrison on the core; defence is rented."),
-    "borg": ("Assimilation", "Strongest harvesting (+60%); shared power grid; adapts to weapons; gains tech by assimilating hulls and crews.",
+    "borg": ("Assimilation", "Strongest harvesting (+60%); shared power grid; adapts to weapons; assimilates tech from anyone and combines it into new tech.",
              "Can only settle populated worlds; no research at all; harvesting degrades the planet."),
 }
 
@@ -50,7 +50,7 @@ RESEARCH_MODEL = {
     "romulan": ("Stealth focus", "Normal speed with a big bonus on stealth techs; the only faction with plasma torpedoes and thalaron weapons."),
     "dominion": ("Salvage", "Slow labs, but captured wrecks give double research; phased polaron beams are theirs alone."),
     "ferengi": ("Buys tech", "No research of its own: it buys techs other players already have, so it is never first but rarely far behind."),
-    "borg": ("Assimilates", "No research at all: techs come from assimilating ships and crews, and transwarp conduits are Borg-only."),
+    "borg": ("Assimilates and combines", "Never researches. It assimilates any tech, even other factions' faction-only ones, from the ships, stations and colonies it takes, then combines what it holds into the next tech for nanoprobes."),
 }
 
 # Hazard categories and each faction's exposure and edge, for the hazards page.
@@ -75,7 +75,7 @@ HAZARD_STANCE = {
                  "Changeling infiltration is their own weapon, and the stable wormhole is home ground."),
     "ferengi": ("Freighter raids hit the whole economy, and crises can't be bought off.",
                 "Buys off the Orion Syndicate or hires raiders against rivals; buys counter techs other players have researched."),
-    "borg": ("Species 8472 targets the Collective, and with no research the Borg can't develop counters to anomalies.",
+    "borg": ("Species 8472 targets the Collective, and anomaly counters have to be assimilated from someone else, or combined from techs it already holds, before the Borg can use them.",
              "Adaptation shrugs off repeated attacks, and Borg nanoprobes are the one weapon Species 8472 can't ignore."),
 }
 

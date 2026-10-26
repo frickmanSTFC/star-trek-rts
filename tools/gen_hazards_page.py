@@ -22,7 +22,9 @@ def load(name):
 
 
 H = load("hazards.json")["hazards"]
-techs = {t["id"]: t for t in load("tech_tree.json")["techs"]}
+TT = load("tech_tree.json")
+techs = {t["id"]: t for t in TT["techs"]}
+RULES = TT.get("faction_rules", {})
 ERAS = load("eras.json")["eras"]
 RES = {r["id"]: r["name"] for r in load("resources.json")["resources"]}
 
@@ -52,9 +54,9 @@ counter_ids = sorted({t for h in H for t in h.get("counter_techs", []) if t in t
 factions = []
 for f in FACTIONS:
     exposed, edge = HAZARD_STANCE[f]
-    reach = reachable(techs, f)
-    # how the faction gets each counter tech: Ferengi buy research, the Borg assimilate it
-    how = "assimilate" if f == "borg" else "buy" if f == "ferengi" else "research"
+    reach = reachable(techs, f, RULES)
+    # how the faction gets each counter tech: Ferengi buy research; a faction that doesn't research assimilates or combines it
+    how = "assimilate" if RULES.get(f, {}).get("research") is False else "buy" if f == "ferengi" else "research"
     access = {t: (how if t in reach else "none") for t in counter_ids}
     factions.append({"id": f, "name": NAMES[f], "exposed": exposed, "edge": edge, "access": access,
                      "reach": sum(1 for t in counter_ids if t in reach)})
