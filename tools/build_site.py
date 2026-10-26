@@ -17,12 +17,13 @@ REPO = "https://github.com/frickmanSTFC/star-trek-rts"
 
 # (source file, published name, title, one-line description, accent colour)
 PAGES = [
+    ("factions.html", "factions.html", "Factions of the Galaxy", "The seven great powers side by side, full dossiers, and who appears in which era.", "#c99ad6"),
     ("faction-buildings.html", "faction-buildings.html", "Faction Buildings", "How the seven factions differ in what they build: opening sets, upgrade lines, wonders.", "#ff9c5b"),
     ("ship-designs.html", "ship-designs.html", "Starship Designs", "Fleet doctrine, the hull reference, every class by hull and era, specials and modules.", "#9aa3ff"),
     ("tech-tree.html", "tech-tree.html", "Research Tech Tree", "All 7 branches and 6 tiers with prerequisite tracing, faction access and starting eras.", "#8fd3b0"),
     ("hazards.html", "hazards.html", "Galactic Hazards", "Anomalies, world conditions, raiders, crises and wild cards, with counters by faction.", "#e2787a"),
     ("planet-classes.html", "planet-classes.html", "Planet Classes", "Every world and body: habitability, resources, terraforming, and who wants what.", "#7fc4e8"),
-    ("vehicles.html", "vehicles.html", "Craft and Ground Forces", "Shuttles, probes, the civilian fleet, ground troops and surface vehicles.", "#c99ad6"),
+    ("vehicles.html", "vehicles.html", "Craft and Ground Forces", "Shuttles, probes, the civilian fleet, ground troops and surface vehicles.", "#9aa3ff"),
     ("resources.html", "resources.html", "Resources and Materials", "Resource tiers, production chains and what each faction's economy consumes.", "#f3cb5b"),
     ("federation-build-tree.html", "federation-build-tree.html", "Federation Build Tree", "The Federation's buildings as a tech-gated tree with prerequisite links.", "#ffc999"),
     ("animation/colony-pod-drop.html", "colony-pod-drop.html", "Colony Pod Drop", "The 20-second animated drop of a Federation colony pod, with a scrubbable timeline.", "#b8c46a"),

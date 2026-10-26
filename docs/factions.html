@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font: 14px/1.5 system-ui, sans-serif; }
+img, video { max-width: 100%; }
+[hidden] { display: none !important; }
+.site-back { display: block; padding: 10px max(16px, env(safe-area-inset-left, 0px)) 0; font: 600 13px/1 "Barlow Condensed", "Arial Narrow", sans-serif;
+  letter-spacing: .1em; text-transform: uppercase; color: #a29fb6; text-decoration: none; background: #05060b; }
+.site-back:hover, .site-back:focus-visible { color: #ffc999; }
+</style>
+<title>Factions of the Galaxy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame shared with the other design pages; sections stack (great-power rows, comparison matrix, tabbed faction dossier, faction x era map, other powers, data checks). Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --sky: #7fc4e8;
+  --gold: #f3cb5b;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --f-federation: #7fc4e8;
+  --f-klingon: #e2787a;
+  --f-cardassian: #f3cb5b;
+  --f-romulan: #8fd3b0;
+  --f-dominion: #c99ad6;
+  --f-ferengi: #ff9c5b;
+  --f-borg: #b8c46a;
+  --role-era: #9aa3ff;
+  --role-minor: #8fd3b0;
+  --role-pirate: #ff9c5b;
+  --role-insurgent: #f3cb5b;
+  --role-crisis: #e2787a;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--lilac); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--lilac); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--lilac); }
+.bars .b2 { flex: 1.2; background: var(--sky); }
+.bars .b3 { flex: 2; background: var(--bad); }
+.bars .b4 { flex: .8; background: var(--gold); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--lilac); font-weight: 600; }
+.intro { max-width: 70ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--void); background: var(--lilac); padding: 4px 14px; border-radius: 14px; }
+nav.jump a:nth-child(2) { background: var(--sky); }
+nav.jump a:nth-child(3) { background: var(--peach); }
+nav.jump a:nth-child(4) { background: var(--good); }
+nav.jump a:nth-child(5) { background: var(--orange); }
+nav.jump a:nth-child(6) { background: var(--bad); }
+nav.jump a:focus-visible, button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 72ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.fdot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: var(--fc); flex: none; }
+.fname { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--label); font-size: 12px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; background: var(--panel-2); color: var(--ink); }
+.none { color: var(--ink-faint); }
+
+/* ---------- overview rows ---------- */
+.ov { display: grid; gap: 6px; }
+.ov-head { display: grid; grid-template-columns: 190px 1.2fr 1fr 170px; gap: 18px; padding: 0 16px 0 22px; }
+.ov-head span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row { display: grid; grid-template-columns: 190px minmax(0, 1.2fr) minmax(0, 1fr) 170px; gap: 6px 18px; background: var(--panel); border-left: 6px solid var(--fc); border-radius: 0 10px 10px 0; padding: 12px 16px; align-items: start; }
+.ov-row > * { min-width: 0; }
+.ov-row .who { display: grid; gap: 4px; }
+.ov-row .fname { font-size: 20px; }
+.hook { font-family: var(--label); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.ov-row h4 { margin: 0 0 2px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row p { margin: 0; font-size: 14px; }
+.sig b { display: block; font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+.ov-row a.open { font-family: var(--label); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--fc); text-decoration: none; }
+.ov-row a.open:hover { text-decoration: underline; }
+@media (max-width: 900px) { .ov-head { display: none; } .ov-row { grid-template-columns: 1fr; } }
+@media (min-width: 901px) { .ov-row h4 { display: none; } }
+
+/* ---------- tables ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); white-space: nowrap; }
+thead th .fname { font-size: 15px; }
+tbody th { background: var(--panel-2); font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--peach); white-space: nowrap; }
+tr:last-child > * { border-bottom: 0; }
+.cmp td { border-left: 1px solid var(--rule); min-width: 130px; }
+.cmp td.num { font-variant-numeric: tabular-nums; }
+.top { display: inline-block; margin-left: 6px; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--void); background: var(--fc); border-radius: 8px; padding: 0 6px; }
+.sub { display: block; color: var(--ink-dim); font-size: 13px; margin-top: 2px; }
+
+/* ---------- dossier ---------- */
+.ftabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.ftabs button { font: 600 15px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; background: var(--panel); color: var(--fc); border: 1.5px solid var(--fc); padding: 8px 16px; border-radius: 16px; }
+.ftabs button[aria-pressed="true"] { background: var(--fc); color: var(--void); }
+.dossier { background: var(--panel); border-radius: 10px; border-top: 5px solid var(--fc); padding: 18px 20px 20px; display: grid; gap: 18px; }
+.dossier > * { min-width: 0; }
+.d-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px 24px; }
+.d-head h3 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(26px, 4vw, 40px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--fc); }
+.d-head span { font-family: var(--label); font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.d-sig { background: var(--panel-2); border-left: 4px solid var(--fc); border-radius: 0 10px 10px 0; padding: 12px 16px; display: grid; gap: 4px; }
+.d-sig b { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: .04em; text-transform: uppercase; }
+.d-sig p { margin: 0; max-width: 80ch; }
+.d-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 20px; }
+@media (max-width: 1000px) { .d-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .d-grid { grid-template-columns: 1fr; } }
+.d-grid > div { min-width: 0; }
+.d-grid h4, .d-notes h4, .d-eras h4 { margin: 0 0 6px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.d-grid p { margin: 0; font-size: 14px; }
+.flav { display: grid; gap: 2px; font-size: 14px; }
+.flav span small { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin-right: 6px; }
+.d-eras .strip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+@media (max-width: 760px) { .d-eras .strip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.era { border-radius: 8px; padding: 6px 8px; background: var(--panel-2); font-family: var(--label); font-size: 12px; letter-spacing: .06em; color: var(--ink-faint); display: grid; }
+.era b { font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+.era.playable { background: color-mix(in srgb, var(--fc) 26%, var(--panel-2)); color: var(--ink); }
+.era.ai { box-shadow: inset 0 0 0 1px var(--fc); color: var(--ink-dim); }
+.d-notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; }
+@media (max-width: 760px) { .d-notes { grid-template-columns: 1fr; } }
+.d-notes div { border-top: 1px solid var(--rule); padding-top: 8px; }
+.d-notes p { margin: 0; font-size: 14px; }
+
+/* ---------- era map ---------- */
+.emap td { text-align: center; border-left: 1px solid var(--rule); min-width: 76px; padding: 7px 6px; }
+.emap tbody th { text-transform: none; letter-spacing: .02em; font-family: var(--body); font-size: 14px; color: var(--ink); border-left: 4px solid var(--rc); }
+.emap tbody th small { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+.cell-p { display: inline-block; min-width: 46px; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; border-radius: 7px; padding: 1px 6px; color: var(--void); background: var(--rc); }
+.cell-a { display: inline-block; min-width: 46px; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; border-radius: 7px; padding: 0 6px; color: var(--ink-dim); border: 1px solid var(--rc); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.rolechip { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; border-radius: 8px; padding: 1px 7px; color: var(--void); background: var(--rc); white-space: nowrap; }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+}
+</style>
+</head>
+<body>
+<a class="site-back" href="./">&larr; All design pages</a>
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Factions of the Galaxy</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">Every power in the Star Trek RTS. The seven great powers get a full comparison and a dossier that gathers what sets them apart on every other design page: buildings, fleets, research, craft, worlds, resources and hazards. Era powers, minor powers, pirates and crises follow. All values are placeholders for balancing.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#powers">Great powers</a><a href="#compare">Compare</a><a href="#dossier">Dossiers</a><a href="#eras">Eras</a><a href="#others">Other powers</a><a href="#checks">Data checks</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="powers" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>The great powers</h2><p>The seven factions playable across several eras, each with its signature mechanic and the weakness that balances it.</p></div></div>
+    <div class="ov">
+      <div class="ov-head"><span>Faction</span><span>Signature mechanic</span><span>Weakness</span><span>Home</span></div>
+      <div class="ov" id="ov"></div>
+    </div>
+  </section>
+
+  <section id="compare" style="--sec: var(--sky)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Side by side</h2><p>The numbers from every other page in one grid. A tag marks the faction that leads each row.</p></div></div>
+    <div class="scroll"><table class="cmp" id="cmp"></table></div>
+  </section>
+
+  <section id="dossier" style="--sec: var(--peach)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Faction dossiers</h2><p>Everything about one faction in one place. Add a faction's name to the page link (for example #klingon) to open its dossier directly.</p></div></div>
+    <div class="ftabs" id="ftabs" role="group" aria-label="Faction"></div>
+    <div class="dossier" id="dos" aria-live="polite"></div>
+  </section>
+
+  <section id="eras" style="--sec: var(--good)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Who appears in which era</h2><p>Every faction against the eight starting eras: playable by a person, or present as a computer-run power.</p></div></div>
+    <div class="legend" aria-hidden="true"><span style="--rc: var(--ink-dim)"><span class="cell-p">Play</span> playable</span><span style="--rc: var(--ink-dim)"><span class="cell-a">AI</span> computer-run</span></div>
+    <div class="scroll"><table class="emap" id="emap"></table></div>
+  </section>
+
+  <section id="others" style="--sec: var(--orange)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Other powers</h2><p>Era powers you can play in one era, minor powers, pirates, insurgents and crises.</p></div></div>
+    <div class="scroll"><table id="otable"></table></div>
+  </section>
+
+  <section id="checks" style="--sec: var(--bad)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 6</span><h2>Data checks</h2><p>Gaps between factions.json and the rest of the design data.</p></div></div>
+    <ul class="plain" id="checklist"></ul>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/factions.json</code>, <code>eras.json</code>, <code>buildings.json</code>, <code>ships.json</code>, <code>tech_tree.json</code>, <code>vehicles.json</code> and <code>resources.json</code> in the star-trek-rts design repo (<code>tools/gen_factions_page.py</code>). Companion pages cover each topic in depth.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = {"great": [{"id": "federation", "name": "Federation", "full": "United Federation of Planets", "playstyle": "Explorer / generalist / diplomacy", "hook": "Baseline", "signature": {"name": "Member Worlds", "desc": "Integrate other species via diplomacy; each member grants a unique bonus (Vulcan: research, Andorian: military, Tellarite: engineering, Bajoran: faith/morale)."}, "secondary": ["prime directive choices", "starfleet academy captain training", "first contact bonus"], "weakness": "Ships expensive; slow to declare war (council vote).", "home": "Sol (Earth, Luna, Mars/Utopia Planitia)", "weapons": ["phaser", "photon torpedo", "quantum torpedo"], "flavor": [["hero", "Starfleet Captain"], ["ground", "Security Teams"], ["special", "Hospital Ship"]], "eras": {"ent": "", "tos": "playable", "tng": "playable", "dominion_war": "playable", "voy": "", "picard": "playable", "far_future": "", "kelvin": "playable"}, "facts": {"openingCost": 700, "buildCost": 13500, "research": "Fastest", "lab": "+25% research (best in game).", "techs": 56, "ownTechs": [], "classes": 21, "flagship": "Odyssey (titan)", "units": 11, "troops": "Starfleet Security Team (3)", "ownResources": [], "scarce": ["Isolinear Chips", "Dilithium", "Warp Coils"], "wonders": ["Yorktown", "Fleet Yards"], "playableEras": 5}, "notes": {"Strengths": "Balanced costs; best research (+25% labs); widest habitation range (domes on any solid body); Yorktown and Utopia Planitia wonders.", "Trade-offs": "No gimmick to lean on; Xenology Post risks a Prime Directive penalty.", "Fleet": "Generalists with the widest roster. Saucer separation, multi-vector assault mode and the Intrepid's planetary landing give tactical options; a cloak only by treaty (Defiant).", "Research": "Best labs in the game; every shared tech is open, but no disruptors, and the only cloak is the forbidden Phasing Cloak.", "Craft and troops": "The widest craft roster: a shuttle for every job, runabouts that patrol on their own and a captain's yacht that saves its captain. Ground troops are disciplined but light.", "Worlds": "Class M first, then domes on K, L and H worlds; moons of gas giants for deuterium. Pressure Domes work on any solid body. Inhabited Class M worlds raise Prime Directive choices; a Xenology Post studies natives in secret.", "Hazards": "Exposed: Pre-warp dilemmas test the Prime Directive, and the largest research economy draws Borg attention. Edge: The best labs reach counter techs first, such as transphasic torpedoes; diplomacy builds coalition fleets against crises."}}, {"id": "klingon", "name": "Klingon", "full": "Klingon Empire", "playstyle": "Aggressive raider / boarding", "hook": "Honor", "signature": {"name": "Honor", "desc": "Earn Honor from combat and victories; spend it to call on Great Houses for ships, or lose it and risk civil war."}, "secondary": ["cloaked birds of prey", "boarding parties", "bloodwine feasts"], "weakness": "Weak economy and research; dishonorable acts (fleeing, sneak attacks on allies) cost Honor.", "home": "Qo'noS (Praxis moon — can explode in TOS era)", "weapons": ["disruptor", "photon torpedo"], "flavor": [["hero", "Dahar Master"], ["ground", "Klingon Warriors"], ["special", "Bird-of-Prey (cloak + fire)"]], "eras": {"ent": "playable", "tos": "playable", "tng": "playable", "dominion_war": "playable", "voy": "", "picard": "playable", "far_future": "playable", "kelvin": "playable"}, "facts": {"openingCost": 630, "buildCost": 8330, "research": "Weapons first", "lab": "Weapons-tree research only, at -25%.", "techs": 58, "ownTechs": ["Disruptors", "Cloaking Device"], "classes": 11, "flagship": "Sarcophagus (titan)", "units": 6, "troops": "Klingon Warriors (5)", "ownResources": ["Honor", "Bloodwine"], "scarce": ["Warp Coils", "Honor", "Kelbonite"], "wonders": ["Imperial Fleet Yards"], "playableEras": 7}, "notes": {"Strengths": "Cheap opening (only Ferengi leases cost less); guns and troops from turn one; strip mines and battle reactors front-load output; Honor buys Great House fleets.", "Trade-offs": "Research limited to weapons at -25%; mines deplete faster; reactors explode on neighbours.", "Fleet": "Raiders and boarders. Cloaked Birds-of-Prey and K'Vorts strike first, backed by disruptor cruisers; a titan is available as early as the TOS era.", "Research": "The opening Weapons Forge researches only the Weapons tree, and slower than a lab; Honor and conquest make up for it.", "Craft and troops": "Everything lands or boards: Toron assault shuttles, boarding pods and assault tanks carry some of the strongest warriors in the game.", "Worlds": "Class M and harsh Class H deserts; an asteroid in system for a hidden fortress. Strip Mines yield 25% more but exhaust deposits 25% faster. The Asteroid Fortress needs an asteroid field.", "Hazards": "Exposed: Weak research leaves anomalies without counters, and fleeing a crisis costs Honor. Edge: Tribbles can't survive a Klingon trade partner; warriors and boarding parties crush insurgents and raiders."}}, {"id": "cardassian", "name": "Cardassian", "full": "Cardassian Union", "playstyle": "Industrial / occupation / defensive", "hook": "Occupation", "signature": {"name": "Occupation", "desc": "Conquered colonies produce +50% but generate Resistance; ore-processing stations double refined output."}, "secondary": ["obsidian order", "uridium processing", "heavy defense platforms"], "weakness": "Resistance cells; ships individually weaker than Federation equivalents.", "home": "Cardassia Prime", "weapons": ["spiral wave disruptor", "photon torpedo"], "flavor": [["hero", "Gul"], ["ground", "Cardassian Soldiers"], ["special", "Ore Processing Station"]], "eras": {"ent": "", "tos": "", "tng": "playable", "dominion_war": "playable", "voy": "", "picard": "ai", "far_future": "", "kelvin": ""}, "facts": {"openingCost": 680, "buildCost": 7960, "research": "Slow", "lab": "-25% research.", "techs": 57, "ownTechs": ["Disruptors"], "classes": 4, "flagship": "Keldon (heavy cruiser)", "units": 5, "troops": "Cardassian Soldiers (3)", "ownResources": [], "scarce": ["Uridium", "Isolinear Chips", "Antimatter (Antideuterium)"], "wonders": ["Assembly Yards"], "playableEras": 2}, "notes": {"Strengths": "Strongest extraction (+50%); labour and occupation bonuses on populated worlds; Nor-type stations double refining.", "Trade-offs": "-25% research; output bonuses raise Resistance that must be managed.", "Fleet": "Mid-weight industrial navy: Galor cruisers backed by Hideki fighters and Groumall freighters. No titan berth, so the Keldon heavy cruiser is the largest hull.", "Research": "A quarter slower than baseline; the economy comes from occupation and refining instead.", "Craft and troops": "Built to hold ground: patrol skimmers suppress resistance while soldiers keep garrisons in line.", "Worlds": "Inhabited Class M worlds to occupy, and uridium-rich Class K and M. Ore Extraction Sites yield 50% more, with a uridium bonus on Class M. Labor Barracks on occupied worlds give +50% output but raise Resistance.", "Hazards": "Exposed: Occupation raises Resistance, which feeds Maquis-style insurgency on its own lanes. Edge: Surveillance grids expose Changelings and spies; heavy defense platforms hold the Badlands border."}}, {"id": "romulan", "name": "Romulan", "full": "Romulan Star Empire", "playstyle": "Stealth / espionage / ambush", "hook": "Stealth", "signature": {"name": "Tal Shiar", "desc": "Espionage ops: steal tech, incite unrest, assassinate captains. Cloaks on almost every hull."}, "secondary": ["singularity cores", "plasma torpedoes", "neutral zone treaty", "thalaron weapons banned"], "weakness": "Singularity-core ships leave gravity wells when destroyed; paranoid internal politics.", "home": "Romulus & Remus", "weapons": ["disruptor", "plasma torpedo", "thalaron"], "flavor": [["hero", "Tal Shiar Agent"], ["ground", "Reman Shock Troops"], ["special", "Warbird"]], "eras": {"ent": "playable", "tos": "playable", "tng": "playable", "dominion_war": "playable", "voy": "", "picard": "", "far_future": "", "kelvin": "playable"}, "facts": {"openingCost": 760, "buildCost": 8456, "research": "Stealth focus", "lab": "Normal research; +50% on stealth techs.", "techs": 61, "ownTechs": ["Artificial Quantum Singularity", "Disruptors", "Plasma Torpedoes", "Thalaron Radiation", "Cloaking Device"], "classes": 6, "flagship": "Scimitar (titan)", "units": 6, "troops": "Reman Shock Troops (5)", "ownResources": ["Artificial Singularity"], "scarce": ["Isolinear Chips", "Plasma Conduits", "Artificial Singularity"], "wonders": ["Singularity Yards"], "playableEras": 5}, "notes": {"Strengths": "Colonies, mines, guns and docks hidden from scans; spy slot from the start; singularity tech removes antimatter upkeep.", "Trade-offs": "Most expensive opening (needs isolinear chips early); shrouded mines yield -20%.", "Fleet": "Ambush fleet: cloaks on almost every hull, plasma torpedoes and singularity cores. The Scimitar adds a thalaron weapon and a perfect cloak.", "Research": "Normal speed with a big bonus on stealth techs; the only faction with plasma torpedoes and thalaron weapons.", "Craft and troops": "Stealth at every level: cloaked scout flyers and commandos, with Reman shock troops as a hammer that may turn on its masters.", "Worlds": "Class M worlds, and nebulae where cloaked ships gain a bonus. Shrouded Mines yield 20% less but stay invisible to scans and raids.", "Hazards": "Exposed: Singularity-core wrecks add gravity wells to every battle, and paranoia makes Changeling infiltration costly. Edge: Cloaked fleets slip past raiders, and the Phasing Cloak escapes Tholian webs."}}, {"id": "dominion", "name": "Dominion", "full": "The Dominion", "playstyle": "Clone army / infiltration", "hook": "Ketracel-white", "signature": {"name": "Ketracel White", "desc": "Jem'Hadar are cheap and fearless but need White; supply cut-off makes them go feral."}, "secondary": ["changeling infiltrators", "vorta diplomats", "cloning facilities"], "weakness": "Dependent on White and on a wormhole/supply link to the Gamma Quadrant.", "home": "Founders' Homeworld (Gamma Quadrant)", "weapons": ["phased polaron", "polaron torpedo"], "flavor": [["hero", "Vorta Field Supervisor"], ["ground", "Jem'Hadar"], ["special", "Changeling (shapeshift spy)"]], "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "playable", "voy": "", "picard": "", "far_future": "", "kelvin": ""}, "facts": {"openingCost": 712, "buildCost": 9384, "research": "Salvage", "lab": "-30% research; double research from captured wrecks.", "techs": 57, "ownTechs": ["Phased Polaron Beams"], "classes": 6, "flagship": "Jem'Hadar Battleship (titan)", "units": 5, "troops": "Jem'Hadar Squad (6)", "ownResources": ["Ketracel-white"], "scarce": ["Zenite", "Isolinear Chips", "Warp Coils"], "wonders": ["Stellar Forge"], "playableEras": 1}, "notes": {"Strengths": "No population needed: Jem'Hadar are grown in vats; squads arrive with the core; strong polaron defence.", "Trade-offs": "Everything depends on White supply; -30% research; skips cruiser hulls.", "Fleet": "Few classes, built in numbers: attack ships in pairs with kamikaze rams, then a battle cruiser and a battleship. Skips the cruiser tier entirely.", "Research": "Slow labs, but captured wrecks give double research; phased polaron beams are theirs alone.", "Craft and troops": "Vorta command shuttles bring supervisors to the front. Jem'Hadar squads are the strongest troops in the game, assault walkers break fortifications, and Changelings work from the inside.", "Worlds": "Almost anywhere: Jem'Hadar are grown in vats, so habitability barely matters. No native population growth. Birthing chambers need zenite, so Class L worlds matter.", "Hazards": "Exposed: Raiders or a closed wormhole that cut the Ketracel-white supply make Jem'Hadar go feral. Edge: Changeling infiltration is their own weapon, and the stable wormhole is home ground."}}, {"id": "ferengi", "name": "Ferengi", "full": "Ferengi Alliance", "playstyle": "Economy / mercenary / trade", "hook": "Latinum", "signature": {"name": "Rules Of Acquisition", "desc": "Unlockable Rules grant economic perks; can buy foreign ships, modules and mercenaries with Latinum."}, "secondary": ["trade monopolies", "bribery", "energy whip"], "weakness": "Weak native military; Latinum loss cripples them.", "home": "Ferenginar", "weapons": ["plasma energy burst", "photon torpedo"], "flavor": [["hero", "DaiMon"], ["ground", "Ferengi Mercenaries"], ["special", "Marauder"]], "eras": {"ent": "", "tos": "", "tng": "playable", "dominion_war": "playable", "voy": "", "picard": "ai", "far_future": "", "kelvin": ""}, "facts": {"openingCost": 480, "buildCost": 9990, "research": "Buys tech", "lab": "No own research; buy techs other players already have.", "techs": 57, "ownTechs": ["Plasma Energy Burst"], "classes": 5, "flagship": "D'Kora Marauder (cruiser)", "units": 5, "troops": "Hired Nausicaan Bodyguards (4)", "ownResources": [], "scarce": ["Latinum", "Cormaline"], "wonders": ["Grand Exchange", "Acquisition Yards"], "playableEras": 2}, "notes": {"Strengths": "Pays to play: leases, contracts and markets earn latinum from every faction; can buy research instead of doing it.", "Trade-offs": "Nothing works without latinum; no garrison on the core; defence is rented.", "Fleet": "One native warship, the D'Kora Marauder with its energy whip and cargo bay. The rest of the fleet is bought, or refitted from acquired foreign hulls.", "Research": "No research of its own: it buys techs other players already have, so it is never first but rarely far behind.", "Craft and troops": "Couriers that smuggle and trade. Ground defense is hired by the job and may change sides if outbid.", "Worlds": "Whatever pays: trade crossroads and rich deposits it can lease out. Mining Concessions cost nothing up front, and the mining rights can be sold to another player.", "Hazards": "Exposed: Freighter raids hit the whole economy, and crises can't be bought off. Edge: Buys off the Orion Syndicate or hires raiders against rivals; buys counter techs other players have researched."}}, {"id": "borg", "name": "Borg", "full": "Borg Collective", "playstyle": "Assimilation / adaptation", "hook": "Assimilation", "signature": {"name": "Adaptation", "desc": "Shields adapt to weapon types used repeatedly against the Collective; assimilate ships, tech and population."}, "secondary": ["transwarp conduits", "regeneration", "no diplomacy"], "weakness": "Can't trade or ally; frequency-rotation and multi-weapon strategies counter adaptation.", "home": "Unimatrix (Delta Quadrant)", "weapons": ["cutting beam", "tractor beam", "borg torpedo"], "flavor": [["hero", "Borg Queen"], ["ground", "Drones"], ["special", "Cube"]], "eras": {"ent": "", "tos": "", "tng": "ai", "dominion_war": "ai", "voy": "playable", "picard": "", "far_future": "", "kelvin": ""}, "facts": {"openingCost": 585, "buildCost": 10955, "research": "Assimilates and combines", "lab": "No research: assimilates tech from others and combines what the Collective holds into new tech.", "techs": 67, "ownTechs": ["Transwarp Conduits", "Nanoprobe Warheads"], "classes": 5, "flagship": "Cube (titan)", "units": 5, "troops": "Borg Tactical Drones (5)", "ownResources": ["Nanoprobes"], "scarce": ["Nanoprobes"], "wonders": ["Cube Matrix"], "playableEras": 1}, "notes": {"Strengths": "Strongest harvesting (+60%); shared power grid; adapts to weapons; assimilates tech from anyone and combines it into new tech.", "Trade-offs": "Can only settle populated worlds; no research at all; harvesting degrades the planet.", "Fleet": "Geometric hulls from probe to cube that can mount any assimilated module. Cubes adapt and regenerate; the Queen's Diamond gives a command aura.", "Research": "Never researches. It assimilates any tech, even other factions' faction-only ones, from the ships, stations and colonies it takes, then combines what it holds into the next tech for nanoprobes.", "Craft and troops": "Drone pods board ships and assimilate crews; drones adapt their shields to the defenders' weapons.", "Worlds": "Populated worlds only, which means Class M worlds with natives. The Assimilation Spire needs a populated world. Strip Harvesters yield 60% more but degrade the planet class over time.", "Hazards": "Exposed: Species 8472 targets the Collective, and anomaly counters have to be assimilated from someone else, or combined from techs it already holds, before the Borg can use them. Edge: Adaptation shrugs off repeated attacks, and Borg nanoprobes are the one weapon Species 8472 can't ignore."}}], "others": [{"id": "breen", "name": "Breen Confederacy", "role": "Minor power", "roleKey": "dlc_or_minor", "signature": "Energy Dampener", "desc": "Weapon that knocks out a target's power entirely.", "eras": {"ent": "", "tos": "", "tng": "ai", "dominion_war": "playable", "voy": "", "picard": "ai", "far_future": "", "kelvin": ""}, "ships": 1, "units": 0}, {"id": "tholian", "name": "Tholian Assembly", "role": "Minor power", "roleKey": "minor", "signature": "Tholian Web", "desc": "Ships cooperate to spin an energy web that traps enemies.", "eras": {"ent": "ai", "tos": "playable", "tng": "ai", "dominion_war": "", "voy": "", "picard": "", "far_future": "", "kelvin": ""}, "ships": 0, "units": 0}, {"id": "gorn", "name": "Gorn Hegemony", "role": "Minor power", "roleKey": "minor", "signature": "Brute Force", "desc": "Durable, slow, heavy-hitting ships.", "eras": {"ent": "ai", "tos": "playable", "tng": "", "dominion_war": "", "voy": "", "picard": "ai", "far_future": "", "kelvin": ""}, "ships": 0, "units": 0}, {"id": "bajoran", "name": "Bajor", "role": "Minor power", "roleKey": "minor", "signature": "Prophets", "desc": "Wormhole aliens may intervene; resistance cells fight occupiers.", "eras": {"ent": "", "tos": "", "tng": "ai", "dominion_war": "ai", "voy": "", "picard": "", "far_future": "", "kelvin": ""}, "ships": 0, "units": 0}, {"id": "earth_uec", "name": "United Earth (pre-Federation)", "role": "Era power", "roleKey": "era", "signature": "Coalition Builder", "desc": "Found the Coalition of Planets with Vulcans/Andorians/Tellarites — becomes the Federation in an Ages campaign.", "eras": {"ent": "playable", "tos": "", "tng": "", "dominion_war": "", "voy": "", "picard": "", "far_future": "", "kelvin": ""}, "ships": 1, "units": 2}, {"id": "vulcan", "name": "Vulcan High Command", "role": "Era power", "roleKey": "era", "signature": "Logic", "desc": "Research and sensor bonuses; mind-meld intel; reluctant to fight.", "eras": {"ent": "playable", "tos": "", "tng": "", "dominion_war": "", "voy": "", "picard": "", "far_future": "", "kelvin": ""}, "ships": 0, "units": 0}, {"id": "andorian", "name": "Andorian Empire", "role": "Era power", "roleKey": "era", "signature": "Imperial Guard", "desc": "Strong early military; ice-world colonization bonus.", "eras": {"ent": "playable", "tos": "", "tng": "", "dominion_war": "", "voy": "", "picard": "", "far_future": "", "kelvin": ""}, "ships": 0, "units": 0}, {"id": "tellarite", "name": "Tellarite", "role": "Era power", "roleKey": "era", "signature": "Engineers And Hagglers", "desc": "Cheaper construction; trade bonuses; argumentative diplomacy.", "eras": {"ent": "playable", "tos": "", "tng": "", "dominion_war": "", "voy": "", "picard": "", "far_future": "", "kelvin": ""}, "ships": 0, "units": 0}, {"id": "federation_lost_ship", "name": "Starfleet (Stranded Ship)", "role": "Era power", "roleKey": "era", "signature": "Long Way Home", "desc": "Start with one ship, no homeworld; trade, scavenge and recruit to build a fleet.", "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "", "voy": "playable", "picard": "", "far_future": "", "kelvin": ""}, "ships": 0, "units": 2}, {"id": "vidiian", "name": "Vidiian Sodality", "role": "Minor power", "roleKey": "minor", "signature": "Organ Harvest", "desc": "Raids crews for organs to fight the Phage; medicine-tech leaders.", "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "", "voy": "playable", "picard": "", "far_future": "", "kelvin": ""}, "ships": 0, "units": 0}, {"id": "romulan_free_state", "name": "Romulan Free State", "role": "Era power", "roleKey": "era", "signature": "Refugee Diaspora", "desc": "Post-supernova; scattered colonies, refugee manpower, Zhat Vash intrigue.", "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "", "voy": "", "picard": "playable", "far_future": "", "kelvin": ""}, "ships": 0, "units": 0}, {"id": "fenris_rangers", "name": "Fenris Rangers", "role": "Minor power", "roleKey": "minor", "signature": "Frontier Justice", "desc": "Anti-pirate vigilantes; bounty-hunting bonuses.", "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "", "voy": "", "picard": "playable", "far_future": "", "kelvin": ""}, "ships": 0, "units": 0}, {"id": "federation_remnant", "name": "Federation (Post-Burn)", "role": "Era power", "roleKey": "era", "signature": "Rebuild", "desc": "Reconnect lost member worlds; programmable-matter ships; dilithium-starved.", "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "", "voy": "", "picard": "", "far_future": "playable", "kelvin": ""}, "ships": 2, "units": 0}, {"id": "emerald_chain", "name": "Emerald Chain", "role": "Era power", "roleKey": "era", "signature": "Syndicate Empire", "desc": "Orion-Andorian crime syndicate controlling dilithium supply.", "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "", "voy": "", "picard": "", "far_future": "playable", "kelvin": ""}, "ships": 1, "units": 0}, {"id": "ni_var", "name": "Ni'Var", "role": "Era power", "roleKey": "era", "signature": "Reunification", "desc": "Unified Vulcan-Romulan world; cloaks plus research bonuses.", "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "", "voy": "", "picard": "", "far_future": "playable", "kelvin": ""}, "ships": 0, "units": 0}, {"id": "maquis", "name": "Maquis", "role": "Insurgents", "roleKey": "insurgent", "signature": "Spawned By Unrest", "desc": "Rises from unhappy or ceded colonies; guerrilla raids from plasma storms.", "eras": {"ent": "", "tos": "", "tng": "ai", "dominion_war": "ai", "voy": "", "picard": "", "far_future": "", "kelvin": ""}, "ships": 0, "units": 2}, {"id": "orion", "name": "Orion Syndicate", "role": "Pirates", "roleKey": "pirate", "signature": "Smuggling Networks", "desc": "Raids trade lanes, sells contraband, kidnaps colonists.", "eras": {"ent": "ai", "tos": "ai", "tng": "ai", "dominion_war": "ai", "voy": "", "picard": "ai", "far_future": "", "kelvin": ""}, "ships": 1, "units": 0}, {"id": "nausicaan", "name": "Nausicaan Raiders", "role": "Pirates", "roleKey": "pirate", "signature": "Freighter Raids", "desc": "Hit-and-run attacks on freighters and civilian transports.", "eras": {"ent": "ai", "tos": "ai", "tng": "ai", "dominion_war": "ai", "voy": "", "picard": "ai", "far_future": "", "kelvin": ""}, "ships": 1, "units": 0}, {"id": "kazon", "name": "Kazon Sects", "role": "Pirates", "roleKey": "pirate", "signature": "Sect Swarm", "desc": "Many feuding sects; swarm tactics; covet replicator tech.", "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "", "voy": "playable", "picard": "", "far_future": "", "kelvin": ""}, "ships": 2, "units": 0}, {"id": "hirogen", "name": "Hirogen Hunters", "role": "Pirates", "roleKey": "pirate", "signature": "The Hunt", "desc": "Target your highest-XP ships/captains; tetryon weapons.", "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "", "voy": "playable", "picard": "", "far_future": "", "kelvin": ""}, "ships": 1, "units": 1}, {"id": "species_8472", "name": "Species 8472", "role": "Crisis", "roleKey": "crisis", "signature": "Fluidic Space", "desc": "Bio-ships immune to most weapons; only nanoprobe-based weapons work well.", "eras": {"ent": "", "tos": "", "tng": "", "dominion_war": "", "voy": "ai", "picard": "", "far_future": "", "kelvin": ""}, "ships": 1, "units": 0}], "eras": [{"id": "ent", "short": "Enterprise", "name": "Enterprise Era", "years": [2151, 2161]}, {"id": "tos", "short": "TOS", "name": "Discovery / TOS Era", "years": [2256, 2293]}, {"id": "tng", "short": "TNG", "name": "Next Generation Era", "years": [2364, 2373]}, {"id": "dominion_war", "short": "Dominion War", "name": "Dominion War", "years": [2373, 2379]}, {"id": "voy", "short": "Voyager", "name": "Delta Quadrant", "years": [2371, 2378]}, {"id": "picard", "short": "Picard", "name": "Picard Era", "years": [2380, 2402]}, {"id": "far_future", "short": "32nd century", "name": "32nd Century", "years": [3189, 3191]}, {"id": "kelvin", "short": "Kelvin", "name": "Kelvin Timeline (optional)", "years": [2233, 2263]}], "checks": ["9 era powers are playable but have only a signature mechanic (no playstyle, weakness, home, weapons or flavor units): United Earth (pre-Federation), Vulcan High Command, Andorian Empire, Tellarite, Starfleet (Stranded Ship), Romulan Free State, Federation (Post-Burn), Emerald Chain, Ni'Var.", "Playable era powers with no ships or units of their own yet: Vulcan High Command, Andorian Empire, Tellarite, Romulan Free State, Ni'Var.", "Hero units named in factions.json aren't defined in any unit data yet: Starfleet Captain (Federation), Dahar Master (Klingon), Gul (Cardassian), Vorta Field Supervisor (Dominion), DaiMon (Ferengi), Borg Queen (Borg).", "Federation has no faction-only techs."], "counts": {"all": 28, "great": 7, "era": 9}};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fc = (id) => `--fc: var(--f-${id})`;
+const fname = (f) => `<span class="fname" style="${fc(f.id)}"><span class="fdot"></span>${esc(f.name)}</span>`;
+const fmt = (n) => Number(n).toLocaleString("en-US");
+const roleColor = { era: "--role-era", minor: "--role-minor", dlc_or_minor: "--role-minor", pirate: "--role-pirate", insurgent: "--role-insurgent", crisis: "--role-crisis" };
+
+$("readout").innerHTML = `<span><b>${D.counts.all}</b> factions</span><span><b>${D.counts.great}</b> great powers</span><span><b>${D.counts.era}</b> era powers</span>`;
+
+// ---- great powers
+$("ov").innerHTML = D.great.map((g) => `<div class="ov-row" style="${fc(g.id)}">
+  <div class="who">${fname(g)}<span class="hook">${esc(g.playstyle)}</span><a class="open" href="#${g.id}" data-open="${g.id}">Open dossier &rarr;</a></div>
+  <div class="sig"><h4>Signature mechanic</h4><b>${esc(g.signature.name)}</b><p>${esc(g.signature.desc)}</p></div>
+  <div><h4>Weakness</h4><p>${esc(g.weakness)}</p></div>
+  <div><h4>Home</h4><p>${esc(g.home)}</p></div>
+</div>`).join("");
+
+// ---- comparison (lead tag on numeric rows: highest, or lowest where "low" is set)
+const rows = [
+  ["Playable eras", (g) => g.facts.playableEras, { num: true }],
+  ["Opening cost", (g) => g.facts.openingCost, { num: true, low: true, sub: "seven opening buildings, total units" }],
+  ["All buildings", (g) => g.facts.buildCost, { num: true, sub: "total cost of every level" }],
+  ["Research", (g) => `${g.facts.research}<span class="sub">${esc(g.facts.lab)}</span>`, {}],
+  ["Techs it can get", (g) => g.facts.techs, { num: true }],
+  ["Faction-only techs", (g) => g.facts.ownTechs.length ? esc(g.facts.ownTechs.join(", ")) : `<span class="none">None</span>`, {}],
+  ["Ship classes", (g) => g.facts.classes, { num: true }],
+  ["Flagship", (g) => esc(g.facts.flagship), {}],
+  ["Signature weapons", (g) => esc(g.weapons.join(", ")), {}],
+  ["Craft and troops", (g) => g.facts.units, { num: true, sub: "units of its own" }],
+  ["Strongest troops", (g) => esc(g.facts.troops), {}],
+  ["Its own resources", (g) => g.facts.ownResources.length ? esc(g.facts.ownResources.join(", ")) : `<span class="none">None</span>`, {}],
+  ["Distinctive costs", (g) => g.facts.scarce.length ? esc(g.facts.scarce.join(", ")) : `<span class="none">Only common materials</span>`, {}],
+  ["Wonders", (g) => esc(g.facts.wonders.join(", ")), {}],
+];
+$("cmp").innerHTML = `<thead><tr><th scope="col">Measure</th>${D.great.map((g) => `<th scope="col">${fname(g)}</th>`).join("")}</tr></thead><tbody>` +
+  rows.map(([label, get, o]) => {
+    let lead = null;
+    if (o.num) {
+      const vals = D.great.map(get);
+      const best = o.low ? Math.min(...vals) : Math.max(...vals);
+      if (vals.filter((v) => v === best).length === 1) lead = D.great[vals.indexOf(best)].id;
+    }
+    return `<tr><th scope="row">${esc(label)}${o.sub ? `<span class="sub" style="text-transform:none;letter-spacing:0;font-family:var(--body);font-weight:400">${esc(o.sub)}</span>` : ""}</th>${D.great.map((g) =>
+      `<td class="${o.num ? "num" : ""}" style="${fc(g.id)}">${o.num ? fmt(get(g)) : get(g)}${lead === g.id ? `<span class="top">${o.low ? "Lowest" : "Most"}</span>` : ""}</td>`).join("")}</tr>`;
+  }).join("") + `</tbody>`;
+
+// ---- dossier
+function renderDossier(id) {
+  const g = D.great.find((x) => x.id === id);
+  $("dos").setAttribute("style", fc(g.id));
+  $("dos").innerHTML = `
+    <div class="d-head"><h3>${esc(g.full)}</h3><span>${esc(g.playstyle)}</span></div>
+    <div class="d-sig"><span class="eyebrow">Signature mechanic</span><b>${esc(g.signature.name)}</b><p>${esc(g.signature.desc)}</p></div>
+    <div class="d-grid">
+      <div><h4>Also known for</h4><div class="chips">${g.secondary.map((s) => `<span class="chip">${esc(s)}</span>`).join("")}</div></div>
+      <div><h4>Signature weapons</h4><div class="chips">${g.weapons.map((s) => `<span class="chip">${esc(s)}</span>`).join("")}</div></div>
+      <div><h4>Flavor units</h4><div class="flav">${g.flavor.map(([k, v]) => `<span><small>${esc(k)}</small>${esc(v)}</span>`).join("")}</div></div>
+      <div><h4>Home and weakness</h4><p>${esc(g.home)}</p><p class="sub">${esc(g.weakness)}</p></div>
+    </div>
+    <div class="d-eras"><h4>Eras</h4><div class="strip">${D.eras.map((e) => {
+      const st = g.eras[e.id];
+      return `<div class="era ${st}"><b>${esc(e.short)}</b>${st === "playable" ? "Playable" : st === "ai" ? "AI only" : "Absent"}</div>`;
+    }).join("")}</div></div>
+    <div class="d-notes">${Object.entries(g.notes).map(([k, v]) => `<div><h4>${esc(k)}</h4><p>${esc(v)}</p></div>`).join("")}</div>`;
+  document.querySelectorAll("#ftabs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === id)));
+}
+$("ftabs").innerHTML = D.great.map((g) => `<button type="button" id="tab-${g.id}" data-f="${g.id}" style="${fc(g.id)}" aria-pressed="false">${esc(g.name)}</button>`).join("");
+document.querySelectorAll("#ftabs button").forEach((b) => b.addEventListener("click", () => renderDossier(b.dataset.f)));
+document.querySelectorAll("[data-open]").forEach((a) => a.addEventListener("click", (ev) => {
+  ev.preventDefault(); renderDossier(a.dataset.open); $("dossier").scrollIntoView();
+}));
+const h = location.hash.slice(1);
+renderDossier(D.great.some((g) => g.id === h) ? h : D.great[0].id);
+if (D.great.some((g) => g.id === h)) $("dossier").scrollIntoView();
+
+// ---- era map
+const groups = [["Great powers", D.great.map((g) => ({ id: g.id, name: g.name, eras: g.eras, color: `var(--f-${g.id})`, role: "" }))]]
+  .concat([["era", "Era powers"], ["minor", "Minor powers"], ["pirate", "Pirates"], ["insurgent", "Insurgents"], ["crisis", "Crisis"]].map(([k, l]) =>
+    [l, D.others.filter((o) => o.roleKey === k || (k === "minor" && o.roleKey === "dlc_or_minor")).map((o) => ({ ...o, color: `var(${roleColor[o.roleKey]})` }))]));
+$("emap").innerHTML = `<thead><tr><th scope="col">Faction</th>${D.eras.map((e) => `<th scope="col" title="${esc(e.name)}, ${e.years[0]}–${e.years[1]}">${esc(e.short)}</th>`).join("")}</tr></thead><tbody>` +
+  groups.filter(([, list]) => list.length).map(([label, list]) =>
+    list.map((f, i) => `<tr style="--rc: ${f.color}"><th scope="row">${esc(f.name)}${i === 0 ? `<small>${esc(label)}</small>` : ""}</th>${D.eras.map((e) => {
+      const st = f.eras[e.id];
+      return `<td>${st === "playable" ? `<span class="cell-p">Play</span>` : st === "ai" ? `<span class="cell-a">AI</span>` : ""}</td>`;
+    }).join("")}</tr>`).join("")).join("") + `</tbody>`;
+
+// ---- other powers
+$("otable").innerHTML = `<thead><tr><th scope="col">Power</th><th scope="col">Kind</th><th scope="col">Signature</th><th scope="col">Eras</th><th scope="col">Own ships · units</th></tr></thead><tbody>` +
+  D.others.map((o) => `<tr style="--rc: var(${roleColor[o.roleKey]})"><td><b>${esc(o.name)}</b></td><td><span class="rolechip">${esc(o.role)}</span></td>
+    <td><b>${esc(o.signature)}</b><span class="sub">${esc(o.desc)}</span></td>
+    <td>${esc(D.eras.filter((e) => o.eras[e.id]).map((e) => e.short + (o.eras[e.id] === "ai" ? " (AI)" : "")).join(", ")) || "—"}</td>
+    <td class="num">${o.ships} · ${o.units}</td></tr>`).join("") + `</tbody>`;
+
+// ---- checks
+$("checklist").innerHTML = D.checks.length ? D.checks.map((c) => `<li>${esc(c)}</li>`).join("") : `<li>No gaps found.</li>`;
+</script>
+
+</body>
+</html>
