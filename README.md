@@ -11,6 +11,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 - `hazards.html`: interactive hazard catalog (categories, filterable cards, faction exposure, counter techs by faction, data checks). Regenerate with `python3 tools/gen_hazards_page.py`.
 - `planet-classes.html`: interactive guide to planet classes and bodies (habitability, resource map, terraforming, faction world preferences, data checks). Regenerate with `python3 tools/gen_planet_classes_page.py`.
 - `vehicles.html`: interactive page for small craft, probes, civilian ships, ground forces and vehicles (roster by faction, ground strength, catalog, data checks). Regenerate with `python3 tools/gen_vehicles_page.py`.
+- `resources.html`: interactive resource guide (tiers, production chains, faction demand, catalog, data checks). Regenerate with `python3 tools/gen_resources_page.py`.
 - `docs/faction-buildings.md`: grids comparing every faction's buildings (starting sets, upgrade lines, capabilities, wonders). Regenerate with `python3 tools/gen_faction_buildings_doc.py`.
 - `federation-build-tree.html`: interactive Federation build tree. Open it in any browser.
 - `art/`: detailed isometric artwork. `art/federation-colony-hub/` has the Colony Hub at all five levels (SVG, open in any browser).
@@ -30,6 +31,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 - Galactic hazards: https://claude.ai/artifact/Vai46ETcjaNJG7ojmmKBH8
 - Planet classes: https://claude.ai/artifact/A7rTNNkxcBGj8LKJvhSnnP
 - Craft and ground forces: https://claude.ai/artifact/53hsd46T61zcfcxjFLd5nu
+- Resources and materials: https://claude.ai/artifact/RvherhjUTzqwb1rWZcKZeS
 
 These links only open for people the owner has shared them with (Share menu on each page).
 
