@@ -41,3 +41,14 @@ SHIP_DOCTRINE = {
     "ferengi": "One native warship, the D'Kora Marauder with its energy whip and cargo bay. The rest of the fleet is bought, or refitted from acquired foreign hulls.",
     "borg": "Geometric hulls from probe to cube that can mount any assimilated module. Cubes adapt and regenerate; the Queen's Diamond gives a command aura.",
 }
+
+# Hand-written research model per faction for the tech tree page (the opening research building's effect comes from buildings.json).
+RESEARCH_MODEL = {
+    "federation": ("Fastest", "Best labs in the game; every shared tech is open, but no disruptors or cloaks."),
+    "klingon": ("Weapons first", "The opening Weapons Forge researches only the Weapons tree, and slower than a lab; Honor and conquest make up for it."),
+    "cardassian": ("Slow", "A quarter slower than baseline; the economy comes from occupation and refining instead."),
+    "romulan": ("Stealth focus", "Normal speed with a big bonus on stealth techs; the only faction with plasma torpedoes and thalaron weapons."),
+    "dominion": ("Salvage", "Slow labs, but captured wrecks give double research; phased polaron beams are theirs alone."),
+    "ferengi": ("Buys tech", "No research of its own: it buys techs other players already have, so it is never first but rarely far behind."),
+    "borg": ("Assimilates", "No research at all: techs come from assimilating ships and crews, and transwarp conduits are Borg-only."),
+}

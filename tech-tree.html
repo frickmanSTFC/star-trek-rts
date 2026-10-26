@@ -1,0 +1,454 @@
+<title>Research Tech Tree</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame shared with Faction Buildings and Starship Designs; sections stack (faction research rows, tier x branch tree with prerequisite links and a detail readout, era table, forbidden techs, resources, data checks). Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --sky: #7fc4e8;
+  --gold: #f3cb5b;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --t-propulsion: #9aa3ff;
+  --t-weapons: #ff9c5b;
+  --t-defense: #7fc4e8;
+  --t-sensors_stealth: #c99ad6;
+  --t-engineering: #ffc999;
+  --t-computing: #8fd3b0;
+  --t-biology_colonization: #f3cb5b;
+  --f-federation: #7fc4e8;
+  --f-klingon: #e2787a;
+  --f-cardassian: #f3cb5b;
+  --f-romulan: #8fd3b0;
+  --f-dominion: #c99ad6;
+  --f-ferengi: #ff9c5b;
+  --f-borg: #b8c46a;
+  --f-hirogen: #a29fb6;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--good); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--good); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--good); }
+.bars .b2 { flex: 1.2; background: var(--periwinkle); }
+.bars .b3 { flex: 2; background: var(--orange); }
+.bars .b4 { flex: .8; background: var(--peach); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--good); font-weight: 600; }
+.intro { max-width: 70ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--void); background: var(--good); padding: 4px 14px; border-radius: 14px; }
+nav.jump a:nth-child(2) { background: var(--periwinkle); }
+nav.jump a:nth-child(3) { background: var(--peach); }
+nav.jump a:nth-child(4) { background: var(--bad); }
+nav.jump a:nth-child(5) { background: var(--gold); }
+nav.jump a:nth-child(6) { background: var(--lilac); }
+nav.jump a:focus-visible, button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 72ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.fdot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: var(--fc); flex: none; }
+.fname { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; max-width: 90ch; }
+
+/* ---------- faction research rows ---------- */
+.ov { display: grid; gap: 6px; }
+.ov-head { display: grid; grid-template-columns: 170px 1.3fr 1fr 1fr; gap: 18px; padding: 0 16px 0 22px; }
+.ov-head span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row { display: grid; grid-template-columns: 170px minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 18px; background: var(--panel); border-left: 6px solid var(--fc); border-radius: 0 10px 10px 0; padding: 12px 16px; }
+.ov-row > * { min-width: 0; }
+.who { display: grid; gap: 4px; align-content: start; }
+.who .fname { font-size: 20px; }
+.hook { font-family: var(--label); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.ov-row h4 { margin: 0 0 2px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row p { margin: 0; font-size: 14px; }
+.lab b { display: block; font-weight: 600; font-size: 14px; }
+.lab span { color: var(--ink-dim); font-size: 13px; }
+.access { display: grid; gap: 6px; }
+.meter { display: grid; grid-template-columns: minmax(0, 1fr) 54px; gap: 8px; align-items: center; }
+.meter .track { position: relative; height: 10px; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 25%); }
+.meter .fill { position: absolute; inset: 1px auto 1px 0; background: var(--fc); border-radius: 0 5px 5px 0; }
+.meter span { font-family: var(--label); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--label); font-size: 12px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; background: var(--panel-2); color: var(--ink); }
+@media (max-width: 900px) {
+  .ov-head { display: none; }
+  .ov-row { grid-template-columns: 1fr; }
+}
+@media (min-width: 901px) { .ov-row h4 { display: none; } }
+
+/* ---------- controls ---------- */
+.controls { display: grid; gap: 8px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.ctl > span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); min-width: 92px; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--panel); padding: 4px; border-radius: 18px; }
+.seg button { font: 600 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 0; cursor: pointer; background: transparent; color: var(--ink-dim); padding: 8px 12px; border-radius: 14px; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--bc, var(--periwinkle)); color: var(--void); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---------- tree ---------- */
+.treewrap { overflow-x: auto; background: var(--panel); border-radius: 10px; }
+.tree { position: relative; display: grid; grid-template-columns: 128px repeat(6, minmax(158px, 1fr)); min-width: 1120px; }
+.tree svg.links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: visible; }
+.tree svg path { fill: none; stroke: var(--rule); stroke-width: 1.5; }
+.tree svg path.on { stroke: var(--peach); stroke-width: 2; }
+.tree svg path.off { opacity: .25; }
+.th { font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); padding: 10px 10px 8px; background: var(--panel-2); border-bottom: 1px solid var(--rule); position: relative; z-index: 1; }
+.th b { display: block; font-family: var(--display); font-size: 18px; color: var(--ink); letter-spacing: .04em; }
+.rh { padding: 10px; border-bottom: 1px solid var(--rule); background: var(--panel-2); position: relative; z-index: 1; font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--tc); border-left: 4px solid var(--tc); }
+.cell { padding: 8px 10px; border-bottom: 1px solid var(--rule); border-left: 1px solid var(--rule); display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 1; }
+.cell.locked { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--rule) 55%, transparent) 6px 7px); }
+.tech {
+  all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 3px; background: var(--panel-2); border-radius: 0 8px 8px 0;
+  border-left: 3px solid var(--tc); padding: 6px 8px; position: relative; transition: opacity .15s ease, background .15s ease;
+}
+.tech:hover { background: color-mix(in srgb, var(--tc) 12%, var(--panel-2)); }
+.tech:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+.tech .n { font-weight: 600; font-size: 13px; line-height: 1.25; }
+.tech .m { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+.tech.sel { background: color-mix(in srgb, var(--tc) 22%, var(--panel-2)); box-shadow: 0 0 0 1.5px var(--tc); }
+.tech.rel { box-shadow: 0 0 0 1px color-mix(in srgb, var(--peach) 60%, transparent); }
+.tech.dim { opacity: .28; }
+.tag { font-family: var(--label); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; border-radius: 7px; padding: 0 6px; line-height: 16px; }
+.tag.forbidden { color: var(--void); background: var(--bad); }
+.tag.risky { color: var(--void); background: var(--gold); }
+.tag.victory { color: var(--void); background: var(--good); }
+.tag.res { color: var(--peach); border: 1px solid color-mix(in srgb, var(--peach) 50%, transparent); }
+.tag.era-granted { color: var(--void); background: var(--sky); }
+.tag.era-research { color: var(--sky); border: 1px solid var(--sky); }
+.tag.era-locked { color: var(--ink-faint); border: 1px solid var(--rule); }
+.only { display: inline-flex; gap: 2px; }
+.only .fdot { width: 8px; height: 8px; }
+
+/* detail readout */
+.detail { background: var(--panel); border-radius: 10px; border-top: 4px solid var(--tc); padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px 24px; }
+.detail > * { min-width: 0; }
+.detail h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 24px; letter-spacing: .03em; text-transform: uppercase; color: var(--tc); }
+.detail .where { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.detail p { margin: 0; }
+.detail h4 { margin: 0 0 4px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.link { all: unset; cursor: pointer; font-family: var(--label); font-size: 13px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; background: var(--panel-2); color: var(--ink); border-left: 3px solid var(--tc); }
+.link:hover { color: var(--peach); }
+.link:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+.ul { display: grid; gap: 3px; font-size: 14px; }
+.ul span small { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin-right: 6px; }
+@media (max-width: 860px) { .detail { grid-template-columns: 1fr; } }
+
+/* ---------- tables ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); white-space: nowrap; }
+tbody th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--peach); white-space: nowrap; background: var(--panel-2); }
+tr:last-child > * { border-bottom: 0; }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bname { font-weight: 600; display: block; }
+.sub { display: block; color: var(--ink-dim); font-size: 13px; margin-top: 3px; }
+.stack { display: flex; height: 14px; min-width: 200px; border-radius: 0 7px 7px 0; overflow: hidden; background: var(--rule); }
+.stack i { display: block; height: 100%; }
+.stack .g { background: var(--sky); }
+.stack .r { background: color-mix(in srgb, var(--sky) 40%, var(--panel-2)); }
+.checks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1000px) { .checks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .checks { grid-template-columns: 1fr; } }
+.ck { background: var(--panel); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; }
+.ck h4 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 17px; letter-spacing: .05em; text-transform: uppercase; color: var(--lilac); display: flex; justify-content: space-between; }
+.ck h4 small { font-family: var(--label); font-size: 12px; color: var(--ink-faint); }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+}
+@media (prefers-reduced-motion: reduce) { .tech { transition: none; } }
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Research Tech Tree</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">The research tree of the Star Trek RTS and how each of the seven playable factions moves through it. Techs sit in seven branches and six tiers; each tier roughly matches an era, and the era you start in decides what you begin with. All values are placeholders for balancing.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#factions">Factions</a><a href="#tree">Tree</a><a href="#eras">Starting eras</a><a href="#forbidden">Forbidden techs</a><a href="#resources">Resources</a><a href="#checks">Data checks</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="factions" style="--sec: var(--good)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>How each faction researches</h2><p>Research speed comes from each faction's opening research building; access comes from faction-only techs and their prerequisites.</p></div></div>
+    <div class="ov">
+      <div class="ov-head"><span>Faction</span><span>Research model</span><span>Opening research building</span><span>Tree access</span></div>
+      <div class="ov" id="ov"></div>
+    </div>
+  </section>
+
+  <section id="tree" style="--sec: var(--periwinkle)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>The tree</h2><p>Select a tech to trace what it needs and what it leads to. Filter by faction to grey out techs it can't research, and pick a starting era to see what you begin with.</p></div></div>
+    <div class="controls">
+      <div class="ctl"><span>Faction</span><div class="seg" id="fseg" role="group" aria-label="Faction"></div></div>
+      <div class="ctl"><span>Starting era</span><div class="seg" id="eseg" role="group" aria-label="Starting era"></div></div>
+      <div class="legend" aria-hidden="true">
+        <span><span class="tag forbidden">Forbidden</span></span><span><span class="tag risky">Risky</span></span><span><span class="tag victory">Victory</span></span><span><span class="tag res">Resource</span></span>
+        <span><span class="only"><span class="fdot" style="--fc: var(--f-romulan)"></span></span>Faction-only</span>
+        <span><span class="tag era-granted">Start</span> granted at start</span><span><span class="tag era-research">Research</span> researchable</span><span><span class="tag era-locked">Locked</span> above the era cap</span>
+      </div>
+    </div>
+    <div class="treewrap"><div class="tree" id="treegrid"></div></div>
+    <div class="detail" id="detail" aria-live="polite"></div>
+  </section>
+
+  <section id="eras" style="--sec: var(--peach)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Starting eras</h2><p id="rule"></p></div></div>
+    <div class="scroll"><table id="eratable"></table></div>
+  </section>
+
+  <section id="forbidden" style="--sec: var(--bad)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Forbidden, risky and victory techs</h2><p>Massive power at a diplomatic or catastrophic cost, plus the science-victory project.</p></div></div>
+    <div class="scroll"><table id="forbtable"></table></div>
+  </section>
+
+  <section id="resources" style="--sec: var(--gold)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Resources techs need</h2><p>Techs that can't be researched without a stockpile of a specific material.</p></div></div>
+    <div class="scroll"><table id="restable"></table></div>
+  </section>
+
+  <section id="checks" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 6</span><h2>Data checks</h2><p>Gaps between the tech tree and the ship data. Basic modules like impulse engines may be meant as starting equipment.</p></div></div>
+    <ul class="plain" id="checklist"></ul>
+    <div class="checks" id="notech"></div>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/tech_tree.json</code>, <code>eras.json</code>, <code>ships.json</code>, <code>buildings.json</code> and <code>resources.json</code> in the star-trek-rts design repo (<code>tools/gen_tech_tree_page.py</code>). Companion pages: Faction Buildings and Starship Designs.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = {"trees": [{"id": "propulsion", "label": "Propulsion"}, {"id": "weapons", "label": "Weapons"}, {"id": "defense", "label": "Defense"}, {"id": "sensors_stealth", "label": "Sensors & stealth"}, {"id": "engineering", "label": "Engineering"}, {"id": "computing", "label": "Computing"}, {"id": "biology_colonization", "label": "Biology & colonization"}], "tiers": [{"n": 1, "era": "ENT"}, {"n": 2, "era": "TOS"}, {"n": 3, "era": "TNG"}, {"n": 4, "era": "DS9 / VOY"}, {"n": 5, "era": "Picard"}, {"n": 6, "era": "32nd c."}], "techs": [{"id": "warp_5", "name": "Warp 5 Engine", "tree": "propulsion", "tier": 1, "prereqs": [], "leads": ["dilithium_recrystallization", "warp_8"], "unlocks": [["ability", "warp lane travel"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "dilithium_recrystallization", "name": "Dilithium Recrystallization", "tree": "propulsion", "tier": 2, "prereqs": ["warp_5"], "leads": [], "unlocks": [["building", "recrystallizer"]], "effect": "Dilithium degrades 50% slower.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "warp_8", "name": "Warp 8 Drive", "tree": "propulsion", "tier": 2, "prereqs": ["warp_5"], "leads": ["transwarp_experimental", "warp_9_9"], "unlocks": [["ability", "lane speed 2"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "transwarp_experimental", "name": "Experimental Transwarp", "tree": "propulsion", "tier": 3, "prereqs": ["warp_8"], "leads": [], "unlocks": [], "effect": "Excelsior-style project; 30% failure on first use.", "only": [], "forbidden": false, "risky": true, "victory": false, "resource": ""}, {"id": "warp_9_9", "name": "Warp 9.9 Envelope", "tree": "propulsion", "tier": 3, "prereqs": ["warp_8"], "leads": ["quantum_slipstream", "transwarp_conduits"], "unlocks": [["ability", "lane speed 3"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "quantum_slipstream", "name": "Quantum Slipstream", "tree": "propulsion", "tier": 4, "prereqs": ["warp_9_9"], "leads": ["spore_drive"], "unlocks": [], "effect": "Skip one lane node per jump.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": "Benamite"}, {"id": "transwarp_conduits", "name": "Transwarp Conduits", "tree": "propulsion", "tier": 4, "prereqs": ["warp_9_9"], "leads": [], "unlocks": [["building", "transwarp hub"]], "effect": "", "only": ["borg"], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "spore_drive", "name": "Displacement-Activated Spore Hub Drive", "tree": "propulsion", "tier": 6, "prereqs": ["quantum_slipstream"], "leads": [], "unlocks": [], "effect": "Instant jump anywhere; requires a 'navigator' captain.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "phase_cannon", "name": "Phase Cannons", "tree": "weapons", "tier": 1, "prereqs": [], "leads": ["phaser"], "unlocks": [["module", "phase cannon"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "spatial_torpedo", "name": "Spatial Torpedoes", "tree": "weapons", "tier": 1, "prereqs": [], "leads": ["photon_torpedo"], "unlocks": [["module", "spatial torpedo"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "photon_torpedo", "name": "Photon Torpedoes", "tree": "weapons", "tier": 1, "prereqs": ["spatial_torpedo"], "leads": ["plasma_torpedo", "quantum_torpedo"], "unlocks": [["module", "photon torpedo"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": "Antimatter (Antideuterium)"}, {"id": "phaser", "name": "Phasers", "tree": "weapons", "tier": 2, "prereqs": ["phase_cannon"], "leads": ["pulse_phaser", "polaron", "tetryon_weapons"], "unlocks": [["module", "phaser array"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "disruptor", "name": "Disruptors", "tree": "weapons", "tier": 1, "prereqs": [], "leads": [], "unlocks": [], "effect": "+hull damage, -shield damage vs phasers.", "only": ["klingon", "romulan", "cardassian"], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "plasma_torpedo", "name": "Plasma Torpedoes", "tree": "weapons", "tier": 2, "prereqs": ["photon_torpedo"], "leads": [], "unlocks": [], "effect": "", "only": ["romulan"], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "pulse_phaser", "name": "Pulse Phaser Cannons", "tree": "weapons", "tier": 4, "prereqs": ["phaser"], "leads": [], "unlocks": [["module", "pulse phaser"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "quantum_torpedo", "name": "Quantum Torpedoes", "tree": "weapons", "tier": 4, "prereqs": ["photon_torpedo"], "leads": ["transphasic_torpedo", "metreon_cascade", "trilithium_weapon"], "unlocks": [["module", "quantum torpedo"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "polaron", "name": "Phased Polaron Beams", "tree": "weapons", "tier": 4, "prereqs": ["phaser"], "leads": [], "unlocks": [], "effect": "Partially bypasses shields.", "only": ["dominion"], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "tetryon_weapons", "name": "Tetryon Cannons", "tree": "weapons", "tier": 4, "prereqs": ["phaser"], "leads": [], "unlocks": [], "effect": "", "only": ["hirogen"], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "transphasic_torpedo", "name": "Transphasic Torpedoes", "tree": "weapons", "tier": 5, "prereqs": ["quantum_torpedo"], "leads": [], "unlocks": [], "effect": "Ignores Borg adaptation.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "metreon_cascade", "name": "Metreon Cascade", "tree": "weapons", "tier": 4, "prereqs": ["quantum_torpedo"], "leads": [], "unlocks": [], "effect": "Planet-scale weapon; massive diplomatic penalty.", "only": [], "forbidden": true, "risky": false, "victory": false, "resource": "Metreon Gas"}, {"id": "trilithium_weapon", "name": "Trilithium Stellar Inhibitor", "tree": "weapons", "tier": 4, "prereqs": ["quantum_torpedo"], "leads": [], "unlocks": [], "effect": "Collapses a star; destroys a system.", "only": [], "forbidden": true, "risky": false, "victory": false, "resource": "Trilithium"}, {"id": "thalaron", "name": "Thalaron Radiation", "tree": "weapons", "tier": 4, "prereqs": [], "leads": [], "unlocks": [], "effect": "Kills all organic life on a target; leaves infrastructure intact.", "only": ["romulan"], "forbidden": true, "risky": false, "victory": false, "resource": ""}, {"id": "polarized_hull", "name": "Polarized Hull Plating", "tree": "defense", "tier": 1, "prereqs": [], "leads": ["deflector_shields", "rodinium_armor", "trellium_lining"], "unlocks": [], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "deflector_shields", "name": "Deflector Shields", "tree": "defense", "tier": 1, "prereqs": ["polarized_hull"], "leads": ["regenerative_shields"], "unlocks": [["module", "shield generator"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "rodinium_armor", "name": "Cast Rodinium Armor", "tree": "defense", "tier": 2, "prereqs": ["polarized_hull"], "leads": ["ablative_armor"], "unlocks": [["ability", "station armor 1"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": "Rodinium"}, {"id": "regenerative_shields", "name": "Regenerative Shielding", "tree": "defense", "tier": 3, "prereqs": ["deflector_shields"], "leads": [], "unlocks": [], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "ablative_armor", "name": "Ablative Armor", "tree": "defense", "tier": 4, "prereqs": ["rodinium_armor"], "leads": ["neutronium_armor"], "unlocks": [["module", "ablative armor"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "trellium_lining", "name": "Trellium-D Hull Lining", "tree": "defense", "tier": 1, "prereqs": ["polarized_hull"], "leads": [], "unlocks": [], "effect": "Immunity to spatial-anomaly damage; Vulcan crew penalty.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": "Trellium-D"}, {"id": "neutronium_armor", "name": "Neutronium Plating", "tree": "defense", "tier": 6, "prereqs": ["ablative_armor"], "leads": [], "unlocks": [["ability", "titan hull"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": "Neutronium"}, {"id": "long_range_sensors", "name": "Long-Range Sensors", "tree": "sensors_stealth", "tier": 1, "prereqs": [], "leads": ["cloaking_device", "tachyon_grid", "subspace_relays"], "unlocks": [], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "cloaking_device", "name": "Cloaking Device", "tree": "sensors_stealth", "tier": 2, "prereqs": ["long_range_sensors"], "leads": ["phase_cloak"], "unlocks": [["module", "cloak"]], "effect": "", "only": ["klingon", "romulan"], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "tachyon_grid", "name": "Tachyon Detection Grid", "tree": "sensors_stealth", "tier": 3, "prereqs": ["long_range_sensors"], "leads": [], "unlocks": [], "effect": "Reveals cloaked ships crossing a network.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "phase_cloak", "name": "Phasing Cloak", "tree": "sensors_stealth", "tier": 3, "prereqs": ["cloaking_device"], "leads": [], "unlocks": [], "effect": "Pass through matter while cloaked. Federation use violates the Treaty of Algeron.", "only": [], "forbidden": true, "risky": false, "victory": false, "resource": ""}, {"id": "subspace_relays", "name": "Subspace Relay Network", "tree": "sensors_stealth", "tier": 2, "prereqs": ["long_range_sensors"], "leads": [], "unlocks": [["building", "subspace relay"]], "effect": "+supply range, +vision.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "transporter", "name": "Transporters", "tree": "engineering", "tier": 1, "prereqs": [], "leads": ["replicators"], "unlocks": [["ability", "boarding"], ["ability", "evacuation"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "tractor_beam", "name": "Tractor Beams", "tree": "engineering", "tier": 2, "prereqs": [], "leads": [], "unlocks": [], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "deep_core_mining", "name": "Deep-Core Mining", "tree": "engineering", "tier": 2, "prereqs": [], "leads": [], "unlocks": [], "effect": "Reopen depleted deposits at 50% yield.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "replicators", "name": "Food Replicators", "tree": "engineering", "tier": 2, "prereqs": ["transporter"], "leads": ["industrial_replicators", "holotechnology"], "unlocks": [], "effect": "Colonies no longer need food imports.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "industrial_replicators", "name": "Industrial Replicators", "tree": "engineering", "tier": 3, "prereqs": ["replicators"], "leads": ["programmable_matter", "omega_stabilization"], "unlocks": [], "effect": "Energy → Tritanium/Duranium at 5:1. Cannot make dilithium or latinum.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "holotechnology", "name": "Holotechnology", "tree": "engineering", "tier": 3, "prereqs": ["replicators"], "leads": ["emh"], "unlocks": [["building", "holodeck"]], "effect": "Train crew XP; morale.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "programmable_matter", "name": "Programmable Matter", "tree": "engineering", "tier": 6, "prereqs": ["industrial_replicators"], "leads": [], "unlocks": [], "effect": "Ships reconfigure module loadout in the field.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "duotronic", "name": "Duotronic Computers", "tree": "computing", "tier": 2, "prereqs": [], "leads": ["isolinear"], "unlocks": [], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "isolinear", "name": "Isolinear Computing", "tree": "computing", "tier": 3, "prereqs": ["duotronic"], "leads": ["bioneural"], "unlocks": [["resource", "Isolinear Chips"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "bioneural", "name": "Bio-neural Circuitry", "tree": "computing", "tier": 4, "prereqs": ["isolinear"], "leads": ["positronic"], "unlocks": [["resource", "Bio-neural Gel Packs"]], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "emh", "name": "Emergency Medical Hologram", "tree": "computing", "tier": 4, "prereqs": ["holotechnology"], "leads": [], "unlocks": [], "effect": "Crew losses reduced 25%.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "positronic", "name": "Positronic Brain", "tree": "computing", "tier": 5, "prereqs": ["bioneural"], "leads": [], "unlocks": [["ability", "synth workers"]], "effect": "Synth labor; risk of synth-ban political event.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "pressure_domes", "name": "Pressure Domes", "tree": "biology_colonization", "tier": 1, "prereqs": [], "leads": ["atmospheric_processors"], "unlocks": [], "effect": "Colonize Class D/K bodies.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": "Topaline"}, {"id": "atmospheric_processors", "name": "Atmospheric Processors", "tree": "biology_colonization", "tier": 2, "prereqs": ["pressure_domes"], "leads": ["genesis", "subspace_terraforming"], "unlocks": [], "effect": "Slow terraform: L→M, K→L.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "zenite_medicine", "name": "Zenite Medicine", "tree": "biology_colonization", "tier": 2, "prereqs": [], "leads": [], "unlocks": [], "effect": "Cures botanical plague / colony disease events.", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": "Zenite"}, {"id": "genesis", "name": "Genesis Device", "tree": "biology_colonization", "tier": 2, "prereqs": ["atmospheric_processors"], "leads": [], "unlocks": [], "effect": "Instant Class M from Class D/nebula; 40% chance planet destabilizes later; can be weaponized.", "only": [], "forbidden": true, "risky": false, "victory": false, "resource": "Protomatter"}, {"id": "subspace_terraforming", "name": "Subspace Terraforming", "tree": "biology_colonization", "tier": 4, "prereqs": ["atmospheric_processors"], "leads": [], "unlocks": [], "effect": "", "only": [], "forbidden": false, "risky": false, "victory": false, "resource": ""}, {"id": "omega_stabilization", "name": "Omega Molecule Stabilization", "tree": "engineering", "tier": 5, "prereqs": ["industrial_replicators"], "leads": [], "unlocks": [], "effect": "Science victory. Failure = permanent no-warp zone around your capital.", "only": [], "forbidden": false, "risky": false, "victory": true, "resource": "Boronite"}], "factions": [{"id": "federation", "name": "Federation", "model": "Fastest", "text": "Best labs in the game; every shared tech is open, but no disruptors or cloaks.", "lab": "Research Lab", "labEffect": "+25% research (best in game).", "reach": ["ablative_armor", "atmospheric_processors", "bioneural", "deep_core_mining", "deflector_shields", "dilithium_recrystallization", "duotronic", "emh", "genesis", "holotechnology", "industrial_replicators", "isolinear", "long_range_sensors", "metreon_cascade", "neutronium_armor", "omega_stabilization", "phase_cannon", "phaser", "photon_torpedo", "polarized_hull", "positronic", "pressure_domes", "programmable_matter", "pulse_phaser", "quantum_slipstream", "quantum_torpedo", "regenerative_shields", "replicators", "rodinium_armor", "spatial_torpedo", "spore_drive", "subspace_relays", "subspace_terraforming", "tachyon_grid", "tractor_beam", "transphasic_torpedo", "transporter", "transwarp_experimental", "trellium_lining", "trilithium_weapon", "warp_5", "warp_8", "warp_9_9", "zenite_medicine"], "own": [], "locked": 8}, {"id": "klingon", "name": "Klingon", "model": "Weapons first", "text": "The opening Weapons Forge researches only the Weapons tree, and slower than a lab; Honor and conquest make up for it.", "lab": "Weapons Forge", "labEffect": "Weapons-tree research only, at -25%.", "reach": ["ablative_armor", "atmospheric_processors", "bioneural", "cloaking_device", "deep_core_mining", "deflector_shields", "dilithium_recrystallization", "disruptor", "duotronic", "emh", "genesis", "holotechnology", "industrial_replicators", "isolinear", "long_range_sensors", "metreon_cascade", "neutronium_armor", "omega_stabilization", "phase_cannon", "phase_cloak", "phaser", "photon_torpedo", "polarized_hull", "positronic", "pressure_domes", "programmable_matter", "pulse_phaser", "quantum_slipstream", "quantum_torpedo", "regenerative_shields", "replicators", "rodinium_armor", "spatial_torpedo", "spore_drive", "subspace_relays", "subspace_terraforming", "tachyon_grid", "tractor_beam", "transphasic_torpedo", "transporter", "transwarp_experimental", "trellium_lining", "trilithium_weapon", "warp_5", "warp_8", "warp_9_9", "zenite_medicine"], "own": ["Disruptors", "Cloaking Device"], "locked": 5}, {"id": "cardassian", "name": "Cardassian", "model": "Slow", "text": "A quarter slower than baseline; the economy comes from occupation and refining instead.", "lab": "State Archive", "labEffect": "-25% research.", "reach": ["ablative_armor", "atmospheric_processors", "bioneural", "deep_core_mining", "deflector_shields", "dilithium_recrystallization", "disruptor", "duotronic", "emh", "genesis", "holotechnology", "industrial_replicators", "isolinear", "long_range_sensors", "metreon_cascade", "neutronium_armor", "omega_stabilization", "phase_cannon", "phaser", "photon_torpedo", "polarized_hull", "positronic", "pressure_domes", "programmable_matter", "pulse_phaser", "quantum_slipstream", "quantum_torpedo", "regenerative_shields", "replicators", "rodinium_armor", "spatial_torpedo", "spore_drive", "subspace_relays", "subspace_terraforming", "tachyon_grid", "tractor_beam", "transphasic_torpedo", "transporter", "transwarp_experimental", "trellium_lining", "trilithium_weapon", "warp_5", "warp_8", "warp_9_9", "zenite_medicine"], "own": ["Disruptors"], "locked": 7}, {"id": "romulan", "name": "Romulan", "model": "Stealth focus", "text": "Normal speed with a big bonus on stealth techs; the only faction with plasma torpedoes and thalaron weapons.", "lab": "Science Ministry Lab", "labEffect": "Normal research; +50% on stealth techs.", "reach": ["ablative_armor", "atmospheric_processors", "bioneural", "cloaking_device", "deep_core_mining", "deflector_shields", "dilithium_recrystallization", "disruptor", "duotronic", "emh", "genesis", "holotechnology", "industrial_replicators", "isolinear", "long_range_sensors", "metreon_cascade", "neutronium_armor", "omega_stabilization", "phase_cannon", "phase_cloak", "phaser", "photon_torpedo", "plasma_torpedo", "polarized_hull", "positronic", "pressure_domes", "programmable_matter", "pulse_phaser", "quantum_slipstream", "quantum_torpedo", "regenerative_shields", "replicators", "rodinium_armor", "spatial_torpedo", "spore_drive", "subspace_relays", "subspace_terraforming", "tachyon_grid", "thalaron", "tractor_beam", "transphasic_torpedo", "transporter", "transwarp_experimental", "trellium_lining", "trilithium_weapon", "warp_5", "warp_8", "warp_9_9", "zenite_medicine"], "own": ["Disruptors", "Plasma Torpedoes", "Thalaron Radiation", "Cloaking Device"], "locked": 3}, {"id": "dominion", "name": "Dominion", "model": "Salvage", "text": "Slow labs, but captured wrecks give double research; phased polaron beams are theirs alone.", "lab": "Vorta Analysis Lab", "labEffect": "-30% research; double research from captured wrecks.", "reach": ["ablative_armor", "atmospheric_processors", "bioneural", "deep_core_mining", "deflector_shields", "dilithium_recrystallization", "duotronic", "emh", "genesis", "holotechnology", "industrial_replicators", "isolinear", "long_range_sensors", "metreon_cascade", "neutronium_armor", "omega_stabilization", "phase_cannon", "phaser", "photon_torpedo", "polarized_hull", "polaron", "positronic", "pressure_domes", "programmable_matter", "pulse_phaser", "quantum_slipstream", "quantum_torpedo", "regenerative_shields", "replicators", "rodinium_armor", "spatial_torpedo", "spore_drive", "subspace_relays", "subspace_terraforming", "tachyon_grid", "tractor_beam", "transphasic_torpedo", "transporter", "transwarp_experimental", "trellium_lining", "trilithium_weapon", "warp_5", "warp_8", "warp_9_9", "zenite_medicine"], "own": ["Phased Polaron Beams"], "locked": 7}, {"id": "ferengi", "name": "Ferengi", "model": "Buys tech", "text": "No research of its own: it buys techs other players already have, so it is never first but rarely far behind.", "lab": "Patent Exchange", "labEffect": "No own research; buy techs other players already have.", "reach": ["ablative_armor", "atmospheric_processors", "bioneural", "deep_core_mining", "deflector_shields", "dilithium_recrystallization", "duotronic", "emh", "genesis", "holotechnology", "industrial_replicators", "isolinear", "long_range_sensors", "metreon_cascade", "neutronium_armor", "omega_stabilization", "phase_cannon", "phaser", "photon_torpedo", "polarized_hull", "positronic", "pressure_domes", "programmable_matter", "pulse_phaser", "quantum_slipstream", "quantum_torpedo", "regenerative_shields", "replicators", "rodinium_armor", "spatial_torpedo", "spore_drive", "subspace_relays", "subspace_terraforming", "tachyon_grid", "tractor_beam", "transphasic_torpedo", "transporter", "transwarp_experimental", "trellium_lining", "trilithium_weapon", "warp_5", "warp_8", "warp_9_9", "zenite_medicine"], "own": [], "locked": 8}, {"id": "borg", "name": "Borg", "model": "Assimilates", "text": "No research at all: techs come from assimilating ships and crews, and transwarp conduits are Borg-only.", "lab": "None", "labEffect": "No research; tech comes from assimilation.", "reach": ["ablative_armor", "atmospheric_processors", "bioneural", "deep_core_mining", "deflector_shields", "dilithium_recrystallization", "duotronic", "emh", "genesis", "holotechnology", "industrial_replicators", "isolinear", "long_range_sensors", "metreon_cascade", "neutronium_armor", "omega_stabilization", "phase_cannon", "phaser", "photon_torpedo", "polarized_hull", "positronic", "pressure_domes", "programmable_matter", "pulse_phaser", "quantum_slipstream", "quantum_torpedo", "regenerative_shields", "replicators", "rodinium_armor", "spatial_torpedo", "spore_drive", "subspace_relays", "subspace_terraforming", "tachyon_grid", "tractor_beam", "transphasic_torpedo", "transporter", "transwarp_conduits", "transwarp_experimental", "trellium_lining", "trilithium_weapon", "warp_5", "warp_8", "warp_9_9", "zenite_medicine"], "own": ["Transwarp Conduits"], "locked": 7}], "eras": [{"id": "ent", "name": "Enterprise Era", "years": [2151, 2161], "cap": 1, "granted": 0, "research": 11, "locked": 41}, {"id": "tos", "name": "Discovery / TOS Era", "years": [2256, 2293], "cap": 2, "granted": 0, "research": 25, "locked": 27}, {"id": "tng", "name": "Next Generation Era", "years": [2364, 2373], "cap": 3, "granted": 11, "research": 22, "locked": 19}, {"id": "dominion_war", "name": "Dominion War", "years": [2373, 2379], "cap": 4, "granted": 25, "research": 21, "locked": 6}, {"id": "voy", "name": "Delta Quadrant", "years": [2371, 2378], "cap": 4, "granted": 25, "research": 21, "locked": 6}, {"id": "picard", "name": "Picard Era", "years": [2380, 2402], "cap": 5, "granted": 33, "research": 16, "locked": 3}, {"id": "far_future", "name": "32nd Century", "years": [3189, 3191], "cap": 6, "granted": 46, "research": 6, "locked": 0}, {"id": "kelvin", "name": "Kelvin Timeline (optional)", "years": [2233, 2263], "cap": 2, "granted": 0, "research": 25, "locked": 27}], "noTech": {"weapon": ["borg torpedo", "cutting beam", "energy dampener", "phased polaron", "plasma energy burst", "polaron torpedo", "spiral wave disruptor", "tetryon cannon", "thalaron generator"], "defense": ["neutronium plating", "regenerative shield", "rodinium plating"], "engine": ["impulse", "singularity core", "slipstream drive", "transwarp coil", "warp core"], "utility": ["cargo bay", "construction rig", "deflector dish tricks", "medical bay", "mining laser", "mvam", "saucer separation", "science lab", "sensor suite", "troop bay"]}, "checks": ["Phasing Cloak's effect mentions Federation use, but the Federation can't research its prerequisite, Cloaking Device.", "Thalaron Radiation (tier 4) has no prerequisites, so it can be researched as soon as its tier opens."], "rule": "tier ≈ era cap (1=ENT, 2=TOS, 3=TNG, 4=DS9/VOY, 5=Picard, 6=32nd c.). Era start grants all techs below its cap tier minus one; players research the rest. unlocks = buildings/modules/abilities ids."};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fc = (id) => `--fc: var(--f-${id}, var(--ink-dim))`;
+const tc = (id) => `--tc: var(--t-${id})`;
+const byId = Object.fromEntries(D.techs.map((t) => [t.id, t]));
+const facName = (id) => (D.factions.find((f) => f.id === id) || { name: id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) }).name;
+const fname = (f) => `<span class="fname" style="${fc(f.id)}"><span class="fdot"></span>${esc(f.name)}</span>`;
+const treeLabel = Object.fromEntries(D.trees.map((t) => [t.id, t.label]));
+const tierEra = Object.fromEntries(D.tiers.map((t) => [t.n, t.era]));
+
+$("readout").innerHTML = `<span><b>${D.techs.length}</b> techs</span><span><b>${D.trees.length}</b> branches</span><span><b>${D.tiers.length}</b> tiers</span><span><b>${D.techs.filter((t) => t.forbidden).length}</b> forbidden</span>`;
+
+// ---- faction rows
+$("ov").innerHTML = D.factions.map((f) => {
+  const n = f.id === "borg" ? 0 : f.reach.length;
+  return `<div class="ov-row" style="${fc(f.id)}">
+    <div class="who">${fname(f)}<span class="hook">${esc(f.model)}</span></div>
+    <div><h4>Research model</h4><p>${esc(f.text)}</p></div>
+    <div class="lab"><h4>Opening research building</h4><b>${esc(f.lab)}</b><span>${esc(f.labEffect)}</span></div>
+    <div class="access"><h4>Tree access</h4>
+      <div class="meter"><div class="track" role="img" aria-label="${n} of ${D.techs.length} techs"><div class="fill" style="width:${(n / D.techs.length) * 100}%"></div></div><span>${n} / ${D.techs.length}</span></div>
+      <div class="chips">${f.own.length ? f.own.map((t) => `<span class="chip">${esc(t)}</span>`).join("") : `<span class="chip" style="color:var(--ink-faint)">No faction-only techs</span>`}</div>
+    </div>
+  </div>`;
+}).join("");
+
+// ---- tree
+let curF = "all", curE = "none", sel = "transphasic_torpedo";
+const eraById = Object.fromEntries(D.eras.map((e) => [e.id, e]));
+function eraState(t) {
+  if (curE === "none") return "";
+  const cap = eraById[curE].cap;
+  return t.tier < cap - 1 ? "granted" : t.tier <= cap ? "research" : "locked";
+}
+function canResearch(t) {
+  if (curF === "all") return true;
+  if (curF === "borg") return false;
+  return D.factions.find((f) => f.id === curF).reach.includes(t.id);
+}
+function related(id) {
+  const up = new Set(), down = new Set();
+  const walkUp = (x) => byId[x].prereqs.forEach((p) => { if (!up.has(p)) { up.add(p); walkUp(p); } });
+  const walkDown = (x) => byId[x].leads.forEach((c) => { if (!down.has(c)) { down.add(c); walkDown(c); } });
+  walkUp(id); walkDown(id);
+  return { up, down };
+}
+function techCard(t) {
+  const st = eraState(t);
+  const tags = [
+    t.only.length ? `<span class="only" title="Only ${esc(t.only.map(facName).join(", "))}">${t.only.map((f) => `<span class="fdot" style="${fc(f)}"></span>`).join("")}</span>` : "",
+    t.forbidden ? `<span class="tag forbidden">Forbidden</span>` : "",
+    t.risky ? `<span class="tag risky">Risky</span>` : "",
+    t.victory ? `<span class="tag victory">Victory</span>` : "",
+    t.resource ? `<span class="tag res">${esc(t.resource)}</span>` : "",
+    st ? `<span class="tag era-${st}">${st === "granted" ? "Start" : st === "research" ? "Research" : "Locked"}</span>` : "",
+  ].join("");
+  return `<button type="button" class="tech" id="t-${t.id}" data-id="${t.id}" style="${tc(t.tree)}" aria-pressed="false"><span class="n">${esc(t.name)}</span>${tags ? `<span class="m">${tags}</span>` : ""}</button>`;
+}
+function renderTree() {
+  let html = `<svg class="links" id="links" aria-hidden="true"></svg><div class="th">Branch</div>` +
+    D.tiers.map((t) => `<div class="th"><b>Tier ${t.n}</b>${esc(t.era)}</div>`).join("");
+  for (const tr of D.trees) {
+    html += `<div class="rh" style="${tc(tr.id)}">${esc(tr.label)}</div>`;
+    for (const tier of D.tiers) {
+      const list = D.techs.filter((t) => t.tree === tr.id && t.tier === tier.n);
+      const locked = curE !== "none" && tier.n > eraById[curE].cap;
+      html += `<div class="cell ${locked ? "locked" : ""}">${list.map(techCard).join("")}</div>`;
+    }
+  }
+  $("treegrid").innerHTML = html;
+  document.querySelectorAll(".tech").forEach((b) => b.addEventListener("click", () => select(b.dataset.id)));
+  applyState();
+}
+function drawLinks() {
+  const svg = $("links"), box = $("treegrid").getBoundingClientRect();
+  const { up, down } = related(sel);
+  const chain = new Set([sel, ...up, ...down]);
+  let paths = "";
+  for (const t of D.techs) {
+    for (const p of t.prereqs) {
+      const a = $("t-" + p).getBoundingClientRect(), b = $("t-" + t.id).getBoundingClientRect();
+      const ax = a.right - box.left, ay = a.top + a.height / 2 - box.top;
+      let d;
+      if (Math.abs(a.left - b.left) < 4) {
+        const bx = b.right - box.left, by = b.top + b.height / 2 - box.top, bulge = Math.max(ax, bx) + 14;
+        d = `M${ax},${ay} C${bulge},${ay} ${bulge},${by} ${bx},${by}`;
+      } else {
+        const bx = b.left - box.left, by = b.top + b.height / 2 - box.top, mx = (ax + bx) / 2;
+        d = `M${ax},${ay} C${mx},${ay} ${mx},${by} ${bx},${by}`;
+      }
+      const on = chain.has(p) && chain.has(t.id) && (p === sel || t.id === sel || (up.has(p) && (up.has(t.id) || t.id === sel)) || (down.has(t.id) && (down.has(p) || p === sel)));
+      const dim = !canResearch(t) || !canResearch(byId[p]);
+      paths += `<path d="${d}" class="${on ? "on" : ""} ${dim && !on ? "off" : ""}"/>`;
+    }
+  }
+  svg.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
+  svg.innerHTML = paths;
+}
+function applyState() {
+  const { up, down } = related(sel);
+  document.querySelectorAll(".tech").forEach((b) => {
+    const t = byId[b.dataset.id];
+    b.classList.toggle("sel", t.id === sel);
+    b.setAttribute("aria-pressed", String(t.id === sel));
+    b.classList.toggle("rel", up.has(t.id) || down.has(t.id));
+    b.classList.toggle("dim", !canResearch(t));
+  });
+  drawLinks();
+  renderDetail();
+}
+function select(id) { sel = id; applyState(); }
+function renderDetail() {
+  const t = byId[sel];
+  const link = (id) => `<button type="button" class="link" data-go="${id}" style="${tc(byId[id].tree)}">${esc(byId[id].name)}</button>`;
+  const who = t.only.length ? `Only ${t.only.map(facName).join(", ")}` : "Every faction that researches";
+  const blocked = D.factions.filter((f) => f.id !== "borg" && !f.reach.includes(t.id)).map((f) => f.name);
+  const flags = [t.forbidden ? "Forbidden" : "", t.risky ? "Risky" : "", t.victory ? "Victory project" : ""].filter(Boolean).join(" · ");
+  $("detail").setAttribute("style", tc(t.tree));
+  $("detail").innerHTML = `
+    <div style="display:grid;gap:6px"><span class="where">${esc(treeLabel[t.tree])} · Tier ${t.tier} (${esc(tierEra[t.tier])})${flags ? " · " + esc(flags) : ""}</span><h3>${esc(t.name)}</h3>
+      <p>${t.effect ? esc(t.effect) : `<span style="color:var(--ink-faint)">No effect text yet.</span>`}</p>
+      ${t.resource ? `<p class="sub">Needs <b style="color:var(--peach)">${esc(t.resource)}</b> to research.</p>` : ""}</div>
+    <div style="display:grid;gap:10px;align-content:start">
+      <div><h4>Needs</h4><div class="chips">${t.prereqs.length ? t.prereqs.map(link).join("") : `<span class="sub" style="margin:0">No prerequisites</span>`}</div></div>
+      <div><h4>Leads to</h4><div class="chips">${t.leads.length ? t.leads.map(link).join("") : `<span class="sub" style="margin:0">Nothing yet</span>`}</div></div>
+    </div>
+    <div style="display:grid;gap:10px;align-content:start">
+      <div><h4>Unlocks</h4><div class="ul">${t.unlocks.length ? t.unlocks.map(([k, v]) => `<span><small>${esc(k)}</small>${esc(v)}</span>`).join("") : `<span class="sub" style="margin:0">Effect only</span>`}</div></div>
+      <div><h4>Who can research it</h4><p class="sub" style="margin:0">${esc(who)}.${blocked.length ? " Not available to " + esc(blocked.join(", ")) + "." : ""} The Borg assimilate tech instead.</p></div>
+    </div>`;
+  document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => {
+    select(b.dataset.go);
+    $("t-" + b.dataset.go).scrollIntoView({ block: "nearest", inline: "nearest" });
+  }));
+}
+$("fseg").innerHTML = [`<button type="button" id="f-all" data-f="all" aria-pressed="true">All</button>`]
+  .concat(D.factions.map((f) => `<button type="button" id="f-${f.id}" data-f="${f.id}" style="--bc: var(--f-${f.id})" aria-pressed="false">${esc(f.name)}</button>`)).join("");
+$("eseg").innerHTML = [`<button type="button" id="e-none" data-e="none" aria-pressed="true" style="--bc: var(--sky)">Any</button>`]
+  .concat(D.eras.map((e) => `<button type="button" id="e-${e.id}" data-e="${e.id}" aria-pressed="false" style="--bc: var(--sky)" title="${esc(e.name)}, ${e.years[0]}–${e.years[1]}">${esc(e.name.replace(/ Era$/, "").replace(" (optional)", ""))}</button>`)).join("");
+document.querySelectorAll("#fseg button").forEach((b) => b.addEventListener("click", () => {
+  curF = b.dataset.f;
+  document.querySelectorAll("#fseg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  applyState();
+}));
+document.querySelectorAll("#eseg button").forEach((b) => b.addEventListener("click", () => {
+  curE = b.dataset.e;
+  document.querySelectorAll("#eseg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  renderTree();
+}));
+renderTree();
+new ResizeObserver(() => drawLinks()).observe($("treegrid"));
+if (document.fonts) document.fonts.ready.then(drawLinks);
+
+// ---- starting eras
+$("rule").textContent = `Each era has a tech cap tier. Rule from tech_tree.json: "${D.rule.split(". ").slice(1, 2).join("")}." Read here as: techs two or more tiers below the cap are granted at the start, the cap tier and the tier below it are left to research, and higher tiers are locked.`;
+$("eratable").innerHTML = `<thead><tr><th scope="col">Era</th><th scope="col">Years</th><th scope="col">Cap tier</th><th scope="col">Granted</th><th scope="col">To research</th><th scope="col">Locked</th><th scope="col">Split of all ${D.techs.length} techs</th></tr></thead><tbody>` +
+  D.eras.map((e) => `<tr><th scope="row">${esc(e.name)}</th><td class="num">${e.years[0]}–${e.years[1]}</td><td class="num">${e.cap}</td><td class="num">${e.granted}</td><td class="num">${e.research}</td><td class="num">${e.locked}</td>
+    <td><div class="stack" role="img" aria-label="${e.granted} granted, ${e.research} to research, ${e.locked} locked"><i class="g" style="width:${(e.granted / D.techs.length) * 100}%"></i><i class="r" style="width:${(e.research / D.techs.length) * 100}%"></i></div></td></tr>`).join("") +
+  `</tbody>`;
+
+// ---- forbidden, risky, victory
+const special = D.techs.filter((t) => t.forbidden || t.risky || t.victory);
+$("forbtable").innerHTML = `<thead><tr><th scope="col">Tech</th><th scope="col">Kind</th><th scope="col">Branch · tier</th><th scope="col">Needs</th><th scope="col">Effect</th></tr></thead><tbody>` +
+  special.map((t) => `<tr><td><span class="bname">${esc(t.name)}</span>${t.only.length ? `<span class="sub">Only ${esc(t.only.map(facName).join(", "))}</span>` : ""}</td>
+    <td>${t.forbidden ? `<span class="tag forbidden">Forbidden</span> ` : ""}${t.risky ? `<span class="tag risky">Risky</span> ` : ""}${t.victory ? `<span class="tag victory">Victory</span>` : ""}</td>
+    <td>${esc(treeLabel[t.tree])} · ${t.tier}</td><td>${[...t.prereqs.map((p) => byId[p].name), t.resource].filter(Boolean).map(esc).join(", ") || "—"}</td><td>${esc(t.effect)}</td></tr>`).join("") + `</tbody>`;
+
+// ---- resources
+const byRes = {};
+D.techs.filter((t) => t.resource).forEach((t) => (byRes[t.resource] = byRes[t.resource] || []).push(t));
+$("restable").innerHTML = `<thead><tr><th scope="col">Resource</th><th scope="col">Techs that need it</th></tr></thead><tbody>` +
+  Object.entries(byRes).sort().map(([r, list]) => `<tr><th scope="row">${esc(r)}</th><td><div class="chips">${list.map((t) => `<button type="button" class="link" data-jump="${t.id}" style="${tc(t.tree)}">${esc(t.name)}</button>`).join("")}</div></td></tr>`).join("") + `</tbody>`;
+document.querySelectorAll("[data-jump]").forEach((b) => b.addEventListener("click", () => { select(b.dataset.jump); $("treegrid").scrollIntoView(); }));
+
+// ---- data checks
+$("checklist").innerHTML = D.checks.map((c) => `<li>${esc(c)}</li>`).join("");
+$("notech").innerHTML = Object.entries(D.noTech).map(([slot, list]) => `<div class="ck"><h4>${esc(slot)} modules with no tech<small>${list.length}</small></h4><div class="chips">${list.map((m) => `<span class="chip">${esc(m)}</span>`).join("") || `<span class="chip">None</span>`}</div></div>`).join("");
+</script>
