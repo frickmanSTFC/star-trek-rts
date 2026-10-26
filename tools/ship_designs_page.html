@@ -1,0 +1,325 @@
+<title>Starship Designs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame shared with Faction Buildings; sections stack (doctrine rows, hull reference, hull x faction roster with era filter, fleet-by-era grid, specials + module catalog). Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --slot-w: #ff9c5b;
+  --slot-d: #9aa3ff;
+  --slot-e: #c99ad6;
+  --slot-u: #8fd3b0;
+  --f-federation: #7fc4e8;
+  --f-klingon: #e2787a;
+  --f-cardassian: #f3cb5b;
+  --f-romulan: #8fd3b0;
+  --f-dominion: #c99ad6;
+  --f-ferengi: #ff9c5b;
+  --f-borg: #b8c46a;
+  --f-other: #a29fb6;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--periwinkle); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--periwinkle); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--periwinkle); }
+.bars .b2 { flex: 1.2; background: var(--orange); }
+.bars .b3 { flex: 2; background: var(--lilac); }
+.bars .b4 { flex: .8; background: var(--peach); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--periwinkle); font-weight: 600; }
+.intro { max-width: 70ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--void); background: var(--periwinkle); padding: 4px 14px; border-radius: 14px; }
+nav.jump a:nth-child(2) { background: var(--orange); }
+nav.jump a:nth-child(3) { background: var(--lilac); }
+nav.jump a:nth-child(4) { background: var(--peach); }
+nav.jump a:nth-child(5) { background: var(--good); }
+nav.jump a:focus-visible, button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 72ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+h3.sub-h { margin: 8px 0 0; font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: .04em; text-transform: uppercase; color: var(--sec); }
+.fdot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: var(--fc); flex: none; }
+.fname { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+
+/* ---------- doctrine rows ---------- */
+.ov { display: grid; gap: 6px; }
+.ov-head { display: grid; grid-template-columns: 190px 1.3fr 1fr 1fr; gap: 18px; padding: 0 16px 0 22px; }
+.ov-head span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row { display: grid; grid-template-columns: 190px minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 18px; background: var(--panel); border-left: 6px solid var(--fc); border-radius: 0 10px 10px 0; padding: 12px 16px; }
+.ov-row > * { min-width: 0; }
+.who { display: grid; gap: 4px; align-content: start; }
+.who .fname { font-size: 20px; }
+.hook { font-family: var(--label); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.ov-row h4 { margin: 0 0 2px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row p { margin: 0; font-size: 14px; }
+.facts { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--label); font-size: 13px; letter-spacing: .06em; color: var(--ink-dim); border-top: 1px solid var(--rule); padding-top: 8px; margin-top: 4px; }
+.facts b { color: var(--fc); font-weight: 600; font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.wchip { font-family: var(--label); font-size: 13px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; background: var(--panel-2); color: var(--ink); }
+.wchip.missing { background: transparent; border: 1px dashed var(--ink-faint); color: var(--ink-dim); }
+@media (max-width: 900px) {
+  .ov-head { display: none; }
+  .ov-row { grid-template-columns: 1fr; }
+  .facts { grid-column: auto; }
+}
+@media (min-width: 901px) { .ov-row h4 { display: none; } }
+
+/* ---------- controls ---------- */
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--panel); padding: 4px; border-radius: 18px; }
+.seg button { font: 600 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 0; cursor: pointer; background: transparent; color: var(--ink-dim); padding: 8px 14px; border-radius: 14px; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--sec, var(--orange)); color: var(--void); }
+
+/* ---------- tables ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); white-space: nowrap; }
+thead th .fname { font-size: 15px; }
+tbody th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--peach); white-space: nowrap; background: var(--panel-2); }
+tbody th small { display: block; font-size: 11px; color: var(--ink-faint); letter-spacing: .08em; }
+tr:last-child > * { border-bottom: 0; }
+tfoot td, tfoot th { border-top: 1px solid var(--rule); border-bottom: 0; font-family: var(--label); font-size: 13px; color: var(--ink-dim); font-variant-numeric: tabular-nums; background: var(--panel-2); }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bname { font-weight: 600; color: var(--ink); display: block; }
+.sub { display: block; color: var(--ink-dim); font-size: 13px; margin-top: 3px; }
+.none { color: var(--ink-faint); }
+
+/* hull reference */
+.pips { display: inline-flex; gap: 3px; vertical-align: middle; }
+.pips i { width: 9px; height: 9px; border-radius: 2px; background: var(--rule); }
+.pips i.on { background: var(--pc); }
+.slots { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-family: var(--label); font-size: 12px; letter-spacing: .06em; color: var(--ink-dim); min-width: 200px; }
+.slot { display: inline-flex; align-items: center; gap: 5px; }
+.slot b { font-weight: 600; color: var(--pc); font-variant-numeric: tabular-nums; }
+.hp { display: grid; grid-template-columns: minmax(80px, 1fr) 44px; gap: 8px; align-items: center; min-width: 150px; }
+.hp .track { position: relative; height: 10px; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 20%); }
+.hp .fill { position: absolute; inset: 1px auto 1px 0; background: var(--periwinkle); border-radius: 0 5px 5px 0; }
+.hp span { text-align: right; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--label); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--pc); }
+.yard { font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); border: 1px solid var(--rule); border-radius: 9px; padding: 0 8px; white-space: nowrap; }
+
+/* roster + eras */
+.roster td { min-width: 130px; border-left: 1px solid var(--rule); }
+.ship { display: block; padding: 4px 8px; margin: 0 0 4px; border-radius: 6px; background: var(--panel-2); border-left: 3px solid var(--fc); }
+.ship:last-child { margin-bottom: 0; }
+.ship .sn { font-weight: 600; font-size: 13px; }
+.ship .se { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.ship.dim { opacity: .28; }
+.eras td { min-width: 130px; border-left: 1px solid var(--rule); }
+.eras td.closed { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--rule) 55%, transparent) 6px 7px); }
+.flag { display: inline-block; margin-top: 4px; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--peach); border: 1px solid var(--peach); border-radius: 9px; padding: 0 7px; }
+.closed-note { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; max-width: 90ch; }
+
+/* modules */
+.modgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1000px) { .modgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .modgrid { grid-template-columns: 1fr; } }
+.modcol { background: var(--panel); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; border-top: 4px solid var(--pc); }
+.modcol h4 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; color: var(--pc); display: flex; justify-content: space-between; align-items: baseline; }
+.modcol h4 small { font-family: var(--label); font-size: 12px; color: var(--ink-faint); letter-spacing: .1em; }
+.mod { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.mod:last-child { border-bottom: 0; }
+.mod .u { display: inline-flex; gap: 3px; align-items: center; flex: none; }
+.spec { display: flex; flex-wrap: wrap; gap: 4px; }
+.spec span { font-family: var(--label); font-size: 13px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; background: var(--panel-2); }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+}
+@media (prefers-reduced-motion: no-preference) { .ship { transition: opacity .2s ease; } }
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Starship Designs</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">How the seven playable factions of the Star Trek RTS differ in the ships they fly. Every ship is a hull plus modules: the hull sets size, hull points, speed, crew and slot counts, and each faction's classes are templates on those hulls. All stats are placeholders for balancing.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#doctrine">Fleet doctrine</a><a href="#hulls">Hulls</a><a href="#roster">Class roster</a><a href="#eras">By era</a><a href="#modules">Specials &amp; modules</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="doctrine" style="--sec: var(--periwinkle)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>Fleet doctrine</h2><p>How each faction fights, the weapons it fields and where its fleet is weak.</p></div></div>
+    <div class="ov">
+      <div class="ov-head"><span>Faction</span><span>Doctrine</span><span>Signature weapons</span><span>Weakness</span></div>
+      <div class="ov" id="ov"></div>
+    </div>
+    <p class="note">A dashed weapon is listed for the faction in <code>factions.json</code> but has no matching module in <code>ships.json</code> yet.</p>
+  </section>
+
+  <section id="hulls" style="--sec: var(--orange)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Hull reference</h2><p>Shared by every faction. Hull points are drawn to one scale; slot pips show how many modules of each kind fit (W weapon, D defense, E engine, U utility).</p></div></div>
+    <div class="legend" aria-hidden="true"><span style="--pc: var(--slot-w)"><i></i>Weapon</span><span style="--pc: var(--slot-d)"><i></i>Defense</span><span style="--pc: var(--slot-e)"><i></i>Engine</span><span style="--pc: var(--slot-u)"><i></i>Utility</span></div>
+    <div class="scroll"><table id="hulltable"></table></div>
+  </section>
+
+  <section id="roster" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Class roster</h2><p>Every class on its hull, faction by faction. Pick an era to highlight the ships available in it.</p></div></div>
+    <div class="seg" id="erafilter" role="group" aria-label="Era"></div>
+    <div class="scroll"><table class="roster" id="rostertable"></table></div>
+    <h3 class="sub-h">Other powers</h3>
+    <div class="scroll"><table id="otherstable"></table></div>
+  </section>
+
+  <section id="eras" style="--sec: var(--peach)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Fleets by era</h2><p>Which classes each faction fields in each starting era. Hatched cells are eras the faction isn't playable in.</p></div></div>
+    <div class="scroll"><table class="eras" id="eratable"></table></div>
+    <p class="note" id="eranote"></p>
+  </section>
+
+  <section id="modules" style="--sec: var(--good)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Specials and modules</h2><p>Classes with a special ability, and the full module catalog. Coloured dots mark the factions whose signature weapon is that module.</p></div></div>
+    <div class="scroll"><table id="spectable"></table></div>
+    <h3 class="sub-h">Module catalog</h3>
+    <div class="modgrid" id="modgrid"></div>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/ships.json</code>, <code>factions.json</code>, <code>eras.json</code> and <code>buildings.json</code> in the star-trek-rts design repo (<code>tools/gen_ship_designs_page.py</code>). Companion page: Faction Buildings.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = /*DATA*/;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fc = (id) => `--fc: var(--f-${id})`;
+const fname = (f) => `<span class="fname" style="${fc(f.id)}"><span class="fdot"></span>${esc(f.name)}</span>`;
+const eraShort = Object.fromEntries(D.eras.map((e) => [e.id, e.short]));
+const pips = (n, max, color) => `<span class="pips" style="--pc: var(${color})" aria-label="${n}">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</span>`;
+
+$("readout").innerHTML = `<span><b>${D.factions.length}</b> playable factions</span><span><b>${D.counts.classes}</b> classes</span><span><b>${D.counts.hulls}</b> hulls</span><span><b>${D.counts.modules}</b> modules</span>`;
+
+// ---- doctrine
+$("ov").innerHTML = D.factions.map((f) => `
+  <div class="ov-row" style="${fc(f.id)}">
+    <div class="who">${fname(f)}<span class="hook">${esc(f.playstyle)}</span></div>
+    <div><h4>Doctrine</h4><p>${esc(f.doctrine)}</p></div>
+    <div><h4>Signature weapons</h4><div class="chips">${f.weapons.map((w) => `<span class="wchip ${w.modules.length ? "" : "missing"}" title="${w.modules.length ? "Module: " + esc(w.modules.join(", ")) : "No matching module yet"}">${esc(w.label)}</span>`).join("")}</div></div>
+    <div><h4>Weakness</h4><p>${esc(f.weakness)}</p></div>
+    <div class="facts"><span><b>${f.count}</b> ${f.count === 1 ? "class" : "classes"} on <b>${f.hulls_used}</b> ${f.hulls_used === 1 ? "hull" : "hulls"}</span><span>Flagship <b>${esc(f.flagship)}</b> (${esc(f.flagship_hull)})</span><span>Largest hull its yards build: <b>${esc(f.yard)}</b></span></div>
+  </div>`).join("");
+
+// ---- hulls (hull points on one scale)
+(function () {
+  const maxHp = Math.max(...D.hulls.map((h) => h.hp));
+  const maxSize = Math.max(...D.hulls.map((h) => h.size));
+  const names = ["W", "D", "E", "U"], cols = ["--slot-w", "--slot-d", "--slot-e", "--slot-u"];
+  $("hulltable").innerHTML = `<thead><tr><th scope="col">Hull</th><th scope="col">Size</th><th scope="col">Hull points</th><th scope="col">Speed</th><th scope="col">Crew</th><th scope="col">Slots</th><th scope="col">Built at</th><th scope="col">Notes</th></tr></thead><tbody>` +
+    D.hulls.map((h) => `<tr><th scope="row">${esc(h.label)}</th>
+      <td class="num">${pips(h.size, maxSize, "--peach")} ${h.size}</td>
+      <td><div class="hp"><div class="track"><div class="fill" style="width:${(h.hp / maxHp) * 100}%"></div></div><span>${h.hp}</span></div></td>
+      <td class="num">${h.speed}</td><td class="num">${h.crew.toLocaleString("en-US")}</td>
+      <td><div class="slots">${h.slots.map((n, i) => `<span class="slot" style="--pc: var(${cols[i]})"><b>${names[i]}${n}</b>${n ? `<span class="pips">${"<i class=\"on\"></i>".repeat(n)}</span>` : ""}</span>`).join("")}</div></td>
+      <td><span class="yard">${esc(h.yard)}</span></td>
+      <td>${h.notes.length ? esc(h.notes.join("; ")) : `<span class="none">—</span>`}</td></tr>`).join("") + `</tbody>`;
+})();
+
+// ---- roster: hull rows x faction columns, highlight by era
+function renderRoster(era) {
+  const head = `<thead><tr><th scope="col">Hull</th>${D.factions.map((f) => `<th scope="col">${fname(f)}</th>`).join("")}</tr></thead>`;
+  const body = D.hulls.map((h) => `<tr><th scope="row">${esc(h.label)}<small>size ${h.size}</small></th>${D.factions.map((f) => {
+    const list = D.classes.filter((c) => c.faction === f.id && c.hull === h.id);
+    if (!list.length) return `<td><span class="none">—</span></td>`;
+    return `<td>${list.map((c) => `<span class="ship ${era !== "all" && c.era !== era ? "dim" : ""}" style="${fc(f.id)}"><span class="sn">${esc(c.name)}</span><span class="se">${esc(eraShort[c.era])}${c.role ? " · " + esc(c.role) : ""}</span></span>`).join("")}</td>`;
+  }).join("")}</tr>`).join("");
+  const foot = `<tfoot><tr><th scope="row">${era === "all" ? "Classes" : "In " + esc(eraShort[era])}</th>${D.factions.map((f) => `<td>${D.classes.filter((c) => c.faction === f.id && (era === "all" || c.era === era)).length}</td>`).join("")}</tr></tfoot>`;
+  $("rostertable").innerHTML = head + `<tbody>${body}</tbody>` + foot;
+  document.querySelectorAll("#erafilter button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.era === era)));
+}
+$("erafilter").innerHTML = [`<button type="button" id="era-all" data-era="all" aria-pressed="true">All eras</button>`]
+  .concat(D.eras.map((e) => `<button type="button" id="era-${e.id}" data-era="${e.id}" aria-pressed="false" title="${esc(e.name)}, ${e.years[0]}–${e.years[1]}">${esc(e.short)}</button>`)).join("");
+document.querySelectorAll("#erafilter button").forEach((b) => b.addEventListener("click", () => renderRoster(b.dataset.era)));
+renderRoster("all");
+
+$("otherstable").innerHTML = `<thead><tr><th scope="col">Power</th><th scope="col">Class</th><th scope="col">Hull</th><th scope="col">Era</th><th scope="col">Special</th></tr></thead><tbody>` +
+  D.others.map((c) => `<tr><th scope="row" style="color: var(--ink-dim)">${esc(c.faction_name)}</th><td><span class="bname">${esc(c.name)}</span></td><td>${esc(D.hullLabels[c.hull])}</td><td>${esc(eraShort[c.era])}</td><td>${c.special.length ? `<div class="spec">${c.special.map((s) => `<span>${esc(s)}</span>`).join("")}</div>` : `<span class="none">—</span>`}</td></tr>`).join("") + `</tbody>`;
+
+// ---- fleets by era
+(function () {
+  let outside = [];
+  const head = `<thead><tr><th scope="col">Faction</th>${D.eras.map((e) => `<th scope="col">${esc(e.short)}<span class="sub" style="margin:0;text-transform:none;letter-spacing:.04em">${e.years[0]}–${e.years[1]}</span></th>`).join("")}</tr></thead>`;
+  const body = D.factions.map((f) => `<tr><th scope="row">${fname(f)}</th>${D.eras.map((e) => {
+    const list = D.classes.filter((c) => c.faction === f.id && c.era === e.id);
+    const open = f.eras.includes(e.id);
+    if (!open && list.length) outside.push(`${f.name} ${list.map((c) => c.name).join(", ")} (${e.short})`);
+    const ships = list.map((c) => `<span class="ship" style="${fc(f.id)}"><span class="sn">${esc(c.name)}</span><span class="se">${esc(D.hullLabels[c.hull])}</span></span>`).join("");
+    return `<td class="${open ? "" : "closed"}">${ships || (open ? `<span class="none">—</span>` : `<span class="closed-note">Not playable</span>`)}${!open && list.length ? `<span class="flag">Outside playable eras</span>` : ""}</td>`;
+  }).join("")}</tr>`).join("");
+  $("eratable").innerHTML = head + `<tbody>${body}</tbody>`;
+  const notes = [];
+  if (outside.length) notes.push(`Data to check: ${outside.join("; ")} sit in eras where that faction isn't playable.`);
+  if (D.unusedEras.length) notes.push(`No classes are listed yet for the ${D.unusedEras.join(" and ")} eras.`);
+  $("eranote").textContent = notes.join(" ");
+})();
+
+// ---- specials and modules
+(function () {
+  const all = D.classes.map((c) => ({ ...c, fid: c.faction, fn: D.factions.find((f) => f.id === c.faction).name }))
+    .concat(D.others.map((c) => ({ ...c, fid: "other", fn: c.faction_name })))
+    .filter((c) => c.special.length);
+  $("spectable").innerHTML = `<thead><tr><th scope="col">Class</th><th scope="col">Faction</th><th scope="col">Hull</th><th scope="col">Era</th><th scope="col">Special</th></tr></thead><tbody>` +
+    all.map((c) => `<tr><td><span class="bname">${esc(c.name)}</span></td><td><span class="fname" style="${fc(c.fid)};font-size:14px"><span class="fdot"></span>${esc(c.fn)}</span></td><td>${esc(D.hullLabels[c.hull])}</td><td>${esc(eraShort[c.era])}</td><td><div class="spec">${c.special.map((s) => `<span>${esc(s)}</span>`).join("")}</div></td></tr>`).join("") + `</tbody>`;
+  const colors = { Weapon: "--slot-w", Defense: "--slot-d", Engine: "--slot-e", Utility: "--slot-u" };
+  $("modgrid").innerHTML = D.modules.map((g) => `<div class="modcol" style="--pc: var(${colors[g.slot]})"><h4>${esc(g.slot)}<small>${g.items.length}</small></h4>${g.items.map((m) =>
+    `<div class="mod"><span>${esc(m.label)}</span><span class="u">${m.users.map((u) => `<span class="fdot" style="${fc(u)}" title="${esc(D.factions.find((f) => f.id === u).name)}"></span>`).join("")}</span></div>`).join("")}</div>`).join("");
+})();
+</script>

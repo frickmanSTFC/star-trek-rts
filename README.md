@@ -6,6 +6,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 
 - `GDD.md`: the game design document (pillars, modes, map, economy, colonization, eras, factions, research, ships, threats, multiplayer, open decisions).
 - `faction-buildings.html`: the same comparison as an interactive web page (open in any browser). Regenerate with `python3 tools/gen_faction_buildings_page.py`.
+- `ship-designs.html`: interactive comparison of every faction's starships (doctrine, hulls, class roster by hull and era, specials, modules). Regenerate with `python3 tools/gen_ship_designs_page.py`.
 - `docs/faction-buildings.md`: grids comparing every faction's buildings (starting sets, upgrade lines, capabilities, wonders). Regenerate with `python3 tools/gen_faction_buildings_doc.py`.
 - `federation-build-tree.html`: interactive Federation build tree. Open it in any browser.
 - `art/`: detailed isometric artwork. `art/federation-colony-hub/` has the Colony Hub at all five levels (SVG, open in any browser).
@@ -20,6 +21,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 - Faction structure concepts (canvas): https://claude.ai/artifact/Q8fDXqjgVAQuyQWAyuEame
 - Federation build tree: https://claude.ai/artifact/CtWfg7e9HB3neyC4Y1hmAa
 - Faction buildings comparison: https://claude.ai/artifact/22KRN3X1S5rvqEdencW1XZ
+- Starship designs comparison: https://claude.ai/artifact/3zju4soKLXq2t9akpNedXW
 
 These links only open for people the owner has shared them with (Share menu on each page).
 
