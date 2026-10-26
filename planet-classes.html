@@ -1,0 +1,337 @@
+<title>Planet Classes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame shared with the other design pages; sections stack (filterable world cards, habitability bars, resource x body map, terraforming paths, faction world rows, data checks). Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --sky: #7fc4e8;
+  --gold: #f3cb5b;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --g-settle: #8fd3b0;
+  --g-outpost: #f3cb5b;
+  --g-orbital: #7fc4e8;
+  --g-harvest: #c99ad6;
+  --r-flow: #7fc4e8;
+  --r-strategic: #f3cb5b;
+  --r-exotic: #c99ad6;
+  --r-refined: #9aa3ff;
+  --r-faction: #ff9c5b;
+  --r-trade_good: #8fd3b0;
+  --f-federation: #7fc4e8;
+  --f-klingon: #e2787a;
+  --f-cardassian: #f3cb5b;
+  --f-romulan: #8fd3b0;
+  --f-dominion: #c99ad6;
+  --f-ferengi: #ff9c5b;
+  --f-borg: #b8c46a;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--sky); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--sky); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--sky); }
+.bars .b2 { flex: 1.2; background: var(--good); }
+.bars .b3 { flex: 2; background: var(--gold); }
+.bars .b4 { flex: .8; background: var(--lilac); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--sky); font-weight: 600; }
+.intro { max-width: 70ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--void); background: var(--sky); padding: 4px 14px; border-radius: 14px; }
+nav.jump a:nth-child(2) { background: var(--good); }
+nav.jump a:nth-child(3) { background: var(--gold); }
+nav.jump a:nth-child(4) { background: var(--peach); }
+nav.jump a:nth-child(5) { background: var(--orange); }
+nav.jump a:nth-child(6) { background: var(--lilac); }
+nav.jump a:focus-visible, button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 72ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.fdot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: var(--fc); flex: none; }
+.fname { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--label); font-size: 12px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; background: var(--panel-2); color: var(--ink); }
+.res { border-left: 3px solid var(--rc); }
+.res.also { background: transparent; border: 1px dashed var(--rc); color: var(--ink-dim); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; max-width: 90ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--rc); }
+
+/* ---------- controls ---------- */
+.ctl { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--panel); padding: 4px; border-radius: 18px; }
+.seg button { font: 600 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 0; cursor: pointer; background: transparent; color: var(--ink-dim); padding: 8px 12px; border-radius: 14px; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--bc, var(--sky)); color: var(--void); }
+.showing { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.showing b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* ---------- world cards ---------- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.world { background: var(--panel); border-radius: 10px; border-top: 4px solid var(--gc); padding: 12px 14px 14px; display: grid; gap: 8px; align-content: start; }
+.world > * { min-width: 0; }
+.world .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.world h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 22px; line-height: 1.1; letter-spacing: .03em; text-transform: uppercase; color: var(--ink); }
+.world h3 small { display: block; font-family: var(--label); font-size: 13px; letter-spacing: .1em; color: var(--ink-dim); }
+.world .kind { font-family: var(--label); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--gc); text-align: right; }
+.hab { display: grid; grid-template-columns: 82px minmax(0, 1fr) 42px; gap: 8px; align-items: center; font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.hab .track { position: relative; height: 10px; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 25%); }
+.hab .fill { position: absolute; inset: 1px auto 1px 0; background: var(--good); border-radius: 0 5px 5px 0; }
+.hab span:last-child { text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
+.world dl { margin: 0; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 4px 10px; font-size: 14px; }
+.world dt { font-family: var(--label); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); padding-top: 3px; }
+.world dd { margin: 0; }
+.world dd.warn { color: var(--bad); }
+.src { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); border: 1px solid var(--rule); border-radius: 8px; padding: 0 6px; }
+
+/* ---------- habitability chart ---------- */
+.chart { background: var(--panel); border-radius: 10px; padding: 16px 18px 12px; display: grid; gap: 8px; }
+.brow { display: grid; grid-template-columns: 130px minmax(0, 1fr) 44px; gap: 12px; align-items: center; }
+.brow .nm { font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--gc); }
+.brow .track { position: relative; height: 14px; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 25%); }
+.brow .fill { position: absolute; inset: 2px auto 2px 0; background: var(--gc); border-radius: 0 7px 7px 0; }
+.brow .v { font-family: var(--label); font-size: 14px; font-variant-numeric: tabular-nums; text-align: right; }
+.axis { display: grid; grid-template-columns: 130px minmax(0, 1fr) 44px; gap: 12px; }
+.axis .ticks { position: relative; height: 16px; font-family: var(--label); font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.axis .ticks span { position: absolute; transform: translateX(-50%); }
+.axis .ticks span:first-child { transform: none; }
+.axis .ticks span:last-child { transform: translateX(-100%); }
+
+/* ---------- tables ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); white-space: nowrap; }
+tbody th { background: var(--panel-2); white-space: nowrap; font-weight: 600; border-left: 3px solid var(--rc); }
+tbody th small { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+tr:last-child > * { border-bottom: 0; }
+.map td.c { text-align: center; border-left: 1px solid var(--rule); min-width: 64px; }
+.dot { display: inline-block; width: 12px; height: 12px; border-radius: 6px; vertical-align: middle; }
+.dot.both { background: var(--rc); }
+.dot.planet { background: linear-gradient(90deg, var(--rc) 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px var(--rc); }
+.dot.res { background: transparent; box-shadow: inset 0 0 0 1.5px var(--rc); }
+.sub { display: block; color: var(--ink-dim); font-size: 13px; margin-top: 2px; }
+
+/* terraforming */
+.paths { display: grid; gap: 6px; }
+.path { display: grid; grid-template-columns: 110px 28px 110px minmax(0, 1fr); gap: 6px 14px; align-items: center; background: var(--panel); border-radius: 0 10px 10px 0; border-left: 4px solid var(--pc); padding: 10px 14px; }
+.path > * { min-width: 0; }
+.path .w { font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: .04em; text-transform: uppercase; }
+.path .ar { color: var(--pc); font-size: 20px; text-align: center; }
+.path p { margin: 0; font-size: 14px; color: var(--ink-dim); }
+.path p b { color: var(--ink); }
+.flag { display: inline-block; margin-left: 6px; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--void); background: var(--bad); border-radius: 8px; padding: 0 7px; }
+@media (max-width: 640px) { .path { grid-template-columns: auto 24px auto; } .path p { grid-column: 1 / -1; } }
+
+/* faction rows */
+.ov { display: grid; gap: 6px; }
+.ov-head { display: grid; grid-template-columns: 160px 1fr 1fr 1fr; gap: 18px; padding: 0 16px 0 22px; }
+.ov-head span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row { display: grid; grid-template-columns: 160px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 18px; background: var(--panel); border-left: 6px solid var(--fc); border-radius: 0 10px 10px 0; padding: 12px 16px; }
+.ov-row > * { min-width: 0; }
+.ov-row .fname { font-size: 20px; }
+.ov-row h4 { margin: 0 0 2px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row p { margin: 0; font-size: 14px; }
+.need { font-size: 13px; }
+.need b { font-weight: 600; }
+.need span { color: var(--ink-dim); }
+.ctech { font-family: var(--label); font-size: 12px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; }
+.ctech.ok { background: var(--panel-2); color: var(--ink); }
+.ctech.no { color: var(--ink-faint); border: 1px dashed var(--rule); text-decoration: line-through; }
+@media (max-width: 900px) { .ov-head { display: none; } .ov-row { grid-template-columns: 1fr; } }
+@media (min-width: 901px) { .ov-row h4 { display: none; } }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+  .grid { grid-template-columns: 1fr; }
+  .brow, .axis { grid-template-columns: 84px minmax(0, 1fr) 40px; gap: 8px; }
+}
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Planet Classes</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">Every kind of world and celestial body in the Star Trek RTS: how you settle it, how habitable it is, what it yields and what it can become. The later sections compare which worlds each faction wants. Values are placeholders for balancing.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#worlds">Worlds</a><a href="#habitability">Habitability</a><a href="#resources">Resources</a><a href="#terraforming">Terraforming</a><a href="#factions">Factions</a><a href="#checks">Data checks</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="worlds" style="--sec: var(--sky)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>Worlds and bodies</h2><p>Filter by how a body can be used. Dashed resources are listed for the body in resources.json but not in planet_classes.json.</p></div></div>
+    <div class="ctl"><div class="seg" id="gseg" role="group" aria-label="Use"></div><span class="showing" id="showing" aria-live="polite"></span></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="habitability" style="--sec: var(--good)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Habitability</h2><p>How much population a body supports compared with Class M. Bodies at zero take outposts, refineries or harvesters only.</p></div></div>
+    <div class="chart" id="habchart"></div>
+  </section>
+
+  <section id="resources" style="--sec: var(--gold)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Where resources come from</h2><p>Each resource against the bodies that yield it. The two data files don't always agree; the dot shows which one lists it.</p></div></div>
+    <div class="legend" aria-hidden="true">
+      <span style="--rc: var(--ink)"><span class="dot both"></span>Both files</span><span style="--rc: var(--ink)"><span class="dot planet"></span>planet_classes.json only</span><span style="--rc: var(--ink)"><span class="dot res"></span>resources.json only</span>
+      <span style="--rc: var(--r-flow)"><i></i>Flow</span><span style="--rc: var(--r-strategic)"><i></i>Strategic</span><span style="--rc: var(--r-exotic)"><i></i>Exotic</span><span style="--rc: var(--r-refined)"><i></i>Refined</span><span style="--rc: var(--r-trade_good)"><i></i>Trade good</span><span style="--rc: var(--r-faction)"><i></i>Faction</span>
+    </div>
+    <div class="scroll"><table class="map" id="map"></table></div>
+  </section>
+
+  <section id="terraforming" style="--sec: var(--peach)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Terraforming and Genesis</h2><p>How a body changes class, and the techs that open new bodies to colonies.</p></div></div>
+    <div class="paths" id="paths"></div>
+  </section>
+
+  <section id="factions" style="--sec: var(--orange)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Which worlds each faction wants</h2><p>Preferred worlds and colony rules, the scarce resources its buildings consume and where they're found, and which colony techs it can research.</p></div></div>
+    <div class="ov">
+      <div class="ov-head"><span>Faction</span><span>Wants</span><span>Colony rules</span><span>Scarce resources · colony techs</span></div>
+      <div class="ov" id="ov"></div>
+    </div>
+  </section>
+
+  <section id="checks" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 6</span><h2>Data checks</h2><p>Places where planet_classes.json disagrees with the other design data.</p></div></div>
+    <ul class="plain" id="checklist"></ul>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/planet_classes.json</code>, <code>resources.json</code>, <code>tech_tree.json</code>, <code>hazards.json</code> and <code>buildings.json</code> in the star-trek-rts design repo (<code>tools/gen_planet_classes_page.py</code>). Companion pages: Faction Buildings, Starship Designs, Research Tech Tree and Galactic Hazards.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = {"classes": [{"id": "class_d", "name": "Class D — Planetoid/Moon", "short": "Class D", "subtitle": "Planetoid/Moon", "colony": "Outpost or dome", "group": "outpost", "hab": 0.1, "source": "canon", "yields": [{"id": "tritanium", "name": "Tritanium", "tier": "flow"}, {"id": "duranium", "name": "Duranium", "tier": "flow"}, {"id": "rodinium", "name": "Rodinium", "tier": "strategic"}, {"id": "pergium", "name": "Pergium", "tier": "strategic"}], "alsoFound": [{"id": "dilithium", "name": "Dilithium", "tier": "flow"}], "hazards": [], "effects": [], "terraform": "", "genesis": true, "natives": null, "example": "Regula (Genesis experiment)", "notes": "", "requiresTech": ""}, {"id": "class_h", "name": "Class H — Desert", "short": "Class H", "subtitle": "Desert", "colony": "Adapted colony", "group": "settle", "hab": 0.35, "source": "canon", "yields": [{"id": "duranium", "name": "Duranium", "tier": "flow"}, {"id": "kelbonite", "name": "Kelbonite", "tier": "strategic"}, {"id": "dilithium", "name": "Dilithium", "tier": "flow"}], "alsoFound": [], "hazards": ["sandstorms", "hyperonic radiation"], "effects": [], "terraform": "", "genesis": false, "natives": null, "example": "Tau Cygna V", "notes": "", "requiresTech": ""}, {"id": "class_j", "name": "Class J — Gas Giant", "short": "Class J", "subtitle": "Gas Giant", "colony": "Orbital refinery", "group": "orbital", "hab": 0, "source": "canon", "yields": [{"id": "deuterium", "name": "Deuterium", "tier": "flow"}, {"id": "sirillium", "name": "Sirillium", "tier": "strategic"}], "alsoFound": [], "hazards": [], "effects": [], "terraform": "", "genesis": false, "natives": null, "example": "", "notes": "Moons inherit a deuterium bonus.", "requiresTech": ""}, {"id": "class_k", "name": "Class K — Adaptable", "short": "Class K", "subtitle": "Adaptable", "colony": "Domed colony", "group": "settle", "hab": 0.3, "source": "canon", "yields": [{"id": "tritanium", "name": "Tritanium", "tier": "flow"}, {"id": "pergium", "name": "Pergium", "tier": "strategic"}, {"id": "uridium", "name": "Uridium", "tier": "strategic"}], "alsoFound": [{"id": "kelbonite", "name": "Kelbonite", "tier": "strategic"}, {"id": "topaline", "name": "Topaline", "tier": "strategic"}], "hazards": [], "effects": [], "terraform": "Class M", "genesis": false, "natives": null, "example": "Mars", "notes": "", "requiresTech": ""}, {"id": "class_l", "name": "Class L — Marginal", "short": "Class L", "subtitle": "Marginal", "colony": "Adapted colony", "group": "settle", "hab": 0.5, "source": "canon", "yields": [{"id": "dilithium", "name": "Dilithium", "tier": "flow"}, {"id": "zenite", "name": "Zenite", "tier": "strategic"}], "alsoFound": [], "hazards": [], "effects": [], "terraform": "Class M", "genesis": false, "natives": null, "example": "", "notes": "", "requiresTech": ""}, {"id": "class_m", "name": "Class M — Earth-like", "short": "Class M", "subtitle": "Earth-like", "colony": "Full colony", "group": "settle", "hab": 1.0, "source": "canon", "yields": [{"id": "crew", "name": "Crew", "tier": "flow"}, {"id": "topaline", "name": "Topaline", "tier": "strategic"}, {"id": "cormaline", "name": "Cormaline", "tier": "strategic"}, {"id": "uridium", "name": "Uridium", "tier": "strategic"}], "alsoFound": [{"id": "zenite", "name": "Zenite", "tier": "strategic"}], "hazards": [], "effects": [], "terraform": "", "genesis": false, "natives": 0.35, "example": "Earth, Vulcan, Qo'noS", "notes": "", "requiresTech": ""}, {"id": "class_n", "name": "Class N — Ocean/Pelagic", "short": "Class N", "subtitle": "Ocean/Pelagic", "colony": "Floating or submerged colony", "group": "settle", "hab": 0.6, "source": "beta", "yields": [{"id": "deuterium", "name": "Deuterium", "tier": "flow"}, {"id": "crew", "name": "Crew", "tier": "flow"}], "alsoFound": [], "hazards": [], "effects": [], "terraform": "", "genesis": false, "natives": null, "example": "", "notes": "", "requiresTech": ""}, {"id": "class_t", "name": "Class T — Ultra Giant", "short": "Class T", "subtitle": "Ultra Giant", "colony": "Orbital refinery", "group": "orbital", "hab": 0, "source": "canon", "yields": [{"id": "deuterium", "name": "Deuterium", "tier": "flow"}], "alsoFound": [], "hazards": ["extreme gravity"], "effects": [], "terraform": "", "genesis": false, "natives": null, "example": "", "notes": "", "requiresTech": ""}, {"id": "class_y", "name": "Class Y — Demon", "short": "Class Y", "subtitle": "Demon", "colony": "Shielded outpost", "group": "outpost", "hab": 0, "source": "canon", "yields": [{"id": "trellium_d", "name": "Trellium-D", "tier": "strategic"}, {"id": "boronite", "name": "Boronite", "tier": "strategic"}, {"id": "dilithium", "name": "Dilithium", "tier": "flow"}], "alsoFound": [], "hazards": ["toxic atmosphere", "thermionic radiation", "500K surface"], "effects": [], "terraform": "", "genesis": false, "natives": null, "example": "", "notes": "", "requiresTech": ""}, {"id": "asteroid", "name": "Asteroid Field", "short": "Asteroid Field", "subtitle": "", "colony": "Mining habitat", "group": "outpost", "hab": 0, "source": "original", "yields": [{"id": "tritanium", "name": "Tritanium", "tier": "flow"}, {"id": "duranium", "name": "Duranium", "tier": "flow"}, {"id": "kelbonite", "name": "Kelbonite", "tier": "strategic"}, {"id": "rodinium", "name": "Rodinium", "tier": "strategic"}], "alsoFound": [], "hazards": [], "effects": [], "terraform": "", "genesis": false, "natives": null, "example": "", "notes": "", "requiresTech": ""}, {"id": "comet", "name": "Comet", "short": "Comet", "subtitle": "", "colony": "Harvest only", "group": "harvest", "hab": 0, "source": "original", "yields": [{"id": "deuterium", "name": "Deuterium", "tier": "flow"}], "alsoFound": [], "hazards": [], "effects": [], "terraform": "", "genesis": false, "natives": null, "example": "", "notes": "Moving orbit; harvest window.", "requiresTech": ""}, {"id": "nebula", "name": "Nebula", "short": "Nebula", "subtitle": "", "colony": "Harvest only", "group": "harvest", "hab": 0, "source": "original", "yields": [{"id": "sirillium", "name": "Sirillium", "tier": "strategic"}, {"id": "metreon_gas", "name": "Metreon Gas", "tier": "strategic"}], "alsoFound": [], "hazards": [], "effects": ["sensor penalty", "cloak bonus"], "terraform": "", "genesis": false, "natives": null, "example": "", "notes": "", "requiresTech": ""}, {"id": "neutron_star", "name": "Neutron Star", "short": "Neutron Star", "subtitle": "", "colony": "No colony", "group": "harvest", "hab": 0, "source": "original", "yields": [{"id": "neutronium", "name": "Neutronium", "tier": "exotic"}], "alsoFound": [], "hazards": ["tidal shear", "radiation"], "effects": [], "terraform": "", "genesis": false, "natives": null, "example": "", "notes": "", "requiresTech": "neutronium harvesting"}], "resources": [{"id": "tritanium", "name": "Tritanium", "tier": "flow", "cells": {"class_d": 2, "class_k": 2, "asteroid": 2}, "elsewhere": []}, {"id": "duranium", "name": "Duranium", "tier": "flow", "cells": {"class_d": 2, "class_h": 2, "asteroid": 2}, "elsewhere": []}, {"id": "deuterium", "name": "Deuterium", "tier": "flow", "cells": {"class_j": 2, "class_n": 1, "class_t": 2, "comet": 2}, "elsewhere": ["ice moon"]}, {"id": "dilithium", "name": "Dilithium", "tier": "flow", "cells": {"class_d": -1, "class_h": 2, "class_l": 2, "class_y": 1}, "elsewhere": ["asteroid rare"]}, {"id": "crew", "name": "Crew", "tier": "flow", "cells": {"class_m": 1, "class_n": 1}, "elsewhere": ["colonies"]}, {"id": "kelbonite", "name": "Kelbonite", "tier": "strategic", "cells": {"class_h": 2, "class_k": -1, "asteroid": 2}, "elsewhere": []}, {"id": "pergium", "name": "Pergium", "tier": "strategic", "cells": {"class_d": 2, "class_k": 2}, "elsewhere": []}, {"id": "topaline", "name": "Topaline", "tier": "strategic", "cells": {"class_k": -1, "class_m": 2}, "elsewhere": []}, {"id": "zenite", "name": "Zenite", "tier": "strategic", "cells": {"class_l": 2, "class_m": -1}, "elsewhere": []}, {"id": "rodinium", "name": "Rodinium", "tier": "strategic", "cells": {"class_d": 2, "asteroid": 2}, "elsewhere": []}, {"id": "uridium", "name": "Uridium", "tier": "strategic", "cells": {"class_k": 2, "class_m": 2}, "elsewhere": []}, {"id": "cormaline", "name": "Cormaline", "tier": "strategic", "cells": {"class_m": 2}, "elsewhere": []}, {"id": "trellium_d", "name": "Trellium-D", "tier": "strategic", "cells": {"class_y": 2}, "elsewhere": ["asteroid rare"]}, {"id": "boronite", "name": "Boronite", "tier": "strategic", "cells": {"class_y": 2}, "elsewhere": ["asteroid rare"]}, {"id": "sirillium", "name": "Sirillium", "tier": "strategic", "cells": {"class_j": 1, "nebula": 2}, "elsewhere": []}, {"id": "metreon_gas", "name": "Metreon Gas", "tier": "strategic", "cells": {"nebula": 2}, "elsewhere": []}, {"id": "neutronium", "name": "Neutronium", "tier": "exotic", "cells": {"neutron_star": 2}, "elsewhere": []}], "paths": [{"from": "Class K", "to": "Class M", "kind": "terraform", "techs": [], "planetData": true}, {"from": "Class L", "to": "Class M", "kind": "terraform", "techs": [{"name": "Atmospheric Processors", "how": "Slow terraform: L→M, K→L."}], "planetData": true}, {"from": "Class K", "to": "Class L", "kind": "terraform", "techs": [{"name": "Atmospheric Processors", "how": "Slow terraform: L→M, K→L."}], "planetData": false}, {"from": "Class D", "to": "Class M", "kind": "genesis", "techs": [{"name": "Genesis Device", "how": "Instant Class M from Class D/nebula; 40% chance planet destabilizes later; can be weaponized."}], "planetData": false}, {"from": "Nebula", "to": "Class M", "kind": "genesis", "techs": [{"name": "Genesis Device", "how": "Instant Class M from Class D/nebula; 40% chance planet destabilizes later; can be weaponized."}], "planetData": false}], "colonize": [{"tech": "Pressure Domes", "effect": "Colonize Class D/K bodies."}], "factions": [{"id": "federation", "name": "Federation", "prefers": "Class M first, then domes on K, L and H worlds; moons of gas giants for deuterium.", "rules": "Pressure Domes work on any solid body. Inhabited Class M worlds raise Prime Directive choices; a Xenology Post studies natives in secret.", "needs": [{"name": "Rodinium", "where": ["Class D", "Asteroid Field"]}, {"name": "Topaline", "where": ["Class K", "Class M"]}], "colonyTechs": [{"name": "Pressure Domes", "ok": true}, {"name": "Atmospheric Processors", "ok": true}, {"name": "Subspace Terraforming", "ok": true}, {"name": "Genesis Device", "ok": true}]}, {"id": "klingon", "name": "Klingon", "prefers": "Class M and harsh Class H deserts; an asteroid in system for a hidden fortress.", "rules": "Strip Mines yield 25% more but exhaust deposits 25% faster. The Asteroid Fortress needs an asteroid field.", "needs": [{"name": "Kelbonite", "where": ["Class H", "Class K", "Asteroid Field"]}, {"name": "Rodinium", "where": ["Class D", "Asteroid Field"]}], "colonyTechs": [{"name": "Pressure Domes", "ok": true}, {"name": "Atmospheric Processors", "ok": true}, {"name": "Subspace Terraforming", "ok": true}, {"name": "Genesis Device", "ok": true}]}, {"id": "cardassian", "name": "Cardassian", "prefers": "Inhabited Class M worlds to occupy, and uridium-rich Class K and M.", "rules": "Ore Extraction Sites yield 50% more, with a uridium bonus on Class M. Labor Barracks on occupied worlds give +50% output but raise Resistance.", "needs": [{"name": "Uridium", "where": ["Class K", "Class M"]}, {"name": "Rodinium", "where": ["Class D", "Asteroid Field"]}], "colonyTechs": [{"name": "Pressure Domes", "ok": true}, {"name": "Atmospheric Processors", "ok": true}, {"name": "Subspace Terraforming", "ok": true}, {"name": "Genesis Device", "ok": true}]}, {"id": "romulan", "name": "Romulan", "prefers": "Class M worlds, and nebulae where cloaked ships gain a bonus.", "rules": "Shrouded Mines yield 20% less but stay invisible to scans and raids.", "needs": [], "colonyTechs": [{"name": "Pressure Domes", "ok": true}, {"name": "Atmospheric Processors", "ok": true}, {"name": "Subspace Terraforming", "ok": true}, {"name": "Genesis Device", "ok": true}]}, {"id": "dominion", "name": "Dominion", "prefers": "Almost anywhere: Jem'Hadar are grown in vats, so habitability barely matters.", "rules": "No native population growth. Birthing chambers need zenite, so Class L worlds matter.", "needs": [{"name": "Zenite", "where": ["Class L", "Class M"]}], "colonyTechs": [{"name": "Pressure Domes", "ok": true}, {"name": "Atmospheric Processors", "ok": true}, {"name": "Subspace Terraforming", "ok": true}, {"name": "Genesis Device", "ok": true}]}, {"id": "ferengi", "name": "Ferengi", "prefers": "Whatever pays: trade crossroads and rich deposits it can lease out.", "rules": "Mining Concessions cost nothing up front, and the mining rights can be sold to another player.", "needs": [], "colonyTechs": [{"name": "Pressure Domes", "ok": true}, {"name": "Atmospheric Processors", "ok": true}, {"name": "Subspace Terraforming", "ok": true}, {"name": "Genesis Device", "ok": true}]}, {"id": "borg", "name": "Borg", "prefers": "Populated worlds only, which means Class M worlds with natives.", "rules": "The Assimilation Spire needs a populated world. Strip Harvesters yield 60% more but degrade the planet class over time.", "needs": [], "colonyTechs": [{"name": "Pressure Domes", "ok": false}, {"name": "Atmospheric Processors", "ok": false}, {"name": "Subspace Terraforming", "ok": false}, {"name": "Genesis Device", "ok": false}]}], "pids": ["class_d", "class_h", "class_j", "class_k", "class_l", "class_m", "class_n", "class_t", "class_y", "asteroid", "comet", "nebula", "neutron_star"], "pname": {"class_d": "Class D", "class_h": "Class H", "class_j": "Class J", "class_k": "Class K", "class_l": "Class L", "class_m": "Class M", "class_n": "Class N", "class_t": "Class T", "class_y": "Class Y", "asteroid": "Asteroid Field", "comet": "Comet", "nebula": "Nebula", "neutron_star": "Neutron Star"}, "checks": ["Deuterium: planet_classes.json also lists Class N.", "Dilithium: resources.json also lists Class D; planet_classes.json also lists Class Y.", "Crew: planet_classes.json also lists Class M, Class N.", "Kelbonite: resources.json also lists Class K.", "Topaline: resources.json also lists Class K.", "Zenite: resources.json also lists Class M.", "Sirillium: planet_classes.json also lists Class J.", "resources.json names bodies that aren't planet classes: asteroid rare, derelict, ice moon.", "Class K terraforms straight to Class M in planet_classes.json, but Atmospheric Processors take it to Class L first.", "Neutron Star needs the tech neutronium_harvesting, which isn't in the tech tree.", "Planet hazards aren't entries in hazards.json, so they have no effect or counter yet: 500K surface, extreme gravity, hyperonic radiation, radiation, sandstorms, thermionic radiation, tidal shear, toxic atmosphere."], "groups": [["settle", "Colonies"], ["outpost", "Outposts"], ["orbital", "Orbital refineries"], ["harvest", "Harvest only"]]};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const gc = (g) => `--gc: var(--g-${g})`;
+const rc = (t) => `--rc: var(--r-${t})`;
+const fc = (id) => `--fc: var(--f-${id})`;
+const pct = (v) => `${Math.round(v * 100)}%`;
+const groupLabel = Object.fromEntries(D.groups);
+
+$("readout").innerHTML = `<span><b>${D.classes.length}</b> body types</span><span><b>${D.classes.filter((c) => c.hab > 0).length}</b> habitable</span><span><b>${D.resources.length}</b> resources found on them</span>`;
+
+// ---- world cards
+let curG = "all";
+function card(c) {
+  const rows = [];
+  rows.push(`<dt>Yields</dt><dd><div class="chips">${c.yields.map((y) => `<span class="chip res" style="${rc(y.tier)}">${esc(y.name)}</span>`).join("")}${c.alsoFound.map((y) => `<span class="chip res also" style="${rc(y.tier)}" title="Listed in resources.json only">${esc(y.name)}</span>`).join("")}</div></dd>`);
+  if (c.hazards.length) rows.push(`<dt>Hazards</dt><dd class="warn">${esc(c.hazards.join(", "))}</dd>`);
+  if (c.effects.length) rows.push(`<dt>Effects</dt><dd>${esc(c.effects.join(", "))}</dd>`);
+  if (c.terraform) rows.push(`<dt>Terraform</dt><dd>Can become ${esc(c.terraform)}</dd>`);
+  if (c.genesis) rows.push(`<dt>Genesis</dt><dd>Genesis Device target</dd>`);
+  if (c.natives != null) rows.push(`<dt>Natives</dt><dd>${pct(c.natives)} chance of a native civilization</dd>`);
+  if (c.requiresTech) rows.push(`<dt>Needs</dt><dd>${esc(c.requiresTech)} to harvest</dd>`);
+  if (c.notes) rows.push(`<dt>Notes</dt><dd>${esc(c.notes)}</dd>`);
+  if (c.example) rows.push(`<dt>Example</dt><dd>${esc(c.example)}</dd>`);
+  return `<article class="world" style="${gc(c.group)}">
+    <div class="top"><h3>${esc(c.short)}${c.subtitle ? `<small>${esc(c.subtitle)}</small>` : ""}</h3><span class="kind">${esc(c.colony)}</span></div>
+    <div class="hab"><span>Habitability</span><div class="track" role="img" aria-label="Habitability ${pct(c.hab)}"><div class="fill" style="width:${c.hab * 100}%"></div></div><span>${pct(c.hab)}</span></div>
+    <dl>${rows.join("")}</dl><div><span class="src">${esc(c.source)}</span></div></article>`;
+}
+function renderGrid() {
+  const list = D.classes.filter((c) => curG === "all" || c.group === curG);
+  $("grid").innerHTML = list.map(card).join("");
+  $("showing").innerHTML = `Showing <b>${list.length}</b> of ${D.classes.length}`;
+}
+$("gseg").innerHTML = [`<button type="button" id="g-all" data-g="all" aria-pressed="true">All</button>`]
+  .concat(D.groups.map(([g, l]) => `<button type="button" id="g-${g}" data-g="${g}" style="--bc: var(--g-${g})" aria-pressed="false">${esc(l)}</button>`)).join("");
+document.querySelectorAll("#gseg button").forEach((b) => b.addEventListener("click", () => {
+  curG = b.dataset.g; document.querySelectorAll("#gseg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderGrid();
+}));
+renderGrid();
+
+// ---- habitability (one scale, 0 to 100%)
+const sorted = [...D.classes].sort((a, b) => b.hab - a.hab);
+$("habchart").innerHTML = sorted.map((c) => `<div class="brow" style="${gc(c.group)}"><span class="nm">${esc(c.short)}</span><div class="track" role="img" aria-label="${esc(c.short)} ${pct(c.hab)}"><div class="fill" style="width:${c.hab * 100}%"></div></div><span class="v">${pct(c.hab)}</span></div>`).join("") +
+  `<div class="axis"><span></span><div class="ticks">${[0, 25, 50, 75, 100].map((v) => `<span style="left:${v}%">${v}%</span>`).join("")}</div><span></span></div>`;
+
+// ---- resource map
+const tierOrder = ["flow", "strategic", "exotic", "refined", "trade_good", "faction"];
+const rows = [...D.resources].sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier) || a.name.localeCompare(b.name));
+const dotCls = { 2: "both", 1: "planet", "-1": "res" };
+const dotLbl = { 2: "listed in both files", 1: "planet_classes.json only", "-1": "resources.json only" };
+$("map").innerHTML = `<thead><tr><th scope="col">Resource</th>${D.pids.map((p) => `<th scope="col">${esc(D.pname[p].replace("Class ", ""))}</th>`).join("")}<th scope="col">Elsewhere</th></tr></thead><tbody>` +
+  rows.map((r) => `<tr style="${rc(r.tier)}"><th scope="row">${esc(r.name)}<small>${esc(r.tier.replace("_", " "))}</small></th>${D.pids.map((p) => {
+    const v = r.cells[p];
+    return `<td class="c">${v ? `<span class="dot ${dotCls[v]}" role="img" aria-label="${esc(D.pname[p])}: ${dotLbl[v]}"></span>` : ""}</td>`;
+  }).join("")}<td>${esc(r.elsewhere.join(", "))}</td></tr>`).join("") + `</tbody>`;
+
+// ---- terraforming
+const kConflict = D.paths.some((p) => p.from === "Class K" && p.to === "Class M" && p.planetData) && D.paths.some((p) => p.from === "Class K" && p.to === "Class L");
+$("paths").innerHTML = D.paths.map((p) => {
+  const conflict = kConflict && p.from === "Class K";
+  const color = p.kind === "genesis" ? "var(--bad)" : "var(--good)";
+  const how = p.techs.map((t) => `<b>${esc(t.name)}</b>: ${esc(t.how)}`).concat(p.planetData ? [`<b>Planet data</b>: listed as terraform_to in planet_classes.json`] : []).join("<br>");
+  return `<div class="path" style="--pc: ${color}"><span class="w">${esc(p.from)}</span><span class="ar" aria-label="becomes">→</span><span class="w">${esc(p.to)}</span>
+    <p>${how}${conflict ? `<span class="flag">Conflicts</span>` : ""}</p></div>`;
+}).join("") + D.colonize.map((c) => `<div class="path" style="--pc: var(--sky)"><span class="w">New</span><span class="ar" aria-hidden="true">+</span><span class="w">Colonies</span><p><b>${esc(c.tech)}</b>: ${esc(c.effect)}</p></div>`).join("");
+
+// ---- factions
+$("ov").innerHTML = D.factions.map((f) => `<div class="ov-row" style="${fc(f.id)}">
+  <div><span class="fname"><span class="fdot"></span>${esc(f.name)}</span></div>
+  <div><h4>Wants</h4><p>${esc(f.prefers)}</p></div>
+  <div><h4>Colony rules</h4><p>${esc(f.rules)}</p></div>
+  <div style="display:grid;gap:8px"><h4>Scarce resources · colony techs</h4>
+    <div style="display:grid;gap:2px">${f.needs.length ? f.needs.map((n) => `<div class="need"><b>${esc(n.name)}</b> <span>${esc(n.where.join(", "))}</span></div>`).join("") : `<div class="need"><span>No scarce planet resources: its rare inputs are refined, made or traded.</span></div>`}</div>
+    <div class="chips">${f.colonyTechs.map((t) => `<span class="ctech ${t.ok ? "ok" : "no"}" title="${t.ok ? "Can research" : "Can't research"}">${esc(t.name)}</span>`).join("")}</div>
+  </div></div>`).join("");
+
+// ---- checks
+$("checklist").innerHTML = D.checks.length ? D.checks.map((c) => `<li>${esc(c)}</li>`).join("") : `<li>No gaps found.</li>`;
+</script>

@@ -77,3 +77,21 @@ HAZARD_STANCE = {
     "borg": ("Species 8472 targets the Collective, and with no research the Borg can't develop counters to anomalies.",
              "Adaptation shrugs off repeated attacks, and Borg nanoprobes are the one weapon Species 8472 can't ignore."),
 }
+
+# Which worlds each faction wants and the colony rules that set it apart, for the planet classes page.
+WORLD_STANCE = {
+    "federation": ("Class M first, then domes on K, L and H worlds; moons of gas giants for deuterium.",
+                   "Pressure Domes work on any solid body. Inhabited Class M worlds raise Prime Directive choices; a Xenology Post studies natives in secret."),
+    "klingon": ("Class M and harsh Class H deserts; an asteroid in system for a hidden fortress.",
+                "Strip Mines yield 25% more but exhaust deposits 25% faster. The Asteroid Fortress needs an asteroid field."),
+    "cardassian": ("Inhabited Class M worlds to occupy, and uridium-rich Class K and M.",
+                   "Ore Extraction Sites yield 50% more, with a uridium bonus on Class M. Labor Barracks on occupied worlds give +50% output but raise Resistance."),
+    "romulan": ("Class M worlds, and nebulae where cloaked ships gain a bonus.",
+                "Shrouded Mines yield 20% less but stay invisible to scans and raids."),
+    "dominion": ("Almost anywhere: Jem'Hadar are grown in vats, so habitability barely matters.",
+                 "No native population growth. Birthing chambers need zenite, so Class L worlds matter."),
+    "ferengi": ("Whatever pays: trade crossroads and rich deposits it can lease out.",
+                "Mining Concessions cost nothing up front, and the mining rights can be sold to another player."),
+    "borg": ("Populated worlds only, which means Class M worlds with natives.",
+             "The Assimilation Spire needs a populated world. Strip Harvesters yield 60% more but degrade the planet class over time."),
+}
