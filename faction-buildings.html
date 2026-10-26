@@ -1,0 +1,391 @@
+<title>Faction Buildings</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame like the Federation Build Tree; sections stack (overview rows, opening matrix + cost bars, upgrade lanes, comparison tables). Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --f-federation: #7fc4e8;
+  --f-klingon: #e2787a;
+  --f-cardassian: #f3cb5b;
+  --f-romulan: #8fd3b0;
+  --f-dominion: #c99ad6;
+  --f-ferengi: #ff9c5b;
+  --f-borg: #b8c46a;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px;
+  margin: 0 auto;
+  display: grid;
+  gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--orange); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--orange); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--orange); }
+.bars .b2 { flex: 1.2; background: var(--lilac); }
+.bars .b3 { flex: 2; background: var(--periwinkle); }
+.bars .b4 { flex: .8; background: var(--peach); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--orange); font-weight: 600; }
+.intro { max-width: 70ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a {
+  font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none;
+  color: var(--void); background: var(--periwinkle); padding: 4px 14px; border-radius: 14px;
+}
+nav.jump a:nth-child(2) { background: var(--lilac); }
+nav.jump a:nth-child(3) { background: var(--peach); }
+nav.jump a:nth-child(4) { background: var(--orange); }
+nav.jump a:nth-child(5) { background: var(--good); }
+nav.jump a:focus-visible, button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 72ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+
+/* faction colour chip */
+.fdot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: var(--fc); flex: none; }
+.fname { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+
+/* ---------- overview ---------- */
+.ov { display: grid; gap: 6px; }
+.ov-row {
+  display: grid; grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 4px 18px;
+  background: var(--panel); border-left: 6px solid var(--fc); border-radius: 0 10px 10px 0; padding: 12px 16px;
+}
+.ov-row > * { min-width: 0; }
+.ov-row .who { display: grid; gap: 2px; align-content: start; }
+.ov-row .who .fname { font-size: 20px; }
+.hook { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.ov-row h3 { margin: 0 0 2px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row p { margin: 0; font-size: 14px; }
+.ov-head { display: grid; grid-template-columns: 170px 1fr 1fr 1fr; gap: 18px; padding: 0 16px 0 22px; }
+.ov-head span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+@media (max-width: 900px) {
+  .ov-head { display: none; }
+  .ov-row { grid-template-columns: 1fr; }
+  .ov-row h3 { display: block; }
+}
+@media (min-width: 901px) { .ov-row h3 { display: none; } }
+
+/* ---------- controls ---------- */
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--panel); padding: 4px; border-radius: 18px; }
+.seg button {
+  font: 600 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 0; cursor: pointer;
+  background: transparent; color: var(--ink-dim); padding: 8px 14px; border-radius: 14px;
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--sec, var(--orange)); color: var(--void); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+
+/* ---------- tables ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); position: sticky; top: 0; }
+thead th .fname { font-size: 15px; }
+tbody th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--peach); white-space: nowrap; background: var(--panel-2); }
+tr:last-child > * { border-bottom: 0; }
+.matrix td { min-width: 150px; border-left: 1px solid var(--rule); }
+.matrix td.base { background: color-mix(in srgb, var(--f-federation) 6%, transparent); }
+.bname { font-weight: 600; color: var(--ink); display: block; }
+.sub { display: block; color: var(--ink-dim); font-size: 13px; margin-top: 3px; }
+.req { display: inline-block; margin-top: 5px; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--lilac); border: 1px solid var(--lilac); border-radius: 9px; padding: 0 7px; }
+.delta { display: inline-block; margin-top: 5px; font-family: var(--label); font-size: 12px; letter-spacing: .06em; font-variant-numeric: tabular-nums; border-radius: 9px; padding: 0 8px; }
+.delta.cheaper { color: var(--void); background: var(--good); }
+.delta.pricier { color: var(--void); background: var(--bad); }
+.delta.same, .delta.baseline { color: var(--ink-dim); border: 1px solid var(--rule); }
+.none { color: var(--ink-faint); font-style: italic; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- opening cost bars ---------- */
+.bars-chart { background: var(--panel); border-radius: 10px; padding: 16px 18px 12px; display: grid; gap: 10px; }
+.bars-chart h3 { margin: 0; font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); }
+.bar-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 48px; gap: 12px; align-items: center; }
+.bar-row .fname { font-size: 14px; }
+.track { position: relative; height: 16px; }
+.track::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 25%); }
+.fill { position: absolute; left: 0; top: 2px; bottom: 2px; background: var(--fc); border-radius: 0 7px 7px 0; }
+.base-mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--f-federation); opacity: .7; }
+.bar-row .v { font-family: var(--label); font-size: 14px; font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+.axis { display: grid; grid-template-columns: 110px minmax(0, 1fr) 48px; gap: 12px; }
+.axis .ticks { position: relative; height: 16px; font-family: var(--label); font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.axis .ticks span { position: absolute; transform: translateX(-50%); }
+.axis .ticks span:first-child { transform: none; }
+.axis .ticks span:last-child { transform: translateX(-100%); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; }
+
+/* ---------- upgrade lines ---------- */
+.ftabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.ftabs button {
+  font: 600 15px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
+  background: var(--panel); color: var(--fc); border: 1.5px solid var(--fc); padding: 8px 16px; border-radius: 16px;
+}
+.ftabs button[aria-pressed="true"] { background: var(--fc); color: var(--void); }
+.lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1100px) { .lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .lanes { grid-template-columns: 1fr; } }
+.lane { display: grid; gap: 8px; align-content: start; }
+.lane h3 { margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; color: var(--fc); border-bottom: 2px solid var(--fc); padding-bottom: 4px; }
+.lane h3 small { font-family: var(--label); font-size: 12px; letter-spacing: .1em; color: var(--ink-faint); }
+.lvl { background: var(--panel); border-radius: 0 10px 10px 0; border-left: 3px solid color-mix(in srgb, var(--fc) 55%, transparent); padding: 10px 12px; display: grid; gap: 4px; }
+.lvl .top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.lvl .L { font-family: var(--label); font-size: 12px; letter-spacing: .1em; color: var(--fc); font-variant-numeric: tabular-nums; }
+.lvl .n { font-weight: 600; }
+.tag { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; border-radius: 9px; padding: 0 7px; }
+.tag.wonder { color: var(--void); background: var(--peach); }
+.tag.faction_only { color: var(--lilac); border: 1px solid var(--lilac); }
+.lvl .c { font-size: 13px; color: var(--peach); }
+.lvl .s { font-family: var(--label); font-size: 12px; letter-spacing: .06em; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px; }
+.lvl .s span { background: var(--panel-2); border-radius: 6px; padding: 0 6px; }
+.lvl .e { font-size: 13px; color: var(--ink-dim); margin: 0; }
+.chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chain .lk { background: var(--panel-2); border-radius: 8px; padding: 4px 10px; font-size: 13px; }
+.chain .lk b { font-family: var(--label); font-weight: 600; font-size: 11px; color: var(--fc); letter-spacing: .08em; margin-right: 6px; }
+.chain .ar { color: var(--ink-faint); }
+.compare td { min-width: 140px; }
+.view { display: grid; gap: 14px; }
+[hidden] { display: none !important; }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+  .bar-row, .axis { grid-template-columns: 84px minmax(0, 1fr) 40px; gap: 8px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fill { transition: width .4s ease; }
+}
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Faction Buildings</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">How the seven playable factions of the Star Trek RTS differ in what they build. The Federation is the baseline; every other faction fills the same roles but trades cost, output or rules to fit its identity. All costs and stats are placeholders for balancing.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#overview">Overview</a><a href="#opening">Opening buildings</a><a href="#lines">Upgrade lines</a><a href="#compare">Capabilities</a><a href="#unique">Wonders</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="overview" style="--sec: var(--periwinkle)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>Faction overview</h2><p>What each faction leans on, and what it gives up for it.</p></div></div>
+    <div class="ov">
+      <div class="ov-head"><span>Faction</span><span>Identity</span><span>Strengths</span><span>Trade-offs</span></div>
+      <div id="ov"></div>
+    </div>
+  </section>
+
+  <section id="opening" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2 · Class M colony</span><h2>Opening buildings</h2><p>One building per role is available in the opening minutes of a Class M colony. Switch the grid between costs and effects.</p></div></div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Grid detail">
+        <button type="button" id="mode-cost" data-mode="cost" aria-pressed="true">Costs</button>
+        <button type="button" id="mode-effect" data-mode="effect" aria-pressed="false">Effects</button>
+        <button type="button" id="mode-name" data-mode="name" aria-pressed="false">Names only</button>
+      </div>
+    </div>
+    <div class="scroll"><table class="matrix" id="matrix"></table></div>
+    <div class="bars-chart" id="costbars"></div>
+  </section>
+
+  <section id="lines" style="--sec: var(--peach)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Upgrade lines</h2><p id="lines-intro"></p></div></div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Upgrade line view">
+        <button type="button" id="view-faction" data-view="faction" aria-pressed="true">By faction</button>
+        <button type="button" id="view-line" data-view="line" aria-pressed="false">Compare a line</button>
+      </div>
+    </div>
+    <div id="by-faction" class="view">
+      <div class="ftabs" id="ftabs" role="group" aria-label="Faction"></div>
+      <div class="lanes" id="lanes"></div>
+    </div>
+    <div id="by-line" class="view" hidden>
+      <div class="seg" id="ltabs" role="group" aria-label="Line"></div>
+      <div class="scroll"><table class="compare" id="linecmp"></table></div>
+    </div>
+  </section>
+
+  <section id="compare" style="--sec: var(--orange)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Capability comparison</h2><p>The highest value each faction reaches in its upgrade lines. A dash means that faction has no level with that stat.</p></div></div>
+    <div class="scroll"><table id="caps"></table></div>
+  </section>
+
+  <section id="unique" style="--sec: var(--good)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Wonders and faction-only buildings</h2><p>Wonders are one-per-player megastructures. Faction-only buildings have no equivalent for any other faction.</p></div></div>
+    <div class="scroll"><table id="uniq"></table></div>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/buildings.json</code> in the star-trek-rts design repo (<code>tools/gen_faction_buildings_page.py</code>). The same content is in <code>docs/faction-buildings.md</code>.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = {"factions": [{"id": "federation", "name": "Federation", "hook": "Baseline", "identity": "Balanced baseline; fastest research.", "plus": "Balanced costs; best research (+25% labs); widest habitation range (domes on any solid body); Yorktown and Utopia Planitia wonders.", "minus": "No gimmick to lean on; Xenology Post risks a Prime Directive penalty.", "start": {"Core": {"name": "Colony Hub", "cost": [["duranium", 100], ["crew", 50]], "delta": 0, "effect": "Supply range 1, 1 build queue.", "requires": ""}, "Housing": {"name": "Prefab Habitat", "cost": [["duranium", 60]], "delta": 0, "effect": "+1 population.", "requires": ""}, "Extraction": {"name": "Mining Complex", "cost": [["duranium", 80]], "delta": 0, "effect": "Normal yield.", "requires": ""}, "Power": {"name": "Fusion Reactor", "cost": [["duranium", 80], ["deuterium", 20]], "delta": 0, "effect": "+10 energy.", "requires": ""}, "Research": {"name": "Research Lab", "cost": [["duranium", 100]], "delta": 0, "effect": "+25% research (best in game).", "requires": ""}, "Defense": {"name": "Security Garrison", "cost": [["duranium", 100], ["crew", 50]], "delta": 0, "effect": "1 security team.", "requires": ""}, "Signature": {"name": "Xenology Observation Post", "cost": [["duranium", 60]], "delta": 0, "effect": "Hidden study of natives: research bonus; Prime Directive penalty if discovered.", "requires": "natives present"}}, "opening": 700, "lines": [{"slot": "deep_space", "label": "Deep space", "levels": [{"name": "Outpost", "cost": [["duranium", 120], ["rodinium", 10]], "stats": ["supply range 1", "docking 0"], "effect": "Claims the system.", "tag": ""}, {"name": "Deep Space Station", "cost": [["parasteel", 300]], "stats": ["supply range 2", "docking 4"], "effect": "K-7 style trade hub.", "tag": ""}, {"name": "Starbase", "cost": [["parasteel", 600], ["isolinear", 50]], "stats": ["supply range 3", "docking 8"], "effect": "Saucer command deck, fleet aura.", "tag": ""}, {"name": "Spacedock", "cost": [["parasteel", 1200], ["plasma conduits", 150]], "stats": ["hull cap 6", "docking 16"], "effect": "Interior bay; builds size-6 hulls.", "tag": ""}, {"name": "Yorktown", "cost": [["parasteel", 4000], ["isolinear", 300], ["dilithium", 200]], "stats": ["docking 24"], "effect": "Habitable rings inside a transparent shell.", "tag": "wonder"}]}, {"slot": "command", "label": "Command", "levels": [{"name": "Colony Hub", "cost": [["duranium", 100], ["crew", 50]], "stats": ["supply range 1", "build queues 1", "pop cap 2"], "effect": "Colony pod set down by a drop ship: landing legs, boarding ramp, solar petals, drop capsules.", "tag": ""}, {"name": "Settlement Hub", "cost": [["duranium", 160], ["tritanium", 60]], "stats": ["supply range 1", "build queues 1", "pop cap 3"], "effect": "Pod settles on a foundation; four capsule modules plug in on tubes; hydroponics dome; +25% storage, +10% build speed.", "tag": ""}, {"name": "Colonial Administration", "cost": [["duranium", 300], ["tritanium", 150]], "stats": ["supply range 2", "build queues 2", "pop cap 4"], "effect": "Pod raised on a central column above a ring corridor of six modules; domed rotunda; comm tower.", "tag": ""}, {"name": "Governor's Complex", "cost": [["parasteel", 280], ["isolinear", 30]], "stats": ["supply range 2", "build queues 3", "pop cap 6"], "effect": "Column carries a starbase-style saucer deck; three-storey ring modules; second saucer building; +1 morale in system.", "tag": ""}, {"name": "Planetary Capital", "cost": [["parasteel", 400], ["isolinear", 50]], "stats": ["supply range 3", "build queues 3", "pop cap 10", "limit 1 per system"], "effect": "Spire of three saucer decks, ring of saucer-topped towers, Academy-style arches, pod monument; +2 morale in system.", "tag": ""}]}, {"slot": "shipyards", "label": "Shipyards", "levels": [{"name": "Orbital Drydock", "cost": [["duranium", 200], ["tritanium", 100]], "stats": ["hull cap 3", "build slots 1"], "effect": "Open frame; escorts and frigates.", "tag": ""}, {"name": "Orbital Shipyard", "cost": [["parasteel", 300], ["plasma conduits", 40]], "stats": ["hull cap 5", "build slots 2"], "effect": "Double frame with cranes; cruisers.", "tag": ""}, {"name": "Fleet Yards", "cost": [["parasteel", 3000], ["warp coils", 200]], "stats": ["hull cap titan"], "effect": "Utopia Planitia; titan berth, -20% build time.", "tag": "wonder"}]}, {"slot": "fourth", "label": "Habitation", "levels": [{"name": "Prefab Habitat", "cost": [["duranium", 60]], "stats": ["pop cap 1"], "effect": "Sealed modules on Class K/M/L/H.", "tag": ""}, {"name": "Pressure Domes", "cost": [["transp. aluminum", 40], ["topaline", 10]], "stats": ["pop cap 2"], "effect": "Domes on any solid body; breach risk.", "tag": ""}, {"name": "Arcology", "cost": [["parasteel", 300]], "stats": ["pop cap 8"], "effect": "Terraced megastructure; needs industrial replicators.", "tag": ""}]}], "caps": ["3", "24", "titan", "8", "+25% research (best in game)."], "wonders": [{"name": "Yorktown", "effect": "Habitable rings inside a transparent shell."}, {"name": "Fleet Yards", "effect": "Utopia Planitia; titan berth, -20% build time."}], "only": []}, {"id": "klingon", "name": "Klingon", "hook": "Honor", "identity": "Cheap and aggressive; weak economy and research.", "plus": "Cheap opening (only Ferengi leases cost less); guns and troops from turn one; strip mines and battle reactors front-load output; Honor buys Great House fleets.", "minus": "Research limited to weapons at -25%; mines deplete faster; reactors explode on neighbours.", "start": {"Core": {"name": "House Encampment", "cost": [["duranium", 90], ["crew", 60]], "delta": 0, "effect": "Trains Klingon Warriors immediately.", "requires": ""}, "Housing": {"name": "Clan Longhouse", "cost": [["duranium", 70]], "delta": 10, "effect": "+1 population, +1 militia.", "requires": ""}, "Extraction": {"name": "Strip Mine", "cost": [["duranium", 60]], "delta": -20, "effect": "+25% yield; deposit depletes 25% faster.", "requires": ""}, "Power": {"name": "Battle Reactor", "cost": [["duranium", 60], ["deuterium", 20]], "delta": -20, "effect": "+10 energy; explodes and damages neighbours if destroyed.", "requires": ""}, "Research": {"name": "Weapons Forge", "cost": [["duranium", 80]], "delta": -20, "effect": "Weapons-tree research only, at -25%.", "requires": ""}, "Defense": {"name": "Disruptor Battery", "cost": [["tritanium", 110]], "delta": -40, "effect": "Surface-to-orbit gun from turn one.", "requires": ""}, "Signature": {"name": "Warrior's Arena", "cost": [["duranium", 80]], "delta": 20, "effect": "+1 Honor per cycle; ground troop XP.", "requires": ""}}, "opening": 630, "lines": [{"slot": "deep_space", "label": "Deep space", "levels": [{"name": "Border Outpost", "cost": [["duranium", 140], ["rodinium", 10]], "stats": ["supply range 1", "weapons 2"], "effect": "Spear tower armed with 2 disruptors from day one.", "tag": ""}, {"name": "Battle Station", "cost": [["parasteel", 320]], "stats": ["supply range 2", "docking 3"], "effect": "Armored hub with wing arms; cloaked ships rearm without decloaking.", "tag": ""}, {"name": "Klingon Starbase", "cost": [["parasteel", 600], ["isolinear", 40]], "stats": ["supply range 3", "docking 6"], "effect": "War platform with spires; fleet aura, Honor for kills nearby.", "tag": ""}, {"name": "Asteroid Fortress", "cost": [["parasteel", 1000], ["kelbonite", 80]], "stats": ["hidden hangars 8", "requires asteroid in system"], "effect": "Ty'Gokor style hollowed asteroid; kelbonite hides hangars from scans.", "tag": "faction_only"}]}, {"slot": "command", "label": "Command", "levels": [{"name": "House Encampment", "cost": [["duranium", 90], ["crew", 60]], "stats": ["supply range 1"], "effect": "Shelters, brazier, House banner; trains warriors.", "tag": ""}, {"name": "Governor's Keep", "cost": [["duranium", 280], ["tritanium", 160]], "stats": ["supply range 2"], "effect": "Walled keep; +50% garrison defense, 2nd build queue.", "tag": ""}, {"name": "Great Hall", "cost": [["parasteel", 450], ["Honor", 100]], "stats": ["supply range 3"], "effect": "High Council seat; spend Honor for Great House fleets.", "tag": "faction_only"}]}, {"slot": "shipyards", "label": "Shipyards", "levels": [{"name": "Cradle", "cost": [["duranium", 180], ["tritanium", 100]], "stats": ["hull cap 3", "build slots 1"], "effect": "Claw cradle; -15% build time on escorts.", "tag": ""}, {"name": "Imperial Shipyard", "cost": [["parasteel", 300], ["plasma conduits", 40]], "stats": ["hull cap 5", "build slots 2"], "effect": "Three claw pairs; battlecruisers.", "tag": ""}, {"name": "Imperial Fleet Yards", "cost": [["parasteel", 2800], ["warp coils", 200]], "stats": ["hull cap titan"], "effect": "Titan berth (Negh'Var); Great House sponsorship cuts cost 30%.", "tag": "wonder"}]}, {"slot": "fourth", "label": "Habitation", "levels": [{"name": "Clan Longhouse", "cost": [["duranium", 70]], "stats": ["pop cap 1"], "effect": "Stone hall; +1 militia strength.", "tag": ""}, {"name": "Fortified Settlement", "cost": [["duranium", 160], ["tritanium", 60]], "stats": ["pop cap 3"], "effect": "Walled compound; +2 vs invasion.", "tag": ""}, {"name": "Warrior Citadel", "cost": [["parasteel", 320], ["rodinium", 60]], "stats": ["pop cap 7"], "effect": "Crag city; trains elite warriors, hardest to invade.", "tag": ""}]}], "caps": ["3", "6", "titan", "7", "Weapons-tree research only, at -25%."], "wonders": [{"name": "Imperial Fleet Yards", "effect": "Titan berth (Negh'Var); Great House sponsorship cuts cost 30%."}], "only": [{"name": "Asteroid Fortress", "effect": "Ty'Gokor style hollowed asteroid; kelbonite hides hangars from scans."}, {"name": "Great Hall", "effect": "High Council seat; spend Honor for Great House fleets."}]}, {"id": "cardassian", "name": "Cardassian", "hook": "Occupation", "identity": "Industry and control; slow research.", "plus": "Strongest extraction (+50%); labour and occupation bonuses on populated worlds; Nor-type stations double refining.", "minus": "-25% research; output bonuses raise Resistance that must be managed.", "start": {"Core": {"name": "Garrison Post", "cost": [["duranium", 110], ["crew", 40]], "delta": 0, "effect": "Includes a garrison; no separate defense building needed.", "requires": ""}, "Housing": {"name": "Labor Barracks", "cost": [["duranium", 60]], "delta": 0, "effect": "+1 population.", "requires": ""}, "Extraction": {"name": "Ore Extraction Site", "cost": [["duranium", 100]], "delta": 20, "effect": "+50% yield; uridium bonus on Class M.", "requires": ""}, "Power": {"name": "Fusion Reactor", "cost": [["duranium", 80], ["deuterium", 20]], "delta": 0, "effect": "+10 energy.", "requires": ""}, "Research": {"name": "State Archive", "cost": [["duranium", 120]], "delta": 20, "effect": "-25% research.", "requires": ""}, "Defense": {"name": "Surveillance Grid", "cost": [["duranium", 60], ["isolinear", 10]], "delta": -80, "effect": "Reveals spies; -1 Resistance.", "requires": ""}, "Signature": {"name": "Occupation Office", "cost": [["duranium", 80]], "delta": 20, "effect": "Natives put to work: +output, rising Resistance.", "requires": "natives present"}}, "opening": 680, "lines": [{"slot": "deep_space", "label": "Deep space", "levels": [{"name": "Outpost", "cost": [["duranium", 120], ["rodinium", 10]], "stats": ["supply range 1"], "effect": "Ribbed spindle; +1 system sensor range.", "tag": ""}, {"name": "Monitoring Station", "cost": [["parasteel", 280], ["isolinear", 20]], "stats": ["supply range 2", "docking 2"], "effect": "Oval hub; reveals fleet movement in neighbouring systems.", "tag": ""}, {"name": "Nor-type Station", "cost": [["parasteel", 700], ["uridium", 60]], "stats": ["docking 12"], "effect": "Terok Nor layout; x2 refined output in system.", "tag": "faction_only"}, {"name": "Nor-type Bastion", "cost": [["parasteel", 1100], ["antimatter", 80]], "stats": ["weapons 10"], "effect": "War refit: 6 arrays + 4 weapons platforms; keeps refining bonus.", "tag": "faction_only"}]}, {"slot": "command", "label": "Command", "levels": [{"name": "Garrison Post", "cost": [["duranium", 110], ["crew", 40]], "stats": ["supply range 1"], "effect": "Ribbed bunker; trains Cardassian soldiers.", "tag": ""}, {"name": "Prefecture", "cost": [["duranium", 300], ["tritanium", 140]], "stats": ["supply range 2"], "effect": "Governs occupied worlds; -1 Resistance.", "tag": ""}, {"name": "Central Command", "cost": [["parasteel", 450], ["isolinear", 60]], "stats": ["supply range 3"], "effect": "Unlocks Obsidian Order and Union occupation policies.", "tag": "faction_only"}]}, {"slot": "shipyards", "label": "Shipyards", "levels": [{"name": "Rib Dock", "cost": [["duranium", 200], ["tritanium", 100]], "stats": ["hull cap 3", "build slots 1"], "effect": "Hideki, Groumall; cheaper with a Nor-type in system.", "tag": ""}, {"name": "Fleet Shipyard", "cost": [["parasteel", 300], ["plasma conduits", 40]], "stats": ["hull cap 5", "build slots 2"], "effect": "Galor and Keldon.", "tag": ""}, {"name": "Assembly Yards", "cost": [["parasteel", 2400], ["uridium", 120]], "stats": ["hull cap 5", "build slots 3"], "effect": "3 parallel lines, cruisers -25%; no titan berth.", "tag": "wonder"}]}, {"slot": "fourth", "label": "Habitation", "levels": [{"name": "Labor Barracks", "cost": [["duranium", 60]], "stats": ["pop cap 1"], "effect": "On occupied worlds: +50% output, rising Resistance.", "tag": ""}, {"name": "Civic Arcade", "cost": [["duranium", 150], ["transp. aluminum", 40]], "stats": ["pop cap 3"], "effect": "Broadcast screens; spies found faster.", "tag": ""}, {"name": "Capital District", "cost": [["parasteel", 320], ["uridium", 40]], "stats": ["pop cap 7"], "effect": "Monument city; -1 Resistance in system.", "tag": ""}]}], "caps": ["3", "12", "5", "7", "-25% research."], "wonders": [{"name": "Assembly Yards", "effect": "3 parallel lines, cruisers -25%; no titan berth."}], "only": [{"name": "Nor-type Station", "effect": "Terok Nor layout; x2 refined output in system."}, {"name": "Nor-type Bastion", "effect": "War refit: 6 arrays + 4 weapons platforms; keeps refining bonus."}, {"name": "Central Command", "effect": "Unlocks Obsidian Order and Union occupation policies."}]}, {"id": "romulan", "name": "Romulan", "hook": "Stealth", "identity": "Hidden and paranoid; pricier.", "plus": "Colonies, mines, guns and docks hidden from scans; spy slot from the start; singularity tech removes antimatter upkeep.", "minus": "Most expensive opening (needs isolinear chips early); shrouded mines yield -20%.", "start": {"Core": {"name": "Colonial Garrison", "cost": [["duranium", 110], ["crew", 40]], "delta": 0, "effect": "Enemy scans see no colony details.", "requires": ""}, "Housing": {"name": "Colonial Villa", "cost": [["duranium", 70]], "delta": 10, "effect": "+1 population, +1 morale.", "requires": ""}, "Extraction": {"name": "Shrouded Mine", "cost": [["duranium", 100]], "delta": 20, "effect": "-20% yield; invisible to scans and raids.", "requires": ""}, "Power": {"name": "Plasma Reactor", "cost": [["duranium", 90], ["isolinear", 10]], "delta": 0, "effect": "+12 energy; no deuterium.", "requires": ""}, "Research": {"name": "Science Ministry Lab", "cost": [["duranium", 110], ["isolinear", 10]], "delta": 20, "effect": "Normal research; +50% on stealth techs.", "requires": ""}, "Defense": {"name": "Cloaked Disruptor Emplacement", "cost": [["tritanium", 120]], "delta": -30, "effect": "Invisible until it fires.", "requires": ""}, "Signature": {"name": "Tal Shiar Field Office", "cost": [["duranium", 80], ["isolinear", 20]], "delta": 40, "effect": "1 spy operation slot from the start.", "requires": ""}}, "opening": 760, "lines": [{"slot": "deep_space", "label": "Deep space", "levels": [{"name": "Cloaked Outpost", "cost": [["duranium", 130], ["isolinear", 20]], "stats": ["supply range 1"], "effect": "Hidden from enemy maps until it fires.", "tag": ""}, {"name": "Listening Post", "cost": [["parasteel", 260], ["isolinear", 40]], "stats": ["supply range 2"], "effect": "Neutral Zone sensor wings; intel 2 systems out.", "tag": ""}, {"name": "Warbird Aerie", "cost": [["parasteel", 620], ["isolinear", 60]], "stats": ["supply range 3", "docking 6"], "effect": "Hawk-shaped starbase; ships launch cloaked.", "tag": ""}, {"name": "Singularity Bastion", "cost": [["parasteel", 1200], ["singularity cores", 2]], "stats": [], "effect": "No antimatter upkeep in range; gravity well if destroyed.", "tag": "faction_only"}]}, {"slot": "command", "label": "Command", "levels": [{"name": "Colonial Garrison", "cost": [["duranium", 110], ["crew", 40]], "stats": ["supply range 1"], "effect": "Enemy scans see no colony details.", "tag": ""}, {"name": "Proconsulate", "cost": [["duranium", 300], ["tritanium", 140]], "stats": ["supply range 2", "tal shiar slots 1"], "effect": "2nd build queue, 1 Tal Shiar op slot.", "tag": ""}, {"name": "Imperial Senate", "cost": [["parasteel", 450], ["isolinear", 80]], "stats": ["supply range 3", "tal shiar slots 3"], "effect": "Unlocks Tal Shiar HQ and Senate politics (bribable senators).", "tag": "faction_only"}]}, {"slot": "shipyards", "label": "Shipyards", "levels": [{"name": "Aerie Dock", "cost": [["duranium", 200], ["isolinear", 30]], "stats": ["hull cap 3"], "effect": "Half-cloaked arches; hidden build queue.", "tag": ""}, {"name": "Imperial Shipyard", "cost": [["parasteel", 320], ["plasma conduits", 40]], "stats": ["hull cap 5", "build slots 2"], "effect": "Valdore-class cruisers.", "tag": ""}, {"name": "Singularity Yards", "cost": [["parasteel", 3000], ["singularity cores", 4]], "stats": ["hull cap titan"], "effect": "D'deridex and (Picard era) Scimitar; all hulls launch cloaked.", "tag": "wonder"}]}, {"slot": "fourth", "label": "Habitation", "levels": [{"name": "Colonial Villa", "cost": [["duranium", 70]], "stats": ["pop cap 1"], "effect": "Courtyard homes; +1 morale.", "tag": ""}, {"name": "Terraced Quarter", "cost": [["duranium", 170], ["tritanium", 40]], "stats": ["pop cap 3"], "effect": "Informant network; spies and Changelings found faster.", "tag": ""}, {"name": "Spire City", "cost": [["parasteel", 320], ["isolinear", 50]], "stats": ["pop cap 7"], "effect": "Ki Baratan style; +2 research, system-wide informants.", "tag": ""}]}], "caps": ["3", "6", "titan", "7", "Normal research; +50% on stealth techs."], "wonders": [{"name": "Singularity Yards", "effect": "D'deridex and (Picard era) Scimitar; all hulls launch cloaked."}], "only": [{"name": "Singularity Bastion", "effect": "No antimatter upkeep in range; gravity well if destroyed."}, {"name": "Imperial Senate", "effect": "Unlocks Tal Shiar HQ and Senate politics (bribable senators)."}]}, {"id": "dominion", "name": "Dominion", "hook": "Ketracel-white", "identity": "Clones and Ketracel-white; no native population growth.", "plus": "No population needed: Jem'Hadar are grown in vats; squads arrive with the core; strong polaron defence.", "minus": "Everything depends on White supply; -30% research; skips cruiser hulls.", "start": {"Core": {"name": "Vorta Field Post", "cost": [["duranium", 110], ["White", 2]], "delta": -38, "effect": "Comes with a Jem'Hadar squad.", "requires": ""}, "Housing": {"name": "Birthing Chamber", "cost": [["duranium", 90], ["zenite", 20]], "delta": 50, "effect": "Grows Jem'Hadar squads instead of population.", "requires": ""}, "Extraction": {"name": "Jem'Hadar Work Site", "cost": [["duranium", 80]], "delta": 0, "effect": "No crew needed.", "requires": ""}, "Power": {"name": "Fusion Reactor", "cost": [["duranium", 80], ["deuterium", 20]], "delta": 0, "effect": "+10 energy.", "requires": ""}, "Research": {"name": "Vorta Analysis Lab", "cost": [["duranium", 120]], "delta": 20, "effect": "-30% research; double research from captured wrecks.", "requires": ""}, "Defense": {"name": "Polaron Battery", "cost": [["tritanium", 110]], "delta": -40, "effect": "Partly bypasses shields.", "requires": ""}, "Signature": {"name": "White Depot", "cost": [["duranium", 60], ["zenite", 20]], "delta": 20, "effect": "Keeps troops supplied 2 cycles if White supply is cut.", "requires": ""}}, "opening": 712, "lines": [{"slot": "deep_space", "label": "Deep space", "levels": [{"name": "Jem'Hadar Outpost", "cost": [["duranium", 130]], "stats": ["supply range 1"], "effect": "No crew upkeep; costs 1 White per cycle.", "tag": ""}, {"name": "Ketracel-white Facility", "cost": [["parasteel", 300], ["zenite", 30]], "stats": ["supply range 2"], "effect": "+6 White/cycle; losing it makes nearby Jem'Hadar feral.", "tag": "faction_only"}, {"name": "Vorta Command Station", "cost": [["parasteel", 600], ["isolinear", 50]], "stats": ["supply range 3", "docking 8"], "effect": "Fleet aura; Vorta diplomacy with neighbours.", "tag": ""}, {"name": "Wormhole Citadel", "cost": [["parasteel", 1400], ["isolinear", 100]], "stats": ["requires stable wormhole"], "effect": "On a stable wormhole; free reinforcement wave every 10 min.", "tag": "faction_only"}]}, {"slot": "command", "label": "Command", "levels": [{"name": "Vorta Field Post", "cost": [["duranium", 110], ["White", 2]], "stats": ["supply range 1"], "effect": "Vorta supervisor + Jem'Hadar squad; clone replaces a killed Vorta.", "tag": ""}, {"name": "Vorta Administration", "cost": [["duranium", 300], ["tritanium", 140]], "stats": ["supply range 2"], "effect": "Client-world pacts with minor factions.", "tag": ""}, {"name": "Founders' Sanctuary", "cost": [["parasteel", 500], ["isolinear", 60]], "stats": ["supply range 3"], "effect": "The Great Link; trains Changeling infiltrators, loyalty aura.", "tag": "faction_only"}]}, {"slot": "shipyards", "label": "Shipyards", "levels": [{"name": "Attack Ship Cradle", "cost": [["duranium", 200], ["tritanium", 100]], "stats": ["hull cap 3", "build slots 2"], "effect": "Attack ships built in pairs, crewed from vats.", "tag": ""}, {"name": "Dominion Shipyard", "cost": [["parasteel", 500], ["plasma conduits", 60]], "stats": ["hull cap 6", "build slots 1"], "effect": "Skips cruisers; Jem'Hadar battle cruiser.", "tag": ""}, {"name": "Stellar Forge", "cost": [["parasteel", 2800], ["warp coils", 200]], "stats": ["hull cap titan"], "effect": "Star-powered; Jem'Hadar battleship; no energy upkeep.", "tag": "wonder"}]}, {"slot": "fourth", "label": "Clones", "levels": [{"name": "Birthing Chamber", "cost": [["duranium", 90], ["zenite", 20]], "stats": ["squads per cycle 1"], "effect": "1 Jem'Hadar squad/cycle, no population needed.", "tag": ""}, {"name": "Cloning Facility", "cost": [["parasteel", 260], ["zenite", 40]], "stats": ["squads per cycle 3"], "effect": "3 squads/cycle; Vorta revival.", "tag": ""}, {"name": "Cloning Complex", "cost": [["parasteel", 600], ["zenite", 80]], "stats": ["squads per cycle 8"], "effect": "8 squads/cycle, instant crews in system; huge White demand.", "tag": "faction_only"}]}], "caps": ["3", "8", "titan", "— (uses clones)", "-30% research; double research from captured wrecks."], "wonders": [{"name": "Stellar Forge", "effect": "Star-powered; Jem'Hadar battleship; no energy upkeep."}], "only": [{"name": "Ketracel-white Facility", "effect": "+6 White/cycle; losing it makes nearby Jem'Hadar feral."}, {"name": "Wormhole Citadel", "effect": "On a stable wormhole; free reinforcement wave every 10 min."}, {"name": "Founders' Sanctuary", "effect": "The Great Link; trains Changeling infiltrators, loyalty aura."}, {"name": "Cloning Complex", "effect": "8 squads/cycle, instant crews in system; huge White demand."}]}, {"id": "ferengi", "name": "Ferengi", "hook": "Latinum", "identity": "Everything costs latinum; everything earns it.", "plus": "Pays to play: leases, contracts and markets earn latinum from every faction; can buy research instead of doing it.", "minus": "Nothing works without latinum; no garrison on the core; defence is rented.", "start": {"Core": {"name": "Trade Office", "cost": [["duranium", 90], ["latinum", 30]], "delta": -30, "effect": "+2 Latinum per cycle; no garrison.", "requires": ""}, "Housing": {"name": "Rental Habitat", "cost": [["duranium", 60]], "delta": 0, "effect": "+1 population; adjustable rent.", "requires": ""}, "Extraction": {"name": "Mining Concession", "cost": [], "delta": -80, "effect": "Leased, no upfront cost; rights can be sold to another player.", "requires": ""}, "Power": {"name": "Leased Reactor", "cost": [["latinum", 30]], "delta": -70, "effect": "+10 energy; paid in latinum.", "requires": ""}, "Research": {"name": "Patent Exchange", "cost": [["duranium", 80], ["latinum", 40]], "delta": 20, "effect": "No own research; buy techs other players already have.", "requires": ""}, "Defense": {"name": "Mercenary Contract Board", "cost": [["latinum", 50]], "delta": -100, "effect": "Defenders hired on demand, paid per use.", "requires": ""}, "Signature": {"name": "Bar & Holosuites", "cost": [["duranium", 80], ["latinum", 20]], "delta": 40, "effect": "+morale, +Latinum; gossip reveals nearby enemy plans.", "requires": ""}}, "opening": 480, "lines": [{"slot": "deep_space", "label": "Deep space", "levels": [{"name": "Trading Post", "cost": [["duranium", 100], ["latinum", 20]], "stats": ["supply range 1"], "effect": "+1 Latinum per passing freighter, any faction.", "tag": ""}, {"name": "Bazaar Station", "cost": [["parasteel", 280], ["latinum", 60]], "stats": ["docking 6"], "effect": "10% cut of all trades docked here; sells repairs.", "tag": ""}, {"name": "Marauder Station", "cost": [["parasteel", 560], ["latinum", 150]], "stats": ["supply range 3"], "effect": "Horseshoe starbase; mercenary contracts.", "tag": ""}, {"name": "Grand Exchange", "cost": [["parasteel", 2000], ["latinum", 1000]], "stats": [], "effect": "Sets market prices for all players; attack = market crash.", "tag": "wonder"}]}, {"slot": "command", "label": "Command", "levels": [{"name": "Trade Office", "cost": [["duranium", 90], ["latinum", 30]], "stats": ["supply range 1"], "effect": "+2 Latinum; no garrison.", "tag": ""}, {"name": "Commerce Authority Office", "cost": [["duranium", 260], ["latinum", 120]], "stats": ["supply range 2"], "effect": "Sells trade licences; 1 Rule of Acquisition perk.", "tag": ""}, {"name": "Tower of Commerce", "cost": [["parasteel", 400], ["latinum", 500]], "stats": ["supply range 3"], "effect": "All Rules perks; bribe AI factions and rival governors.", "tag": "faction_only"}]}, {"slot": "shipyards", "label": "Shipyards", "levels": [{"name": "Shuttle Dock", "cost": [["duranium", 180], ["latinum", 40]], "stats": ["hull cap 3"], "effect": "Shuttles, freighters (+25% cargo), small raiders.", "tag": ""}, {"name": "Marauder Yard", "cost": [["parasteel", 280], ["latinum", 100]], "stats": ["hull cap 4", "build slots 2"], "effect": "D'Kora Marauder.", "tag": ""}, {"name": "Acquisition Yards", "cost": [["parasteel", 1800], ["latinum", 800]], "stats": ["hull cap any acquired", "build slots 3"], "effect": "Refit any acquired foreign hull; no cap.", "tag": "wonder"}]}, {"slot": "fourth", "label": "Habitation", "levels": [{"name": "Rental Habitat", "cost": [["duranium", 60]], "stats": ["pop cap 1"], "effect": "Adjustable rent: latinum vs morale.", "tag": ""}, {"name": "Market Quarter", "cost": [["duranium", 150], ["latinum", 60]], "stats": ["pop cap 3"], "effect": "Rent + 10% of sales; luxury goods.", "tag": ""}, {"name": "Resort Spire", "cost": [["parasteel", 300], ["latinum", 150]], "stats": ["pop cap 6"], "effect": "Holosuites + dabo; +3 Latinum per trade partner.", "tag": ""}]}], "caps": ["3", "6", "any acquired hull", "6", "No own research; buy techs other players already have."], "wonders": [{"name": "Grand Exchange", "effect": "Sets market prices for all players; attack = market crash."}, {"name": "Acquisition Yards", "effect": "Refit any acquired foreign hull; no cap."}], "only": [{"name": "Tower of Commerce", "effect": "All Rules perks; bribe AI factions and rival governors."}]}, {"id": "borg", "name": "Borg", "hook": "Assimilation", "identity": "Can only take worlds that are already inhabited; no research.", "plus": "Strongest harvesting (+60%); shared power grid; adapts to weapons; gains tech by assimilating hulls and crews.", "minus": "Can only settle populated worlds; no research at all; harvesting degrades the planet.", "start": {"Core": {"name": "Assimilation Spire", "cost": [["duranium", 100], ["nanoprobes", 20]], "delta": -30, "effect": "Converts natives or captured population into drones.", "requires": "populated world"}, "Housing": {"name": "Alcove Block", "cost": [["duranium", 80], ["nanoprobes", 10]], "delta": 30, "effect": "Stores drones, not population.", "requires": ""}, "Extraction": {"name": "Strip Harvester", "cost": [["duranium", 100]], "delta": 20, "effect": "+60% yield; planet class degrades over time.", "requires": ""}, "Power": {"name": "Collective Power Node", "cost": [["duranium", 80], ["nanoprobes", 5]], "delta": -15, "effect": "Energy shared across every Borg colony.", "requires": ""}, "Research": {"name": "None", "cost": [], "delta": -100, "effect": "No research; tech comes from assimilation.", "requires": ""}, "Defense": {"name": "Adaptive Shield Node", "cost": [["duranium", 120]], "delta": -30, "effect": "Adapts to whatever weapon hits the colony.", "requires": ""}, "Signature": {"name": "Nanoprobe Beacon", "cost": [["duranium", 60], ["nanoprobes", 10]], "delta": 10, "effect": "Speeds up turning natives into drones.", "requires": "natives present"}}, "opening": 585, "lines": [{"slot": "deep_space", "label": "Deep space", "levels": [{"name": "Probe Node", "cost": [["duranium", 120], ["nanoprobes", 10]], "stats": ["supply range 1"], "effect": "Full system vision; records enemy weapons.", "tag": ""}, {"name": "Interlink Node", "cost": [["parasteel", 300], ["nanoprobes", 30]], "stats": ["supply range 2"], "effect": "Adaptations shared with all Borg units in range.", "tag": ""}, {"name": "Vinculum Station", "cost": [["parasteel", 650], ["nanoprobes", 60]], "stats": ["supply range 3"], "effect": "Fast regeneration; destroyed = drones in range offline.", "tag": "faction_only"}, {"name": "Transwarp Hub", "cost": [["parasteel", 1400], ["nanoprobes", 120]], "stats": ["apertures 3"], "effect": "Instant hub-to-hub travel; capturable.", "tag": "faction_only"}]}, {"slot": "command", "label": "Command", "levels": [{"name": "Assimilation Spire", "cost": [["duranium", 100], ["nanoprobes", 20]], "stats": ["requires populated world"], "effect": "Only on populated worlds; converts pop to drones.", "tag": ""}, {"name": "Planetary Hive", "cost": [["parasteel", 320], ["nanoprobes", 40]], "stats": ["supply range 2"], "effect": "No morale/unrest; self-repairing.", "tag": ""}, {"name": "Unicomplex", "cost": [["parasteel", 2000], ["nanoprobes", 200]], "stats": [], "effect": "Match-long adaptation memory; Borg Queen; loss wipes adaptations.", "tag": "faction_only"}]}, {"slot": "shipyards", "label": "Shipyards", "levels": [{"name": "Assembly Matrix", "cost": [["duranium", 180], ["nanoprobes", 20]], "stats": ["hull cap 2"], "effect": "Probes; wrecks in system return resources.", "tag": ""}, {"name": "Sphere Matrix", "cost": [["parasteel", 360], ["nanoprobes", 40]], "stats": ["hull cap 5"], "effect": "Spheres; can mount any assimilated tech.", "tag": ""}, {"name": "Cube Matrix", "cost": [["parasteel", 3000], ["nanoprobes", 250]], "stats": ["hull cap titan"], "effect": "Cube, Tactical Cube, Queen's Diamond (with Unicomplex).", "tag": "wonder"}]}, {"slot": "fourth", "label": "Drones", "levels": [{"name": "Alcove Block", "cost": [["duranium", 80], ["nanoprobes", 10]], "stats": ["drone storage 10"], "effect": "Stores and regenerates 10 drones.", "tag": ""}, {"name": "Maturation Chamber", "cost": [["parasteel", 240], ["nanoprobes", 40]], "stats": ["drones per cycle 3"], "effect": "+3 drones/cycle, +25% adaptation speed.", "tag": ""}, {"name": "Assimilation Complex", "cost": [["parasteel", 700], ["nanoprobes", 80]], "stats": [], "effect": "Captured crews -> drones; each new hull type -> tech.", "tag": "faction_only"}]}], "caps": ["2", "—", "titan", "— (uses drones)", "No research; tech comes from assimilation."], "wonders": [{"name": "Cube Matrix", "effect": "Cube, Tactical Cube, Queen's Diamond (with Unicomplex)."}], "only": [{"name": "Vinculum Station", "effect": "Fast regeneration; destroyed = drones in range offline."}, {"name": "Transwarp Hub", "effect": "Instant hub-to-hub travel; capturable."}, {"name": "Unicomplex", "effect": "Match-long adaptation memory; Borg Queen; loss wipes adaptations."}, {"name": "Assimilation Complex", "effect": "Captured crews -> drones; each new hull type -> tech."}]}], "roles": ["Core", "Housing", "Extraction", "Power", "Research", "Defense", "Signature"], "levels": 94, "lineKeys": ["deep_space", "command", "shipyards", "fourth"], "lineLabels": {"deep_space": "Deep space", "command": "Command", "shipyards": "Shipyards", "fourth": "Habitation / Clones / Drones"}, "capCols": ["Max supply range", "Max docking", "Largest hull", "Max pop per building", "Research in the opening"]};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fc = (f) => `--fc: var(--f-${f.id})`;
+const fname = (f) => `<span class="fname" style="${fc(f)}"><span class="fdot"></span>${esc(f.name)}</span>`;
+const costText = (c) => c.length ? c.map(([r, v]) => `${v} ${esc(r)}`).join(" · ") : "Free";
+const tagLabel = { wonder: "Wonder", faction_only: "Faction only" };
+
+$("readout").innerHTML = `<span><b>${D.factions.length}</b> factions</span><span><b>${D.roles.length}</b> opening roles</span><span><b>${D.levels}</b> upgrade levels</span>`;
+$("lines-intro").textContent = `Each line upgrades in place: a new level replaces the one before it. ${D.levels} levels across four lines per faction. The fourth line is Habitation for most factions, Clones for the Dominion and Drones for the Borg.`;
+
+// ---- overview
+$("ov").innerHTML = D.factions.map((f) => `
+  <div class="ov-row" style="${fc(f)}">
+    <div class="who">${fname(f)}<span class="hook">${esc(f.hook)}</span></div>
+    <div><h3>Identity</h3><p>${esc(f.identity)}</p></div>
+    <div><h3>Strengths</h3><p>${esc(f.plus)}</p></div>
+    <div><h3>Trade-offs</h3><p>${esc(f.minus)}</p></div>
+  </div>`).join("");
+$("ov").style.display = "grid";
+$("ov").style.gap = "6px";
+
+// ---- opening matrix
+function renderMatrix(mode) {
+  const head = `<thead><tr><th scope="col">Role</th>${D.factions.map((f) => `<th scope="col">${fname(f)}</th>`).join("")}</tr></thead>`;
+  const rows = D.roles.map((r) => `<tr><th scope="row">${esc(r)}</th>${D.factions.map((f) => {
+    const b = f.start[r];
+    if (!b) return `<td class="none">—</td>`;
+    let extra = "";
+    if (mode === "cost") {
+      const cls = f.id === "federation" ? "baseline" : b.delta < 0 ? "cheaper" : b.delta > 0 ? "pricier" : "same";
+      const txt = f.id === "federation" ? "Baseline" : b.delta === 0 ? "Same total" : `${b.delta > 0 ? "+" : "−"}${Math.abs(b.delta)} vs Fed`;
+      extra = `<span class="sub">${costText(b.cost)}</span><span class="delta ${cls}">${txt}</span>`;
+    } else if (mode === "effect") {
+      extra = `<span class="sub">${esc(b.effect)}</span>`;
+    }
+    const req = b.requires ? `<span class="req">Needs ${esc(b.requires)}</span>` : "";
+    const nm = b.name === "None" ? `<span class="bname none">None</span>` : `<span class="bname">${esc(b.name)}</span>`;
+    return `<td class="${f.id === "federation" ? "base" : ""}">${nm}${extra}${req}</td>`;
+  }).join("")}</tr>`).join("");
+  $("matrix").innerHTML = head + `<tbody>${rows}</tbody>`;
+  document.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+}
+document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => renderMatrix(b.dataset.mode)));
+renderMatrix("cost");
+
+// ---- opening cost bars (one scale for bars, ticks and the Federation marker)
+(function () {
+  const max = Math.ceil(Math.max(...D.factions.map((f) => f.opening)) / 200) * 200;
+  const pct = (v) => (v / max) * 100;
+  const base = D.factions.find((f) => f.id === "federation").opening;
+  const ticks = [];
+  for (let v = 0; v <= max; v += 200) ticks.push(`<span style="left:${pct(v)}%">${v}</span>`);
+  $("costbars").innerHTML = `<h3>Total opening cost, all seven buildings</h3>` +
+    D.factions.map((f) => `<div class="bar-row" style="${fc(f)}">${fname(f)}<div class="track" role="img" aria-label="${esc(f.name)}: ${f.opening}"><div class="fill" style="width:${pct(f.opening)}%"></div><div class="base-mark" style="left:calc(${pct(base)}% - 1px)"></div></div><span class="v">${f.opening}</span></div>`).join("") +
+    `<div class="axis"><span></span><div class="ticks">${ticks.join("")}</div><span></span></div>` +
+    `<p class="note">Totals add every resource together (duranium, crew, latinum and so on), so treat them as a rough comparison. The blue mark is the Federation baseline (${base}).</p>`;
+})();
+
+// ---- upgrade lines
+let curFaction = "federation", curLine = D.lineKeys[0];
+function lvlCard(x, i) {
+  const tag = x.tag ? `<span class="tag ${x.tag}">${tagLabel[x.tag] || esc(x.tag)}</span>` : "";
+  const stats = x.stats.length ? `<div class="s">${x.stats.map((s) => `<span>${esc(s)}</span>`).join("")}</div>` : "";
+  return `<div class="lvl"><div class="top"><span class="L">L${i + 1}</span><span class="n">${esc(x.name)}</span>${tag}</div><div class="c">${costText(x.cost)}</div>${stats}<p class="e">${esc(x.effect)}</p></div>`;
+}
+function renderFaction(id) {
+  curFaction = id;
+  const f = D.factions.find((x) => x.id === id);
+  $("lanes").innerHTML = f.lines.map((ln) => `<div class="lane" style="${fc(f)}"><h3>${esc(ln.label)}<small>${ln.levels.length} levels</small></h3>${ln.levels.map(lvlCard).join("")}</div>`).join("");
+  document.querySelectorAll("#ftabs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === id)));
+}
+$("ftabs").innerHTML = D.factions.map((f) => `<button type="button" id="tab-${f.id}" data-f="${f.id}" style="${fc(f)}" aria-pressed="false">${esc(f.name)}</button>`).join("");
+document.querySelectorAll("#ftabs button").forEach((b) => b.addEventListener("click", () => renderFaction(b.dataset.f)));
+
+function renderLine(key) {
+  curLine = key;
+  const label = D.lineLabels[key];
+  const rows = D.factions.map((f) => {
+    const ln = f.lines.find((l) => l.slot === key);
+    const chain = ln.levels.map((x, i) => `<span class="lk"><b>L${i + 1}</b>${esc(x.name)}</span>`).join(`<span class="ar" aria-hidden="true">→</span>`);
+    const top = ln.levels[ln.levels.length - 1];
+    return `<tr style="${fc(f)}"><th scope="row">${fname(f)}</th><td>${key === "fourth" ? `<span class="sub" style="margin:0 0 6px">${esc(ln.label)}</span>` : ""}<div class="chain">${chain}</div></td><td class="num">${ln.levels.length}</td><td><span class="bname">${esc(top.name)}</span><span class="sub">${esc(top.effect)}</span></td></tr>`;
+  }).join("");
+  $("linecmp").innerHTML = `<thead><tr><th scope="col">Faction</th><th scope="col">${esc(label)}: level 1 to max</th><th scope="col">Levels</th><th scope="col">Top level</th></tr></thead><tbody>${rows}</tbody>`;
+  document.querySelectorAll("#ltabs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.l === key)));
+}
+$("ltabs").innerHTML = D.lineKeys.map((k) => `<button type="button" id="line-${k}" data-l="${k}" aria-pressed="false">${esc(D.lineLabels[k])}</button>`).join("");
+document.querySelectorAll("#ltabs button").forEach((b) => b.addEventListener("click", () => renderLine(b.dataset.l)));
+
+function setView(v) {
+  $("by-faction").hidden = v !== "faction";
+  $("by-line").hidden = v !== "line";
+  document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+}
+document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+renderFaction(curFaction);
+renderLine(curLine);
+
+// a faction's id in the link (for example #klingon) opens its upgrade lines
+const h = location.hash.slice(1);
+if (D.factions.some((f) => f.id === h)) {
+  renderFaction(h);
+  document.getElementById("lines").scrollIntoView();
+}
+
+// ---- capabilities
+$("caps").innerHTML = `<thead><tr><th scope="col">Faction</th>${D.capCols.map((c) => `<th scope="col">${esc(c)}</th>`).join("")}</tr></thead><tbody>` +
+  D.factions.map((f) => `<tr><th scope="row">${fname(f)}</th>${f.caps.map((v, i) => `<td class="${i < 4 ? "num" : ""}">${esc(v)}</td>`).join("")}</tr>`).join("") + `</tbody>`;
+
+// ---- wonders and faction-only
+$("uniq").innerHTML = `<thead><tr><th scope="col">Faction</th><th scope="col">Wonders</th><th scope="col">Faction-only buildings</th></tr></thead><tbody>` +
+  D.factions.map((f) => `<tr><th scope="row">${fname(f)}</th><td>${f.wonders.map((w) => `<span class="bname">${esc(w.name)}</span><span class="sub">${esc(w.effect)}</span>`).join("<br>") || "—"}</td><td>${f.only.map((w) => `<span class="bname">${esc(w.name)}</span><span class="sub">${esc(w.effect)}</span>`).join("<br>") || "—"}</td></tr>`).join("") + `</tbody>`;
+</script>

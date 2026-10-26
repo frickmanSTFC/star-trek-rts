@@ -1,0 +1,391 @@
+<title>Faction Buildings</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame like the Federation Build Tree; sections stack (overview rows, opening matrix + cost bars, upgrade lanes, comparison tables). Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --f-federation: #7fc4e8;
+  --f-klingon: #e2787a;
+  --f-cardassian: #f3cb5b;
+  --f-romulan: #8fd3b0;
+  --f-dominion: #c99ad6;
+  --f-ferengi: #ff9c5b;
+  --f-borg: #b8c46a;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px;
+  margin: 0 auto;
+  display: grid;
+  gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--orange); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--orange); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--orange); }
+.bars .b2 { flex: 1.2; background: var(--lilac); }
+.bars .b3 { flex: 2; background: var(--periwinkle); }
+.bars .b4 { flex: .8; background: var(--peach); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--orange); font-weight: 600; }
+.intro { max-width: 70ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a {
+  font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none;
+  color: var(--void); background: var(--periwinkle); padding: 4px 14px; border-radius: 14px;
+}
+nav.jump a:nth-child(2) { background: var(--lilac); }
+nav.jump a:nth-child(3) { background: var(--peach); }
+nav.jump a:nth-child(4) { background: var(--orange); }
+nav.jump a:nth-child(5) { background: var(--good); }
+nav.jump a:focus-visible, button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 72ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+
+/* faction colour chip */
+.fdot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: var(--fc); flex: none; }
+.fname { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+
+/* ---------- overview ---------- */
+.ov { display: grid; gap: 6px; }
+.ov-row {
+  display: grid; grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 4px 18px;
+  background: var(--panel); border-left: 6px solid var(--fc); border-radius: 0 10px 10px 0; padding: 12px 16px;
+}
+.ov-row > * { min-width: 0; }
+.ov-row .who { display: grid; gap: 2px; align-content: start; }
+.ov-row .who .fname { font-size: 20px; }
+.hook { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.ov-row h3 { margin: 0 0 2px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row p { margin: 0; font-size: 14px; }
+.ov-head { display: grid; grid-template-columns: 170px 1fr 1fr 1fr; gap: 18px; padding: 0 16px 0 22px; }
+.ov-head span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+@media (max-width: 900px) {
+  .ov-head { display: none; }
+  .ov-row { grid-template-columns: 1fr; }
+  .ov-row h3 { display: block; }
+}
+@media (min-width: 901px) { .ov-row h3 { display: none; } }
+
+/* ---------- controls ---------- */
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--panel); padding: 4px; border-radius: 18px; }
+.seg button {
+  font: 600 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 0; cursor: pointer;
+  background: transparent; color: var(--ink-dim); padding: 8px 14px; border-radius: 14px;
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--sec, var(--orange)); color: var(--void); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+
+/* ---------- tables ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); position: sticky; top: 0; }
+thead th .fname { font-size: 15px; }
+tbody th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--peach); white-space: nowrap; background: var(--panel-2); }
+tr:last-child > * { border-bottom: 0; }
+.matrix td { min-width: 150px; border-left: 1px solid var(--rule); }
+.matrix td.base { background: color-mix(in srgb, var(--f-federation) 6%, transparent); }
+.bname { font-weight: 600; color: var(--ink); display: block; }
+.sub { display: block; color: var(--ink-dim); font-size: 13px; margin-top: 3px; }
+.req { display: inline-block; margin-top: 5px; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--lilac); border: 1px solid var(--lilac); border-radius: 9px; padding: 0 7px; }
+.delta { display: inline-block; margin-top: 5px; font-family: var(--label); font-size: 12px; letter-spacing: .06em; font-variant-numeric: tabular-nums; border-radius: 9px; padding: 0 8px; }
+.delta.cheaper { color: var(--void); background: var(--good); }
+.delta.pricier { color: var(--void); background: var(--bad); }
+.delta.same, .delta.baseline { color: var(--ink-dim); border: 1px solid var(--rule); }
+.none { color: var(--ink-faint); font-style: italic; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- opening cost bars ---------- */
+.bars-chart { background: var(--panel); border-radius: 10px; padding: 16px 18px 12px; display: grid; gap: 10px; }
+.bars-chart h3 { margin: 0; font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); }
+.bar-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 48px; gap: 12px; align-items: center; }
+.bar-row .fname { font-size: 14px; }
+.track { position: relative; height: 16px; }
+.track::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 25%); }
+.fill { position: absolute; left: 0; top: 2px; bottom: 2px; background: var(--fc); border-radius: 0 7px 7px 0; }
+.base-mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--f-federation); opacity: .7; }
+.bar-row .v { font-family: var(--label); font-size: 14px; font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+.axis { display: grid; grid-template-columns: 110px minmax(0, 1fr) 48px; gap: 12px; }
+.axis .ticks { position: relative; height: 16px; font-family: var(--label); font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.axis .ticks span { position: absolute; transform: translateX(-50%); }
+.axis .ticks span:first-child { transform: none; }
+.axis .ticks span:last-child { transform: translateX(-100%); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; }
+
+/* ---------- upgrade lines ---------- */
+.ftabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.ftabs button {
+  font: 600 15px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
+  background: var(--panel); color: var(--fc); border: 1.5px solid var(--fc); padding: 8px 16px; border-radius: 16px;
+}
+.ftabs button[aria-pressed="true"] { background: var(--fc); color: var(--void); }
+.lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1100px) { .lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .lanes { grid-template-columns: 1fr; } }
+.lane { display: grid; gap: 8px; align-content: start; }
+.lane h3 { margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; color: var(--fc); border-bottom: 2px solid var(--fc); padding-bottom: 4px; }
+.lane h3 small { font-family: var(--label); font-size: 12px; letter-spacing: .1em; color: var(--ink-faint); }
+.lvl { background: var(--panel); border-radius: 0 10px 10px 0; border-left: 3px solid color-mix(in srgb, var(--fc) 55%, transparent); padding: 10px 12px; display: grid; gap: 4px; }
+.lvl .top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.lvl .L { font-family: var(--label); font-size: 12px; letter-spacing: .1em; color: var(--fc); font-variant-numeric: tabular-nums; }
+.lvl .n { font-weight: 600; }
+.tag { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; border-radius: 9px; padding: 0 7px; }
+.tag.wonder { color: var(--void); background: var(--peach); }
+.tag.faction_only { color: var(--lilac); border: 1px solid var(--lilac); }
+.lvl .c { font-size: 13px; color: var(--peach); }
+.lvl .s { font-family: var(--label); font-size: 12px; letter-spacing: .06em; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px; }
+.lvl .s span { background: var(--panel-2); border-radius: 6px; padding: 0 6px; }
+.lvl .e { font-size: 13px; color: var(--ink-dim); margin: 0; }
+.chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chain .lk { background: var(--panel-2); border-radius: 8px; padding: 4px 10px; font-size: 13px; }
+.chain .lk b { font-family: var(--label); font-weight: 600; font-size: 11px; color: var(--fc); letter-spacing: .08em; margin-right: 6px; }
+.chain .ar { color: var(--ink-faint); }
+.compare td { min-width: 140px; }
+.view { display: grid; gap: 14px; }
+[hidden] { display: none !important; }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+  .bar-row, .axis { grid-template-columns: 84px minmax(0, 1fr) 40px; gap: 8px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fill { transition: width .4s ease; }
+}
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Faction Buildings</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">How the seven playable factions of the Star Trek RTS differ in what they build. The Federation is the baseline; every other faction fills the same roles but trades cost, output or rules to fit its identity. All costs and stats are placeholders for balancing.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#overview">Overview</a><a href="#opening">Opening buildings</a><a href="#lines">Upgrade lines</a><a href="#compare">Capabilities</a><a href="#unique">Wonders</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="overview" style="--sec: var(--periwinkle)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>Faction overview</h2><p>What each faction leans on, and what it gives up for it.</p></div></div>
+    <div class="ov">
+      <div class="ov-head"><span>Faction</span><span>Identity</span><span>Strengths</span><span>Trade-offs</span></div>
+      <div id="ov"></div>
+    </div>
+  </section>
+
+  <section id="opening" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2 · Class M colony</span><h2>Opening buildings</h2><p>One building per role is available in the opening minutes of a Class M colony. Switch the grid between costs and effects.</p></div></div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Grid detail">
+        <button type="button" id="mode-cost" data-mode="cost" aria-pressed="true">Costs</button>
+        <button type="button" id="mode-effect" data-mode="effect" aria-pressed="false">Effects</button>
+        <button type="button" id="mode-name" data-mode="name" aria-pressed="false">Names only</button>
+      </div>
+    </div>
+    <div class="scroll"><table class="matrix" id="matrix"></table></div>
+    <div class="bars-chart" id="costbars"></div>
+  </section>
+
+  <section id="lines" style="--sec: var(--peach)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Upgrade lines</h2><p id="lines-intro"></p></div></div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Upgrade line view">
+        <button type="button" id="view-faction" data-view="faction" aria-pressed="true">By faction</button>
+        <button type="button" id="view-line" data-view="line" aria-pressed="false">Compare a line</button>
+      </div>
+    </div>
+    <div id="by-faction" class="view">
+      <div class="ftabs" id="ftabs" role="group" aria-label="Faction"></div>
+      <div class="lanes" id="lanes"></div>
+    </div>
+    <div id="by-line" class="view" hidden>
+      <div class="seg" id="ltabs" role="group" aria-label="Line"></div>
+      <div class="scroll"><table class="compare" id="linecmp"></table></div>
+    </div>
+  </section>
+
+  <section id="compare" style="--sec: var(--orange)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Capability comparison</h2><p>The highest value each faction reaches in its upgrade lines. A dash means that faction has no level with that stat.</p></div></div>
+    <div class="scroll"><table id="caps"></table></div>
+  </section>
+
+  <section id="unique" style="--sec: var(--good)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Wonders and faction-only buildings</h2><p>Wonders are one-per-player megastructures. Faction-only buildings have no equivalent for any other faction.</p></div></div>
+    <div class="scroll"><table id="uniq"></table></div>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/buildings.json</code> in the star-trek-rts design repo (<code>tools/gen_faction_buildings_page.py</code>). The same content is in <code>docs/faction-buildings.md</code>.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = /*DATA*/;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fc = (f) => `--fc: var(--f-${f.id})`;
+const fname = (f) => `<span class="fname" style="${fc(f)}"><span class="fdot"></span>${esc(f.name)}</span>`;
+const costText = (c) => c.length ? c.map(([r, v]) => `${v} ${esc(r)}`).join(" · ") : "Free";
+const tagLabel = { wonder: "Wonder", faction_only: "Faction only" };
+
+$("readout").innerHTML = `<span><b>${D.factions.length}</b> factions</span><span><b>${D.roles.length}</b> opening roles</span><span><b>${D.levels}</b> upgrade levels</span>`;
+$("lines-intro").textContent = `Each line upgrades in place: a new level replaces the one before it. ${D.levels} levels across four lines per faction. The fourth line is Habitation for most factions, Clones for the Dominion and Drones for the Borg.`;
+
+// ---- overview
+$("ov").innerHTML = D.factions.map((f) => `
+  <div class="ov-row" style="${fc(f)}">
+    <div class="who">${fname(f)}<span class="hook">${esc(f.hook)}</span></div>
+    <div><h3>Identity</h3><p>${esc(f.identity)}</p></div>
+    <div><h3>Strengths</h3><p>${esc(f.plus)}</p></div>
+    <div><h3>Trade-offs</h3><p>${esc(f.minus)}</p></div>
+  </div>`).join("");
+$("ov").style.display = "grid";
+$("ov").style.gap = "6px";
+
+// ---- opening matrix
+function renderMatrix(mode) {
+  const head = `<thead><tr><th scope="col">Role</th>${D.factions.map((f) => `<th scope="col">${fname(f)}</th>`).join("")}</tr></thead>`;
+  const rows = D.roles.map((r) => `<tr><th scope="row">${esc(r)}</th>${D.factions.map((f) => {
+    const b = f.start[r];
+    if (!b) return `<td class="none">—</td>`;
+    let extra = "";
+    if (mode === "cost") {
+      const cls = f.id === "federation" ? "baseline" : b.delta < 0 ? "cheaper" : b.delta > 0 ? "pricier" : "same";
+      const txt = f.id === "federation" ? "Baseline" : b.delta === 0 ? "Same total" : `${b.delta > 0 ? "+" : "−"}${Math.abs(b.delta)} vs Fed`;
+      extra = `<span class="sub">${costText(b.cost)}</span><span class="delta ${cls}">${txt}</span>`;
+    } else if (mode === "effect") {
+      extra = `<span class="sub">${esc(b.effect)}</span>`;
+    }
+    const req = b.requires ? `<span class="req">Needs ${esc(b.requires)}</span>` : "";
+    const nm = b.name === "None" ? `<span class="bname none">None</span>` : `<span class="bname">${esc(b.name)}</span>`;
+    return `<td class="${f.id === "federation" ? "base" : ""}">${nm}${extra}${req}</td>`;
+  }).join("")}</tr>`).join("");
+  $("matrix").innerHTML = head + `<tbody>${rows}</tbody>`;
+  document.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+}
+document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => renderMatrix(b.dataset.mode)));
+renderMatrix("cost");
+
+// ---- opening cost bars (one scale for bars, ticks and the Federation marker)
+(function () {
+  const max = Math.ceil(Math.max(...D.factions.map((f) => f.opening)) / 200) * 200;
+  const pct = (v) => (v / max) * 100;
+  const base = D.factions.find((f) => f.id === "federation").opening;
+  const ticks = [];
+  for (let v = 0; v <= max; v += 200) ticks.push(`<span style="left:${pct(v)}%">${v}</span>`);
+  $("costbars").innerHTML = `<h3>Total opening cost, all seven buildings</h3>` +
+    D.factions.map((f) => `<div class="bar-row" style="${fc(f)}">${fname(f)}<div class="track" role="img" aria-label="${esc(f.name)}: ${f.opening}"><div class="fill" style="width:${pct(f.opening)}%"></div><div class="base-mark" style="left:calc(${pct(base)}% - 1px)"></div></div><span class="v">${f.opening}</span></div>`).join("") +
+    `<div class="axis"><span></span><div class="ticks">${ticks.join("")}</div><span></span></div>` +
+    `<p class="note">Totals add every resource together (duranium, crew, latinum and so on), so treat them as a rough comparison. The blue mark is the Federation baseline (${base}).</p>`;
+})();
+
+// ---- upgrade lines
+let curFaction = "federation", curLine = D.lineKeys[0];
+function lvlCard(x, i) {
+  const tag = x.tag ? `<span class="tag ${x.tag}">${tagLabel[x.tag] || esc(x.tag)}</span>` : "";
+  const stats = x.stats.length ? `<div class="s">${x.stats.map((s) => `<span>${esc(s)}</span>`).join("")}</div>` : "";
+  return `<div class="lvl"><div class="top"><span class="L">L${i + 1}</span><span class="n">${esc(x.name)}</span>${tag}</div><div class="c">${costText(x.cost)}</div>${stats}<p class="e">${esc(x.effect)}</p></div>`;
+}
+function renderFaction(id) {
+  curFaction = id;
+  const f = D.factions.find((x) => x.id === id);
+  $("lanes").innerHTML = f.lines.map((ln) => `<div class="lane" style="${fc(f)}"><h3>${esc(ln.label)}<small>${ln.levels.length} levels</small></h3>${ln.levels.map(lvlCard).join("")}</div>`).join("");
+  document.querySelectorAll("#ftabs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === id)));
+}
+$("ftabs").innerHTML = D.factions.map((f) => `<button type="button" id="tab-${f.id}" data-f="${f.id}" style="${fc(f)}" aria-pressed="false">${esc(f.name)}</button>`).join("");
+document.querySelectorAll("#ftabs button").forEach((b) => b.addEventListener("click", () => renderFaction(b.dataset.f)));
+
+function renderLine(key) {
+  curLine = key;
+  const label = D.lineLabels[key];
+  const rows = D.factions.map((f) => {
+    const ln = f.lines.find((l) => l.slot === key);
+    const chain = ln.levels.map((x, i) => `<span class="lk"><b>L${i + 1}</b>${esc(x.name)}</span>`).join(`<span class="ar" aria-hidden="true">→</span>`);
+    const top = ln.levels[ln.levels.length - 1];
+    return `<tr style="${fc(f)}"><th scope="row">${fname(f)}</th><td>${key === "fourth" ? `<span class="sub" style="margin:0 0 6px">${esc(ln.label)}</span>` : ""}<div class="chain">${chain}</div></td><td class="num">${ln.levels.length}</td><td><span class="bname">${esc(top.name)}</span><span class="sub">${esc(top.effect)}</span></td></tr>`;
+  }).join("");
+  $("linecmp").innerHTML = `<thead><tr><th scope="col">Faction</th><th scope="col">${esc(label)}: level 1 to max</th><th scope="col">Levels</th><th scope="col">Top level</th></tr></thead><tbody>${rows}</tbody>`;
+  document.querySelectorAll("#ltabs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.l === key)));
+}
+$("ltabs").innerHTML = D.lineKeys.map((k) => `<button type="button" id="line-${k}" data-l="${k}" aria-pressed="false">${esc(D.lineLabels[k])}</button>`).join("");
+document.querySelectorAll("#ltabs button").forEach((b) => b.addEventListener("click", () => renderLine(b.dataset.l)));
+
+function setView(v) {
+  $("by-faction").hidden = v !== "faction";
+  $("by-line").hidden = v !== "line";
+  document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+}
+document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+renderFaction(curFaction);
+renderLine(curLine);
+
+// a faction's id in the link (for example #klingon) opens its upgrade lines
+const h = location.hash.slice(1);
+if (D.factions.some((f) => f.id === h)) {
+  renderFaction(h);
+  document.getElementById("lines").scrollIntoView();
+}
+
+// ---- capabilities
+$("caps").innerHTML = `<thead><tr><th scope="col">Faction</th>${D.capCols.map((c) => `<th scope="col">${esc(c)}</th>`).join("")}</tr></thead><tbody>` +
+  D.factions.map((f) => `<tr><th scope="row">${fname(f)}</th>${f.caps.map((v, i) => `<td class="${i < 4 ? "num" : ""}">${esc(v)}</td>`).join("")}</tr>`).join("") + `</tbody>`;
+
+// ---- wonders and faction-only
+$("uniq").innerHTML = `<thead><tr><th scope="col">Faction</th><th scope="col">Wonders</th><th scope="col">Faction-only buildings</th></tr></thead><tbody>` +
+  D.factions.map((f) => `<tr><th scope="row">${fname(f)}</th><td>${f.wonders.map((w) => `<span class="bname">${esc(w.name)}</span><span class="sub">${esc(w.effect)}</span>`).join("<br>") || "—"}</td><td>${f.only.map((w) => `<span class="bname">${esc(w.name)}</span><span class="sub">${esc(w.effect)}</span>`).join("<br>") || "—"}</td></tr>`).join("") + `</tbody>`;
+</script>
