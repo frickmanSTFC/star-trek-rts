@@ -33,7 +33,7 @@ PLAYSTYLE = {
 
 # Hand-written fleet doctrine per faction for the ship designs page.
 SHIP_DOCTRINE = {
-    "federation": "Generalists with the widest roster in every era. Saucer separation, multi-vector assault mode and the Intrepid's planetary landing give tactical options; a cloak only by treaty (Defiant).",
+    "federation": "Generalists with the widest roster. Saucer separation, multi-vector assault mode and the Intrepid's planetary landing give tactical options; a cloak only by treaty (Defiant).",
     "klingon": "Raiders and boarders. Cloaked Birds-of-Prey and K'Vorts strike first, backed by disruptor cruisers; a titan is available as early as the TOS era.",
     "romulan": "Ambush fleet: cloaks on almost every hull, plasma torpedoes and singularity cores. The Scimitar adds a thalaron weapon and a perfect cloak.",
     "cardassian": "Mid-weight industrial navy: Galor cruisers backed by Hideki fighters and Groumall freighters. No titan berth, so the Keldon heavy cruiser is the largest hull.",

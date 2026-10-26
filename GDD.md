@@ -111,7 +111,7 @@ tribble outbreak (food drain), indigenous pre-warp civilization (Prime Directive
 | **Enterprise** | 2151–2161 | Calendar (2151.04) | Warp 5, phase cannons, polarized hull, no true shields | Earth/UEC, Vulcan, Andorian, Tellarite, Klingon, Romulan, Xindi, Suliban | Coalition-building; Temporal Cold War events |
 | **Discovery / TOS** | 2256–2293 | 4-digit (1312.4) | Warp 8, phasers, photon torps, early cloaks | Federation, Klingon, Romulan, Gorn, Tholian, Orion | Dilithium scarcity; Neutral Zone outposts |
 | **TNG** | 2364–2373 | 5-digit (41153.7) | Warp 9.x, Galaxy-class, industrial replicators | Fed, Klingon, Romulan, Cardassian, Ferengi, Borg (AI/crisis) | First Borg contact; Cardassian border |
-| **Dominion War** | 2373–2375 | 5-digit (50xxx) | Quantum torps, ablative armor, pulse phasers | + Dominion, Breen | Massive fleets; wormhole chokepoint |
+| **Dominion War** | 2373–2379 | 5-digit (50xxx) | Quantum torps, ablative armor, pulse phasers | + Dominion, Breen | Massive fleets; wormhole chokepoint; runs to 2379 for the Shinzon crisis |
 | **Delta Quadrant** | 2371–2378 | 5-digit | Bio-neural, slipstream research | Fed (lost ship), Kazon, Vidiian, Hirogen, Borg, 8472 | Isolated start — no supply home; scavenge |
 | **Picard era** | 2380s–2402 | 5-digit (78xxx) | Transwarp research, synths | Fed, Klingon, Romulan Free State, Fenris Rangers, Borg remnants | Romulan supernova refugees; synth ban politics |
 | **32nd century** | 3189+ | 6-digit (865xxx) | Programmable matter, spore drive | Federation remnant, Emerald Chain, Klingon, Ni'Var | **The Burn** — dilithium nearly gone |

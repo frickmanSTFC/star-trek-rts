@@ -214,7 +214,7 @@ The number in brackets is how many levels the line has. The Federation command l
 |  | L3 | Assembly Yards *(wonder)* | 2400 parasteel, 120 uridium | hull cap 5; build slots 3 | 3 parallel lines, cruisers -25%; no titan berth. |
 | Romulan | L1 | Aerie Dock | 200 duranium, 30 isolinear | hull cap 3 | Half-cloaked arches; hidden build queue. |
 |  | L2 | Imperial Shipyard | 320 parasteel, 40 plasma conduits | hull cap 5; build slots 2 | Valdore-class cruisers. |
-|  | L3 | Singularity Yards *(wonder)* | 3000 parasteel, 4 singularity cores | hull cap titan | D'deridex and (Picard era) Scimitar; all hulls launch cloaked. |
+|  | L3 | Singularity Yards *(wonder)* | 3000 parasteel, 4 singularity cores | hull cap titan | D'deridex and (late Dominion War era) Scimitar; all hulls launch cloaked. |
 | Dominion | L1 | Attack Ship Cradle | 200 duranium, 100 tritanium | hull cap 3; build slots 2 | Attack ships built in pairs, crewed from vats. |
 |  | L2 | Dominion Shipyard | 500 parasteel, 60 plasma conduits | hull cap 6; build slots 1 | Skips cruisers; Jem'Hadar battle cruiser. |
 |  | L3 | Stellar Forge *(wonder)* | 2800 parasteel, 200 warp coils | hull cap titan | Star-powered; Jem'Hadar battleship; no energy upkeep. |

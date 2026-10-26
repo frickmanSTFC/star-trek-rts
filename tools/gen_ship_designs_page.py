@@ -67,7 +67,15 @@ for c in S["classes"]:
                     "role": words(c.get("role", ""))})
 
 era_ids = [e for e in ERA_SHORT if any(c["era"] == e for c in classes)]
-eras = [{"id": e, "short": ERA_SHORT[e], "name": ERAS[e]["name"], "years": ERAS[e]["years"]} for e in era_ids]
+# kelvin is a separate timeline; the rest run in order, and a class stays available after the era it enters service
+eras = [{"id": e, "short": ERA_SHORT[e], "name": ERAS[e]["name"], "years": ERAS[e]["years"],
+         "timeline": "kelvin" if e == "kelvin" else "prime", "order": i} for i, e in enumerate(era_ids)]
+
+
+def status(f, e):
+    if f in ERAS[e]["playable"]:
+        return "playable"
+    return "ai" if f in ERAS[e].get("ai_only", []) else "absent"
 
 
 def yard_cap(f):
@@ -83,10 +91,10 @@ for f in FACTIONS:
     weapons = []
     for w in meta["weapons"]:
         mods = weapon_modules(w)
-        weapons.append({"label": words(w).replace(" forbidden", " (forbidden)"), "modules": mods})
+        weapons.append({"label": words(w), "modules": mods})
     factions.append({
         "id": f, "name": NAMES[f], "playstyle": meta["playstyle"], "doctrine": SHIP_DOCTRINE[f], "weakness": meta["weakness"],
-        "weapons": weapons, "eras": [e for e in meta["eras"] if e in era_ids], "count": len(mine), "flagship": flag["name"],
+        "weapons": weapons, "status": {e: status(f, e) for e in era_ids}, "count": len(mine), "flagship": flag["name"],
         "flagship_hull": label(flag["hull"]), "yard": yard_cap(f),
         "hulls_used": len({c["hull"] for c in mine}),
     })

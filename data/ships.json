@@ -1,5 +1,5 @@
 {
-  "_notes": "Hulls define slots/base stats (placeholder numbers for balancing). Classes are faction templates on a hull. source: canon/beta/original.",
+  "_notes": "Hulls define slots/base stats (placeholder numbers for balancing). Classes are faction templates on a hull. era = the starting era a class first enters service; it stays available in later eras of the same timeline (kelvin is its own timeline). source: canon/beta/original.",
   "hulls": [
     { "id": "shuttle",       "size": 1, "hp": 50,   "speed": 6, "crew": 2,    "slots": { "weapon": 0, "defense": 1, "engine": 1, "utility": 1 } },
     { "id": "fighter",       "size": 1, "hp": 80,   "speed": 7, "crew": 3,    "slots": { "weapon": 1, "defense": 1, "engine": 1, "utility": 0 } },
@@ -15,13 +15,13 @@
     { "id": "titan",         "size": 8, "hp": 5000, "speed": 2, "crew": 3000, "slots": { "weapon": 8, "defense": 6, "engine": 3, "utility": 4 }, "limit_per_player": 1 }
   ],
   "modules": {
-    "weapon":  ["phase_cannon", "phaser_array", "pulse_phaser", "disruptor", "spiral_wave_disruptor", "phased_polaron", "tetryon_cannon", "cutting_beam", "spatial_torpedo", "photon_torpedo", "quantum_torpedo", "plasma_torpedo", "transphasic_torpedo", "energy_dampener"],
+    "weapon":  ["phase_cannon", "phaser_array", "pulse_phaser", "disruptor", "spiral_wave_disruptor", "phased_polaron", "tetryon_cannon", "cutting_beam", "spatial_torpedo", "photon_torpedo", "quantum_torpedo", "plasma_torpedo", "transphasic_torpedo", "energy_dampener", "polaron_torpedo", "plasma_energy_burst", "borg_torpedo", "thalaron_generator"],
     "defense": ["polarized_hull", "shield_generator", "regenerative_shield", "ablative_armor", "rodinium_plating", "neutronium_plating", "trellium_lining"],
     "engine":  ["impulse", "warp_core", "singularity_core", "slipstream_drive", "transwarp_coil"],
     "utility": ["sensor_suite", "cloak", "tractor_beam", "transporter", "cargo_bay", "troop_bay", "science_lab", "mining_laser", "construction_rig", "medical_bay", "deflector_dish_tricks", "saucer_separation", "mvam"]
   },
   "classes": [
-    { "faction": "federation", "name": "NX",            "hull": "explorer",      "era": "ent",  "source": "canon" },
+    { "faction": "earth_uec",  "name": "NX",            "hull": "explorer",      "era": "ent",  "source": "canon" },
     { "faction": "federation", "name": "Crossfield",    "hull": "explorer",      "era": "tos",  "source": "canon", "special": "spore_drive_prototype" },
     { "faction": "federation", "name": "Constitution",  "hull": "heavy_cruiser", "era": "tos",  "source": "canon" },
     { "faction": "federation", "name": "Miranda",       "hull": "frigate",       "era": "tos",  "source": "canon" },
@@ -36,8 +36,8 @@
     { "faction": "federation", "name": "Akira",         "hull": "carrier",       "era": "dominion_war", "source": "canon" },
     { "faction": "federation", "name": "Steamrunner",   "hull": "frigate",       "era": "dominion_war", "source": "canon" },
     { "faction": "federation", "name": "Saber",         "hull": "escort",        "era": "dominion_war", "source": "canon" },
-    { "faction": "federation", "name": "Intrepid",      "hull": "cruiser",       "era": "voy",  "source": "canon", "special": "bioneural_landing_capable" },
-    { "faction": "federation", "name": "Prometheus",    "hull": "heavy_cruiser", "era": "voy",  "source": "canon", "special": "mvam" },
+    { "faction": "federation", "name": "Intrepid",      "hull": "cruiser",       "era": "tng",  "source": "canon", "special": "bioneural_landing_capable" },
+    { "faction": "federation", "name": "Prometheus",    "hull": "heavy_cruiser", "era": "dominion_war",  "source": "canon", "special": "mvam" },
     { "faction": "federation", "name": "Odyssey",       "hull": "titan",         "era": "picard", "source": "canon" },
     { "faction": "federation", "name": "Constitution III", "hull": "battleship", "era": "picard", "source": "canon" },
 
@@ -54,8 +54,8 @@
     { "faction": "romulan", "name": "Bird-of-Prey (22nd c.)", "hull": "frigate", "era": "ent",  "source": "canon", "special": "telecapture" },
     { "faction": "romulan", "name": "Bird-of-Prey (23rd c.)", "hull": "cruiser", "era": "tos",  "source": "canon", "special": "cloak, plasma_torpedo" },
     { "faction": "romulan", "name": "D'deridex Warbird", "hull": "battleship",   "era": "tng",  "source": "canon", "special": "cloak, singularity_core" },
-    { "faction": "romulan", "name": "Valdore",          "hull": "heavy_cruiser", "era": "picard", "source": "canon" },
-    { "faction": "romulan", "name": "Scimitar",         "hull": "titan",         "era": "picard", "source": "canon", "special": "thalaron, perfect_cloak" },
+    { "faction": "romulan", "name": "Valdore",          "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon" },
+    { "faction": "romulan", "name": "Scimitar",         "hull": "titan",         "era": "dominion_war", "source": "canon", "special": "thalaron, perfect_cloak" },
 
     { "faction": "cardassian", "name": "Hideki",        "hull": "fighter",       "era": "tng",  "source": "canon" },
     { "faction": "cardassian", "name": "Groumall",      "hull": "civilian",      "era": "tng",  "source": "canon", "role": "freighter" },
@@ -65,7 +65,14 @@
     { "faction": "dominion", "name": "Jem'Hadar Attack Ship",  "hull": "escort",     "era": "dominion_war", "source": "canon", "special": "kamikaze_ram" },
     { "faction": "dominion", "name": "Jem'Hadar Battle Cruiser","hull": "battleship","era": "dominion_war", "source": "canon" },
     { "faction": "dominion", "name": "Jem'Hadar Battleship",   "hull": "titan",      "era": "dominion_war", "source": "canon" },
+    { "faction": "dominion", "name": "Dominion Scout",         "hull": "scout",      "era": "dominion_war", "source": "original", "special": "wormhole_survey" },
+    { "faction": "dominion", "name": "Ketracel-white Courier", "hull": "civilian",   "era": "dominion_war", "source": "original", "role": "freighter", "special": "white_resupply" },
+    { "faction": "dominion", "name": "Vorta Command Ship",     "hull": "explorer",   "era": "dominion_war", "source": "original", "special": "command_aura, vorta_diplomacy" },
 
+    { "faction": "ferengi", "name": "Ferengi Shuttle",  "hull": "shuttle",       "era": "tng",  "source": "canon" },
+    { "faction": "ferengi", "name": "Latinum Hauler",   "hull": "civilian",      "era": "tng",  "source": "original", "role": "freighter", "special": "cargo_bay, trade_route_bonus" },
+    { "faction": "ferengi", "name": "Acquired Bird-of-Prey", "hull": "escort",   "era": "tng",  "source": "canon", "special": "bought_hull, cloak" },
+    { "faction": "ferengi", "name": "Mercenary Frigate", "hull": "frigate",      "era": "dominion_war", "source": "original", "special": "hired_crew" },
     { "faction": "ferengi", "name": "D'Kora Marauder",  "hull": "cruiser",       "era": "tng",  "source": "canon", "special": "energy_whip, cargo_bay" },
 
     { "faction": "borg", "name": "Probe",               "hull": "scout",         "era": "tng",  "source": "canon" },
@@ -80,6 +87,17 @@
     { "faction": "hirogen",     "name": "Hirogen Hunter", "hull": "cruiser",       "era": "voy", "source": "canon", "special": "tetryon, hunt_tracking" },
     { "faction": "species_8472","name": "Bioship",        "hull": "heavy_cruiser", "era": "voy", "source": "canon", "special": "planet_killer_formation, immune_non_nanoprobe" },
     { "faction": "orion",       "name": "Orion Interceptor", "hull": "escort",     "era": "tos", "source": "beta" },
-    { "faction": "nausicaan",   "name": "Nausicaan Raider",  "hull": "escort",     "era": "tng", "source": "original" }
+    { "faction": "nausicaan",   "name": "Nausicaan Raider",  "hull": "escort",     "era": "tng", "source": "original" },
+
+    { "faction": "federation", "name": "Kelvin",              "hull": "cruiser",       "era": "kelvin", "source": "canon" },
+    { "faction": "federation", "name": "Constitution (Kelvin)", "hull": "heavy_cruiser", "era": "kelvin", "source": "canon", "special": "saucer_separation" },
+    { "faction": "federation", "name": "Dreadnought (Vengeance)", "hull": "battleship", "era": "kelvin", "source": "canon", "special": "heavy_armament" },
+    { "faction": "klingon",    "name": "D4 Bird-of-Prey",     "hull": "escort",        "era": "kelvin", "source": "canon", "special": "cloak" },
+    { "faction": "romulan",    "name": "Narada",              "hull": "battleship",    "era": "kelvin", "source": "canon", "special": "red_matter, mining_drill" },
+
+    { "faction": "federation_remnant", "name": "Crossfield refit (Discovery-A)", "hull": "explorer", "era": "far_future", "source": "canon", "special": "spore_drive, detached_nacelles, programmable_matter" },
+    { "faction": "federation_remnant", "name": "Voyager-J",       "hull": "explorer",      "era": "far_future", "source": "canon", "special": "programmable_matter" },
+    { "faction": "emerald_chain",      "name": "Viridian",        "hull": "battleship",    "era": "far_future", "source": "canon" },
+    { "faction": "klingon",            "name": "Bird-of-Prey (32nd c.)", "hull": "escort", "era": "far_future", "source": "original", "special": "cloak, programmable_matter" }
   ]
 }

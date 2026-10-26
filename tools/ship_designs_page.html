@@ -210,7 +210,7 @@ footer p { margin: 0; max-width: 90ch; }
   </section>
 
   <section id="roster" style="--sec: var(--lilac)">
-    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Class roster</h2><p>Every class on its hull, faction by faction. Pick an era to highlight the ships available in it.</p></div></div>
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Class roster</h2><p>Every class on its hull, faction by faction. Pick a starting era to highlight what each faction can field in it: classes stay in service after the era they arrive in, and the Kelvin timeline only has its own ships.</p></div></div>
     <div class="seg" id="erafilter" role="group" aria-label="Era"></div>
     <div class="scroll"><table class="roster" id="rostertable"></table></div>
     <h3 class="sub-h">Other powers</h3>
@@ -218,7 +218,7 @@ footer p { margin: 0; max-width: 90ch; }
   </section>
 
   <section id="eras" style="--sec: var(--peach)">
-    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Fleets by era</h2><p>Which classes each faction fields in each starting era. Hatched cells are eras the faction isn't playable in.</p></div></div>
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Fleets by era</h2><p>The era each class enters service. Hatched cells are eras the faction isn't in; AI-only means it appears as a computer-run power, not a player choice.</p></div></div>
     <div class="scroll"><table class="eras" id="eratable"></table></div>
     <p class="note" id="eranote"></p>
   </section>
@@ -274,14 +274,21 @@ $("ov").innerHTML = D.factions.map((f) => `
 })();
 
 // ---- roster: hull rows x faction columns, highlight by era
+const eraById = Object.fromEntries(D.eras.map((e) => [e.id, e]));
+// a class is available in a starting era if its faction is in that era, it is on the same timeline and it has entered service
+function available(c, f, era) {
+  if (era === "all") return true;
+  const a = eraById[c.era], b = eraById[era];
+  return f.status[era] !== "absent" && a.timeline === b.timeline && a.order <= b.order;
+}
 function renderRoster(era) {
   const head = `<thead><tr><th scope="col">Hull</th>${D.factions.map((f) => `<th scope="col">${fname(f)}</th>`).join("")}</tr></thead>`;
   const body = D.hulls.map((h) => `<tr><th scope="row">${esc(h.label)}<small>size ${h.size}</small></th>${D.factions.map((f) => {
     const list = D.classes.filter((c) => c.faction === f.id && c.hull === h.id);
     if (!list.length) return `<td><span class="none">—</span></td>`;
-    return `<td>${list.map((c) => `<span class="ship ${era !== "all" && c.era !== era ? "dim" : ""}" style="${fc(f.id)}"><span class="sn">${esc(c.name)}</span><span class="se">${esc(eraShort[c.era])}${c.role ? " · " + esc(c.role) : ""}</span></span>`).join("")}</td>`;
+    return `<td>${list.map((c) => `<span class="ship ${available(c, f, era) ? "" : "dim"}" style="${fc(f.id)}"><span class="sn">${esc(c.name)}</span><span class="se">${esc(eraShort[c.era])}${c.role ? " · " + esc(c.role) : ""}</span></span>`).join("")}</td>`;
   }).join("")}</tr>`).join("");
-  const foot = `<tfoot><tr><th scope="row">${era === "all" ? "Classes" : "In " + esc(eraShort[era])}</th>${D.factions.map((f) => `<td>${D.classes.filter((c) => c.faction === f.id && (era === "all" || c.era === era)).length}</td>`).join("")}</tr></tfoot>`;
+  const foot = `<tfoot><tr><th scope="row">${era === "all" ? "Classes" : "In " + esc(eraShort[era])}</th>${D.factions.map((f) => `<td>${era !== "all" && f.status[era] === "absent" ? "not in era" : D.classes.filter((c) => c.faction === f.id && available(c, f, era)).length + (era !== "all" && f.status[era] === "ai" ? " (AI only)" : "")}</td>`).join("")}</tr></tfoot>`;
   $("rostertable").innerHTML = head + `<tbody>${body}</tbody>` + foot;
   document.querySelectorAll("#erafilter button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.era === era)));
 }
@@ -299,14 +306,15 @@ $("otherstable").innerHTML = `<thead><tr><th scope="col">Power</th><th scope="co
   const head = `<thead><tr><th scope="col">Faction</th>${D.eras.map((e) => `<th scope="col">${esc(e.short)}<span class="sub" style="margin:0;text-transform:none;letter-spacing:.04em">${e.years[0]}–${e.years[1]}</span></th>`).join("")}</tr></thead>`;
   const body = D.factions.map((f) => `<tr><th scope="row">${fname(f)}</th>${D.eras.map((e) => {
     const list = D.classes.filter((c) => c.faction === f.id && c.era === e.id);
-    const open = f.eras.includes(e.id);
+    const st = f.status[e.id], open = st !== "absent";
     if (!open && list.length) outside.push(`${f.name} ${list.map((c) => c.name).join(", ")} (${e.short})`);
     const ships = list.map((c) => `<span class="ship" style="${fc(f.id)}"><span class="sn">${esc(c.name)}</span><span class="se">${esc(D.hullLabels[c.hull])}</span></span>`).join("");
-    return `<td class="${open ? "" : "closed"}">${ships || (open ? `<span class="none">—</span>` : `<span class="closed-note">Not playable</span>`)}${!open && list.length ? `<span class="flag">Outside playable eras</span>` : ""}</td>`;
+    const ai = st === "ai" ? `<span class="closed-note" style="display:block;margin-bottom:4px">AI only</span>` : "";
+    return `<td class="${open ? "" : "closed"}">${ai}${ships || (open ? `<span class="none">—</span>` : `<span class="closed-note">Not in era</span>`)}${!open && list.length ? `<span class="flag">Faction not in era</span>` : ""}</td>`;
   }).join("")}</tr>`).join("");
   $("eratable").innerHTML = head + `<tbody>${body}</tbody>`;
   const notes = [];
-  if (outside.length) notes.push(`Data to check: ${outside.join("; ")} sit in eras where that faction isn't playable.`);
+  if (outside.length) notes.push(`Data to check: ${outside.join("; ")} enter service in an era that faction isn't in.`);
   if (D.unusedEras.length) notes.push(`No classes are listed yet for the ${D.unusedEras.join(" and ")} eras.`);
   $("eranote").textContent = notes.join(" ");
 })();

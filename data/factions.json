@@ -1,7 +1,7 @@
 {
   "factions": [
     { "id": "federation", "name": "United Federation of Planets", "playable": true,
-      "eras": ["tos", "tng", "dominion_war", "voy", "picard", "far_future", "kelvin"],
+      "eras": ["tos", "tng", "dominion_war", "picard", "kelvin"],
       "playstyle": "Explorer / generalist / diplomacy",
       "signature": { "id": "member_worlds", "desc": "Integrate other species via diplomacy; each member grants a unique bonus (Vulcan: research, Andorian: military, Tellarite: engineering, Bajoran: faith/morale)." },
       "secondary": ["prime_directive_choices", "starfleet_academy_captain_training", "first_contact_bonus"],
@@ -24,10 +24,10 @@
       "eras": ["ent", "tos", "tng", "dominion_war", "kelvin"],
       "playstyle": "Stealth / espionage / ambush",
       "signature": { "id": "tal_shiar", "desc": "Espionage ops: steal tech, incite unrest, assassinate captains. Cloaks on almost every hull." },
-      "secondary": ["singularity_cores", "plasma_torpedoes", "neutral_zone_treaty"],
+      "secondary": ["singularity_cores", "plasma_torpedoes", "neutral_zone_treaty", "thalaron_weapons_banned"],
       "weakness": "Singularity-core ships leave gravity wells when destroyed; paranoid internal politics.",
       "home": "Romulus & Remus",
-      "weapons": ["disruptor", "plasma_torpedo", "thalaron_forbidden"],
+      "weapons": ["disruptor", "plasma_torpedo", "thalaron"],
       "flavor_units": { "hero": "Tal Shiar Agent", "ground": "Reman Shock Troops", "special": "Warbird" } },
 
     { "id": "cardassian", "name": "Cardassian Union", "playable": true,
@@ -61,7 +61,7 @@
       "flavor_units": { "hero": "DaiMon", "ground": "Ferengi Mercenaries", "special": "Marauder" } },
 
     { "id": "borg", "name": "Borg Collective", "playable": true,
-      "eras": ["tng", "dominion_war", "voy", "picard"],
+      "eras": ["tng", "dominion_war", "voy"],
       "playstyle": "Assimilation / adaptation",
       "signature": { "id": "adaptation", "desc": "Shields adapt to weapon types used repeatedly against the Collective; assimilate ships, tech and population." },
       "secondary": ["transwarp_conduits", "regeneration", "no_diplomacy"],
@@ -70,7 +70,7 @@
       "weapons": ["cutting_beam", "tractor_beam", "borg_torpedo"],
       "flavor_units": { "hero": "Borg Queen", "ground": "Drones", "special": "Cube" } },
 
-    { "id": "breen", "name": "Breen Confederacy", "playable": "dlc_or_minor", "eras": ["dominion_war", "picard"],
+    { "id": "breen", "name": "Breen Confederacy", "playable": "dlc_or_minor", "eras": ["tng", "dominion_war", "picard"],
       "signature": { "id": "energy_dampener", "desc": "Weapon that knocks out a target's power entirely." } },
     { "id": "tholian", "name": "Tholian Assembly", "playable": "minor", "eras": ["ent", "tos", "tng"],
       "signature": { "id": "tholian_web", "desc": "Ships cooperate to spin an energy web that traps enemies." } },
@@ -104,7 +104,7 @@
       "signature": { "id": "spawned_by_unrest", "desc": "Rises from unhappy or ceded colonies; guerrilla raids from plasma storms." } },
     { "id": "orion", "name": "Orion Syndicate", "playable": "pirate", "eras": ["ent", "tos", "tng", "dominion_war", "picard"],
       "signature": { "id": "smuggling_networks", "desc": "Raids trade lanes, sells contraband, kidnaps colonists." } },
-    { "id": "nausicaan", "name": "Nausicaan Raiders", "playable": "pirate", "eras": ["ent", "tos", "tng", "picard"],
+    { "id": "nausicaan", "name": "Nausicaan Raiders", "playable": "pirate", "eras": ["ent", "tos", "tng", "dominion_war", "picard"],
       "signature": { "id": "freighter_raids", "desc": "Hit-and-run attacks on freighters and civilian transports." } },
     { "id": "kazon", "name": "Kazon Sects", "playable": "pirate", "eras": ["voy"],
       "signature": { "id": "sect_swarm", "desc": "Many feuding sects; swarm tactics; covet replicator tech." } },
