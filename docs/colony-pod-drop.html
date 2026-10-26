@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font: 14px/1.5 system-ui, sans-serif; }
+img, video { max-width: 100%; }
+[hidden] { display: none !important; }
+.site-back { display: block; padding: 10px max(16px, env(safe-area-inset-left, 0px)) 0; font: 600 13px/1 "Barlow Condensed", "Arial Narrow", sans-serif;
+  letter-spacing: .1em; text-transform: uppercase; color: #a29fb6; text-decoration: none; background: #05060b; }
+.site-back:hover, .site-back:focus-visible { color: #ffc999; }
+</style>
+<title>Colony Pod Drop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: animation stage beside a control column (timeline beats double as the animator's timing spec); engine notes below. One dark look, matching the in-game sky. */
+:root {
+  color-scheme: dark;
+  --void: #070a12;
+  --panel: #0f1626;
+  --line: #1e2738;
+  --ink: #e8ecf3;
+  --dim: #9aa6ba;
+  --faint: #6b7891;
+  --glow: #7fd4ff;
+  --blue: #4a7fd6;
+  --gold: #f3cb5b;
+  --display: "Antonio", "Arial Narrow", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  max-width: 1400px; margin: 0 auto;
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 24px;
+}
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--label); font-size: 13px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--glow); }
+h1 { margin: 0; font-family: var(--display); font-size: clamp(32px, 5vw, 48px); font-weight: 700; line-height: 1; letter-spacing: .02em; text-transform: uppercase; text-wrap: balance; }
+.lede { margin: 0; color: var(--dim); max-width: 70ch; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.stage { border-radius: 12px; overflow: hidden; background: #0b1322; aspect-ratio: 4 / 3; max-width: 100%; }
+.stage svg { display: block; width: 100%; height: 100%; }
+.side { display: grid; gap: 16px; min-width: 0; }
+.controls { display: grid; gap: 12px; padding: 14px; border-radius: 10px; background: var(--panel); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select {
+  font: inherit; font-family: var(--label); font-size: 15px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--void); background: var(--glow); border: 0; border-radius: 16px; padding: 6px 16px; cursor: pointer;
+}
+button.ghost, select { background: transparent; color: var(--ink); border: 1px solid var(--faint); }
+button:focus-visible, select:focus-visible, input:focus-visible, .beat:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.time { font-family: var(--label); font-size: 15px; font-variant-numeric: tabular-nums; color: var(--dim); margin-left: auto; }
+input[type=range] { width: 100%; accent-color: var(--glow); }
+label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--dim); }
+.beats { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.beat {
+  width: 100%; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: baseline;
+  text-align: left; font-family: var(--body); text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 14px;
+  color: var(--dim); background: transparent; border: 0; border-left: 3px solid transparent; border-radius: 0; padding: 6px 8px;
+}
+.beat b { font-family: var(--label); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--faint); }
+.beat.on { color: var(--ink); border-left-color: var(--glow); background: #12203a; }
+.beat.on b { color: var(--glow); }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.notes section { min-width: 0; padding: 14px 16px; border-top: 2px solid var(--line); }
+.notes h2 { margin: 0 0 6px; font-family: var(--label); font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+.notes p { margin: 0; color: var(--dim); font-size: 14px; }
+</style>
+</head>
+<body>
+<a class="site-back" href="./">&larr; All design pages</a>
+<div class="page">
+  <header>
+    <div class="eyebrow">Federation · Colony Hub · Level 1 placement</div>
+    <h1>Colony Pod Drop</h1>
+    <p class="lede">What the player sees when they order a new colony on a Class M world. Twenty seconds from order to online. A compact pod materializes in the drop ship's tractor beam and is lowered to the surface. On the ground it unfurls: legs lift it, the saucer expands to full size, the command capsule and comm mast extend and the solar petals open. A construction beam then circles the site to beam in the supply capsules and beacons, and the first colonists beam down.</p>
+  </header>
+
+  <div class="main">
+    <div class="stage" id="stageWrap"><svg xmlns="http://www.w3.org/2000/svg" id="stage" role="img" aria-label="Animated drop of a Federation colony pod onto a grassy plot" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1322"/><stop offset="1" stop-color="#1b2a40"/></linearGradient><radialGradient id="vig" cx="0.5" cy="0.55" r="0.65"><stop offset="0.6" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.45"/></radialGradient><linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dde3ec"/><stop offset="0.45" stop-color="#c3cbd8"/><stop offset="1" stop-color="#8e99ab"/></linearGradient><radialGradient id="tg" cx="0.4" cy="0.4" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d3dae5"/></radialGradient><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d8f0ff"/><stop offset="1" stop-color="#6fb4e0"/></linearGradient><radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#bfe9ff" stop-opacity="0.9"/><stop offset="1" stop-color="#7fd4ff" stop-opacity="0"/></radialGradient></defs>
+<rect width="800" height="600" fill="url(#sky)"/>
+<circle cx="259" cy="39" r="1.1" fill="#e8ecf3" fill-opacity="0.33"/>
+<circle cx="657" cy="24" r="1.1" fill="#e8ecf3" fill-opacity="0.33"/>
+<circle cx="406" cy="10" r="0.8" fill="#e8ecf3" fill-opacity="0.55"/>
+<circle cx="193" cy="143" r="0.6" fill="#e8ecf3" fill-opacity="0.80"/>
+<circle cx="99" cy="58" r="1.1" fill="#e8ecf3" fill-opacity="0.65"/>
+<circle cx="49" cy="152" r="0.6" fill="#e8ecf3" fill-opacity="0.89"/>
+<circle cx="37" cy="223" r="0.8" fill="#e8ecf3" fill-opacity="0.55"/>
+<circle cx="433" cy="148" r="1.1" fill="#e8ecf3" fill-opacity="0.79"/>
+<circle cx="145" cy="151" r="1.1" fill="#e8ecf3" fill-opacity="0.41"/>
+<circle cx="78" cy="185" r="1.1" fill="#e8ecf3" fill-opacity="0.34"/>
+<circle cx="165" cy="177" r="0.8" fill="#e8ecf3" fill-opacity="0.77"/>
+<circle cx="372" cy="240" r="0.8" fill="#e8ecf3" fill-opacity="0.48"/>
+<circle cx="636" cy="182" r="0.6" fill="#e8ecf3" fill-opacity="0.35"/>
+<circle cx="240" cy="129" r="0.8" fill="#e8ecf3" fill-opacity="0.74"/>
+<circle cx="230" cy="255" r="0.6" fill="#e8ecf3" fill-opacity="0.61"/>
+<circle cx="132" cy="89" r="0.8" fill="#e8ecf3" fill-opacity="0.55"/>
+<circle cx="770" cy="20" r="1.1" fill="#e8ecf3" fill-opacity="0.64"/>
+<circle cx="700" cy="82" r="1.1" fill="#e8ecf3" fill-opacity="0.51"/>
+<circle cx="397" cy="207" r="0.6" fill="#e8ecf3" fill-opacity="0.80"/>
+<circle cx="756" cy="123" r="1.1" fill="#e8ecf3" fill-opacity="0.34"/>
+<circle cx="585" cy="80" r="1.1" fill="#e8ecf3" fill-opacity="0.90"/>
+<circle cx="658" cy="74" r="0.8" fill="#e8ecf3" fill-opacity="0.83"/>
+<circle cx="278" cy="245" r="0.8" fill="#e8ecf3" fill-opacity="0.40"/>
+<circle cx="94" cy="15" r="0.8" fill="#e8ecf3" fill-opacity="0.38"/>
+<circle cx="198" cy="102" r="0.8" fill="#e8ecf3" fill-opacity="0.35"/>
+<circle cx="359" cy="143" r="0.6" fill="#e8ecf3" fill-opacity="0.79"/>
+<circle cx="691" cy="72" r="0.8" fill="#e8ecf3" fill-opacity="0.89"/>
+<circle cx="546" cy="99" r="0.6" fill="#e8ecf3" fill-opacity="0.39"/>
+<circle cx="141" cy="60" r="0.6" fill="#e8ecf3" fill-opacity="0.31"/>
+<circle cx="665" cy="47" r="0.8" fill="#e8ecf3" fill-opacity="0.30"/>
+<circle cx="335" cy="96" r="1.1" fill="#e8ecf3" fill-opacity="0.49"/>
+<circle cx="100" cy="223" r="1.1" fill="#e8ecf3" fill-opacity="0.69"/>
+<circle cx="592" cy="119" r="1.1" fill="#e8ecf3" fill-opacity="0.78"/>
+<circle cx="314" cy="104" r="0.6" fill="#e8ecf3" fill-opacity="0.59"/>
+<circle cx="320" cy="50" r="0.6" fill="#e8ecf3" fill-opacity="0.56"/>
+<circle cx="88" cy="156" r="0.6" fill="#e8ecf3" fill-opacity="0.30"/>
+<circle cx="121" cy="26" r="0.8" fill="#e8ecf3" fill-opacity="0.67"/>
+<circle cx="56" cy="54" r="0.8" fill="#e8ecf3" fill-opacity="0.39"/>
+<circle cx="202" cy="90" r="0.8" fill="#e8ecf3" fill-opacity="0.58"/>
+<circle cx="92" cy="127" r="0.8" fill="#e8ecf3" fill-opacity="0.59"/>
+<circle cx="249" cy="37" r="1.1" fill="#e8ecf3" fill-opacity="0.51"/>
+<circle cx="212" cy="216" r="0.6" fill="#e8ecf3" fill-opacity="0.61"/>
+<circle cx="164" cy="248" r="0.8" fill="#e8ecf3" fill-opacity="0.39"/>
+<circle cx="435" cy="7" r="1.1" fill="#e8ecf3" fill-opacity="0.48"/>
+<circle cx="514" cy="24" r="0.8" fill="#e8ecf3" fill-opacity="0.61"/>
+<circle cx="727" cy="92" r="0.6" fill="#e8ecf3" fill-opacity="0.62"/>
+<circle cx="623" cy="86" r="0.6" fill="#e8ecf3" fill-opacity="0.67"/>
+<circle cx="631" cy="197" r="0.6" fill="#e8ecf3" fill-opacity="0.78"/>
+<circle cx="655" cy="192" r="0.6" fill="#e8ecf3" fill-opacity="0.42"/>
+<circle cx="394" cy="190" r="0.6" fill="#e8ecf3" fill-opacity="0.77"/>
+<circle cx="378" cy="50" r="1.1" fill="#e8ecf3" fill-opacity="0.87"/>
+<circle cx="358" cy="244" r="0.8" fill="#e8ecf3" fill-opacity="0.87"/>
+<circle cx="292" cy="57" r="0.6" fill="#e8ecf3" fill-opacity="0.58"/>
+<circle cx="270" cy="125" r="1.1" fill="#e8ecf3" fill-opacity="0.80"/>
+<circle cx="384" cy="170" r="1.1" fill="#e8ecf3" fill-opacity="0.35"/>
+<circle cx="528" cy="237" r="1.1" fill="#e8ecf3" fill-opacity="0.75"/>
+<circle cx="382" cy="46" r="1.1" fill="#e8ecf3" fill-opacity="0.50"/>
+<circle cx="641" cy="253" r="0.8" fill="#e8ecf3" fill-opacity="0.58"/>
+<circle cx="595" cy="22" r="0.6" fill="#e8ecf3" fill-opacity="0.40"/>
+<circle cx="102" cy="39" r="0.8" fill="#e8ecf3" fill-opacity="0.78"/>
+<polygon points="77.8,344.0 400.0,530.0 400.0,557.9 77.8,371.9" fill="#6b5440"/>
+<polygon points="400.0,530.0 722.2,344.0 722.2,371.9 400.0,557.9" fill="#54412f"/>
+<polyline points="77.8,351.0 400.0,537.0 722.2,351.0" fill="none" stroke="#000000" stroke-opacity="0.12" stroke-width="1"/>
+<polyline points="77.8,357.9 400.0,544.0 722.2,357.9" fill="none" stroke="#000000" stroke-opacity="0.12" stroke-width="1"/>
+<polyline points="77.8,364.9 400.0,550.9 722.2,364.9" fill="none" stroke="#000000" stroke-opacity="0.12" stroke-width="1"/>
+<polygon points="400.0,158.0 722.2,344.0 400.0,530.0 77.8,344.0" fill="#5f8f56"/>
+<path d="M528.9,409.3 L530.9,406.2 L536.0,405.7 L538.0,409.3 Z" fill="#7d7a70"/><path d="M530.9,406.2 L536.0,405.7 L534.0,408.3 Z" fill="#9a968a"/>
+<path d="M512.7,305.8 L514.8,302.8 L519.8,302.3 L521.8,305.8 Z" fill="#7d7a70"/><path d="M514.8,302.8 L519.8,302.3 L517.8,304.8 Z" fill="#9a968a"/>
+<path d="M349.7,414.8 L351.2,412.5 L355.0,412.1 L356.5,414.8 Z" fill="#7d7a70"/><path d="M351.2,412.5 L355.0,412.1 L353.5,414.0 Z" fill="#9a968a"/>
+<path d="M456.9,242.6 L459.3,239.0 L465.2,238.4 L467.6,242.6 Z" fill="#7d7a70"/><path d="M459.3,239.0 L465.2,238.4 L462.9,241.4 Z" fill="#9a968a"/>
+<path d="M583.8,299.7 L586.3,295.8 L592.8,295.2 L595.4,299.7 Z" fill="#7d7a70"/><path d="M586.3,295.8 L592.8,295.2 L590.2,298.4 Z" fill="#9a968a"/>
+<path d="M491.5,451.4 L492.5,448.4 M493.5,451.4 L493.5,447.4 M495.5,451.4 L494.5,448.4" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M335.3,423.0 L336.3,420.0 M337.3,423.0 L337.3,419.0 M339.3,423.0 L338.3,420.0" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M358.7,213.8 L359.7,210.8 M360.7,213.8 L360.7,209.8 M362.7,213.8 L361.7,210.8" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M344.3,409.6 L345.3,406.6 M346.3,409.6 L346.3,405.6 M348.3,409.6 L347.3,406.6" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M277.2,393.1 L278.2,390.1 M279.2,393.1 L279.2,389.1 M281.2,393.1 L280.2,390.1" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M459.7,364.8 L460.7,361.8 M461.7,364.8 L461.7,360.8 M463.7,364.8 L462.7,361.8" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M653.1,346.6 L654.1,343.6 M655.1,346.6 L655.1,342.6 M657.1,346.6 L656.1,343.6" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M463.8,232.8 L464.8,229.8 M465.8,232.8 L465.8,228.8 M467.8,232.8 L466.8,229.8" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M263.8,386.9 L264.8,383.9 M265.8,386.9 L265.8,382.9 M267.8,386.9 L266.8,383.9" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M413.0,184.9 L414.0,181.9 M415.0,184.9 L415.0,180.9 M417.0,184.9 L416.0,181.9" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M183.4,368.4 L184.4,365.4 M185.4,368.4 L185.4,364.4 M187.4,368.4 L186.4,365.4" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M244.5,422.2 L245.5,419.2 M246.5,422.2 L246.5,418.2 M248.5,422.2 L247.5,419.2" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M254.7,322.0 L255.7,319.0 M256.7,322.0 L256.7,318.0 M258.7,322.0 L257.7,319.0" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M324.2,243.3 L325.2,240.3 M326.2,243.3 L326.2,239.3 M328.2,243.3 L327.2,240.3" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M590.5,322.5 L591.5,319.5 M592.5,322.5 L592.5,318.5 M594.5,322.5 L593.5,319.5" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M607.3,295.0 L608.3,292.0 M609.3,295.0 L609.3,291.0 M611.3,295.0 L610.3,292.0" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M584.2,339.6 L585.2,336.6 M586.2,339.6 L586.2,335.6 M588.2,339.6 L587.2,336.6" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M475.2,281.2 L476.2,278.2 M477.2,281.2 L477.2,277.2 M479.2,281.2 L478.2,278.2" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M219.0,410.8 L220.0,407.8 M221.0,410.8 L221.0,406.8 M223.0,410.8 L222.0,407.8" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M187.2,385.8 L188.2,382.8 M189.2,385.8 L189.2,381.8 M191.2,385.8 L190.2,382.8" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M692.2,347.0 L693.2,344.0 M694.2,347.0 L694.2,343.0 M696.2,347.0 L695.2,344.0" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M259.7,387.2 L260.7,384.2 M261.7,387.2 L261.7,383.2 M263.7,387.2 L262.7,384.2" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M366.7,203.1 L367.7,200.1 M368.7,203.1 L368.7,199.1 M370.7,203.1 L369.7,200.1" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M243.3,349.4 L244.3,346.4 M245.3,349.4 L245.3,345.4 M247.3,349.4 L246.3,346.4" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M531.5,381.6 L532.5,378.6 M533.5,381.6 L533.5,377.6 M535.5,381.6 L534.5,378.6" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M249.9,287.2 L250.9,284.2 M251.9,287.2 L251.9,283.2 M253.9,287.2 L252.9,284.2" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M291.8,237.1 L292.8,234.1 M293.8,237.1 L293.8,233.1 M295.8,237.1 L294.8,234.1" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M259.7,294.4 L260.7,291.4 M261.7,294.4 L261.7,290.4 M263.7,294.4 L262.7,291.4" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M603.6,352.6 L604.6,349.6 M605.6,352.6 L605.6,348.6 M607.6,352.6 L606.6,349.6" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M363.4,402.3 L364.4,399.3 M365.4,402.3 L365.4,398.3 M367.4,402.3 L366.4,399.3" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M337.6,462.0 L338.6,459.0 M339.6,462.0 L339.6,458.0 M341.6,462.0 L340.6,459.0" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M487.8,357.1 L488.8,354.1 M489.8,357.1 L489.8,353.1 M491.8,357.1 L490.8,354.1" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M417.6,195.1 L418.6,192.1 M419.6,195.1 L419.6,191.1 M421.6,195.1 L420.6,192.1" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M257.8,334.1 L258.8,331.1 M259.8,334.1 L259.8,330.1 M261.8,334.1 L260.8,331.1" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M252.5,400.5 L253.5,397.5 M254.5,400.5 L254.5,396.5 M256.5,400.5 L255.5,397.5" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M433.5,251.8 L434.5,248.8 M435.5,251.8 L435.5,247.8 M437.5,251.8 L436.5,248.8" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M291.9,275.5 L292.9,272.5 M293.9,275.5 L293.9,271.5 M295.9,275.5 L294.9,272.5" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M206.4,378.3 L207.4,375.3 M208.4,378.3 L208.4,374.3 M210.4,378.3 L209.4,375.3" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M602.4,312.4 L603.4,309.4 M604.4,312.4 L604.4,308.4 M606.4,312.4 L605.4,309.4" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M513.8,258.3 L514.8,255.3 M515.8,258.3 L515.8,254.3 M517.8,258.3 L516.8,255.3" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M662.9,355.3 L663.9,352.3 M664.9,355.3 L664.9,351.3 M666.9,355.3 L665.9,352.3" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M371.1,495.3 L372.1,492.3 M373.1,495.3 L373.1,491.3 M375.1,495.3 L374.1,492.3" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M297.7,433.1 L298.7,430.1 M299.7,433.1 L299.7,429.1 M301.7,433.1 L300.7,430.1" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M460.9,450.1 L461.9,447.1 M462.9,450.1 L462.9,446.1 M464.9,450.1 L463.9,447.1" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M213.1,284.5 L214.1,281.5 M215.1,284.5 L215.1,280.5 M217.1,284.5 L216.1,281.5" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M324.7,236.1 L325.7,233.1 M326.7,236.1 L326.7,232.1 M328.7,236.1 L327.7,233.1" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M675.9,357.0 L676.9,354.0 M677.9,357.0 L677.9,353.0 M679.9,357.0 L678.9,354.0" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M348.9,454.6 L349.9,451.6 M350.9,454.6 L350.9,450.6 M352.9,454.6 L351.9,451.6" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M361.4,467.0 L362.4,464.0 M363.4,467.0 L363.4,463.0 M365.4,467.0 L364.4,464.0" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M281.2,267.3 L282.2,264.3 M283.2,267.3 L283.2,263.3 M285.2,267.3 L284.2,264.3" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M534.5,394.0 L535.5,391.0 M536.5,394.0 L536.5,390.0 M538.5,394.0 L537.5,391.0" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M485.4,419.7 L486.4,416.7 M487.4,419.7 L487.4,415.7 M489.4,419.7 L488.4,416.7" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M508.3,238.4 L509.3,235.4 M510.3,238.4 L510.3,234.4 M512.3,238.4 L511.3,235.4" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M229.9,295.3 L230.9,292.3 M231.9,295.3 L231.9,291.3 M233.9,295.3 L232.9,292.3" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M443.6,449.5 L444.6,446.5 M445.6,449.5 L445.6,445.5 M447.6,449.5 L446.6,446.5" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M470.2,453.1 L471.2,450.1 M472.2,453.1 L472.2,449.1 M474.2,453.1 L473.2,450.1" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M278.4,392.4 L279.4,389.4 M280.4,392.4 L280.4,388.4 M282.4,392.4 L281.4,389.4" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M464.9,239.5 L465.9,236.5 M466.9,239.5 L466.9,235.5 M468.9,239.5 L467.9,236.5" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M257.2,331.6 L258.2,328.6 M259.2,331.6 L259.2,327.6 M261.2,331.6 L260.2,328.6" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M434.0,420.4 L435.0,417.4 M436.0,420.4 L436.0,416.4 M438.0,420.4 L437.0,417.4" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M471.5,216.8 L472.5,213.8 M473.5,216.8 L473.5,212.8 M475.5,216.8 L474.5,213.8" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M257.1,301.5 L258.1,298.5 M259.1,301.5 L259.1,297.5 M261.1,301.5 L260.1,298.5" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M521.7,360.7 L522.7,357.7 M523.7,360.7 L523.7,356.7 M525.7,360.7 L524.7,357.7" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M347.0,420.0 L348.0,417.0 M349.0,420.0 L349.0,416.0 M351.0,420.0 L350.0,417.0" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M547.1,389.9 L548.1,386.9 M549.1,389.9 L549.1,385.9 M551.1,389.9 L550.1,386.9" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M420.7,230.2 L421.7,227.2 M422.7,230.2 L422.7,226.2 M424.7,230.2 L423.7,227.2" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M394.5,463.1 L395.5,460.1 M396.5,463.1 L396.5,459.1 M398.5,463.1 L397.5,460.1" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M600.4,383.4 L601.4,380.4 M602.4,383.4 L602.4,379.4 M604.4,383.4 L603.4,380.4" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M290.2,271.8 L291.2,268.8 M292.2,271.8 L292.2,267.8 M294.2,271.8 L293.2,268.8" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M532.8,381.1 L533.8,378.1 M534.8,381.1 L534.8,377.1 M536.8,381.1 L535.8,378.1" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M384.7,411.4 L385.7,408.4 M386.7,411.4 L386.7,407.4 M388.7,411.4 L387.7,408.4" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M245.1,369.9 L246.1,366.9 M247.1,369.9 L247.1,365.9 M249.1,369.9 L248.1,366.9" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M648.0,329.1 L649.0,326.1 M650.0,329.1 L650.0,325.1 M652.0,329.1 L651.0,326.1" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M630.2,311.1 L631.2,308.1 M632.2,311.1 L632.2,307.1 M634.2,311.1 L633.2,308.1" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M462.7,273.7 L463.7,270.7 M464.7,273.7 L464.7,269.7 M466.7,273.7 L465.7,270.7" stroke="#76a865" stroke-width="1" fill="none"/>
+<path d="M427.0,236.1 L428.0,233.1 M429.0,236.1 L429.0,232.1 M431.0,236.1 L430.0,233.1" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M659.2,361.2 L660.2,358.2 M661.2,361.2 L661.2,357.2 M663.2,361.2 L662.2,358.2" stroke="#4d7a47" stroke-width="1" fill="none"/>
+<path d="M390.5,393.5 L391.5,390.5 M392.5,393.5 L392.5,389.5 M394.5,393.5 L393.5,390.5" stroke="#76a865" stroke-width="1" fill="none"/>
+<ellipse cx="400.1" cy="192.1" rx="7.7" ry="3.3" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="308.4" cy="263.4" rx="7.0" ry="3.0" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="228.8" cy="285.1" rx="8.4" ry="3.6" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="179.5" cy="331.6" rx="7.0" ry="3.0" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="201.5" cy="368.8" rx="7.7" ry="3.3" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="264.9" cy="399.8" rx="6.3" ry="2.7" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="528.5" cy="272.7" rx="7.0" ry="3.0" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="588.6" cy="294.4" rx="8.4" ry="3.6" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="625.1" cy="334.7" rx="7.0" ry="3.0" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="588.1" cy="387.4" rx="7.7" ry="3.3" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="538.7" cy="427.7" rx="6.3" ry="2.7" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="383.5" cy="492.8" rx="7.0" ry="3.0" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="463.6" cy="247.9" rx="6.3" ry="2.7" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="328.8" cy="220.0" rx="5.6" ry="2.4" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="227.3" cy="334.7" rx="6.3" ry="2.7" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="314.2" cy="427.7" rx="7.7" ry="3.3" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="522.6" cy="387.4" rx="6.3" ry="2.7" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="421.1" cy="452.5" rx="7.0" ry="3.0" fill="#1d2a1c" fill-opacity="0.3"/>
+<ellipse cx="355.7" cy="452.5" rx="5.6" ry="2.4" fill="#1d2a1c" fill-opacity="0.3"/>
+<line x1="394.6" y1="192.1" x2="394.6" y2="184.4" stroke="#5b4632" stroke-width="2.0"/><circle cx="394.6" cy="180.0" r="7.2" fill="#2f5a34"/><circle cx="392.9" cy="178.3" r="4.6" fill="#45784a"/>
+<line x1="324.8" y1="220.0" x2="324.8" y2="214.4" stroke="#5b4632" stroke-width="1.4"/><circle cx="324.8" cy="211.2" r="5.2" fill="#2f5a34"/><circle cx="323.5" cy="210.0" r="3.4" fill="#45784a"/>
+<line x1="459.1" y1="247.9" x2="459.1" y2="241.6" stroke="#5b4632" stroke-width="1.6"/><circle cx="459.1" cy="238.0" r="5.9" fill="#2f5a34"/><circle cx="457.6" cy="236.7" r="3.8" fill="#45784a"/>
+<line x1="303.4" y1="263.4" x2="303.4" y2="256.4" stroke="#5b4632" stroke-width="1.8"/><circle cx="303.4" cy="252.4" r="6.5" fill="#2f5a34"/><circle cx="301.8" cy="250.9" r="4.2" fill="#45784a"/>
+<line x1="523.5" y1="272.7" x2="523.5" y2="265.7" stroke="#5b4632" stroke-width="1.8"/><circle cx="523.5" cy="261.7" r="6.5" fill="#2f5a34"/><circle cx="521.9" cy="260.2" r="4.2" fill="#45784a"/>
+<line x1="222.8" y1="285.1" x2="222.8" y2="276.7" stroke="#5b4632" stroke-width="2.2"/><circle cx="222.8" cy="271.9" r="7.8" fill="#2f5a34"/><circle cx="220.9" cy="270.1" r="5.0" fill="#45784a"/>
+<line x1="582.6" y1="294.4" x2="582.6" y2="286.0" stroke="#5b4632" stroke-width="2.2"/><circle cx="582.6" cy="281.2" r="7.8" fill="#2f5a34"/><circle cx="580.6" cy="279.4" r="5.0" fill="#45784a"/>
+<line x1="174.5" y1="331.6" x2="174.5" y2="324.6" stroke="#5b4632" stroke-width="1.8"/><circle cx="174.5" cy="320.6" r="6.5" fill="#2f5a34"/><circle cx="172.9" cy="319.1" r="4.2" fill="#45784a"/>
+<line x1="620.1" y1="334.7" x2="620.1" y2="327.7" stroke="#5b4632" stroke-width="1.8"/><circle cx="620.1" cy="323.7" r="6.5" fill="#2f5a34"/><circle cx="618.5" cy="322.2" r="4.2" fill="#45784a"/>
+<line x1="222.8" y1="334.7" x2="222.8" y2="328.4" stroke="#5b4632" stroke-width="1.6"/><circle cx="222.8" cy="324.8" r="5.9" fill="#2f5a34"/><circle cx="221.4" cy="323.5" r="3.8" fill="#45784a"/>
+<line x1="196.0" y1="368.8" x2="196.0" y2="361.1" stroke="#5b4632" stroke-width="2.0"/><circle cx="196.0" cy="356.7" r="7.2" fill="#2f5a34"/><circle cx="194.2" cy="355.1" r="4.6" fill="#45784a"/>
+<line x1="582.6" y1="387.4" x2="582.6" y2="379.7" stroke="#5b4632" stroke-width="2.0"/><circle cx="582.6" cy="375.3" r="7.2" fill="#2f5a34"/><circle cx="580.8" cy="373.6" r="4.6" fill="#45784a"/>
+<line x1="518.1" y1="387.4" x2="518.1" y2="381.1" stroke="#5b4632" stroke-width="1.6"/><circle cx="518.1" cy="377.5" r="5.9" fill="#2f5a34"/><circle cx="516.7" cy="376.1" r="3.8" fill="#45784a"/>
+<line x1="260.4" y1="399.8" x2="260.4" y2="393.5" stroke="#5b4632" stroke-width="1.6"/><circle cx="260.4" cy="389.9" r="5.9" fill="#2f5a34"/><circle cx="259.0" cy="388.6" r="3.8" fill="#45784a"/>
+<line x1="534.2" y1="427.7" x2="534.2" y2="421.4" stroke="#5b4632" stroke-width="1.6"/><circle cx="534.2" cy="417.8" r="5.9" fill="#2f5a34"/><circle cx="532.8" cy="416.4" r="3.8" fill="#45784a"/>
+<line x1="308.7" y1="427.7" x2="308.7" y2="420.0" stroke="#5b4632" stroke-width="2.0"/><circle cx="308.7" cy="415.6" r="7.2" fill="#2f5a34"/><circle cx="307.0" cy="413.9" r="4.6" fill="#45784a"/>
+<line x1="416.1" y1="452.5" x2="416.1" y2="445.5" stroke="#5b4632" stroke-width="1.8"/><circle cx="416.1" cy="441.5" r="6.5" fill="#2f5a34"/><circle cx="414.5" cy="440.0" r="4.2" fill="#45784a"/>
+<line x1="351.7" y1="452.5" x2="351.7" y2="446.9" stroke="#5b4632" stroke-width="1.4"/><circle cx="351.7" cy="443.7" r="5.2" fill="#2f5a34"/><circle cx="350.4" cy="442.5" r="3.4" fill="#45784a"/>
+<line x1="378.5" y1="492.8" x2="378.5" y2="485.8" stroke="#5b4632" stroke-width="1.8"/><circle cx="378.5" cy="481.8" r="6.5" fill="#2f5a34"/><circle cx="376.9" cy="480.3" r="4.2" fill="#45784a"/>
+<g id="scorch" opacity="0"><ellipse cx="410.7" cy="313.0" rx="64.5" ry="37.3" fill="#3b4a2e" fill-opacity="0.45"/><ellipse cx="410.7" cy="313.0" rx="45.6" ry="26.3" fill="#2e3a24" fill-opacity="0.45"/></g><g id="petal0" data-angle="100"><polygon points="379.9,329.3 362.4,339.3 348.8,328.1 371.2,322.1" fill="#1f3a66" stroke="#5b8def" stroke-width="0.8"/><line x1="376.5" y1="327.1" x2="357.2" y2="336.0" stroke="#5b8def" stroke-width="0.6"/><line x1="373.6" y1="324.7" x2="352.7" y2="332.2" stroke="#5b8def" stroke-width="0.6"/></g><g id="petal1" data-angle="145"><polygon points="367.1,311.4 342.4,311.4 346.5,298.0 369.7,302.8" fill="#1f3a66" stroke="#5b8def" stroke-width="0.8"/><line x1="367.4" y1="308.6" x2="342.9" y2="306.9" stroke="#5b8def" stroke-width="0.6"/><line x1="368.2" y1="305.7" x2="344.2" y2="302.4" stroke="#5b8def" stroke-width="0.6"/></g><g id="petal2" data-angle="190"><polygon points="379.9,293.6 362.4,283.6 381.9,275.7 392.3,288.6" fill="#1f3a66" stroke="#5b8def" stroke-width="0.8"/><line x1="383.6" y1="291.7" x2="368.3" y2="280.5" stroke="#5b8def" stroke-width="0.6"/><line x1="387.7" y1="290.0" x2="374.7" y2="277.9" stroke="#5b8def" stroke-width="0.6"/></g><g id="petal3" data-angle="235"><polygon points="410.7,286.2 410.7,272.0 434.1,274.4 425.7,287.8" fill="#1f3a66" stroke="#5b8def" stroke-width="0.8"/><line x1="415.8" y1="286.4" x2="418.6" y2="272.3" stroke="#5b8def" stroke-width="0.6"/><line x1="420.7" y1="286.9" x2="426.3" y2="273.0" stroke="#5b8def" stroke-width="0.6"/></g><g id="petal4" data-angle="280"><polygon points="441.6,293.6 459.1,283.6 472.7,294.8 450.3,300.8" fill="#1f3a66" stroke="#5b8def" stroke-width="0.8"/><line x1="445.0" y1="295.8" x2="464.3" y2="286.9" stroke="#5b8def" stroke-width="0.6"/><line x1="447.8" y1="298.2" x2="468.8" y2="290.7" stroke="#5b8def" stroke-width="0.6"/></g><g id="petal5" data-angle="325"><polygon points="454.4,311.4 479.1,311.4 475.0,324.9 451.8,320.1" fill="#1f3a66" stroke="#5b8def" stroke-width="0.8"/><line x1="454.1" y1="314.3" x2="478.6" y2="316.0" stroke="#5b8def" stroke-width="0.6"/><line x1="453.2" y1="317.2" x2="477.3" y2="320.5" stroke="#5b8def" stroke-width="0.6"/></g><g id="petal6" data-angle="10"><polygon points="441.6,329.3 459.1,339.3 439.6,347.2 429.2,334.3" fill="#1f3a66" stroke="#5b8def" stroke-width="0.8"/><line x1="437.9" y1="331.2" x2="453.2" y2="342.4" stroke="#5b8def" stroke-width="0.6"/><line x1="433.7" y1="332.9" x2="446.8" y2="345.0" stroke="#5b8def" stroke-width="0.6"/></g><g id="capscorch0" opacity="0"><ellipse cx="512.8" cy="328.5" rx="15.9" ry="9.2" fill="#3b4a2e" fill-opacity="0.55"/></g><g id="capscorch1" opacity="0"><ellipse cx="303.4" cy="306.8" rx="15.9" ry="9.2" fill="#3b4a2e" fill-opacity="0.55"/></g><g id="capscorch2" opacity="0"><ellipse cx="443.0" cy="381.2" rx="15.9" ry="9.2" fill="#3b4a2e" fill-opacity="0.55"/></g><g id="podshadow" opacity="0"><ellipse cx="423.4" cy="313.0" rx="38.0" ry="21.9" fill="#1d2a1c" fill-opacity="0.2"/></g><g id="legs"><line x1="394.6" y1="283.6" x2="382.5" y2="296.7" stroke="#8a94a6" stroke-width="2.6" stroke-linecap="round"/><line x1="394.6" y1="283.6" x2="382.5" y2="296.7" stroke="#c9d0dc" stroke-width="1" stroke-linecap="round"/><ellipse cx="382.5" cy="296.7" rx="4" ry="2" fill="#8a94a6"/><line x1="426.8" y1="283.6" x2="438.9" y2="296.7" stroke="#8a94a6" stroke-width="2.6" stroke-linecap="round"/><line x1="426.8" y1="283.6" x2="438.9" y2="296.7" stroke="#c9d0dc" stroke-width="1" stroke-linecap="round"/><ellipse cx="438.9" cy="296.7" rx="4" ry="2" fill="#8a94a6"/><line x1="426.8" y1="302.2" x2="438.9" y2="329.3" stroke="#8a94a6" stroke-width="2.6" stroke-linecap="round"/><line x1="426.8" y1="302.2" x2="438.9" y2="329.3" stroke="#c9d0dc" stroke-width="1" stroke-linecap="round"/><ellipse cx="438.9" cy="329.3" rx="4" ry="2" fill="#8a94a6"/><line x1="394.6" y1="302.2" x2="382.5" y2="329.3" stroke="#8a94a6" stroke-width="2.6" stroke-linecap="round"/><line x1="394.6" y1="302.2" x2="382.5" y2="329.3" stroke="#c9d0dc" stroke-width="1" stroke-linecap="round"/><ellipse cx="382.5" cy="329.3" rx="4" ry="2" fill="#8a94a6"/></g><g id="saucer"><path d="M381.1,292.9 A29.6,17.1 0 0 0 440.4,292.9 Z" fill="#7d889a"/><path d="M381.1,292.9 Q410.7,323.7 440.4,292.9" fill="#7d889a"/><path d="M391.8,298.5 A19.0,11.0 0 0 0 429.7,298.5" fill="none" stroke="#7fd4ff" stroke-width="2.2"/><path d="M372.8,282.9 L372.8,292.9 A38.0,21.9 0 0 0 448.7,292.9 L448.7,282.9 A38.0,21.9 0 0 1 372.8,282.9 Z" fill="url(#hg)"/><path d="M373.9,291.2 A36.8,21.9 0 0 0 447.6,291.2" fill="none" stroke="#ffd98a" stroke-width="1.7" stroke-dasharray="2.2 2.2"/><ellipse cx="410.7" cy="282.9" rx="38.0" ry="21.9" fill="url(#tg)" stroke="#ffffff" stroke-opacity="0.6" stroke-width="0.7"/><ellipse cx="410.7" cy="282.9" rx="20.9" ry="12.1" fill="none" stroke="#b7c0cd" stroke-width="0.7"/><line x1="430.9" y1="286.1" x2="445.9" y2="288.4" stroke="#b7c0cd" stroke-width="0.7"/><line x1="424.2" y1="292.2" x2="434.2" y2="299.1" stroke="#b7c0cd" stroke-width="0.7"/><line x1="410.7" y1="295.0" x2="410.7" y2="304.0" stroke="#b7c0cd" stroke-width="0.7"/><line x1="397.3" y1="292.2" x2="387.3" y2="299.1" stroke="#b7c0cd" stroke-width="0.7"/><line x1="390.6" y1="286.1" x2="375.5" y2="288.4" stroke="#b7c0cd" stroke-width="0.7"/><line x1="391.8" y1="277.8" x2="377.7" y2="274.0" stroke="#b7c0cd" stroke-width="0.7"/><line x1="401.9" y1="272.0" x2="395.3" y2="263.9" stroke="#b7c0cd" stroke-width="0.7"/><line x1="416.1" y1="271.3" x2="420.2" y2="262.6" stroke="#b7c0cd" stroke-width="0.7"/><line x1="427.8" y1="276.0" x2="440.6" y2="270.9" stroke="#b7c0cd" stroke-width="0.7"/><line x1="431.4" y1="290.2" x2="419.3" y2="297.2" stroke="#4a7fd6" stroke-width="1.4"/></g><g id="capsule"><path d="M391.8,268.7 L391.8,282.9 A19.0,11.0 0 0 0 429.7,282.9 L429.7,268.7 A19.0,11.0 0 0 1 391.8,268.7 Z" fill="url(#hg)"/><path d="M391.8,271.8 A19.0,11.0 0 0 0 429.7,271.8" fill="none" stroke="#4a7fd6" stroke-width="2.6"/><path d="M392.9,280.6 A17.8,11.0 0 0 0 428.6,280.6" fill="none" stroke="#ffd98a" stroke-width="1.9" stroke-dasharray="2.6 2.4"/><ellipse cx="410.7" cy="268.7" rx="19.0" ry="11.0" fill="url(#tg)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.6"/><path d="M394.4,268.7 A16.3,9.4 0 0 0 427.1,268.7 A16.3,12.4 0 0 0 394.4,268.7 Z" fill="url(#gg)" fill-opacity="0.9" stroke="#ffffff" stroke-opacity="0.7" stroke-width="0.8"/><path d="M402.2,261.7 Q408.8,257.8 415.5,259.1" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.4"/></g><g id="ramp"><polygon points="427.1,309.7 440.0,302.3 468.2,338.7 455.3,346.2" fill="#b8c1cf" stroke="#8a94a6" stroke-width="0.8"/><line x1="433.6" y1="306.0" x2="461.7" y2="342.5" stroke="#7fd4ff" stroke-width="1" stroke-dasharray="3 3"/></g><g id="cap0" data-angle="329.7"><polygon points="500.9,328.5 512.8,321.7 523.4,321.7 535.2,328.5 523.4,335.3 512.8,335.3" fill="#1d2a1c" fill-opacity="0.22"/><path d="M504.4,314.9 L504.4,328.5 A8.4,4.8 0 0 0 521.1,328.5 L521.1,314.9 A8.4,4.8 0 0 1 504.4,314.9 Z" fill="url(#hg)"/><path d="M504.4,324.8 A8.4,4.8 0 0 0 521.1,324.8" fill="none" stroke="#7fd4ff" stroke-width="1.8"/><ellipse cx="512.8" cy="314.9" rx="8.4" ry="4.8" fill="url(#tg)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.6"/><path d="M504.4,314.9 A8.4,4.8 0 0 0 521.1,314.9 A8.4,3.4 0 0 0 504.4,314.9 Z" fill="url(#hg)"/><ellipse cx="511.5" cy="312.7" rx="2.7" ry="1.4" fill="#ffffff" fill-opacity="0.55"/></g><g id="cap1" data-angle="140.7"><polygon points="291.5,306.8 303.4,300.0 314.0,300.0 325.8,306.8 314.0,313.6 303.4,313.6" fill="#1d2a1c" fill-opacity="0.22"/><path d="M295.0,293.2 L295.0,306.8 A8.4,4.8 0 0 0 311.7,306.8 L311.7,293.2 A8.4,4.8 0 0 1 295.0,293.2 Z" fill="url(#hg)"/><path d="M295.0,303.1 A8.4,4.8 0 0 0 311.7,303.1" fill="none" stroke="#7fd4ff" stroke-width="1.8"/><ellipse cx="303.4" cy="293.2" rx="8.4" ry="4.8" fill="url(#tg)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.6"/><path d="M295.0,293.2 A8.4,4.8 0 0 0 311.7,293.2 A8.4,3.4 0 0 0 295.0,293.2 Z" fill="url(#hg)"/><ellipse cx="302.1" cy="291.0" rx="2.7" ry="1.4" fill="#ffffff" fill-opacity="0.55"/></g><g id="cap2" data-angle="29.7"><polygon points="431.1,381.2 442.9,374.4 453.6,374.4 465.4,381.2 453.6,388.0 442.9,388.0" fill="#1d2a1c" fill-opacity="0.22"/><path d="M434.6,367.6 L434.6,381.2 A8.4,4.8 0 0 0 451.3,381.2 L451.3,367.6 A8.4,4.8 0 0 1 434.6,367.6 Z" fill="url(#hg)"/><path d="M434.6,377.5 A8.4,4.8 0 0 0 451.3,377.5" fill="none" stroke="#7fd4ff" stroke-width="1.8"/><ellipse cx="443.0" cy="367.6" rx="8.4" ry="4.8" fill="url(#tg)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.6"/><path d="M434.6,367.6 A8.4,4.8 0 0 0 451.3,367.6 A8.4,3.4 0 0 0 434.6,367.6 Z" fill="url(#hg)"/><ellipse cx="441.7" cy="365.4" rx="2.7" ry="1.4" fill="#ffffff" fill-opacity="0.55"/></g><g id="beacon0" data-angle="222.5"><line x1="405.4" y1="241.7" x2="405.4" y2="229.3" stroke="#8a94a6" stroke-width="1.4"/><circle cx="405.4" cy="229.3" r="1.8" fill="#e0574a"/></g><g id="beacon1" data-angle="325.5"><line x1="555.7" y1="328.5" x2="555.7" y2="316.1" stroke="#8a94a6" stroke-width="1.4"/><circle cx="555.7" cy="316.1" r="1.8" fill="#e0574a"/></g><g id="beacon2" data-angle="123.7"><line x1="249.7" y1="331.6" x2="249.7" y2="319.2" stroke="#8a94a6" stroke-width="1.4"/><circle cx="249.7" cy="319.2" r="1.8" fill="#e0574a"/></g><g id="beacon3" data-angle="46.6"><line x1="405.4" y1="421.5" x2="405.4" y2="409.1" stroke="#8a94a6" stroke-width="1.4"/><circle cx="405.4" cy="409.1" r="1.8" fill="#e0574a"/></g><g id="fx"></g><g id="ship"><ellipse cx="408.7" cy="141.2" rx="17.1" ry="30.4" fill="url(#glow)" fill-opacity="0.6"/><path d="M384.1,108.9 L422.1,95.6 L439.2,103.2 L437.3,112.7 L403.1,122.2 Z" fill="#c9d0dc"/><path d="M384.1,108.9 L422.1,95.6 L439.2,103.2 L399.3,112.7 Z" fill="#eef1f6"/><path d="M425.9,98.4 L437.3,103.2 L435.4,107.0 L425.9,104.1 Z" fill="#2a3a55"/><line x1="391.7" y1="113.6" x2="414.5" y2="105.1" stroke="#4a7fd6" stroke-width="3.0"/><path d="M387.9,116.5 L418.3,105.1" stroke="#7fd4ff" stroke-width="2.7" stroke-linecap="round"/><path d="M384.1,108.9 l-19.0,5.7" stroke="#7fd4ff" stroke-opacity="0.5" stroke-width="3.8" stroke-linecap="round"/><circle cx="403.1" cy="120.3" r="4.6" fill="#7fd4ff"/><circle cx="425.9" cy="110.8" r="3.8" fill="#7fd4ff"/></g><rect width="800" height="600" fill="url(#vig)"/></svg></div>
+    <div class="side">
+      <div class="controls">
+        <div class="row">
+          <button id="play" type="button">Pause</button>
+          <button id="replay" class="ghost" type="button">Replay</button>
+          <span class="time" id="clock">0.0 s</span>
+        </div>
+        <input id="scrub" type="range" min="0" max="20" step="0.01" value="0" aria-label="Timeline">
+        <div class="row">
+          <label for="speed" class="check">Speed</label>
+          <select id="speed">
+            <option value="0.25">0.25×</option>
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+          </select>
+          <label class="check"><input id="loop" type="checkbox" checked> Loop</label>
+        </div>
+      </div>
+      <ol class="beats" id="beats" aria-label="Animation beats"></ol>
+    </div>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h2>In the game engine</h2>
+      <p>Each layer here (ship, saucer, command capsule, legs, mast, petals, capsules, ramp) becomes a separate model part, scaled and extended by bones or blend shapes, driven by one timeline: Unity Timeline, Godot AnimationPlayer or Unreal Sequencer. The beats on the right are the keyframes.</p>
+    </section>
+    <section>
+      <h2>Beams and effects</h2>
+      <p>The tractor cone and construction beam are shader effects in-engine (additive glow, scrolling rings). The transporter shimmer is a dissolve shader on the model plus a rising-sparkle particle column. Here they are drawn live in SVG so the timing can be judged.</p>
+    </section>
+    <section>
+      <h2>Gameplay hooks</h2>
+      <p>The building becomes selectable at touchdown (6.0 s) and finishes at 20.0 s. Unfurling is where the hub is most vulnerable: an attack before 11 s could cancel the build. The drop can be interrupted: shooting down the ship during the tractor phase loses the pod.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  const G = {"CX": 400, "CY": 158, "S": 3.1, "hub": [52, 48], "podZ": 6.5, "shipZ": 64, "petals": [100, 145, 190, 235, 280, 325, 10], "capsules": [[76, 34, 329.7], [30, 66, 140.7], [80, 64, 29.7]], "beacons": [[28, 26, 222.5], [84, 26, 325.5], [28, 84, 123.7], [86, 84, 46.6]], "rampFoot": [71, 48], "rampTop": [60.5, 48]};
+  const END = 20.0;
+  const BEATS = [
+    [0.0, "Drop ship inbound"],
+    [2.3, "Tractor beam locks on"],
+    [2.8, "Compact pod materializes in the beam"],
+    [3.6, "Pod lowered to the surface"],
+    [6.0, "Touchdown: dust ring, scorch mark"],
+    [6.6, "Landing legs unfold and lift the pod"],
+    [7.4, "Saucer unfurls to full size"],
+    [8.6, "Command capsule extends, dome lights"],
+    [9.4, "Comm mast telescopes up"],
+    [9.8, "Solar petals unfurl"],
+    [11.0, "Construction beam, lap 1: supply capsules beam in"],
+    [13.4, "Lap 2: perimeter beacons beam in"],
+    [16.0, "Ramp lowers, pod lights come on"],
+    [16.6, "Drop ship departs, colonists beam down"],
+    [20.0, "Colony Hub online"]
+  ];
+  const T0 = 11.3, T1 = 15.5;        // construction laps
+  const TX = 0.9;                    // transporter materialization length
+  const COMPACT = 0.45;              // pod scale while folded
+  const LOW = 4.5;                   // how much lower the folded pod sits (world units)
+  const $ = (id) => document.getElementById(id);
+  const svg = $("stage");
+  const NS = "http://www.w3.org/2000/svg";
+
+  const defs = document.createElementNS(NS, "defs");
+  defs.innerHTML =
+    '<linearGradient id="cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe9ff" stop-opacity="0.75"/><stop offset="1" stop-color="#7fd4ff" stop-opacity="0.12"/></linearGradient>' +
+    '<radialGradient id="flare" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff" stop-opacity="1"/><stop offset="0.4" stop-color="#bfe9ff" stop-opacity="0.8"/><stop offset="1" stop-color="#7fd4ff" stop-opacity="0"/></radialGradient>' +
+    '<linearGradient id="txcol" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9fdcff" stop-opacity="0"/><stop offset="0.5" stop-color="#e6f7ff" stop-opacity="0.9"/><stop offset="1" stop-color="#9fdcff" stop-opacity="0"/></linearGradient>' +
+    '<filter id="txglow" x="-30%" y="-30%" width="160%" height="160%"><feColorMatrix type="matrix" values="0 0 0 0 0.78  0 0 0 0 0.93  0 0 0 0 1  0 0 0 1 0"/><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+  svg.insertBefore(defs, svg.firstChild);
+
+  const iso = (x, y, z = 0) => [G.CX + (x - y) * 0.8660254 * G.S, G.CY + (x + y) * 0.5 * G.S - z * G.S];
+  const ell = (r) => [1.2247 * r * G.S, 0.7071 * r * G.S];
+  const c01 = (v) => Math.max(0, Math.min(1, v));
+  const prog = (t, a, b) => c01((t - a) / (b - a));
+  const eOut = (p) => 1 - Math.pow(1 - p, 3);
+  const eIn = (p) => p * p * p;
+  const eIO = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+  const eBack = (p) => { const c = 1.7; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+  const lerp = (a, b, p) => a + (b - a) * p;
+  const set = (el, attr, v) => el && el.setAttribute(attr, v);
+  const around = (c, sx, sy) => `translate(${c[0]} ${c[1]}) scale(${sx} ${sy}) translate(${-c[0]} ${-c[1]})`;
+  const rnd = (k) => { const s = Math.sin(k * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+  // Transporter materialization, p = 0..1 across the effect.
+  // Returns the object's own opacity; pushes the light column, sparkles and glowing silhouette into out.
+  function transporter(out, t, p, bottom, top, halfW, cloneId, seed) {
+    if (p <= 0) return 0;
+    if (p >= 1) return 1;
+    const I = Math.sin(Math.PI * p);
+    const midY = (bottom[1] + top[1]) / 2, halfH = (bottom[1] - top[1]) / 2 + 6;
+    out.push(`<rect x="${bottom[0] - halfW * 1.3}" y="${midY - halfH}" width="${halfW * 2.6}" height="${halfH * 2}" rx="${halfW}" fill="url(#txcol)" opacity="${0.55 * I}"/>`);
+    for (let k = 0; k < 18; k++) {
+      const fx = (rnd(seed + k) * 2 - 1) * halfW;
+      const rise = ((rnd(seed + k * 3.1) + t * (0.6 + rnd(seed + k * 7.7) * 0.8)) % 1);
+      const y = midY + halfH - rise * halfH * 2;
+      const tw = Math.abs(Math.sin(t * (18 + k) + k));
+      const r = 0.6 + rnd(seed + k * 5.3) * 1.1;
+      out.push(`<circle cx="${bottom[0] + fx}" cy="${y}" r="${r}" fill="#ffffff" opacity="${I * tw}"/>`);
+      if (k % 6 === 0) {
+        const s = 2.6 * tw * I;
+        out.push(`<path d="M${bottom[0] + fx - s},${y} L${bottom[0] + fx + s},${y} M${bottom[0] + fx},${y - s} L${bottom[0] + fx},${y + s}" stroke="#ffffff" stroke-width="0.8" opacity="${I}"/>`);
+      }
+    }
+    const glow = c01(1.25 - p * 1.25) * (0.75 + 0.25 * Math.sin(t * 47 + seed));
+    if (cloneId) [].concat(cloneId).forEach((id) => out.push(`<use href="#${id}" filter="url(#txglow)" opacity="${glow}"/>`));
+    const solid = prog(p, 0.2, 0.85);
+    return solid * (solid < 1 ? 0.65 + 0.35 * Math.abs(Math.sin(t * 38 + seed)) : 1);
+  }
+
+  const hubG = iso(G.hub[0], G.hub[1], 0);
+  const fx = $("fx");
+  const L = {
+    ship: $("ship"), saucer: $("saucer"), capsule: $("capsule"), legs: $("legs"), ramp: $("ramp"),
+    podshadow: $("podshadow"), scorch: $("scorch"),
+    petals: G.petals.map((_, i) => $("petal" + i)),
+    caps: G.capsules.map((_, i) => $("cap" + i)),
+    capScorch: G.capsules.map((_, i) => $("capscorch" + i)),
+    beacons: G.beacons.map((_, i) => $("beacon" + i))
+  };
+  const lapTime = (deg, lap) => T0 + ((lap * 360 + (((deg % 360) + 360) % 360)) / 720) * (T1 - T0);
+  const capT = G.capsules.map((c) => lapTime(c[2], 0));
+  const beaconT = G.beacons.map((b) => lapTime(b[2], 1));
+  // petals unfurl one after another, going round the pod
+  const petalOrder = G.petals.map((a, i) => [((a % 360) + 360) % 360, i]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+  const petalT = []; petalOrder.forEach((i, k) => { petalT[i] = 9.8 + k * 0.16; });
+  const foot = G.rampFoot;
+  const walkers = [[66, 62], [69, 66], [73, 57], [78, 70], [62, 70]].map((p, i) => ({
+    to: p, at: [foot[0] + 3 + (i % 3) * 2.5, foot[1] - 3 + Math.floor(i / 3) * 4 + (i % 2) * 1.5],
+    t0: 16.8 + i * 0.25, col: ["#c8463c", "#d9a43a", "#4a7fd6", "#e8ecf3", "#c8463c"][i]
+  }));
+
+  function shipOffset(t) {
+    let dx = 0, dy = 0, op = 1;
+    if (t < 2.5) { const p = eOut(prog(t, 0, 2.5)); dx = 280 * (1 - p); dy = -230 * (1 - p); }
+    if (t >= 16.6) { const p = eIn(prog(t, 16.6, 18.6)); dx = -340 * p; dy = -280 * p; op = 1 - prog(t, 18.0, 18.6); }
+    dy += Math.sin(t * 2.3) * 2.2 * prog(t, 2.0, 2.7) * (1 - prog(t, 16.6, 17.0));
+    return [dx, dy, op];
+  }
+  function beamRadius(lap) { return lap < 0.5 ? 28 : 28 + 12 * eIO(c01((lap - 0.5) / 0.12)); }
+
+  function render(t) {
+    const out = [];
+    const [sdx, sdy, sop] = shipOffset(t);
+    set(L.ship, "transform", `translate(${sdx} ${sdy})`);
+    set(L.ship, "opacity", sop);
+    const shipC = iso(G.hub[0], G.hub[1], G.shipZ);
+    const E = [shipC[0] - 2 + sdx, shipC[1] + 12 + sdy];
+
+    // ---- pod position: lowered folded, then lifted on its legs ----
+    const zStart = G.shipZ - 10;
+    const dp = eIO(prog(t, 3.6, 6.0));
+    const lift = eOut(prog(t, 6.6, 7.6));
+    let podDy = -(zStart - G.podZ) * G.S * (1 - dp) + LOW * G.S * (1 - lift);
+    if (t > 6.0 && t < 6.4) { const p = prog(t, 6.0, 6.4); podDy -= Math.sin(Math.PI * p) * 2 * (1 - p); }
+    // ---- unfurl: saucer grows, capsule extends ----
+    const grow = prog(t, 7.4, 9.0);
+    const sS = lerp(COMPACT, 1, grow < 1 ? eBack(grow) : 1);
+    const cGrow = eOut(prog(t, 8.6, 9.6));
+    const cS = lerp(0.62, 1, cGrow);
+    const saucerC = iso(G.hub[0], G.hub[1], G.podZ + 1.6);
+    const capBase = iso(G.hub[0], G.hub[1], G.podZ + 3.2);
+    // the folded saucer is thinner, so the capsule sits lower on it until it extends
+    const nest = (1 - cGrow) * 2.6 * G.S + (1 - sS) * 1.6 * G.S;
+    set(L.saucer, "transform", `translate(0 ${podDy}) ${around(saucerC, sS, sS)}`);
+    set(L.capsule, "transform", `translate(0 ${podDy + nest}) ${around(capBase, cS, cS)}`);
+    const legAttach = iso(G.hub[0], G.hub[1], G.podZ);
+    const legS = lerp(0.3, 1, lift);
+    set(L.legs, "transform", `translate(0 ${podDy}) ${around(legAttach, lerp(COMPACT, 1, lift), legS)}`);
+    set(L.legs, "opacity", prog(t, 6.6, 6.8));
+
+    // ---- tractor cone and pod materialization ----
+    const cone = prog(t, 2.3, 2.8) * (1 - prog(t, 6.2, 6.7));
+    if (cone > 0) {
+      const [rx, ry] = ell(8);
+      out.push(`<polygon points="${E[0] - 7},${E[1]} ${E[0] + 7},${E[1]} ${hubG[0] + rx},${hubG[1]} ${hubG[0] - rx},${hubG[1]}" fill="url(#cone)" opacity="${0.75 * cone}"/>`);
+      out.push(`<ellipse cx="${hubG[0]}" cy="${hubG[1]}" rx="${rx}" ry="${ry}" fill="#7fd4ff" opacity="${0.22 * cone}"/>`);
+      for (let k = 0; k < 4; k++) {
+        const f = (t * 0.9 + k / 4) % 1;
+        const cx = E[0] + (hubG[0] - E[0]) * f, cy = E[1] + (hubG[1] - E[1]) * f;
+        out.push(`<ellipse cx="${cx}" cy="${cy}" rx="${7 + (rx - 7) * f}" ry="${2.5 + (ry - 2.5) * f}" fill="none" stroke="#bfe9ff" stroke-width="1.4" opacity="${cone * 0.8 * (1 - f * 0.6)}"/>`);
+      }
+    }
+    const podB = iso(G.hub[0], G.hub[1], G.podZ - 1), podT = iso(G.hub[0], G.hub[1], G.podZ + 9);
+    const podOp = transporter(out, t, prog(t, 2.8, 2.8 + TX * 1.2), [podB[0], podB[1] + podDy], [podT[0], podT[1] + podDy], 22, ["saucer", "capsule"], 3);
+    set(L.saucer, "opacity", podOp);
+    set(L.capsule, "opacity", podOp);
+
+    // dome lights up as the capsule extends; mast telescopes from the dome
+    const domeTop = iso(G.hub[0], G.hub[1], G.podZ + 3.2 + 4.6 + 3.8);
+    const domeGlow = prog(t, 8.9, 9.5);
+    if (domeGlow > 0) out.push(`<ellipse cx="${domeTop[0]}" cy="${domeTop[1] + podDy + 6}" rx="${18 * domeGlow}" ry="${11 * domeGlow}" fill="url(#flare)" opacity="${0.45 * domeGlow}"/>`);
+    const mast = eOut(prog(t, 9.4, 10.4));
+    if (mast > 0) {
+      const b = [domeTop[0], domeTop[1] + podDy], tip = [b[0], b[1] - 26 * mast];
+      out.push(`<line x1="${b[0]}" y1="${b[1]}" x2="${tip[0]}" y2="${tip[1]}" stroke="#8e99ab" stroke-width="2.6" stroke-linecap="round"/>`);
+      out.push(`<line x1="${b[0] - 0.5}" y1="${b[1]}" x2="${tip[0] - 0.5}" y2="${tip[1]}" stroke="#eef1f6" stroke-width="1" stroke-linecap="round"/>`);
+      if (mast > 0.55) {
+        const rr = (mast - 0.55) / 0.45;
+        out.push(`<ellipse cx="${b[0]}" cy="${b[1] - 17 * mast}" rx="${7 * rr}" ry="${2.6 * rr}" fill="none" stroke="#c9d0dc" stroke-width="1.6"/>`);
+      }
+      out.push(`<circle cx="${tip[0]}" cy="${tip[1] - 1.5}" r="2.2" fill="#e0574a" opacity="${0.6 + 0.4 * Math.abs(Math.sin(t * 2.5))}"/>`);
+    }
+
+    const shP = prog(t, 4.2, 6.0);
+    const shS = lerp(0.3, 1, shP) * lerp(COMPACT, 1, prog(t, 7.4, 9.0)) / 1;
+    set(L.podshadow, "opacity", shP);
+    set(L.podshadow, "transform", around(hubG, shS, shS));
+    set(L.scorch, "opacity", prog(t, 6.0, 6.6));
+    const dust = prog(t, 6.0, 6.9);
+    if (dust > 0 && dust < 1) {
+      for (const [k, w] of [[1, 3], [0.7, 2]]) {
+        const [rx, ry] = ell((6 + 18 * eOut(dust)) * k);
+        out.push(`<ellipse cx="${hubG[0]}" cy="${hubG[1]}" rx="${rx}" ry="${ry}" fill="none" stroke="#d8cfb8" stroke-width="${w}" opacity="${0.75 * (1 - dust)}"/>`);
+      }
+    }
+    // a second, softer dust ring when the saucer unfurls
+    const dust2 = prog(t, 7.6, 8.6);
+    if (dust2 > 0 && dust2 < 1) {
+      const [rx, ry] = ell(12 + 14 * eOut(dust2));
+      out.push(`<ellipse cx="${hubG[0]}" cy="${hubG[1]}" rx="${rx}" ry="${ry}" fill="none" stroke="#d8cfb8" stroke-width="2" opacity="${0.5 * (1 - dust2)}"/>`);
+    }
+
+    // petals unfurl in sequence, with a short sparkle each
+    L.petals.forEach((el, i) => {
+      const p = prog(t, petalT[i], petalT[i] + 0.45);
+      const s = p <= 0 ? 0.001 : eBack(p);
+      set(el, "transform", around(hubG, s, s));
+      set(el, "opacity", c01(p * 2.5));
+      const sp = prog(t, petalT[i], petalT[i] + 0.6);
+      if (sp > 0 && sp < 1) {
+        const a = (G.petals[i] * Math.PI) / 180;
+        const c = iso(G.hub[0] + 15 * Math.cos(a), G.hub[1] + 15 * Math.sin(a), 0.5);
+        for (let k = 0; k < 5; k++) out.push(`<circle cx="${c[0] + (rnd(i * 9 + k) - 0.5) * 22}" cy="${c[1] + (rnd(i * 5 + k) - 0.5) * 10 - sp * 8}" r="1" fill="#ffffff" opacity="${1 - sp}"/>`);
+      }
+    });
+
+    // ---- construction beam ----
+    const beam = prog(t, 11.0, 11.3) * (1 - prog(t, 15.5, 15.8));
+    const lap = prog(t, T0, T1);
+    if (beam > 0) {
+      const th = 720 * lap;
+      const R = beamRadius(lap);
+      const rad = (d) => (d * Math.PI) / 180;
+      const P = iso(G.hub[0] + R * Math.cos(rad(th)), G.hub[1] + R * Math.sin(rad(th)), 0);
+      let trail = "";
+      for (let d = Math.max(0, th - 150); d <= th; d += 6) {
+        const r = beamRadius(d / 720);
+        const q = iso(G.hub[0] + r * Math.cos(rad(d)), G.hub[1] + r * Math.sin(rad(d)), 0);
+        trail += (trail ? " L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1);
+      }
+      if (trail) out.push(`<path d="${trail}" fill="none" stroke="#7fd4ff" stroke-width="3" stroke-linecap="round" opacity="${0.55 * beam}"/>`);
+      out.push(`<line x1="${E[0]}" y1="${E[1]}" x2="${P[0]}" y2="${P[1]}" stroke="#7fd4ff" stroke-width="12" stroke-linecap="round" opacity="${0.18 * beam}"/>`);
+      out.push(`<line x1="${E[0]}" y1="${E[1]}" x2="${P[0]}" y2="${P[1]}" stroke="#e6f7ff" stroke-width="2.2" stroke-linecap="round" opacity="${beam}"/>`);
+      out.push(`<ellipse cx="${P[0]}" cy="${P[1]}" rx="16" ry="9" fill="url(#flare)" opacity="${beam}"/>`);
+    }
+    // supply capsules beam in on lap 1
+    L.caps.forEach((el, i) => {
+      const [cx, cy] = G.capsules[i];
+      const p = prog(t, capT[i] - 0.15, capT[i] - 0.15 + TX);
+      set(el, "opacity", transporter(out, t, p, iso(cx, cy, 0), iso(cx, cy, 6), 10, "cap" + i, 20 + i));
+      set(L.capScorch[i], "opacity", 0);
+    });
+    // beacons beam in on lap 2, then light
+    L.beacons.forEach((el, i) => {
+      const [bx, by] = G.beacons[i];
+      const p = prog(t, beaconT[i] - 0.1, beaconT[i] - 0.1 + TX * 0.8);
+      set(el, "opacity", transporter(out, t, p, iso(bx, by, 0), iso(bx, by, 5), 6, "beacon" + i, 40 + i));
+      const flash = prog(t, beaconT[i] + TX * 0.7, beaconT[i] + TX * 0.7 + 0.6);
+      if (flash > 0 && flash < 1) {
+        const c = iso(bx, by, 4);
+        out.push(`<circle cx="${c[0]}" cy="${c[1]}" r="${4 + 14 * flash}" fill="none" stroke="#e0574a" stroke-width="1.5" opacity="${1 - flash}"/>`);
+      }
+    });
+
+    // ---- ramp, lights ----
+    const rp = eOut(prog(t, 16.0, 16.8));
+    const rTop = iso(G.rampTop[0], G.rampTop[1], G.podZ);
+    set(L.ramp, "transform", around(rTop, Math.max(rp, 0.001), Math.max(rp, 0.001)));
+    set(L.ramp, "opacity", rp > 0 ? 1 : 0);
+    const lights = prog(t, 16.2, 16.8);
+    if (lights > 0) {
+      const d = iso(G.hub[0], G.hub[1], G.podZ + 10);
+      out.push(`<ellipse cx="${d[0]}" cy="${d[1] + podDy}" rx="34" ry="20" fill="url(#flare)" opacity="${0.35 * lights * (0.85 + 0.15 * Math.sin(t * 3))}"/>`);
+    }
+    // ---- colonists beam down beside the ramp, then walk to their posts ----
+    walkers.forEach((w, i) => {
+      if (t < w.t0) return;
+      const txp = prog(t, w.t0, w.t0 + 0.7);
+      const wp = eOut(prog(t, w.t0 + 0.7, w.t0 + 1.7));
+      const x = w.at[0] + (w.to[0] - w.at[0]) * wp, y = w.at[1] + (w.to[1] - w.at[1]) * wp;
+      const c = iso(x, y);
+      const op = transporter(out, t, txp, c, [c[0], c[1] - 8], 4, null, 60 + i);
+      const bob = wp > 0 && wp < 1 ? Math.abs(Math.sin(t * 14)) * 1.2 : 0;
+      out.push(`<g opacity="${op}"><rect x="${c[0] - 1.1}" y="${c[1] - 4.6 - bob}" width="2.2" height="4.6" fill="${w.col}"/><circle cx="${c[0]}" cy="${c[1] - 5.7 - bob}" r="1.1" fill="#f0d4b8"/></g>`);
+    });
+
+    fx.innerHTML = out.join("");
+  }
+
+  // ---- UI ----
+  const beatsEl = $("beats");
+  BEATS.forEach(([bt, label]) => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "beat";
+    b.innerHTML = `<b>${bt.toFixed(1)} s</b><span>${label}</span>`;
+    b.addEventListener("click", () => { seek(bt); });
+    li.appendChild(b); beatsEl.appendChild(li);
+  });
+  const beatBtns = [...beatsEl.querySelectorAll(".beat")];
+  const scrub = $("scrub"), clock = $("clock"), playBtn = $("play");
+  let t = END, playing = false, last = 0, hold = 0;
+
+  function paint() {
+    render(t);
+    scrub.value = t.toFixed(2);
+    clock.textContent = t.toFixed(1) + " s";
+    let idx = 0;
+    BEATS.forEach(([bt], i) => { if (t >= bt) idx = i; });
+    beatBtns.forEach((b, i) => b.classList.toggle("on", i === idx));
+  }
+  function setPlaying(v) { playing = v; playBtn.textContent = v ? "Pause" : "Play"; if (v) { last = performance.now(); requestAnimationFrame(tick); } }
+  function seek(v) { t = Math.max(0, Math.min(END, v)); hold = 0; paint(); }
+  function tick(now) {
+    if (!playing) return;
+    const dt = Math.min(0.05, (now - last) / 1000) * parseFloat($("speed").value);
+    last = now;
+    if (t >= END) {
+      hold += dt;
+      if ($("loop").checked && hold > 1.4) { t = 0; hold = 0; }
+      else if (!$("loop").checked) { setPlaying(false); paint(); return; }
+    } else {
+      t = Math.min(END, t + dt);
+    }
+    paint();
+    requestAnimationFrame(tick);
+  }
+  playBtn.addEventListener("click", () => { if (!playing && t >= END) t = 0; setPlaying(!playing); });
+  $("replay").addEventListener("click", () => { seek(0); setPlaying(true); });
+  scrub.addEventListener("input", () => { setPlaying(false); seek(parseFloat(scrub.value)); });
+
+  paint(); // complete, settled colony at rest
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { playBtn.textContent = "Play"; }
+  else { setTimeout(() => { seek(0); setPlaying(true); }, 900); }
+})();
+</script>
+
+</body>
+</html>

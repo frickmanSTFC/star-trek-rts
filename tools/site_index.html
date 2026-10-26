@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Star Trek RTS Design</title>
+<meta name="description" content="Design pages for a fan Star Trek real-time strategy game: factions, ships, research, hazards, planets, craft and resources.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: the same console frame as the design pages; page cards in a 3-column grid, then the art strip and the rendered video. Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+img, video { max-width: 100%; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1280px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--orange); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--orange); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--orange); }
+.bars .b2 { flex: 1.2; background: var(--lilac); }
+.bars .b3 { flex: 2; background: var(--periwinkle); }
+.bars .b4 { flex: .8; background: var(--peach); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 6vw, 64px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.intro { max-width: 68ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+.intro a { color: var(--peach); }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(22px, 3vw, 30px); letter-spacing: .03em; text-transform: uppercase; color: var(--sec); margin: 0 0 12px; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .cards { grid-template-columns: 1fr; } .frame { grid-template-columns: 44px 1fr; } .elbow { border-radius: 22px 0 0 22px; } }
+.card { display: grid; gap: 6px; align-content: start; background: var(--panel); border-left: 6px solid var(--cc); border-radius: 0 10px 10px 0; padding: 14px 16px 16px; text-decoration: none; color: var(--ink); transition: background .15s ease; }
+.card:hover, .card:focus-visible { background: var(--panel-2); outline: none; }
+.card:focus-visible { box-shadow: 0 0 0 2px var(--peach); }
+.card h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 22px; letter-spacing: .03em; text-transform: uppercase; color: var(--cc); }
+.card p { margin: 0; font-size: 14px; color: var(--ink-dim); }
+.card span { font-family: var(--label); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); }
+.art { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 760px) { .art { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.art figure { margin: 0; background: var(--panel); border-radius: 10px; overflow: hidden; }
+.art img { display: block; width: 100%; height: auto; aspect-ratio: 800 / 600; object-fit: cover; }
+.art figcaption { font-family: var(--label); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); padding: 6px 10px; }
+.media { max-width: 960px; }
+.media video { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; border-radius: 10px; background: var(--panel); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 8px 0 0; }
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+footer a { color: var(--ink-dim); }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock"><h1>Star Trek RTS Design</h1></div>
+    <p class="intro">Early design work for a fan-made Star Trek real-time strategy game for 1 to 4 players: colonize planets, moons, asteroids and stations across every era, as any of seven factions. These pages are built from the data files in the <a id="repo-link" href="#">GitHub repository</a>; all numbers are placeholders for balancing.</p>
+  </header>
+
+  <section style="--sec: var(--orange)">
+    <h2>Design pages</h2>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section style="--sec: var(--periwinkle)">
+    <h2>Federation Colony Hub, level 1 to 5</h2>
+    <div class="art" id="art"></div>
+  </section>
+
+  <section style="--sec: var(--lilac)">
+    <h2>Colony pod drop in 3D</h2>
+    <div class="media">
+      <video controls preload="metadata" poster="media/pod-closeup.png" src="media/colony-pod-drop.mp4" aria-label="20-second render of the colony pod drop"></video>
+    </div>
+    <p class="note">20 seconds, rendered from the Blender scene in the repository (blender/colony_pod.blend).</p>
+  </section>
+
+  <footer>
+    <p>Source: the design document (GDD.md), data files (data/*.json) and the scripts that build these pages are in the repository.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+<script>
+const D = /*DATA*/;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+document.getElementById("repo-link").href = D.repo;
+document.getElementById("cards").innerHTML = D.pages.map((p) =>
+  `<a class="card" href="${esc(p.href)}" style="--cc: ${esc(p.color)}"><h3>${esc(p.title)}</h3><p>${esc(p.desc)}</p><span>Open page &rarr;</span></a>`).join("");
+document.getElementById("art").innerHTML = D.art.map((src, i) =>
+  `<figure><img src="${esc(src)}" alt="Federation Colony Hub, level ${i + 1}" loading="lazy" width="800" height="600"><figcaption>Level ${i + 1}</figcaption></figure>`).join("");
+</script>
+</body>
+</html>

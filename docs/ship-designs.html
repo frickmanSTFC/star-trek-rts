@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font: 14px/1.5 system-ui, sans-serif; }
+img, video { max-width: 100%; }
+[hidden] { display: none !important; }
+.site-back { display: block; padding: 10px max(16px, env(safe-area-inset-left, 0px)) 0; font: 600 13px/1 "Barlow Condensed", "Arial Narrow", sans-serif;
+  letter-spacing: .1em; text-transform: uppercase; color: #a29fb6; text-decoration: none; background: #05060b; }
+.site-back:hover, .site-back:focus-visible { color: #ffc999; }
+</style>
+<title>Starship Designs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame shared with Faction Buildings; sections stack (doctrine rows, hull reference, hull x faction roster with era filter, fleet-by-era grid, specials + module catalog). Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --slot-w: #ff9c5b;
+  --slot-d: #9aa3ff;
+  --slot-e: #c99ad6;
+  --slot-u: #8fd3b0;
+  --f-federation: #7fc4e8;
+  --f-klingon: #e2787a;
+  --f-cardassian: #f3cb5b;
+  --f-romulan: #8fd3b0;
+  --f-dominion: #c99ad6;
+  --f-ferengi: #ff9c5b;
+  --f-borg: #b8c46a;
+  --f-other: #a29fb6;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--periwinkle); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--periwinkle); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--periwinkle); }
+.bars .b2 { flex: 1.2; background: var(--orange); }
+.bars .b3 { flex: 2; background: var(--lilac); }
+.bars .b4 { flex: .8; background: var(--peach); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--periwinkle); font-weight: 600; }
+.intro { max-width: 70ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--void); background: var(--periwinkle); padding: 4px 14px; border-radius: 14px; }
+nav.jump a:nth-child(2) { background: var(--orange); }
+nav.jump a:nth-child(3) { background: var(--lilac); }
+nav.jump a:nth-child(4) { background: var(--peach); }
+nav.jump a:nth-child(5) { background: var(--good); }
+nav.jump a:focus-visible, button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 72ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+h3.sub-h { margin: 8px 0 0; font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: .04em; text-transform: uppercase; color: var(--sec); }
+.fdot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: var(--fc); flex: none; }
+.fname { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+
+/* ---------- doctrine rows ---------- */
+.ov { display: grid; gap: 6px; }
+.ov-head { display: grid; grid-template-columns: 190px 1.3fr 1fr 1fr; gap: 18px; padding: 0 16px 0 22px; }
+.ov-head span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row { display: grid; grid-template-columns: 190px minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 18px; background: var(--panel); border-left: 6px solid var(--fc); border-radius: 0 10px 10px 0; padding: 12px 16px; }
+.ov-row > * { min-width: 0; }
+.who { display: grid; gap: 4px; align-content: start; }
+.who .fname { font-size: 20px; }
+.hook { font-family: var(--label); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.ov-row h4 { margin: 0 0 2px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row p { margin: 0; font-size: 14px; }
+.facts { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--label); font-size: 13px; letter-spacing: .06em; color: var(--ink-dim); border-top: 1px solid var(--rule); padding-top: 8px; margin-top: 4px; }
+.facts b { color: var(--fc); font-weight: 600; font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.wchip { font-family: var(--label); font-size: 13px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; background: var(--panel-2); color: var(--ink); }
+.wchip.missing { background: transparent; border: 1px dashed var(--ink-faint); color: var(--ink-dim); }
+@media (max-width: 900px) {
+  .ov-head { display: none; }
+  .ov-row { grid-template-columns: 1fr; }
+  .facts { grid-column: auto; }
+}
+@media (min-width: 901px) { .ov-row h4 { display: none; } }
+
+/* ---------- controls ---------- */
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--panel); padding: 4px; border-radius: 18px; }
+.seg button { font: 600 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 0; cursor: pointer; background: transparent; color: var(--ink-dim); padding: 8px 14px; border-radius: 14px; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--sec, var(--orange)); color: var(--void); }
+
+/* ---------- tables ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); white-space: nowrap; }
+thead th .fname { font-size: 15px; }
+tbody th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--peach); white-space: nowrap; background: var(--panel-2); }
+tbody th small { display: block; font-size: 11px; color: var(--ink-faint); letter-spacing: .08em; }
+tr:last-child > * { border-bottom: 0; }
+tfoot td, tfoot th { border-top: 1px solid var(--rule); border-bottom: 0; font-family: var(--label); font-size: 13px; color: var(--ink-dim); font-variant-numeric: tabular-nums; background: var(--panel-2); }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bname { font-weight: 600; color: var(--ink); display: block; }
+.sub { display: block; color: var(--ink-dim); font-size: 13px; margin-top: 3px; }
+.none { color: var(--ink-faint); }
+
+/* hull reference */
+.pips { display: inline-flex; gap: 3px; vertical-align: middle; }
+.pips i { width: 9px; height: 9px; border-radius: 2px; background: var(--rule); }
+.pips i.on { background: var(--pc); }
+.slots { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-family: var(--label); font-size: 12px; letter-spacing: .06em; color: var(--ink-dim); min-width: 200px; }
+.slot { display: inline-flex; align-items: center; gap: 5px; }
+.slot b { font-weight: 600; color: var(--pc); font-variant-numeric: tabular-nums; }
+.hp { display: grid; grid-template-columns: minmax(80px, 1fr) 44px; gap: 8px; align-items: center; min-width: 150px; }
+.hp .track { position: relative; height: 10px; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 20%); }
+.hp .fill { position: absolute; inset: 1px auto 1px 0; background: var(--periwinkle); border-radius: 0 5px 5px 0; }
+.hp span { text-align: right; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--label); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--pc); }
+.yard { font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); border: 1px solid var(--rule); border-radius: 9px; padding: 0 8px; white-space: nowrap; }
+
+/* roster + eras */
+.roster td { min-width: 130px; border-left: 1px solid var(--rule); }
+.ship { display: block; padding: 4px 8px; margin: 0 0 4px; border-radius: 6px; background: var(--panel-2); border-left: 3px solid var(--fc); }
+.ship:last-child { margin-bottom: 0; }
+.ship .sn { font-weight: 600; font-size: 13px; }
+.ship .se { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.ship.dim { opacity: .28; }
+.eras td { min-width: 130px; border-left: 1px solid var(--rule); }
+.eras td.closed { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--rule) 55%, transparent) 6px 7px); }
+.flag { display: inline-block; margin-top: 4px; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--peach); border: 1px solid var(--peach); border-radius: 9px; padding: 0 7px; }
+.closed-note { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; max-width: 90ch; }
+
+/* modules */
+.modgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1000px) { .modgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .modgrid { grid-template-columns: 1fr; } }
+.modcol { background: var(--panel); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; border-top: 4px solid var(--pc); }
+.modcol h4 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; color: var(--pc); display: flex; justify-content: space-between; align-items: baseline; }
+.modcol h4 small { font-family: var(--label); font-size: 12px; color: var(--ink-faint); letter-spacing: .1em; }
+.mod { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.mod:last-child { border-bottom: 0; }
+.mod .u { display: inline-flex; gap: 3px; align-items: center; flex: none; }
+.spec { display: flex; flex-wrap: wrap; gap: 4px; }
+.spec span { font-family: var(--label); font-size: 13px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; background: var(--panel-2); }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+}
+@media (prefers-reduced-motion: no-preference) { .ship { transition: opacity .2s ease; } }
+</style>
+</head>
+<body>
+<a class="site-back" href="./">&larr; All design pages</a>
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Starship Designs</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">How the seven playable factions of the Star Trek RTS differ in the ships they fly. Every ship is a hull plus modules: the hull sets size, hull points, speed, crew and slot counts, and each faction's classes are templates on those hulls. All stats are placeholders for balancing.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#doctrine">Fleet doctrine</a><a href="#hulls">Hulls</a><a href="#roster">Class roster</a><a href="#eras">By era</a><a href="#modules">Specials &amp; modules</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="doctrine" style="--sec: var(--periwinkle)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>Fleet doctrine</h2><p>How each faction fights, the weapons it fields and where its fleet is weak.</p></div></div>
+    <div class="ov">
+      <div class="ov-head"><span>Faction</span><span>Doctrine</span><span>Signature weapons</span><span>Weakness</span></div>
+      <div class="ov" id="ov"></div>
+    </div>
+    <p class="note">A dashed weapon is listed for the faction in <code>factions.json</code> but has no matching module in <code>ships.json</code> yet.</p>
+  </section>
+
+  <section id="hulls" style="--sec: var(--orange)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Hull reference</h2><p>Shared by every faction. Hull points are drawn to one scale; slot pips show how many modules of each kind fit (W weapon, D defense, E engine, U utility).</p></div></div>
+    <div class="legend" aria-hidden="true"><span style="--pc: var(--slot-w)"><i></i>Weapon</span><span style="--pc: var(--slot-d)"><i></i>Defense</span><span style="--pc: var(--slot-e)"><i></i>Engine</span><span style="--pc: var(--slot-u)"><i></i>Utility</span></div>
+    <div class="scroll"><table id="hulltable"></table></div>
+  </section>
+
+  <section id="roster" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Class roster</h2><p>Every class on its hull, faction by faction. Pick a starting era to highlight what each faction can field in it: classes stay in service after the era they arrive in, and the Kelvin timeline only has its own ships.</p></div></div>
+    <div class="seg" id="erafilter" role="group" aria-label="Era"></div>
+    <div class="scroll"><table class="roster" id="rostertable"></table></div>
+    <h3 class="sub-h">Other powers</h3>
+    <div class="scroll"><table id="otherstable"></table></div>
+  </section>
+
+  <section id="eras" style="--sec: var(--peach)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Fleets by era</h2><p>The era each class enters service. Hatched cells are eras the faction isn't in; AI-only means it appears as a computer-run power, not a player choice.</p></div></div>
+    <div class="scroll"><table class="eras" id="eratable"></table></div>
+    <p class="note" id="eranote"></p>
+  </section>
+
+  <section id="modules" style="--sec: var(--good)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Specials and modules</h2><p>Classes with a special ability, and the full module catalog. Coloured dots mark the factions whose signature weapon is that module.</p></div></div>
+    <div class="scroll"><table id="spectable"></table></div>
+    <h3 class="sub-h">Module catalog</h3>
+    <div class="modgrid" id="modgrid"></div>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/ships.json</code>, <code>factions.json</code>, <code>eras.json</code> and <code>buildings.json</code> in the star-trek-rts design repo (<code>tools/gen_ship_designs_page.py</code>). Companion page: Faction Buildings.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = {"factions": [{"id": "federation", "name": "Federation", "playstyle": "Explorer / generalist / diplomacy", "doctrine": "Generalists with the widest roster. Saucer separation, multi-vector assault mode and the Intrepid's planetary landing give tactical options; a cloak only by treaty (Defiant).", "weakness": "Ships expensive; slow to declare war (council vote).", "weapons": [{"label": "phaser", "modules": ["phaser_array"]}, {"label": "photon torpedo", "modules": ["photon_torpedo"]}, {"label": "quantum torpedo", "modules": ["quantum_torpedo"]}], "status": {"ent": "absent", "tos": "playable", "tng": "playable", "dominion_war": "playable", "voy": "absent", "picard": "playable", "far_future": "absent", "kelvin": "playable"}, "count": 21, "flagship": "Odyssey", "flagship_hull": "Titan", "yard": "8 (titan)", "hulls_used": 9}, {"id": "klingon", "name": "Klingon", "playstyle": "Aggressive raider / boarding", "doctrine": "Raiders and boarders. Cloaked Birds-of-Prey and K'Vorts strike first, backed by disruptor cruisers; a titan is available as early as the TOS era.", "weakness": "Weak economy and research; dishonorable acts (fleeing, sneak attacks on allies) cost Honor.", "weapons": [{"label": "disruptor", "modules": ["disruptor"]}, {"label": "photon torpedo", "modules": ["photon_torpedo"]}], "status": {"ent": "playable", "tos": "playable", "tng": "playable", "dominion_war": "playable", "voy": "absent", "picard": "playable", "far_future": "playable", "kelvin": "playable"}, "count": 11, "flagship": "Negh'Var", "flagship_hull": "Titan", "yard": "8 (titan)", "hulls_used": 7}, {"id": "cardassian", "name": "Cardassian", "playstyle": "Industrial / occupation / defensive", "doctrine": "Mid-weight industrial navy: Galor cruisers backed by Hideki fighters and Groumall freighters. No titan berth, so the Keldon heavy cruiser is the largest hull.", "weakness": "Resistance cells; ships individually weaker than Federation equivalents.", "weapons": [{"label": "spiral wave disruptor", "modules": ["spiral_wave_disruptor"]}, {"label": "photon torpedo", "modules": ["photon_torpedo"]}], "status": {"ent": "absent", "tos": "absent", "tng": "playable", "dominion_war": "playable", "voy": "absent", "picard": "ai", "far_future": "absent", "kelvin": "absent"}, "count": 4, "flagship": "Keldon", "flagship_hull": "Heavy cruiser", "yard": "5", "hulls_used": 4}, {"id": "romulan", "name": "Romulan", "playstyle": "Stealth / espionage / ambush", "doctrine": "Ambush fleet: cloaks on almost every hull, plasma torpedoes and singularity cores. The Scimitar adds a thalaron weapon and a perfect cloak.", "weakness": "Singularity-core ships leave gravity wells when destroyed; paranoid internal politics.", "weapons": [{"label": "disruptor", "modules": ["disruptor"]}, {"label": "plasma torpedo", "modules": ["plasma_torpedo"]}, {"label": "thalaron", "modules": ["thalaron_generator"]}], "status": {"ent": "playable", "tos": "playable", "tng": "playable", "dominion_war": "playable", "voy": "absent", "picard": "absent", "far_future": "absent", "kelvin": "playable"}, "count": 6, "flagship": "Scimitar", "flagship_hull": "Titan", "yard": "8 (titan)", "hulls_used": 5}, {"id": "dominion", "name": "Dominion", "playstyle": "Clone army / infiltration", "doctrine": "Few classes, built in numbers: attack ships in pairs with kamikaze rams, then a battle cruiser and a battleship. Skips the cruiser tier entirely.", "weakness": "Dependent on White and on a wormhole/supply link to the Gamma Quadrant.", "weapons": [{"label": "phased polaron", "modules": ["phased_polaron"]}, {"label": "polaron torpedo", "modules": ["polaron_torpedo"]}], "status": {"ent": "absent", "tos": "absent", "tng": "absent", "dominion_war": "playable", "voy": "absent", "picard": "absent", "far_future": "absent", "kelvin": "absent"}, "count": 6, "flagship": "Jem'Hadar Battleship", "flagship_hull": "Titan", "yard": "8 (titan)", "hulls_used": 6}, {"id": "ferengi", "name": "Ferengi", "playstyle": "Economy / mercenary / trade", "doctrine": "One native warship, the D'Kora Marauder with its energy whip and cargo bay. The rest of the fleet is bought, or refitted from acquired foreign hulls.", "weakness": "Weak native military; Latinum loss cripples them.", "weapons": [{"label": "plasma energy burst", "modules": ["plasma_energy_burst"]}, {"label": "photon torpedo", "modules": ["photon_torpedo"]}], "status": {"ent": "absent", "tos": "absent", "tng": "playable", "dominion_war": "playable", "voy": "absent", "picard": "ai", "far_future": "absent", "kelvin": "absent"}, "count": 5, "flagship": "D'Kora Marauder", "flagship_hull": "Cruiser", "yard": "any acquired hull", "hulls_used": 5}, {"id": "borg", "name": "Borg", "playstyle": "Assimilation / adaptation", "doctrine": "Geometric hulls from probe to cube that can mount any assimilated module. Cubes adapt and regenerate; the Queen's Diamond gives a command aura.", "weakness": "Can't trade or ally; frequency-rotation and multi-weapon strategies counter adaptation.", "weapons": [{"label": "cutting beam", "modules": ["cutting_beam"]}, {"label": "tractor beam", "modules": ["tractor_beam"]}, {"label": "borg torpedo", "modules": ["borg_torpedo"]}], "status": {"ent": "absent", "tos": "absent", "tng": "ai", "dominion_war": "ai", "voy": "playable", "picard": "absent", "far_future": "absent", "kelvin": "absent"}, "count": 5, "flagship": "Tactical Cube", "flagship_hull": "Titan", "yard": "8 (titan)", "hulls_used": 3}], "hulls": [{"id": "shuttle", "label": "Shuttle", "size": 1, "hp": 50, "speed": 6, "crew": 2, "slots": [0, 1, 1, 1], "notes": [], "yard": "Drydock"}, {"id": "fighter", "label": "Fighter", "size": 1, "hp": 80, "speed": 7, "crew": 3, "slots": [1, 1, 1, 0], "notes": [], "yard": "Drydock"}, {"id": "scout", "label": "Scout", "size": 2, "hp": 150, "speed": 7, "crew": 20, "slots": [1, 1, 1, 2], "notes": [], "yard": "Drydock"}, {"id": "civilian", "label": "Civilian", "size": 2, "hp": 200, "speed": 4, "crew": 30, "slots": [0, 1, 1, 3], "notes": ["roles: construction, mining, freighter, colony"], "yard": "Drydock"}, {"id": "escort", "label": "Escort", "size": 3, "hp": 400, "speed": 6, "crew": 50, "slots": [3, 2, 1, 1], "notes": [], "yard": "Drydock"}, {"id": "frigate", "label": "Frigate", "size": 3, "hp": 500, "speed": 5, "crew": 200, "slots": [2, 2, 1, 2], "notes": [], "yard": "Drydock"}, {"id": "cruiser", "label": "Cruiser", "size": 4, "hp": 900, "speed": 5, "crew": 400, "slots": [3, 3, 2, 2], "notes": [], "yard": "Shipyard"}, {"id": "carrier", "label": "Carrier", "size": 5, "hp": 1200, "speed": 4, "crew": 500, "slots": [2, 3, 2, 4], "notes": ["hangar 6"], "yard": "Shipyard"}, {"id": "heavy_cruiser", "label": "Heavy cruiser", "size": 5, "hp": 1300, "speed": 4, "crew": 600, "slots": [4, 3, 2, 3], "notes": [], "yard": "Shipyard"}, {"id": "explorer", "label": "Explorer", "size": 6, "hp": 1600, "speed": 4, "crew": 1000, "slots": [4, 4, 2, 5], "notes": [], "yard": "Spacedock"}, {"id": "battleship", "label": "Battleship", "size": 6, "hp": 2200, "speed": 3, "crew": 1200, "slots": [6, 5, 2, 2], "notes": [], "yard": "Spacedock"}, {"id": "titan", "label": "Titan", "size": 8, "hp": 5000, "speed": 2, "crew": 3000, "slots": [8, 6, 3, 4], "notes": ["1 per player"], "yard": "Fleet yards"}], "classes": [{"name": "Crossfield", "faction": "federation", "hull": "explorer", "era": "tos", "source": "canon", "special": ["spore drive prototype"], "role": ""}, {"name": "Constitution", "faction": "federation", "hull": "heavy_cruiser", "era": "tos", "source": "canon", "special": [], "role": ""}, {"name": "Miranda", "faction": "federation", "hull": "frigate", "era": "tos", "source": "canon", "special": [], "role": ""}, {"name": "Oberth", "faction": "federation", "hull": "scout", "era": "tos", "source": "canon", "special": [], "role": "science"}, {"name": "Excelsior", "faction": "federation", "hull": "explorer", "era": "tos", "source": "canon", "special": [], "role": ""}, {"name": "Ambassador", "faction": "federation", "hull": "heavy_cruiser", "era": "tng", "source": "canon", "special": [], "role": ""}, {"name": "Galaxy", "faction": "federation", "hull": "explorer", "era": "tng", "source": "canon", "special": ["saucer separation"], "role": ""}, {"name": "Nebula", "faction": "federation", "hull": "cruiser", "era": "tng", "source": "canon", "special": [], "role": ""}, {"name": "New Orleans", "faction": "federation", "hull": "frigate", "era": "tng", "source": "canon", "special": [], "role": ""}, {"name": "Sovereign", "faction": "federation", "hull": "battleship", "era": "dominion_war", "source": "canon", "special": [], "role": ""}, {"name": "Defiant", "faction": "federation", "hull": "escort", "era": "dominion_war", "source": "canon", "special": ["cloak by treaty"], "role": ""}, {"name": "Akira", "faction": "federation", "hull": "carrier", "era": "dominion_war", "source": "canon", "special": [], "role": ""}, {"name": "Steamrunner", "faction": "federation", "hull": "frigate", "era": "dominion_war", "source": "canon", "special": [], "role": ""}, {"name": "Saber", "faction": "federation", "hull": "escort", "era": "dominion_war", "source": "canon", "special": [], "role": ""}, {"name": "Intrepid", "faction": "federation", "hull": "cruiser", "era": "tng", "source": "canon", "special": ["bioneural landing capable"], "role": ""}, {"name": "Prometheus", "faction": "federation", "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon", "special": ["mvam"], "role": ""}, {"name": "Odyssey", "faction": "federation", "hull": "titan", "era": "picard", "source": "canon", "special": [], "role": ""}, {"name": "Constitution III", "faction": "federation", "hull": "battleship", "era": "picard", "source": "canon", "special": [], "role": ""}, {"name": "D5", "faction": "klingon", "hull": "cruiser", "era": "ent", "source": "canon", "special": [], "role": ""}, {"name": "Raptor", "faction": "klingon", "hull": "scout", "era": "ent", "source": "canon", "special": [], "role": ""}, {"name": "Sarcophagus", "faction": "klingon", "hull": "titan", "era": "tos", "source": "canon", "special": [], "role": ""}, {"name": "D7", "faction": "klingon", "hull": "heavy_cruiser", "era": "tos", "source": "canon", "special": [], "role": ""}, {"name": "B'rel Bird-of-Prey", "faction": "klingon", "hull": "escort", "era": "tos", "source": "canon", "special": ["cloak"], "role": ""}, {"name": "K't'inga", "faction": "klingon", "hull": "heavy_cruiser", "era": "tos", "source": "canon", "special": [], "role": ""}, {"name": "K'Vort", "faction": "klingon", "hull": "frigate", "era": "tng", "source": "canon", "special": ["cloak"], "role": ""}, {"name": "Vor'cha", "faction": "klingon", "hull": "battleship", "era": "tng", "source": "canon", "special": [], "role": ""}, {"name": "Negh'Var", "faction": "klingon", "hull": "titan", "era": "dominion_war", "source": "canon", "special": [], "role": ""}, {"name": "Bird-of-Prey (22nd c.)", "faction": "romulan", "hull": "frigate", "era": "ent", "source": "canon", "special": ["telecapture"], "role": ""}, {"name": "Bird-of-Prey (23rd c.)", "faction": "romulan", "hull": "cruiser", "era": "tos", "source": "canon", "special": ["cloak", "plasma torpedo"], "role": ""}, {"name": "D'deridex Warbird", "faction": "romulan", "hull": "battleship", "era": "tng", "source": "canon", "special": ["cloak", "singularity core"], "role": ""}, {"name": "Valdore", "faction": "romulan", "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon", "special": [], "role": ""}, {"name": "Scimitar", "faction": "romulan", "hull": "titan", "era": "dominion_war", "source": "canon", "special": ["thalaron", "perfect cloak"], "role": ""}, {"name": "Hideki", "faction": "cardassian", "hull": "fighter", "era": "tng", "source": "canon", "special": [], "role": ""}, {"name": "Groumall", "faction": "cardassian", "hull": "civilian", "era": "tng", "source": "canon", "special": [], "role": "freighter"}, {"name": "Galor", "faction": "cardassian", "hull": "cruiser", "era": "tng", "source": "canon", "special": [], "role": ""}, {"name": "Keldon", "faction": "cardassian", "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon", "special": [], "role": ""}, {"name": "Jem'Hadar Attack Ship", "faction": "dominion", "hull": "escort", "era": "dominion_war", "source": "canon", "special": ["kamikaze ram"], "role": ""}, {"name": "Jem'Hadar Battle Cruiser", "faction": "dominion", "hull": "battleship", "era": "dominion_war", "source": "canon", "special": [], "role": ""}, {"name": "Jem'Hadar Battleship", "faction": "dominion", "hull": "titan", "era": "dominion_war", "source": "canon", "special": [], "role": ""}, {"name": "Dominion Scout", "faction": "dominion", "hull": "scout", "era": "dominion_war", "source": "original", "special": ["wormhole survey"], "role": ""}, {"name": "Ketracel-white Courier", "faction": "dominion", "hull": "civilian", "era": "dominion_war", "source": "original", "special": ["white resupply"], "role": "freighter"}, {"name": "Vorta Command Ship", "faction": "dominion", "hull": "explorer", "era": "dominion_war", "source": "original", "special": ["command aura", "vorta diplomacy"], "role": ""}, {"name": "Ferengi Shuttle", "faction": "ferengi", "hull": "shuttle", "era": "tng", "source": "canon", "special": [], "role": ""}, {"name": "Latinum Hauler", "faction": "ferengi", "hull": "civilian", "era": "tng", "source": "original", "special": ["cargo bay", "trade route bonus"], "role": "freighter"}, {"name": "Acquired Bird-of-Prey", "faction": "ferengi", "hull": "escort", "era": "tng", "source": "canon", "special": ["bought hull", "cloak"], "role": ""}, {"name": "Mercenary Frigate", "faction": "ferengi", "hull": "frigate", "era": "dominion_war", "source": "original", "special": ["hired crew"], "role": ""}, {"name": "D'Kora Marauder", "faction": "ferengi", "hull": "cruiser", "era": "tng", "source": "canon", "special": ["energy whip", "cargo bay"], "role": ""}, {"name": "Probe", "faction": "borg", "hull": "scout", "era": "tng", "source": "canon", "special": [], "role": ""}, {"name": "Sphere", "faction": "borg", "hull": "heavy_cruiser", "era": "tng", "source": "canon", "special": [], "role": ""}, {"name": "Cube", "faction": "borg", "hull": "titan", "era": "tng", "source": "canon", "special": ["adaptation", "regeneration"], "role": ""}, {"name": "Tactical Cube", "faction": "borg", "hull": "titan", "era": "voy", "source": "canon", "special": [], "role": ""}, {"name": "Queen's Diamond", "faction": "borg", "hull": "titan", "era": "voy", "source": "canon", "special": ["command aura"], "role": ""}, {"name": "Kelvin", "faction": "federation", "hull": "cruiser", "era": "kelvin", "source": "canon", "special": [], "role": ""}, {"name": "Constitution (Kelvin)", "faction": "federation", "hull": "heavy_cruiser", "era": "kelvin", "source": "canon", "special": ["saucer separation"], "role": ""}, {"name": "Dreadnought (Vengeance)", "faction": "federation", "hull": "battleship", "era": "kelvin", "source": "canon", "special": ["heavy armament"], "role": ""}, {"name": "D4 Bird-of-Prey", "faction": "klingon", "hull": "escort", "era": "kelvin", "source": "canon", "special": ["cloak"], "role": ""}, {"name": "Narada", "faction": "romulan", "hull": "battleship", "era": "kelvin", "source": "canon", "special": ["red matter", "mining drill"], "role": ""}, {"name": "Bird-of-Prey (32nd c.)", "faction": "klingon", "hull": "escort", "era": "far_future", "source": "original", "special": ["cloak", "programmable matter"], "role": ""}], "others": [{"name": "NX", "faction": "earth_uec", "hull": "explorer", "era": "ent", "source": "canon", "special": [], "role": "", "faction_name": "United Earth (pre-Federation)"}, {"name": "Breen Warship", "faction": "breen", "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon", "special": ["energy dampener"], "role": "", "faction_name": "Breen Confederacy"}, {"name": "Kazon Raider", "faction": "kazon", "hull": "escort", "era": "voy", "source": "canon", "special": [], "role": "", "faction_name": "Kazon Sects"}, {"name": "Kazon Carrier", "faction": "kazon", "hull": "carrier", "era": "voy", "source": "canon", "special": [], "role": "", "faction_name": "Kazon Sects"}, {"name": "Hirogen Hunter", "faction": "hirogen", "hull": "cruiser", "era": "voy", "source": "canon", "special": ["tetryon", "hunt tracking"], "role": "", "faction_name": "Hirogen Hunters"}, {"name": "Bioship", "faction": "species_8472", "hull": "heavy_cruiser", "era": "voy", "source": "canon", "special": ["planet killer formation", "immune non nanoprobe"], "role": "", "faction_name": "Species 8472"}, {"name": "Orion Interceptor", "faction": "orion", "hull": "escort", "era": "tos", "source": "beta", "special": [], "role": "", "faction_name": "Orion Syndicate"}, {"name": "Nausicaan Raider", "faction": "nausicaan", "hull": "escort", "era": "tng", "source": "original", "special": [], "role": "", "faction_name": "Nausicaan Raiders"}, {"name": "Crossfield refit (Discovery-A)", "faction": "federation_remnant", "hull": "explorer", "era": "far_future", "source": "canon", "special": ["spore drive", "detached nacelles", "programmable matter"], "role": "", "faction_name": "Federation (Post-Burn)"}, {"name": "Voyager-J", "faction": "federation_remnant", "hull": "explorer", "era": "far_future", "source": "canon", "special": ["programmable matter"], "role": "", "faction_name": "Federation (Post-Burn)"}, {"name": "Viridian", "faction": "emerald_chain", "hull": "battleship", "era": "far_future", "source": "canon", "special": [], "role": "", "faction_name": "Emerald Chain"}], "eras": [{"id": "ent", "short": "Enterprise", "name": "Enterprise Era", "years": [2151, 2161], "timeline": "prime", "order": 0}, {"id": "tos", "short": "TOS", "name": "Discovery / TOS Era", "years": [2256, 2293], "timeline": "prime", "order": 1}, {"id": "tng", "short": "TNG", "name": "Next Generation Era", "years": [2364, 2373], "timeline": "prime", "order": 2}, {"id": "dominion_war", "short": "Dominion War", "name": "Dominion War", "years": [2373, 2379], "timeline": "prime", "order": 3}, {"id": "voy", "short": "Voyager", "name": "Delta Quadrant", "years": [2371, 2378], "timeline": "prime", "order": 4}, {"id": "picard", "short": "Picard", "name": "Picard Era", "years": [2380, 2402], "timeline": "prime", "order": 5}, {"id": "far_future", "short": "32nd century", "name": "32nd Century", "years": [3189, 3191], "timeline": "prime", "order": 6}, {"id": "kelvin", "short": "Kelvin", "name": "Kelvin Timeline (optional)", "years": [2233, 2263], "timeline": "kelvin", "order": 7}], "modules": [{"slot": "Weapon", "items": [{"id": "phase_cannon", "label": "phase cannon", "users": []}, {"id": "phaser_array", "label": "phaser array", "users": ["federation"]}, {"id": "pulse_phaser", "label": "pulse phaser", "users": []}, {"id": "disruptor", "label": "disruptor", "users": ["klingon", "romulan"]}, {"id": "spiral_wave_disruptor", "label": "spiral wave disruptor", "users": ["cardassian"]}, {"id": "phased_polaron", "label": "phased polaron", "users": ["dominion"]}, {"id": "tetryon_cannon", "label": "tetryon cannon", "users": []}, {"id": "cutting_beam", "label": "cutting beam", "users": ["borg"]}, {"id": "spatial_torpedo", "label": "spatial torpedo", "users": []}, {"id": "photon_torpedo", "label": "photon torpedo", "users": ["federation", "klingon", "cardassian", "ferengi"]}, {"id": "quantum_torpedo", "label": "quantum torpedo", "users": ["federation"]}, {"id": "plasma_torpedo", "label": "plasma torpedo", "users": ["romulan"]}, {"id": "transphasic_torpedo", "label": "transphasic torpedo", "users": []}, {"id": "energy_dampener", "label": "energy dampener", "users": []}, {"id": "polaron_torpedo", "label": "polaron torpedo", "users": ["dominion"]}, {"id": "plasma_energy_burst", "label": "plasma energy burst", "users": ["ferengi"]}, {"id": "borg_torpedo", "label": "borg torpedo", "users": ["borg"]}, {"id": "thalaron_generator", "label": "thalaron generator", "users": ["romulan"]}, {"id": "nanoprobe_warhead", "label": "nanoprobe warhead", "users": []}]}, {"slot": "Defense", "items": [{"id": "polarized_hull", "label": "polarized hull", "users": []}, {"id": "shield_generator", "label": "shield generator", "users": []}, {"id": "regenerative_shield", "label": "regenerative shield", "users": []}, {"id": "ablative_armor", "label": "ablative armor", "users": []}, {"id": "rodinium_plating", "label": "rodinium plating", "users": []}, {"id": "neutronium_plating", "label": "neutronium plating", "users": []}, {"id": "trellium_lining", "label": "trellium lining", "users": []}]}, {"slot": "Engine", "items": [{"id": "impulse", "label": "impulse", "users": []}, {"id": "warp_core", "label": "warp core", "users": []}, {"id": "singularity_core", "label": "singularity core", "users": []}, {"id": "slipstream_drive", "label": "slipstream drive", "users": []}, {"id": "transwarp_coil", "label": "transwarp coil", "users": []}]}, {"slot": "Utility", "items": [{"id": "sensor_suite", "label": "sensor suite", "users": []}, {"id": "cloak", "label": "cloak", "users": []}, {"id": "tractor_beam", "label": "tractor beam", "users": ["borg"]}, {"id": "transporter", "label": "transporter", "users": []}, {"id": "cargo_bay", "label": "cargo bay", "users": []}, {"id": "troop_bay", "label": "troop bay", "users": []}, {"id": "science_lab", "label": "science lab", "users": []}, {"id": "mining_laser", "label": "mining laser", "users": []}, {"id": "construction_rig", "label": "construction rig", "users": []}, {"id": "medical_bay", "label": "medical bay", "users": []}, {"id": "deflector_dish_tricks", "label": "deflector dish tricks", "users": []}, {"id": "saucer_separation", "label": "saucer separation", "users": []}, {"id": "mvam", "label": "mvam", "users": []}]}], "counts": {"classes": 69, "playable_classes": 58, "hulls": 12, "modules": 44}, "hullLabels": {"shuttle": "Shuttle", "fighter": "Fighter", "scout": "Scout", "civilian": "Civilian", "escort": "Escort", "frigate": "Frigate", "cruiser": "Cruiser", "carrier": "Carrier", "heavy_cruiser": "Heavy cruiser", "explorer": "Explorer", "battleship": "Battleship", "titan": "Titan"}, "unusedEras": []};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fc = (id) => `--fc: var(--f-${id})`;
+const fname = (f) => `<span class="fname" style="${fc(f.id)}"><span class="fdot"></span>${esc(f.name)}</span>`;
+const eraShort = Object.fromEntries(D.eras.map((e) => [e.id, e.short]));
+const pips = (n, max, color) => `<span class="pips" style="--pc: var(${color})" aria-label="${n}">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</span>`;
+
+$("readout").innerHTML = `<span><b>${D.factions.length}</b> playable factions</span><span><b>${D.counts.classes}</b> classes</span><span><b>${D.counts.hulls}</b> hulls</span><span><b>${D.counts.modules}</b> modules</span>`;
+
+// ---- doctrine
+$("ov").innerHTML = D.factions.map((f) => `
+  <div class="ov-row" style="${fc(f.id)}">
+    <div class="who">${fname(f)}<span class="hook">${esc(f.playstyle)}</span></div>
+    <div><h4>Doctrine</h4><p>${esc(f.doctrine)}</p></div>
+    <div><h4>Signature weapons</h4><div class="chips">${f.weapons.map((w) => `<span class="wchip ${w.modules.length ? "" : "missing"}" title="${w.modules.length ? "Module: " + esc(w.modules.join(", ")) : "No matching module yet"}">${esc(w.label)}</span>`).join("")}</div></div>
+    <div><h4>Weakness</h4><p>${esc(f.weakness)}</p></div>
+    <div class="facts"><span><b>${f.count}</b> ${f.count === 1 ? "class" : "classes"} on <b>${f.hulls_used}</b> ${f.hulls_used === 1 ? "hull" : "hulls"}</span><span>Flagship <b>${esc(f.flagship)}</b> (${esc(f.flagship_hull)})</span><span>Largest hull its yards build: <b>${esc(f.yard)}</b></span></div>
+  </div>`).join("");
+
+// ---- hulls (hull points on one scale)
+(function () {
+  const maxHp = Math.max(...D.hulls.map((h) => h.hp));
+  const maxSize = Math.max(...D.hulls.map((h) => h.size));
+  const names = ["W", "D", "E", "U"], cols = ["--slot-w", "--slot-d", "--slot-e", "--slot-u"];
+  $("hulltable").innerHTML = `<thead><tr><th scope="col">Hull</th><th scope="col">Size</th><th scope="col">Hull points</th><th scope="col">Speed</th><th scope="col">Crew</th><th scope="col">Slots</th><th scope="col">Built at</th><th scope="col">Notes</th></tr></thead><tbody>` +
+    D.hulls.map((h) => `<tr><th scope="row">${esc(h.label)}</th>
+      <td class="num">${pips(h.size, maxSize, "--peach")} ${h.size}</td>
+      <td><div class="hp"><div class="track"><div class="fill" style="width:${(h.hp / maxHp) * 100}%"></div></div><span>${h.hp}</span></div></td>
+      <td class="num">${h.speed}</td><td class="num">${h.crew.toLocaleString("en-US")}</td>
+      <td><div class="slots">${h.slots.map((n, i) => `<span class="slot" style="--pc: var(${cols[i]})"><b>${names[i]}${n}</b>${n ? `<span class="pips">${"<i class=\"on\"></i>".repeat(n)}</span>` : ""}</span>`).join("")}</div></td>
+      <td><span class="yard">${esc(h.yard)}</span></td>
+      <td>${h.notes.length ? esc(h.notes.join("; ")) : `<span class="none">—</span>`}</td></tr>`).join("") + `</tbody>`;
+})();
+
+// ---- roster: hull rows x faction columns, highlight by era
+const eraById = Object.fromEntries(D.eras.map((e) => [e.id, e]));
+// a class is available in a starting era if its faction is in that era, it is on the same timeline and it has entered service
+function available(c, f, era) {
+  if (era === "all") return true;
+  const a = eraById[c.era], b = eraById[era];
+  return f.status[era] !== "absent" && a.timeline === b.timeline && a.order <= b.order;
+}
+function renderRoster(era) {
+  const head = `<thead><tr><th scope="col">Hull</th>${D.factions.map((f) => `<th scope="col">${fname(f)}</th>`).join("")}</tr></thead>`;
+  const body = D.hulls.map((h) => `<tr><th scope="row">${esc(h.label)}<small>size ${h.size}</small></th>${D.factions.map((f) => {
+    const list = D.classes.filter((c) => c.faction === f.id && c.hull === h.id);
+    if (!list.length) return `<td><span class="none">—</span></td>`;
+    return `<td>${list.map((c) => `<span class="ship ${available(c, f, era) ? "" : "dim"}" style="${fc(f.id)}"><span class="sn">${esc(c.name)}</span><span class="se">${esc(eraShort[c.era])}${c.role ? " · " + esc(c.role) : ""}</span></span>`).join("")}</td>`;
+  }).join("")}</tr>`).join("");
+  const foot = `<tfoot><tr><th scope="row">${era === "all" ? "Classes" : "In " + esc(eraShort[era])}</th>${D.factions.map((f) => `<td>${era !== "all" && f.status[era] === "absent" ? "not in era" : D.classes.filter((c) => c.faction === f.id && available(c, f, era)).length + (era !== "all" && f.status[era] === "ai" ? " (AI only)" : "")}</td>`).join("")}</tr></tfoot>`;
+  $("rostertable").innerHTML = head + `<tbody>${body}</tbody>` + foot;
+  document.querySelectorAll("#erafilter button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.era === era)));
+}
+$("erafilter").innerHTML = [`<button type="button" id="era-all" data-era="all" aria-pressed="true">All eras</button>`]
+  .concat(D.eras.map((e) => `<button type="button" id="era-${e.id}" data-era="${e.id}" aria-pressed="false" title="${esc(e.name)}, ${e.years[0]}–${e.years[1]}">${esc(e.short)}</button>`)).join("");
+document.querySelectorAll("#erafilter button").forEach((b) => b.addEventListener("click", () => renderRoster(b.dataset.era)));
+renderRoster("all");
+
+$("otherstable").innerHTML = `<thead><tr><th scope="col">Power</th><th scope="col">Class</th><th scope="col">Hull</th><th scope="col">Era</th><th scope="col">Special</th></tr></thead><tbody>` +
+  D.others.map((c) => `<tr><th scope="row" style="color: var(--ink-dim)">${esc(c.faction_name)}</th><td><span class="bname">${esc(c.name)}</span></td><td>${esc(D.hullLabels[c.hull])}</td><td>${esc(eraShort[c.era])}</td><td>${c.special.length ? `<div class="spec">${c.special.map((s) => `<span>${esc(s)}</span>`).join("")}</div>` : `<span class="none">—</span>`}</td></tr>`).join("") + `</tbody>`;
+
+// ---- fleets by era
+(function () {
+  let outside = [];
+  const head = `<thead><tr><th scope="col">Faction</th>${D.eras.map((e) => `<th scope="col">${esc(e.short)}<span class="sub" style="margin:0;text-transform:none;letter-spacing:.04em">${e.years[0]}–${e.years[1]}</span></th>`).join("")}</tr></thead>`;
+  const body = D.factions.map((f) => `<tr><th scope="row">${fname(f)}</th>${D.eras.map((e) => {
+    const list = D.classes.filter((c) => c.faction === f.id && c.era === e.id);
+    const st = f.status[e.id], open = st !== "absent";
+    if (!open && list.length) outside.push(`${f.name} ${list.map((c) => c.name).join(", ")} (${e.short})`);
+    const ships = list.map((c) => `<span class="ship" style="${fc(f.id)}"><span class="sn">${esc(c.name)}</span><span class="se">${esc(D.hullLabels[c.hull])}</span></span>`).join("");
+    const ai = st === "ai" ? `<span class="closed-note" style="display:block;margin-bottom:4px">AI only</span>` : "";
+    return `<td class="${open ? "" : "closed"}">${ai}${ships || (open ? `<span class="none">—</span>` : `<span class="closed-note">Not in era</span>`)}${!open && list.length ? `<span class="flag">Faction not in era</span>` : ""}</td>`;
+  }).join("")}</tr>`).join("");
+  $("eratable").innerHTML = head + `<tbody>${body}</tbody>`;
+  const notes = [];
+  if (outside.length) notes.push(`Data to check: ${outside.join("; ")} enter service in an era that faction isn't in.`);
+  if (D.unusedEras.length) notes.push(`No classes are listed yet for the ${D.unusedEras.join(" and ")} eras.`);
+  $("eranote").textContent = notes.join(" ");
+})();
+
+// ---- specials and modules
+(function () {
+  const all = D.classes.map((c) => ({ ...c, fid: c.faction, fn: D.factions.find((f) => f.id === c.faction).name }))
+    .concat(D.others.map((c) => ({ ...c, fid: "other", fn: c.faction_name })))
+    .filter((c) => c.special.length);
+  $("spectable").innerHTML = `<thead><tr><th scope="col">Class</th><th scope="col">Faction</th><th scope="col">Hull</th><th scope="col">Era</th><th scope="col">Special</th></tr></thead><tbody>` +
+    all.map((c) => `<tr><td><span class="bname">${esc(c.name)}</span></td><td><span class="fname" style="${fc(c.fid)};font-size:14px"><span class="fdot"></span>${esc(c.fn)}</span></td><td>${esc(D.hullLabels[c.hull])}</td><td>${esc(eraShort[c.era])}</td><td><div class="spec">${c.special.map((s) => `<span>${esc(s)}</span>`).join("")}</div></td></tr>`).join("") + `</tbody>`;
+  const colors = { Weapon: "--slot-w", Defense: "--slot-d", Engine: "--slot-e", Utility: "--slot-u" };
+  $("modgrid").innerHTML = D.modules.map((g) => `<div class="modcol" style="--pc: var(${colors[g.slot]})"><h4>${esc(g.slot)}<small>${g.items.length}</small></h4>${g.items.map((m) =>
+    `<div class="mod"><span>${esc(m.label)}</span><span class="u">${m.users.map((u) => `<span class="fdot" style="${fc(u)}" title="${esc(D.factions.find((f) => f.id === u).name)}"></span>`).join("")}</span></div>`).join("")}</div>`).join("");
+})();
+</script>
+
+</body>
+</html>

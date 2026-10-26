@@ -21,6 +21,12 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 - `blender/`: the same 20-second pod drop in 3D for Blender 5.2. Open `colony_pod.blend` and press Play, or rebuild it from `build_colony_pod.py` (Scripting tab → Open → Run Script, or `blender --background --python blender/build_colony_pod.py -- --out blender/colony_pod.blend`). `previews/` has test renders; add `--preview DIR --frames 17.6 --zoom 3` to render close-ups.
 - `concept-canvas/`: source for the structure concept boards (7 factions × 4 upgrade lines). These files render inside the online canvas, not in a plain browser.
 
+## Website (GitHub Pages)
+
+`docs/` is a ready-to-serve website: a landing page plus standalone copies of every design page, the Colony Hub art and the rendered video. Once Pages is on (Settings → Pages → Deploy from a branch → `main` / `docs`), it lives at https://frickmanstfc.github.io/star-trek-rts/.
+
+After changing data, regenerate the pages (`python3 tools/gen_*_page.py`), then rebuild the site with `python3 tools/build_site.py` and push.
+
 ## Online versions
 
 - Faction structure concepts (canvas): https://claude.ai/artifact/Q8fDXqjgVAQuyQWAyuEame
