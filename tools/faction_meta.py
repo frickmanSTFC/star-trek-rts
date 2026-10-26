@@ -57,6 +57,7 @@ RESEARCH_MODEL = {
 HAZARD_CATEGORIES = {
     "anomaly": ("Anomalies", "Space itself: storms, nebulae, rifts and wormholes. Most double as research sites."),
     "habitat": ("Habitat dangers", "Trouble on the ground at your colonies: natives, plagues, disasters and unrest."),
+    "condition": ("World conditions", "Permanent dangers of a world's environment that every colony or outpost there has to live with."),
     "raider": ("Raiders", "Pirates and hunters that prey on lanes, freighters and your best ships."),
     "crisis": ("Crises", "Late-game entities that threaten every player at once."),
     "wildcard": ("Wild cards", "Rare events that break the rules: Q, the Mirror Universe, hidden Changelings."),

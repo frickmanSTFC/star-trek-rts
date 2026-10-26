@@ -95,7 +95,7 @@ Verterium (synth) ────────────────────�
 1. **Survey** — science ship scans system: reveals deposits, habitability, natives, hidden hazards.
 2. **Claim** — construction ship drops an Outpost (any body) or a colony ship founds a Colony (habitable bodies).
 3. **Adapt** — build domes, atmospheric processors, orbital habitats; terraform over time
-   (L → K → M is a long project; Genesis device is instant-but-risky).
+   (K → L → M is a long project; Genesis device is instant-but-risky).
 4. **Develop** — districts: Mining, Industry, Research, Habitation, Shipyard, Defense.
 5. **Defend & keep happy** — morale, supplies, security. Neglected colonies breed **insurgents** (Maquis-style),
    defect, or fall to pirates.

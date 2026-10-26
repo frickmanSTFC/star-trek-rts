@@ -25,7 +25,7 @@ def load(name):
 P = load("planet_classes.json")["classes"]
 RES = {r["id"]: r for r in load("resources.json")["resources"]}
 techs = {t["id"]: t for t in load("tech_tree.json")["techs"]}
-HAZ = {h["id"] for h in load("hazards.json")["hazards"]}
+HAZ = {h["id"]: h["name"] for h in load("hazards.json")["hazards"]}
 B = load("buildings.json")
 pids = [p["id"] for p in P]
 pname = {p["id"]: p["name"].split(" — ")[0] for p in P}
@@ -33,7 +33,8 @@ pname = {p["id"]: p["name"].split(" — ")[0] for p in P}
 COLONY = {"full": ("Full colony", "settle"), "domed": ("Domed colony", "settle"), "adapted": ("Adapted colony", "settle"),
           "floating_or_submerged": ("Floating or submerged colony", "settle"), "outpost_or_dome": ("Outpost or dome", "outpost"),
           "shielded_outpost": ("Shielded outpost", "outpost"), "mining_habitat": ("Mining habitat", "outpost"),
-          "orbital_refinery": ("Orbital refinery", "orbital"), "harvest_only": ("Harvest only", "harvest"), "none": ("No colony", "harvest")}
+          "orbital_refinery": ("Orbital refinery", "orbital"), "harvest_only": ("Harvest only", "harvest"), "salvage_only": ("Salvage only", "harvest"),
+          "none": ("No colony", "harvest")}
 
 
 def words(s):
@@ -52,7 +53,7 @@ for p in P:
         "colony": label, "group": group, "hab": p["habitability"], "source": p["source"],
         "yields": [{"id": y, "name": RES[y]["name"], "tier": RES[y]["tier"]} for y in p["yields"]],
         "alsoFound": [{"id": r, "name": RES[r]["name"], "tier": RES[r]["tier"]} for r in RES if p["id"] in in_resources[r] and p["id"] not in in_planets[r]],
-        "hazards": [words(h) for h in p.get("hazards", [])], "effects": [words(e) for e in p.get("effects", [])],
+        "hazards": [HAZ.get(h, words(h)) for h in p.get("hazards", [])], "effects": [words(e) for e in p.get("effects", [])],
         "terraform": pname.get(p.get("terraform_to"), ""), "genesis": bool(p.get("genesis_target")),
         "natives": p.get("natives_chance"), "example": p.get("example", ""), "notes": p.get("notes", ""),
         "requiresTech": techs[p["requires_tech"]]["name"] if p.get("requires_tech") in techs else words(p.get("requires_tech", "")),
@@ -140,7 +141,7 @@ if loose:
 
 data = {"classes": classes, "resources": res_rows, "paths": paths, "colonize": colonize, "factions": factions,
         "pids": pids, "pname": pname, "checks": checks,
-        "groups": [["settle", "Colonies"], ["outpost", "Outposts"], ["orbital", "Orbital refineries"], ["harvest", "Harvest only"]]}
+        "groups": [["settle", "Colonies"], ["outpost", "Outposts"], ["orbital", "Orbital refineries"], ["harvest", "Harvest and salvage"]]}
 tpl = open(os.path.join(HERE, "planet_classes_page.html")).read()
 html = tpl.replace("/*DATA*/", json.dumps(data, ensure_ascii=False).replace("</", "<\\/"))
 open(OUT, "w").write(html)

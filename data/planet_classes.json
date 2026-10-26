@@ -1,8 +1,8 @@
 {
-  "_notes": "Canon classes where known; letters with no on-screen definition are marked source=beta/original.",
+  "_notes": "Canon classes where known; letters with no on-screen definition are marked source=beta/original. Terraforming runs K → L → M (Atmospheric Processors). hazards = ids in hazards.json (category condition).",
   "classes": [
     { "id": "class_d", "name": "Class D — Planetoid/Moon", "source": "canon", "colony": "outpost_or_dome",
-      "habitability": 0.1, "yields": ["tritanium", "duranium", "rodinium", "pergium"], "genesis_target": true,
+      "habitability": 0.1, "yields": ["tritanium", "duranium", "rodinium", "pergium", "dilithium"], "genesis_target": true,
       "example": "Regula (Genesis experiment)" },
     { "id": "class_h", "name": "Class H — Desert", "source": "canon", "colony": "adapted",
       "habitability": 0.35, "yields": ["duranium", "kelbonite", "dilithium"], "hazards": ["sandstorms", "hyperonic_radiation"],
@@ -10,11 +10,11 @@
     { "id": "class_j", "name": "Class J — Gas Giant", "source": "canon", "colony": "orbital_refinery",
       "habitability": 0, "yields": ["deuterium", "sirillium"], "notes": "Moons inherit a deuterium bonus." },
     { "id": "class_k", "name": "Class K — Adaptable", "source": "canon", "colony": "domed",
-      "habitability": 0.3, "yields": ["tritanium", "pergium", "uridium"], "terraform_to": "class_m", "example": "Mars" },
+      "habitability": 0.3, "yields": ["tritanium", "pergium", "uridium", "kelbonite", "topaline"], "terraform_to": "class_l", "example": "Mars" },
     { "id": "class_l", "name": "Class L — Marginal", "source": "canon", "colony": "adapted",
       "habitability": 0.5, "yields": ["dilithium", "zenite"], "terraform_to": "class_m" },
     { "id": "class_m", "name": "Class M — Earth-like", "source": "canon", "colony": "full",
-      "habitability": 1.0, "yields": ["crew", "topaline", "cormaline", "uridium"], "natives_chance": 0.35,
+      "habitability": 1.0, "yields": ["crew", "topaline", "cormaline", "uridium", "zenite"], "natives_chance": 0.35,
       "example": "Earth, Vulcan, Qo'noS" },
     { "id": "class_n", "name": "Class N — Ocean/Pelagic", "source": "beta", "colony": "floating_or_submerged",
       "habitability": 0.6, "yields": ["deuterium", "crew"] },
@@ -22,7 +22,10 @@
       "habitability": 0, "yields": ["deuterium"], "hazards": ["extreme_gravity"] },
     { "id": "class_y", "name": "Class Y — Demon", "source": "canon", "colony": "shielded_outpost",
       "habitability": 0, "yields": ["trellium_d", "boronite", "dilithium"],
-      "hazards": ["toxic_atmosphere", "thermionic_radiation", "500K_surface"] },
+      "hazards": ["toxic_atmosphere", "thermionic_radiation", "extreme_heat"] },
+    { "id": "ice_moon", "name": "Ice Moon", "source": "original", "colony": "domed", "habitability": 0.15, "yields": ["deuterium"], "notes": "Usually orbits a gas giant; water ice cracked for deuterium." },
+    { "id": "asteroid_rare", "name": "Rare-Metal Asteroid", "source": "original", "colony": "mining_habitat", "habitability": 0, "yields": ["dilithium", "trellium_d", "boronite", "benamite"], "notes": "A rare variant of an asteroid field; only a few per map." },
+    { "id": "derelict", "name": "Derelict / Ruins", "source": "original", "colony": "salvage_only", "habitability": 0, "yields": ["benamite"], "notes": "Ancient battlefields and dead civilizations: salvage, tech fragments and relics; a research site.", "example": "Iconia" },
     { "id": "asteroid", "name": "Asteroid Field", "source": "original", "colony": "mining_habitat",
       "habitability": 0, "yields": ["tritanium", "duranium", "kelbonite", "rodinium"] },
     { "id": "comet", "name": "Comet", "source": "original", "colony": "harvest_only",
@@ -31,6 +34,6 @@
       "habitability": 0, "yields": ["sirillium", "metreon_gas"], "effects": ["sensor_penalty", "cloak_bonus"] },
     { "id": "neutron_star", "name": "Neutron Star", "source": "original", "colony": "none",
       "habitability": 0, "yields": ["neutronium"], "requires_tech": "neutronium_harvesting",
-      "hazards": ["tidal_shear", "radiation"] }
+      "hazards": ["tidal_shear", "stellar_radiation"] }
   ]
 }

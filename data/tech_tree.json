@@ -41,7 +41,7 @@
     { "id": "chroniton_shielding", "name": "Chroniton Shielding", "tree": "defense", "tier": 4, "prereqs": ["regenerative_shields"], "effect": "Ships and stations stay in normal time through temporal anomalies and chroniton weapons." },
     { "id": "ablative_armor", "name": "Ablative Armor", "tree": "defense", "tier": 4, "prereqs": ["rodinium_armor"], "unlocks": ["mod_ablative_armor"] },
     { "id": "trellium_lining", "name": "Trellium-D Hull Lining", "tree": "defense", "tier": 1, "prereqs": ["polarized_hull"], "requires_resource": "trellium_d", "effect": "Immunity to spatial-anomaly damage; Vulcan crew penalty.", "unlocks": ["mod_trellium_lining"] },
-    { "id": "neutronium_armor", "name": "Neutronium Plating", "tree": "defense", "tier": 6, "prereqs": ["ablative_armor"], "requires_resource": "neutronium", "unlocks": ["titan_hull", "mod_neutronium_plating"] },
+    { "id": "neutronium_armor", "name": "Neutronium Plating", "tree": "defense", "tier": 6, "prereqs": ["ablative_armor", "neutronium_harvesting"], "requires_resource": "neutronium", "unlocks": ["titan_hull", "mod_neutronium_plating"] },
 
     { "id": "long_range_sensors", "name": "Long-Range Sensors", "tree": "sensors_stealth", "tier": 1, "prereqs": [], "unlocks": ["mod_sensor_suite"] },
     { "id": "cloaking_device", "name": "Cloaking Device", "tree": "sensors_stealth", "tier": 2, "prereqs": ["long_range_sensors"], "faction_only": ["klingon", "romulan"], "unlocks": ["mod_cloak"] },
@@ -75,6 +75,7 @@
     { "id": "genesis", "name": "Genesis Device", "tree": "biology_colonization", "tier": 2, "prereqs": ["atmospheric_processors"], "requires_resource": "protomatter", "forbidden": true, "effect": "Instant Class M from Class D/nebula; 40% chance planet destabilizes later; can be weaponized." },
     { "id": "subspace_terraforming", "name": "Subspace Terraforming", "tree": "biology_colonization", "tier": 4, "prereqs": ["atmospheric_processors"] },
 
-    { "id": "omega_stabilization", "name": "Omega Molecule Stabilization", "tree": "engineering", "tier": 5, "prereqs": ["industrial_replicators"], "requires_resource": "boronite", "victory_project": true, "effect": "Science victory. Failure = permanent no-warp zone around your capital." }
+    { "id": "omega_stabilization", "name": "Omega Molecule Stabilization", "tree": "engineering", "tier": 5, "prereqs": ["industrial_replicators"], "requires_resource": "boronite", "victory_project": true, "effect": "Science victory. Failure = permanent no-warp zone around your capital." },
+    { "id": "neutronium_harvesting", "name": "Neutronium Harvesting", "tree": "engineering", "tier": 5, "prereqs": ["deep_core_mining", "industrial_replicators"], "unlocks": ["neutronium_collector"], "effect": "Shielded collector platforms skim neutronium from a neutron star." }
   ]
 }

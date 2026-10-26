@@ -1,5 +1,5 @@
 {
-  "_notes": "category: anomaly | habitat | raider | crisis | wildcard. research_reward = studying/surviving it grants research progress or a specific tech (anomalies double as research sites). counter_techs = tech ids (data/tech_tree.json) that counter the hazard.",
+  "_notes": "category: anomaly | habitat | condition | raider | crisis | wildcard. condition = a permanent danger of a planet class (planet_classes.json hazards). research_reward = studying/surviving it grants research progress or a specific tech (anomalies double as research sites). counter_techs = tech ids (data/tech_tree.json) that counter the hazard.",
   "hazards": [
     { "id": "ion_storm", "name": "Ion Storm", "category": "anomaly", "source": "canon", "counter_techs": ["regenerative_shields"],
       "spawn": "roaming, any system", "effect": "Sensors -50%, random system damage, shuttles grounded.",
@@ -60,6 +60,14 @@
       "spawn": "unhappy or ceded colonies", "effect": "Maquis-style raids on your own lanes.",
       "counter": "Morale, autonomy, or crackdown (raises insurgency elsewhere)." },
 
+    { "id": "sandstorms", "name": "Sandstorms", "category": "condition", "source": "original", "counter_techs": ["atmospheric_processors"], "spawn": "Class H worlds", "effect": "Surface units and mines slowed; surface sensors -25%.", "counter": "Buried or domed structures; Atmospheric Processors calm the weather." },
+    { "id": "hyperonic_radiation", "name": "Hyperonic Radiation", "category": "condition", "source": "canon", "counter_techs": ["kelbonite_shielding"], "spawn": "Class H worlds", "effect": "Phasers and transporters fail on the surface; new colonists sicken until adapted.", "counter": "Kelbonite-shielded structures; colonists adapt over time (Tau Cygna V)." },
+    { "id": "extreme_gravity", "name": "Extreme Gravity", "category": "condition", "source": "original", "counter_techs": ["rodinium_armor"], "spawn": "Class T giants", "effect": "No landings; ships in close orbit burn extra fuel; refineries take hull stress.", "counter": "Reinforced rodinium refinery frames." },
+    { "id": "toxic_atmosphere", "name": "Toxic Atmosphere", "category": "condition", "source": "canon", "counter_techs": ["pressure_domes"], "spawn": "Class Y worlds", "effect": "Unsealed outposts lose workers every cycle.", "counter": "Sealed outposts and environment suits." },
+    { "id": "thermionic_radiation", "name": "Thermionic Radiation", "category": "condition", "source": "canon", "counter_techs": ["regenerative_shields"], "spawn": "Class Y worlds", "effect": "Shields and sensors of ships in orbit degrade; shuttles can't land.", "counter": "Hardened, regenerative shielding." },
+    { "id": "extreme_heat", "name": "Extreme Heat", "category": "condition", "source": "canon", "counter_techs": ["kelbonite_shielding"], "spawn": "Class Y worlds (surface above 500 K)", "effect": "Unprotected structures and units take heat damage every cycle.", "counter": "Shielded outposts only; kelbonite heat shielding." },
+    { "id": "tidal_shear", "name": "Tidal Shear", "category": "condition", "source": "original", "counter_techs": ["neutronium_harvesting"], "spawn": "Neutron stars", "effect": "Ships and platforms that stray too close are torn apart.", "counter": "Keep collector platforms at a safe range." },
+    { "id": "stellar_radiation", "name": "Stellar Radiation", "category": "condition", "source": "original", "counter_techs": ["kelbonite_shielding"], "spawn": "Neutron stars", "effect": "Constant radiation damages crews and stations in the system.", "counter": "Kelbonite shielding." },
     { "id": "orion_syndicate", "name": "Orion Syndicate", "category": "raider", "source": "canon",
       "behavior": "Smuggling, contraband, kidnapping colonists, bribing your governors.",
       "counter": "Security patrols; buy them off; hire them against rivals." },
