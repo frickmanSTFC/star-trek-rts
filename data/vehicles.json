@@ -5,7 +5,7 @@
       "role": "utility", "carrier_slots": 1, "abilities": ["scan", "ferry_crew"], "notes": "No transporter era → shuttles carry boarding/landing teams." },
     { "id": "shuttle_type6", "name": "Type-6 Shuttle", "faction": "federation", "era": "tng", "source": "canon",
       "role": "utility", "carrier_slots": 1, "abilities": ["ferry_crew", "land_troops", "evacuate", "survey"] },
-    { "id": "shuttle_type9", "name": "Type-9 Shuttle", "faction": "federation", "era": "voy", "source": "canon",
+    { "id": "shuttle_type9", "name": "Type-9 Shuttle", "faction": "federation", "era": "tng", "source": "canon",
       "role": "fast_utility", "carrier_slots": 1, "abilities": ["ferry_crew", "land_troops", "survey"], "notes": "Fast; warp-capable." },
     { "id": "captains_yacht", "name": "Captain's Yacht", "faction": "federation", "era": "tng", "source": "canon",
       "role": "diplomatic", "carrier_slots": 1, "abilities": ["diplomat_transport", "captain_escape_pod"],
@@ -13,7 +13,7 @@
     { "id": "runabout", "name": "Danube-class Runabout", "faction": "federation", "era": "dominion_war", "source": "canon",
       "role": "light_patrol", "carrier_slots": 2, "abilities": ["mission_pods", "warp", "land_troops"],
       "modules": ["science_pod", "cargo_pod", "weapons_pod", "sensor_pod"], "notes": "Swappable roll-bar mission pod = in-field role swap." },
-    { "id": "delta_flyer", "name": "Delta Flyer", "faction": "federation", "era": "voy", "source": "canon",
+    { "id": "delta_flyer", "name": "Delta Flyer", "faction": "federation_lost_ship", "era": "voy", "source": "canon",
       "role": "hero_craft", "carrier_slots": 2, "limit": 1, "abilities": ["anomaly_resistant", "deep_scan", "photon_torpedoes"],
       "notes": "Unique craft; enters anomalies other ships can't." },
     { "id": "work_bee", "name": "Work Bee", "faction": "federation", "era": "tos", "source": "canon",
@@ -35,7 +35,8 @@
     { "id": "ferengi_shuttle", "name": "Ferengi Shuttle", "faction": "ferengi", "era": "tng", "source": "canon",
       "role": "trade_courier", "carrier_slots": 1, "abilities": ["smuggle", "trade_route_bonus"] },
     { "id": "borg_probe_drone", "name": "Borg Assimilation Drone Pod", "faction": "borg", "era": "tng", "source": "original",
-      "role": "boarding", "carrier_slots": 1, "abilities": ["assimilate_crew", "nanoprobe_infection"] }
+      "role": "boarding", "carrier_slots": 1, "abilities": ["assimilate_crew", "nanoprobe_infection"] },
+    { "id": "vorta_shuttle", "name": "Vorta Command Shuttle", "faction": "dominion", "era": "dominion_war", "source": "original", "role": "command_utility", "carrier_slots": 1, "abilities": ["ferry_crew", "diplomat_transport", "land_troops"], "notes": "Carries a Vorta supervisor to the front; a lost Vorta is replaced by a clone." }
   ],
   "probes_and_drones": [
     { "id": "class8_probe", "name": "Class-8 Probe", "faction": "federation", "source": "canon",
@@ -49,7 +50,13 @@
     { "id": "decoy_drone", "name": "Decoy (Holographic) Drone", "faction": "federation", "source": "original",
       "role": "deception", "abilities": ["fake_warp_signature"], "notes": "Counters Hirogen hunts and AI targeting." },
     { "id": "cloaked_mine_layer", "name": "Mine-Laying Drone", "faction": "any", "source": "original",
-      "role": "area_denial", "abilities": ["lay_minefield"] }
+      "role": "area_denial", "abilities": ["lay_minefield"] },
+    { "id": "klingon_raider_probe", "name": "Klingon Raider Probe", "faction": "klingon", "source": "original", "role": "recon", "abilities": ["reveal_system", "self_destruct_on_capture"] },
+    { "id": "cardassian_surveillance_drone", "name": "Cardassian Surveillance Drone", "faction": "cardassian", "source": "original", "role": "surveillance", "abilities": ["watch_colony", "detect_spies"], "notes": "Obsidian Order eyes over occupied worlds." },
+    { "id": "romulan_listening_probe", "name": "Cloaked Listening Probe", "faction": "romulan", "source": "original", "role": "espionage", "abilities": ["cloak", "eavesdrop_comms"] },
+    { "id": "dominion_monitor_drone", "name": "Dominion Monitoring Drone", "faction": "dominion", "source": "original", "role": "early_warning", "abilities": ["vision", "wormhole_watch"] },
+    { "id": "ferengi_market_probe", "name": "Ferengi Market Probe", "faction": "ferengi", "source": "original", "role": "economic_scout", "abilities": ["price_scan", "spot_trade_route"] },
+    { "id": "borg_scout_node", "name": "Borg Scout Node", "faction": "borg", "source": "original", "role": "recon", "abilities": ["vision", "relay_adaptations"], "notes": "Shares what it sees with every Borg unit in range." }
   ],
   "civilian_and_support": [
     { "id": "construction_ship", "name": "Construction Ship", "hull": "civilian", "source": "original",
@@ -80,7 +87,7 @@
   "ground_forces": [
     { "id": "security_team", "name": "Starfleet Security Team", "faction": "federation", "source": "canon", "strength": 3, "traits": ["disciplined"] },
     { "id": "maco", "name": "MACO Squad", "faction": "earth_uec", "era": "ent", "source": "canon", "strength": 4, "traits": ["elite", "heavy_weapons"] },
-    { "id": "hazard_team", "name": "Hazard Team", "faction": "federation", "era": "voy", "source": "beta", "strength": 4, "traits": ["hazardous_environment_bonus"] },
+    { "id": "hazard_team", "name": "Hazard Team", "faction": "federation_lost_ship", "era": "voy", "source": "beta", "strength": 4, "traits": ["hazardous_environment_bonus"] },
     { "id": "klingon_warriors", "name": "Klingon Warriors", "faction": "klingon", "source": "canon", "strength": 5, "traits": ["melee_bonus", "never_retreat"] },
     { "id": "reman_shock_troops", "name": "Reman Shock Troops", "faction": "romulan", "source": "canon", "strength": 5, "traits": ["night_fighters", "uprising_risk"] },
     { "id": "romulan_commandos", "name": "Romulan Commandos", "faction": "romulan", "source": "original", "strength": 3, "traits": ["sabotage", "stealth"] },
@@ -91,7 +98,12 @@
     { "id": "borg_drones", "name": "Borg Drones", "faction": "borg", "source": "canon", "strength": 4, "traits": ["personal_shield_adapts", "assimilate_defenders"] },
     { "id": "hirogen_hunters", "name": "Hirogen Hunting Party", "faction": "hirogen", "source": "canon", "strength": 5, "traits": ["targets_officers"] },
     { "id": "colonial_militia", "name": "Colonial Militia", "faction": "any", "source": "original", "strength": 1, "traits": ["free_from_population", "home_defense_only"] },
-    { "id": "maquis_cell", "name": "Maquis Cell", "faction": "maquis", "source": "canon", "strength": 2, "traits": ["guerrilla", "spawned_by_unrest"] }
+    { "id": "maquis_cell", "name": "Maquis Cell", "faction": "maquis", "source": "canon", "strength": 2, "traits": ["guerrilla", "spawned_by_unrest"] },
+    { "id": "klingon_honor_guard", "name": "Klingon Honor Guard", "faction": "klingon", "source": "canon", "strength": 5, "traits": ["elite", "guards_hero"] },
+    { "id": "obsidian_order_agent", "name": "Obsidian Order Agent", "faction": "cardassian", "source": "canon", "strength": 2, "traits": ["interrogation", "sabotage", "detect_spies"] },
+    { "id": "tal_shiar_agent", "name": "Tal Shiar Agent", "faction": "romulan", "source": "canon", "strength": 2, "traits": ["steal_tech", "interrogation", "stealth"] },
+    { "id": "nausicaan_bodyguards", "name": "Hired Nausicaan Bodyguards", "faction": "ferengi", "source": "original", "strength": 4, "traits": ["hired", "guards_hero"] },
+    { "id": "borg_tactical_drones", "name": "Borg Tactical Drones", "faction": "borg", "source": "original", "strength": 5, "traits": ["heavy_weapons", "personal_shield_adapts"] }
   ],
   "ground_vehicles": [
     { "id": "argo_buggy", "name": "Argo Ground Vehicle", "faction": "federation", "era": "picard", "source": "canon",
@@ -107,6 +119,10 @@
     { "id": "mining_crawler", "name": "Mining Crawler", "faction": "any", "source": "original",
       "role": "economy", "abilities": ["mobile_mining", "prospect_deposit"] },
     { "id": "terraforming_rover", "name": "Terraforming Rover", "faction": "any", "source": "original",
-      "role": "economy", "abilities": ["speed_terraform_progress"] }
+      "role": "economy", "abilities": ["speed_terraform_progress"] },
+    { "id": "romulan_assault_skiff", "name": "Romulan Cloaked Skiff", "faction": "romulan", "source": "original", "role": "raider", "abilities": ["cloak", "raid_supply"] },
+    { "id": "jem_hadar_walker", "name": "Jem'Hadar Assault Walker", "faction": "dominion", "source": "original", "role": "assault", "abilities": ["shroud_stealth", "breach_fortification"] },
+    { "id": "ferengi_cargo_crawler", "name": "Ferengi Cargo Crawler", "faction": "ferengi", "source": "original", "role": "economy", "abilities": ["mobile_trade_post", "smuggle"] },
+    { "id": "borg_nanite_crawler", "name": "Borg Nanite Crawler", "faction": "borg", "source": "original", "role": "conversion", "abilities": ["assimilate_structures", "self_repair"] }
   ]
 }

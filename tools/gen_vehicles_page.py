@@ -82,9 +82,10 @@ for cat, label, _ in CATS:
             checks.append(f"{x['name']} uses hull {x['hull']}, which isn't in ships.json.")
         if fa != "any" and fa not in FAC:
             checks.append(f"{x['name']} belongs to {fa}, which isn't in factions.json.")
-fed = sum(1 for u in units if u["faction"] == "federation")
-spec = sum(1 for u in units if u["faction"] not in ("any",))
-checks.append(f"{fed} of the {spec} faction-specific units are Federation; the other six playable factions have {sum(f['count'] for f in factions) - fed} between them.")
+# flag a lopsided roster: one faction with more than twice the units of the next
+top = sorted(factions, key=lambda f: -f["count"])
+if top[0]["count"] > 2 * top[1]["count"]:
+    checks.append(f"{top[0]['name']} has {top[0]['count']} units of its own; the next largest, {top[1]['name']}, has {top[1]['count']}.")
 
 data = {"cats": [{"id": c, "label": l, "desc": d, "count": sum(1 for u in units if u["cat"] == c)} for c, l, d in CATS],
         "units": units, "factions": factions, "checks": checks, "rules": V["_notes"].split(". ", 1)[1].split(" source:")[0]}

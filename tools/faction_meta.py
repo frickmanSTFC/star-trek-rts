@@ -99,11 +99,11 @@ WORLD_STANCE = {
 
 # How each faction uses small craft, drones and ground forces, for the vehicles page.
 VEHICLE_STANCE = {
-    "federation": "The widest craft roster: a shuttle for every job, runabouts that patrol on their own and the Delta Flyer for anomalies. Ground troops are disciplined but light.",
+    "federation": "The widest craft roster: a shuttle for every job, runabouts that patrol on their own and a captain's yacht that saves its captain. Ground troops are disciplined but light.",
     "klingon": "Everything lands or boards: Toron assault shuttles, boarding pods and assault tanks carry some of the strongest warriors in the game.",
     "cardassian": "Built to hold ground: patrol skimmers suppress resistance while soldiers keep garrisons in line.",
     "romulan": "Stealth at every level: cloaked scout flyers and commandos, with Reman shock troops as a hammer that may turn on its masters.",
-    "dominion": "No small craft of its own. Jem'Hadar squads are the strongest troops in the game, and Changelings work from the inside.",
+    "dominion": "Vorta command shuttles bring supervisors to the front. Jem'Hadar squads are the strongest troops in the game, assault walkers break fortifications, and Changelings work from the inside.",
     "ferengi": "Couriers that smuggle and trade. Ground defense is hired by the job and may change sides if outbid.",
     "borg": "Drone pods board ships and assimilate crews; drones adapt their shields to the defenders' weapons.",
 }
