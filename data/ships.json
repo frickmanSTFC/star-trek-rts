@@ -15,7 +15,7 @@
     { "id": "titan",         "size": 8, "hp": 5000, "speed": 2, "crew": 3000, "slots": { "weapon": 8, "defense": 6, "engine": 3, "utility": 4 }, "limit_per_player": 1 }
   ],
   "modules": {
-    "weapon":  ["phase_cannon", "phaser_array", "pulse_phaser", "disruptor", "spiral_wave_disruptor", "phased_polaron", "tetryon_cannon", "cutting_beam", "spatial_torpedo", "photon_torpedo", "quantum_torpedo", "plasma_torpedo", "transphasic_torpedo", "energy_dampener", "polaron_torpedo", "plasma_energy_burst", "borg_torpedo", "thalaron_generator"],
+    "weapon":  ["phase_cannon", "phaser_array", "pulse_phaser", "disruptor", "spiral_wave_disruptor", "phased_polaron", "tetryon_cannon", "cutting_beam", "spatial_torpedo", "photon_torpedo", "quantum_torpedo", "plasma_torpedo", "transphasic_torpedo", "energy_dampener", "polaron_torpedo", "plasma_energy_burst", "borg_torpedo", "thalaron_generator", "nanoprobe_warhead"],
     "defense": ["polarized_hull", "shield_generator", "regenerative_shield", "ablative_armor", "rodinium_plating", "neutronium_plating", "trellium_lining"],
     "engine":  ["impulse", "warp_core", "singularity_core", "slipstream_drive", "transwarp_coil"],
     "utility": ["sensor_suite", "cloak", "tractor_beam", "transporter", "cargo_bay", "troop_bay", "science_lab", "mining_laser", "construction_rig", "medical_bay", "deflector_dish_tricks", "saucer_separation", "mvam"]
