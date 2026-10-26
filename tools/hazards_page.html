@@ -1,0 +1,302 @@
+<title>Galactic Hazards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame shared with the other design pages; sections stack (category rows, filterable hazard cards, faction exposure rows, counter-tech x faction matrix, data checks). Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --sky: #7fc4e8;
+  --gold: #f3cb5b;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --c-anomaly: #9aa3ff;
+  --c-habitat: #f3cb5b;
+  --c-raider: #ff9c5b;
+  --c-crisis: #e2787a;
+  --c-wildcard: #c99ad6;
+  --f-federation: #7fc4e8;
+  --f-klingon: #e2787a;
+  --f-cardassian: #f3cb5b;
+  --f-romulan: #8fd3b0;
+  --f-dominion: #c99ad6;
+  --f-ferengi: #ff9c5b;
+  --f-borg: #b8c46a;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--bad); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--bad); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--bad); }
+.bars .b2 { flex: 1.2; background: var(--gold); }
+.bars .b3 { flex: 2; background: var(--periwinkle); }
+.bars .b4 { flex: .8; background: var(--lilac); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--bad); font-weight: 600; }
+.intro { max-width: 70ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--void); background: var(--bad); padding: 4px 14px; border-radius: 14px; }
+nav.jump a:nth-child(2) { background: var(--periwinkle); }
+nav.jump a:nth-child(3) { background: var(--gold); }
+nav.jump a:nth-child(4) { background: var(--orange); }
+nav.jump a:nth-child(5) { background: var(--lilac); }
+nav.jump a:focus-visible, button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 72ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.fdot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: var(--fc); flex: none; }
+.fname { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fc); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--label); font-size: 12px; letter-spacing: .04em; border-radius: 8px; padding: 1px 8px; background: var(--panel-2); color: var(--ink); }
+.chip.missing { background: transparent; border: 1px dashed var(--ink-faint); color: var(--ink-dim); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; max-width: 90ch; }
+
+/* ---------- categories ---------- */
+.cats { display: grid; gap: 6px; }
+.cat { display: grid; grid-template-columns: 190px 60px minmax(0, 1fr) minmax(0, 1.4fr); gap: 6px 18px; align-items: start; background: var(--panel); border-left: 6px solid var(--cc); border-radius: 0 10px 10px 0; padding: 12px 16px; }
+.cat > * { min-width: 0; }
+.cat .cn { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: .04em; text-transform: uppercase; color: var(--cc); }
+.cat .cnt { font-family: var(--display); font-size: 28px; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.cat .cnt small { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+.cat p { margin: 0; font-size: 14px; color: var(--ink-dim); }
+@media (max-width: 900px) { .cat { grid-template-columns: 1fr auto; } .cat p, .cat .chips { grid-column: 1 / -1; } }
+
+/* ---------- controls ---------- */
+.controls { display: grid; gap: 8px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.ctl > span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); min-width: 80px; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--panel); padding: 4px; border-radius: 18px; }
+.seg button { font: 600 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 0; cursor: pointer; background: transparent; color: var(--ink-dim); padding: 8px 12px; border-radius: 14px; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--bc, var(--periwinkle)); color: var(--void); }
+.showing { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.showing b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* ---------- hazard cards ---------- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.hz { background: var(--panel); border-radius: 10px; border-top: 4px solid var(--cc); padding: 12px 14px 14px; display: grid; gap: 8px; align-content: start; }
+.hz > * { min-width: 0; }
+.hz .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.hz h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 19px; line-height: 1.15; letter-spacing: .03em; text-transform: uppercase; color: var(--ink); text-wrap: balance; }
+.hz .kind { font-family: var(--label); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--cc); white-space: nowrap; }
+.hz dl { margin: 0; display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 4px 10px; font-size: 14px; }
+.hz dt { font-family: var(--label); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); padding-top: 3px; }
+.hz dd { margin: 0; }
+.hz dd.counter { color: var(--good); }
+.choice { display: block; }
+.choice b { font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--peach); margin-right: 6px; }
+.src { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); border: 1px solid var(--rule); border-radius: 8px; padding: 0 6px; }
+.empty { background: var(--panel); border-radius: 10px; padding: 18px; color: var(--ink-dim); }
+
+/* ---------- faction rows ---------- */
+.ov { display: grid; gap: 6px; }
+.ov-head { display: grid; grid-template-columns: 170px 1fr 1fr 220px; gap: 18px; padding: 0 16px 0 22px; }
+.ov-head span { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row { display: grid; grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr) 220px; gap: 6px 18px; background: var(--panel); border-left: 6px solid var(--fc); border-radius: 0 10px 10px 0; padding: 12px 16px; }
+.ov-row > * { min-width: 0; }
+.ov-row .fname { font-size: 20px; }
+.ov-row h4 { margin: 0 0 2px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.ov-row p { margin: 0; font-size: 14px; }
+.meter { display: grid; grid-template-columns: minmax(0, 1fr) 48px; gap: 8px; align-items: center; }
+.meter .track { position: relative; height: 10px; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 25%); }
+.meter .fill { position: absolute; inset: 1px auto 1px 0; background: var(--fc); border-radius: 0 5px 5px 0; }
+.meter span { font-family: var(--label); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
+.how { font-family: var(--label); font-size: 12px; letter-spacing: .06em; color: var(--ink-dim); margin-top: 4px; display: block; }
+@media (max-width: 900px) { .ov-head { display: none; } .ov-row { grid-template-columns: 1fr; } }
+@media (min-width: 901px) { .ov-row h4 { display: none; } }
+
+/* ---------- matrix ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); white-space: nowrap; }
+thead th .fname { font-size: 15px; }
+tbody th { background: var(--panel-2); min-width: 220px; }
+tbody th .bname { font-weight: 600; display: block; }
+tbody th .sub { display: block; color: var(--ink-dim); font-size: 13px; font-weight: 400; margin-top: 2px; }
+tr:last-child > * { border-bottom: 0; }
+td.acc { text-align: center; border-left: 1px solid var(--rule); white-space: nowrap; }
+.acc span { font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; border-radius: 8px; padding: 1px 8px; }
+.acc .research { color: var(--void); background: var(--good); }
+.acc .buy { color: var(--void); background: var(--orange); }
+.acc .assimilate { color: var(--void); background: var(--f-borg); }
+.acc .none { color: var(--ink-faint); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Galactic Hazards</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">Everything in the Star Trek RTS that can hurt you besides other players: anomalies, trouble at your colonies, raiders, late-game crises and wild cards. Each entry says where it appears, what it does and how to answer it, and the last sections show how well each faction can field those answers. All effects are placeholders for balancing.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#categories">Categories</a><a href="#catalog">Catalog</a><a href="#factions">Factions</a><a href="#counters">Counter techs</a><a href="#checks">Data checks</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="categories" style="--sec: var(--bad)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>Threat categories</h2><p>Five kinds of danger, from storms you can wait out to entities that can end the game for everyone.</p></div></div>
+    <div class="cats" id="cats"></div>
+  </section>
+
+  <section id="catalog" style="--sec: var(--periwinkle)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Hazard catalog</h2><p>Filter by category or by the starting era you play in. Most hazards can appear in any era; a few belong to one.</p></div></div>
+    <div class="controls">
+      <div class="ctl"><span>Category</span><div class="seg" id="cseg" role="group" aria-label="Category"></div></div>
+      <div class="ctl"><span>Era</span><div class="seg" id="eseg" role="group" aria-label="Era"></div></div>
+      <div class="showing" id="showing" aria-live="polite"></div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="factions" style="--sec: var(--gold)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>How each faction faces them</h2><p>Where each faction is most exposed, where it has an edge, and how many of the counter techs in the tree it can get.</p></div></div>
+    <div class="ov">
+      <div class="ov-head"><span>Faction</span><span>Most exposed to</span><span>Edge</span><span>Counter techs it can get</span></div>
+      <div class="ov" id="ov"></div>
+    </div>
+  </section>
+
+  <section id="counters" style="--sec: var(--orange)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>Counter techs by faction</h2><p>Techs in the research tree that answer a hazard, and whether each faction can research, buy or assimilate them.</p></div></div>
+    <div class="legend" aria-hidden="true"><span class="acc"><span class="research">Research</span></span><span class="acc"><span class="buy">Buy</span> Ferengi purchase</span><span class="acc"><span class="assimilate">Assimilate</span> Borg take it</span><span class="acc"><span class="none">—</span> locked to it</span></div>
+    <div class="scroll"><table id="matrix"></table></div>
+  </section>
+
+  <section id="checks" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Data checks</h2><p>Gaps between the hazards and the rest of the design data.</p></div></div>
+    <ul class="plain" id="checklist"></ul>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/hazards.json</code>, <code>tech_tree.json</code>, <code>eras.json</code> and <code>resources.json</code> in the star-trek-rts design repo (<code>tools/gen_hazards_page.py</code>). Companion pages: Faction Buildings, Starship Designs and Research Tech Tree.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = /*DATA*/;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const cc = (id) => `--cc: var(--c-${id})`;
+const fc = (id) => `--fc: var(--f-${id})`;
+const fname = (f) => `<span class="fname" style="${fc(f.id)}"><span class="fdot"></span>${esc(f.name)}</span>`;
+const catLabel = Object.fromEntries(D.categories.map((c) => [c.id, c.label]));
+const eraName = Object.fromEntries(D.eras.map((e) => [e.id, e.name]));
+
+$("readout").innerHTML = `<span><b>${D.hazards.length}</b> hazards</span><span><b>${D.categories.length}</b> categories</span><span><b>${D.counterTechs.length}</b> counter techs</span>`;
+
+// ---- categories
+$("cats").innerHTML = D.categories.map((c) => `<div class="cat" style="${cc(c.id)}">
+  <span class="cn">${esc(c.label)}</span><span class="cnt">${c.count}<small>hazards</small></span><p>${esc(c.desc)}</p>
+  <div class="chips">${D.hazards.filter((h) => h.cat === c.id).map((h) => `<span class="chip">${esc(h.name)}</span>`).join("")}</div></div>`).join("");
+
+// ---- catalog
+let curC = "all", curE = "any";
+function card(h) {
+  const rows = [];
+  if (h.where) rows.push(`<dt>${esc(h.whereLabel)}</dt><dd>${esc(h.where)}</dd>`);
+  if (h.effect) rows.push(`<dt>Effect</dt><dd>${esc(h.effect)}</dd>`);
+  if (h.choices.length) rows.push(`<dt>Choices</dt><dd>${h.choices.map(([k, v]) => `<span class="choice"><b>${esc(k)}</b>${esc(v)}</span>`).join("")}</dd>`);
+  if (h.counter) rows.push(`<dt>Counter</dt><dd class="counter">${esc(h.counter)}</dd>`);
+  if (h.counterTechs.length) rows.push(`<dt>Counter tech</dt><dd><div class="chips">${h.counterTechs.map((t) => `<span class="chip ${t.exists ? "" : "missing"}" title="${t.exists ? "In the tech tree" : "Not in the tech tree yet"}">${esc(t.name)}</span>`).join("")}</div></dd>`);
+  if (h.reward) rows.push(`<dt>Study it</dt><dd>Research toward <b>${esc(h.reward.name)}</b></dd>`);
+  if (h.harvest) rows.push(`<dt>Harvest</dt><dd>${esc(h.harvest)}</dd>`);
+  rows.push(`<dt>Eras</dt><dd>${h.eras.length ? h.eras.map((e) => esc(eraName[e] || e)).join(", ") : "Any"}</dd>`);
+  return `<article class="hz" style="${cc(h.cat)}"><div class="top"><h3>${esc(h.name)}</h3><span class="kind">${esc(catLabel[h.cat])}</span></div><dl>${rows.join("")}</dl><div><span class="src">${esc(h.source)}</span></div></article>`;
+}
+function renderGrid() {
+  const list = D.hazards.filter((h) => (curC === "all" || h.cat === curC) && (curE === "any" || !h.eras.length || h.eras.includes(curE)));
+  $("grid").innerHTML = list.length ? list.map(card).join("") : `<div class="empty">No hazards match these filters.</div>`;
+  $("showing").innerHTML = `Showing <b>${list.length}</b> of ${D.hazards.length}`;
+}
+$("cseg").innerHTML = [`<button type="button" id="c-all" data-c="all" aria-pressed="true">All</button>`]
+  .concat(D.categories.map((c) => `<button type="button" id="c-${c.id}" data-c="${c.id}" style="--bc: var(--c-${c.id})" aria-pressed="false">${esc(c.label)}</button>`)).join("");
+$("eseg").innerHTML = [`<button type="button" id="e-any" data-e="any" aria-pressed="true">Any</button>`]
+  .concat(D.eras.map((e) => `<button type="button" id="e-${e.id}" data-e="${e.id}" aria-pressed="false">${esc(e.name.replace(/ Era$/, "").replace(" (optional)", ""))}</button>`)).join("");
+document.querySelectorAll("#cseg button").forEach((b) => b.addEventListener("click", () => {
+  curC = b.dataset.c; document.querySelectorAll("#cseg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderGrid();
+}));
+document.querySelectorAll("#eseg button").forEach((b) => b.addEventListener("click", () => {
+  curE = b.dataset.e; document.querySelectorAll("#eseg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderGrid();
+}));
+renderGrid();
+
+// ---- factions
+const total = D.counterTechs.length;
+const howText = { research: "", buy: "Bought from players who research them.", assimilate: "No research: counters come from assimilation." };
+$("ov").innerHTML = D.factions.map((f) => {
+  const how = Object.values(f.access).find((v) => v !== "none") || "";
+  return `<div class="ov-row" style="${fc(f.id)}">
+    <div>${fname(f)}</div>
+    <div><h4>Most exposed to</h4><p>${esc(f.exposed)}</p></div>
+    <div><h4>Edge</h4><p>${esc(f.edge)}</p></div>
+    <div><h4>Counter techs it can get</h4><div class="meter"><div class="track" role="img" aria-label="${f.reach} of ${total}"><div class="fill" style="width:${(f.reach / total) * 100}%"></div></div><span>${f.reach} / ${total}</span></div>${howText[how] ? `<span class="how">${howText[how]}</span>` : ""}</div>
+  </div>`;
+}).join("");
+
+// ---- counter matrix
+const label = { research: "Research", buy: "Buy", assimilate: "Assimilate" };
+$("matrix").innerHTML = `<thead><tr><th scope="col">Counter tech</th>${D.factions.map((f) => `<th scope="col">${fname(f)}</th>`).join("")}</tr></thead><tbody>` +
+  D.counterTechs.map((t) => `<tr><th scope="row"><span class="bname">${esc(t.name)}</span><span class="sub">Tier ${t.tier} · counters ${esc(t.hazards.join(", "))}</span></th>${D.factions.map((f) => {
+    const a = f.access[t.id];
+    return `<td class="acc">${a === "none" ? `<span class="none" aria-label="Not available">—</span>` : `<span class="${a}">${label[a]}</span>`}</td>`;
+  }).join("")}</tr>`).join("") + `</tbody>`;
+
+// ---- checks
+$("checklist").innerHTML = D.checks.length ? D.checks.map((c) => `<li>${esc(c)}</li>`).join("") : `<li>No gaps found.</li>`;
+</script>

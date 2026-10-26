@@ -52,3 +52,28 @@ RESEARCH_MODEL = {
     "ferengi": ("Buys tech", "No research of its own: it buys techs other players already have, so it is never first but rarely far behind."),
     "borg": ("Assimilates", "No research at all: techs come from assimilating ships and crews, and transwarp conduits are Borg-only."),
 }
+
+# Hazard categories and each faction's exposure and edge, for the hazards page.
+HAZARD_CATEGORIES = {
+    "anomaly": ("Anomalies", "Space itself: storms, nebulae, rifts and wormholes. Most double as research sites."),
+    "habitat": ("Habitat dangers", "Trouble on the ground at your colonies: natives, plagues, disasters and unrest."),
+    "raider": ("Raiders", "Pirates and hunters that prey on lanes, freighters and your best ships."),
+    "crisis": ("Crises", "Late-game entities that threaten every player at once."),
+    "wildcard": ("Wild cards", "Rare events that break the rules: Q, the Mirror Universe, hidden Changelings."),
+}
+HAZARD_STANCE = {
+    "federation": ("Pre-warp dilemmas test the Prime Directive, and the largest research economy draws Borg attention.",
+                   "The best labs reach counter techs first, such as transphasic torpedoes; diplomacy builds coalition fleets against crises."),
+    "klingon": ("Weak research leaves anomalies without counters, and fleeing a crisis costs Honor.",
+                "Tribbles can't survive a Klingon trade partner; warriors and boarding parties crush insurgents and raiders."),
+    "cardassian": ("Occupation raises Resistance, which feeds Maquis-style insurgency on its own lanes.",
+                   "Surveillance grids expose Changelings and spies; heavy defense platforms hold the Badlands border."),
+    "romulan": ("Singularity-core wrecks add gravity wells to every battle, and paranoia makes Changeling infiltration costly.",
+                "Cloaked fleets slip past raiders, and the Phasing Cloak escapes Tholian webs."),
+    "dominion": ("Raiders or a closed wormhole that cut the Ketracel-white supply make Jem'Hadar go feral.",
+                 "Changeling infiltration is their own weapon, and the stable wormhole is home ground."),
+    "ferengi": ("Freighter raids hit the whole economy, and crises can't be bought off.",
+                "Buys off the Orion Syndicate or hires raiders against rivals; buys counter techs other players have researched."),
+    "borg": ("Species 8472 targets the Collective, and with no research the Borg can't develop counters to anomalies.",
+             "Adaptation shrugs off repeated attacks, and Borg nanoprobes are the one weapon Species 8472 can't ignore."),
+}

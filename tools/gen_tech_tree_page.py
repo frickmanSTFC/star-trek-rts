@@ -10,6 +10,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from faction_meta import FACTIONS, NAMES, RESEARCH_MODEL  # noqa: E402
+from tech_access import reachable as _reachable  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -46,15 +47,7 @@ def unlock_kind(u):
 
 
 def reachable(f):
-    """Techs a faction can research: allowed for it, with every prerequisite also reachable."""
-    ok = {}
-
-    def can(tid):
-        if tid not in ok:
-            t = techs[tid]
-            ok[tid] = (not t.get("faction_only") or f in t["faction_only"]) and all(can(p) for p in t["prereqs"])
-        return ok[tid]
-    return {tid for tid in techs if can(tid)}
+    return _reachable(techs, f)
 
 
 children = {tid: [] for tid in techs}
