@@ -107,7 +107,7 @@ h3.sub-h { margin: 6px 0 0; font-family: var(--display); font-weight: 600; font-
 .flow .colhead { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
 .flow .in { background: var(--panel-2); border-left: 3px solid var(--rc); border-radius: 0 8px 8px 0; padding: 6px 10px; font-size: 14px; font-weight: 600; }
 .flow .in small { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
-.flow .out { background: var(--panel-2); border-left: 3px solid var(--r-refined); border-radius: 0 8px 8px 0; padding: 8px 12px; }
+.flow .out { background: var(--panel-2); border-left: 3px solid var(--rc); border-radius: 0 8px 8px 0; padding: 8px 12px; }
 .flow .out b { display: block; font-size: 14px; }
 .flow .out span { font-family: var(--label); font-size: 13px; color: var(--ink-dim); letter-spacing: .03em; }
 .note { font-size: 13px; color: var(--ink-faint); margin: 0; max-width: 90ch; }
@@ -194,7 +194,7 @@ footer p { margin: 0; max-width: 90ch; }
   </section>
 
   <section id="chains" style="--sec: var(--periwinkle)">
-    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Production chains</h2><p>Refined goods and the raw resources they're made from. Line thickness shows how much of each input one unit takes.</p></div></div>
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Production chains</h2><p>Everything that is made rather than mined (refined goods and synthesized exotics) and what it takes. Line thickness shows how much of each input one unit needs.</p></div></div>
     <div class="flowwrap"><div class="flow" id="flow"></div></div>
   </section>
 
@@ -242,11 +242,11 @@ $("tiers-list").innerHTML = D.tiers.map((t) => `<div class="tier" style="${rc(t.
 // ---- production chains (inputs on the left, refined goods on the right, links scaled by amount)
 const inputs = [];
 D.chains.forEach((c) => c.inputs.forEach((i) => { if (!inputs.find((x) => x.id === i.id)) inputs.push(i); }));
-inputs.sort((a, b) => ["flow", "strategic", "refined"].indexOf(a.tier) - ["flow", "strategic", "refined"].indexOf(b.tier));
+inputs.sort((a, b) => ["flow", "strategic", "refined", "exotic"].indexOf(a.tier) - ["flow", "strategic", "refined", "exotic"].indexOf(b.tier));
 $("flow").innerHTML = `<svg id="flowsvg" aria-hidden="true"></svg>
   <div class="col"><span class="colhead">Inputs</span>${inputs.map((i) => `<div class="in" id="in-${i.id}" style="${rc(i.tier)}">${esc(i.name)}<small>${esc(tierLabel[i.tier])}</small></div>`).join("")}</div>
   <div></div>
-  <div class="col"><span class="colhead">Refined into</span>${D.chains.map((c) => `<div class="out" id="out-${c.id}"><b>${esc(c.name)}</b><span>${c.inputs.map((i) => `${i.amount} ${esc(i.name)}`).join(" + ")}</span></div>`).join("")}</div>`;
+  <div class="col"><span class="colhead">Made into</span>${D.chains.map((c) => `<div class="out" id="out-${c.id}" style="${rc(c.tier)}"><b>${esc(c.name)}</b><span>${c.inputs.map((i) => `${i.amount} ${esc(i.name)}`).join(" + ")}</span></div>`).join("")}</div>`;
 function drawFlow() {
   const box = $("flow").getBoundingClientRect(), svg = $("flowsvg");
   let d = "";

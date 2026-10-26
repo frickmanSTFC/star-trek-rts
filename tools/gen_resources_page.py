@@ -97,7 +97,7 @@ for r in RJ["resources"]:
         "demand": {f: demand[f].get(rid, 0) for f in FACTIONS},
     })
 
-chains = [{"id": r["id"], "name": r["name"], "inputs": [{"id": k, "name": R[k]["name"], "tier": R[k]["tier"], "amount": v} for k, v in r["inputs"].items()]}
+chains = [{"id": r["id"], "name": r["name"], "tier": r["tier"], "inputs": [{"id": k, "name": R[k]["name"], "tier": R[k]["tier"], "amount": v} for k, v in r["inputs"].items()]}
           for r in RJ["resources"] if r.get("inputs")]
 
 factions = []
@@ -112,7 +112,8 @@ for f in FACTIONS:
 checks = []
 consumed = set(k for f in FACTIONS for k in demand[f]) | {k for b in shared for k in (b.get("cost") or {})}
 consumed |= set(needed_by_tech) | set(feeds) | set(harvest)
-unused = [R[k]["name"] for k in R if k not in consumed]
+# trade goods are sold for latinum, not spent, so they only need a market
+unused = [R[k]["name"] for k in R if k not in consumed and not (R[k]["tier"] == "trade_good" and "trade" in R[k].get("found_on", []))]
 if unused:
     checks.append(f"Never spent by a building, needed by a tech or used as an input: {', '.join(unused)}.")
 recipe = [r["name"] for r in RJ["resources"] if "synthesized" in r.get("found_on", []) and not r.get("inputs") and not producers[r["id"]]]

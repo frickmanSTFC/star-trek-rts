@@ -32,6 +32,7 @@
     { "id": "metreon_cascade", "name": "Metreon Cascade", "tree": "weapons", "tier": 4, "prereqs": ["quantum_torpedo"], "requires_resource": "metreon_gas", "forbidden": true, "effect": "Planet-scale weapon; massive diplomatic penalty." },
     { "id": "trilithium_weapon", "name": "Trilithium Stellar Inhibitor", "tree": "weapons", "tier": 4, "prereqs": ["quantum_torpedo"], "requires_resource": "trilithium", "forbidden": true, "effect": "Collapses a star; destroys a system." },
     { "id": "thalaron", "name": "Thalaron Radiation", "tree": "weapons", "tier": 4, "prereqs": ["plasma_torpedo"], "faction_only": ["romulan"], "forbidden": true, "effect": "Kills all organic life on a target; leaves infrastructure intact.", "unlocks": ["mod_thalaron_generator"] },
+    { "id": "red_matter_weapons", "name": "Red Matter Singularity", "tree": "weapons", "tier": 2, "prereqs": ["photon_torpedo"], "requires_resource": "red_matter", "forbidden": true, "effect": "Kelvin timeline only: a red-matter drop collapses a planet into a black hole, or contains a supernova." },
 
     { "id": "polarized_hull", "name": "Polarized Hull Plating", "tree": "defense", "tier": 1, "prereqs": [], "unlocks": ["mod_polarized_hull"] },
     { "id": "deflector_shields", "name": "Deflector Shields", "tree": "defense", "tier": 1, "prereqs": ["polarized_hull"], "unlocks": ["mod_shield_generator"] },
@@ -65,7 +66,7 @@
     { "id": "duotronic", "name": "Duotronic Computers", "tree": "computing", "tier": 2, "prereqs": [] },
     { "id": "isolinear", "name": "Isolinear Computing", "tree": "computing", "tier": 3, "prereqs": ["duotronic"], "unlocks": ["isolinear_chips"] },
     { "id": "bioneural", "name": "Bio-neural Circuitry", "tree": "computing", "tier": 4, "prereqs": ["isolinear"], "unlocks": ["bioneural_gel"] },
-    { "id": "emh", "name": "Emergency Medical Hologram", "tree": "computing", "tier": 4, "prereqs": ["holotechnology"], "effect": "Crew losses reduced 25%." },
+    { "id": "emh", "name": "Emergency Medical Hologram", "tree": "computing", "tier": 4, "prereqs": ["holotechnology"], "requires_resource": "bioneural_gel", "effect": "Crew losses reduced 25%." },
     { "id": "positronic", "name": "Positronic Brain", "tree": "computing", "tier": 5, "prereqs": ["bioneural"], "unlocks": ["synth_workers"], "effect": "Synth labor; risk of synth-ban political event." },
 
     { "id": "pressure_domes", "name": "Pressure Domes", "tree": "biology_colonization", "tier": 1, "prereqs": [], "requires_resource": "topaline", "effect": "Colonize Class D/K bodies." },
@@ -75,7 +76,7 @@
     { "id": "genesis", "name": "Genesis Device", "tree": "biology_colonization", "tier": 2, "prereqs": ["atmospheric_processors"], "requires_resource": "protomatter", "forbidden": true, "effect": "Instant Class M from Class D/nebula; 40% chance planet destabilizes later; can be weaponized." },
     { "id": "subspace_terraforming", "name": "Subspace Terraforming", "tree": "biology_colonization", "tier": 4, "prereqs": ["atmospheric_processors"] },
 
-    { "id": "omega_stabilization", "name": "Omega Molecule Stabilization", "tree": "engineering", "tier": 5, "prereqs": ["industrial_replicators"], "requires_resource": "boronite", "victory_project": true, "effect": "Science victory. Failure = permanent no-warp zone around your capital." },
+    { "id": "omega_stabilization", "name": "Omega Molecule Stabilization", "tree": "engineering", "tier": 5, "prereqs": ["industrial_replicators"], "requires_resource": "omega_molecule", "victory_project": true, "effect": "Science victory. Failure = permanent no-warp zone around your capital." },
     { "id": "neutronium_harvesting", "name": "Neutronium Harvesting", "tree": "engineering", "tier": 5, "prereqs": ["deep_core_mining", "industrial_replicators"], "unlocks": ["neutronium_collector"], "effect": "Shielded collector platforms skim neutronium from a neutron star." }
   ]
 }

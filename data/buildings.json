@@ -117,7 +117,7 @@
     { "id": "deep_space_station", "name": "Deep Space Station", "layer": "deep_space", "category": "station", "source": "canon",
       "cost": { "parasteel": 300 }, "effect": "Trade hub (+Latinum), repairs, docking for 4 ships. (K-7)", "upgrades_to": "starbase" },
     { "id": "starbase", "name": "Starbase", "layer": "deep_space", "category": "station", "source": "canon",
-      "cost": { "parasteel": 600, "isolinear_chips": 50 }, "effect": "Heavy defense, fleet command aura, research, supply range 3.", "upgrades_to": "spacedock" },
+      "cost": { "parasteel": 600, "isolinear_chips": 50, "photon_warheads": 40 }, "effect": "Heavy defense, fleet command aura, research, supply range 3.", "upgrades_to": "spacedock" },
     { "id": "spacedock", "name": "Spacedock", "layer": "deep_space", "category": "shipyard", "source": "canon",
       "cost": { "parasteel": 1200, "plasma_conduits": 150 }, "limit": "2 per player",
       "effect": "Builds hulls ≤ size 6 inside its bay; full repairs; Earth Spacedock 'mushroom'.", "upgrades_to": "yorktown_station" },
@@ -221,7 +221,8 @@
           "name": "Starbase",
           "cost": {
             "parasteel": 600,
-            "isolinear_chips": 50
+            "isolinear_chips": 50,
+            "photon_warheads": 40
           },
           "effect": "Saucer command deck, fleet aura.",
           "stats": {
@@ -457,7 +458,8 @@
           "name": "Klingon Starbase",
           "cost": {
             "parasteel": 600,
-            "isolinear_chips": 40
+            "isolinear_chips": 40,
+            "photon_warheads": 30
           },
           "effect": "War platform with spires; fleet aura, Honor for kills nearby.",
           "stats": {
@@ -511,7 +513,8 @@
           "name": "Great Hall",
           "cost": {
             "parasteel": 450,
-            "honor": 100
+            "honor": 100,
+            "bloodwine": 50
           },
           "effect": "High Council seat; spend Honor for Great House fleets.",
           "stats": {
@@ -569,7 +572,7 @@
           "cost": {
             "duranium": 70
           },
-          "effect": "Stone hall; +1 militia strength.",
+          "effect": "Stone hall; +1 militia strength; +1 Bloodwine per cycle.",
           "stats": {
             "pop_cap": 1
           }
@@ -646,7 +649,8 @@
           "name": "Nor-type Bastion",
           "cost": {
             "parasteel": 1100,
-            "antimatter": 80
+            "antimatter": 80,
+            "photon_warheads": 40
           },
           "effect": "War refit: 6 arrays + 4 weapons platforms; keeps refining bonus.",
           "stats": {
@@ -1268,7 +1272,8 @@
           "name": "Market Quarter",
           "cost": {
             "duranium": 150,
-            "latinum": 60
+            "latinum": 60,
+            "cormaline": 20
           },
           "effect": "Rent + 10% of sales; luxury goods.",
           "stats": {
@@ -1352,7 +1357,7 @@
             "duranium": 100,
             "nanoprobes": 20
           },
-          "effect": "Only on populated worlds; converts pop to drones.",
+          "effect": "Only on populated worlds; converts pop to drones; +5 nanoprobes per cycle.",
           "stats": {
             "requires": "populated_world"
           }
@@ -1561,7 +1566,7 @@
             "cost": {
               "duranium": 70
             },
-            "effect": "+1 population, +1 militia."
+            "effect": "+1 population, +1 militia, +1 Bloodwine per cycle."
           },
           {
             "role": "extraction",
@@ -1915,7 +1920,7 @@
               "duranium": 100,
               "nanoprobes": 20
             },
-            "effect": "Converts natives or captured population into drones.",
+            "effect": "Converts natives or captured population into drones; +5 nanoprobes per cycle.",
             "requires": "populated_world"
           },
           {

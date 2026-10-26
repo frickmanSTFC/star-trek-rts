@@ -1,5 +1,5 @@
 {
-  "_notes": "source: canon = on-screen; beta = licensed books/games; original = invented for this game. tier: flow | strategic | exotic | refined | faction.",
+  "_notes": "source: canon = on-screen; beta = licensed books/games; original = invented for this game. tier: flow | strategic | exotic | refined | faction | trade_good. Trade goods are sold for latinum rather than spent.",
   "resources": [
     { "id": "tritanium", "name": "Tritanium", "tier": "flow", "source": "canon",
       "found_on": ["asteroid", "class_d", "class_k"], "uses": ["hulls", "structures"],
@@ -56,7 +56,7 @@
       "mechanics": { "side_effect": "vulcan_crew_morale_and_health_penalty" } },
     { "id": "boronite", "name": "Boronite", "tier": "strategic", "source": "canon",
       "found_on": ["class_y", "asteroid_rare"], "uses": ["omega_synthesis"],
-      "lore": "Ore used in synthesizing the Omega molecule (VOY 'The Omega Directive') — verify episode details." },
+      "lore": "Ore used in synthesizing the Omega molecule (VOY 'The Omega Directive')." },
     { "id": "benamite", "name": "Benamite", "tier": "strategic", "source": "canon",
       "found_on": ["asteroid_rare", "derelict"], "uses": ["quantum_slipstream"],
       "lore": "Crystals required for quantum slipstream drive (VOY)." },
@@ -68,21 +68,21 @@
       "lore": "Extremely volatile; ignited by weapons fire. Basis of the Haakonian metreon cascade." },
 
     { "id": "protomatter", "name": "Protomatter", "tier": "exotic", "source": "canon",
-      "found_on": ["synthesized"], "uses": ["genesis_device", "terraforming"],
+      "found_on": ["synthesized"], "inputs": {"antimatter": 2, "energy": 10}, "uses": ["genesis_device", "terraforming"],
       "lore": "Unstable; its use in the Genesis Device caused the Genesis Planet to collapse.",
       "mechanics": { "failure_chance": true } },
     { "id": "neutronium", "name": "Neutronium", "tier": "exotic", "source": "canon",
       "found_on": ["neutron_star"], "uses": ["super_armor", "titan_hulls"],
       "lore": "The Doomsday Machine's hull; shrugged off phasers." },
     { "id": "trilithium", "name": "Trilithium", "tier": "exotic", "source": "canon",
-      "found_on": ["warp_byproduct", "synthesized"], "uses": ["star_killer", "explosives"],
+      "found_on": ["warp_byproduct", "synthesized"], "inputs": {"dilithium": 1, "energy": 5}, "uses": ["star_killer", "explosives"],
       "lore": "Nuclear inhibitor; Soran's star-destroying probes (Generations). Resin is a warp-core byproduct." },
     { "id": "omega_molecule", "name": "Omega Molecule", "tier": "exotic", "source": "canon",
-      "found_on": ["synthesized"], "uses": ["victory_project"],
+      "found_on": ["synthesized"], "inputs": {"boronite": 5, "energy": 50}, "uses": ["victory_project"],
       "lore": "Unlimited power; instability destroys subspace, making warp impossible across a region.",
       "mechanics": { "failure_effect": "permanent_no_warp_zone" } },
     { "id": "red_matter", "name": "Red Matter", "tier": "exotic", "source": "canon",
-      "found_on": ["synthesized"], "uses": ["singularity_weapon", "supernova_containment"], "eras": ["kelvin"],
+      "found_on": ["synthesized"], "inputs": {"protomatter": 1, "energy": 20}, "uses": ["singularity_weapon", "supernova_containment"], "eras": ["kelvin"],
       "lore": "Creates black holes (Star Trek 2009)." },
 
     { "id": "antimatter", "name": "Antimatter (Antideuterium)", "tier": "refined", "source": "canon",
@@ -102,6 +102,7 @@
       "inputs": { "verterium_cortenide": 1, "parasteel": 1 }, "uses": ["warp_nacelles"] },
     { "id": "plasma_conduits", "name": "Plasma Conduits", "tier": "refined", "source": "canon",
       "inputs": { "duranium": 1, "energy": 1 }, "uses": ["ship_power", "station_power"] },
+    { "id": "photon_warheads", "name": "Photon Warheads", "tier": "refined", "source": "canon", "inputs": {"antimatter": 1, "sirillium": 0.5}, "uses": ["photon_torpedoes", "station_defense"], "lore": "Antimatter warhead casings; sirillium boosts the yield." },
 
     { "id": "ketracel_white", "name": "Ketracel-white", "tier": "faction", "faction": "dominion", "source": "canon",
       "uses": ["jemhadar_upkeep"], "mechanics": { "shortage_effect": "jemhadar_go_feral" } },
@@ -115,9 +116,9 @@
     { "id": "bloodwine", "name": "Bloodwine", "tier": "faction", "faction": "klingon", "source": "canon",
       "uses": ["morale", "honor_feasts"] },
 
-    { "id": "self_sealing_stem_bolts", "name": "Self-Sealing Stem Bolts", "tier": "trade_good", "source": "canon",
+    { "id": "self_sealing_stem_bolts", "name": "Self-Sealing Stem Bolts", "tier": "trade_good", "source": "canon", "found_on": ["trade"],
       "uses": ["trade"], "lore": "Nobody knows what they're for. Ferengi will sell them anyway." },
-    { "id": "romulan_ale", "name": "Romulan Ale", "tier": "trade_good", "source": "canon",
+    { "id": "romulan_ale", "name": "Romulan Ale", "tier": "trade_good", "source": "canon", "found_on": ["trade"],
       "uses": ["morale", "smuggling"], "mechanics": { "contraband_in": ["federation"] } }
   ]
 }
