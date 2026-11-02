@@ -128,7 +128,7 @@ public partial class PlanetDriver : Node3D
     {
         if (Me.Phase == _lastPhase) return;
         _lastPhase = Me.Phase;
-        if (Me.Phase == LandingPhase.Descending) FlyTo(Me.LandingTile, 160f);
+        if (Me.Phase == LandingPhase.Descending) FlyTo(Me.LandingTile, 260f);
         if (Me.Phase == LandingPhase.Landed)
         {
             _view.SelectedUnits.UnionWith(Surface.Units.Where(u => u.Owner == LocalPlayer).Select(u => u.Id));
@@ -192,7 +192,7 @@ public partial class PlanetDriver : Node3D
                 else RightClick();
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-                _distanceTarget = Mathf.Max(50f, _distanceTarget * 0.88f);
+                _distanceTarget = Mathf.Max(60f, _distanceTarget * 0.88f);
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
                 _distanceTarget = Mathf.Min(_overview * 1.15f, _distanceTarget * 1.12f);
@@ -247,7 +247,7 @@ public partial class PlanetDriver : Node3D
                 _view.SelectedUnits.UnionWith(Surface.Units.Where(u => u.Owner == LocalPlayer).Select(u => u.Id));
                 break;
             case Key.H:
-                if (Me.LandingTile >= 0) FlyTo(Me.LandingTile, 160f);
+                if (Me.LandingTile >= 0) FlyTo(Me.LandingTile, 260f);
                 else
                 {
                     _focusTarget = _view.MapCentre();
@@ -273,7 +273,7 @@ public partial class PlanetDriver : Node3D
         ClearSelection();
         _selectedBase = baseId;
         var core = Surface.FindStructure(baseId);
-        if (core != null) FlyTo(core.Tile, Mathf.Min(_distanceTarget, 220f));
+        if (core != null) FlyTo(core.Tile, Mathf.Min(_distanceTarget, 360f));
     }
 
     private void Upgrade()
@@ -588,7 +588,7 @@ public partial class PlanetDriver : Node3D
 
         // Haze and shadows follow the zoom: thick close up, thin from high above so the whole map stays readable.
         if (_environment != null) _environment.FogDensity = 0.45f / Mathf.Max(60f, _distance);
-        if (_sun != null) _sun.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 2.2f, 300f, 2500f);
+        if (_sun != null) _sun.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 2.2f, 400f, 6000f);
 
         // Keep the focus over the map.
         var g = Surface.Map.Grid;

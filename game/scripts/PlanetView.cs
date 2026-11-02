@@ -14,10 +14,14 @@ namespace FinalFrontier;
 public partial class PlanetView : Node3D
 {
     /// <summary>World width of one hex (flat side to flat side).</summary>
-    public const float HexWidth = 10f;
+    /// <summary>
+    /// World width of one hex (flat side to flat side). Buildings, rovers and trees keep their own size,
+    /// so this sets how big the ground is compared with them (owner: hexes much bigger than buildings).
+    /// </summary>
+    public const float HexWidth = 25f;
 
     /// <summary>Height of the water surface.</summary>
-    public const float SeaLevel = 0.35f;
+    public const float SeaLevel = 0.5f;
 
     private static readonly float HexRadius = HexWidth / Mathf.Sqrt(3f);
 
@@ -26,6 +30,7 @@ public partial class PlanetView : Node3D
     private int _localPlayer;
 
     private float[] _centreHeight = System.Array.Empty<float>();
+    private float[] _cornerHeight = System.Array.Empty<float>(); // tile * 6 + corner
     private Image _fogImage = null!;
     private ImageTexture _fogTexture = null!;
     private readonly List<ShaderMaterial> _fogMaterials = new();
@@ -212,19 +217,27 @@ public partial class PlanetView : Node3D
         var e = map.Elevation[tile].ToFloat();
         return terrain.Id switch
         {
-            "ocean" => -2.4f + e * 0.6f,
-            "shallows" => -0.5f,
-            _ => 1.1f + terrain.Height * 1.5f + e * 1.4f,
+            "ocean" => -4.5f + e * 1f,
+            "shallows" => -0.9f,
+            _ => 1.4f + terrain.Height * 2.6f + e * 2.6f,
         };
     }
 
     private static long CornerKey(Vector3 p) => ((long)Mathf.RoundToInt(p.X * 10f) << 32) ^ (uint)Mathf.RoundToInt(p.Z * 10f);
+
+    /// <summary>Render-only bumpiness inside a hex (same everywhere for a position).</summary>
+    private static float Bump(Vector3 p)
+    {
+        var h = Mathf.Sin(p.X * 0.21f + Mathf.Cos(p.Z * 0.17f) * 1.7f) * Mathf.Cos(p.Z * 0.19f - p.X * 0.05f);
+        return h * 0.5f + Mathf.Sin(p.X * 0.53f + p.Z * 0.47f) * 0.2f;
+    }
 
     private void BuildTerrain()
     {
         var map = _surface.Map;
         var grid = map.Grid;
         _centreHeight = new float[grid.Count];
+        _cornerHeight = new float[grid.Count * 6];
 
         // Each corner is shared by up to three tiles: its height is their average, so the surface is continuous.
         var sum = new Dictionary<long, (float Total, int Count)>();
@@ -239,59 +252,86 @@ public partial class PlanetView : Node3D
                 var key = CornerKey(centres[t] + Corner(k));
                 sum[key] = sum.TryGetValue(key, out var s) ? (s.Total + h, s.Count + 1) : (h, 1);
             }
-            var peak = map.Terrain(t).Id == "mountains" ? 3.2f + map.Elevation[t].ToFloat() * 3f : 0f;
+            var peak = map.Terrain(t).Id == "mountains" ? 6f + map.Elevation[t].ToFloat() * 6f : 0f;
             _centreHeight[t] = h + peak;
         }
 
+        // Per hex: centre, an inner ring halfway out (bumped a little on land), and the six shared corners.
+        // 13 vertices, 18 triangles; UV.x runs 0 (centre) to 1 (corner) for the hex outline in the shader.
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
         var index = 0;
+        var pos = new Vector3[13];
+        var cols = new Color[13];
+        var uvs = new float[13];
+        var normals = new Vector3[13];
+        var tris = new List<(int, int, int)>();
+        for (var k = 0; k < 6; k++)
+        {
+            tris.Add((0, 1 + k, 1 + (k + 1) % 6));                     // inner fan
+            tris.Add((1 + k, 7 + k, 7 + (k + 1) % 6));                 // ring, outer triangle
+            tris.Add((1 + k, 7 + (k + 1) % 6, 1 + (k + 1) % 6));       // ring, inner triangle
+        }
+
         for (var t = 0; t < grid.Count; t++)
         {
             var terrain = map.Terrain(t);
+            var water = map.IsWater(t);
             var colour = Color.FromHtml(terrain.Color).Lightened((map.Elevation[t].ToFloat() - 0.5f) * 0.15f);
-            if (map.IsWater(t)) colour = new Color(0.36f, 0.33f, 0.24f).Lerp(colour, 0.35f); // seabed
+            if (water) colour = new Color(0.36f, 0.33f, 0.24f).Lerp(colour, 0.35f); // seabed
             var centreColour = colour;
             if (terrain.Id == "mountains") centreColour = map.Elevation[t].ToFloat() > 0.96f ? new Color(0.94f, 0.95f, 0.97f) : colour.Lightened(0.25f);
             if (terrain.Id == "hills") centreColour = colour.Lightened(0.08f);
 
-            var centre = centres[t] with { Y = _centreHeight[t] };
-            var corners = new Vector3[6];
+            pos[0] = centres[t] with { Y = _centreHeight[t] };
             for (var k = 0; k < 6; k++)
             {
                 var p = centres[t] + Corner(k);
                 var s = sum[CornerKey(p)];
-                corners[k] = p with { Y = s.Total / s.Count };
+                pos[7 + k] = p with { Y = s.Total / s.Count };
+                _cornerHeight[t * 6 + k] = pos[7 + k].Y;
+            }
+            for (var k = 0; k < 6; k++)
+            {
+                var mid = pos[0].Lerp(pos[7 + k], 0.5f);
+                if (!water) mid.Y += Bump(mid) * (terrain.Id == "hills" ? 1.4f : terrain.Id == "mountains" ? 2f : 0.7f);
+                pos[1 + k] = mid;
+            }
+            cols[0] = centreColour;
+            uvs[0] = 0;
+            for (var k = 0; k < 6; k++)
+            {
+                cols[1 + k] = centreColour.Lerp(colour, 0.5f);
+                uvs[1 + k] = 0.5f;
+                cols[7 + k] = colour;
+                uvs[7 + k] = 1f;
             }
 
-            // Normals: average the fan's face normals (pointing up, whatever the winding).
-            var faceNormals = new Vector3[6];
-            for (var k = 0; k < 6; k++)
+            // Normals: sum each triangle's face normal (pointing up, whatever the winding) into its vertices.
+            System.Array.Clear(normals);
+            foreach (var (a, b, c) in tris)
             {
-                var n = (corners[k] - centre).Cross(corners[(k + 1) % 6] - centre).Normalized();
-                faceNormals[k] = n.Y < 0 ? -n : n;
+                var n = (pos[b] - pos[a]).Cross(pos[c] - pos[a]);
+                if (n.Y < 0) n = -n;
+                normals[a] += n;
+                normals[b] += n;
+                normals[c] += n;
             }
-            var centreNormal = Vector3.Zero;
-            foreach (var n in faceNormals) centreNormal += n;
 
-            st.SetColor(centreColour.SrgbToLinear());
-            st.SetUV(new Vector2(0, 0));
-            st.SetNormal(centreNormal.Normalized());
-            st.AddVertex(centre);
-            for (var k = 0; k < 6; k++)
+            for (var v = 0; v < 13; v++)
             {
-                st.SetColor(colour.SrgbToLinear());
-                st.SetUV(new Vector2(1, 0));
-                st.SetNormal((faceNormals[k] + faceNormals[(k + 5) % 6]).Normalized());
-                st.AddVertex(corners[k]);
+                st.SetColor(cols[v].SrgbToLinear());
+                st.SetUV(new Vector2(uvs[v], 0));
+                st.SetNormal(normals[v].Normalized());
+                st.AddVertex(pos[v]);
             }
-            for (var k = 0; k < 6; k++)
+            foreach (var (a, b, c) in tris)
             {
-                st.AddIndex(index);
-                st.AddIndex(index + 1 + k);
-                st.AddIndex(index + 1 + (k + 1) % 6);
+                st.AddIndex(index + a);
+                st.AddIndex(index + b);
+                st.AddIndex(index + c);
             }
-            index += 7;
+            index += 13;
         }
 
         var material = FogMaterial("res://shaders/terrain.gdshader");
@@ -333,33 +373,75 @@ public partial class PlanetView : Node3D
         AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = FogMaterial("res://shaders/water.gdshader"), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
     }
 
-    /// <summary>Conifers on forest tiles and the odd tree on plains, placed with render-only randomness.</summary>
+    /// <summary>
+    /// Scatter, placed with render-only randomness: conifers filling forest tiles, a few trees on plains,
+    /// boulders on hills and mountain slopes. Kept off the centre of buildable tiles, where buildings go.
+    /// </summary>
     private void BuildTrees()
     {
         var map = _surface.Map;
         var rng = new RandomNumberGenerator { Seed = 4242UL };
-        var transforms = new List<Transform3D>();
-        var colours = new List<Color>();
+        var trees = (new List<Transform3D>(), new List<Color>());
+        var rocks = (new List<Transform3D>(), new List<Color>());
         for (var t = 0; t < map.Grid.Count; t++)
         {
             var id = map.Terrain(t).Id;
-            var count = id == "forest" ? 5 : id == "plains" && rng.Randf() < 0.18f ? 1 : 0;
-            for (var i = 0; i < count; i++)
+            var treeCount = id switch
+            {
+                "forest" => 22,
+                "plains" => rng.Randf() < 0.45f ? rng.RandiRange(1, 4) : 0,
+                "hills" => rng.Randf() < 0.3f ? rng.RandiRange(1, 3) : 0,
+                _ => 0,
+            };
+            var rockCount = id switch { "hills" => rng.RandiRange(2, 5), "mountains" => rng.RandiRange(3, 6), "desert" => rng.Randf() < 0.3f ? 1 : 0, _ => 0 };
+            var keepClear = map.Terrain(t).Buildable ? 0.32f : 0f; // leave room for a building in the middle
+
+            for (var i = 0; i < treeCount + rockCount; i++)
             {
                 var angle = rng.RandfRange(0, Mathf.Tau);
-                var dist = Mathf.Sqrt(rng.Randf()) * HexRadius * 0.7f;
-                var pos = TileCentre(t) + new Vector3(Mathf.Cos(angle) * dist, 0, Mathf.Sin(angle) * dist);
-                var size = rng.RandfRange(0.8f, 1.35f);
-                transforms.Add(new Transform3D(Basis.Identity.Scaled(new Vector3(size, size * rng.RandfRange(0.9f, 1.3f), size)), pos + new Vector3(0, 1.6f * size, 0)));
-                colours.Add(new Color(0.13f, 0.3f, 0.14f).Lerp(new Color(0.24f, 0.42f, 0.2f), rng.Randf()).SrgbToLinear());
+                var dist = Mathf.Lerp(keepClear, 0.82f, Mathf.Sqrt(rng.Randf())) * HexRadius;
+                var offset = new Vector3(Mathf.Cos(angle) * dist, 0, Mathf.Sin(angle) * dist);
+                var ground = TileCentre(t) + offset;
+                ground.Y = GroundHeight(t, offset);
+                if (i < treeCount)
+                {
+                    var size = rng.RandfRange(0.8f, 1.5f);
+                    trees.Item1.Add(new Transform3D(Basis.Identity.Scaled(new Vector3(size, size * rng.RandfRange(0.9f, 1.4f), size)), ground + new Vector3(0, 1.6f * size, 0)));
+                    trees.Item2.Add(new Color(0.12f, 0.29f, 0.13f).Lerp(new Color(0.25f, 0.43f, 0.2f), rng.Randf()).SrgbToLinear());
+                }
+                else
+                {
+                    var size = rng.RandfRange(0.6f, id == "mountains" ? 2.4f : 1.6f);
+                    var basis = new Basis(new Vector3(rng.Randf(), rng.Randf(), rng.Randf()).Normalized(), rng.RandfRange(0, Mathf.Tau))
+                        .Scaled(new Vector3(size, size * rng.RandfRange(0.5f, 0.9f), size));
+                    rocks.Item1.Add(new Transform3D(basis, ground + new Vector3(0, 0.3f * size, 0)));
+                    rocks.Item2.Add(new Color(0.36f, 0.34f, 0.31f).Lerp(new Color(0.5f, 0.47f, 0.42f), rng.Randf()).SrgbToLinear());
+                }
             }
         }
-        var mm = new MultiMesh
-        {
-            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-            UseColors = true,
-            Mesh = new CylinderMesh { TopRadius = 0f, BottomRadius = 1.1f, Height = 3.4f, RadialSegments = 7, Rings = 1 },
-        };
+        AddScatter(new CylinderMesh { TopRadius = 0f, BottomRadius = 1.1f, Height = 3.4f, RadialSegments = 7, Rings = 1 }, trees.Item1, trees.Item2);
+        AddScatter(new SphereMesh { Radius = 1f, Height = 1.6f, RadialSegments = 6, Rings = 3 }, rocks.Item1, rocks.Item2);
+    }
+
+    /// <summary>
+    /// Approximate ground height at an offset from a tile's centre: blends from the centre height toward the
+    /// edge between the two nearest corners (ignores the small render-only bumps).
+    /// </summary>
+    private float GroundHeight(int tile, Vector3 offset)
+    {
+        var deg = Mathf.RadToDeg(Mathf.Atan2(offset.X, offset.Z));
+        if (deg < 0) deg += 360f;
+        var k = Mathf.Min(5, (int)(deg / 60f));
+        var f = (deg - k * 60f) / 60f;
+        var edge = Mathf.Lerp(_cornerHeight[tile * 6 + k], _cornerHeight[tile * 6 + (k + 1) % 6], f);
+        var r = Mathf.Clamp(offset.Length() / HexRadius, 0f, 1f);
+        return Mathf.Lerp(_centreHeight[tile], edge, r);
+    }
+
+    private void AddScatter(Mesh mesh, List<Transform3D> transforms, List<Color> colours)
+    {
+        if (transforms.Count == 0) return;
+        var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = mesh };
         mm.InstanceCount = transforms.Count;
         for (var i = 0; i < transforms.Count; i++)
         {
@@ -491,10 +573,10 @@ public partial class PlanetView : Node3D
         {
             var t = tiles[i];
             var id = _sim.Data.Resources[map.DepositResource[t]].Id;
-            var size = Mathf.Clamp(map.DepositAmount[t].ToFloat() / 500f, 0.7f, 1.5f);
+            var size = Mathf.Clamp(map.DepositAmount[t].ToFloat() / 400f, 1f, 2.2f);
             var colour = (Icons.ResourceColors.TryGetValue(id, out var c) ? c : new Color(0.8f, 0.6f, 1f)).SrgbToLinear();
             colour.A = FogAt(t) == Fog.Visible ? 1f : 0.3f;
-            var basePos = TileCentre(t) + new Vector3(2.4f, 0, -1.4f);
+            var basePos = TileCentre(t) + new Vector3(6.5f, 0, -3.5f);
             for (var k = 0; k < 3; k++)
             {
                 var offset = new Vector3((k - 1) * 0.9f, 0, (k % 2) * 0.8f - 0.3f);
@@ -533,9 +615,9 @@ public partial class PlanetView : Node3D
             var label = new Label3D
             {
                 Text = string.Join("\n", lines),
-                Position = sum / n + new Vector3(0, 60, 0),
+                Position = sum / n + new Vector3(0, 140, 0),
                 FontSize = 44,
-                PixelSize = 0.34f,
+                PixelSize = 0.8f,
                 OutlineSize = 12,
                 Modulate = new Color(1f, 0.86f, 0.5f),
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
@@ -556,7 +638,7 @@ public partial class PlanetView : Node3D
         var t = Mathf.Clamp((_sim.Tick - me.DescentStartTick + alpha) / total, 0f, 1f);
         var eased = 1f - (1f - t) * (1f - t) * (1f - t); // fast entry, slow final braking
         var ground = TileCentre(me.LandingTile);
-        _pod.Position = ground + new Vector3(0, Mathf.Lerp(260f, 0.2f, eased), 0);
+        _pod.Position = ground + new Vector3(0, Mathf.Lerp(420f, 0.2f, eased), 0);
         _pod.RotationDegrees = new Vector3(0, t * 40f, 0);
         if (_pod.GetNodeOrNull<Node3D>("Flame") is { } flame) flame.Scale = new Vector3(1, Mathf.Lerp(0.7f, 1.6f, t), 1);
     }
@@ -579,7 +661,7 @@ public partial class PlanetView : Node3D
             Direction = Vector3.Up,
             Spread = 85f,
             InitialVelocityMin = 6f,
-            InitialVelocityMax = 16f,
+            InitialVelocityMax = 22f,
             Gravity = new Vector3(0, -2.5f, 0),
             DampingMin = 3f,
             DampingMax = 5f,
