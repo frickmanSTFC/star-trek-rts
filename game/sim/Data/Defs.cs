@@ -16,14 +16,26 @@ public sealed record PlanetClassDef(string Id, string Name, Fix64 Habitability, 
     public bool IsFullColony => ColonyType == "full";
 }
 
-/// <summary>A structure from buildings.json (the "buildings" list).</summary>
+/// <summary>
+/// A structure from buildings.json (the "buildings" list). Economy fields are optional in the data:
+/// BuildSeconds 0 = can't be built by the player; ExtractPerMinute = how fast it mines the deposit
+/// under it (RequiresDeposit); BuildRadius / BuildQueues = for colony cores, how far from it you can
+/// build and how many constructions run at once.
+/// </summary>
 public sealed record BuildingDef(
     string Id,
     string Name,
     string Layer,
     string Category,
+    string Effect,
     IReadOnlyList<ResourceAmount> Cost,
-    IReadOnlyList<ResourceAmount> OutputPerMinute);
+    IReadOnlyList<ResourceAmount> OutputPerMinute,
+    IReadOnlyList<ResourceAmount> UpkeepPerMinute,
+    int BuildSeconds,
+    bool RequiresDeposit,
+    Fix64 ExtractPerMinute,
+    int BuildRadius,
+    int BuildQueues);
 
 public sealed record StarDef(string Name, string Class, Fix64 Radius);
 

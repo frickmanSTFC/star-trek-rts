@@ -36,6 +36,9 @@ public sealed class GameData
     public IReadOnlyList<PlanetSurfaceDef> Surfaces { get; }
     public IReadOnlyList<SurfaceUnitDef> SurfaceUnits { get; }
     public HintRules Hints { get; }
+
+    /// <summary>Buildings the player can place on a planet surface, in menu order (surfaces.json build_menu).</summary>
+    public IReadOnlyList<string> BuildMenu { get; }
     public LandingRules Landing { get; }
 
     /// <summary>Ground vehicle ids and names from vehicles.json.</summary>
@@ -62,8 +65,9 @@ public sealed class GameData
         List<FactionDef> factions, List<HullDef> hulls, List<ShipClassDef> classes, List<ResourceDef> resources,
         List<PlanetClassDef> planetClasses, List<BuildingDef> buildings, List<MapDef> maps,
         List<TerrainDef> terrain, List<PlanetSurfaceDef> surfaces, List<SurfaceUnitDef> surfaceUnits,
-        HintRules hints, LandingRules landing, Dictionary<string, string> groundVehicles, List<string> loadProblems)
+        HintRules hints, LandingRules landing, List<string> buildMenu, Dictionary<string, string> groundVehicles, List<string> loadProblems)
     {
+        BuildMenu = buildMenu;
         Terrain = terrain;
         Surfaces = surfaces;
         SurfaceUnits = surfaceUnits;
@@ -175,8 +179,15 @@ public sealed class GameData
             .Select(b =>
             {
                 var id = Str(b, "id");
+                int Int(string prop) => b.TryGetProperty(prop, out var v) ? v.GetInt32() : 0;
                 return new BuildingDef(id, Str(b, "name"), Str(b, "layer"), Str(b, "category"),
-                    Amounts(b, "cost", $"Building {id}"), Amounts(b, "output_per_min", $"Building {id}"));
+                    b.TryGetProperty("effect", out var effect) ? effect.GetString() ?? "" : "",
+                    Amounts(b, "cost", $"Building {id}"), Amounts(b, "output_per_min", $"Building {id}"),
+                    Amounts(b, "upkeep_per_min", $"Building {id}"),
+                    Int("build_seconds"),
+                    b.TryGetProperty("requires_deposit", out var rd) && rd.GetBoolean(),
+                    b.TryGetProperty("extract_per_min", out var ex) ? Num(ex) : Fix64.Zero,
+                    Int("build_radius"), Int("build_queues"));
             })
             .ToList();
 
@@ -254,7 +265,9 @@ public sealed class GameData
             groundVehicles.TryAdd(Str(v, "id"), Str(v, "name"));
 
         return new GameData(factions, hulls, classes, resources, planetClasses, buildings, maps,
-            terrain, surfaces, surfaceUnits, hints, landing, groundVehicles, problems);
+            terrain, surfaces, surfaceUnits, hints, landing,
+            surfacesRoot.GetProperty("build_menu").EnumerateArray().Select(b => b.GetString()!).ToList(),
+            groundVehicles, problems);
     }
 
     private static string Str(JsonElement e, string property) => e.GetProperty(property).GetString()!;
@@ -319,7 +332,20 @@ public sealed class GameData
             if (_terrain.TryGetValue(t, out var def) && !(def.Passable && def.Buildable))
                 problems.Add($"Landing: terrain '{t}' must be passable and buildable.");
         }
-        if (!_buildings.ContainsKey(Landing.HubBuilding)) problems.Add($"Landing: unknown hub building '{Landing.HubBuilding}'.");
+        if (!_buildings.TryGetValue(Landing.HubBuilding, out var hub)) problems.Add($"Landing: unknown hub building '{Landing.HubBuilding}'.");
+        else if (hub.BuildRadius < 1 || hub.BuildQueues < 1) problems.Add($"Landing: hub '{hub.Id}' needs build_radius and build_queues of at least 1.");
+        foreach (var id in BuildMenu)
+        {
+            if (!_buildings.TryGetValue(id, out var b))
+            {
+                problems.Add($"Build menu: unknown building '{id}'.");
+                continue;
+            }
+            if (b.Layer != "surface") problems.Add($"Build menu: {id} is a {b.Layer} building, not surface.");
+            if (b.BuildSeconds < 1) problems.Add($"Build menu: {id} needs build_seconds.");
+            if (b.Cost.Count == 0) problems.Add($"Build menu: {id} has no cost.");
+            if (b.RequiresDeposit && b.ExtractPerMinute <= Fix64.Zero) problems.Add($"Build menu: {id} requires a deposit but has no extract_per_min.");
+        }
         foreach (var u in Landing.Units)
             if (!_surfaceUnits.ContainsKey(u)) problems.Add($"Landing: unit '{u}' has no surface stats.");
         foreach (var u in SurfaceUnits)

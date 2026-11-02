@@ -45,7 +45,8 @@ public class EconomyTests
             var gained = (sim.Players[0].Stock[r.Index] - before[r.Index]).ToDouble();
             Assert.True(System.Math.Abs(gained - expected) < 1e-6, $"{r.Id}: gained {gained}, expected {expected}");
         }
-        Assert.Equal(Fix64.FromInt(60), sim.IncomePerMinute(0)[R("duranium")]);
+        var hubDuranium = hub.OutputPerMinute.Single(o => o.Resource == R("duranium")).Amount;
+        Assert.Equal(hubDuranium, sim.IncomePerMinute(0)[R("duranium")]);
     }
 
     [Fact]

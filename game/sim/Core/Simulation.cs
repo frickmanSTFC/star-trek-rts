@@ -138,7 +138,10 @@ public sealed class Simulation
         return null;
     }
 
-    /// <summary>What a player's buildings produce per minute (for the HUD; the tick adds 1/900th of this).</summary>
+    /// <summary>
+    /// What a player's buildings make per minute, net of upkeep (for the HUD; each tick moves 1/900th of this).
+    /// Negative where upkeep outweighs output.
+    /// </summary>
     public ResourceBag IncomePerMinute(int player)
     {
         var income = new ResourceBag(Data.Resources.Count);
@@ -149,7 +152,7 @@ public sealed class Simulation
                 foreach (var o in Data.Building(b.DefId).OutputPerMinute)
                     income.Add(o.Resource, o.Amount);
         }
-        Surface?.AddOutputs(player, (_, o) => income.Add(o.Resource, o.Amount));
+        Surface?.AddIncome(player, income);
         return income;
     }
 
@@ -199,6 +202,8 @@ public sealed class Simulation
                 break;
             case LandColonyCommand:
             case MoveUnitsCommand:
+            case PlaceBuildingCommand:
+            case CancelBuildingCommand:
                 break; // surface commands with no surface loaded: ignore
             default:
                 throw new NotSupportedException($"Unhandled command {command.GetType().Name}.");
@@ -215,7 +220,6 @@ public sealed class Simulation
                 foreach (var o in Data.Building(b.DefId).OutputPerMinute)
                     stock.Add(o.Resource, o.Amount / TicksPerMinute);
         }
-        Surface?.AddOutputs(null, (owner, o) => _players[owner].Stock.Add(o.Resource, o.Amount / TicksPerMinute));
     }
 
     private static void Movement(Ship ship)

@@ -27,7 +27,19 @@ public partial class PlanetView : Node3D
     private MeshInstance3D _hover = null!;
     private StandardMaterial3D _hoverMaterial = null!;
     private Node3D _pod = null!;
-    private readonly Dictionary<int, Node3D> _structures = new();
+    private sealed class StructureVisual
+    {
+        public required Node3D Model;
+        public required Label3D Label;
+        public required StructureState State;
+    }
+
+    private readonly Dictionary<int, StructureVisual> _structures = new();
+    private Node3D? _ghost;
+    private string? _ghostId;
+    private StandardMaterial3D _ghostMaterial = null!;
+    private StandardMaterial3D _hologram = null!;
+    private MeshInstance3D _rangeRing = null!;
     private int _surveyedCount = -1;
     private LandingPhase _lastPhase = (LandingPhase)(-1);
 
@@ -65,6 +77,21 @@ public partial class PlanetView : Node3D
             Visible = false,
         };
         AddChild(_hover);
+
+        _ghostMaterial = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            AlbedoColor = new Color(0.3f, 1f, 0.4f, 0.45f),
+        };
+        _hologram = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            AlbedoColor = new Color(0.45f, 0.8f, 1f, 0.35f),
+        };
+        _rangeRing = new MeshInstance3D { Visible = false };
+        AddChild(_rangeRing);
 
         _pod = BuildPod();
         _pod.Visible = false;
@@ -137,7 +164,7 @@ public partial class PlanetView : Node3D
         }
 
         UpdatePod(me, alpha);
-        UpdateStructures();
+        UpdateStructures((float)GetProcessDeltaTime());
         UpdateRovers(alpha);
     }
 
@@ -263,24 +290,6 @@ public partial class PlanetView : Node3D
         return pod;
     }
 
-    /// <summary>Placeholder Colony Hub: base, dome, mast and a status light.</summary>
-    private static Node3D BuildHub(Color owner)
-    {
-        var hub = new Node3D();
-        var hull = new StandardMaterial3D { AlbedoColor = new Color(0.88f, 0.9f, 0.93f), Roughness = 0.4f };
-        hub.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 4.2f, BottomRadius = 4.6f, Height = 1.6f }, Position = new Vector3(0, 0.8f, 0), MaterialOverride = hull });
-        hub.AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 3.2f, Height = 3.4f, IsHemisphere = true }, Position = new Vector3(0, 1.6f, 0), MaterialOverride = hull });
-        hub.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.15f, BottomRadius = 0.25f, Height = 5f }, Position = new Vector3(2.4f, 4f, 1.2f), MaterialOverride = hull });
-        hub.AddChild(new MeshInstance3D
-        {
-            Mesh = new TorusMesh { InnerRadius = 4.5f, OuterRadius = 5f },
-            Position = new Vector3(0, 1.65f, 0),
-            MaterialOverride = new StandardMaterial3D { ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, AlbedoColor = owner },
-        });
-        hub.AddChild(new OmniLight3D { LightColor = owner, LightEnergy = 1.5f, OmniRange = 18f, Position = new Vector3(0, 6, 0) });
-        return hub;
-    }
-
     private MultiMesh AddMultiMesh(Mesh mesh, bool colours, bool emissive)
     {
         var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = colours, Mesh = mesh };
@@ -304,17 +313,118 @@ public partial class PlanetView : Node3D
         _pod.GetNode<MeshInstance3D>("Flame").Scale = new Vector3(1, Mathf.Lerp(0.6f, 1.4f, t), 1);
     }
 
-    private void UpdateStructures()
+    /// <summary>
+    /// Keeps one model per structure: a blue hologram that rises with construction progress, swapped for
+    /// the solid model on completion. Labels show queue/progress or why a building is idle.
+    /// </summary>
+    private void UpdateStructures(float delta)
     {
+        var seen = new HashSet<int>();
         foreach (var s in _surface.Structures)
         {
-            if (_structures.ContainsKey(s.Id)) continue;
-            var node = BuildHub(PlanetDriver.PlayerColors[s.Owner % PlanetDriver.PlayerColors.Length]);
-            node.Position = TileCentre(s.Tile);
-            AddChild(node);
-            _structures[s.Id] = node;
+            seen.Add(s.Id);
+            var complete = s.State == StructureState.Complete;
+            if (!_structures.TryGetValue(s.Id, out var v) || (v.State != StructureState.Complete && complete))
+            {
+                if (v != null)
+                {
+                    v.Model.QueueFree();
+                    v.Label.QueueFree();
+                }
+                var model = BuildingModels.Build(s.DefId, PlanetDriver.PlayerColors[s.Owner % PlanetDriver.PlayerColors.Length]);
+                if (!complete) BuildingModels.Override(model, _hologram);
+                model.Position = TileCentre(s.Tile);
+                model.RotationDegrees = new Vector3(0, -60f * s.Facing, 0);
+                AddChild(model);
+                var label = new Label3D
+                {
+                    Position = TileCentre(s.Tile) + new Vector3(0, 11f, 0),
+                    FontSize = 36,
+                    PixelSize = 0.09f,
+                    OutlineSize = 10,
+                    Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                    NoDepthTest = true,
+                };
+                AddChild(label);
+                v = new StructureVisual { Model = model, Label = label, State = s.State };
+                _structures[s.Id] = v;
+            }
+            v.State = s.State;
+
+            if (!complete)
+            {
+                var f = Mathf.Max(0.08f, _surface.BuildFraction(s).ToFloat());
+                v.Model.Scale = new Vector3(1, f, 1);
+                v.Label.Text = s.State == StructureState.Queued ? "Queued" : $"Building {Mathf.RoundToInt(f * 100)}%";
+                v.Label.Modulate = new Color(0.6f, 0.85f, 1f);
+                continue;
+            }
+
+            v.Model.Scale = Vector3.One;
+            v.Label.Text = s.Status switch
+            {
+                StructureStatus.NoUpkeep => "Idle: can't pay upkeep",
+                StructureStatus.Depleted => "Deposit used up",
+                _ => "",
+            };
+            v.Label.Modulate = new Color(1f, 0.45f, 0.35f);
+            if (s.Status == StructureStatus.Working && v.Model.GetNodeOrNull<Node3D>("Spin") is { } spin)
+                spin.RotateY(delta * 2.5f);
+        }
+
+        // Cancelled buildings disappear.
+        foreach (var id in new List<int>(_structures.Keys))
+        {
+            if (seen.Contains(id)) continue;
+            _structures[id].Model.QueueFree();
+            _structures[id].Label.QueueFree();
+            _structures.Remove(id);
         }
     }
+
+    /// <summary>Show a see-through building at a tile while placing (green if allowed, red if not); null hides it.</summary>
+    public void SetGhost(string? buildingId, int tile, int facing, bool allowed)
+    {
+        if (buildingId != _ghostId)
+        {
+            _ghost?.QueueFree();
+            _ghost = null;
+            _ghostId = buildingId;
+            if (buildingId != null)
+            {
+                _ghost = BuildingModels.Build(buildingId, Colors.White);
+                BuildingModels.Override(_ghost, _ghostMaterial);
+                AddChild(_ghost);
+            }
+        }
+        if (_ghost == null) return;
+        _ghost.Visible = tile >= 0;
+        if (tile < 0) return;
+        _ghost.Position = TileCentre(tile) + new Vector3(0, 0.1f, 0);
+        _ghost.RotationDegrees = new Vector3(0, -60f * facing, 0);
+        _ghostMaterial.AlbedoColor = allowed ? new Color(0.3f, 1f, 0.4f, 0.45f) : new Color(1f, 0.3f, 0.25f, 0.45f);
+    }
+
+    /// <summary>Outline of where the player may build (hexes within the colony's build radius).</summary>
+    public void ShowBuildRange(int centre, int radius)
+    {
+        _rangeRing.Visible = centre >= 0;
+        if (centre < 0) return;
+        var material = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            AlbedoColor = new Color(0.55f, 0.85f, 1f, 0.12f),
+        };
+        var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = new CylinderMesh { TopRadius = HexRadius * 0.9f, BottomRadius = HexRadius * 0.9f, Height = 0.15f, RadialSegments = 6, Rings = 1 } };
+        var tiles = _surface.Map.Grid.Within(centre, radius);
+        mm.InstanceCount = tiles.Count;
+        for (var i = 0; i < tiles.Count; i++) mm.SetInstanceTransform(i, new Transform3D(Basis.Identity, TileCentre(tiles[i]) + new Vector3(0, 0.12f, 0)));
+        foreach (var c in _rangeRing.GetChildren()) c.QueueFree();
+        _rangeRing.AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = material });
+    }
+
+    public void HideBuildRange() => _rangeRing.Visible = false;
 
     private void UpdateRovers(float alpha)
     {

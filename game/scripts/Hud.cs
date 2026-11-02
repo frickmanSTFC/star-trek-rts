@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text;
 using FinalFrontier.Sim.Core;
 using FinalFrontier.Sim.Math;
@@ -17,6 +19,9 @@ public partial class Hud : CanvasLayer
     private Label _status = null!;
     private Label _banner = null!;
     private PanelContainer _bannerPanel = null!;
+    private PanelContainer _buildPanel = null!;
+    private HBoxContainer _buildRow = null!;
+    private readonly Dictionary<string, Button> _buildButtons = new();
 
     public override void _Ready()
     {
@@ -42,7 +47,44 @@ public partial class Hud : CanvasLayer
         status.GrowHorizontal = Control.GrowDirection.Begin;
         _status.HorizontalAlignment = HorizontalAlignment.Right;
         AddChild(status);
+
+        _buildPanel = Panel(out var buildTitle, 13);
+        buildTitle.QueueFree();
+        _buildPanel.MouseFilter = Control.MouseFilterEnum.Pass;
+        _buildRow = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Pass };
+        _buildRow.AddThemeConstantOverride("separation", 8);
+        _buildPanel.AddChild(_buildRow);
+        _buildPanel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.CenterBottom, Control.LayoutPresetMode.Minsize, 12);
+        _buildPanel.GrowHorizontal = Control.GrowDirection.Both;
+        _buildPanel.GrowVertical = Control.GrowDirection.Begin;
+        _buildPanel.Visible = false;
+        AddChild(_buildPanel);
     }
+
+    /// <summary>Build bar along the bottom: one button per building (label includes hotkey and cost).</summary>
+    public void SetBuildMenu(IEnumerable<(string Id, string Label)> items, Action<string> onPick)
+    {
+        foreach (var b in _buildButtons.Values) b.QueueFree();
+        _buildButtons.Clear();
+        foreach (var (id, label) in items)
+        {
+            var button = new Button { Text = label, ToggleMode = true, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(150, 54) };
+            button.AddThemeFontSizeOverride("font_size", 14);
+            button.Pressed += () => onPick(id);
+            _buildRow.AddChild(button);
+            _buildButtons[id] = button;
+        }
+    }
+
+    /// <summary>Show or hide the build bar; highlight the building being placed (null = none).</summary>
+    public void ShowBuildMenu(bool visible, string? active)
+    {
+        _buildPanel.Visible = visible;
+        foreach (var (id, button) in _buildButtons) button.SetPressedNoSignal(id == active);
+    }
+
+    /// <summary>"+12/min", "−6/min" (true minus sign).</summary>
+    public static string PerMinute(Fix64 v) => (v < Fix64.Zero ? "\u2212" + Whole(-v) : "+" + Whole(v)) + "/min";
 
     public void ShowResources(Simulation sim, int localPlayer)
     {
@@ -55,7 +97,7 @@ public partial class Hud : CanvasLayer
         {
             bar.Append(r.Name).Append(' ').Append(Whole(player.Stock[r.Index]));
             var perMin = income[r.Index];
-            if (perMin != Fix64.Zero) bar.Append(" (+").Append(Whole(perMin)).Append("/min)");
+            if (perMin != Fix64.Zero) bar.Append(" (").Append(PerMinute(perMin)).Append(')');
             bar.Append("     ");
         }
         _resources.Text = bar.ToString().TrimEnd();

@@ -44,6 +44,28 @@ public sealed class SurfaceUnit
     }
 }
 
+public enum StructureState
+{
+    /// <summary>Paid for and placed, waiting for a free build queue.</summary>
+    Queued,
+
+    /// <summary>Under construction.</summary>
+    Building,
+
+    Complete,
+}
+
+public enum StructureStatus
+{
+    Working,
+
+    /// <summary>Couldn't pay its upkeep this tick (e.g. a mine with no energy), so it produced nothing.</summary>
+    NoUpkeep,
+
+    /// <summary>A mine whose deposit is used up.</summary>
+    Depleted,
+}
+
 /// <summary>A building on a surface tile.</summary>
 public sealed class SurfaceStructure
 {
@@ -52,12 +74,24 @@ public sealed class SurfaceStructure
     public string DefId { get; }
     public int Tile { get; }
 
-    internal SurfaceStructure(int id, int owner, string defId, int tile)
+    /// <summary>Which way it faces, 0–5 in 60° steps (hex sides). Cosmetic for now; entrances and footprints later.</summary>
+    public int Facing { get; }
+
+    public StructureState State { get; internal set; }
+
+    /// <summary>Ticks of construction done so far.</summary>
+    public int BuildTicks { get; internal set; }
+
+    public StructureStatus Status { get; internal set; }
+
+    internal SurfaceStructure(int id, int owner, string defId, int tile, int facing, StructureState state)
     {
         Id = id;
         Owner = owner;
         DefId = defId;
         Tile = tile;
+        Facing = facing;
+        State = state;
     }
 
     internal void AddToHash(ref StateHasher h)
@@ -66,6 +100,10 @@ public sealed class SurfaceStructure
         h.Add(Owner);
         h.Add(DefId);
         h.Add(Tile);
+        h.Add(Facing);
+        h.Add((int)State);
+        h.Add(BuildTicks);
+        h.Add((int)Status);
     }
 }
 

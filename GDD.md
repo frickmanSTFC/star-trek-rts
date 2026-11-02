@@ -68,8 +68,14 @@ layer above it once the surface game is fun.
   2. *Land:* pick a flat site (plains or desert with passable land on all six sides). The colony pod falls for a few
      seconds, then the Colony Hub stands there and income starts.
   3. *Survey:* survey rovers roll out; exact deposits are revealed around the landing site and wherever rovers drive.
-- **Deposits** are rolled per tile by terrain (duranium in hills, deuterium on coasts, dilithium in deserts…) and are
-  what mines will be built on next.
+- **Deposits** are rolled per tile by terrain (duranium in hills, deuterium on coasts, dilithium in deserts…).
+- **Building** (from the build bar once landed): one building per hex, on surveyed, buildable tiles within the Colony
+  Hub's build radius (4). The cost is paid on placement; the hub's single build queue builds one at a time, the rest
+  wait in order; unfinished buildings can be cancelled for a full refund. Buildings turn in 60° steps (hex sides).
+  - *Mining Complex:* must sit on a deposit; moves it into your stockpile (40/min) until it runs out. Upkeep: energy.
+  - *Fusion Reactor:* +energy; burns deuterium. *Prefab Habitat:* +crew; upkeep: energy.
+  - A building that can't pay its upkeep idles (no output) until stock returns.
+- **Camera:** pan, zoom, and turn the view in 90° steps (Q / E).
 - **Opponent:** solo first to get landing, surveying and building right; then a Cardassian landing on the same world.
 
 ## 4. Economy
