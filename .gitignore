@@ -2,3 +2,9 @@
 *.zip
 *.blend1
 __pycache__/
+
+# Godot / .NET build output
+game/.godot/
+**/bin/
+**/obj/
+*.user

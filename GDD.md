@@ -223,8 +223,11 @@ Klingons never retreat, Borg drones assimilate defenders, Changelings replace of
 ## 12. Open Decisions
 
 1. **IP path:** fan project with real names, or IP-safe original universe "inspired by"?
-2. **Engine:** Unity (DOTS for large unit counts), Godot (open source, lighter), or Unreal (visual fidelity, heavier).
+2. ~~**Engine**~~ **Decided (2026-11-02): Godot 4.7 .NET (C#).** Game rules live in a separate pure-C# fixed-point
+   simulation (`game/sim/`); Godot only renders and takes input. Chosen over Unity for a two-person team (owner + Claude):
+   text scene files, headless builds and tests, no license terms. See `game/README.md`.
 3. **Map:** two-scale lanes (recommended) vs. single seamless galaxy.
 4. **Real-time vs pausable** (pause for single-player only?).
 5. **Ground combat:** abstracted invasions (recommended for v1) vs. tactical ground battles.
-6. **MVP scope:** suggest 1 era (TNG/Dominion War) × 3 factions (Fed, Klingon, Cardassian) × 1–2 player first.
+6. **MVP scope:** proposed: 1 era (Dominion War) × 2 factions (Federation, Cardassian) × single-player vs AI ×
+   one star system. Multiplayer later (the sim is lockstep-ready from day one). Klingons are the third faction.

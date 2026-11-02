@@ -1,0 +1,15 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <!-- Godot side: rendering, input, UI, audio. Game rules live in sim/ (no Godot types there). -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>FinalFrontier</RootNamespace>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- sim/ and tests/ are their own projects; keep their files out of this one. -->
+    <Compile Remove="sim/**;tests/**" />
+    <None Remove="sim/**;tests/**" />
+    <ProjectReference Include="sim/FinalFrontier.Sim.csproj" />
+  </ItemGroup>
+</Project>

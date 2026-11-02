@@ -11,6 +11,13 @@ Fan-made Star Trek RTS design package. `README.md` lists every page, data file a
 - Galaxy map (`data/galaxy_map.json`): Sol-centred light-years, +x toward Beta, +y toward the core (core at 0, 26000). Routes use the stable Bajoran wormhole but skip the unstable Barzan wormhole (opt-in checkbox in the planner); transwarp is Borg only. Match drive speeds are placeholders: Warp 5 = 30, Warp 8 = 60, Warp 9.9 = 110, slipstream = 300 ly per minute of play.
 - All numbers are placeholders for balancing.
 
+## Game prototype (`game/`)
+
+- Engine: **Godot 4.7 .NET (C#)**. `game/sim/` is the deterministic simulation (pure C#, `Fix64` fixed point, 15 Hz ticks, no Godot types); `game/scripts/` is the Godot side. Rules for sim code are in `game/README.md`; follow them.
+- Build/test: `cd game && dotnet build FinalFrontier.sln && dotnet test`. Needs .NET 8 SDK (`apt-get install -y dotnet-sdk-8.0` in a fresh container). The Godot binary can't be downloaded here (downloads.godotengine.org and github.com releases blocked), so the editor run is the owner's; `dotnet build` still type-checks the Godot scripts against GodotSharp.
+- The sim loads `../data/*.json` directly; `GameData.Validate()` (test `RealDataPassesChecks`) must stay empty.
+- MVP: Dominion War, Federation vs Cardassian, single-player vs AI, one system.
+
 ## How the pages are built
 
 - Each page: `tools/gen_<x>_page.py` reads `data/*.json` + `tools/faction_meta.py`, replaces `/*DATA*/` in `tools/<x>_page.html`, writes `<x>.html` at the repo root.

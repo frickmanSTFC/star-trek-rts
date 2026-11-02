@@ -24,6 +24,10 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 - `blender/`: the same 20-second pod drop in 3D for Blender 5.2. Open `colony_pod.blend` and press Play, or rebuild it from `build_colony_pod.py` (Scripting tab → Open → Run Script, or `blender --background --python blender/build_colony_pod.py -- --out blender/colony_pod.blend`). `previews/` has test renders; add `--preview DIR --frames 17.6 --zoom 3` to render close-ups.
 - `concept-canvas/`: source for the structure concept boards (7 factions × 4 upgrade lines). These files render inside the online canvas, not in a plain browser.
 
+## Game prototype
+
+`game/`: the playable prototype in **Godot 4.7 (.NET / C#)**. Open `game/project.godot` in Godot 4.7 .NET and press Run. Game rules live in `game/sim/` (deterministic, fixed-point, tested with `cd game && dotnet test`). See `game/README.md`.
+
 ## Website (GitHub Pages)
 
 `docs/` is a ready-to-serve website: a landing page plus standalone copies of every design page, the Colony Hub art and the rendered video. Once Pages is on (Settings → Pages → Deploy from a branch → `main` / `docs`), it lives at https://frickmanstfc.github.io/star-trek-rts/.
