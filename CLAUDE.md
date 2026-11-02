@@ -17,6 +17,7 @@ Fan-made Star Trek RTS design package. `README.md` lists every page, data file a
 - Build/test: `cd game && dotnet build FinalFrontier.sln && dotnet test`. Needs .NET 8 SDK (`apt-get install -y dotnet-sdk-8.0` in a fresh container). The Godot binary can't be downloaded here (downloads.godotengine.org and github.com releases blocked), so the editor run is the owner's; `dotnet build` still type-checks the Godot scripts against GodotSharp.
 - The sim loads `../data/*.json` directly; `GameData.Validate()` (test `RealDataPassesChecks`) must stay empty.
 - MVP: Dominion War, Federation vs Cardassian, single-player vs AI, one system.
+- **Priority: building and economy come before combat.** It's an RTS: colonize, build, mine and produce first; combat is needed but secondary. Order: economy + construction → shipyard production → combat.
 
 ## How the pages are built
 

@@ -231,3 +231,4 @@ Klingons never retreat, Borg drones assimilate defenders, Changelings replace of
 5. **Ground combat:** abstracted invasions (recommended for v1) vs. tactical ground battles.
 6. **MVP scope:** proposed: 1 era (Dominion War) × 2 factions (Federation, Cardassian) × single-player vs AI ×
    one star system. Multiplayer later (the sim is lockstep-ready from day one). Klingons are the third faction.
+   **Build order: building/economy first** (colony, mining, power, construction, shipyard), then combat.
