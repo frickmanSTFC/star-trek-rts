@@ -64,6 +64,7 @@ These links only open for people the owner has shared them with (Share menu on e
 | `buildings.json` | All structures, faction-only buildings, relics, `faction_lines` (level-1-to-max upgrade chains for all seven factions) and `starting_sets` (each faction's Class M opening buildings) |
 | `hazards.json` | Anomalies, habitat dangers, raiders, crisis entities and wildcards |
 | `galaxy_map.json` | Star systems, territories, warp lanes and wormholes, warp scale and drive speeds |
+| `maps.json` | Skirmish maps for the game prototype: one star system each (bodies, deposits, player starts, starting stock) |
 
 Each entry is tagged `canon` (on screen), `beta` (licensed books/games) or `original` (invented for this game). All costs and stats are placeholders.
 

@@ -12,7 +12,8 @@
   },
   "buildings": [
     { "id": "colony_hub", "name": "Colony Hub", "layer": "surface", "category": "core", "source": "original",
-      "cost": { "duranium": 100, "crew": 50 }, "effect": "Founds a colony; supply range 1; 1 build queue.", "upgrades_to": "colonial_administration" },
+      "cost": { "duranium": 100, "crew": 50 }, "effect": "Founds a colony; supply range 1; 1 build queue.", "upgrades_to": "colonial_administration",
+      "output_per_min": { "duranium": 60, "tritanium": 30, "energy": 60, "crew": 12 } },
     { "id": "colonial_administration", "name": "Colonial Administration", "layer": "surface", "category": "core", "source": "original",
       "cost": { "duranium": 300, "tritanium": 150 }, "effect": "Supply range 2; unlocks districts tier 2.", "upgrades_to": "planetary_capital" },
     { "id": "planetary_capital", "name": "Planetary Capital", "layer": "surface", "category": "core", "source": "original",

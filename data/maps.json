@@ -1,0 +1,31 @@
+{
+  "_notes": "Skirmish maps for the game prototype (game/). One star system per map for the MVP. Positions are map units on the system plane, star at (0, 0); bodies are static for now (orbits later). parent = the body a moon circles. deposits = resource amounts that can be mined (each must be in the body class's yields in planet_classes.json). starts: player slot -> home body (must be a full-colony class); every player begins with start_stock and a Colony Hub there. The MVP duel is point-symmetric (east side = west side rotated 180 degrees) so both players start equal. All numbers are placeholders.",
+  "maps": [
+    {
+      "id": "mvp_duel",
+      "name": "Kalandra Expanse",
+      "source": "original",
+      "era": "dominion_war",
+      "players": 2,
+      "star": { "name": "Kalandra", "class": "G", "radius": 40 },
+      "start_stock": { "tritanium": 300, "duranium": 500, "deuterium": 150, "dilithium": 50, "latinum": 100, "energy": 200, "crew": 150 },
+      "starts": [ { "slot": 0, "home": "tarsis" }, { "slot": 1, "home": "morrow" } ],
+      "bodies": [
+        { "id": "tarsis",        "name": "Tarsis",        "class": "class_m",       "size": 4, "pos": [-480,   60], "parent": null,        "deposits": { "cormaline": 200, "uridium": 200 } },
+        { "id": "tarsis_a",      "name": "Tarsis A",      "class": "class_d",       "size": 1, "pos": [-525,  125], "parent": "tarsis",     "deposits": { "tritanium": 2000, "duranium": 3000 } },
+        { "id": "west_giant",    "name": "Hesper",        "class": "class_j",       "size": 6, "pos": [-300, -260], "parent": null,        "deposits": { "deuterium": 6000, "sirillium": 200 } },
+        { "id": "hesper_ice",    "name": "Hesper Ice",    "class": "ice_moon",      "size": 1, "pos": [-240, -315], "parent": "west_giant", "deposits": { "deuterium": 1500 } },
+        { "id": "west_belt",     "name": "Western Belt",  "class": "asteroid",      "size": 2, "pos": [-230,  190], "parent": null,        "deposits": { "tritanium": 4000, "duranium": 4000, "kelbonite": 300 } },
+        { "id": "west_rich",     "name": "Corsa Cluster", "class": "asteroid_rare", "size": 1, "pos": [   0,  280], "parent": null,        "deposits": { "dilithium": 1200, "benamite": 100 } },
+        { "id": "west_l",        "name": "Veyra",         "class": "class_l",       "size": 3, "pos": [-120, -420], "parent": null,        "deposits": { "dilithium": 800, "zenite": 200 } },
+        { "id": "morrow",        "name": "Morrow",        "class": "class_m",       "size": 4, "pos": [ 480,  -60], "parent": null,        "deposits": { "cormaline": 200, "uridium": 200 } },
+        { "id": "morrow_a",      "name": "Morrow A",      "class": "class_d",       "size": 1, "pos": [ 525, -125], "parent": "morrow",     "deposits": { "tritanium": 2000, "duranium": 3000 } },
+        { "id": "east_giant",    "name": "Ilium",         "class": "class_j",       "size": 6, "pos": [ 300,  260], "parent": null,        "deposits": { "deuterium": 6000, "sirillium": 200 } },
+        { "id": "ilium_ice",     "name": "Ilium Ice",     "class": "ice_moon",      "size": 1, "pos": [ 240,  315], "parent": "east_giant", "deposits": { "deuterium": 1500 } },
+        { "id": "east_belt",     "name": "Eastern Belt",  "class": "asteroid",      "size": 2, "pos": [ 230, -190], "parent": null,        "deposits": { "tritanium": 4000, "duranium": 4000, "kelbonite": 300 } },
+        { "id": "east_rich",     "name": "Teral Cluster", "class": "asteroid_rare", "size": 1, "pos": [   0, -280], "parent": null,        "deposits": { "dilithium": 1200, "benamite": 100 } },
+        { "id": "east_l",        "name": "Oscen",         "class": "class_l",       "size": 3, "pos": [ 120,  420], "parent": null,        "deposits": { "dilithium": 800, "zenite": 200 } }
+      ]
+    }
+  ]
+}

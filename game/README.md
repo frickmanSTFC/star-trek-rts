@@ -9,11 +9,11 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 |---|---|
 | `sim/` | **FinalFrontier.Sim**: all game rules. Pure C#, no Godot types, fixed-point math. |
 | `sim/Math/` | `Fix64` (Q32.32 fixed point), `FixVec2`, `DeterministicRng` (xoshiro256**), `StateHasher` |
-| `sim/Data/` | `GameData`: loads factions, hulls and ship classes from `../data/` |
-| `sim/Core/` | `Simulation` (fixed 15 Hz tick, command queue, state hash), `Ship`, `Commands`, `MatchSetup` |
+| `sim/Data/` | `GameData`: loads factions, hulls, ship classes, resources, planet classes, buildings and maps from `../data/`, and checks them (`Validate()`) |
+| `sim/Core/` | `Simulation` (fixed 15 Hz tick, command queue, economy, state hash), `Player`, `ResourceBag`, `Body`, `Colony`, `Ship`, `Commands`, `MatchSetup` |
 | `sim/Ai/` | `ChaseAi`: placeholder opponent that only issues commands |
 | `tests/` | xUnit tests: math, RNG, data checks, determinism |
-| `project.godot`, `scenes/`, `scripts/` | The Godot shell: rendering, input, camera, HUD |
+| `project.godot`, `scenes/`, `scripts/` | The Godot shell: `SimDriver` (ticking, input, ships), `SystemView` (star, planets, moons, asteroid fields, orbits, colony rings), `Hud` (resource bar, info panel) |
 | `FinalFrontier.sln` | One solution for everything (Godot opens it too) |
 
 ## Run it
@@ -21,8 +21,11 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 1. Install **Godot 4.7.x .NET edition** and the **.NET 8 SDK**.
 2. In Godot: Import → pick `game/project.godot` → Run (F5).
 
-Controls: left-click a ship to select (Shift adds), **A** selects all, right-click moves,
-WASD/arrows pan, mouse wheel zooms. The HUD shows the tick and state hash.
+You play the Federation at Tarsis (west); the Cardassians hold Morrow (east). The top bar shows your
+stock and income per minute; click any planet, moon or asteroid field to see its class, deposits and colony.
+
+Controls: left-click a ship or body to select (Shift adds ships), **A** selects all ships, right-click moves,
+WASD/arrows pan, mouse wheel zooms, **H** returns to your home world.
 
 ## Build and test without the editor
 
@@ -44,5 +47,5 @@ dotnet test
 
 ## Not done yet
 
-Combat, economy, building, fog of war, the sector (lane) map, the network layer, exported builds
+Placing buildings (step 2), mining deposits, construction ships and outposts (step 3), shipyards (step 4), combat (step 5), orbits, fog of war, the sector (lane) map, the network layer, exported builds
 (the data folder is read from `../data` next to the project, which works in the editor only).

@@ -6,11 +6,14 @@ namespace FinalFrontier.Sim.Core;
 
 /// <summary>
 /// Starting conditions. The MVP is one era (Dominion War), two factions, single-player vs AI,
-/// one star system. Fleets are placeholders until the economy and shipyards exist.
+/// one star system (maps.json "mvp_duel"). Each player starts with the map's start_stock,
+/// a Colony Hub on their home world, and a placeholder fleet parked beside it.
 /// </summary>
 public static class MatchSetup
 {
     public const string MvpEra = "dominion_war";
+    public const string MvpMap = "mvp_duel";
+    public const string StartingBuilding = "colony_hub";
     public static readonly string[] MvpFactions = { "federation", "cardassian" };
 
     /// <summary>Starter fleets by faction: ship class keys ("faction.Name").</summary>
@@ -20,18 +23,33 @@ public static class MatchSetup
         ["cardassian"] = new[] { "cardassian.Galor", "cardassian.Galor", "cardassian.Keldon", "cardassian.Hideki" },
     };
 
-    /// <summary>Two players facing each other across the system, 400 units apart.</summary>
-    public static Simulation CreateMvpSkirmish(GameData data, ulong seed)
+    public static Simulation CreateMvpSkirmish(GameData data, ulong seed) =>
+        CreateSkirmish(data, data.Map(MvpMap), MvpFactions, seed);
+
+    public static Simulation CreateSkirmish(GameData data, MapDef map, IReadOnlyList<string> factions, ulong seed)
     {
         var sim = new Simulation(data, seed);
-        for (var player = 0; player < MvpFactions.Length; player++)
+        sim.LoadMap(map);
+        for (var slot = 0; slot < factions.Count; slot++)
         {
-            var side = player == 0 ? -1 : 1;
-            var fleet = StarterFleets[MvpFactions[player]];
+            var faction = factions[slot];
+            sim.AddPlayer(faction);
+
+            StartDef? start = null;
+            foreach (var s in map.Starts)
+                if (s.Slot == slot) start = s;
+            var home = sim.FindBody(start!.HomeBodyId)!;
+            sim.FoundColony(slot, home.Index, StartingBuilding);
+
+            // Park the fleet in a column on the star-facing side of the home world, facing the star.
+            var toStar = (-home.Position).Normalized();
+            var side = new FixVec2(-toStar.Y, toStar.X);
+            var anchor = home.Position + toStar * Fix64.FromInt(70);
+            if (!StarterFleets.TryGetValue(faction, out var fleet)) continue;
             for (var i = 0; i < fleet.Length; i++)
             {
-                var pos = FixVec2.FromInts(side * 200, (i - fleet.Length / 2) * 30);
-                sim.SpawnShip(player, fleet[i], pos, FixVec2.FromInts(-side, 0));
+                var offset = side * Fix64.FromInt((i - fleet.Length / 2) * 25);
+                sim.SpawnShip(slot, fleet[i], anchor + offset, toStar);
             }
         }
         return sim;

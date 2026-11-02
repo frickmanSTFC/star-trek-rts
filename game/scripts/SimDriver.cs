@@ -12,9 +12,6 @@ namespace FinalFrontier;
 /// Bridges Godot and the simulation: steps the sim at a fixed rate, turns mouse input into
 /// commands, and draws ships with one MultiMesh per player (interpolated between ticks).
 /// Nothing here changes game state directly; it only schedules commands.
-///
-/// Controls: left-click a ship to select (Shift adds), A selects all, right-click to move,
-/// WASD/arrows pan, mouse wheel zooms.
 /// </summary>
 public partial class SimDriver : Node3D
 {
@@ -29,15 +26,17 @@ public partial class SimDriver : Node3D
 
     private Simulation _sim = null!;
     private ChaseAi _ai = null!;
+    private SystemView _system = null!;
+    private Hud _hud = null!;
     private readonly Dictionary<int, Vector3> _previous = new();
     private readonly HashSet<int> _selected = new();
+    private Body? _selectedBody;
     private readonly List<MultiMeshInstance3D> _fleets = new();
     private double _accumulator;
 
     private Camera3D _camera = null!;
-    private Label _hud = null!;
     private Vector3 _cameraFocus = Vector3.Zero;
-    private float _cameraDistance = 560f;
+    private float _cameraDistance = 650f;
 
     public override void _Ready()
     {
@@ -48,30 +47,38 @@ public partial class SimDriver : Node3D
         _sim = MatchSetup.CreateMvpSkirmish(data, Seed);
         _ai = new ChaseAi(1);
         _camera = GetNode<Camera3D>("Camera3D");
-        _hud = GetNode<Label>("Ui/Hud");
+        _hud = GetNode<Hud>("Hud");
+
+        _system = new SystemView();
+        AddChild(_system);
+        _system.Build(_sim, PlayerColors);
 
         var mesh = BuildShipMesh();
-        for (var player = 0; player < MatchSetup.MvpFactions.Length; player++)
+        for (var player = 0; player < _sim.Players.Count; player++)
         {
-            var count = _sim.Ships.Count(s => s.Owner == player);
             var multimesh = new MultiMesh
             {
                 TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
                 UseColors = true,
                 Mesh = mesh,
             };
-            multimesh.InstanceCount = count;
+            multimesh.InstanceCount = _sim.Ships.Count(s => s.Owner == player);
             var instance = new MultiMeshInstance3D
             {
                 Multimesh = multimesh,
-                MaterialOverride = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Roughness = 0.6f, CullMode = BaseMaterial3D.CullModeEnum.Disabled },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    VertexColorUseAsAlbedo = true,
+                    Roughness = 0.6f,
+                    CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+                },
             };
             AddChild(instance);
             _fleets.Add(instance);
         }
 
         foreach (var s in _sim.Ships) _previous[s.Id] = ToWorld(s.Position);
-        UpdateCamera();
+        FocusHome();
     }
 
     public override void _Process(double delta)
@@ -91,9 +98,8 @@ public partial class SimDriver : Node3D
 
         PanCamera((float)delta);
         DrawShips((float)(_accumulator / tickSeconds));
-        _hud.Text =
-            $"Final Frontier prototype  ·  {MatchSetup.MvpFactions[0]} vs {MatchSetup.MvpFactions[1]}  ·  tick {_sim.Tick}  ·  state {_sim.StateHash():X16}\n" +
-            $"Selected: {_selected.Count}   [Left-click] select  [Shift] add  [A] all  [Right-click] move  [WASD] pan  [Wheel] zoom";
+        _system.Refresh();
+        _hud.Show(_sim, LocalPlayer, _selectedBody, _selected);
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -111,20 +117,25 @@ public partial class SimDriver : Node3D
                 UpdateCamera();
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-                _cameraDistance = Mathf.Min(2000f, _cameraDistance * 1.1f);
+                _cameraDistance = Mathf.Min(2200f, _cameraDistance * 1.1f);
                 UpdateCamera();
                 break;
             case InputEventKey { Pressed: true, Keycode: Key.A, Echo: false }:
+                _selectedBody = null;
                 _selected.Clear();
                 foreach (var s in _sim.Ships.Where(s => s.Owner == LocalPlayer)) _selected.Add(s.Id);
+                break;
+            case InputEventKey { Pressed: true, Keycode: Key.H, Echo: false }:
+                FocusHome();
                 break;
         }
     }
 
+    /// <summary>Own ships take priority over bodies; clicking empty space clears the selection.</summary>
     private void SelectAt(Vector2 screen, bool additive)
     {
-        if (!additive) _selected.Clear();
         if (!RaycastPlane(screen, out var point)) return;
+
         Ship? best = null;
         var bestDist = float.MaxValue;
         foreach (var s in _sim.Ships)
@@ -138,7 +149,18 @@ public partial class SimDriver : Node3D
                 bestDist = d;
             }
         }
-        if (best != null) _selected.Add(best.Id);
+
+        if (best != null)
+        {
+            if (!additive) _selected.Clear();
+            _selectedBody = null;
+            _selected.Add(best.Id);
+            return;
+        }
+
+        if (additive) return;
+        _selected.Clear();
+        _selectedBody = _system.BodyAt(point);
     }
 
     private void OrderMove(Vector2 screen)
@@ -164,6 +186,13 @@ public partial class SimDriver : Node3D
             mm.SetInstanceTransform(i, new Transform3D(basis.Scaled(new Vector3(scale, scale, scale)), pos));
             mm.SetInstanceColor(i, _selected.Contains(s.Id) ? SelectedColor : PlayerColors[s.Owner % PlayerColors.Length]);
         }
+    }
+
+    private void FocusHome()
+    {
+        var home = _sim.Colonies.FirstOrDefault(c => c.Owner == LocalPlayer);
+        _cameraFocus = home == null ? Vector3.Zero : ToWorld(_sim.Bodies[home.BodyIndex].Position) * 0.6f;
+        UpdateCamera();
     }
 
     private void PanCamera(float delta)
@@ -194,7 +223,7 @@ public partial class SimDriver : Node3D
     }
 
     /// <summary>Sim (x, y) on the plane → Godot (x, 0, -y), so sim +y is "up" on screen.</summary>
-    private static Vector3 ToWorld(FixVec2 p) => new(p.X.ToFloat(), 0, -p.Y.ToFloat());
+    public static Vector3 ToWorld(FixVec2 p) => new(p.X.ToFloat(), 0, -p.Y.ToFloat());
 
     /// <summary>A small dart pointing along -Z (Godot's forward), placeholder until real models.</summary>
     private static Mesh BuildShipMesh()

@@ -16,7 +16,8 @@ Fan-made Star Trek RTS design package. `README.md` lists every page, data file a
 - Engine: **Godot 4.7 .NET (C#)**. `game/sim/` is the deterministic simulation (pure C#, `Fix64` fixed point, 15 Hz ticks, no Godot types); `game/scripts/` is the Godot side. Rules for sim code are in `game/README.md`; follow them.
 - Build/test: `cd game && dotnet build FinalFrontier.sln && dotnet test`. Needs .NET 8 SDK (`apt-get install -y dotnet-sdk-8.0` in a fresh container). The Godot binary can't be downloaded here (downloads.godotengine.org and github.com releases blocked), so the editor run is the owner's; `dotnet build` still type-checks the Godot scripts against GodotSharp.
 - The sim loads `../data/*.json` directly; `GameData.Validate()` (test `RealDataPassesChecks`) must stay empty.
-- MVP: Dominion War, Federation vs Cardassian, single-player vs AI, one system.
+- MVP: Dominion War, Federation vs Cardassian, single-player vs AI, one system: `data/maps.json` `mvp_duel` (Kalandra Expanse). Keep it point-symmetric (test `MvpMapIsPointSymmetric`); map deposits must be yields of the body's class.
+- Building output: optional `output_per_min` on entries in `buildings.json` `buildings` (placeholder numbers). Energy is a stockpile for now; whether it becomes a power budget (supply vs. demand) is still open.
 - **Priority: building and economy come before combat.** It's an RTS: colonize, build, mine and produce first; combat is needed but secondary. Order: economy + construction → shipyard production → combat.
 
 ## How the pages are built
