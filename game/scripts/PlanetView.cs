@@ -219,6 +219,7 @@ public partial class PlanetView : Node3D
         {
             "ocean" => -4.5f + e * 1f,
             "shallows" => -0.9f,
+            "mountains" => 16f + (e - 0.9f) * 120f, // the top ~9% of elevation: 16 at the foot of a range, ~28 at its heart
             _ => 1.4f + terrain.Height * 2.6f + e * 2.6f,
         };
     }
@@ -230,6 +231,22 @@ public partial class PlanetView : Node3D
     {
         var h = Mathf.Sin(p.X * 0.21f + Mathf.Cos(p.Z * 0.17f) * 1.7f) * Mathf.Cos(p.Z * 0.19f - p.X * 0.05f);
         return h * 0.5f + Mathf.Sin(p.X * 0.53f + p.Z * 0.47f) * 0.2f;
+    }
+
+    /// <summary>Crags for mountains: -1..1, sharper than Bump. Render-only.</summary>
+    private static float Jag(Vector3 p)
+    {
+        var a = Mathf.Sin(p.X * 0.31f + p.Z * 0.12f) * Mathf.Cos(p.Z * 0.27f - p.X * 0.09f);
+        var b = Mathf.Sin(p.X * 0.83f - p.Z * 0.71f);
+        return Mathf.Clamp(a * 0.75f + b * 0.35f, -1f, 1f);
+    }
+
+    /// <summary>Mountain colours by height: dark rock low, grey crags, snow above the snow line.</summary>
+    private static Color RockColour(float height, Vector3 p)
+    {
+        var rock = new Color(0.33f, 0.31f, 0.3f).Lerp(new Color(0.5f, 0.48f, 0.46f), Mathf.Clamp((height - 12f) / 20f, 0f, 1f));
+        var snowLine = 34f + Bump(p) * 4f;
+        return height > snowLine ? new Color(0.93f, 0.95f, 0.98f) : rock;
     }
 
     private void BuildTerrain()
@@ -252,7 +269,7 @@ public partial class PlanetView : Node3D
                 var key = CornerKey(centres[t] + Corner(k));
                 sum[key] = sum.TryGetValue(key, out var s) ? (s.Total + h, s.Count + 1) : (h, 1);
             }
-            var peak = map.Terrain(t).Id == "mountains" ? 6f + map.Elevation[t].ToFloat() * 6f : 0f;
+            var peak = map.Terrain(t).Id == "mountains" ? 18f + (map.Elevation[t].ToFloat() - 0.9f) * 260f + Jag(centres[t]) * 6f : 0f;
             _centreHeight[t] = h + peak;
         }
 
@@ -280,7 +297,6 @@ public partial class PlanetView : Node3D
             var colour = Color.FromHtml(terrain.Color).Lightened((map.Elevation[t].ToFloat() - 0.5f) * 0.15f);
             if (water) colour = new Color(0.36f, 0.33f, 0.24f).Lerp(colour, 0.35f); // seabed
             var centreColour = colour;
-            if (terrain.Id == "mountains") centreColour = map.Elevation[t].ToFloat() > 0.96f ? new Color(0.94f, 0.95f, 0.97f) : colour.Lightened(0.25f);
             if (terrain.Id == "hills") centreColour = colour.Lightened(0.08f);
 
             pos[0] = centres[t] with { Y = _centreHeight[t] };
@@ -294,7 +310,13 @@ public partial class PlanetView : Node3D
             for (var k = 0; k < 6; k++)
             {
                 var mid = pos[0].Lerp(pos[7 + k], 0.5f);
-                if (!water) mid.Y += Bump(mid) * (terrain.Id == "hills" ? 1.4f : terrain.Id == "mountains" ? 2f : 0.7f);
+                if (terrain.Id == "mountains")
+                {
+                    // Broad, jagged shoulders: the ring sits high and every point gets its own crag.
+                    mid = pos[0].Lerp(pos[7 + k], 0.42f);
+                    mid.Y += Jag(mid) * 7f;
+                }
+                else if (!water) mid.Y += Bump(mid) * (terrain.Id == "hills" ? 1.4f : 0.7f);
                 pos[1 + k] = mid;
             }
             cols[0] = centreColour;
@@ -306,6 +328,8 @@ public partial class PlanetView : Node3D
                 cols[7 + k] = colour;
                 uvs[7 + k] = 1f;
             }
+            if (terrain.Id == "mountains")
+                for (var v = 0; v < 13; v++) cols[v] = RockColour(pos[v].Y, pos[v]);
 
             // Normals: sum each triangle's face normal (pointing up, whatever the winding) into its vertices.
             System.Array.Clear(normals);
@@ -393,7 +417,7 @@ public partial class PlanetView : Node3D
                 "hills" => rng.Randf() < 0.3f ? rng.RandiRange(1, 3) : 0,
                 _ => 0,
             };
-            var rockCount = id switch { "hills" => rng.RandiRange(2, 5), "mountains" => rng.RandiRange(3, 6), "desert" => rng.Randf() < 0.3f ? 1 : 0, _ => 0 };
+            var rockCount = id switch { "hills" => rng.RandiRange(2, 5), "desert" => rng.Randf() < 0.3f ? 1 : 0, _ => 0 };
             var keepClear = map.Terrain(t).Buildable ? 0.32f : 0f; // leave room for a building in the middle
 
             for (var i = 0; i < treeCount + rockCount; i++)

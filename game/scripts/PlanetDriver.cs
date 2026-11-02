@@ -192,7 +192,7 @@ public partial class PlanetDriver : Node3D
                 else RightClick();
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-                _distanceTarget = Mathf.Max(60f, _distanceTarget * 0.88f);
+                _distanceTarget = Mathf.Max(90f, _distanceTarget * 0.88f);
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
                 _distanceTarget = Mathf.Min(_overview * 1.15f, _distanceTarget * 1.12f);
@@ -346,6 +346,19 @@ public partial class PlanetDriver : Node3D
     {
         if (_hoverTile < 0 || _mouseOverUi || _view.SelectedUnits.Count == 0 || Me.Phase != LandingPhase.Landed) return;
         var ids = _view.SelectedUnits.OrderBy(id => id).ToArray();
+        // Say why nothing happens when the target can't be reached (the sim would quietly ignore it).
+        var map = Surface.Map;
+        if (!map.Terrain(_hoverTile).Passable)
+        {
+            _hud.PushEvent($"Rovers can't go there: {map.Terrain(_hoverTile).Name.ToLowerInvariant()} are impassable", new Color(1f, 0.7f, 0.42f));
+            return;
+        }
+        var reachable = ids.Select(Surface.FindUnit).Where(u => u != null).Count(u => Pathfinder.Find(map, u!.Tile, _hoverTile) != null);
+        if (reachable == 0)
+        {
+            _hud.PushEvent("No route there: mountains or water are in the way", new Color(1f, 0.7f, 0.42f));
+            return;
+        }
         _sim.Schedule(_sim.Tick + InputDelayTicks, new MoveUnitsCommand(LocalPlayer, ids, _hoverTile));
     }
 
