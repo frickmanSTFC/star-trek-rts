@@ -56,6 +56,22 @@ colonization layer live inside each system.
 | Derelict / Ruins | Salvage / research | Tech fragments, relics | Iconian ruins, ancient battlefields. |
 | Deep space | Station | — | Starbases, relays, shipyards can float anywhere. |
 
+## 3b. Planet Surface (where the MVP starts)
+
+Decided 2026-11-02: the game opens on **one planet's surface**, not in space. The star system (§3) becomes the
+layer above it once the surface game is fun.
+
+- **Map:** a hex grid on 3D terrain, generated from a seed per planet class (`data/surfaces.json`). Terrain:
+  ocean, shallows, plains, forest, desert, hills, mountains, polar ice; each has a move cost and is or isn't buildable.
+- **Scan → land → survey:**
+  1. *Orbit:* the scan shows all terrain plus rough deposit hints per region ("Rich: Duranium · Likely: Deuterium").
+  2. *Land:* pick a flat site (plains or desert with passable land on all six sides). The colony pod falls for a few
+     seconds, then the Colony Hub stands there and income starts.
+  3. *Survey:* survey rovers roll out; exact deposits are revealed around the landing site and wherever rovers drive.
+- **Deposits** are rolled per tile by terrain (duranium in hills, deuterium on coasts, dilithium in deserts…) and are
+  what mines will be built on next.
+- **Opponent:** solo first to get landing, surveying and building right; then a Cardassian landing on the same world.
+
 ## 4. Economy
 
 ### 4.1 Resource layers
@@ -229,6 +245,7 @@ Klingons never retreat, Borg drones assimilate defenders, Changelings replace of
 3. **Map:** two-scale lanes (recommended) vs. single seamless galaxy.
 4. **Real-time vs pausable** (pause for single-player only?).
 5. **Ground combat:** abstracted invasions (recommended for v1) vs. tactical ground battles.
-6. **MVP scope:** proposed: 1 era (Dominion War) × 2 factions (Federation, Cardassian) × single-player vs AI ×
-   one star system. Multiplayer later (the sim is lockstep-ready from day one). Klingons are the third faction.
-   **Build order: building/economy first** (colony, mining, power, construction, shipyard), then combat.
+6. **MVP scope:** 1 era (Dominion War) × 2 factions (Federation, Cardassian), **starting on one planet surface**
+   (§3b): solo first, then a Cardassian rival on the same world; the star system comes after. Multiplayer later (the
+   sim is lockstep-ready from day one). Klingons are the third faction.
+   **Build order: building/economy first** (land, survey, mine, power, construction, shipyard), then combat.

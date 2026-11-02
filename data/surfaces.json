@@ -1,0 +1,46 @@
+{
+  "_notes": "Planet surfaces for the game prototype (game/): a hex grid on 3D terrain. The game starts in orbit: the scan shows terrain and rough deposit hints per region; the player picks a landing site, the colony pod descends, and survey rovers reveal exact deposits as they drive. terrain: move_cost = effort to enter a tile (unit speed is effort per second); height = visual relief level. planets: per planet class, how a surface is generated. Elevation and moisture come from deterministic noise (feature_size = tiles per noise cell) and are ranked, so thresholds are shares of the map: elevation ocean 0.30 = the lowest 30% of tiles are ocean, below shallows = shallows, from hills up = hills, from mountains up = mountains, the rest is lowland; within lowland, moisture picks the terrain; polar_rows at top and bottom become polar_terrain. deposits: rolled per tile on matching terrain (coastal = must touch water); amounts are ranges. hints: region totals below likely = traces, below rich = likely, otherwise rich. landing: where a colony pod may set down (tile terrain, and every neighbour must be passable land), how long it falls, what it brings (start_stock, the hub building, units) and how far the landing reveals. All numbers are placeholders.",
+  "terrain": [
+    { "id": "ocean",     "name": "Ocean",     "color": "#1d4e89", "passable": false, "buildable": false, "move_cost": 0, "height": 0 },
+    { "id": "shallows",  "name": "Shallows",  "color": "#3a7fb8", "passable": false, "buildable": false, "move_cost": 0, "height": 0 },
+    { "id": "plains",    "name": "Plains",    "color": "#8fae5a", "passable": true,  "buildable": true,  "move_cost": 2, "height": 1 },
+    { "id": "forest",    "name": "Forest",    "color": "#3f6e35", "passable": true,  "buildable": false, "move_cost": 3, "height": 1 },
+    { "id": "desert",    "name": "Desert",    "color": "#d2b77a", "passable": true,  "buildable": true,  "move_cost": 2, "height": 1 },
+    { "id": "hills",     "name": "Hills",     "color": "#8a7a5a", "passable": true,  "buildable": true,  "move_cost": 4, "height": 2 },
+    { "id": "mountains", "name": "Mountains", "color": "#6e6a66", "passable": false, "buildable": false, "move_cost": 0, "height": 4 },
+    { "id": "ice",       "name": "Polar ice", "color": "#e8f0f5", "passable": true,  "buildable": false, "move_cost": 4, "height": 1 }
+  ],
+  "planets": [
+    {
+      "class": "class_m",
+      "width": 44,
+      "height": 30,
+      "feature_size": 7,
+      "elevation": { "ocean": 0.30, "shallows": 0.36, "hills": 0.80, "mountains": 0.91 },
+      "lowland": [ { "below": 0.30, "terrain": "desert" }, { "below": 0.70, "terrain": "plains" }, { "below": 1.01, "terrain": "forest" } ],
+      "polar_rows": 1,
+      "polar_terrain": "ice",
+      "regions": [4, 3],
+      "deposits": [
+        { "resource": "duranium",  "terrain": ["hills"],                    "chance": 0.22, "amount": [300, 900] },
+        { "resource": "tritanium", "terrain": ["hills", "plains"],          "chance": 0.07, "amount": [200, 600] },
+        { "resource": "deuterium", "terrain": ["plains", "desert"], "coastal": true, "chance": 0.12, "amount": [200, 500] },
+        { "resource": "dilithium", "terrain": ["desert"],                   "chance": 0.06, "amount": [80, 240] },
+        { "resource": "topaline",  "terrain": ["hills"],                    "chance": 0.03, "amount": [50, 150] },
+        { "resource": "cormaline", "terrain": ["forest"],                   "chance": 0.03, "amount": [50, 150] }
+      ]
+    }
+  ],
+  "hints": { "likely": 400, "rich": 1500 },
+  "landing": {
+    "terrain": ["plains", "desert"],
+    "descent_seconds": 8,
+    "start_stock": { "tritanium": 300, "duranium": 500, "deuterium": 150, "dilithium": 50, "latinum": 100, "energy": 200, "crew": 150 },
+    "reveal_radius": 3,
+    "hub": "colony_hub",
+    "units": ["survey_rover", "survey_rover"]
+  },
+  "units": [
+    { "id": "survey_rover", "speed": 2, "survey_radius": 2 }
+  ]
+}

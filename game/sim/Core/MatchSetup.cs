@@ -23,6 +23,20 @@ public static class MatchSetup
         ["cardassian"] = new[] { "cardassian.Galor", "cardassian.Galor", "cardassian.Keldon", "cardassian.Hideki" },
     };
 
+    public const string MvpPlanetClass = "class_m";
+
+    /// <summary>
+    /// The planet-first MVP: one player in orbit over a generated Class M world, about to choose a landing site.
+    /// The same seed always gives the same planet.
+    /// </summary>
+    public static Simulation CreatePlanetLanding(GameData data, ulong seed, string faction = "federation", string planetClass = MvpPlanetClass)
+    {
+        var sim = new Simulation(data, seed);
+        sim.LoadSurface(planetClass, seed);
+        sim.AddPlayer(faction);
+        return sim;
+    }
+
     public static Simulation CreateMvpSkirmish(GameData data, ulong seed) =>
         CreateSkirmish(data, data.Map(MvpMap), MvpFactions, seed);
 

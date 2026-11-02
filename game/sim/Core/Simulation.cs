@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FinalFrontier.Sim.Data;
 using FinalFrontier.Sim.Math;
+using FinalFrontier.Sim.Surface;
 
 namespace FinalFrontier.Sim.Core;
 
@@ -26,6 +27,9 @@ public sealed class Simulation
 
     /// <summary>The map this match is played on, or null before LoadMap.</summary>
     public MapDef? Map { get; private set; }
+
+    /// <summary>The planet surface being played on, or null in a star-system match.</summary>
+    public PlanetSurface? Surface { get; private set; }
 
     public IReadOnlyList<Player> Players => _players;
     public IReadOnlyList<Body> Bodies => _bodies;
@@ -65,12 +69,24 @@ public sealed class Simulation
         }
     }
 
-    /// <summary>Adds the player for the next slot with the map's starting stock.</summary>
+    /// <summary>Generates the surface of a planet class from the seed. Call once, before adding players.</summary>
+    public void LoadSurface(string planetClassId, ulong seed)
+    {
+        if (Surface != null) throw new InvalidOperationException("A surface is already loaded.");
+        if (_players.Count > 0) throw new InvalidOperationException("Load the surface before adding players.");
+        Surface = new PlanetSurface(Data, SurfaceMap.Generate(Data, Data.Surface(planetClassId), seed));
+    }
+
+    /// <summary>
+    /// Adds the player for the next slot. Starting stock comes from the map (star system) or,
+    /// on a planet surface, from what the colony pod brings (surfaces.json landing.start_stock).
+    /// </summary>
     public Player AddPlayer(string factionId)
     {
-        var stock = new ResourceBag(Data.Resources.Count, Map?.StartStock ?? Array.Empty<ResourceAmount>());
-        var player = new Player(_players.Count, factionId, stock);
+        var startStock = Map?.StartStock ?? (Surface != null ? Data.Landing.StartStock : Array.Empty<ResourceAmount>());
+        var player = new Player(_players.Count, factionId, new ResourceBag(Data.Resources.Count, startStock));
         _players.Add(player);
+        Surface?.AddPlayer();
         return player;
     }
 
@@ -133,6 +149,7 @@ public sealed class Simulation
                 foreach (var o in Data.Building(b.DefId).OutputPerMinute)
                     income.Add(o.Resource, o.Amount);
         }
+        Surface?.AddOutputs(player, (_, o) => income.Add(o.Resource, o.Amount));
         return income;
     }
 
@@ -160,12 +177,15 @@ public sealed class Simulation
         }
 
         Economy();
+        Surface?.Step(this);
         foreach (var ship in _ships) Movement(ship);
         Tick++;
     }
 
     private void Apply(Command command)
     {
+        if (command.Player < 0 || command.Player >= _players.Count) return;
+        if (Surface != null && Surface.Apply(this, command)) return;
         switch (command)
         {
             case MoveCommand move:
@@ -177,6 +197,9 @@ public sealed class Simulation
                     ship.HasMoveTarget = true;
                 }
                 break;
+            case LandColonyCommand:
+            case MoveUnitsCommand:
+                break; // surface commands with no surface loaded: ignore
             default:
                 throw new NotSupportedException($"Unhandled command {command.GetType().Name}.");
         }
@@ -192,6 +215,7 @@ public sealed class Simulation
                 foreach (var o in Data.Building(b.DefId).OutputPerMinute)
                     stock.Add(o.Resource, o.Amount / TicksPerMinute);
         }
+        Surface?.AddOutputs(null, (owner, o) => _players[owner].Stock.Add(o.Resource, o.Amount / TicksPerMinute));
     }
 
     private static void Movement(Ship ship)
@@ -224,6 +248,8 @@ public sealed class Simulation
         foreach (var c in _colonies) c.AddToHash(ref h);
         h.Add(_ships.Count);
         foreach (var s in _ships) s.AddToHash(ref h);
+        h.Add(Surface != null);
+        Surface?.AddToHash(ref h);
         return h.Value;
     }
 }

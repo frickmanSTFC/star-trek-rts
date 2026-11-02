@@ -26,7 +26,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 
 ## Game prototype
 
-`game/`: the playable prototype in **Godot 4.7 (.NET / C#)**. Open `game/project.godot` in Godot 4.7 .NET and press Run. Game rules live in `game/sim/` (deterministic, fixed-point, tested with `cd game && dotnet test`). See `game/README.md`.
+`game/`: the playable prototype in **Godot 4.7 (.NET / C#)**. Open `game/project.godot` in Godot 4.7 .NET and press Run: you start in orbit over a generated Class M world, pick a landing site, and send survey rovers out to find deposits. Game rules live in `game/sim/` (deterministic, fixed-point, tested with `cd game && dotnet test`). See `game/README.md`.
 
 ## Website (GitHub Pages)
 
@@ -65,6 +65,7 @@ These links only open for people the owner has shared them with (Share menu on e
 | `hazards.json` | Anomalies, habitat dangers, raiders, crisis entities and wildcards |
 | `galaxy_map.json` | Star systems, territories, warp lanes and wormholes, warp scale and drive speeds |
 | `maps.json` | Skirmish maps for the game prototype: one star system each (bodies, deposits, player starts, starting stock) |
+| `surfaces.json` | Planet surfaces for the game prototype: terrain types, how each planet class's hex map is generated, deposits, orbital hints, landing rules, rover stats |
 
 Each entry is tagged `canon` (on screen), `beta` (licensed books/games) or `original` (invented for this game). All costs and stats are placeholders.
 

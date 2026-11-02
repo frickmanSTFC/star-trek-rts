@@ -11,3 +11,9 @@ public abstract record Command(int Player);
 
 /// <summary>Order ships to fly to a point. Ships the player doesn't own are ignored.</summary>
 public sealed record MoveCommand(int Player, IReadOnlyList<int> ShipIds, FixVec2 Target) : Command(Player);
+
+/// <summary>Send the colony pod down to a surface tile. Only valid from orbit, on a landing site.</summary>
+public sealed record LandColonyCommand(int Player, int Tile) : Command(Player);
+
+/// <summary>Drive surface units to a tile (each finds its own path). Units the player doesn't own are ignored.</summary>
+public sealed record MoveUnitsCommand(int Player, IReadOnlyList<int> UnitIds, int Tile) : Command(Player);

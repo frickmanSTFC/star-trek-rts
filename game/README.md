@@ -11,9 +11,12 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `sim/Math/` | `Fix64` (Q32.32 fixed point), `FixVec2`, `DeterministicRng` (xoshiro256**), `StateHasher` |
 | `sim/Data/` | `GameData`: loads factions, hulls, ship classes, resources, planet classes, buildings and maps from `../data/`, and checks them (`Validate()`) |
 | `sim/Core/` | `Simulation` (fixed 15 Hz tick, command queue, economy, state hash), `Player`, `ResourceBag`, `Body`, `Colony`, `Ship`, `Commands`, `MatchSetup` |
+| `sim/Surface/` | Planet surface: `HexGrid`, `SurfaceMap` (seeded terrain and deposit generation, orbital hints, landing sites), `Pathfinder` (A*), `PlanetSurface` (landing, rovers, surveying) |
 | `sim/Ai/` | `ChaseAi`: placeholder opponent that only issues commands |
 | `tests/` | xUnit tests: math, RNG, data checks, determinism |
-| `project.godot`, `scenes/`, `scripts/` | The Godot shell: `SimDriver` (ticking, input, ships), `SystemView` (star, planets, moons, asteroid fields, orbits, colony rings), `Hud` (resource bar, info panel) |
+| `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (hex terrain, scan hints, landing, pod, hub, rovers, deposits) |
+| `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
+| `scripts/Hud.cs` | Shared HUD: resource bar, prompt banner, info and help panels |
 | `FinalFrontier.sln` | One solution for everything (Godot opens it too) |
 
 ## Run it
@@ -21,11 +24,17 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 1. Install **Godot 4.7.x .NET edition** and the **.NET 8 SDK**.
 2. In Godot: Import → pick `game/project.godot` → Run (F5).
 
-You play the Federation at Tarsis (west); the Cardassians hold Morrow (east). The top bar shows your
-stock and income per minute; click any planet, moon or asteroid field to see its class, deposits and colony.
+You start in orbit over Tarsis, a generated Class M world (change `Seed` on the root node for another planet).
 
-Controls: left-click a ship or body to select (Shift adds ships), **A** selects all ships, right-click moves,
-WASD/arrows pan, mouse wheel zooms, **H** returns to your home world.
+1. **Scan:** the floating labels are the orbital scan's deposit hints per region. Hover any tile for its terrain.
+2. **Land:** green tiles are valid landing sites (plains or desert, open land on every side). Left-click to drop the pod.
+3. **Survey:** after touchdown the Colony Hub starts producing and two survey rovers roll out (already selected).
+   Right-click a tile to drive there; deposits appear as glowing crystals as tiles are surveyed.
+
+Controls: left-click selects a rover or tile (Shift adds), **A** selects all rovers, right-click drives,
+WASD/arrows pan, mouse wheel zooms, **H** returns to the colony.
+
+The older star-system view is `scenes/System.tscn` (open it and press F6).
 
 ## Build and test without the editor
 
@@ -47,5 +56,5 @@ dotnet test
 
 ## Not done yet
 
-Placing buildings (step 2), mining deposits, construction ships and outposts (step 3), shipyards (step 4), combat (step 5), orbits, fog of war, the sector (lane) map, the network layer, exported builds
+On the surface: placing buildings on tiles (mines on deposits, reactors, habitats), construction and build times, the Cardassian rival landing. Later: the star system above, shipyards, combat, orbits, the sector (lane) map, the network layer, exported builds
 (the data folder is read from `../data` next to the project, which works in the editor only).

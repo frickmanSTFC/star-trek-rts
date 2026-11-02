@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using FinalFrontier.Sim.Ai;
 using FinalFrontier.Sim.Core;
 using FinalFrontier.Sim.Data;
@@ -9,7 +10,7 @@ using Godot;
 namespace FinalFrontier;
 
 /// <summary>
-/// Bridges Godot and the simulation: steps the sim at a fixed rate, turns mouse input into
+/// Star-system view (scenes/System.tscn). Bridges Godot and the simulation: steps the sim at a fixed rate, turns mouse input into
 /// commands, and draws ships with one MultiMesh per player (interpolated between ticks).
 /// Nothing here changes game state directly; it only schedules commands.
 /// </summary>
@@ -99,7 +100,49 @@ public partial class SimDriver : Node3D
         PanCamera((float)delta);
         DrawShips((float)(_accumulator / tickSeconds));
         _system.Refresh();
-        _hud.Show(_sim, LocalPlayer, _selectedBody, _selected);
+        _hud.ShowResources(_sim, LocalPlayer);
+        _hud.ShowBanner("");
+        _hud.ShowInfo(_selectedBody != null ? DescribeBody(_selectedBody) : _selected.Count > 0 ? DescribeShips() : "");
+        var seconds = _sim.Tick / Simulation.TickRate;
+        _hud.ShowStatus(
+            $"{_sim.Map?.Name}  ·  {seconds / 60}:{seconds % 60:00}  ·  state {_sim.StateHash():X16}\n" +
+            "[Left-click] select ship or body  [Shift] add  [A] all ships  [Right-click] move\n" +
+            "[WASD / arrows] pan  [Wheel] zoom  [H] home");
+    }
+
+    private string DescribeBody(Body body)
+    {
+        var data = _sim.Data;
+        var cls = data.PlanetClass(body.ClassId);
+        var sb = new StringBuilder();
+        sb.AppendLine(body.Name);
+        sb.AppendLine(cls.Name);
+        sb.Append("Size ").Append(body.Size).Append("   Habitability ").Append(Hud.Whole(cls.Habitability * Fix64.FromInt(100))).AppendLine("%");
+        if (body.ParentIndex >= 0) sb.Append("Moon of ").AppendLine(_sim.Bodies[body.ParentIndex].Name);
+        var deposits = data.Resources.Where(r => body.Deposits[r.Index] > Fix64.Zero)
+            .Select(r => $"{r.Name} {Hud.Whole(body.Deposits[r.Index])}").ToList();
+        sb.Append("Deposits: ").AppendLine(deposits.Count == 0 ? "none" : string.Join(" · ", deposits));
+        var colony = body.ColonyId == 0 ? null : _sim.FindColony(body.ColonyId);
+        if (colony == null) return sb.Append("Unclaimed").ToString();
+        sb.Append("Colony: ").Append(data.Faction(_sim.Players[colony.Owner].FactionId).Name)
+            .AppendLine(colony.Owner == LocalPlayer ? " (you)" : "");
+        foreach (var b in colony.Buildings)
+        {
+            var def = data.Building(b.DefId);
+            sb.Append("  · ").Append(def.Name);
+            if (def.OutputPerMinute.Count > 0)
+                sb.Append("  ").Append(string.Join(", ", def.OutputPerMinute.Select(o => $"+{Hud.Whole(o.Amount)} {data.Resources[o.Resource].Name}"))).Append("/min");
+            sb.AppendLine();
+        }
+        return sb.ToString().TrimEnd();
+    }
+
+    private string DescribeShips()
+    {
+        var names = _selected.Select(_sim.FindShip).Where(s => s != null)
+            .GroupBy(s => _sim.Data.ShipClass(s!.ClassKey).Name)
+            .Select(g => g.Count() > 1 ? $"{g.Key} ×{g.Count()}" : g.Key);
+        return $"{_selected.Count} ship{(_selected.Count == 1 ? "" : "s")} selected\n{string.Join(", ", names)}\nRight-click to move.";
     }
 
     public override void _UnhandledInput(InputEvent @event)

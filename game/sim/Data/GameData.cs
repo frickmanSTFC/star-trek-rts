@@ -32,6 +32,14 @@ public sealed class GameData
     public IReadOnlyList<PlanetClassDef> PlanetClasses { get; }
     public IReadOnlyList<BuildingDef> Buildings { get; }
     public IReadOnlyList<MapDef> Maps { get; }
+    public IReadOnlyList<TerrainDef> Terrain { get; }
+    public IReadOnlyList<PlanetSurfaceDef> Surfaces { get; }
+    public IReadOnlyList<SurfaceUnitDef> SurfaceUnits { get; }
+    public HintRules Hints { get; }
+    public LandingRules Landing { get; }
+
+    /// <summary>Ground vehicle ids and names from vehicles.json.</summary>
+    public IReadOnlyDictionary<string, string> GroundVehicleNames { get; }
 
     /// <summary>Resources shown on the HUD (tier "flow"), in file order.</summary>
     public IReadOnlyList<ResourceDef> FlowResources { get; }
@@ -43,14 +51,25 @@ public sealed class GameData
     private readonly Dictionary<string, PlanetClassDef> _planetClasses;
     private readonly Dictionary<string, BuildingDef> _buildings;
     private readonly Dictionary<string, MapDef> _maps;
+    private readonly Dictionary<string, TerrainDef> _terrain;
+    private readonly Dictionary<string, PlanetSurfaceDef> _surfaces;
+    private readonly Dictionary<string, SurfaceUnitDef> _surfaceUnits;
 
     /// <summary>Problems found while reading (unknown resource ids, etc.). Reported by Validate().</summary>
     private readonly List<string> _loadProblems;
 
     private GameData(
         List<FactionDef> factions, List<HullDef> hulls, List<ShipClassDef> classes, List<ResourceDef> resources,
-        List<PlanetClassDef> planetClasses, List<BuildingDef> buildings, List<MapDef> maps, List<string> loadProblems)
+        List<PlanetClassDef> planetClasses, List<BuildingDef> buildings, List<MapDef> maps,
+        List<TerrainDef> terrain, List<PlanetSurfaceDef> surfaces, List<SurfaceUnitDef> surfaceUnits,
+        HintRules hints, LandingRules landing, Dictionary<string, string> groundVehicles, List<string> loadProblems)
     {
+        Terrain = terrain;
+        Surfaces = surfaces;
+        SurfaceUnits = surfaceUnits;
+        Hints = hints;
+        Landing = landing;
+        GroundVehicleNames = groundVehicles;
         Factions = factions;
         Hulls = hulls;
         ShipClasses = classes;
@@ -68,6 +87,9 @@ public sealed class GameData
         _planetClasses = ToLookup(planetClasses, p => p.Id, "planet class");
         _buildings = ToLookup(buildings, b => b.Id, "building");
         _maps = ToLookup(maps, m => m.Id, "map");
+        _terrain = ToLookup(terrain, t => t.Id, "terrain");
+        _surfaces = ToLookup(surfaces, p => p.ClassId, "surface planet class");
+        _surfaceUnits = ToLookup(surfaceUnits, u => u.Id, "surface unit");
     }
 
     private Dictionary<string, T> ToLookup<T>(IEnumerable<T> items, Func<T, string> key, string what)
@@ -86,6 +108,9 @@ public sealed class GameData
     public BuildingDef Building(string id) => Get(_buildings, id, "building");
     public MapDef Map(string id) => Get(_maps, id, "map");
     public bool HasShipClass(string key) => _classes.ContainsKey(key);
+    public TerrainDef TerrainType(string id) => Get(_terrain, id, "terrain");
+    public PlanetSurfaceDef Surface(string planetClassId) => Get(_surfaces, planetClassId, "surface planet class");
+    public SurfaceUnitDef SurfaceUnit(string id) => Get(_surfaceUnits, id, "surface unit");
 
     private static T Get<T>(Dictionary<string, T> d, string id, string what) =>
         d.TryGetValue(id, out var v) ? v : throw new KeyNotFoundException($"Unknown {what} '{id}'.");
@@ -105,6 +130,8 @@ public sealed class GameData
         var planetsRoot = Read("planet_classes.json");
         var buildingsRoot = Read("buildings.json");
         var mapsRoot = Read("maps.json");
+        var surfacesRoot = Read("surfaces.json");
+        var vehiclesRoot = Read("vehicles.json");
 
         var factions = factionsRoot.GetProperty("factions").EnumerateArray()
             .Select(f => new FactionDef(Str(f, "id"), Str(f, "name"), f.GetProperty("playable").ValueKind == JsonValueKind.True))
@@ -177,7 +204,57 @@ public sealed class GameData
             })
             .ToList();
 
-        return new GameData(factions, hulls, classes, resources, planetClasses, buildings, maps, problems);
+        var terrain = surfacesRoot.GetProperty("terrain").EnumerateArray()
+            .Select((t, i) => new TerrainDef(i, Str(t, "id"), Str(t, "name"), Str(t, "color"),
+                t.GetProperty("passable").GetBoolean(), t.GetProperty("buildable").GetBoolean(),
+                t.GetProperty("move_cost").GetInt32(), t.GetProperty("height").GetInt32()))
+            .ToList();
+
+        var surfaces = surfacesRoot.GetProperty("planets").EnumerateArray()
+            .Select(p =>
+            {
+                var elev = p.GetProperty("elevation");
+                var regions = p.GetProperty("regions");
+                return new PlanetSurfaceDef(Str(p, "class"), p.GetProperty("width").GetInt32(), p.GetProperty("height").GetInt32(),
+                    p.GetProperty("feature_size").GetInt32(),
+                    Num(elev.GetProperty("ocean")), Num(elev.GetProperty("shallows")),
+                    Num(elev.GetProperty("hills")), Num(elev.GetProperty("mountains")),
+                    p.GetProperty("lowland").EnumerateArray().Select(b => new LowlandBand(Num(b.GetProperty("below")), Str(b, "terrain"))).ToList(),
+                    p.GetProperty("polar_rows").GetInt32(), Str(p, "polar_terrain"),
+                    regions[0].GetInt32(), regions[1].GetInt32(),
+                    p.GetProperty("deposits").EnumerateArray().Select(d =>
+                    {
+                        var amount = d.GetProperty("amount");
+                        return new DepositRule(Str(d, "resource"),
+                            d.GetProperty("terrain").EnumerateArray().Select(t => t.GetString()!).ToList(),
+                            d.TryGetProperty("coastal", out var coastal) && coastal.GetBoolean(),
+                            Num(d.GetProperty("chance")), amount[0].GetInt32(), amount[1].GetInt32());
+                    }).ToList());
+            })
+            .ToList();
+
+        var hintsEl = surfacesRoot.GetProperty("hints");
+        var hints = new HintRules(hintsEl.GetProperty("likely").GetInt32(), hintsEl.GetProperty("rich").GetInt32());
+
+        var landingEl = surfacesRoot.GetProperty("landing");
+        var landing = new LandingRules(
+            landingEl.GetProperty("terrain").EnumerateArray().Select(t => t.GetString()!).ToList(),
+            landingEl.GetProperty("descent_seconds").GetInt32(),
+            Amounts(landingEl, "start_stock", "Landing"),
+            landingEl.GetProperty("reveal_radius").GetInt32(),
+            Str(landingEl, "hub"),
+            landingEl.GetProperty("units").EnumerateArray().Select(u => u.GetString()!).ToList());
+
+        var surfaceUnits = surfacesRoot.GetProperty("units").EnumerateArray()
+            .Select(u => new SurfaceUnitDef(Str(u, "id"), Num(u.GetProperty("speed")), u.GetProperty("survey_radius").GetInt32()))
+            .ToList();
+
+        var groundVehicles = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var v in vehiclesRoot.GetProperty("ground_vehicles").EnumerateArray())
+            groundVehicles.TryAdd(Str(v, "id"), Str(v, "name"));
+
+        return new GameData(factions, hulls, classes, resources, planetClasses, buildings, maps,
+            terrain, surfaces, surfaceUnits, hints, landing, groundVehicles, problems);
     }
 
     private static string Str(JsonElement e, string property) => e.GetProperty(property).GetString()!;
@@ -201,7 +278,55 @@ public sealed class GameData
                 if (!_resources.ContainsKey(y)) problems.Add($"Planet class {p.Id}: unknown yield '{y}'.");
 
         foreach (var m in Maps) ValidateMap(m, problems);
+        ValidateSurfaces(problems);
         return problems;
+    }
+
+    private void ValidateSurfaces(List<string> problems)
+    {
+        void CheckTerrain(string id, string where)
+        {
+            if (!_terrain.ContainsKey(id)) problems.Add($"{where}: unknown terrain '{id}'.");
+        }
+
+        foreach (var t in Terrain)
+            if (t.Passable && t.MoveCost < 1) problems.Add($"Terrain {t.Id}: passable terrain needs move_cost of at least 1.");
+
+        foreach (var s in Surfaces)
+        {
+            var where = $"Surface {s.ClassId}";
+            if (!_planetClasses.ContainsKey(s.ClassId)) problems.Add($"{where}: unknown planet class.");
+            if (s.Width < 8 || s.Height < 8) problems.Add($"{where}: map must be at least 8x8.");
+            foreach (var role in new[] { "ocean", "shallows", "hills", "mountains" }) CheckTerrain(role, where);
+            CheckTerrain(s.PolarTerrain, where);
+            if (!(s.OceanBelow <= s.ShallowsBelow && s.ShallowsBelow <= s.HillsFrom && s.HillsFrom <= s.MountainsFrom))
+                problems.Add($"{where}: elevation thresholds must rise ocean <= shallows <= hills <= mountains.");
+            foreach (var b in s.Lowland) CheckTerrain(b.TerrainId, $"{where} lowland");
+            if (s.Lowland.Count == 0 || s.Lowland[^1].Below <= Fix64.One) problems.Add($"{where}: last lowland band must reach above 1.");
+            if (s.RegionColumns < 1 || s.RegionRows < 1) problems.Add($"{where}: regions must be at least 1x1.");
+            foreach (var d in s.Deposits)
+            {
+                if (!_resources.ContainsKey(d.ResourceId)) problems.Add($"{where}: unknown deposit resource '{d.ResourceId}'.");
+                foreach (var t in d.Terrain) CheckTerrain(t, $"{where} deposit {d.ResourceId}");
+                if (d.Min < 1 || d.Max < d.Min) problems.Add($"{where} deposit {d.ResourceId}: amount range is invalid.");
+                if (d.Chance <= Fix64.Zero || d.Chance > Fix64.One) problems.Add($"{where} deposit {d.ResourceId}: chance must be in (0, 1].");
+            }
+        }
+
+        foreach (var t in Landing.Terrain)
+        {
+            CheckTerrain(t, "Landing");
+            if (_terrain.TryGetValue(t, out var def) && !(def.Passable && def.Buildable))
+                problems.Add($"Landing: terrain '{t}' must be passable and buildable.");
+        }
+        if (!_buildings.ContainsKey(Landing.HubBuilding)) problems.Add($"Landing: unknown hub building '{Landing.HubBuilding}'.");
+        foreach (var u in Landing.Units)
+            if (!_surfaceUnits.ContainsKey(u)) problems.Add($"Landing: unit '{u}' has no surface stats.");
+        foreach (var u in SurfaceUnits)
+        {
+            if (!GroundVehicleNames.ContainsKey(u.Id)) problems.Add($"Surface unit {u.Id}: not a ground vehicle in vehicles.json.");
+            if (u.Speed <= Fix64.Zero) problems.Add($"Surface unit {u.Id}: speed must be positive.");
+        }
     }
 
     private void ValidateMap(MapDef m, List<string> problems)

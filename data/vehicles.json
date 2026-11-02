@@ -126,6 +126,8 @@
       "role": "economy", "abilities": ["mobile_mining", "prospect_deposit"] },
     { "id": "terraforming_rover", "name": "Terraforming Rover", "faction": "any", "source": "original",
       "role": "economy", "abilities": ["speed_terraform_progress"] },
+    { "id": "survey_rover", "name": "Survey Rover", "faction": "any", "source": "original",
+      "role": "recon", "abilities": ["surface_survey"], "notes": "Lands with the colony pod; maps the deposits around it. Surface stats in surfaces.json." },
     { "id": "romulan_assault_skiff", "name": "Romulan Cloaked Skiff", "faction": "romulan", "source": "original", "role": "raider", "abilities": ["cloak", "raid_supply"] },
     { "id": "jem_hadar_walker", "name": "Jem'Hadar Assault Walker", "faction": "dominion", "source": "original", "role": "assault", "abilities": ["shroud_stealth", "breach_fortification"] },
     { "id": "ferengi_cargo_crawler", "name": "Ferengi Cargo Crawler", "faction": "ferengi", "source": "original", "role": "economy", "abilities": ["mobile_trade_post", "smuggle"] },
