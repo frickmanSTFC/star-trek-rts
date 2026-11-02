@@ -14,9 +14,10 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `sim/Surface/` | Planet surface: `HexGrid`, `SurfaceMap` (seeded terrain and deposit generation, orbital hints, landing sites), `Pathfinder` (A*), `PlanetSurface` (landing, rovers, surveying, placing and constructing buildings, upkeep, mining) |
 | `sim/Ai/` | `ChaseAi`: placeholder opponent that only issues commands |
 | `tests/` | xUnit tests: math, RNG, data checks, determinism |
-| `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (hex terrain, scan hints, landing, pod, hub, rovers, deposits) |
+| `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (one continuous terrain mesh over the hex grid, animated water, trees, deposit crystals, scan hints, landing, pod with touchdown dust, buildings, rovers) |
+| `shaders/` | `terrain`, `water`, `foliage` (all read the fog-of-war texture: one texel per tile) and `crystal` (glowing deposits) |
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
-| `scripts/BuildingModels.cs` | Placeholder building models (hub, mine, reactor, habitat) |
+| `scripts/BuildingModels.cs` | Primitive-built models: hub (grows with level), mine, reactor, habitat, colony pod, survey rover |
 | `scripts/PlanetHud.cs`, `Minimap.cs`, `Icons.cs` | Planet HUD: icon resource bar, event feed, tooltip, bottom panel (minimap, selected base or object, command card); icons are SVG paths drawn at runtime |
 | `scripts/Hud.cs` | The star-system view's simpler HUD |
 | `FinalFrontier.sln` | One solution for everything (Godot opens it too) |

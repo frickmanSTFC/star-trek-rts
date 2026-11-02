@@ -336,13 +336,7 @@ public partial class PlanetDriver : Node3D
         _hoverTile = -1;
         if (!_mouseOverUi)
         {
-            var origin = _camera.ProjectRayOrigin(mouse);
-            var dir = _camera.ProjectRayNormal(mouse);
-            if (Mathf.Abs(dir.Y) > 1e-5f)
-            {
-                var t = (2.5f - origin.Y) / dir.Y; // roughly the height of lowland tops
-                if (t > 0) _hoverTile = _view.TileAt(origin + dir * t);
-            }
+            _hoverTile = _view.PickTile(_camera.ProjectRayOrigin(mouse), _camera.ProjectRayNormal(mouse));
         }
 
         if (_placing != null)
