@@ -77,8 +77,9 @@ public sealed class HexGrid
     {
         var result = new List<int>();
         var r0 = Row(centre);
+        var c0 = Column(centre);
         for (var r = System.Math.Max(0, r0 - radius); r <= System.Math.Min(Height - 1, r0 + radius); r++)
-            for (var c = 0; c < Width; c++)
+            for (var c = System.Math.Max(0, c0 - radius - 1); c <= System.Math.Min(Width - 1, c0 + radius + 1); c++)
             {
                 var i = Index(c, r);
                 if (Distance(centre, i) <= radius) result.Add(i);

@@ -56,6 +56,11 @@ public partial class PlanetDriver : Node3D
     // Camera: focus point on the ground, distance, and yaw in 90° steps (Q / E), all eased.
     private Vector3 _focus;
     private float _distance = 420f;
+
+    /// <summary>Camera distance that shows the whole map (worked out from the map size); also the zoom-out limit.</summary>
+    private float _overview = 420f;
+    private Environment? _environment;
+    private DirectionalLight3D? _sun;
     private Vector3 _focusTarget;
     private float _distanceTarget = 420f;
     private int _yawSteps;
@@ -79,6 +84,13 @@ public partial class PlanetDriver : Node3D
         _hud.Minimap.Setup(_sim, _view, LocalPlayer);
         _hud.Minimap.OnJump = p => _focusTarget = p;
 
+        var g = _sim.Surface!.Map.Grid;
+        var worldW = (g.Width + 0.5f) * PlanetView.HexWidth;
+        var worldD = ((g.Height - 1) * 0.866f + 1.155f) * PlanetView.HexWidth;
+        _overview = Mathf.Max(worldW * 0.8f, worldD * 1.35f);
+        _distance = _distanceTarget = _overview;
+        _environment = GetNodeOrNull<WorldEnvironment>("WorldEnvironment")?.Environment;
+        _sun = GetNodeOrNull<DirectionalLight3D>("Sun");
         _focus = _focusTarget = _view.MapCentre();
         UpdateCamera();
     }
@@ -183,7 +195,15 @@ public partial class PlanetDriver : Node3D
                 _distanceTarget = Mathf.Max(50f, _distanceTarget * 0.88f);
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-                _distanceTarget = Mathf.Min(600f, _distanceTarget * 1.12f);
+                _distanceTarget = Mathf.Min(_overview * 1.15f, _distanceTarget * 1.12f);
+                break;
+            case InputEventMouseMotion motion when (motion.ButtonMask & MouseButtonMask.Middle) != 0:
+                // Drag the map with the middle mouse button.
+                var forward = new Vector3(0, 0, -1).Rotated(Vector3.Up, _yaw);
+                var right = new Vector3(1, 0, 0).Rotated(Vector3.Up, _yaw);
+                var scale = _distance * 0.0016f;
+                _focusTarget -= (right * motion.Relative.X - forward * motion.Relative.Y) * scale;
+                _focus = _focusTarget;
                 break;
             case InputEventKey { Pressed: true, Echo: false } key:
                 OnKey(key);
@@ -231,7 +251,7 @@ public partial class PlanetDriver : Node3D
                 else
                 {
                     _focusTarget = _view.MapCentre();
-                    _distanceTarget = 420f;
+                    _distanceTarget = _overview;
                 }
                 break;
             case >= Key.Key1 and <= Key.Key9 when landed:
@@ -378,7 +398,7 @@ public partial class PlanetDriver : Node3D
 
         var landed = Me.Phase == LandingPhase.Landed;
         _hud.ShowHints(Me.Phase == LandingPhase.InOrbit
-            ? "Left-click: land  ·  WASD pan  ·  Q/E turn  ·  wheel zoom"
+            ? "Left-click: land  ·  WASD / middle-drag pan  ·  Q/E turn  ·  wheel zoom"
             : "Left-click select  ·  right-click drive  ·  1–3 build  ·  R rotate  ·  U upgrade  ·  X cancel  ·  Tab next base  ·  Q/E turn  ·  H home");
 
         _hud.ShowBanner(Me.Phase switch
@@ -565,6 +585,15 @@ public partial class PlanetDriver : Node3D
         var k = 1f - Mathf.Exp(-4f * delta);
         _focus = _focus.Lerp(_focusTarget, k);
         _distance = Mathf.Lerp(_distance, _distanceTarget, k);
+
+        // Haze and shadows follow the zoom: thick close up, thin from high above so the whole map stays readable.
+        if (_environment != null) _environment.FogDensity = 0.45f / Mathf.Max(60f, _distance);
+        if (_sun != null) _sun.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 2.2f, 300f, 2500f);
+
+        // Keep the focus over the map.
+        var g = Surface.Map.Grid;
+        _focusTarget.X = Mathf.Clamp(_focusTarget.X, 0, (g.Width - 0.5f) * PlanetView.HexWidth);
+        _focusTarget.Z = Mathf.Clamp(_focusTarget.Z, 0, (g.Height - 1) * 0.866f * PlanetView.HexWidth);
         _yaw = Mathf.Lerp(_yaw, _yawSteps * Mathf.Pi / 2f, 1f - Mathf.Exp(-8f * delta));
         UpdateCamera();
     }

@@ -533,9 +533,9 @@ public partial class PlanetView : Node3D
             var label = new Label3D
             {
                 Text = string.Join("\n", lines),
-                Position = sum / n + new Vector3(0, 40, 0),
+                Position = sum / n + new Vector3(0, 60, 0),
                 FontSize = 44,
-                PixelSize = 0.18f,
+                PixelSize = 0.34f,
                 OutlineSize = 12,
                 Modulate = new Color(1f, 0.86f, 0.5f),
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,

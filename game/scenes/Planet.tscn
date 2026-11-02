@@ -37,7 +37,7 @@ directional_shadow_max_distance = 900.0
 
 [node name="Camera3D" type="Camera3D" parent="."]
 fov = 45.0
-far = 3000.0
+far = 7000.0
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("2_hud")

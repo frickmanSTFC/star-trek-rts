@@ -50,7 +50,9 @@ near-black = unexplored (set `FogDarkness` on the root node).
 
 Controls: left-click selects a rover, building, base or tile (Shift adds rovers), **A** selects all rovers, right-click drives,
 **1–3** build, **R** rotate, **U** upgrade, **X** cancel a build or upgrade, **Tab** next base, **Esc** back to the base,
-WASD/arrows pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
+WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
+
+Map size is `width` / `height` in `data/surfaces.json` (Class M: 128×88 tiles); the camera adapts to it.
 
 The older star-system view is `scenes/System.tscn` (open it and press F6).
 

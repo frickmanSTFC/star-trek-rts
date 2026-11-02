@@ -13,14 +13,14 @@
   "planets": [
     {
       "class": "class_m",
-      "width": 44,
-      "height": 30,
-      "feature_size": 7,
+      "width": 128,
+      "height": 88,
+      "feature_size": 14,
       "elevation": { "ocean": 0.30, "shallows": 0.36, "hills": 0.80, "mountains": 0.91 },
       "lowland": [ { "below": 0.30, "terrain": "desert" }, { "below": 0.70, "terrain": "plains" }, { "below": 1.01, "terrain": "forest" } ],
-      "polar_rows": 1,
+      "polar_rows": 2,
       "polar_terrain": "ice",
-      "regions": [4, 3],
+      "regions": [8, 5],
       "deposits": [
         { "resource": "duranium",  "terrain": ["hills"],                    "chance": 0.22, "amount": [300, 900] },
         { "resource": "tritanium", "terrain": ["hills", "plains"],          "chance": 0.07, "amount": [200, 600] },
