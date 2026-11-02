@@ -39,6 +39,12 @@ public sealed class GameData
 
     /// <summary>Buildings the player can place on a planet surface, in menu order (surfaces.json build_menu).</summary>
     public IReadOnlyList<string> BuildMenu { get; }
+
+    /// <summary>Resource that is a per-base power budget on a surface, not a stockpile (surfaces.json power_resource).</summary>
+    public string PowerResource { get; }
+
+    /// <summary>Stockpiled resources shown in the planet HUD's top bar, in order.</summary>
+    public IReadOnlyList<ResourceDef> HudResources { get; }
     public LandingRules Landing { get; }
 
     /// <summary>Ground vehicle ids and names from vehicles.json.</summary>
@@ -65,9 +71,19 @@ public sealed class GameData
         List<FactionDef> factions, List<HullDef> hulls, List<ShipClassDef> classes, List<ResourceDef> resources,
         List<PlanetClassDef> planetClasses, List<BuildingDef> buildings, List<MapDef> maps,
         List<TerrainDef> terrain, List<PlanetSurfaceDef> surfaces, List<SurfaceUnitDef> surfaceUnits,
-        HintRules hints, LandingRules landing, List<string> buildMenu, Dictionary<string, string> groundVehicles, List<string> loadProblems)
+        HintRules hints, LandingRules landing, List<string> buildMenu, string powerResource, List<string> hudResources,
+        Dictionary<string, string> groundVehicles, List<string> loadProblems)
     {
         BuildMenu = buildMenu;
+        PowerResource = powerResource;
+        var hud = new List<ResourceDef>();
+        foreach (var id in hudResources)
+        {
+            var r = resources.FirstOrDefault(x => x.Id == id);
+            if (r != null) hud.Add(r);
+            else loadProblems.Add($"hud_resources: unknown resource '{id}'.");
+        }
+        HudResources = hud;
         Terrain = terrain;
         Surfaces = surfaces;
         SurfaceUnits = surfaceUnits;
@@ -187,7 +203,11 @@ public sealed class GameData
                     Int("build_seconds"),
                     b.TryGetProperty("requires_deposit", out var rd) && rd.GetBoolean(),
                     b.TryGetProperty("extract_per_min", out var ex) ? Num(ex) : Fix64.Zero,
-                    Int("build_radius"), Int("build_queues"));
+                    Int("build_radius"), Int("build_queues"),
+                    b.TryGetProperty("power_supply", out var ps) ? Num(ps) : Fix64.Zero,
+                    b.TryGetProperty("power_use", out var pu) ? Num(pu) : Fix64.Zero,
+                    Int("level"),
+                    b.TryGetProperty("upgrades_to", out var up) ? up.GetString() ?? "" : "");
             })
             .ToList();
 
@@ -267,6 +287,8 @@ public sealed class GameData
         return new GameData(factions, hulls, classes, resources, planetClasses, buildings, maps,
             terrain, surfaces, surfaceUnits, hints, landing,
             surfacesRoot.GetProperty("build_menu").EnumerateArray().Select(b => b.GetString()!).ToList(),
+            Str(surfacesRoot, "power_resource"),
+            surfacesRoot.GetProperty("hud_resources").EnumerateArray().Select(r => r.GetString()!).ToList(),
             groundVehicles, problems);
     }
 
@@ -334,6 +356,33 @@ public sealed class GameData
         }
         if (!_buildings.TryGetValue(Landing.HubBuilding, out var hub)) problems.Add($"Landing: unknown hub building '{Landing.HubBuilding}'.");
         else if (hub.BuildRadius < 1 || hub.BuildQueues < 1) problems.Add($"Landing: hub '{hub.Id}' needs build_radius and build_queues of at least 1.");
+        if (!_resources.TryGetValue(PowerResource, out var power)) problems.Add($"power_resource: unknown resource '{PowerResource}'.");
+        if (HudResources.Any(r => r.Id == PowerResource)) problems.Add("hud_resources: the power resource is a budget, not a stockpile; leave it out.");
+        if (Landing.StartStock.Any(a => power != null && a.Resource == power.Index)) problems.Add("Landing start_stock: the power resource can't be stockpiled.");
+
+        // The core upgrade line from the landing hub: each step exists, is buildable and goes up one level.
+        var seen = new HashSet<string>();
+        for (var core = hub; core != null && seen.Add(core.Id);)
+        {
+            if (!core.IsCore || core.BuildQueues < 1) problems.Add($"Core {core.Id}: needs build_radius and build_queues of at least 1.");
+            if (core.UpgradesTo.Length == 0) break;
+            if (!_buildings.TryGetValue(core.UpgradesTo, out var next))
+            {
+                problems.Add($"Core {core.Id}: upgrades_to unknown building '{core.UpgradesTo}'.");
+                break;
+            }
+            if (next.BuildSeconds < 1) problems.Add($"Core {next.Id}: needs build_seconds (the upgrade time).");
+            if (next.Level != core.Level + 1) problems.Add($"Core {next.Id}: level should be {core.Level + 1}.");
+            core = next;
+        }
+
+        foreach (var id in BuildMenu.Concat(seen))
+        {
+            if (!_buildings.TryGetValue(id, out var b) || power == null) continue;
+            if (b.OutputPerMinute.Concat(b.UpkeepPerMinute).Any(a => a.Resource == power.Index))
+                problems.Add($"Building {id}: {PowerResource} is a power budget on the surface; use power_supply / power_use instead of output or upkeep.");
+        }
+
         foreach (var id in BuildMenu)
         {
             if (!_buildings.TryGetValue(id, out var b))

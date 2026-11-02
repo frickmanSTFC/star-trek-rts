@@ -206,14 +206,15 @@ public class ConstructionTests
         sim.Step();
         Assert.Equal(StructureStatus.Working, reactor.Status);
 
+        var baseId = reactor.BaseId;
+        var supplyBefore = sim.Surface.PowerOf(baseId).Supply;
+
         var stock = sim.Players[0].Stock;
         stock.TrySpend(new[] { new ResourceAmount(R("deuterium"), stock[R("deuterium")]) });
-        var energy = stock[R("energy")];
         sim.Step();
         Assert.Equal(StructureStatus.NoUpkeep, reactor.Status);
-        // Only the hub's energy arrives now.
-        var hubEnergy = Data.Building("colony_hub").OutputPerMinute.Single(o => o.Resource == R("energy")).Amount / Simulation.TicksPerMinute;
-        Assert.Equal(energy + hubEnergy, stock[R("energy")]);
+        // An idle reactor supplies no power.
+        Assert.Equal(supplyBefore - Data.Building("fusion_reactor").PowerSupply, sim.Surface.PowerOf(baseId).Supply);
     }
 
     [Fact]

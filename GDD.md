@@ -73,8 +73,17 @@ layer above it once the surface game is fun.
   Hub's build radius (4). The cost is paid on placement; the hub's single build queue builds one at a time, the rest
   wait in order; unfinished buildings can be cancelled for a full refund. Buildings turn in 60° steps (hex sides).
   - *Mining Complex:* must sit on a deposit; moves it into your stockpile (40/min) until it runs out. Upkeep: energy.
-  - *Fusion Reactor:* +energy; burns deuterium. *Prefab Habitat:* +crew; upkeep: energy.
+  - *Fusion Reactor:* +power; burns deuterium. *Prefab Habitat:* +crew; uses power.
   - A building that can't pay its upkeep idles (no output) until stock returns.
+- **Bases:** a colony core (the hub and its upgrades) plus the buildings in its radius. Each base has its own
+  build queues and **power budget** (decided 2026-11-02): energy is not stockpiled on a surface; buildings supply or
+  use power, and when use exceeds supply every power user at that base slows to supply ÷ use.
+- **Levels:** Colony Hub (1) → Colonial Administration (2: 2 build queues, radius 6, more power) → Planetary
+  Capital (3). Upgrading pays the next level's cost, takes time, keeps the base working, and can be cancelled for a
+  refund.
+- **HUD** (mockup: claude.ai/artifact/2evrsmTGmagiQJhMsJuddS): resource bar with icons; event feed; three-level fog
+  (visible / explored / unexplored); minimap; bottom panel with the selected base (level, upgrade, power, buildings,
+  build queue) or object; command card. Shields and integrity come later with defences.
 - **Camera:** pan, zoom, and turn the view in 90° steps (Q / E).
 - **Opponent:** solo first to get landing, surveying and building right; then a Cardassian landing on the same world.
 

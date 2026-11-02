@@ -17,7 +17,8 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (hex terrain, scan hints, landing, pod, hub, rovers, deposits) |
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
 | `scripts/BuildingModels.cs` | Placeholder building models (hub, mine, reactor, habitat) |
-| `scripts/Hud.cs` | Shared HUD: resource bar, prompt banner, build bar, info and help panels |
+| `scripts/PlanetHud.cs`, `Minimap.cs`, `Icons.cs` | Planet HUD: icon resource bar, event feed, tooltip, bottom panel (minimap, selected base or object, command card); icons are SVG paths drawn at runtime |
+| `scripts/Hud.cs` | The star-system view's simpler HUD |
 | `FinalFrontier.sln` | One solution for everything (Godot opens it too) |
 
 ## Run it
@@ -37,7 +38,17 @@ You start in orbit over Tarsis, a generated Class M world (change `Seed` on the 
    hologram while under construction; one builds at a time and the rest queue. Click your building for its status;
    **X** cancels an unfinished one for a full refund. Put mines on deposits, and keep energy and deuterium positive.
 
-Controls: left-click selects a rover, building or tile (Shift adds rovers), **A** selects all rovers, right-click drives,
+5. **Run the base:** the bottom panel shows the selected base: level, upgrade (button or **U**), power used / supply,
+   its buildings and build queue. Keep power supply above use (Fusion Reactors) or everything that uses power slows.
+   Upgrade the Colony Hub to Colonial Administration for two build queues and a bigger radius.
+
+The HUD: resources across the top (stock and rate per minute, power used / supply at the right), events top-left,
+a tooltip for whatever is under the mouse, the survey map bottom-left (click or drag to move the camera), the
+selected base or object in the middle, and the build card bottom-right. Fog: bright = in sight now, dim = explored,
+near-black = unexplored (set `FogDarkness` on the root node).
+
+Controls: left-click selects a rover, building, base or tile (Shift adds rovers), **A** selects all rovers, right-click drives,
+**1–3** build, **R** rotate, **U** upgrade, **X** cancel a build or upgrade, **Tab** next base, **Esc** back to the base,
 WASD/arrows pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
 
 The older star-system view is `scenes/System.tscn` (open it and press F6).
@@ -62,5 +73,5 @@ dotnet test
 
 ## Not done yet
 
-On the surface: more buildings (research lab, garrison, refineries), upgrades, population, the Cardassian rival landing. Later: the star system above, shipyards, combat, orbits, the sector (lane) map, the network layer, exported builds
+On the surface: outposts (more bases), shields and integrity, more buildings (research lab, garrison, refineries), population, the Cardassian rival landing. Later: the star system above, shipyards, combat, orbits, the sector (lane) map, the network layer, exported builds
 (the data folder is read from `../data` next to the project, which works in the editor only).

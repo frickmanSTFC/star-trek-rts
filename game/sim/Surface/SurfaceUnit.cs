@@ -64,6 +64,9 @@ public enum StructureStatus
 
     /// <summary>A mine whose deposit is used up.</summary>
     Depleted,
+
+    /// <summary>Its base uses more power than it supplies, so this power user runs slower.</summary>
+    LowPower,
 }
 
 /// <summary>A building on a surface tile.</summary>
@@ -71,8 +74,19 @@ public sealed class SurfaceStructure
 {
     public int Id { get; }
     public int Owner { get; }
-    public string DefId { get; }
+    /// <summary>Changes when a colony core finishes an upgrade.</summary>
+    public string DefId { get; internal set; }
+
     public int Tile { get; }
+
+    /// <summary>Structure id of the colony core this building belongs to (a core's own id for the core itself).</summary>
+    public int BaseId { get; internal set; }
+
+    /// <summary>The level this core is upgrading to, or null.</summary>
+    public string? UpgradingTo { get; internal set; }
+
+    /// <summary>Ticks of upgrade work done so far.</summary>
+    public int UpgradeTicks { get; internal set; }
 
     /// <summary>Which way it faces, 0–5 in 60° steps (hex sides). Cosmetic for now; entrances and footprints later.</summary>
     public int Facing { get; }
@@ -84,8 +98,9 @@ public sealed class SurfaceStructure
 
     public StructureStatus Status { get; internal set; }
 
-    internal SurfaceStructure(int id, int owner, string defId, int tile, int facing, StructureState state)
+    internal SurfaceStructure(int id, int owner, string defId, int tile, int facing, StructureState state, int baseId)
     {
+        BaseId = baseId == 0 ? id : baseId;
         Id = id;
         Owner = owner;
         DefId = defId;
@@ -104,6 +119,9 @@ public sealed class SurfaceStructure
         h.Add((int)State);
         h.Add(BuildTicks);
         h.Add((int)Status);
+        h.Add(BaseId);
+        h.Add(UpgradingTo ?? "");
+        h.Add(UpgradeTicks);
     }
 }
 

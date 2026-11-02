@@ -20,7 +20,8 @@ public sealed record PlanetClassDef(string Id, string Name, Fix64 Habitability, 
 /// A structure from buildings.json (the "buildings" list). Economy fields are optional in the data:
 /// BuildSeconds 0 = can't be built by the player; ExtractPerMinute = how fast it mines the deposit
 /// under it (RequiresDeposit); BuildRadius / BuildQueues = for colony cores, how far from it you can
-/// build and how many constructions run at once.
+/// build and how many constructions run at once. PowerSupply / PowerUse feed the base's power budget.
+/// Level and UpgradesTo describe a core's upgrade line (UpgradesTo "" = top level).
 /// </summary>
 public sealed record BuildingDef(
     string Id,
@@ -35,7 +36,15 @@ public sealed record BuildingDef(
     bool RequiresDeposit,
     Fix64 ExtractPerMinute,
     int BuildRadius,
-    int BuildQueues);
+    int BuildQueues,
+    Fix64 PowerSupply,
+    Fix64 PowerUse,
+    int Level,
+    string UpgradesTo)
+{
+    /// <summary>A colony core (hub and its upgrades): defines a base, its build radius and queues.</summary>
+    public bool IsCore => BuildRadius > 0;
+}
 
 public sealed record StarDef(string Name, string Class, Fix64 Radius);
 

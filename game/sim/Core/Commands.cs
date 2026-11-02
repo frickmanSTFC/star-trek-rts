@@ -23,3 +23,6 @@ public sealed record PlaceBuildingCommand(int Player, string BuildingId, int Til
 
 /// <summary>Cancel an unfinished building of your own; the full cost is refunded.</summary>
 public sealed record CancelBuildingCommand(int Player, int StructureId) : Command(Player);
+
+/// <summary>Start upgrading a finished colony core to its next level (pays that level's cost). Cancel with CancelBuildingCommand.</summary>
+public sealed record UpgradeCommand(int Player, int StructureId) : Command(Player);

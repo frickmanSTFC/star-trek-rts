@@ -154,13 +154,17 @@ public partial class PlanetView : Node3D
         var surveyed = 0;
         foreach (var s in me.Surveyed)
             if (s) surveyed++;
-        if (surveyed != _surveyedCount || me.Phase != _lastPhase)
+        var vision = VisionSignature();
+        if (surveyed != _surveyedCount || me.Phase != _lastPhase || vision != _visionSignature)
         {
             _surveyedCount = surveyed;
             _lastPhase = me.Phase;
+            _visionSignature = vision;
+            UpdateVisibility(me);
             ColourTiles(me);
             PlaceDeposits(me);
             foreach (var l in _hintLabels) l.Visible = me.Phase == LandingPhase.InOrbit;
+            FogChanged = true;
         }
 
         UpdatePod(me, alpha);
@@ -195,17 +199,74 @@ public partial class PlanetView : Node3D
         }
     }
 
-    private void ColourTiles(SurfacePlayer me)
+    // ---------------------------------------------------------------- fog of war (render-only)
+
+    /// <summary>How far your buildings and rovers can see, in tiles. Render-only: the sim tracks surveying, not sight.</summary>
+    public const int StructureSight = 3;
+
+    private bool[] _visible = System.Array.Empty<bool>();
+    private long _visionSignature = -1;
+
+    /// <summary>Set when the fog changed this frame (the minimap redraws its terrain then).</summary>
+    public bool FogChanged { get; set; }
+
+    public enum Fog { Visible, Explored, Unexplored }
+
+    /// <summary>
+    /// Three levels: Visible = in sight of your buildings or rovers now; Explored = surveyed before, shown dimmed;
+    /// Unexplored = near-black. From orbit the scan shows the whole surface.
+    /// </summary>
+    public Fog FogAt(int tile)
+    {
+        var me = _surface.Players[_localPlayer];
+        if (me.Phase == LandingPhase.InOrbit) return Fog.Visible;
+        if (tile < _visible.Length && _visible[tile]) return Fog.Visible;
+        return me.Surveyed[tile] ? Fog.Explored : Fog.Unexplored;
+    }
+
+    /// <summary>The colour a tile is drawn with, fog applied (the minimap uses the same colours).</summary>
+    public Color TileColour(int tile)
     {
         var map = _surface.Map;
-        for (var t = 0; t < map.Grid.Count; t++)
+        var colour = Color.FromHtml(map.Terrain(tile).Color).Lightened((map.Elevation[tile].ToFloat() - 0.5f) * 0.15f);
+        return FogAt(tile) switch
         {
-            var colour = Color.FromHtml(map.Terrain(t).Color);
-            colour = colour.Lightened((map.Elevation[t].ToFloat() - 0.5f) * 0.15f);
-            // From orbit everything is equally visible; once down, unsurveyed land reads darker.
-            if (me.Phase != LandingPhase.InOrbit && !me.Surveyed[t]) colour = colour.Darkened(0.35f);
-            _tiles.SetInstanceColor(t, colour);
+            Fog.Visible => colour,
+            Fog.Explored => colour.Darkened(0.55f),
+            _ => colour.Lerp(new Color(0.008f, 0.012f, 0.03f), FogDarkness),
+        };
+    }
+
+    /// <summary>How close unexplored ground gets to black (0..1).</summary>
+    public float FogDarkness { get; set; } = 0.92f;
+
+    private long VisionSignature()
+    {
+        long h = _surface.Structures.Count * 7919L + _surface.Players[_localPlayer].LandingTile;
+        foreach (var u in _surface.Units)
+            if (u.Owner == _localPlayer) h = h * 31 + u.Tile + 1;
+        return h;
+    }
+
+    private void UpdateVisibility(SurfacePlayer me)
+    {
+        var grid = _surface.Map.Grid;
+        if (_visible.Length != grid.Count) _visible = new bool[grid.Count];
+        System.Array.Clear(_visible);
+        void See(int centre, int radius)
+        {
+            foreach (var t in grid.Within(centre, radius)) _visible[t] = true;
         }
+        foreach (var s in _surface.Structures)
+            if (s.Owner == _localPlayer) See(s.Tile, StructureSight);
+        foreach (var u in _surface.Units)
+            if (u.Owner == _localPlayer) See(u.Tile, u.SurveyRadius + 1);
+        if (me.Phase == LandingPhase.Descending) See(me.LandingTile, 2);
+    }
+
+    private void ColourTiles(SurfacePlayer me)
+    {
+        for (var t = 0; t < _surface.Map.Grid.Count; t++) _tiles.SetInstanceColor(t, TileColour(t));
     }
 
     private void PlaceDeposits(SurfacePlayer me)
@@ -222,7 +283,8 @@ public partial class PlanetView : Node3D
             var size = Mathf.Clamp(map.DepositAmount[t].ToFloat() / 500f, 0.6f, 1.6f);
             var pos = TileCentre(t) + new Vector3(2.2f, 1.6f * size, -1.2f);
             _deposits.SetInstanceTransform(i, new Transform3D(Basis.Identity.Scaled(new Vector3(size, size, size)), pos));
-            _deposits.SetInstanceColor(i, DepositColors.TryGetValue(id, out var c) ? c : new Color(0.8f, 0.6f, 1f));
+            var colour = DepositColors.TryGetValue(id, out var c) ? c : new Color(0.8f, 0.6f, 1f);
+            _deposits.SetInstanceColor(i, FogAt(t) == Fog.Visible ? colour : colour.Darkened(0.5f));
         }
     }
 
