@@ -45,7 +45,7 @@ Fan-made Star Trek RTS design package plus a playable Godot prototype. `README.m
 
 ### Proposed next (not yet confirmed by the owner)
 
-- Mining shipped 2026-11-03 in one push (owner asked for all of it at once); waiting for the owner's in-Godot test, especially the crawler unfurl animation and cargo pods, which can't be seen here.
+- Mining (storage, ore, refinery, crawler, pods, salvage, deep-core) and crawler breakdowns + repair pad: owner tested in Godot 2026-11-03, "it worked".
 - Open: the Alloy Foundry eats duranium/tritanium as soon as it's built (no on/off or priority yet); offer a pause toggle. Deeper-scan research needs a research system. Crawler pods ignore terrain and fog.
 - Other candidates offered: outposts + construction rovers (base tabs and Tab are ready for more bases), the Cardassian rival, shields and integrity, Research Lab / Security Garrison, a Vehicle Bay to build more crawlers/rovers, faster rovers for the big map.
 
