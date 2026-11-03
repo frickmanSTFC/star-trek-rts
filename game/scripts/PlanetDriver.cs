@@ -604,7 +604,7 @@ public partial class PlanetDriver : Node3D
                 {
                     var ud = _data.SurfaceUnit(u);
                     var problem = Surface.ProductionProblem(_sim, LocalPlayer, bay.Id, u);
-                    return new CommandView($"unit:{u}", "", "", $"{Amounts(ud.Cost, false, shortNames: true)} · {ud.BuildSeconds}s", problem == null, false);
+                    return new CommandView($"unit:{u}", "", "", Amounts(ud.Cost, false, shortNames: true), problem == null, false);
                 }).ToList(), true);
             return;
         }
@@ -761,6 +761,8 @@ public partial class PlanetDriver : Node3D
         if (def.UpkeepPerMinute.Count > 0) sb.Append("Upkeep ").AppendLine(Amounts(def.UpkeepPerMinute, true));
         if (def.IsFactory && s.State == StructureState.Complete)
         {
+            sb.Append("Builds ").AppendLine(string.Join("  ·  ", def.Produces.Select(u =>
+                $"{_data.GroundVehicleNames.GetValueOrDefault(u, u)} ({Amounts(_data.SurfaceUnit(u).Cost, false, shortNames: true)}, {_data.SurfaceUnit(u).BuildSeconds} s)")));
             if (s.Production.Count == 0) sb.AppendLine("No orders: pick a vehicle on the right (or press its number)");
             else
             {
