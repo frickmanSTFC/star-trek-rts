@@ -54,6 +54,8 @@ public partial class PlanetDriver : Node3D
     private readonly Dictionary<int, (UnitMode Mode, MiningStatus Status)> _seenUnits = new();
     private bool _storageFull;
     private readonly HashSet<int> _knownUnits = new();
+    private readonly Dictionary<int, (bool Broken, int Level)> _seenUpkeep = new();
+    private bool[] _knownTechs = System.Array.Empty<bool>();
     private readonly Dictionary<int, (long BrokeAt, bool Broken)> _seenCondition = new();
     private bool[] _knownDeposits = System.Array.Empty<bool>();
 
@@ -82,6 +84,7 @@ public partial class PlanetDriver : Node3D
         AddChild(_view);
         _view.Build(_sim, LocalPlayer);
         _knownDeposits = new bool[_sim.Surface!.Map.Grid.Count];
+        _knownTechs = new bool[_data.Techs.Count];
 
         _hud.SetResources(_data.HudResources.Select(r => (r.Index, r.Id, r.Name)).ToList());
         // The command card holds the build menu and every Vehicle Bay order; UpdateHud shows one set at a time.
@@ -91,7 +94,8 @@ public partial class PlanetDriver : Node3D
             var key = _data.BuildMenu.Select(id => _data.Building(id).Produces.ToList().IndexOf(unit)).FirstOrDefault(i => i >= 0);
             commands.Add(($"unit:{unit}", _data.GroundVehicleNames.GetValueOrDefault(unit, unit), $"[{key + 1}]"));
         }
-        _hud.Setup(commands, OnCommand, SelectBase, Upgrade);
+        foreach (var t in _data.Techs) commands.Add(($"tech:{t.Id}", t.Name, $"[{t.Index + 1}]"));
+        _hud.Setup(commands, OnCommand, SelectBase, Upgrade, OnAction);
         _hud.Minimap.Setup(_sim, _view, LocalPlayer);
         _hud.Minimap.OnJump = p => _focusTarget = p;
 
@@ -231,6 +235,26 @@ public partial class PlanetDriver : Node3D
             _storageFull = full;
         }
 
+        foreach (var s in Surface.Structures.Where(s => s.Owner == LocalPlayer))
+        {
+            var now = (s.Broken, s.Level);
+            if (_seenUpkeep.TryGetValue(s.Id, out var was) && was != now)
+            {
+                var name = _data.Building(s.DefId).Name;
+                if (!was.Broken && s.Broken)
+                    _hud.PushEvent(Surface.AutoMaintained(s) ? $"{name} broke down: drones are on it" : $"{name} broke down — select it and press M to send the crew", new Color(1f, 0.42f, 0.36f));
+                if (was.Broken && !s.Broken) _hud.PushEvent($"{name} repaired", new Color(0.56f, 0.83f, 0.69f));
+                if (s.Level > was.Level) _hud.PushEvent($"{name} upgraded to {Surface.LevelName(s)}", PlanetHud.Accent);
+            }
+            _seenUpkeep[s.Id] = now;
+        }
+        var me = Surface.Players[LocalPlayer];
+        for (var t = 0; t < me.Known.Length; t++)
+        {
+            if (me.Known[t] && !_knownTechs[t]) _hud.PushEvent($"Research complete: {_data.Techs[t].Name} — {_data.Techs[t].Effect}", new Color(0.55f, 0.88f, 1f));
+            _knownTechs[t] = me.Known[t];
+        }
+
         foreach (var b in Surface.Bases(LocalPlayer))
         {
             var low = Surface.PowerOf(b.Id).Efficiency < Fix64.One;
@@ -294,11 +318,15 @@ public partial class PlanetDriver : Node3D
                 var target = _selectedStructure != 0 ? _selectedStructure : _selectedBase;
                 var picked = Surface.FindStructure(target);
                 if (picked == null) break;
-                // A finished building (not a core) is salvaged; anything unfinished, or a core's upgrade, is cancelled.
-                Command order = picked.State == StructureState.Complete && !_data.Building(picked.DefId).IsCore
-                    ? new SalvageCommand(LocalPlayer, picked.Id)
-                    : new CancelBuildingCommand(LocalPlayer, picked.Id);
-                _sim.Schedule(_sim.Tick + InputDelayTicks, order);
+                // A finished, non-core building that isn't upgrading is salvaged; anything unfinished, or an upgrade, is cancelled.
+                var upgrading = picked.UpgradingTo != null || picked.UpgradingLevel > 0;
+                OnAction(picked.State == StructureState.Complete && !_data.Building(picked.DefId).IsCore && !upgrading ? "salvage" : "cancel");
+                break;
+            case Key.M when landed && _selectedStructure != 0:
+                OnAction("maintain");
+                break;
+            case Key.F1:
+                _hud.ToggleHelp();
                 break;
             case Key.F when landed:
                 ToggleDeploy();
@@ -330,6 +358,10 @@ public partial class PlanetDriver : Node3D
                 {
                     var produces = _data.Building(orderAt.DefId).Produces;
                     if (index < produces.Count) OrderUnit(produces[index]);
+                }
+                else if (SelectedLab() != null)
+                {
+                    if (index < _data.Techs.Count) Research(_data.Techs[index].Id);
                 }
                 else if (index < _data.BuildMenu.Count) StartPlacing(_data.BuildMenu[index]);
                 break;
@@ -384,11 +416,54 @@ public partial class PlanetDriver : Node3D
         return s != null && s.Owner == LocalPlayer && s.State == StructureState.Complete && _data.Building(s.DefId).IsFactory ? s : null;
     }
 
-    /// <summary>A command-card button: a building to place, or "unit:id" to order at the selected bay.</summary>
+    /// <summary>The selected building if it's one of our finished Research Labs (its techs replace the build menu).</summary>
+    private SurfaceStructure? SelectedLab()
+    {
+        var s = _selectedStructure != 0 ? Surface.FindStructure(_selectedStructure) : null;
+        return s != null && s.Owner == LocalPlayer && s.State == StructureState.Complete && _data.Building(s.DefId).IsLab ? s : null;
+    }
+
+    /// <summary>A command-card button: a building to place, "unit:id" to order at the selected bay, "tech:id" to research.</summary>
     private void OnCommand(string id)
     {
         if (id.StartsWith("unit:")) OrderUnit(id[5..]);
+        else if (id.StartsWith("tech:")) Research(id[5..]);
         else StartPlacing(id);
+    }
+
+    private void Research(string techId)
+    {
+        var problem = Surface.ResearchProblem(LocalPlayer, techId);
+        if (problem == null) _sim.Schedule(_sim.Tick + InputDelayTicks, new ResearchCommand(LocalPlayer, techId));
+        else _hud.PushEvent($"Can't research {_data.Tech(techId).Name}: {problem}", new Color(1f, 0.7f, 0.42f));
+    }
+
+    /// <summary>A building-panel button (or its key): upgrade, cancel, maintain, salvage the selected building.</summary>
+    private void OnAction(string id)
+    {
+        var s = Surface.FindStructure(_selectedStructure != 0 ? _selectedStructure : _selectedBase);
+        if (s == null) return;
+        var warn = new Color(1f, 0.7f, 0.42f);
+        var name = _data.Building(s.DefId).Name;
+        switch (id)
+        {
+            case "upgrade":
+                var problem = Surface.UpgradeProblem(_sim, LocalPlayer, s.Id);
+                if (problem == null) _sim.Schedule(_sim.Tick + InputDelayTicks, new UpgradeCommand(LocalPlayer, s.Id));
+                else _hud.PushEvent($"Can't upgrade the {name}: {problem}", warn);
+                break;
+            case "cancel":
+                _sim.Schedule(_sim.Tick + InputDelayTicks, new CancelBuildingCommand(LocalPlayer, s.Id));
+                break;
+            case "maintain":
+                var why = s.MaintenanceOrdered ? null : Surface.MaintenanceProblem(LocalPlayer, s.Id);
+                if (why == null) _sim.Schedule(_sim.Tick + InputDelayTicks, new MaintainCommand(LocalPlayer, s.Id));
+                else _hud.PushEvent($"{name}: {why}", warn);
+                break;
+            case "salvage":
+                _sim.Schedule(_sim.Tick + InputDelayTicks, new SalvageCommand(LocalPlayer, s.Id));
+                break;
+        }
     }
 
     private void OrderUnit(string unitId)
@@ -415,9 +490,12 @@ public partial class PlanetDriver : Node3D
         if (core != null) FlyTo(core.Tile, Mathf.Min(_distanceTarget, 360f));
     }
 
+    /// <summary>U or the base panel's button: upgrade the selected building if it has levels, otherwise the selected base.</summary>
     private void Upgrade()
     {
-        if (_selectedBase != 0) _sim.Schedule(_sim.Tick + InputDelayTicks, new UpgradeCommand(LocalPlayer, _selectedBase));
+        var s = _selectedStructure != 0 ? Surface.FindStructure(_selectedStructure) : null;
+        if (s != null && _data.Building(s.DefId).Levels.Count > 0) OnAction("upgrade");
+        else if (_selectedBase != 0) _sim.Schedule(_sim.Tick + InputDelayTicks, new UpgradeCommand(LocalPlayer, _selectedBase));
     }
 
     private void StartPlacing(string buildingId)
@@ -566,13 +644,12 @@ public partial class PlanetDriver : Node3D
         }
         var seconds = _sim.Tick / Simulation.TickRate;
         var stored = (Surface.Stored(_sim, LocalPlayer) + Surface.InFlight(LocalPlayer)).ToFloat();
+        var (research, researchSub) = ResearchChip();
         _hud.ShowTop(_sim, LocalPlayer, $"{PlanetName.ToUpperInvariant()} · CLASS M", use, supply, stored,
-            Surface.StorageCapacity(LocalPlayer).ToFloat(), $"{seconds / 60:00}:{seconds % 60:00}");
+            Surface.StorageCapacity(LocalPlayer).ToFloat(), research, researchSub, $"{seconds / 60:00}:{seconds % 60:00}");
 
         var landed = Me.Phase == LandingPhase.Landed;
-        _hud.ShowHints(Me.Phase == LandingPhase.InOrbit
-            ? "Left-click: land  ·  WASD / middle-drag pan  ·  Q/E turn  ·  wheel zoom"
-            : $"Left-click select  ·  right-click drive / mine  ·  F unfurl / pack up / repair  ·  1–{_data.BuildMenu.Count} build  ·  R rotate  ·  U upgrade  ·  X cancel / salvage  ·  Backspace cancel order  ·  Tab next base  ·  Q/E turn  ·  H home");
+        _hud.ShowHints(ContextHints());
 
         _hud.ShowBanner(Me.Phase switch
         {
@@ -596,6 +673,21 @@ public partial class PlanetDriver : Node3D
         else if (_selectedBase != 0) ShowBase(Surface.FindStructure(_selectedBase)!);
 
         var stock = _sim.Players[LocalPlayer].Stock;
+        if (SelectedLab() != null)
+        {
+            var me = Surface.Players[LocalPlayer];
+            _hud.ShowCommands($"RESEARCH · {Mathf.RoundToInt(Surface.ResearchPerMinute(LocalPlayer).ToFloat())} POINTS A MINUTE",
+                _data.Techs.Select(t =>
+                {
+                    var known = me.Known[t.Index];
+                    var locked = !known && Surface.ResearchProblem(LocalPlayer, t.Id) != null;
+                    var active = me.ActiveTech == t.Index;
+                    var done = me.ResearchProgress[t.Index].ToFloat() / t.Cost.ToFloat();
+                    var tag = known ? "DONE" : active ? $"{Mathf.FloorToInt(done * 100)}%" : locked ? "LOCKED" : done > 0 ? $"{Mathf.FloorToInt(done * 100)}%" : "";
+                    return new CommandView($"tech:{t.Id}", "", "", $"{Hud.Whole(t.Cost)} RP", !locked, active, tag, known || locked);
+                }).ToList(), true);
+            return;
+        }
         if (SelectedBay() is { } bay)
         {
             var bayDef = _data.Building(bay.DefId);
@@ -653,6 +745,33 @@ public partial class PlanetDriver : Node3D
 
         _hud.ShowBase(new BaseView(BaseName(core.Id), def.Name, core.DefId, def.Level, line, cost, enabled, progress,
             power.Use.ToFloat(), power.Supply.ToFloat(), buildings, def.BuildQueues, queue));
+    }
+
+    /// <summary>Short hints for what's selected (the full list is on F1).</summary>
+    private string ContextHints()
+    {
+        if (Me.Phase == LandingPhase.InOrbit) return "Left-click a green tile to land  ·  WASD pan  ·  Q/E turn  ·  wheel zoom  ·  F1 controls";
+        if (Me.Phase == LandingPhase.Descending) return "F1 controls";
+        if (_placing != null) return "R rotate  ·  Shift+click place more  ·  right-click / Esc stop";
+        if (SelectedBay() != null) return "1–2 order  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
+        if (SelectedLab() != null) return $"1–{_data.Techs.Count} research  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
+        if (_selectedStructure != 0) return "U upgrade  ·  M maintain  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
+        if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  Esc back  ·  F1 controls";
+        return $"1–{_data.BuildMenu.Count} build  ·  U upgrade base  ·  Tab next base  ·  H home  ·  F1 controls";
+    }
+
+    /// <summary>Top-bar research chip: the active tech's progress, or what to do next.</summary>
+    private (string, string) ResearchChip()
+    {
+        var me = Surface.Players[LocalPlayer];
+        if (me.ActiveTech >= 0)
+        {
+            var t = _data.Techs[me.ActiveTech];
+            return ($"{Mathf.FloorToInt((me.ResearchProgress[t.Index] / t.Cost).ToFloat() * 100)}%", t.Name.ToUpperInvariant());
+        }
+        var hasLab = Surface.Structures.Any(s => s.Owner == LocalPlayer && s.State == StructureState.Complete && _data.Building(s.DefId).IsLab);
+        var known = me.Known.Count(k => k);
+        return ($"{known}/{_data.Techs.Count}", hasLab ? "PICK A TECH" : "BUILD A LAB");
     }
 
     private void ShowUnits()
@@ -728,54 +847,198 @@ public partial class PlanetDriver : Node3D
         _hud.ShowDetail(UnitName(u), status, sb.ToString());
     }
 
+    private static string Pct(Fix64 share) => $"{(share >= Fix64.Zero ? "+" : "−")}{Mathf.RoundToInt(Mathf.Abs(share.ToFloat()) * 100)}%";
+
+    /// <summary>Where a stat's bonus comes from, e.g. "Mk II +30% · research +20%" ("base" when there's none).</summary>
+    private string Sources(SurfaceStructure s, string stat)
+    {
+        var parts = new List<string>();
+        var level = Surface.LevelBonus(s, stat);
+        var research = Surface.ResearchBonus(s.Owner, s.DefId, stat);
+        if (level != Fix64.Zero) parts.Add($"{Surface.LevelName(s)} {Pct(level)}");
+        if (research != Fix64.Zero) parts.Add($"research {Pct(research)}");
+        return parts.Count == 0 ? "base" : string.Join(" · ", parts);
+    }
+
+    private string Names(IReadOnlyList<ResourceAmount> amounts) => string.Join(" + ", amounts.Select(a => _data.Resources[a.Resource].Name));
+
+    /// <summary>The selected building: what it does with live numbers and where its bonuses come from, its condition and buttons.</summary>
     private void ShowStructure(SurfaceStructure s)
     {
         var def = _data.Building(s.DefId);
         var power = Surface.PowerOf(s.BaseId);
-        var status = s.State switch
+        var stock = _sim.Players[LocalPlayer].Stock;
+        var complete = s.State == StructureState.Complete;
+        var working = complete && s.Status is StructureStatus.Working or StructureStatus.LowPower;
+        var red = new Color(1f, 0.42f, 0.36f);
+        var (status, statusColour) = s.State switch
         {
-            StructureState.Queued => "Queued: waits for a free build queue",
-            StructureState.Building => $"Under construction: {Mathf.RoundToInt(Surface.BuildFraction(s).ToFloat() * 100)}%",
+            StructureState.Queued => ("Queued: waits for a free build queue", PlanetHud.Accent),
+            StructureState.Building => ($"Under construction", new Color(0.62f, 0.82f, 1f)),
             _ => s.Status switch
             {
-                StructureStatus.NoUpkeep => "Idle: can't pay upkeep",
-                StructureStatus.Depleted => "Idle: deposit used up",
-                StructureStatus.LowPower => $"Low power: running at {Mathf.RoundToInt(power.Efficiency.ToFloat() * 100)}%",
-                StructureStatus.StorageFull => "Idle: storage full",
-                StructureStatus.NoInput when def.IsFactory => "Idle: no orders",
-                StructureStatus.NoInput => def.Recipes.Count > 0 && def.Recipes[0].In.Any(a => _data.Resources[a.Resource].Tier == "raw") ? "Idle: no ore in storage" : "Idle: nothing to work on",
-                _ => "Working",
+                StructureStatus.Broken => (s.AutoRepairing ? "Broken down: drones repairing" : "Broken down: press M to send the crew", red),
+                StructureStatus.NoUpkeep => ("Idle: can't pay upkeep", new Color(1f, 0.7f, 0.42f)),
+                StructureStatus.Depleted => ("Idle: deposit used up", new Color(1f, 0.7f, 0.42f)),
+                StructureStatus.LowPower => ($"Low power: running at {Mathf.RoundToInt(power.Efficiency.ToFloat() * 100)}%", PlanetHud.Accent),
+                StructureStatus.StorageFull => ("Idle: storage full", new Color(1f, 0.7f, 0.42f)),
+                StructureStatus.NoInput when def.IsFactory => ("Idle: no orders (pick a vehicle on the right)", new Color(0.6f, 0.65f, 0.75f)),
+                StructureStatus.NoInput when def.IsLab => ("Idle: pick a tech on the right", new Color(0.6f, 0.65f, 0.75f)),
+                StructureStatus.NoInput => (def.Recipes.Count > 0 && def.Recipes[0].In.Any(a => _data.Resources[a.Resource].Tier == "raw") ? "Idle: no ore in storage" : "Idle: nothing to work on", new Color(0.6f, 0.65f, 0.75f)),
+                _ => ("Working", new Color(0.56f, 0.83f, 0.69f)),
             },
         };
-        var sb = new StringBuilder();
-        sb.Append("Part of ").AppendLine(BaseName(s.BaseId));
-        if (def.PowerSupply > Fix64.Zero) sb.Append("Supplies ").Append(Hud.Whole(def.PowerSupply)).AppendLine(" power");
-        if (def.PowerUse > Fix64.Zero) sb.Append("Uses ").Append(Hud.Whole(def.PowerUse)).AppendLine(" power");
-        if (def.OutputPerMinute.Count > 0) sb.Append("Makes ").AppendLine(Amounts(def.OutputPerMinute, true));
-        if (def.Storage > Fix64.Zero) sb.Append("Storage +").AppendLine(Hud.Whole(def.Storage));
-        foreach (var r in def.Recipes) sb.Append("Turns ").Append(Amounts(r.In, false)).Append(" → ").AppendLine(Amounts(r.Out, false));
-        if (def.IsConverter) sb.Append("Up to ").Append(Hud.Whole(def.CyclesPerMinute)).AppendLine(" cycles/min");
-        if (def.IsMine && Surface.Map.DepositResource[s.Tile] >= 0)
-            sb.Append("Mining ").Append(_data.Resources[Surface.Map.DepositResource[s.Tile]].Name).Append(" +").Append(Hud.Whole(def.ExtractPerMinute))
-              .Append("/min · ").Append(Hud.Whole(Surface.Map.DepositAmount[s.Tile])).AppendLine(" left");
-        if (def.UpkeepPerMinute.Count > 0) sb.Append("Upkeep ").AppendLine(Amounts(def.UpkeepPerMinute, true));
-        if (def.IsFactory && s.State == StructureState.Complete)
+
+        // How fast it's working right now, and why.
+        var speed = Surface.SpeedMultiplier(s);
+        var conditionShare = Surface.ConditionFactor(s);
+        var powerShare = def.PowerUse > Fix64.Zero ? power.Efficiency : Fix64.One;
+        var now = working ? speed * conditionShare * powerShare : Fix64.Zero;
+        string SpeedRow()
         {
-            sb.Append("Builds ").AppendLine(string.Join("  ·  ", def.Produces.Select(u =>
-                $"{_data.GroundVehicleNames.GetValueOrDefault(u, u)} ({Amounts(_data.SurfaceUnit(u).Cost, false, shortNames: true)}, {_data.SurfaceUnit(u).BuildSeconds} s)")));
-            if (s.Production.Count == 0) sb.AppendLine("No orders: pick a vehicle on the right (or press its number)");
-            else
-            {
-                sb.Append("Assembling ").Append(_data.GroundVehicleNames.GetValueOrDefault(s.Production[0], s.Production[0])).Append(' ')
-                  .Append(Mathf.FloorToInt(Surface.ProductionFraction(s).ToFloat() * 100)).Append('%');
-                if (s.Production.Count > 1)
-                    sb.Append("  ·  then ").Append(string.Join(", ", s.Production.Skip(1).Select(u => _data.GroundVehicleNames.GetValueOrDefault(u, u))));
-                sb.AppendLine().AppendLine("[Backspace] cancel the last order (full refund)");
-            }
+            var parts = new List<string> { Sources(s, Modifier.Speed) };
+            if (conditionShare < Fix64.One) parts.Add($"wear {Mathf.RoundToInt(conditionShare.ToFloat() * 100)}%");
+            if (powerShare < Fix64.One) parts.Add($"power {Mathf.RoundToInt(powerShare.ToFloat() * 100)}%");
+            return $"{Mathf.RoundToInt(speed.ToFloat() * 100)}%  ({string.Join(" · ", parts)})";
         }
-        if (s.State != StructureState.Complete) sb.Append("[X] cancel (full refund)");
-        else if (!def.IsCore) sb.Append("[X] salvage: get back ").Append(Amounts(Surface.SalvageValue(s.DefId), false));
-        _hud.ShowDetail(def.Name, status, sb.ToString().TrimEnd());
+
+        var rows = new List<(string, string)>();
+        if (def.IsConverter)
+        {
+            var yield = Surface.YieldMultiplier(s);
+            var runnable = def.Recipes.Count(r => r.In.All(a => stock[a.Resource] > Fix64.Zero));
+            for (var i = 0; i < def.Recipes.Count && rows.Count < 2; i++)
+            {
+                var r = def.Recipes[i];
+                var active = working && r.In.All(a => stock[a.Resource] > Fix64.Zero);
+                var cycles = active && runnable > 0 ? (def.CyclesPerMinute * now / Fix64.FromInt(runnable)).ToFloat() : 0f;
+                var line = $"{Names(r.In)} → {Names(r.Out)}";
+                line += active
+                    ? $"   {Mathf.RoundToInt(cycles * r.In[0].Amount.ToFloat())} in → {Mathf.RoundToInt(cycles * r.Out[0].Amount.ToFloat() * yield.ToFloat())} out /min"
+                    : $"   idle: no {_data.Resources[r.In.FirstOrDefault(a => stock[a.Resource] <= Fix64.Zero, r.In[0]).Resource].Name.ToLowerInvariant()}";
+                rows.Add((i == 0 ? "Refining" : "", line));
+            }
+            var r0 = def.Recipes[0];
+            rows.Add(("Yield", $"{Hud.Whole(r0.In[0].Amount)} → {(r0.Out[0].Amount * yield).ToFloat():0.##} per cycle  ({Sources(s, Modifier.Yield)})"));
+            rows.Add(("Speed", $"{(def.CyclesPerMinute * speed).ToFloat():0.#} cycles/min, base {Hud.Whole(def.CyclesPerMinute)} · {SpeedRow()}"));
+        }
+        if (def.IsMine)
+        {
+            var res = Surface.Map.DepositResource[s.Tile];
+            if (res >= 0)
+                rows.Add(("Mining", $"{_data.Resources[res].Name}  ·  {Hud.Whole(Surface.Map.DepositAmount[s.Tile])} left" +
+                    (working ? $"  ·  +{Mathf.RoundToInt((def.ExtractPerMinute * now).ToFloat())}/min" : "")));
+            rows.Add(("Speed", $"{Mathf.RoundToInt((def.ExtractPerMinute * speed).ToFloat())}/min, base {Hud.Whole(def.ExtractPerMinute)} · {SpeedRow()}"));
+        }
+        if (def.IsLab)
+        {
+            var me = Surface.Players[LocalPlayer];
+            rows.Add(("Research", me.ActiveTech >= 0 ? $"{_data.Techs[me.ActiveTech].Name}: {_data.Techs[me.ActiveTech].Effect}" : "Nothing chosen: pick a tech on the right"));
+            rows.Add(("Rate", $"{(def.ResearchPerMinute * now).ToFloat():0.#} points/min, base {Hud.Whole(def.ResearchPerMinute)} · {SpeedRow()}"));
+            rows.Add(("Known", $"{me.Known.Count(k => k)} of {_data.Techs.Count} techs"));
+        }
+        if (def.IsFactory)
+        {
+            rows.Add(("Builds", string.Join("  ·  ", def.Produces.Select(u => $"{_data.GroundVehicleNames.GetValueOrDefault(u, u)} {_data.SurfaceUnit(u).BuildSeconds} s"))));
+            rows.Add(("Queue", s.Production.Count == 0 ? "empty" : string.Join(", ", s.Production.Select(u => _data.GroundVehicleNames.GetValueOrDefault(u, u))) + "   [Backspace] cancel last"));
+            rows.Add(("Speed", SpeedRow()));
+        }
+        if (def.PowerSupply > Fix64.Zero)
+            rows.Add(("Supplies", $"{Mathf.RoundToInt((def.PowerSupply * conditionShare).ToFloat())} power" + (conditionShare < Fix64.One ? $" (of {Hud.Whole(def.PowerSupply)}: worn)" : "")));
+        if (def.OutputPerMinute.Count > 0 && !def.IsCore) rows.Add(("Makes", Amounts(def.OutputPerMinute, true)));
+        if (def.UpkeepPerMinute.Count > 0) rows.Add(("Upkeep", Amounts(def.UpkeepPerMinute, true)));
+        var misc = new List<string>();
+        if (def.PowerUse > Fix64.Zero) misc.Add($"uses {Hud.Whole(def.PowerUse)} power");
+        if (def.Storage > Fix64.Zero) misc.Add($"storage +{Hud.Whole(def.Storage)}");
+        misc.Add($"part of {BaseName(s.BaseId)}");
+        rows.Add(("Base", string.Join("  ·  ", misc)));
+
+        // Condition and maintenance.
+        var condition = def.Wears && complete ? s.Condition.ToFloat() : -1f;
+        var conditionText = "";
+        var maintenance = "";
+        if (condition >= 0)
+        {
+            conditionText = $"{Mathf.FloorToInt(condition)}%  ·  " + (working ? $"wears {Surface.WearPerMinute(s).ToFloat():0.#}/min ({Sources(s, Modifier.Wear)})" : "no wear while idle");
+            var crew = Surface.CrewBase(s);
+            var auto = Surface.AutoMaintained(s);
+            var autoWhy = Surface.LevelModifiers(s).Any(m => m.Stat == Modifier.AutoMaintain) ? Surface.LevelName(s) : "research";
+            maintenance =
+                s.AutoRepairing ? (s.MaintenanceWaiting ? "Drones waiting for duranium" : "Drones repairing it")
+                : s.MaintenanceOrdered && crew?.CrewJob == s.Id ? crew.CrewPhase switch
+                {
+                    CrewPhase.Out => "Crew on the way",
+                    CrewPhase.Working => s.MaintenanceWaiting ? "Crew waiting for duranium" : "Crew repairing it",
+                    _ => "Crew heading back",
+                }
+                : s.MaintenanceOrdered ? "Waiting for the crew (busy elsewhere)"
+                : auto ? $"Drones fix it below {Hud.Whole(_data.Maintenance!.AutoBelow)}% ({autoWhy})"
+                : s.Broken ? "Broken: press M to send the crew"
+                : s.Condition < _data.Maintenance!.DeclineBelow ? $"Worn: output down to {Mathf.RoundToInt(conditionShare.ToFloat() * 100)}%, it may break. Press M"
+                : "Manual: press M to send the crew";
+        }
+
+        // Progress: construction, upgrade, assembly or research.
+        var progress = -1f;
+        var progressLabel = "";
+        var progressText = "";
+        if (!complete)
+        {
+            progress = Surface.BuildFraction(s).ToFloat();
+            progressLabel = s.State == StructureState.Queued ? "Queued" : "Construction";
+            progressText = $"{Mathf.RoundToInt(progress * 100)}%  ·  {def.BuildSeconds} s in all";
+        }
+        else if (s.UpgradingLevel > 0)
+        {
+            progress = Surface.UpgradeFraction(s).ToFloat();
+            progressLabel = $"Upgrading to {def.Levels[s.UpgradingLevel - 2].Name}";
+            progressText = $"{Mathf.RoundToInt(progress * 100)}%  ·  X cancels (full refund)";
+        }
+        else if (def.IsFactory && s.Production.Count > 0)
+        {
+            progress = Surface.ProductionFraction(s).ToFloat();
+            progressLabel = $"Assembling {_data.GroundVehicleNames.GetValueOrDefault(s.Production[0], s.Production[0])}";
+            progressText = $"{Mathf.RoundToInt(progress * 100)}%" + (s.Production.Count > 1 ? $"  ·  {s.Production.Count - 1} more queued" : "");
+        }
+        else if (def.IsLab && Surface.Players[LocalPlayer].ActiveTech is var at && at >= 0)
+        {
+            var t = _data.Techs[at];
+            var done = Surface.Players[LocalPlayer].ResearchProgress[at];
+            progress = (done / t.Cost).ToFloat();
+            progressLabel = $"Researching {t.Name}";
+            var rate = Surface.ResearchPerMinute(LocalPlayer).ToFloat();
+            var left = rate > 0 ? Mathf.CeilToInt((t.Cost - done).ToFloat() / rate * 60f) : -1;
+            progressText = $"{Hud.Whole(done)} / {Hud.Whole(t.Cost)} points" + (left >= 0 ? $"  ·  ~{left / 60}:{left % 60:00} left" : "");
+        }
+
+        // Buttons.
+        var actions = new List<ActionView>();
+        if (!complete) actions.Add(new ActionView("cancel", "CANCEL [X]", "full refund", true));
+        else
+        {
+            if (s.UpgradingLevel > 0) actions.Add(new ActionView("cancel", "CANCEL UPGRADE [X]", "full refund", true));
+            else if (Surface.NextLevel(s) is { } next)
+            {
+                var problem = Surface.UpgradeProblem(_sim, LocalPlayer, s.Id);
+                var gains = string.Join(", ", next.Modifiers.Select(m => m.Stat == Modifier.AutoMaintain ? "drones" : $"{m.Stat} {Pct(m.Add)}"));
+                actions.Add(new ActionView("upgrade", $"UPGRADE → {next.Name} [U]",
+                    problem is null or "not enough resources" ? Amounts(next.Cost, false, shortNames: true) : problem, problem == null));
+                if (rows.Count < 6) rows.Insert(System.Math.Min(rows.Count, 3), ("Next", $"{next.Name}: {gains} · {next.BuildSeconds} s"));
+            }
+            if (def.Wears)
+            {
+                var ordered = s.MaintenanceOrdered && Surface.CrewBase(s)?.CrewJob != s.Id;
+                var why = Surface.MaintenanceProblem(LocalPlayer, s.Id);
+                actions.Add(ordered
+                    ? new ActionView("maintain", "CANCEL MAINTENANCE [M]", "", true)
+                    : new ActionView("maintain", "MAINTAIN [M]", why ?? $"~{Amounts(Surface.MaintenanceCost(s), false, shortNames: true)}", why == null && !s.MaintenanceOrdered));
+            }
+            if (!def.IsCore && s.UpgradingLevel == 0) actions.Add(new ActionView("salvage", "SALVAGE [X]", $"+{Amounts(Surface.SalvageValue(s), false, shortNames: true)}", true));
+        }
+
+        var subtitle = def.Levels.Count > 0 ? $"{Surface.LevelName(s)} of {def.MaxLevel switch { 2 => "Mk II", 3 => "Mk III", _ => $"{def.MaxLevel}" }}" : def.Category.Replace('_', ' ');
+        _hud.ShowStructure(new StructureView(def.Name, subtitle, s.DefId, status, statusColour, rows.Take(6).ToList(),
+            condition, conditionText, maintenance, progress, progressLabel, progressText, actions));
     }
 
     private string DescribeTile(int tile)
@@ -845,6 +1108,7 @@ public partial class PlanetDriver : Node3D
         PlacementProblem.CannotAfford => "not enough resources",
         PlacementProblem.NeedsDepletedDeposit => "needs a used-up deposit that hasn't been reopened",
         PlacementProblem.NeedsLevel => "upgrade this base to Colonial Administration first",
+        PlacementProblem.NeedsTech => "research it first (build a Research Lab)",
         PlacementProblem.NotLanded => "land first",
         PlacementProblem.OffMap => "off the map",
         _ => "not available",

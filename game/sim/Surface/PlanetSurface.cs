@@ -47,7 +47,7 @@ public sealed class PlanetSurface
         _structureAt = new int[map.Grid.Count];
     }
 
-    internal void AddPlayer() => _players.Add(new SurfacePlayer(Map.Grid.Count));
+    internal void AddPlayer() => _players.Add(new SurfacePlayer(Map.Grid.Count, _data.Techs.Count));
 
     // ---------------------------------------------------------------- queries
 
@@ -88,7 +88,7 @@ public sealed class PlanetSurface
             if (s.BaseId != baseId || s.State != StructureState.Complete) continue;
             if (!DrawsPower(s.Status)) continue;
             var def = _data.Building(s.DefId);
-            supply += def.PowerSupply;
+            supply += def.PowerSupply * ConditionFactor(s); // worn reactors supply less
             use += def.PowerUse;
         }
         return new BasePower(supply, use);
@@ -336,6 +336,265 @@ public sealed class PlanetSurface
         unit.RepairTicks = 0;
     }
 
+    // ---------------------------------------------------------------- stats: levels, research, condition
+
+    private static readonly Fix64 Full = Fix64.FromInt(100);
+
+    /// <summary>Whether a modifier from a tech applies to this building (one naming no buildings or units applies to every building).</summary>
+    private static bool AppliesTo(Modifier m, string buildingId) =>
+        m.Buildings.Count == 0 ? m.Units.Count == 0 : m.Buildings.Contains(buildingId);
+
+    /// <summary>The modifiers of the building's current level (none at Mk I).</summary>
+    public IReadOnlyList<Modifier> LevelModifiers(SurfaceStructure s)
+    {
+        var def = _data.Building(s.DefId);
+        return s.Level >= 2 && s.Level - 2 < def.Levels.Count ? def.Levels[s.Level - 2].Modifiers : System.Array.Empty<Modifier>();
+    }
+
+    /// <summary>What the building's level adds to a stat (e.g. 0.3 = +30%).</summary>
+    public Fix64 LevelBonus(SurfaceStructure s, string stat)
+    {
+        var sum = Fix64.Zero;
+        foreach (var m in LevelModifiers(s))
+            if (m.Stat == stat) sum += m.Add;
+        return sum;
+    }
+
+    /// <summary>What the owner's research adds to a building's stat.</summary>
+    public Fix64 ResearchBonus(int player, string buildingId, string stat)
+    {
+        var sum = Fix64.Zero;
+        var known = _players[player].Known;
+        foreach (var t in _data.Techs)
+            if (known[t.Index])
+                foreach (var m in t.Modifiers)
+                    if (m.Stat == stat && AppliesTo(m, buildingId)) sum += m.Add;
+        return sum;
+    }
+
+    /// <summary>What the owner's research adds to a unit's stat (e.g. breakdown -0.5).</summary>
+    public Fix64 UnitResearchBonus(int player, string unitId, string stat)
+    {
+        var sum = Fix64.Zero;
+        var known = _players[player].Known;
+        foreach (var t in _data.Techs)
+            if (known[t.Index])
+                foreach (var m in t.Modifiers)
+                    if (m.Stat == stat && m.Units.Contains(unitId)) sum += m.Add;
+        return sum;
+    }
+
+    /// <summary>Speed of its work (extraction, cycles, assembly, research): 1 + level + research bonuses.</summary>
+    public Fix64 SpeedMultiplier(SurfaceStructure s) => Fix64.Max(Fix64.Zero, Fix64.One + LevelBonus(s, Modifier.Speed) + ResearchBonus(s.Owner, s.DefId, Modifier.Speed));
+
+    /// <summary>Share of recipe output it gets: 1 + level + research bonuses.</summary>
+    public Fix64 YieldMultiplier(SurfaceStructure s) => Fix64.Max(Fix64.Zero, Fix64.One + LevelBonus(s, Modifier.Yield) + ResearchBonus(s.Owner, s.DefId, Modifier.Yield));
+
+    /// <summary>How fast it wears: 1 + level + research bonuses (never below 10%).</summary>
+    public Fix64 WearMultiplier(SurfaceStructure s) => Fix64.Max(Fix64.Ratio(1, 10), Fix64.One + LevelBonus(s, Modifier.Wear) + ResearchBonus(s.Owner, s.DefId, Modifier.Wear));
+
+    /// <summary>Fixed by drones instead of the crew: its level or the owner's research turns this on.</summary>
+    public bool AutoMaintained(SurfaceStructure s)
+    {
+        foreach (var m in LevelModifiers(s))
+            if (m.Stat == Modifier.AutoMaintain) return true;
+        var known = _players[s.Owner].Known;
+        foreach (var t in _data.Techs)
+            if (known[t.Index])
+                foreach (var m in t.Modifiers)
+                    if (m.Stat == Modifier.AutoMaintain && AppliesTo(m, s.DefId)) return true;
+        return false;
+    }
+
+    /// <summary>Share of its output a building's condition allows: 1 down to slowest_output as condition falls below decline_below.</summary>
+    public Fix64 ConditionFactor(SurfaceStructure s)
+    {
+        var rules = _data.Maintenance;
+        if (rules == null || !_data.Building(s.DefId).Wears || s.Condition >= rules.DeclineBelow) return Fix64.One;
+        return rules.SlowestOutput + (Fix64.One - rules.SlowestOutput) * s.Condition / rules.DeclineBelow;
+    }
+
+    /// <summary>Condition lost per minute while it works, after level and research.</summary>
+    public Fix64 WearPerMinute(SurfaceStructure s) => _data.Building(s.DefId).WearPerMinute * WearMultiplier(s);
+
+    /// <summary>Chance per minute that it breaks down now (0 above decline_below).</summary>
+    public Fix64 BreakdownChancePerMinute(SurfaceStructure s)
+    {
+        var rules = _data.Maintenance;
+        if (rules == null || !_data.Building(s.DefId).Wears || s.Condition >= rules.DeclineBelow) return Fix64.Zero;
+        return rules.BreakChanceAtZero * (rules.DeclineBelow - s.Condition) / rules.DeclineBelow;
+    }
+
+    /// <summary>Name of its current level: "Mk I", "Mk II", ...</summary>
+    public string LevelName(SurfaceStructure s)
+    {
+        var def = _data.Building(s.DefId);
+        return s.Level >= 2 && s.Level - 2 < def.Levels.Count ? def.Levels[s.Level - 2].Name : "Mk I";
+    }
+
+    /// <summary>The next level it can be upgraded to, or null at the top (or for buildings without levels).</summary>
+    public BuildingLevel? NextLevel(SurfaceStructure s)
+    {
+        var def = _data.Building(s.DefId);
+        return s.Level - 1 < def.Levels.Count ? def.Levels[s.Level - 1] : null;
+    }
+
+    /// <summary>What a full repair from here would cost (condition back to 100).</summary>
+    public IReadOnlyList<ResourceAmount> MaintenanceCost(SurfaceStructure s)
+    {
+        var rules = _data.Maintenance;
+        if (rules == null) return System.Array.Empty<ResourceAmount>();
+        var missing = Full - s.Condition;
+        return rules.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * missing)).ToList();
+    }
+
+    /// <summary>The colony core whose crew looks after this building (its base's core).</summary>
+    public SurfaceStructure? CrewBase(SurfaceStructure s) => FindStructure(s.BaseId);
+
+    /// <summary>Why the crew can't be sent to maintain this building (null = they can).</summary>
+    public string? MaintenanceProblem(int player, int structureId)
+    {
+        var s = FindStructure(structureId);
+        if (s == null || s.Owner != player) return "not yours";
+        if (!_data.Building(s.DefId).Wears || _data.Maintenance == null) return "doesn't need maintenance";
+        if (s.State != StructureState.Complete) return "still under construction";
+        if (s.Condition >= Full && !s.Broken) return "in perfect condition";
+        if (s.AutoRepairing) return "drones are already fixing it";
+        return null;
+    }
+
+    /// <summary>Restores up to one tick of repair, paying for it; false (and MaintenanceWaiting) if the player can't pay.</summary>
+    private bool RepairTick(Simulation sim, SurfaceStructure s, MaintenanceRules rules)
+    {
+        var heal = Fix64.Min(rules.RepairPerSecond / Simulation.TickRate, Full - s.Condition);
+        var cost = rules.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * heal)).ToList();
+        if (!sim.Players[s.Owner].Stock.TrySpend(cost))
+        {
+            s.MaintenanceWaiting = true;
+            return false;
+        }
+        s.MaintenanceWaiting = false;
+        s.Condition += heal;
+        return true;
+    }
+
+    private bool Fixed(SurfaceStructure s)
+    {
+        if (s.Condition < Full) return false;
+        s.Condition = Full;
+        s.Broken = false;
+        s.MaintenanceOrdered = false;
+        s.MaintenanceWaiting = false;
+        return true;
+    }
+
+    /// <summary>
+    /// Drones fix auto-maintained buildings that drop below auto_below (or break). Each base's crew works through
+    /// its ordered jobs one at a time, oldest order first: walk out, fix to 100, walk back.
+    /// </summary>
+    private void Maintenance(Simulation sim)
+    {
+        var rules = _data.Maintenance;
+        if (rules == null) return;
+        foreach (var s in _structures)
+        {
+            if (s.State != StructureState.Complete || !_data.Building(s.DefId).Wears) continue;
+            if (!s.AutoRepairing && AutoMaintained(s) && (s.Condition < rules.AutoBelow || s.Broken))
+            {
+                var core = CrewBase(s);
+                if (core == null || core.CrewJob != s.Id) s.AutoRepairing = true; // don't take a job the crew is already on
+            }
+            if (!s.AutoRepairing) continue;
+            s.MaintenanceOrdered = false;
+            if (RepairTick(sim, s, rules) && Fixed(s)) s.AutoRepairing = false;
+        }
+
+        foreach (var core in _structures)
+        {
+            if (core.Id != core.BaseId || core.State != StructureState.Complete || !_data.Building(core.DefId).IsCore) continue;
+            switch (core.CrewPhase)
+            {
+                case CrewPhase.None:
+                    SurfaceStructure? next = null;
+                    foreach (var s in _structures)
+                        if (s.BaseId == core.Id && s.MaintenanceOrdered && !s.AutoRepairing && s.State == StructureState.Complete &&
+                            (next == null || s.MaintenanceOrderTick < next.MaintenanceOrderTick)) next = s;
+                    if (next == null) break;
+                    core.CrewJob = next.Id;
+                    core.CrewPhase = CrewPhase.Out;
+                    core.CrewTicks = 0;
+                    var walk = (rules.CrewWalkSeconds + rules.CrewSecondsPerTile * Fix64.FromInt(Map.Grid.Distance(core.Tile, next.Tile))) * Simulation.TickRate;
+                    core.CrewWalkTicks = System.Math.Max(1, walk.FloorToInt());
+                    break;
+                case CrewPhase.Out:
+                    if (++core.CrewTicks >= core.CrewWalkTicks)
+                    {
+                        core.CrewPhase = CrewPhase.Working;
+                        core.CrewTicks = 0;
+                    }
+                    break;
+                case CrewPhase.Working:
+                    var job = FindStructure(core.CrewJob);
+                    if (job == null || job.AutoRepairing || !job.MaintenanceOrdered)
+                    {
+                        core.CrewPhase = CrewPhase.Back; // salvaged, taken over by drones, or cancelled
+                        core.CrewTicks = 0;
+                        break;
+                    }
+                    core.CrewTicks++;
+                    if (RepairTick(sim, job, rules) && Fixed(job))
+                    {
+                        core.CrewPhase = CrewPhase.Back;
+                        core.CrewTicks = 0;
+                    }
+                    break;
+                case CrewPhase.Back:
+                    if (++core.CrewTicks >= core.CrewWalkTicks)
+                    {
+                        core.CrewPhase = CrewPhase.None;
+                        core.CrewJob = 0;
+                        core.CrewTicks = 0;
+                    }
+                    break;
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- research
+
+    /// <summary>Why the player can't start this tech (null = they can).</summary>
+    public string? ResearchProblem(int player, string techId)
+    {
+        if (!_data.HasTech(techId)) return "unknown tech";
+        var t = _data.Tech(techId);
+        var p = _players[player];
+        if (p.Known[t.Index]) return "already researched";
+        foreach (var r in t.Requires)
+            if (!p.Known[_data.Tech(r).Index]) return $"needs {_data.Tech(r).Name} first";
+        return null;
+    }
+
+    /// <summary>Research points a minute the player's labs make right now (after power, condition and bonuses).</summary>
+    public Fix64 ResearchPerMinute(int player)
+    {
+        var total = Fix64.Zero;
+        foreach (var s in _structures)
+        {
+            if (s.Owner != player || s.State != StructureState.Complete || s.Status is not (StructureStatus.Working or StructureStatus.LowPower)) continue;
+            var def = _data.Building(s.DefId);
+            if (def.IsLab) total += def.ResearchPerMinute * WorkRate(s, PowerOf(s.BaseId).Efficiency);
+        }
+        return total;
+    }
+
+    /// <summary>How fast a working building gets things done: its power share, condition and speed bonuses together.</summary>
+    private Fix64 WorkRate(SurfaceStructure s, Fix64 powerEfficiency)
+    {
+        var def = _data.Building(s.DefId);
+        var power = def.PowerUse > Fix64.Zero ? powerEfficiency : Fix64.One;
+        return power * ConditionFactor(s) * SpeedMultiplier(s);
+    }
+
     // ---------------------------------------------------------------- vehicle production
 
     /// <summary>Why this unit can't be ordered at this building right now (null = it can).</summary>
@@ -416,6 +675,7 @@ public sealed class PlanetSurface
         if (baseId == 0) return PlacementProblem.OutOfRange;
         var def = _data.Building(buildingId);
         if (def.RequiresLevel > 0 && _data.Building(FindStructure(baseId)!.DefId).Level < def.RequiresLevel) return PlacementProblem.NeedsLevel;
+        if (def.RequiresTech.Length > 0 && (!_data.HasTech(def.RequiresTech) || !_players[player].Known[_data.Tech(def.RequiresTech).Index])) return PlacementProblem.NeedsTech;
         if (def.RequiresDeposit && (Map.DepositResource[tile] < 0 || Map.DepositAmount[tile] <= Fix64.Zero)) return PlacementProblem.NeedsDeposit;
         if (def.RequiresDepleted && (!Map.IsDepleted(tile) || Map.DepositReopened[tile])) return PlacementProblem.NeedsDepletedDeposit;
         if (!sim.Players[player].Stock.CanAfford(def.Cost)) return PlacementProblem.CannotAfford;
@@ -465,6 +725,11 @@ public sealed class PlanetSurface
     /// <summary>Fraction of the current upgrade done, 0..1 (0 when not upgrading).</summary>
     public Fix64 UpgradeFraction(SurfaceStructure s)
     {
+        if (s.UpgradingLevel > 0)
+        {
+            var lt = _data.Building(s.DefId).Levels[s.UpgradingLevel - 2].BuildSeconds * Simulation.TickRate;
+            return lt <= 0 ? Fix64.One : Fix64.Ratio(s.UpgradeTicks, lt);
+        }
         if (s.UpgradingTo == null) return Fix64.Zero;
         var total = _data.Building(s.UpgradingTo).BuildSeconds * Simulation.TickRate;
         return total <= 0 ? Fix64.One : Fix64.Ratio(s.UpgradeTicks, total);
@@ -476,8 +741,19 @@ public sealed class PlanetSurface
         var s = FindStructure(structureId);
         if (s == null || s.Owner != player) return "not yours";
         if (s.State != StructureState.Complete) return "still under construction";
-        if (s.UpgradingTo != null) return "already upgrading";
-        var next = _data.Building(s.DefId).UpgradesTo;
+        if (s.UpgradingTo != null || s.UpgradingLevel > 0) return "already upgrading";
+        var def = _data.Building(s.DefId);
+        if (def.Levels.Count > 0)
+        {
+            var level = NextLevel(s);
+            if (level == null) return "top level";
+            var core = FindStructure(s.BaseId);
+            if (level.RequiresLevel > 0 && (core == null || _data.Building(core.DefId).Level < level.RequiresLevel))
+                return $"needs a level {level.RequiresLevel} base (Colonial Administration)";
+            if (!sim.Players[player].Stock.CanAfford(level.Cost)) return "not enough resources";
+            return null;
+        }
+        var next = def.UpgradesTo;
         if (next.Length == 0) return "top level";
         if (!sim.Players[player].Stock.CanAfford(_data.Building(next).Cost)) return "not enough resources";
         return null;
@@ -501,8 +777,9 @@ public sealed class PlanetSurface
             if (s.Status is not (StructureStatus.Working or StructureStatus.LowPower)) continue;
             var def = _data.Building(s.DefId);
             if (!efficiency.TryGetValue(s.BaseId, out var eff)) efficiency[s.BaseId] = eff = PowerOf(s.BaseId).Efficiency;
-            var speed = def.PowerUse > Fix64.Zero ? eff : Fix64.One;
-            foreach (var o in def.OutputPerMinute) income.Add(o.Resource, o.Amount * speed);
+            var output = (def.PowerUse > Fix64.Zero ? eff : Fix64.One) * ConditionFactor(s);
+            var speed = WorkRate(s, eff);
+            foreach (var o in def.OutputPerMinute) income.Add(o.Resource, o.Amount * output);
             foreach (var u in def.UpkeepPerMinute) income.Add(u.Resource, -u.Amount);
             if (def.IsMine && Map.DepositResource[s.Tile] >= 0)
                 income.Add(Map.DepositResource[s.Tile], def.ExtractPerMinute * speed);
@@ -513,7 +790,7 @@ public sealed class PlanetSurface
                 {
                     var cycles = def.CyclesPerMinute * speed / Fix64.FromInt(runnable.Count);
                     foreach (var a in r.In) income.Add(a.Resource, -a.Amount * cycles);
-                    foreach (var a in r.Out) income.Add(a.Resource, a.Amount * cycles);
+                    foreach (var a in r.Out) income.Add(a.Resource, a.Amount * cycles * YieldMultiplier(s));
                 }
             }
         }
@@ -578,6 +855,28 @@ public sealed class PlanetSurface
                 return true;
             }
 
+            case ResearchCommand research:
+                if (ResearchProblem(research.Player, research.TechId) != null) return true;
+                _players[research.Player].ActiveTech = _data.Tech(research.TechId).Index;
+                return true;
+
+            case MaintainCommand maintain:
+            {
+                var job = FindStructure(maintain.StructureId);
+                if (job == null || job.Owner != maintain.Player) return true;
+                var crewCore = CrewBase(job);
+                if (job.MaintenanceOrdered)
+                {
+                    // Cancel, unless the crew are already on it.
+                    if (crewCore == null || crewCore.CrewJob != job.Id) job.MaintenanceOrdered = false;
+                    return true;
+                }
+                if (MaintenanceProblem(maintain.Player, maintain.StructureId) != null) return true;
+                job.MaintenanceOrdered = true;
+                job.MaintenanceOrderTick = sim.Tick;
+                return true;
+            }
+
             case BuildUnitCommand order:
             {
                 if (ProductionProblem(sim, order.Player, order.StructureId, order.UnitId) != null) return true;
@@ -639,6 +938,10 @@ public sealed class PlanetSurface
                 if (def.IsCore) return true;
                 var bag = sim.Players[salvaged.Owner].Stock;
                 foreach (var c in def.Cost) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
+                for (var l = 0; l < salvaged.Level - 1 && l < def.Levels.Count; l++) // levels bought count too
+                    foreach (var c in def.Levels[l].Cost) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
+                if (salvaged.UpgradingLevel > 0) // an unfinished upgrade comes back in full
+                    foreach (var c in def.Levels[salvaged.UpgradingLevel - 2].Cost) bag.Add(c.Resource, c.Amount);
                 foreach (var queued in salvaged._production) // unbuilt orders come back in full
                     foreach (var c in _data.SurfaceUnit(queued).Cost) bag.Add(c.Resource, c.Amount);
                 _structures.Remove(salvaged);
@@ -656,6 +959,13 @@ public sealed class PlanetSurface
             case UpgradeCommand upgrade:
                 if (UpgradeProblem(sim, upgrade.Player, upgrade.StructureId) != null) return true;
                 var core = FindStructure(upgrade.StructureId)!;
+                if (NextLevel(core) is { } level)
+                {
+                    sim.Players[core.Owner].Stock.TrySpend(level.Cost);
+                    core.UpgradingLevel = core.Level + 1;
+                    core.UpgradeTicks = 0;
+                    return true;
+                }
                 var target = _data.Building(core.DefId).UpgradesTo;
                 sim.Players[core.Owner].Stock.TrySpend(_data.Building(target).Cost);
                 core.UpgradingTo = target;
@@ -669,6 +979,13 @@ public sealed class PlanetSurface
                 if (s.State == StructureState.Complete)
                 {
                     // A finished building can only have its upgrade cancelled.
+                    if (s.UpgradingLevel > 0)
+                    {
+                        foreach (var c in _data.Building(s.DefId).Levels[s.UpgradingLevel - 2].Cost) stock.Add(c.Resource, c.Amount);
+                        s.UpgradingLevel = 0;
+                        s.UpgradeTicks = 0;
+                        return true;
+                    }
                     if (s.UpgradingTo == null) return true;
                     foreach (var c in _data.Building(s.UpgradingTo).Cost) stock.Add(c.Resource, c.Amount);
                     s.UpgradingTo = null;
@@ -698,6 +1015,19 @@ public sealed class PlanetSurface
     public IReadOnlyList<ResourceAmount> SalvageValue(string buildingId) =>
         _data.Building(buildingId).Cost.Select(c => new ResourceAmount(c.Resource, c.Amount * _data.SalvageRefund)).ToList();
 
+    /// <summary>Salvage value of this building, counting the levels bought for it.</summary>
+    public IReadOnlyList<ResourceAmount> SalvageValue(SurfaceStructure s)
+    {
+        var def = _data.Building(s.DefId);
+        var bag = new ResourceBag(_data.Resources.Count, def.Cost);
+        for (var l = 0; l < s.Level - 1 && l < def.Levels.Count; l++)
+            foreach (var c in def.Levels[l].Cost) bag.Add(c.Resource, c.Amount);
+        var list = new List<ResourceAmount>();
+        for (var r = 0; r < bag.Count; r++)
+            if (bag[r] > Fix64.Zero) list.Add(new ResourceAmount(r, bag[r] * _data.SalvageRefund));
+        return list;
+    }
+
     // ---------------------------------------------------------------- ticking
 
     internal void Step(Simulation sim)
@@ -712,6 +1042,7 @@ public sealed class PlanetSurface
         Upgrades();
         LandPods(sim);
         Economy(sim);
+        Maintenance(sim);
         Crawlers(sim);
         MoveUnits();
     }
@@ -756,6 +1087,18 @@ public sealed class PlanetSurface
     {
         foreach (var s in _structures)
         {
+            if (s.UpgradingLevel > 0)
+            {
+                // A new level is a refit: it comes back in perfect condition.
+                if (++s.UpgradeTicks < _data.Building(s.DefId).Levels[s.UpgradingLevel - 2].BuildSeconds * Simulation.TickRate) continue;
+                s.Level = s.UpgradingLevel;
+                s.UpgradingLevel = 0;
+                s.UpgradeTicks = 0;
+                s.Condition = Full;
+                s.Broken = false;
+                s.MaintenanceOrdered = false;
+                continue;
+            }
             if (s.UpgradingTo == null) continue;
             s.UpgradeTicks++;
             if (s.UpgradeTicks < _data.Building(s.UpgradingTo).BuildSeconds * Simulation.TickRate) continue;
@@ -780,6 +1123,16 @@ public sealed class PlanetSurface
             var def = _data.Building(s.DefId);
             var stock = sim.Players[s.Owner].Stock;
 
+            if (s.Broken)
+            {
+                s.Status = StructureStatus.Broken;
+                continue;
+            }
+            if (def.IsLab && _players[s.Owner].ActiveTech < 0)
+            {
+                s.Status = StructureStatus.NoInput;
+                continue;
+            }
             if (def.IsMine && (Map.DepositResource[s.Tile] < 0 || Map.DepositAmount[s.Tile] <= Fix64.Zero))
             {
                 s.Status = StructureStatus.Depleted;
@@ -819,11 +1172,13 @@ public sealed class PlanetSurface
             if (s.State != StructureState.Complete || s.Status != StructureStatus.Working) continue;
             var def = _data.Building(s.DefId);
             if (!efficiency.TryGetValue(s.BaseId, out var eff)) efficiency[s.BaseId] = eff = PowerOf(s.BaseId).Efficiency;
-            var speed = def.PowerUse > Fix64.Zero ? eff : Fix64.One;
-            if (speed < Fix64.One) s.Status = StructureStatus.LowPower;
+            if (def.PowerUse > Fix64.Zero && eff < Fix64.One) s.Status = StructureStatus.LowPower;
+            var condition = ConditionFactor(s);
+            var output = (def.PowerUse > Fix64.Zero ? eff : Fix64.One) * condition; // plain outputs (crew, the core's trickle)
+            var speed = WorkRate(s, eff); // its work: extraction, cycles, assembly, research
 
             var stock = sim.Players[s.Owner].Stock;
-            foreach (var o in def.OutputPerMinute) Store(sim, s.Owner, o.Resource, o.Amount * speed / Simulation.TicksPerMinute);
+            foreach (var o in def.OutputPerMinute) Store(sim, s.Owner, o.Resource, o.Amount * output / Simulation.TicksPerMinute);
             if (def.IsMine)
             {
                 var take = Fix64.Min(def.ExtractPerMinute * speed / Simulation.TicksPerMinute, Map.DepositAmount[s.Tile]);
@@ -833,13 +1188,14 @@ public sealed class PlanetSurface
             {
                 var runnable = def.Recipes.Where(r => HasInput(stock, r)).ToList();
                 var share = def.CyclesPerMinute * speed / Simulation.TicksPerMinute / Fix64.FromInt(runnable.Count);
+                var yield = YieldMultiplier(s);
                 foreach (var r in runnable)
                 {
                     var cycles = share;
                     foreach (var a in r.In) cycles = Fix64.Min(cycles, stock[a.Resource] / a.Amount);
                     if (cycles <= Fix64.Zero) continue;
                     foreach (var a in r.In) stock.Add(a.Resource, -a.Amount * cycles);
-                    foreach (var a in r.Out) stock.Add(a.Resource, a.Amount * cycles);
+                    foreach (var a in r.Out) stock.Add(a.Resource, a.Amount * cycles * yield);
                 }
             }
             if (def.IsFactory && s._production.Count > 0)
@@ -851,6 +1207,33 @@ public sealed class PlanetSurface
                     RollOut(sim, s, unitDef.Id);
                     s._production.RemoveAt(0);
                     s.ProductionProgress = Fix64.Zero;
+                }
+            }
+            if (def.IsLab)
+            {
+                var p = _players[s.Owner];
+                if (p.ActiveTech >= 0)
+                {
+                    var tech = _data.Techs[p.ActiveTech];
+                    p.ResearchProgress[tech.Index] += def.ResearchPerMinute * speed / Simulation.TicksPerMinute;
+                    if (p.ResearchProgress[tech.Index] >= tech.Cost)
+                    {
+                        p.ResearchProgress[tech.Index] = tech.Cost;
+                        p.Known[tech.Index] = true;
+                        p.ActiveTech = -1;
+                    }
+                }
+            }
+
+            // Wear while working; once below decline_below it may break down outright.
+            if (def.Wears && _data.Maintenance != null)
+            {
+                s.Condition = Fix64.Max(Fix64.Zero, s.Condition - WearPerMinute(s) / Simulation.TicksPerMinute);
+                var chance = BreakdownChancePerMinute(s);
+                if (chance > Fix64.Zero && sim.Rng.NextFix() < chance / Simulation.TicksPerMinute)
+                {
+                    s.Broken = true;
+                    s.Status = StructureStatus.Broken;
                 }
             }
         }
@@ -920,7 +1303,8 @@ public sealed class PlanetSurface
             unit.MiningStatus = MiningStatus.Depleted;
             return;
         }
-        if (def.Breakdown is { } rules && rules.ChancePerMinute > Fix64.Zero && sim.Rng.NextFix() < rules.ChancePerMinute / Simulation.TicksPerMinute)
+        if (def.Breakdown is { } rules && rules.ChancePerMinute > Fix64.Zero &&
+            sim.Rng.NextFix() < rules.ChancePerMinute * Fix64.Max(Fix64.Zero, Fix64.One + UnitResearchBonus(unit.Owner, unit.DefId, Modifier.Breakdown)) / Simulation.TicksPerMinute)
         {
             Break(sim, unit, rules);
             return;

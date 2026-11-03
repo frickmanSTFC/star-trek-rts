@@ -316,7 +316,7 @@ public class MiningTests
     }
 
     [Fact]
-    public void DeepCoreMinesReopenAUsedUpDepositOnceAtLevelTwo()
+    public void DeepCoreMinesReopenAUsedUpDepositOnceAfterResearch()
     {
         var sim = Landed(out var hub, out var deposit);
         var s = sim.Surface!;
@@ -331,11 +331,12 @@ public class MiningTests
         Assert.Equal(StructureStatus.Depleted, mine.Status);
         Do(sim, new SalvageCommand(0, mine.Id));
 
-        Assert.Equal(PlacementProblem.NeedsLevel, s.CheckPlacement(sim, 0, "deep_core_mine", deposit));
-        var core = s.StructureAt(hub)!;
-        Do(sim, new UpgradeCommand(0, core.Id));
-        StepUntil(sim, () => core.UpgradingTo == null, Sec(200));
-        Assert.Equal(2, Data.Building(core.DefId).Level);
+        // It needs the Deep-Core Mining tech: build a lab and research it.
+        Assert.Equal(PlacementProblem.NeedsTech, s.CheckPlacement(sim, 0, "deep_core_mine", deposit));
+        Build(sim, "science_lab", FreeTile(sim, hub, deposit));
+        Do(sim, new ResearchCommand(0, "deep_core_mining"));
+        var tech = Data.Tech("deep_core_mining");
+        StepUntil(sim, () => s.Players[0].Known[tech.Index], Simulation.TicksPerMinute * 20);
         Assert.Equal(PlacementProblem.NeedsDepletedDeposit, s.CheckPlacement(sim, 0, "deep_core_mine", FreeTile(sim, hub, deposit)));
 
         Build(sim, "deep_core_mine", deposit);

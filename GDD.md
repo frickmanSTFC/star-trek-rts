@@ -76,7 +76,7 @@ layer above it once the surface game is fun.
   - *Storage Container:* +2000 storage. *Ore Refinery:* 2 ore → 1 duranium or tritanium (shares its work between the
     ores in stock), +300 storage, uses power. *Alloy Foundry:* 2 duranium + 1 tritanium → 1 Parasteel, uses power.
   - *Mining Complex:* must sit on a deposit; digs it into storage (40/min) until it runs out. Uses power.
-  - *Deep-Core Mine* (needs a level 2 base until research exists): goes on a used-up deposit and reopens it once at
+  - *Deep-Core Mine* (needs the Deep-Core Mining tech): goes on a used-up deposit and reopens it once at
     50% of its first size; slower (24/min) and power-hungry.
   - *Fusion Reactor:* +power; burns deuterium. *Prefab Habitat:* +crew; uses power.
   - A building that can't pay its upkeep, has no ore to refine, or has nowhere to store output idles and draws no power.
@@ -102,6 +102,23 @@ layer above it once the surface game is fun.
   to 5 orders queued, paid when ordered. Select it and the command card shows its orders; Backspace cancels the
   last order for a full refund. The door rolls up and the vehicle drives out beside the bay. Low power slows
   assembly; an idle bay draws no power; salvaging a bay refunds its unbuilt orders in full.
+- **Wear and maintenance** (decided 2026-11-03): working buildings lose condition (0–100) over time (refineries,
+  mines and foundries 3 a minute, reactors and labs 2, habitats 1; cores and storage never wear). Below 50% their
+  output falls, down to half at 0%, and they may break down outright (more likely the lower they get). A broken
+  building stops until fixed. **Manual maintenance**: select it and press M; the base's crew of two walks out of the
+  core (2 s plus 0.6 s per tile), fixes it at 10 points a second for 0.3 duranium a point, and walks back. One job
+  at a time per base, oldest order first. **Automatic**: Mk III buildings and the Automated Maintenance tech add
+  drones that fix a building whenever it drops below 70%, without the crew. Worn reactors supply less power.
+- **Building levels**: refineries, mines and foundries upgrade Mk I → Mk II → Mk III (U). Mk II: +25–30% speed,
+  25% less wear. Mk III (needs Colonial Administration and parasteel): +50–60% speed, +10% yield (refinery,
+  foundry), 40% less wear and drones. An upgrade refits the building to 100% condition.
+- **Research** (first version, 2026-11-03): a Research Lab makes 10 research points a minute toward the tech you
+  pick (select the lab: its techs replace the build card). Techs: Improved Smelting (refinery yield +20%), Ore
+  Conveyors (mines and refineries +20% speed), Preventive Maintenance (30% less wear), Automated Maintenance
+  (drones everywhere), Alloy Metallurgy (foundry +25% speed, +10% yield), Reinforced Drills (crawler breakdowns
+  halved), Deep-Core Mining (unlocks the Deep-Core Mine). Progress is kept when you switch.
+- **Building panel**: what it's working on with live rates, its level, each stat with where the bonus comes from
+  (level, research, wear, power), condition and what maintenance is doing, and Upgrade / Maintain / Salvage buttons.
 - **Bases:** a colony core (the hub and its upgrades) plus the buildings in its radius. Each base has its own
   build queues and **power budget** (decided 2026-11-02): energy is not stockpiled on a surface; buildings supply or
   use power, and when use exceeds supply every power user at that base slows to supply ÷ use.

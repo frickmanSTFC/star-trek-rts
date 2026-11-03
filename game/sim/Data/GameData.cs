@@ -46,6 +46,15 @@ public sealed class GameData
     /// <summary>Resources that don't take storage space on a surface (surfaces.json storage_exempt).</summary>
     public IReadOnlyList<ResourceDef> StorageExempt { get; }
 
+    /// <summary>Building wear and maintenance rules, or null when buildings never wear.</summary>
+    public MaintenanceRules? Maintenance { get; }
+
+    /// <summary>Surface techs (research), in file order.</summary>
+    public IReadOnlyList<TechDef> Techs { get; }
+
+    public TechDef Tech(string id) => Get(_techs, id, "surface tech");
+    public bool HasTech(string id) => _techs.ContainsKey(id);
+
     /// <summary>Share of a finished building's cost returned when it is salvaged.</summary>
     public Fix64 SalvageRefund { get; }
 
@@ -73,6 +82,7 @@ public sealed class GameData
     private readonly Dictionary<string, PlanetSurfaceDef> _surfaces;
     private readonly Dictionary<string, SurfaceUnitDef> _surfaceUnits;
     private readonly bool[] _stored;
+    private readonly Dictionary<string, TechDef> _techs;
 
     /// <summary>Problems found while reading (unknown resource ids, etc.). Reported by Validate().</summary>
     private readonly List<string> _loadProblems;
@@ -82,9 +92,11 @@ public sealed class GameData
         List<PlanetClassDef> planetClasses, List<BuildingDef> buildings, List<MapDef> maps,
         List<TerrainDef> terrain, List<PlanetSurfaceDef> surfaces, List<SurfaceUnitDef> surfaceUnits,
         HintRules hints, LandingRules landing, List<string> buildMenu, string powerResource, List<string> hudResources,
-        List<string> storageExempt, Fix64 salvageRefund,
+        List<string> storageExempt, Fix64 salvageRefund, MaintenanceRules? maintenance, List<TechDef> techs,
         Dictionary<string, string> groundVehicles, List<string> loadProblems)
     {
+        Maintenance = maintenance;
+        Techs = techs;
         SalvageRefund = salvageRefund;
         var exempt = new List<ResourceDef>();
         foreach (var id in storageExempt)
@@ -131,6 +143,7 @@ public sealed class GameData
         _terrain = ToLookup(terrain, t => t.Id, "terrain");
         _surfaces = ToLookup(surfaces, p => p.ClassId, "surface planet class");
         _surfaceUnits = ToLookup(surfaceUnits, u => u.Id, "surface unit");
+        _techs = ToLookup(techs, t => t.Id, "surface tech");
     }
 
     private Dictionary<string, T> ToLookup<T>(IEnumerable<T> items, Func<T, string> key, string what)
@@ -207,6 +220,20 @@ public sealed class GameData
             return list;
         }
 
+        List<Modifier> Modifiers(JsonElement parent, string owner)
+        {
+            var list = new List<Modifier>();
+            if (!parent.TryGetProperty("modifiers", out var arr)) return list;
+            foreach (var m in arr.EnumerateArray())
+            {
+                var stat = Str(m, "stat");
+                if (!Modifier.Stats.Contains(stat)) problems.Add($"{owner}: unknown modifier stat '{stat}'.");
+                List<string> Ids(string p) => m.TryGetProperty(p, out var a) ? a.EnumerateArray().Select(x => x.GetString()!).ToList() : new List<string>();
+                list.Add(new Modifier(stat, Ids("buildings"), Ids("units"), m.TryGetProperty("add", out var add) ? Num(add) : Fix64.Zero));
+            }
+            return list;
+        }
+
         var planetClasses = planetsRoot.GetProperty("classes").EnumerateArray()
             .Select(p => new PlanetClassDef(Str(p, "id"), Str(p, "name"), Num(p.GetProperty("habitability")), Str(p, "colony"),
                 p.GetProperty("yields").EnumerateArray().Select(y => y.GetString()!).ToList()))
@@ -238,7 +265,16 @@ public sealed class GameData
                     b.TryGetProperty("reopen_share", out var rs) ? Num(rs) : Fix64.Zero,
                     Int("requires_level"),
                     b.TryGetProperty("produces", out var pr) ? pr.EnumerateArray().Select(x => x.GetString()!).ToList() : new List<string>(),
-                    Int("production_queue"));
+                    Int("production_queue"),
+                    b.TryGetProperty("wear_per_min", out var wr) ? Num(wr) : Fix64.Zero,
+                    b.TryGetProperty("research_per_min", out var rpm) ? Num(rpm) : Fix64.Zero,
+                    b.TryGetProperty("levels", out var lv)
+                        ? lv.EnumerateArray().Select(l => new BuildingLevel(Str(l, "name"), Amounts(l, "cost", $"Building {id} level"),
+                            l.TryGetProperty("build_seconds", out var lbs) ? lbs.GetInt32() : 0,
+                            l.TryGetProperty("requires_level", out var lrl) ? lrl.GetInt32() : 0,
+                            Modifiers(l, $"Building {id} level"))).ToList()
+                        : new List<BuildingLevel>(),
+                    b.TryGetProperty("requires_tech", out var rt) ? rt.GetString() ?? "" : "");
             })
             .ToList();
 
@@ -342,6 +378,17 @@ public sealed class GameData
             surfacesRoot.TryGetProperty("storage_exempt", out var ex)
                 ? ex.EnumerateArray().Select(r => r.GetString()!).ToList() : new List<string>(),
             surfacesRoot.TryGetProperty("salvage_refund", out var sr) ? Num(sr) : Fix64.Zero,
+            surfacesRoot.TryGetProperty("maintenance", out var mt)
+                ? new MaintenanceRules(Num(mt.GetProperty("decline_below")), Num(mt.GetProperty("slowest_output")),
+                    Num(mt.GetProperty("break_chance_per_min_at_zero")), Num(mt.GetProperty("auto_below")),
+                    Num(mt.GetProperty("crew_walk_seconds")), Num(mt.GetProperty("crew_seconds_per_tile")),
+                    Num(mt.GetProperty("repair_per_second")), Amounts(mt, "cost_per_point", "Maintenance"))
+                : null,
+            surfacesRoot.TryGetProperty("research", out var rs)
+                ? rs.EnumerateArray().Select((t, i) => new TechDef(i, Str(t, "id"), Str(t, "name"), Num(t.GetProperty("cost")),
+                    t.GetProperty("requires").EnumerateArray().Select(x => x.GetString()!).ToList(),
+                    t.TryGetProperty("effect", out var te) ? te.GetString() ?? "" : "", Modifiers(t, $"Tech {Str(t, "id")}"))).ToList()
+                : new List<TechDef>(),
             groundVehicles, problems);
     }
 
@@ -459,10 +506,36 @@ public sealed class GameData
                 if (!_surfaceUnits.TryGetValue(unit, out var ud)) problems.Add($"Build menu: {id} produces unknown surface unit '{unit}'.");
                 else if (ud.BuildSeconds < 1 || ud.Cost.Count == 0) problems.Add($"Surface unit {unit}: {id} builds it, so it needs cost and build_seconds.");
             }
+            if (b.RequiresTech.Length > 0 && !_techs.ContainsKey(b.RequiresTech))
+                problems.Add($"Build menu: {id} requires tech '{b.RequiresTech}', which isn't in surfaces.json research.");
+            if (b.Wears && Maintenance == null) problems.Add($"Build menu: {id} wears, but surfaces.json has no maintenance rules.");
+            foreach (var l in b.Levels)
+            {
+                if (l.Cost.Count == 0 || l.BuildSeconds < 1) problems.Add($"Build menu: {id} level {l.Name} needs a cost and build_seconds.");
+                if (l.RequiresLevel > 0 && !seen.Any(c => _buildings[c].Level >= l.RequiresLevel))
+                    problems.Add($"Build menu: {id} level {l.Name} needs a level {l.RequiresLevel} core, which the upgrade line doesn't reach.");
+            }
             if (b.IsFactory && b.ProductionQueue < 1) problems.Add($"Build menu: {id} produces units but has no production_queue.");
             if (b.RequiresLevel > 0 && !seen.Any(c => _buildings[c].Level >= b.RequiresLevel))
                 problems.Add($"Build menu: {id} needs a level {b.RequiresLevel} core, but the upgrade line doesn't reach it.");
         }
+        foreach (var t in Techs)
+        {
+            if (t.Cost <= Fix64.Zero) problems.Add($"Tech {t.Id}: cost must be positive.");
+            foreach (var r in t.Requires)
+                if (!_techs.TryGetValue(r, out var req) || req.Index >= t.Index) problems.Add($"Tech {t.Id}: requires '{r}', which must be listed before it.");
+            foreach (var m in t.Modifiers)
+            {
+                foreach (var bid in m.Buildings)
+                    if (!_buildings.ContainsKey(bid)) problems.Add($"Tech {t.Id}: modifier names unknown building '{bid}'.");
+                foreach (var uid in m.Units)
+                    if (!_surfaceUnits.ContainsKey(uid)) problems.Add($"Tech {t.Id}: modifier names unknown unit '{uid}'.");
+            }
+        }
+        if (Techs.Count > 0 && !BuildMenu.Any(id => _buildings.TryGetValue(id, out var lab) && lab.IsLab))
+            problems.Add("Research: there are techs but no Research Lab in the build menu.");
+        if (Maintenance is { } mr && (mr.RepairPerSecond <= Fix64.Zero || mr.DeclineBelow <= Fix64.Zero || mr.SlowestOutput <= Fix64.Zero || mr.SlowestOutput > Fix64.One))
+            problems.Add("Maintenance: needs positive repair_per_second and decline_below, and slowest_output in (0, 1].");
         if (SalvageRefund < Fix64.Zero || SalvageRefund > Fix64.One) problems.Add("salvage_refund must be between 0 and 1.");
         if (!seen.Any(c => _buildings[c].Storage > Fix64.Zero)) problems.Add($"Landing: hub '{Landing.HubBuilding}' has no storage, so nothing could be stockpiled.");
 

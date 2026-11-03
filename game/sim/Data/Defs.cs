@@ -26,6 +26,8 @@ public sealed record PlanetClassDef(string Id, string Name, Fix64 Habitability, 
 /// the recipes that have input. RequiresDepleted buildings go on a used-up deposit and reopen it once at
 /// ReopenShare of its first size. RequiresLevel = the base's core must be at least this level.
 /// Produces = surface units it assembles one at a time, with up to ProductionQueue orders waiting.
+/// WearPerMinute = condition lost per minute of work; ResearchPerMinute = research points (labs); Levels = upgrades
+/// after Mk I; RequiresTech = a surface tech that must be researched before it can be placed ("" = none).
 /// </summary>
 public sealed record BuildingDef(
     string Id,
@@ -52,8 +54,21 @@ public sealed record BuildingDef(
     Fix64 ReopenShare,
     int RequiresLevel,
     IReadOnlyList<string> Produces,
-    int ProductionQueue)
+    int ProductionQueue,
+    Fix64 WearPerMinute,
+    Fix64 ResearchPerMinute,
+    IReadOnlyList<BuildingLevel> Levels,
+    string RequiresTech)
 {
+    /// <summary>Loses condition while it works and needs maintenance.</summary>
+    public bool Wears => WearPerMinute > Fix64.Zero;
+
+    /// <summary>Makes research points (a Research Lab).</summary>
+    public bool IsLab => ResearchPerMinute > Fix64.Zero;
+
+    /// <summary>Highest level: 1 (Mk I, the base) plus one per entry in Levels.</summary>
+    public int MaxLevel => Levels.Count + 1;
+
     /// <summary>Assembles surface units (a Vehicle Bay).</summary>
     public bool IsFactory => Produces.Count > 0;
 
@@ -66,6 +81,20 @@ public sealed record BuildingDef(
     /// <summary>Turns stock into other stock (refinery, foundry).</summary>
     public bool IsConverter => Recipes.Count > 0 && CyclesPerMinute > Fix64.Zero;
 }
+
+/// <summary>
+/// A change to stats from a building level or a tech. Stat: speed, yield, wear (shares added, e.g. 0.2 = +20%),
+/// auto_maintain (on/off), breakdown (a unit's breakdown chance). Buildings / Units = what it applies to
+/// (both empty = every building; a level's modifiers apply to its own building).
+/// </summary>
+public sealed record Modifier(string Stat, IReadOnlyList<string> Buildings, IReadOnlyList<string> Units, Fix64 Add)
+{
+    public const string Speed = "speed", Yield = "yield", Wear = "wear", AutoMaintain = "auto_maintain", Breakdown = "breakdown";
+    public static readonly string[] Stats = { Speed, Yield, Wear, AutoMaintain, Breakdown };
+}
+
+/// <summary>An upgrade level of a building (Mk II, Mk III): what it costs, how long it takes, and its stat totals.</summary>
+public sealed record BuildingLevel(string Name, IReadOnlyList<ResourceAmount> Cost, int BuildSeconds, int RequiresLevel, IReadOnlyList<Modifier> Modifiers);
 
 /// <summary>One cycle of a converter: takes In from stock, gives Out.</summary>
 public sealed record Recipe(IReadOnlyList<ResourceAmount> In, IReadOnlyList<ResourceAmount> Out);

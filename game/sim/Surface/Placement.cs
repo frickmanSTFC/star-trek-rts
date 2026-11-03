@@ -19,4 +19,7 @@ public enum PlacementProblem
 
     /// <summary>The base it would join isn't a high enough level.</summary>
     NeedsLevel,
+
+    /// <summary>Its tech hasn't been researched yet.</summary>
+    NeedsTech,
 }

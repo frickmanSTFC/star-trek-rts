@@ -211,6 +211,8 @@ public sealed class Simulation
             case RepairCommand:
             case BuildUnitCommand:
             case CancelUnitCommand:
+            case ResearchCommand:
+            case MaintainCommand:
                 break; // surface commands with no surface loaded: ignore
             default:
                 throw new NotSupportedException($"Unhandled command {command.GetType().Name}.");

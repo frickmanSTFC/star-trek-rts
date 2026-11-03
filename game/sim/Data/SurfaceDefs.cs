@@ -51,6 +51,18 @@ public sealed record SurfaceUnitDef(string Id, Fix64 Speed, int SurveyRadius, Fi
     public bool CanMine => ExtractPerMinute > Fix64.Zero;
 }
 
+/// <summary>
+/// Building wear and maintenance (surfaces.json maintenance). Below DeclineBelow condition, output falls toward
+/// SlowestOutput at 0, and a breakdown becomes possible (chance per minute rising to BreakChanceAtZero at 0).
+/// Crew walk CrewWalkSeconds + CrewSecondsPerTile per tile from the core, then restore RepairPerSecond, paying
+/// CostPerPoint. Auto-maintained buildings fix themselves below AutoBelow.
+/// </summary>
+public sealed record MaintenanceRules(Fix64 DeclineBelow, Fix64 SlowestOutput, Fix64 BreakChanceAtZero, Fix64 AutoBelow,
+    Fix64 CrewWalkSeconds, Fix64 CrewSecondsPerTile, Fix64 RepairPerSecond, IReadOnlyList<ResourceAmount> CostPerPoint);
+
+/// <summary>A surface tech a Research Lab works on. Index = position in the list (stable order for state).</summary>
+public sealed record TechDef(int Index, string Id, string Name, Fix64 Cost, IReadOnlyList<string> Requires, string Effect, IReadOnlyList<Modifier> Modifiers);
+
 /// <summary>One kind of breakdown: picked by Weight, knocks DamageMin..DamageMax off integrity; LosesLoad empties the hopper.</summary>
 public sealed record BreakdownSeverity(string Id, string Name, int Weight, int DamageMin, int DamageMax, bool LosesLoad);
 

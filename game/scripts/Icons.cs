@@ -16,6 +16,7 @@ public static class Icons
         ["tritanium_ore"] = new(0.46f, 0.56f, 0.72f),
         ["parasteel"] = new(0.6f, 0.86f, 0.92f),
         ["storage"] = new(0.85f, 0.78f, 0.55f),
+        ["research"] = new(0.55f, 0.88f, 1f),
         ["tritanium"] = new(0.5f, 0.7f, 1f),
         ["deuterium"] = new(0.37f, 0.89f, 0.94f),
         ["dilithium"] = new(1f, 0.54f, 0.85f),
@@ -43,6 +44,9 @@ public static class Icons
         ["refinery"] = "<path d='M4 20V11l5 3V11l5 3V5h4v15z'/><path d='M8 17h2M13 17h2'/>",
         ["foundry"] = "<path d='M5 9h14l-2 6H7z'/><path d='M12 15v3M8 21h8M9 9V5M15 9V6'/>",
         ["deep_core_mine"] = "<path d='M8 21l4-18 4 18M9 15h6M10 9h4M4 21h16'/><path d='M12 21v-3'/>",
+        ["science_lab"] = "<path d='M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3'/><path d='M7.5 15h9'/>",
+        ["research"] = "<path d='M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3'/><path d='M7.5 15h9'/>",
+        ["tech"] = "<circle cx='12' cy='12' r='3'/><path d='M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3'/>",
         ["vehicle_bay"] = "<path d='M3 20V9l9-5 9 5v11'/><path d='M7 20v-7h10v7M7 16h10'/>",
         ["unit:survey_rover"] = "<rect x='4' y='8' width='16' height='7' rx='2'/><circle cx='8' cy='17.5' r='2'/><circle cx='16' cy='17.5' r='2'/><path d='M14 8V5h3'/>",
         ["unit:mining_crawler"] = "<rect x='3' y='12' width='18' height='5' rx='2.5'/><path d='M6 12V9h6v3M12 9l6-4M18 5v6'/>",
@@ -64,6 +68,7 @@ public static class Icons
         var key = id + "|" + c.ToHtml();
         if (Cache.TryGetValue(key, out var cached)) return cached;
 
+        if (id.StartsWith("tech:")) id = "tech";
         var body = Paths.TryGetValue(id, out var p) ? p
             : id.StartsWith("colonial") || id.StartsWith("planetary") ? Paths["colony_hub"] : Paths["generic"];
         var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' " +

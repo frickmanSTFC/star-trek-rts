@@ -39,6 +39,12 @@ public sealed record BuildUnitCommand(int Player, int StructureId, string UnitId
 /// <summary>Cancel the last order in a Vehicle Bay's queue (the one in progress if it's the only one); full refund.</summary>
 public sealed record CancelUnitCommand(int Player, int StructureId) : Command(Player);
 
+/// <summary>Pick the surface tech the Research Labs work on (progress on others is kept).</summary>
+public sealed record ResearchCommand(int Player, string TechId) : Command(Player);
+
+/// <summary>Ask the base's crew to maintain a building (again to cancel, if they haven't started on it).</summary>
+public sealed record MaintainCommand(int Player, int StructureId) : Command(Player);
+
 /// <summary>Send damaged units to the nearest colony core's repair pad; repair starts when they get there.</summary>
 public sealed record RepairCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
 

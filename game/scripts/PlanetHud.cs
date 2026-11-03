@@ -23,8 +23,31 @@ public sealed record BaseView(
     int QueueCapacity,
     IReadOnlyList<(string Name, float Progress)> Queue);
 
-/// <summary>One button on the command card.</summary>
-public sealed record CommandView(string Id, string Key, string Name, string Cost, bool Affordable, bool Active);
+/// <summary>One button on the command card. Tag = a short note top-right (e.g. DONE, 40%); Disabled greys it out.</summary>
+public sealed record CommandView(string Id, string Key, string Name, string Cost, bool Affordable, bool Active, string Tag = "", bool Disabled = false);
+
+/// <summary>A button in the building panel (upgrade, maintain, salvage...).</summary>
+public sealed record ActionView(string Id, string Label, string Detail, bool Enabled);
+
+/// <summary>
+/// A selected building as the bottom panel shows it: identity and status, stat rows (label, value), a condition bar
+/// with what maintenance is doing, a progress bar (construction, upgrade, assembly, research) and action buttons.
+/// Condition / Progress below 0 hide those bars.
+/// </summary>
+public sealed record StructureView(
+    string Title,
+    string Subtitle,
+    string IconId,
+    string Status,
+    Color StatusColour,
+    IReadOnlyList<(string Label, string Value)> Rows,
+    float Condition,
+    string ConditionText,
+    string MaintenanceText,
+    float Progress,
+    string ProgressLabel,
+    string ProgressText,
+    IReadOnlyList<ActionView> Actions);
 
 /// <summary>
 /// Planet-surface HUD (layout from the mockup): resource bar with icons across the top, event feed,
@@ -53,6 +76,9 @@ public partial class PlanetHud : CanvasLayer
     private readonly Dictionary<int, (Label Amount, Label Rate)> _chips = new();
     private Label _powerChip = null!;
     private Label _storageChip = null!;
+    private Label _researchChip = null!;
+    private Label _researchSub = null!;
+    private PanelContainer _help = null!;
     private Label _clock = null!;
     private Label _hints = null!;
     private PanelContainer _bannerPanel = null!;
@@ -84,6 +110,25 @@ public partial class PlanetHud : CanvasLayer
     private Label _detailTitle = null!;
     private Label _detailSubtitle = null!;
     private Label _detailBody = null!;
+
+    // Building panel.
+    private Control _structureView = null!;
+    private TextureRect _structIcon = null!;
+    private Label _structTitle = null!;
+    private Label _structSub = null!;
+    private Label _structStatus = null!;
+    private readonly List<(Label Name, Label Value)> _structRows = new();
+    private Control _conditionBox = null!;
+    private Bar _conditionBar = null!;
+    private Label _conditionText = null!;
+    private Label _maintenanceText = null!;
+    private Control _progressBox = null!;
+    private Label _progressLabel = null!;
+    private Bar _progressBar = null!;
+    private Label _progressText = null!;
+    private readonly List<Button> _actionButtons = new();
+    private readonly List<string> _actionIds = new();
+    private Action<string>? _onAction;
 
     // Command card.
     private Label _commandTitle = null!;
@@ -129,6 +174,9 @@ public partial class PlanetHud : CanvasLayer
         _bottom = BuildBottom();
         AddChild(_bottom);
 
+        _help = BuildHelp();
+        AddChild(_help);
+
         _tooltip = Panel(new Color(0.02f, 0.03f, 0.07f, 0.94f), Line, 8);
         _tooltipText = MakeLabel("", 14, Ink);
         _tooltip.AddChild(_tooltipText);
@@ -137,14 +185,15 @@ public partial class PlanetHud : CanvasLayer
         AddChild(_tooltip);
     }
 
-    public void Setup(IReadOnlyList<(string Id, string Name, string Key)> buildMenu, Action<string> onBuild, Action<int> onSelectBase, Action onUpgrade)
+    public void Setup(IReadOnlyList<(string Id, string Name, string Key)> buildMenu, Action<string> onBuild, Action<int> onSelectBase, Action onUpgrade, Action<string> onAction)
     {
+        _onAction = onAction;
         _onBuild = onBuild;
         _onSelectBase = onSelectBase;
         _onUpgrade = onUpgrade;
         foreach (var (id, name, key) in buildMenu)
         {
-            var button = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(104, 82), ToggleMode = true };
+            var button = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(CommandWidth, 80), ToggleMode = true };
             StyleButton(button, new Color(0.17f, 0.23f, 0.36f), new Color(0.06f, 0.1f, 0.19f));
             var box = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
             box.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.Minsize, 7);
@@ -155,7 +204,7 @@ public partial class PlanetHud : CanvasLayer
             keyLabel.HorizontalAlignment = HorizontalAlignment.Right;
             top.AddChild(keyLabel);
             box.AddChild(top);
-            var nameLabel = MakeLabel(name, 14, Ink);
+            var nameLabel = MakeLabel(name, 13, Ink);
             nameLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             nameLabel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
             box.AddChild(nameLabel);
@@ -194,11 +243,14 @@ public partial class PlanetHud : CanvasLayer
 
     // ---------------------------------------------------------------- top
 
-    public void ShowTop(Simulation sim, int player, string factionSub, float powerUse, float powerSupply, float stored, float capacity, string clock)
+    public void ShowTop(Simulation sim, int player, string factionSub, float powerUse, float powerSupply, float stored, float capacity,
+        string research, string researchSub, string clock)
     {
         var data = sim.Data;
         var p = sim.Players[player];
-        _factionName.Text = data.Faction(p.FactionId).Name.ToUpperInvariant();
+        var faction = data.Faction(p.FactionId).Name;
+        // Long names ("United Federation of Planets") take a third of the bar: use the short id instead.
+        _factionName.Text = (faction.Length > 16 ? p.FactionId.Replace('_', ' ') : faction).ToUpperInvariant();
         _factionSub.Text = factionSub;
         var income = sim.IncomePerMinute(player);
         foreach (var r in data.HudResources)
@@ -206,9 +258,14 @@ public partial class PlanetHud : CanvasLayer
             if (!_chips.TryGetValue(r.Index, out var chip)) continue;
             chip.Amount.Text = Hud.Whole(p.Stock[r.Index]);
             var rate = income[r.Index];
-            chip.Rate.Text = rate == Fix64.Zero ? ShortName(r.Name) : $"{ShortName(r.Name)} {Hud.PerMinute(rate)}";
-            chip.Rate.AddThemeColorOverride("font_color", rate > Fix64.Zero ? Good : rate < Fix64.Zero ? Warn : Dim);
+            var perMin = Mathf.RoundToInt(rate.ToFloat());
+            chip.Rate.Text = perMin == 0 ? ShortName(r.Name) : $"{ShortName(r.Name)} {(perMin > 0 ? "+" : "−")}{Mathf.Abs(perMin)}";
+            chip.Rate.AddThemeColorOverride("font_color", perMin > 0 ? Good : perMin < 0 ? Warn : Dim);
+            if (chip.Amount.GetParent()?.GetParent() is Control box)
+                box.TooltipText = $"{r.Name}: {Hud.Whole(p.Stock[r.Index])}" + (perMin == 0 ? "" : $"  ({(perMin > 0 ? "+" : "−")}{Mathf.Abs(perMin)} a minute)");
         }
+        _researchChip.Text = research;
+        _researchSub.Text = researchSub;
         _powerChip.Text = $"{Mathf.RoundToInt(powerUse)} / {Mathf.RoundToInt(powerSupply)}";
         _powerChip.AddThemeColorOverride("font_color", powerUse > powerSupply ? Warn : Ink);
         _storageChip.Text = $"{Mathf.FloorToInt(stored)} / {Mathf.RoundToInt(capacity)}";
@@ -223,13 +280,14 @@ public partial class PlanetHud : CanvasLayer
         var insertAt = row.GetNode("ResourcesStart").GetIndex() + 1;
         foreach (var (index, id, name) in resources)
         {
-            var chip = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-            chip.AddThemeConstantOverride("separation", 8);
+            // Pass (not Ignore) so hovering the chip shows its tooltip: full name, stock and rate.
+            var chip = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Pass, TooltipText = name };
+            chip.AddThemeConstantOverride("separation", 6);
             chip.AddChild(IconTile(id));
             var text = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-            text.AddThemeConstantOverride("separation", -2);
-            var amount = MakeLabel("0", 19, Ink);
-            var rate = MakeLabel(ShortName(name), 12, Dim);
+            text.AddThemeConstantOverride("separation", -3);
+            var amount = MakeLabel("0", 17, Ink);
+            var rate = MakeLabel(ShortName(name), 11, Dim);
             text.AddChild(amount);
             text.AddChild(rate);
             chip.AddChild(text);
@@ -247,6 +305,56 @@ public partial class PlanetHud : CanvasLayer
     }
 
     public void ShowHints(string text) => _hints.Text = text;
+
+    public bool HelpVisible => _help.Visible;
+
+    public void ToggleHelp() => _help.Visible = !_help.Visible;
+
+    /// <summary>The full controls list (F1), in two columns.</summary>
+    private PanelContainer BuildHelp()
+    {
+        var panel = Panel(new Color(0.02f, 0.03f, 0.07f, 0.96f), Accent, 10, 22, 16);
+        panel.Visible = false;
+        var box = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        box.AddThemeConstantOverride("separation", 10);
+        box.AddChild(MakeLabel("CONTROLS", 18, Accent));
+        var cols = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        cols.AddThemeConstantOverride("separation", 36);
+        (string Key, string What)[][] groups =
+        {
+            new[]
+            {
+                ("Left-click", "select a building, vehicle, base or tile"), ("Shift+click", "add vehicles to the selection"), ("A", "select all vehicles"),
+                ("Right-click", "drive there (a crawler on a deposit mines it)"), ("F", "crawler: unfurl / pack up / send for repair"),
+                ("Tab", "next base"), ("Esc", "back to the base / stop placing"),
+            },
+            new[]
+            {
+                ("1–9", "build (or order / research when a bay or lab is selected)"), ("R / Shift+R", "rotate while placing"),
+                ("U", "upgrade the selected building or base"), ("M", "maintain the selected building"), ("X", "cancel a build or upgrade / salvage"),
+                ("Backspace", "cancel the bay's last order"), ("WASD, middle-drag", "pan"), ("Q / E", "turn the view"), ("Wheel", "zoom"), ("H", "fly home"), ("F1", "this list"),
+            },
+        };
+        foreach (var g in groups)
+        {
+            var grid = new GridContainer { Columns = 2, MouseFilter = Control.MouseFilterEnum.Ignore };
+            grid.AddThemeConstantOverride("h_separation", 14);
+            grid.AddThemeConstantOverride("v_separation", 4);
+            foreach (var (key, what) in g)
+            {
+                grid.AddChild(MakeLabel(key, 14, Accent));
+                grid.AddChild(MakeLabel(what, 14, Ink));
+            }
+            cols.AddChild(grid);
+        }
+        box.AddChild(cols);
+        box.AddChild(MakeLabel("Press F1 to close", 12, Dim));
+        panel.AddChild(box);
+        panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.Center, Control.LayoutPresetMode.Minsize, 0);
+        panel.GrowHorizontal = Control.GrowDirection.Both;
+        panel.GrowVertical = Control.GrowDirection.Both;
+        return panel;
+    }
 
     public void ShowBanner(string text)
     {
@@ -284,7 +392,7 @@ public partial class PlanetHud : CanvasLayer
     {
         _tooltip.Visible = text.Length > 0;
         if (!_tooltip.Visible) return;
-        _tooltipText.Text = text;
+        _tooltipText.Text = text.Replace("\r", ""); // AppendLine writes \r\n on Windows; Godot shows \r as a blank line
         _tooltip.ResetSize();
         var screen = GetViewport().GetVisibleRect().Size;
         var size = _tooltip.GetCombinedMinimumSize();
@@ -324,6 +432,7 @@ public partial class PlanetHud : CanvasLayer
     {
         _baseView.Visible = true;
         _detailView.Visible = false;
+        _structureView.Visible = false;
         _baseIcon.Texture = Icons.Get(v.CoreId, PlanetDriver.PlayerColors[0]);
         _baseName.Text = v.Name.ToUpperInvariant();
         _coreName.Text = v.CoreName;
@@ -363,10 +472,61 @@ public partial class PlanetHud : CanvasLayer
     public void ShowDetail(string title, string subtitle, string body)
     {
         _baseView.Visible = false;
+        _structureView.Visible = false;
         _detailView.Visible = true;
         _detailTitle.Text = title.ToUpperInvariant();
         _detailSubtitle.Text = subtitle;
-        _detailBody.Text = body;
+        _detailBody.Text = body.Replace("\r", "");
+    }
+
+    /// <summary>The selected building: stats, condition, progress and its buttons.</summary>
+    public void ShowStructure(StructureView v)
+    {
+        _baseView.Visible = false;
+        _detailView.Visible = false;
+        _structureView.Visible = true;
+        _structIcon.Texture = Icons.Get(v.IconId, PlanetDriver.PlayerColors[0]);
+        _structTitle.Text = v.Title.ToUpperInvariant();
+        _structSub.Text = v.Subtitle;
+        _structStatus.Text = v.Status;
+        _structStatus.AddThemeColorOverride("font_color", v.StatusColour);
+
+        for (var i = 0; i < _structRows.Count; i++)
+        {
+            var show = i < v.Rows.Count;
+            _structRows[i].Name.Visible = show;
+            _structRows[i].Value.Visible = show;
+            if (!show) continue;
+            _structRows[i].Name.Text = v.Rows[i].Label.ToUpperInvariant();
+            _structRows[i].Value.Text = v.Rows[i].Value;
+        }
+
+        _conditionBox.Visible = v.Condition >= 0;
+        if (v.Condition >= 0)
+        {
+            _conditionBar.Fraction = v.Condition / 100f;
+            _conditionBar.Colour = v.Condition >= 70 ? Good : v.Condition >= 50 ? Accent : Warn;
+            _conditionText.Text = v.ConditionText;
+            _maintenanceText.Text = v.MaintenanceText;
+        }
+        _progressBox.Visible = v.Progress >= 0;
+        if (v.Progress >= 0)
+        {
+            _progressLabel.Text = v.ProgressLabel.ToUpperInvariant();
+            _progressBar.Fraction = v.Progress;
+            _progressText.Text = v.ProgressText;
+        }
+
+        for (var i = 0; i < _actionButtons.Count; i++)
+        {
+            var b = _actionButtons[i];
+            b.Visible = i < v.Actions.Count;
+            if (!b.Visible) continue;
+            var a = v.Actions[i];
+            _actionIds[i] = a.Id;
+            b.Text = a.Detail.Length > 0 ? $"{a.Label}   {a.Detail}" : a.Label;
+            b.Disabled = !a.Enabled;
+        }
     }
 
     public void ShowCommands(string title, IReadOnlyList<CommandView> items, bool enabled)
@@ -376,10 +536,10 @@ public partial class PlanetHud : CanvasLayer
         {
             if (!_commands.TryGetValue(c.Id, out var ui)) continue;
             ui.Button.SetPressedNoSignal(c.Active);
-            ui.Button.Disabled = !enabled;
+            ui.Button.Disabled = !enabled || c.Disabled;
             ui.Cost.Text = c.Cost;
-            ui.Cost.AddThemeColorOverride("font_color", c.Affordable ? Dim : Warn);
-            ui.Tag.Text = c.Affordable ? "" : " SHORT";
+            ui.Cost.AddThemeColorOverride("font_color", c.Affordable ? Dim : Warn); // red cost = can't afford it yet
+            ui.Tag.Text = c.Tag;
         }
         // Only the listed commands show (the build menu, or a Vehicle Bay's orders).
         foreach (var (id, ui) in _commands)
@@ -400,14 +560,14 @@ public partial class PlanetHud : CanvasLayer
         bar.CustomMinimumSize = new Vector2(0, TopHeight);
         bar.MouseFilter = Control.MouseFilterEnum.Stop;
         var row = new HBoxContainer { Name = "Row", MouseFilter = Control.MouseFilterEnum.Ignore };
-        row.AddThemeConstantOverride("separation", 15);
+        row.AddThemeConstantOverride("separation", 12);
 
         var faction = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         faction.AddThemeConstantOverride("separation", 10);
         faction.AddChild(new ColorRect { Color = PlanetDriver.PlayerColors[0], CustomMinimumSize = new Vector2(8, 28), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore });
         var names = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         names.AddThemeConstantOverride("separation", -2);
-        _factionName = MakeLabel("", 17, Ink);
+        _factionName = MakeLabel("", 16, Ink);
         _factionSub = MakeLabel("", 12, Dim);
         names.AddChild(_factionName);
         names.AddChild(_factionSub);
@@ -421,9 +581,11 @@ public partial class PlanetHud : CanvasLayer
         power.AddChild(IconTile("energy"));
         var powerText = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         powerText.AddThemeConstantOverride("separation", -2);
-        _powerChip = MakeLabel("0 / 0", 19, Ink);
+        _powerChip = MakeLabel("0 / 0", 17, Ink);
         powerText.AddChild(_powerChip);
-        powerText.AddChild(MakeLabel("POWER USED / SUPPLY", 12, Dim));
+        powerText.AddChild(MakeLabel("POWER", 11, Dim));
+        power.MouseFilter = Control.MouseFilterEnum.Pass;
+        power.TooltipText = "Power used / supplied across your bases";
         power.AddChild(powerText);
         row.AddChild(power);
 
@@ -432,11 +594,26 @@ public partial class PlanetHud : CanvasLayer
         storage.AddChild(IconTile("storage"));
         var storageText = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         storageText.AddThemeConstantOverride("separation", -2);
-        _storageChip = MakeLabel("0 / 0", 19, Ink);
+        _storageChip = MakeLabel("0 / 0", 17, Ink);
         storageText.AddChild(_storageChip);
-        storageText.AddChild(MakeLabel("STORAGE USED / SPACE", 12, Dim));
+        storageText.AddChild(MakeLabel("STORAGE", 11, Dim));
+        storage.MouseFilter = Control.MouseFilterEnum.Pass;
+        storage.TooltipText = "Storage used / space (ores, metals, fuel, strategics; crew and latinum take none)";
         storage.AddChild(storageText);
         row.AddChild(storage);
+
+        var research = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Pass, TooltipText = "Research: build a Research Lab, select it and pick a tech" };
+        research.AddThemeConstantOverride("separation", 8);
+        research.AddChild(IconTile("research"));
+        var researchText = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(120, 0) };
+        researchText.AddThemeConstantOverride("separation", -3);
+        _researchChip = MakeLabel("—", 17, Ink);
+        _researchSub = MakeLabel("RESEARCH", 11, Dim);
+        _researchSub.ClipText = true;
+        researchText.AddChild(_researchChip);
+        researchText.AddChild(_researchSub);
+        research.AddChild(researchText);
+        row.AddChild(research);
 
         row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore });
         _clock = MakeLabel("", 15, Dim);
@@ -472,6 +649,8 @@ public partial class PlanetHud : CanvasLayer
         centre.AddChild(_baseView);
         _detailView = BuildDetailView();
         centre.AddChild(_detailView);
+        _structureView = BuildStructureView();
+        centre.AddChild(_structureView);
         var centreMargin = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore };
         foreach (var side in new[] { "left", "right" }) centreMargin.AddThemeConstantOverride($"margin_{side}", 20);
         centreMargin.AddThemeConstantOverride("margin_top", 12);
@@ -480,17 +659,106 @@ public partial class PlanetHud : CanvasLayer
         row.AddChild(centreMargin);
 
         // Command card
-        var card = Section(484);
+        var width = CommandColumns * CommandWidth + (CommandColumns - 1) * 5;
+        var card = Section(width + 32);
         _commandTitle = Caption("BUILD");
         card.AddChild(_commandTitle);
-        _commandGrid = new GridContainer { Columns = 4, MouseFilter = Control.MouseFilterEnum.Pass };
-        _commandGrid.AddThemeConstantOverride("h_separation", 8);
-        _commandGrid.AddThemeConstantOverride("v_separation", 8);
+        _commandGrid = new GridContainer { Columns = CommandColumns, MouseFilter = Control.MouseFilterEnum.Pass };
+        _commandGrid.AddThemeConstantOverride("h_separation", 5);
+        _commandGrid.AddThemeConstantOverride("v_separation", 5);
         card.AddChild(_commandGrid);
-        row.AddChild(Framed(card, 452));
+        row.AddChild(Framed(card, width + 32));
 
         panel.AddChild(row);
         return panel;
+    }
+
+    private const int CommandColumns = 5;
+    private const int CommandWidth = 100;
+
+    /// <summary>
+    /// The building panel: [icon, name, level, status, buttons] [stat rows] [condition and maintenance, progress].
+    /// </summary>
+    private Control BuildStructureView()
+    {
+        var grid = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Pass, Visible = false };
+        grid.AddThemeConstantOverride("separation", 18);
+
+        var id = new VBoxContainer { CustomMinimumSize = new Vector2(220, 0), MouseFilter = Control.MouseFilterEnum.Pass };
+        id.AddThemeConstantOverride("separation", 4);
+        var head = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        head.AddThemeConstantOverride("separation", 10);
+        _structIcon = new TextureRect { CustomMinimumSize = new Vector2(40, 40), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = Control.MouseFilterEnum.Ignore };
+        head.AddChild(_structIcon);
+        var names = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        names.AddThemeConstantOverride("separation", 0);
+        _structTitle = MakeLabel("", 19, Ink);
+        _structSub = MakeLabel("", 13, Dim);
+        names.AddChild(_structTitle);
+        names.AddChild(_structSub);
+        head.AddChild(names);
+        id.AddChild(head);
+        _structStatus = MakeLabel("", 14, Accent);
+        _structStatus.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _structStatus.CustomMinimumSize = new Vector2(220, 0);
+        id.AddChild(_structStatus);
+        for (var i = 0; i < 3; i++)
+        {
+            var b = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30), Alignment = HorizontalAlignment.Left, ClipText = true };
+            b.AddThemeFontSizeOverride("font_size", 13);
+            StyleButton(b, Line, new Color(0.06f, 0.1f, 0.19f));
+            var index = i;
+            b.Pressed += () => _onAction?.Invoke(_actionIds[index]);
+            _actionButtons.Add(b);
+            _actionIds.Add("");
+            id.AddChild(b);
+        }
+        grid.AddChild(id);
+
+        var rows = new GridContainer { Columns = 2, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore };
+        rows.AddThemeConstantOverride("h_separation", 12);
+        rows.AddThemeConstantOverride("v_separation", 5);
+        for (var i = 0; i < 6; i++)
+        {
+            var name = MakeLabel("", 12, Dim);
+            name.CustomMinimumSize = new Vector2(80, 0);
+            var value = MakeLabel("", 14, Ink);
+            value.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            value.ClipText = true;
+            rows.AddChild(name);
+            rows.AddChild(value);
+            _structRows.Add((name, value));
+        }
+        grid.AddChild(rows);
+
+        var side = new VBoxContainer { CustomMinimumSize = new Vector2(210, 0), MouseFilter = Control.MouseFilterEnum.Ignore };
+        side.AddThemeConstantOverride("separation", 4);
+        var cond = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        cond.AddThemeConstantOverride("separation", 4);
+        cond.AddChild(Caption("CONDITION"));
+        _conditionBar = new Bar { Colour = Good, CustomMinimumSize = new Vector2(0, 10) };
+        cond.AddChild(_conditionBar);
+        _conditionText = MakeLabel("", 13, Ink);
+        cond.AddChild(_conditionText);
+        _maintenanceText = MakeLabel("", 12, Dim);
+        _maintenanceText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _maintenanceText.CustomMinimumSize = new Vector2(210, 0);
+        cond.AddChild(_maintenanceText);
+        _conditionBox = cond;
+        side.AddChild(cond);
+        var prog = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        prog.AddThemeConstantOverride("separation", 4);
+        _progressLabel = Caption("");
+        prog.AddChild(_progressLabel);
+        _progressBar = new Bar { Colour = new Color(0.31f, 0.71f, 1f), CustomMinimumSize = new Vector2(0, 8) };
+        prog.AddChild(_progressBar);
+        _progressText = MakeLabel("", 13, Ink);
+        _progressText.ClipText = true;
+        prog.AddChild(_progressText);
+        _progressBox = prog;
+        side.AddChild(prog);
+        grid.AddChild(side);
+        return grid;
     }
 
     private Control BuildBaseView()
@@ -620,9 +888,9 @@ public partial class PlanetHud : CanvasLayer
     {
         var colour = Icons.ResourceColors.TryGetValue(id, out var c) ? c : Ink;
         var tile = Panel(new Color(colour.R, colour.G, colour.B, 0.16f), new Color(0, 0, 0, 0), 8, 6, 6);
-        tile.CustomMinimumSize = new Vector2(32, 32);
+        tile.CustomMinimumSize = new Vector2(28, 28);
         tile.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-        tile.AddChild(Icon(id, 20));
+        tile.AddChild(Icon(id, 18));
         return tile;
     }
 

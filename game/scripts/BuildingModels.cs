@@ -25,6 +25,7 @@ public static class BuildingModels
         "refinery" => Refinery(owner),
         "foundry" => Foundry(owner),
         "vehicle_bay" => VehicleBay(owner),
+        "science_lab" => ResearchLab(owner),
         "fusion_reactor" => Reactor(owner),
         "prefab_habitat" => Habitat(owner),
         _ => Generic(owner),
@@ -259,6 +260,73 @@ public static class BuildingModels
         });
         arm.AddChild(torch);
         n.AddChild(arm);
+        return n;
+    }
+
+    /// <summary>
+    /// Research Lab: a glass-roofed lab block beside a sensor mast with a dish, and a glowing containment ring
+    /// that turns while it works ("Spin").
+    /// </summary>
+    private static Node3D ResearchLab(Color owner)
+    {
+        var n = new Node3D();
+        var hull = Metal(HullColour);
+        var dark = Metal(Trim, 0.35f, 0.55f);
+        var glass = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.5f, 0.75f, 0.95f, 0.5f),
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            Metallic = 0.6f,
+            Roughness = 0.08f,
+            EmissionEnabled = true,
+            Emission = new Color(0.6f, 0.85f, 1f),
+            EmissionEnergyMultiplier = 0.5f,
+        };
+        Add(n, new BoxMesh { Size = new Vector3(7.2f, 0.4f, 7f) }, new Vector3(0, 0.2f, 0), dark);
+        Add(n, new BoxMesh { Size = new Vector3(5.2f, 2.6f, 4.2f) }, new Vector3(-0.8f, 1.7f, 0.6f), hull);
+        Add(n, new BoxMesh { Size = new Vector3(5.3f, 0.16f, 4.3f) }, new Vector3(-0.8f, 2.6f, 0.6f), Glow(owner, 1.6f));
+        Add(n, new SphereMesh { Radius = 2f, Height = 2.2f, IsHemisphere = true, RadialSegments = 16 }, new Vector3(-0.8f, 3f, 0.6f), glass);
+        // Windows along the front.
+        for (var i = 0; i < 3; i++)
+            Add(n, new BoxMesh { Size = new Vector3(1f, 0.6f, 0.08f) }, new Vector3(-2.4f + i * 1.6f, 1.8f, 2.74f), Glow(Window, 1.3f));
+        // Sensor mast and dish at the back right.
+        Add(n, new CylinderMesh { TopRadius = 0.18f, BottomRadius = 0.3f, Height = 6.5f, RadialSegments = 8 }, new Vector3(2.6f, 3.6f, -2f), hull);
+        Add(n, new CylinderMesh { TopRadius = 1.4f, BottomRadius = 0.2f, Height = 0.6f, RadialSegments = 14 }, new Vector3(2.6f, 6.8f, -2f), hull, new Vector3(35, 0, 0));
+        Add(n, new SphereMesh { Radius = 0.2f, Height = 0.4f }, new Vector3(2.6f, 7.4f, -1.6f), Glow(new Color(1f, 0.6f, 0.15f), 3f));
+        // Containment ring on a plinth: the "experiment".
+        Add(n, new CylinderMesh { TopRadius = 0.9f, BottomRadius = 1.1f, Height = 0.8f, RadialSegments = 12 }, new Vector3(2.4f, 0.8f, 1.8f), dark);
+        var spin = new Node3D { Name = "Spin", Position = new Vector3(2.4f, 2.1f, 1.8f) };
+        Add(spin, new TorusMesh { InnerRadius = 0.75f, OuterRadius = 0.95f, Rings = 24 }, Vector3.Zero, Glow(new Color(0.55f, 0.9f, 1f), 3f), new Vector3(70, 0, 0));
+        Add(spin, new SphereMesh { Radius = 0.3f, Height = 0.6f }, Vector3.Zero, Glow(new Color(0.85f, 0.95f, 1f), 4f));
+        n.AddChild(spin);
+        n.AddChild(new OmniLight3D { LightColor = new Color(0.55f, 0.85f, 1f), LightEnergy = 1.3f, OmniRange = 10f, Position = new Vector3(2.4f, 2.5f, 2.2f) });
+        return n;
+    }
+
+    /// <summary>Maintenance drone: a small hovering pod with a glowing ring, a work light and a spark spray ("Sparks").</summary>
+    public static Node3D Drone(Color owner)
+    {
+        var n = new Node3D();
+        var hull = Metal(new Color(0.85f, 0.86f, 0.9f), 0.6f, 0.3f);
+        Add(n, new SphereMesh { Radius = 0.45f, Height = 0.7f, RadialSegments = 10, Rings = 5 }, Vector3.Zero, hull);
+        Add(n, new TorusMesh { InnerRadius = 0.5f, OuterRadius = 0.65f, Rings = 16 }, Vector3.Zero, Glow(owner, 2.2f));
+        Add(n, new CylinderMesh { TopRadius = 0.05f, BottomRadius = 0.05f, Height = 0.5f }, new Vector3(0, -0.45f, 0), Metal(Trim));
+        n.AddChild(new OmniLight3D { LightColor = new Color(0.65f, 0.85f, 1f), LightEnergy = 1.2f, OmniRange = 5f, Position = new Vector3(0, -0.6f, 0) });
+        n.AddChild(new CpuParticles3D
+        {
+            Name = "Sparks",
+            Position = new Vector3(0, -0.7f, 0),
+            Amount = 16,
+            Lifetime = 0.5f,
+            Emitting = true,
+            LocalCoords = false,
+            Direction = Vector3.Down,
+            Spread = 50f,
+            InitialVelocityMin = 1.5f,
+            InitialVelocityMax = 4f,
+            Gravity = new Vector3(0, -9f, 0),
+            Mesh = new SphereMesh { Radius = 0.035f, Height = 0.07f, RadialSegments = 4, Rings = 2, Material = Glow(new Color(1f, 0.85f, 0.45f), 5f) },
+        });
         return n;
     }
 

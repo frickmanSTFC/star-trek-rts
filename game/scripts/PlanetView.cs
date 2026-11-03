@@ -793,7 +793,9 @@ public partial class PlanetView : Node3D
             }
 
             v.Model.Scale = Vector3.One;
-            v.Label.Text = s.UpgradingTo != null ? $"Upgrading {Mathf.RoundToInt(_surface.UpgradeFraction(s).ToFloat() * 100)}%"
+            var upgrading = s.UpgradingTo != null || s.UpgradingLevel > 0;
+            v.Label.Text = upgrading ? $"Upgrading {Mathf.RoundToInt(_surface.UpgradeFraction(s).ToFloat() * 100)}%"
+                : s.Broken ? (s.AutoRepairing ? "Drones repairing" : "Broken down")
                 : s.Status switch
                 {
                     StructureStatus.NoUpkeep => "Idle: can't pay upkeep",
@@ -801,10 +803,13 @@ public partial class PlanetView : Node3D
                     StructureStatus.LowPower => "Low power",
                     StructureStatus.StorageFull => "Storage full",
                     StructureStatus.NoInput when _sim.Data.Building(s.DefId).IsFactory => "",
+                    StructureStatus.NoInput when _sim.Data.Building(s.DefId).IsLab => "Idle: pick a tech",
                     StructureStatus.NoInput => s.DefId == "refinery" ? "Idle: no ore" : "Idle: no input",
+                    _ when _sim.Data.Building(s.DefId).Wears && s.Condition < Fix64.FromInt(50) => $"Worn {Mathf.FloorToInt(s.Condition.ToFloat())}%",
                     _ => "",
                 };
-            v.Label.Modulate = s.UpgradingTo != null ? new Color(0.6f, 0.85f, 1f) : new Color(1f, 0.55f, 0.35f);
+            v.Label.Modulate = upgrading ? new Color(0.6f, 0.85f, 1f) : s.Broken ? new Color(1f, 0.38f, 0.3f) : new Color(1f, 0.55f, 0.35f);
+            ShowUpkeep(s, v);
             var working = s.Status is StructureStatus.Working or StructureStatus.LowPower;
             if (_sim.Data.Building(s.DefId).IsFactory) AnimateBay(s, v, working, delta);
             if (working && v.Model.GetNodeOrNull<Node3D>("Spin") is { } spin)
@@ -818,6 +823,116 @@ public partial class PlanetView : Node3D
             _structures[id].Model.QueueFree();
             _structures[id].Label.QueueFree();
             _structures.Remove(id);
+        }
+        UpdateDrones(delta);
+        UpdateBuildingCrews(delta);
+    }
+
+    // ---------------------------------------------------------------- building upkeep (render-only)
+
+    private readonly Dictionary<int, Node3D> _drones = new();
+    private readonly Dictionary<int, Node3D[]> _buildingCrews = new();
+
+    /// <summary>A broken building smokes until it's fixed (the plume is added the first time it's needed).</summary>
+    private void ShowUpkeep(SurfaceStructure s, StructureVisual v)
+    {
+        var smoke = v.Model.GetNodeOrNull<CpuParticles3D>("BrokenSmoke");
+        if (smoke == null && s.Broken)
+        {
+            smoke = BuildingModels.Puffs("BrokenSmoke", new Vector3(0, 5f, 0), new Color(0.14f, 0.13f, 0.12f), 36, 3.4f, 1.4f, 3f, 0.2f);
+            v.Model.AddChild(smoke);
+        }
+        if (smoke != null && smoke.Emitting != s.Broken) smoke.Emitting = s.Broken;
+    }
+
+    /// <summary>Maintenance drones circle auto-maintained buildings while they fix them.</summary>
+    private void UpdateDrones(float delta)
+    {
+        var busy = new HashSet<int>();
+        foreach (var s in _surface.Structures)
+        {
+            if (!s.AutoRepairing) continue;
+            busy.Add(s.Id);
+            if (!_drones.TryGetValue(s.Id, out var drone))
+            {
+                drone = BuildingModels.Drone(PlanetDriver.PlayerColors[s.Owner % PlanetDriver.PlayerColors.Length]);
+                AddChild(drone);
+                drone.Position = TileCentre(s.Tile) + new Vector3(0, 14f, 0); // flies down from above
+                _drones[s.Id] = drone;
+            }
+            var a = _time * 1.3f + s.Id;
+            var target = TileCentre(s.Tile) + new Vector3(Mathf.Cos(a) * 4f, 6.5f + Mathf.Sin(a * 2f) * 0.5f, Mathf.Sin(a) * 4f);
+            drone.Position = drone.Position.Lerp(target, Mathf.Min(1f, delta * 3f));
+            if (drone.GetNodeOrNull<CpuParticles3D>("Sparks") is { } sparks && sparks.Emitting == s.MaintenanceWaiting) sparks.Emitting = !s.MaintenanceWaiting;
+        }
+        foreach (var id in new List<int>(_drones.Keys))
+        {
+            if (busy.Contains(id)) continue;
+            _drones[id].QueueFree();
+            _drones.Remove(id);
+        }
+    }
+
+    /// <summary>
+    /// Each base's crew: two people walk from the core's door to the building on the job, weld at its front while
+    /// they fix it, and walk back. The walk follows the sim's crew timing.
+    /// </summary>
+    private void UpdateBuildingCrews(float delta)
+    {
+        var active = new HashSet<int>();
+        foreach (var core in _surface.Structures)
+        {
+            if (core.CrewPhase == CrewPhase.None) continue;
+            active.Add(core.Id);
+            if (!_buildingCrews.TryGetValue(core.Id, out var people))
+            {
+                var colour = PlanetDriver.PlayerColors[core.Owner % PlanetDriver.PlayerColors.Length];
+                people = new[] { BuildingModels.Crew(colour), BuildingModels.Crew(colour) };
+                foreach (var p in people) AddChild(p);
+                _buildingCrews[core.Id] = people;
+            }
+            var job = _surface.FindStructure(core.CrewJob);
+            var door = CoreLocal(core, new Vector3(0, 0, 5.8f));
+            var jobCentre = job != null ? TileCentre(job.Tile) : door;
+            var jobBasis = job != null ? new Basis(Vector3.Up, Mathf.DegToRad(-60f * job.Facing)) : Basis.Identity;
+            var walk = Mathf.Max(1, core.CrewWalkTicks);
+            var t = core.CrewPhase switch
+            {
+                CrewPhase.Out => Mathf.Clamp(core.CrewTicks / (float)walk, 0f, 1f),
+                CrewPhase.Working => 1f,
+                _ => 1f - Mathf.Clamp(core.CrewTicks / (float)walk, 0f, 1f),
+            };
+            var walking = core.CrewPhase != CrewPhase.Working;
+            var welding = !walking && job != null && !job.MaintenanceWaiting;
+            for (var i = 0; i < people.Length; i++)
+            {
+                var person = people[i];
+                var spot = jobCentre + jobBasis * new Vector3(i == 0 ? -2.4f : 2.4f, 0, 4.6f);
+                var at = door.Lerp(spot, Mathf.SmoothStep(0f, 1f, Mathf.Clamp(t * 1.08f - i * 0.08f, 0f, 1f)));
+                var faceTo = walking ? (core.CrewPhase == CrewPhase.Back ? door : spot) : jobCentre;
+                if (at.DistanceTo(person.Position) > 60f) person.Position = at; // first frame
+                person.Position = at;
+                var dir = (faceTo - at) with { Y = 0 };
+                if (dir.LengthSquared() > 0.01f) person.Basis = person.Basis.Orthonormalized().Slerp(Basis.LookingAt(dir.Normalized(), Vector3.Up), Mathf.Min(1f, delta * 10f));
+                var swing = walking ? Mathf.Sin(_time * 9f + i * 1.7f) * 30f : 0f;
+                if (person.GetNodeOrNull<Node3D>("LegL") is { } l) l.RotationDegrees = new Vector3(swing, 0, 0);
+                if (person.GetNodeOrNull<Node3D>("LegR") is { } r) r.RotationDegrees = new Vector3(-swing, 0, 0);
+                if (person.GetNodeOrNull<Node3D>("Arm") is { } arm)
+                {
+                    arm.RotationDegrees = new Vector3(welding ? -15f + Mathf.Sin(_time * 6f + i) * 10f : 20f, 0, 0);
+                    if (arm.GetNodeOrNull<Node3D>("Torch") is { } torch)
+                    {
+                        if (torch.GetNodeOrNull<CpuParticles3D>("Sparks") is { } sparks && sparks.Emitting != welding) sparks.Emitting = welding;
+                        if (torch.GetNodeOrNull<Node3D>("Flame") is { } flame) flame.Visible = welding && Mathf.Sin(_time * 40f + i * 3f) > -0.6f;
+                    }
+                }
+            }
+        }
+        foreach (var id in new List<int>(_buildingCrews.Keys))
+        {
+            if (active.Contains(id)) continue;
+            foreach (var p in _buildingCrews[id]) p.QueueFree();
+            _buildingCrews.Remove(id);
         }
     }
 

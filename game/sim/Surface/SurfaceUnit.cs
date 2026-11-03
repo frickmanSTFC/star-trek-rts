@@ -192,8 +192,26 @@ public enum StructureStatus
     /// <summary>A mine with nowhere to put what it digs: storage is full.</summary>
     StorageFull,
 
-    /// <summary>A refinery or foundry with nothing in stock to work on, or a Vehicle Bay with no orders.</summary>
+    /// <summary>A refinery or foundry with nothing in stock to work on, a Vehicle Bay with no orders, or a lab with no tech chosen.</summary>
     NoInput,
+
+    /// <summary>Worn out and broken down: does nothing until maintained.</summary>
+    Broken,
+}
+
+/// <summary>What a base's maintenance crew is doing.</summary>
+public enum CrewPhase
+{
+    None,
+
+    /// <summary>Walking from the core to the job.</summary>
+    Out,
+
+    /// <summary>Fixing the building.</summary>
+    Working,
+
+    /// <summary>Walking back to the core.</summary>
+    Back,
 }
 
 /// <summary>A building on a surface tile.</summary>
@@ -231,6 +249,39 @@ public sealed class SurfaceStructure
 
     internal readonly List<string> _production = new();
 
+    /// <summary>Upgrade level for buildings with levels: 1 = Mk I (the base), 2 = Mk II, ...</summary>
+    public int Level { get; internal set; } = 1;
+
+    /// <summary>The level it's being upgraded to (0 = not upgrading to a level).</summary>
+    public int UpgradingLevel { get; internal set; }
+
+    /// <summary>Condition 0..100 for buildings that wear (100 = perfect).</summary>
+    public Fix64 Condition { get; internal set; } = Fix64.FromInt(100);
+
+    /// <summary>Broken down: does nothing until maintained back to 100.</summary>
+    public bool Broken { get; internal set; }
+
+    /// <summary>The player asked the base's crew to maintain it (and when, for the crew's order of work).</summary>
+    public bool MaintenanceOrdered { get; internal set; }
+
+    public long MaintenanceOrderTick { get; internal set; }
+
+    /// <summary>Maintenance drones are fixing it (auto-maintained buildings below the threshold).</summary>
+    public bool AutoRepairing { get; internal set; }
+
+    /// <summary>Being fixed, but the player can't pay for the next step.</summary>
+    public bool MaintenanceWaiting { get; internal set; }
+
+    /// <summary>On a colony core: its maintenance crew's current job (structure id, 0 = none), phase and timing.</summary>
+    public int CrewJob { get; internal set; }
+
+    public CrewPhase CrewPhase { get; internal set; }
+
+    public int CrewTicks { get; internal set; }
+
+    /// <summary>How long the crew's walk to (and back from) the current job takes, in ticks.</summary>
+    public int CrewWalkTicks { get; internal set; }
+
     public StructureStatus Status { get; internal set; }
 
     internal SurfaceStructure(int id, int owner, string defId, int tile, int facing, StructureState state, int baseId)
@@ -260,6 +311,18 @@ public sealed class SurfaceStructure
         h.Add(_production.Count);
         foreach (var p in _production) h.Add(p);
         h.Add(ProductionProgress);
+        h.Add(Level);
+        h.Add(UpgradingLevel);
+        h.Add(Condition);
+        h.Add(Broken);
+        h.Add(MaintenanceOrdered);
+        h.Add(MaintenanceOrderTick);
+        h.Add(AutoRepairing);
+        h.Add(MaintenanceWaiting);
+        h.Add(CrewJob);
+        h.Add((int)CrewPhase);
+        h.Add(CrewTicks);
+        h.Add(CrewWalkTicks);
     }
 }
 
@@ -286,7 +349,21 @@ public sealed class SurfacePlayer
     /// <summary>Tiles whose deposits this player knows exactly.</summary>
     public bool[] Surveyed { get; }
 
-    internal SurfacePlayer(int tileCount) => Surveyed = new bool[tileCount];
+    /// <summary>Researched surface techs, by TechDef.Index.</summary>
+    public bool[] Known { get; }
+
+    /// <summary>Research points put into each tech so far (kept when switching).</summary>
+    public Fix64[] ResearchProgress { get; }
+
+    /// <summary>The tech the labs are working on (TechDef.Index), or -1.</summary>
+    public int ActiveTech { get; internal set; } = -1;
+
+    internal SurfacePlayer(int tileCount, int techCount)
+    {
+        Surveyed = new bool[tileCount];
+        Known = new bool[techCount];
+        ResearchProgress = new Fix64[techCount];
+    }
 
     internal void AddToHash(ref StateHasher h)
     {
@@ -295,5 +372,8 @@ public sealed class SurfacePlayer
         h.Add(LandsAtTick);
         h.Add(DescentStartTick);
         foreach (var s in Surveyed) h.Add(s);
+        foreach (var k in Known) h.Add(k);
+        foreach (var r in ResearchProgress) h.Add(r);
+        h.Add(ActiveTech);
     }
 }

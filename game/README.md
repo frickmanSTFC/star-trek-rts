@@ -44,13 +44,17 @@ You start in orbit over Tarsis, a generated Class M world (change `Seed` on the 
    hologram while under construction; one builds at a time and the rest queue. Click your building for its status;
    **X** cancels an unfinished one for a full refund, or salvages a finished one for half its cost. Put mines on
    deposits, and keep power and deuterium positive. A used-up deposit can be reopened once by a Deep-Core Mine
-   (needs Colonial Administration).
+   (needs the Deep-Core Mining tech).
    The crawler can break down while mining (a minor fault, a major breakdown, or an explosion that loses its load).
    It then folds up and drives slower: press **F** (or right-click the Colony Hub) to send it to the repair pad
    beside the hub, where two crew members walk out and weld it back to 100% for a little duranium.
    Build a **Vehicle Bay** (key 8) for more vehicles: select it and the command card shows its orders
    (survey rover, mining crawler; keys 1–2). Orders are paid up front and queue up to 5; **Backspace** cancels
    the last one. Each vehicle rolls out of the bay's door when it's done.
+7. **Research and upkeep:** build a **Research Lab** (key 9), select it and pick a tech (keys 1–7). Buildings wear
+   while they work: below 50% they slow down and may break. Select one and press **M** to send the base's crew,
+   or **U** to upgrade it (Mk II, Mk III: faster, wears less; Mk III and the Automated Maintenance tech add
+   drones that keep it running). The building panel shows what it's doing, its stats and where bonuses come from.
 
 6. **Run the base:** the bottom panel shows the selected base: level, upgrade (button or **U**), power used / supply,
    its buildings and build queue. Keep power supply above use (Fusion Reactors) or everything that uses power slows.
@@ -63,7 +67,7 @@ near-black = unexplored (set `FogDarkness` on the root node).
 
 Controls: left-click selects a vehicle, building, base or tile (Shift adds vehicles), **A** selects all vehicles, right-click
 drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair), **1–8** build (or order vehicles when a Vehicle Bay is selected), **Backspace** cancel the bay's last order, **R** rotate,
-**U** upgrade, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
+**U** upgrade the selected building (or the base), **M** maintain the selected building, **F1** all controls, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
 WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
 
 Map size is `width` / `height` in `data/surfaces.json` (Class M: 128×88 tiles); the camera adapts to it.
