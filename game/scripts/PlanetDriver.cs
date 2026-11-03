@@ -51,6 +51,8 @@ public partial class PlanetDriver : Node3D
     private LandingPhase _lastPhase = LandingPhase.InOrbit;
     private readonly Dictionary<int, (StructureState State, string DefId, StructureStatus Status)> _seen = new();
     private readonly HashSet<int> _lowPowerBases = new();
+    private readonly Dictionary<int, (UnitMode Mode, MiningStatus Status)> _seenUnits = new();
+    private bool _storageFull;
     private bool[] _knownDeposits = System.Array.Empty<bool>();
 
     // Camera: focus point on the ground, distance, and yaw in 90° steps (Q / E), all eased.
@@ -170,6 +172,32 @@ public partial class PlanetDriver : Node3D
             _seen[s.Id] = now;
         }
 
+        var warn = new Color(1f, 0.7f, 0.42f);
+        foreach (var u in Surface.Units.Where(u => u.Owner == LocalPlayer && _data.SurfaceUnit(u.DefId).CanMine))
+        {
+            var now = (u.Mode, u.MiningStatus);
+            if (_seenUnits.TryGetValue(u.Id, out var was) && was != now)
+            {
+                var name = UnitName(u);
+                if (was.Mode != UnitMode.Deployed && u.Mode == UnitMode.Deployed && Surface.Map.DepositResource[u.Tile] >= 0)
+                    _hud.PushEvent($"{name} unfurled: mining {_data.Resources[Surface.Map.DepositResource[u.Tile]].Name}", new Color(0.62f, 0.82f, 1f));
+                if (was.Status != u.MiningStatus)
+                {
+                    if (u.MiningStatus == MiningStatus.StorageFull) _hud.PushEvent($"{name} waiting: storage full — build a Storage Container or Ore Refinery", warn);
+                    if (u.MiningStatus == MiningStatus.NoDestination) _hud.PushEvent($"{name} waiting: nowhere to send ore", warn);
+                    if (u.MiningStatus == MiningStatus.Depleted) _hud.PushEvent($"{name}: deposit used up, folding up", warn);
+                }
+            }
+            _seenUnits[u.Id] = now;
+        }
+
+        if (Me.Phase == LandingPhase.Landed)
+        {
+            var full = Surface.FreeStorage(_sim, LocalPlayer) <= Fix64.Zero;
+            if (full && !_storageFull) _hud.PushEvent("Storage full: mining has stopped — build a Storage Container or refine ore", warn);
+            _storageFull = full;
+        }
+
         foreach (var b in Surface.Bases(LocalPlayer))
         {
             var low = Surface.PowerOf(b.Id).Efficiency < Fix64.One;
@@ -231,7 +259,16 @@ public partial class PlanetDriver : Node3D
                 break;
             case Key.Delete or Key.X:
                 var target = _selectedStructure != 0 ? _selectedStructure : _selectedBase;
-                if (target != 0) _sim.Schedule(_sim.Tick + InputDelayTicks, new CancelBuildingCommand(LocalPlayer, target));
+                var picked = Surface.FindStructure(target);
+                if (picked == null) break;
+                // A finished building (not a core) is salvaged; anything unfinished, or a core's upgrade, is cancelled.
+                Command order = picked.State == StructureState.Complete && !_data.Building(picked.DefId).IsCore
+                    ? new SalvageCommand(LocalPlayer, picked.Id)
+                    : new CancelBuildingCommand(LocalPlayer, picked.Id);
+                _sim.Schedule(_sim.Tick + InputDelayTicks, order);
+                break;
+            case Key.F when landed:
+                ToggleDeploy();
                 break;
             case Key.U when landed:
                 Upgrade();
@@ -260,6 +297,30 @@ public partial class PlanetDriver : Node3D
                 break;
         }
     }
+
+    private IEnumerable<SurfaceUnit> SelectedCrawlers() =>
+        _view.SelectedUnits.OrderBy(id => id).Select(Surface.FindUnit).Where(u => u != null && _data.SurfaceUnit(u.DefId).CanMine).Select(u => u!);
+
+    /// <summary>F: selected crawlers that are folded unfurl where they stand; deployed ones pack up.</summary>
+    private void ToggleDeploy()
+    {
+        var crawlers = SelectedCrawlers().ToList();
+        if (crawlers.Count == 0) return;
+        var pack = crawlers.Where(u => u.Mode is UnitMode.Deployed or UnitMode.Deploying).Select(u => u.Id).ToList();
+        if (pack.Count > 0)
+        {
+            _sim.Schedule(_sim.Tick + InputDelayTicks, new PackUpCommand(LocalPlayer, pack));
+            return;
+        }
+        foreach (var u in crawlers)
+        {
+            var problem = Surface.MineProblem(LocalPlayer, u.Id, u.Tile);
+            if (problem == null) _sim.Schedule(_sim.Tick + InputDelayTicks, new MineCommand(LocalPlayer, u.Id, u.Tile));
+            else _hud.PushEvent($"{UnitName(u)} can't unfurl here: {problem}", new Color(1f, 0.7f, 0.42f));
+        }
+    }
+
+    private string UnitName(SurfaceUnit u) => _data.GroundVehicleNames.GetValueOrDefault(u.DefId, u.DefId);
 
     private void ClearSelection()
     {
@@ -359,7 +420,26 @@ public partial class PlanetDriver : Node3D
             _hud.PushEvent("No route there: mountains or water are in the way", new Color(1f, 0.7f, 0.42f));
             return;
         }
-        _sim.Schedule(_sim.Tick + InputDelayTicks, new MoveUnitsCommand(LocalPlayer, ids, _hoverTile));
+        // Crawlers sent to a surveyed deposit unfurl and mine it when they get there; everything else drives.
+        var drivers = new List<int>();
+        var deposit = Me.Surveyed[_hoverTile] && map.DepositResource[_hoverTile] >= 0;
+        foreach (var id in ids)
+        {
+            var u = Surface.FindUnit(id);
+            if (u == null) continue;
+            if (deposit && _data.SurfaceUnit(u.DefId).CanMine)
+            {
+                var problem = Surface.MineProblem(LocalPlayer, id, _hoverTile);
+                if (problem == null)
+                {
+                    _sim.Schedule(_sim.Tick + InputDelayTicks, new MineCommand(LocalPlayer, id, _hoverTile));
+                    continue;
+                }
+                _hud.PushEvent($"{UnitName(u)} can't mine there: {problem}", new Color(1f, 0.7f, 0.42f));
+            }
+            drivers.Add(id);
+        }
+        if (drivers.Count > 0) _sim.Schedule(_sim.Tick + InputDelayTicks, new MoveUnitsCommand(LocalPlayer, drivers, _hoverTile));
     }
 
     private void UpdateHover()
@@ -407,12 +487,14 @@ public partial class PlanetDriver : Node3D
             use += p.Use.ToFloat();
         }
         var seconds = _sim.Tick / Simulation.TickRate;
-        _hud.ShowTop(_sim, LocalPlayer, $"{PlanetName.ToUpperInvariant()} · CLASS M", use, supply, $"{seconds / 60:00}:{seconds % 60:00}");
+        var stored = (Surface.Stored(_sim, LocalPlayer) + Surface.InFlight(LocalPlayer)).ToFloat();
+        _hud.ShowTop(_sim, LocalPlayer, $"{PlanetName.ToUpperInvariant()} · CLASS M", use, supply, stored,
+            Surface.StorageCapacity(LocalPlayer).ToFloat(), $"{seconds / 60:00}:{seconds % 60:00}");
 
         var landed = Me.Phase == LandingPhase.Landed;
         _hud.ShowHints(Me.Phase == LandingPhase.InOrbit
             ? "Left-click: land  ·  WASD / middle-drag pan  ·  Q/E turn  ·  wheel zoom"
-            : "Left-click select  ·  right-click drive  ·  1–3 build  ·  R rotate  ·  U upgrade  ·  X cancel  ·  Tab next base  ·  Q/E turn  ·  H home");
+            : $"Left-click select  ·  right-click drive / mine  ·  F unfurl / pack up  ·  1–{_data.BuildMenu.Count} build  ·  R rotate  ·  U upgrade  ·  X cancel / salvage  ·  Tab next base  ·  Q/E turn  ·  H home");
 
         _hud.ShowBanner(Me.Phase switch
         {
@@ -429,11 +511,9 @@ public partial class PlanetDriver : Node3D
         var bases = Surface.Bases(LocalPlayer);
         _hud.ShowBaseTabs(bases.Select(b => (b.Id, BaseName(b.Id))).ToList(), _selectedBase);
         if (Me.Phase == LandingPhase.InOrbit) _hud.ShowDetail("Orbital scan", $"{PlanetName} · Class M", "The scan shows terrain and, per region, which resources are likely below.\nHover a tile for details; green tiles are landing sites. Once down, survey rovers find the exact deposits.");
-        else if (Me.Phase == LandingPhase.Descending) _hud.ShowDetail("Colony pod", "Descending", "The pod carries the Colony Hub, two survey rovers and starting supplies.");
+        else if (Me.Phase == LandingPhase.Descending) _hud.ShowDetail("Colony pod", "Descending", "The pod carries the Colony Hub (with a small storage vault), two survey rovers, a mining crawler and starting supplies.");
         else if (_selectedStructure != 0) ShowStructure(Surface.FindStructure(_selectedStructure)!);
-        else if (_view.SelectedUnits.Count > 0)
-            _hud.ShowDetail($"{_view.SelectedUnits.Count} survey rover{(_view.SelectedUnits.Count == 1 ? "" : "s")}", "Selected",
-                "Right-click a tile to drive there. Rovers survey the ground around them as they go: deposits they find appear on the map.\nEsc or click a base tab to go back to the base.");
+        else if (_view.SelectedUnits.Count > 0) ShowUnits();
         else if (_selectedTile >= 0) _hud.ShowDetail(Surface.Map.Terrain(_selectedTile).Name, "Tile", DescribeTile(_selectedTile));
         else if (_selectedBase != 0) ShowBase(Surface.FindStructure(_selectedBase)!);
 
@@ -442,7 +522,7 @@ public partial class PlanetDriver : Node3D
             _data.BuildMenu.Select((id, i) =>
             {
                 var def = _data.Building(id);
-                return new CommandView(id, $"[{i + 1}]", def.Name, Amounts(def.Cost, false), stock.CanAfford(def.Cost), _placing == id);
+                return new CommandView(id, $"[{i + 1}]", def.Name, Amounts(def.Cost, false, shortNames: true), stock.CanAfford(def.Cost), _placing == id);
             }).ToList(), landed);
     }
 
@@ -485,6 +565,64 @@ public partial class PlanetDriver : Node3D
             power.Use.ToFloat(), power.Supply.ToFloat(), buildings, def.BuildQueues, queue));
     }
 
+    private void ShowUnits()
+    {
+        var units = _view.SelectedUnits.OrderBy(id => id).Select(Surface.FindUnit).Where(u => u != null).Select(u => u!).ToList();
+        if (units.Count == 1 && _data.SurfaceUnit(units[0].DefId).CanMine)
+        {
+            ShowCrawler(units[0]);
+            return;
+        }
+        var rovers = units.Count(u => !_data.SurfaceUnit(u.DefId).CanMine);
+        var crawlers = units.Count - rovers;
+        var title = string.Join(" + ", new[]
+        {
+            rovers > 0 ? $"{rovers} survey rover{(rovers == 1 ? "" : "s")}" : "",
+            crawlers > 0 ? $"{crawlers} mining crawler{(crawlers == 1 ? "" : "s")}" : "",
+        }.Where(t => t.Length > 0));
+        _hud.ShowDetail(title, "Selected",
+            "Right-click a tile to drive there. Rovers survey the ground around them as they go: deposits they find appear on the map." +
+            (crawlers > 0 ? "\nRight-click a deposit to send the crawler to mine it." : "") +
+            "\nEsc or click a base tab to go back to the base.");
+    }
+
+    private void ShowCrawler(SurfaceUnit u)
+    {
+        var def = _data.SurfaceUnit(u.DefId);
+        var map = Surface.Map;
+        var depositName = map.DepositResource[u.Tile] >= 0 ? _data.Resources[map.DepositResource[u.Tile]].Name : "";
+        var status = u.Mode switch
+        {
+            UnitMode.Deploying => $"Unfurling {Mathf.RoundToInt(Surface.DeployFraction(u).ToFloat() * 100)}%",
+            UnitMode.Packing => $"Packing up {Mathf.RoundToInt((1f - Surface.DeployFraction(u).ToFloat()) * 100)}%",
+            UnitMode.Deployed => u.MiningStatus switch
+            {
+                MiningStatus.StorageFull => "Waiting: storage full",
+                MiningStatus.NoDestination => "Waiting: no storage to send to",
+                _ => $"Mining {depositName}",
+            },
+            _ when u.Path.Count > 0 => u.DeployOnArrival ? "Driving to a deposit" : "Driving",
+            _ when u.MiningStatus == MiningStatus.Depleted => "Idle: deposit used up",
+            _ => "Folded up, idle",
+        };
+        var sb = new StringBuilder();
+        var load = u.HopperResource >= 0 ? $" {_data.Resources[u.HopperResource].Name}" : "";
+        sb.Append("Hopper ").Append(Hud.Whole(u.Hopper)).Append(" / ").Append(Hud.Whole(def.Hopper)).Append(load);
+        if (u.Mode != UnitMode.Mobile && depositName.Length > 0)
+            sb.Append("  ·  deposit ").Append(Hud.Whole(map.DepositAmount[u.Tile])).Append(" left  ·  +").Append(Hud.Whole(def.ExtractPerMinute)).Append("/min");
+        sb.AppendLine();
+        var depot = Surface.NearestDepot(LocalPlayer, u.Tile);
+        if (depot == null) sb.AppendLine("No storage building to send loads to");
+        else
+        {
+            var tiles = map.Grid.Distance(u.Tile, depot.Tile);
+            var flight = Mathf.Max(1, Mathf.CeilToInt(tiles / def.PodSpeed.ToFloat()));
+            sb.Append("Loads fly to ").Append(_data.Building(depot.DefId).Name).Append(" (").Append(tiles).Append(" tiles, ~").Append(flight).AppendLine(" s by cargo pod)");
+        }
+        sb.Append("Right-click a deposit: drive there and unfurl  ·  F ").Append(u.Mode == UnitMode.Mobile ? "unfurl here" : "pack up");
+        _hud.ShowDetail(UnitName(u), status, sb.ToString());
+    }
+
     private void ShowStructure(SurfaceStructure s)
     {
         var def = _data.Building(s.DefId);
@@ -498,6 +636,8 @@ public partial class PlanetDriver : Node3D
                 StructureStatus.NoUpkeep => "Idle: can't pay upkeep",
                 StructureStatus.Depleted => "Idle: deposit used up",
                 StructureStatus.LowPower => $"Low power: running at {Mathf.RoundToInt(power.Efficiency.ToFloat() * 100)}%",
+                StructureStatus.StorageFull => "Idle: storage full",
+                StructureStatus.NoInput => def.Recipes.Count > 0 && def.Recipes[0].In.Any(a => _data.Resources[a.Resource].Tier == "raw") ? "Idle: no ore in storage" : "Idle: nothing to work on",
                 _ => "Working",
             },
         };
@@ -506,11 +646,15 @@ public partial class PlanetDriver : Node3D
         if (def.PowerSupply > Fix64.Zero) sb.Append("Supplies ").Append(Hud.Whole(def.PowerSupply)).AppendLine(" power");
         if (def.PowerUse > Fix64.Zero) sb.Append("Uses ").Append(Hud.Whole(def.PowerUse)).AppendLine(" power");
         if (def.OutputPerMinute.Count > 0) sb.Append("Makes ").AppendLine(Amounts(def.OutputPerMinute, true));
-        if (def.RequiresDeposit && Surface.Map.DepositResource[s.Tile] >= 0)
+        if (def.Storage > Fix64.Zero) sb.Append("Storage +").AppendLine(Hud.Whole(def.Storage));
+        foreach (var r in def.Recipes) sb.Append("Turns ").Append(Amounts(r.In, false)).Append(" → ").AppendLine(Amounts(r.Out, false));
+        if (def.IsConverter) sb.Append("Up to ").Append(Hud.Whole(def.CyclesPerMinute)).AppendLine(" cycles/min");
+        if (def.IsMine && Surface.Map.DepositResource[s.Tile] >= 0)
             sb.Append("Mining ").Append(_data.Resources[Surface.Map.DepositResource[s.Tile]].Name).Append(" +").Append(Hud.Whole(def.ExtractPerMinute))
               .Append("/min · ").Append(Hud.Whole(Surface.Map.DepositAmount[s.Tile])).AppendLine(" left");
         if (def.UpkeepPerMinute.Count > 0) sb.Append("Upkeep ").AppendLine(Amounts(def.UpkeepPerMinute, true));
         if (s.State != StructureState.Complete) sb.Append("[X] cancel (full refund)");
+        else if (!def.IsCore) sb.Append("[X] salvage: get back ").Append(Amounts(Surface.SalvageValue(s.DefId), false));
         _hud.ShowDetail(def.Name, status, sb.ToString().TrimEnd());
     }
 
@@ -534,7 +678,12 @@ public partial class PlanetDriver : Node3D
         else if (Me.Surveyed[tile])
         {
             var r = map.DepositResource[tile];
-            sb.Append(r < 0 ? "\nNo deposit" : $"\nDeposit: {_data.Resources[r].Name} {Hud.Whole(map.DepositAmount[tile])}");
+            if (r < 0) sb.Append("\nNo deposit");
+            else if (map.IsDepleted(tile))
+                sb.Append($"\nDeposit: {_data.Resources[r].Name} used up").Append(map.DepositReopened[tile] ? " (already reopened once)" : " (a Deep-Core Mine can reopen it)");
+            else sb.Append($"\nDeposit: {_data.Resources[r].Name} {Hud.Whole(map.DepositAmount[tile])}");
+            var crawler = Surface.Units.FirstOrDefault(u => u.Tile == tile && u.Mode != UnitMode.Mobile);
+            if (crawler != null) sb.Append('\n').Append(UnitName(crawler)).Append(" working here");
         }
         else sb.Append("\nNot surveyed: send a rover nearby");
         return sb.ToString();
@@ -549,6 +698,10 @@ public partial class PlanetDriver : Node3D
         if (def.PowerUse > Fix64.Zero) sb.Append("\nUses ").Append(Hud.Whole(def.PowerUse)).Append(" power");
         if (def.PowerSupply > Fix64.Zero) sb.Append("\nSupplies ").Append(Hud.Whole(def.PowerSupply)).Append(" power");
         if (def.RequiresDeposit) sb.Append("\nMines the deposit under it: +").Append(Hud.Whole(def.ExtractPerMinute)).Append("/min");
+        if (def.RequiresDepleted) sb.Append("\nGoes on a used-up deposit: reopens it once at ").Append(Mathf.RoundToInt(def.ReopenShare.ToFloat() * 100)).Append("% of its first size, mines +").Append(Hud.Whole(def.ExtractPerMinute)).Append("/min");
+        if (def.RequiresLevel > 0) sb.Append("\nNeeds a level ").Append(def.RequiresLevel).Append(" base (Colonial Administration)");
+        if (def.Storage > Fix64.Zero) sb.Append("\nStorage +").Append(Hud.Whole(def.Storage));
+        foreach (var r in def.Recipes) sb.Append("\nTurns ").Append(Amounts(r.In, false)).Append(" → ").Append(Amounts(r.Out, false));
         if (def.UpkeepPerMinute.Count > 0) sb.Append("\nUpkeep ").Append(Amounts(def.UpkeepPerMinute, true));
         sb.Append(problem == PlacementProblem.None ? "\nClick to build here" : "\nCan't build here: " + Reason(problem));
         return sb.ToString();
@@ -570,6 +723,8 @@ public partial class PlanetDriver : Node3D
         PlacementProblem.OutOfRange => "too far from your base",
         PlacementProblem.NeedsDeposit => "needs a deposit to mine",
         PlacementProblem.CannotAfford => "not enough resources",
+        PlacementProblem.NeedsDepletedDeposit => "needs a used-up deposit that hasn't been reopened",
+        PlacementProblem.NeedsLevel => "upgrade this base to Colonial Administration first",
         PlacementProblem.NotLanded => "land first",
         PlacementProblem.OffMap => "off the map",
         _ => "not available",

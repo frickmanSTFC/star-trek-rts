@@ -3,6 +3,38 @@ using FinalFrontier.Sim.Math;
 
 namespace FinalFrontier.Sim.Surface;
 
+/// <summary>What a mining crawler is doing with its rig. Other units are always Mobile.</summary>
+public enum UnitMode
+{
+    /// <summary>Folded up: can drive.</summary>
+    Mobile,
+
+    /// <summary>Unfurling on a deposit (ModeTicks counts up to the deploy time).</summary>
+    Deploying,
+
+    /// <summary>Unfurled and mining.</summary>
+    Deployed,
+
+    /// <summary>Folding back up; drives off along its path once done.</summary>
+    Packing,
+}
+
+/// <summary>How a deployed crawler's mining is going.</summary>
+public enum MiningStatus
+{
+    None,
+    Mining,
+
+    /// <summary>The hopper is full and storage has no room for another load.</summary>
+    StorageFull,
+
+    /// <summary>Nowhere to send loads: no storage building or refinery.</summary>
+    NoDestination,
+
+    /// <summary>The deposit ran out; the crawler packed up.</summary>
+    Depleted,
+}
+
 /// <summary>A ground vehicle on the planet surface. Moves tile to tile along a path.</summary>
 public sealed class SurfaceUnit
 {
@@ -21,6 +53,21 @@ public sealed class SurfaceUnit
     public Fix64 Progress { get; internal set; }
 
     internal readonly List<int> _path = new();
+
+    public UnitMode Mode { get; internal set; }
+
+    /// <summary>Ticks of unfurling or packing done.</summary>
+    public int ModeTicks { get; internal set; }
+
+    /// <summary>Unfurl when the path ends (a mine order).</summary>
+    public bool DeployOnArrival { get; internal set; }
+
+    public MiningStatus MiningStatus { get; internal set; }
+
+    /// <summary>Ore in the hopper, of HopperResource (-1 = empty).</summary>
+    public Fix64 Hopper { get; internal set; }
+
+    public int HopperResource { get; internal set; } = -1;
 
     internal SurfaceUnit(int id, int owner, string defId, Fix64 speedPerTick, int surveyRadius, int tile)
     {
@@ -41,6 +88,49 @@ public sealed class SurfaceUnit
         h.Add(Progress);
         h.Add(_path.Count);
         foreach (var t in _path) h.Add(t);
+        h.Add((int)Mode);
+        h.Add(ModeTicks);
+        h.Add(DeployOnArrival);
+        h.Add((int)MiningStatus);
+        h.Add(Hopper);
+        h.Add(HopperResource);
+    }
+}
+
+/// <summary>A load of ore flying from a crawler to a storage building; it lands in stock at ArriveTick.</summary>
+public sealed class CargoPod
+{
+    public int Id { get; }
+    public int Owner { get; }
+    public int Resource { get; }
+    public Fix64 Amount { get; }
+    public int FromTile { get; }
+    public int ToTile { get; }
+    public long LaunchTick { get; }
+    public long ArriveTick { get; }
+
+    internal CargoPod(int id, int owner, int resource, Fix64 amount, int fromTile, int toTile, long launchTick, long arriveTick)
+    {
+        Id = id;
+        Owner = owner;
+        Resource = resource;
+        Amount = amount;
+        FromTile = fromTile;
+        ToTile = toTile;
+        LaunchTick = launchTick;
+        ArriveTick = arriveTick;
+    }
+
+    internal void AddToHash(ref StateHasher h)
+    {
+        h.Add(Id);
+        h.Add(Owner);
+        h.Add(Resource);
+        h.Add(Amount);
+        h.Add(FromTile);
+        h.Add(ToTile);
+        h.Add(LaunchTick);
+        h.Add(ArriveTick);
     }
 }
 
@@ -67,6 +157,12 @@ public enum StructureStatus
 
     /// <summary>Its base uses more power than it supplies, so this power user runs slower.</summary>
     LowPower,
+
+    /// <summary>A mine with nowhere to put what it digs: storage is full.</summary>
+    StorageFull,
+
+    /// <summary>A refinery or foundry with nothing in stock to work on.</summary>
+    NoInput,
 }
 
 /// <summary>A building on a surface tile.</summary>

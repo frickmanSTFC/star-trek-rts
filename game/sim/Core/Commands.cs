@@ -26,3 +26,12 @@ public sealed record CancelBuildingCommand(int Player, int StructureId) : Comman
 
 /// <summary>Start upgrading a finished colony core to its next level (pays that level's cost). Cancel with CancelBuildingCommand.</summary>
 public sealed record UpgradeCommand(int Player, int StructureId) : Command(Player);
+
+/// <summary>Send a mining crawler to a surveyed deposit; it unfurls and starts mining when it gets there (or at once if it's on it).</summary>
+public sealed record MineCommand(int Player, int UnitId, int Tile) : Command(Player);
+
+/// <summary>Fold up deployed mining crawlers so they can drive again.</summary>
+public sealed record PackUpCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
+
+/// <summary>Take down a finished building (not a colony core) for part of its cost back; frees the tile.</summary>
+public sealed record SalvageCommand(int Player, int StructureId) : Command(Player);

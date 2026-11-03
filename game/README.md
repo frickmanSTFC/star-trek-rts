@@ -11,7 +11,7 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `sim/Math/` | `Fix64` (Q32.32 fixed point), `FixVec2`, `DeterministicRng` (xoshiro256**), `StateHasher` |
 | `sim/Data/` | `GameData`: loads factions, hulls, ship classes, resources, planet classes, buildings and maps from `../data/`, and checks them (`Validate()`) |
 | `sim/Core/` | `Simulation` (fixed 15 Hz tick, command queue, economy, state hash), `Player`, `ResourceBag`, `Body`, `Colony`, `Ship`, `Commands`, `MatchSetup` |
-| `sim/Surface/` | Planet surface: `HexGrid`, `SurfaceMap` (seeded terrain and deposit generation, orbital hints, landing sites), `Pathfinder` (A*), `PlanetSurface` (landing, rovers, surveying, placing and constructing buildings, upkeep, mining) |
+| `sim/Surface/` | Planet surface: `HexGrid`, `SurfaceMap` (seeded terrain and deposit generation, orbital hints, landing sites), `Pathfinder` (A*), `PlanetSurface` (landing, rovers, surveying, placing and constructing buildings, upkeep, storage, mining, refining, mining crawlers and cargo pods, salvage) |
 | `sim/Ai/` | `ChaseAi`: placeholder opponent that only issues commands |
 | `tests/` | xUnit tests: math, RNG, data checks, determinism |
 | `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (one continuous terrain mesh over the hex grid, animated water, trees, deposit crystals, scan hints, landing, pod with touchdown dust, buildings, rovers) |
@@ -31,25 +31,33 @@ You start in orbit over Tarsis, a generated Class M world (change `Seed` on the 
 
 1. **Scan:** the floating labels are the orbital scan's deposit hints per region. Hover any tile for its terrain.
 2. **Land:** green tiles are valid landing sites (plains or desert, open land on every side). Left-click to drop the pod.
-3. **Survey:** after touchdown the Colony Hub starts producing and two survey rovers roll out (already selected).
-   Right-click a tile to drive there; deposits appear as glowing crystals as tiles are surveyed.
-4. **Build:** pick a building from the bar at the bottom (or keys **1–3**). A see-through ghost follows the mouse:
+3. **Survey:** after touchdown the Colony Hub starts a small trickle of metal, and two survey rovers and a mining
+   crawler roll out (all selected). Right-click a tile to drive there; deposits appear as glowing crystals as tiles
+   are surveyed.
+4. **Mine:** select the crawler and right-click a surveyed deposit: it drives there, unfurls and starts digging.
+   Each full hopper flies home as a cargo pod to the nearest storage building. **F** unfurls it where it stands or
+   packs it up; a move order packs it up first. Storage (top bar) is small: the hub's vault fills fast, so build a
+   **Storage Container** and an **Ore Refinery** early (the refinery turns 2 ore into 1 metal and frees space).
+5. **Build:** pick a building from the bar at the bottom (or keys **1–7**). A see-through ghost follows the mouse:
    green = OK, red = not (the info panel says why). **R** turns it 60° (Shift+R back), left-click places it
    (Shift+click to keep placing), right-click or Esc stops. The blue area is your build range. Buildings rise as a
    hologram while under construction; one builds at a time and the rest queue. Click your building for its status;
-   **X** cancels an unfinished one for a full refund. Put mines on deposits, and keep energy and deuterium positive.
+   **X** cancels an unfinished one for a full refund, or salvages a finished one for half its cost. Put mines on
+   deposits, and keep power and deuterium positive. A used-up deposit can be reopened once by a Deep-Core Mine
+   (needs Colonial Administration).
 
-5. **Run the base:** the bottom panel shows the selected base: level, upgrade (button or **U**), power used / supply,
+6. **Run the base:** the bottom panel shows the selected base: level, upgrade (button or **U**), power used / supply,
    its buildings and build queue. Keep power supply above use (Fusion Reactors) or everything that uses power slows.
    Upgrade the Colony Hub to Colonial Administration for two build queues and a bigger radius.
 
-The HUD: resources across the top (stock and rate per minute, power used / supply at the right), events top-left,
+The HUD: resources across the top (stock and rate per minute; power used / supply and storage used / space at the right), events top-left,
 a tooltip for whatever is under the mouse, the survey map bottom-left (click or drag to move the camera), the
 selected base or object in the middle, and the build card bottom-right. Fog: bright = in sight now, dim = explored,
 near-black = unexplored (set `FogDarkness` on the root node).
 
-Controls: left-click selects a rover, building, base or tile (Shift adds rovers), **A** selects all rovers, right-click drives,
-**1–3** build, **R** rotate, **U** upgrade, **X** cancel a build or upgrade, **Tab** next base, **Esc** back to the base,
+Controls: left-click selects a vehicle, building, base or tile (Shift adds vehicles), **A** selects all vehicles, right-click
+drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler, **1–7** build, **R** rotate,
+**U** upgrade, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
 WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
 
 Map size is `width` / `height` in `data/surfaces.json` (Class M: 128×88 tiles); the camera adapts to it.

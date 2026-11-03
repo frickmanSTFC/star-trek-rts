@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using FinalFrontier.Sim.Core;
+using FinalFrontier.Sim.Data;
+using FinalFrontier.Sim.Math;
 using FinalFrontier.Sim.Surface;
 using Godot;
 
@@ -8,7 +10,7 @@ namespace FinalFrontier;
 /// <summary>
 /// Draws a planet surface: one continuous terrain mesh over the hex grid (smooth slopes, mountain peaks,
 /// coasts running under animated water), trees, deposit crystals, orbital-scan hints, the hover marker,
-/// the colony pod's descent, structures and survey rovers. Fog of war is a one-texel-per-tile texture
+/// the colony pod's descent, structures, survey rovers, mining crawlers and their cargo pods. Fog of war is a one-texel-per-tile texture
 /// the terrain, water and tree shaders read. Render-only: nothing here changes the sim.
 /// </summary>
 public partial class PlanetView : Node3D
@@ -41,6 +43,9 @@ public partial class PlanetView : Node3D
     private StandardMaterial3D _hoverMaterial = null!;
     private Node3D _pod = null!;
     private readonly Dictionary<int, Node3D> _rovers = new();
+    private readonly Dictionary<int, Label3D> _unitLabels = new();
+    private readonly Dictionary<int, Node3D> _pods = new();
+    private float _time;
 
     private sealed class StructureVisual
     {
@@ -186,7 +191,9 @@ public partial class PlanetView : Node3D
         var delta = (float)GetProcessDeltaTime();
         UpdatePod(me, alpha);
         UpdateStructures(delta);
+        _time += delta;
         UpdateRovers(alpha, delta);
+        UpdatePods(alpha);
     }
 
     public void SetHover(int tile, Color color)
@@ -768,6 +775,8 @@ public partial class PlanetView : Node3D
                     StructureStatus.NoUpkeep => "Idle: can't pay upkeep",
                     StructureStatus.Depleted => "Deposit used up",
                     StructureStatus.LowPower => "Low power",
+                    StructureStatus.StorageFull => "Storage full",
+                    StructureStatus.NoInput => s.DefId == "refinery" ? "Idle: no ore" : "Idle: no input",
                     _ => "",
                 };
             v.Label.Modulate = s.UpgradingTo != null ? new Color(0.6f, 0.85f, 1f) : new Color(1f, 0.55f, 0.35f);
@@ -831,16 +840,29 @@ public partial class PlanetView : Node3D
         foreach (var u in _surface.Units)
         {
             alive.Add(u.Id);
+            var def = _sim.Data.SurfaceUnit(u.DefId);
             if (!_rovers.TryGetValue(u.Id, out var model))
             {
-                model = BuildingModels.Rover(PlanetDriver.PlayerColors[u.Owner % PlanetDriver.PlayerColors.Length]);
+                var colour = PlanetDriver.PlayerColors[u.Owner % PlanetDriver.PlayerColors.Length];
+                model = def.CanMine ? BuildingModels.Crawler(colour) : BuildingModels.Rover(colour);
                 AddChild(model);
                 _rovers[u.Id] = model;
+                var label = new Label3D
+                {
+                    FontSize = 34,
+                    PixelSize = 0.09f,
+                    OutlineSize = 10,
+                    Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                    NoDepthTest = true,
+                    Modulate = new Color(1f, 0.55f, 0.35f),
+                };
+                AddChild(label);
+                _unitLabels[u.Id] = label;
             }
 
             var from = TileCentre(u.Tile);
             var pos = from;
-            var moving = u.Path.Count > 0;
+            var moving = u.Path.Count > 0 && u.Mode == UnitMode.Mobile;
             if (moving)
             {
                 var to = TileCentre(u.Path[0]);
@@ -857,12 +879,116 @@ public partial class PlanetView : Node3D
             model.Position = pos + new Vector3(0, 0.1f, 0);
             if (model.GetNodeOrNull<Node3D>("Selected") is { } ring) ring.Visible = SelectedUnits.Contains(u.Id);
             if (model.GetNodeOrNull<Node3D>("Dish") is { } dish) dish.RotateY(delta * (moving ? 3f : 1f));
+
+            var text = "";
+            if (def.CanMine)
+            {
+                AnimateCrawler(model, u, def, alpha, delta);
+                text = u.MiningStatus switch
+                {
+                    MiningStatus.StorageFull => "Storage full",
+                    MiningStatus.NoDestination => "No storage to send to",
+                    MiningStatus.Depleted when u.Mode != UnitMode.Mobile || u.Path.Count == 0 => "Deposit used up",
+                    _ => "",
+                };
+            }
+            var lbl = _unitLabels[u.Id];
+            lbl.Text = text;
+            lbl.Position = model.Position + new Vector3(0, 9f, 0);
         }
         foreach (var id in new List<int>(_rovers.Keys))
         {
             if (alive.Contains(id)) continue;
             _rovers[id].QueueFree();
             _rovers.Remove(id);
+            _unitLabels[id].QueueFree();
+            _unitLabels.Remove(id);
+        }
+    }
+
+    private static float Stage(float t, float from, float to) => Mathf.SmoothStep(0f, 1f, Mathf.Clamp((t - from) / (to - from), 0f, 1f));
+
+    /// <summary>
+    /// Unfurling, in stages: the legs swing out and brace on the ground, the boom lifts over the front, then the
+    /// drill string lowers into the ground. While digging the bit spins, dust rises, the hull shudders and the
+    /// hopper fills up; it empties when a cargo pod leaves. Packing plays it backwards.
+    /// </summary>
+    private void AnimateCrawler(Node3D model, SurfaceUnit u, SurfaceUnitDef def, float alpha, float delta)
+    {
+        var total = Mathf.Max(1, def.DeploySeconds * Simulation.TickRate);
+        var f = _surface.DeployFraction(u).ToFloat();
+        if (u.Mode == UnitMode.Deploying) f = Mathf.Min(1f, f + alpha / total);
+        if (u.Mode == UnitMode.Packing) f = Mathf.Max(0f, f - alpha / total);
+
+        var legs = Stage(f, 0f, 0.4f);
+        var boom = Stage(f, 0.3f, 0.75f);
+        var drill = Stage(f, 0.7f, 1f);
+        for (var i = 0; i < 4; i++)
+            if (model.GetNodeOrNull<Node3D>($"Leg{i}") is { } leg)
+                leg.RotationDegrees = new Vector3(0, i >= 2 ? 180 : 0, Mathf.Lerp(BuildingModels.FoldedLeg, BuildingModels.DeployedLeg, legs)); // legs 2 and 3 are on the left
+        var angle = BuildingModels.DeployedBoom * boom;
+        if (model.GetNodeOrNull<Node3D>("Boom") is { } arm)
+        {
+            arm.RotationDegrees = new Vector3(angle, 0, 0);
+            if (arm.GetNodeOrNull<Node3D>("Drill") is { } head)
+            {
+                head.RotationDegrees = new Vector3(-angle, 0, 0); // hang straight down
+                var reach = Mathf.Lerp(0.3f, BuildingModels.BoomTipHeight - 1.0f, drill);
+                if (head.GetNodeOrNull<Node3D>("String") is { } str) str.Scale = new Vector3(1, reach, 1);
+                if (head.GetNodeOrNull<Node3D>("Bit") is { } bit)
+                {
+                    bit.Position = new Vector3(0, -reach, 0);
+                    if (u.Mode == UnitMode.Deployed && u.MiningStatus == MiningStatus.Mining) bit.RotateY(delta * 9f);
+                }
+            }
+        }
+
+        var digging = u.Mode == UnitMode.Deployed && u.MiningStatus == MiningStatus.Mining;
+        if (model.GetNodeOrNull<CpuParticles3D>("Dust") is { } dust && dust.Emitting != digging) dust.Emitting = digging;
+        if (model.GetNodeOrNull<Light3D>("WorkLight") is { } lamp) lamp.Visible = f > 0.5f;
+        if (model.GetNodeOrNull<Node3D>("Body") is { } body)
+        {
+            body.Position = digging ? new Vector3(0, Mathf.Sin(_time * 38f) * 0.04f, Mathf.Sin(_time * 23f) * 0.03f) : Vector3.Zero;
+            if (body.GetNodeOrNull<Node3D>("Fill") is { } fill)
+            {
+                var target = def.Hopper > Fix64.Zero ? Mathf.Clamp(u.Hopper.ToFloat() / def.Hopper.ToFloat(), 0.01f, 1f) : 0.01f;
+                // Rise smoothly while filling; drop at once when a load is sent.
+                var y = target < fill.Scale.Y ? target : Mathf.Lerp(fill.Scale.Y, target, Mathf.Min(1f, delta * 6f));
+                fill.Scale = new Vector3(1, y, 1);
+            }
+        }
+    }
+
+    /// <summary>Cargo pods fly a high arc from the crawler to the storage building they're headed for.</summary>
+    private void UpdatePods(float alpha)
+    {
+        var alive = new HashSet<int>();
+        foreach (var p in _surface.Pods)
+        {
+            alive.Add(p.Id);
+            if (!_pods.TryGetValue(p.Id, out var model))
+            {
+                model = BuildingModels.CargoPod(PlanetDriver.PlayerColors[p.Owner % PlanetDriver.PlayerColors.Length]);
+                AddChild(model);
+                _pods[p.Id] = model;
+            }
+            var span = Mathf.Max(1f, p.ArriveTick - p.LaunchTick);
+            var t = Mathf.Clamp((_sim.Tick - p.LaunchTick + alpha) / span, 0f, 1f);
+            var a = TileCentre(p.FromTile) + new Vector3(0, 4f, 0);
+            var b = TileCentre(p.ToTile) + new Vector3(0, 3f, 0);
+            var height = 18f + a.DistanceTo(b) * 0.12f;
+            Vector3 At(float k) => a.Lerp(b, k) + new Vector3(0, Mathf.Sin(k * Mathf.Pi) * height, 0);
+            var here = At(t);
+            var ahead = At(Mathf.Min(1f, t + 0.02f)) - here;
+            model.Position = here;
+            if (ahead.LengthSquared() > 0.0001f)
+                model.Basis = Basis.LookingAt(ahead.Normalized(), Mathf.Abs(ahead.Normalized().Y) > 0.98f ? Vector3.Forward : Vector3.Up);
+        }
+        foreach (var id in new List<int>(_pods.Keys))
+        {
+            if (alive.Contains(id)) continue;
+            _pods[id].QueueFree();
+            _pods.Remove(id);
         }
     }
 }

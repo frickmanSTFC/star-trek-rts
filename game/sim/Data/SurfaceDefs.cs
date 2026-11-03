@@ -39,5 +39,12 @@ public sealed record LandingRules(
     string HubBuilding,
     IReadOnlyList<string> Units);
 
-/// <summary>Surface stats for a ground vehicle (the vehicle itself is in vehicles.json).</summary>
-public sealed record SurfaceUnitDef(string Id, Fix64 Speed, int SurveyRadius);
+/// <summary>
+/// Surface stats for a ground vehicle (the vehicle itself is in vehicles.json). A unit with ExtractPerMinute
+/// is a mining crawler: it unfurls on a deposit in DeploySeconds (and packs up just as long), fills a hopper of
+/// Hopper, and sends each full load home as a cargo pod flying PodSpeed tiles per second.
+/// </summary>
+public sealed record SurfaceUnitDef(string Id, Fix64 Speed, int SurveyRadius, Fix64 ExtractPerMinute, Fix64 Hopper, int DeploySeconds, Fix64 PodSpeed)
+{
+    public bool CanMine => ExtractPerMinute > Fix64.Zero;
+}

@@ -63,7 +63,7 @@ public class SurfaceGenerationTests
 
         // Enough places to land, and the basics are on the map.
         Assert.True(tiles.Count(map.IsLandingSite) >= 50, "too few landing sites");
-        foreach (var basic in new[] { "duranium", "tritanium", "deuterium" })
+        foreach (var basic in new[] { "duranium_ore", "tritanium_ore", "deuterium" })
             Assert.Contains(tiles, t => map.DepositResource[t] == data.Resource(basic).Index);
 
         // Deposits sit on terrain their rule allows.

@@ -13,4 +13,10 @@ public enum PlacementProblem
     OutOfRange,
     NeedsDeposit,
     CannotAfford,
+
+    /// <summary>Needs a used-up deposit that hasn't been reopened before.</summary>
+    NeedsDepletedDeposit,
+
+    /// <summary>The base it would join isn't a high enough level.</summary>
+    NeedsLevel,
 }

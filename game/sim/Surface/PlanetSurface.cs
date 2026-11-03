@@ -16,8 +16,9 @@ public readonly record struct BasePower(Fix64 Supply, Fix64 Use)
 /// <summary>
 /// Play on one planet's surface: scan from orbit, land the colony pod, drive survey rovers, then place
 /// and run buildings. A base is a colony core (the hub and its upgrades) plus the buildings in its radius;
-/// each base has its own build queues and power budget. Owned by the Simulation, which routes surface
-/// commands here and steps it every tick.
+/// each base has its own build queues and power budget. Stockpiled materials share one storage capacity per
+/// player; mines and mining crawlers stop when it is full. Crawlers mine anywhere and send their loads home
+/// as cargo pods. Owned by the Simulation, which routes surface commands here and steps it every tick.
 /// </summary>
 public sealed class PlanetSurface
 {
@@ -26,13 +27,18 @@ public sealed class PlanetSurface
     public IReadOnlyList<SurfaceUnit> Units => _units;
     public IReadOnlyList<SurfaceStructure> Structures => _structures;
 
+    /// <summary>Cargo pods in flight, oldest first.</summary>
+    public IReadOnlyList<CargoPod> Pods => _pods;
+
     private readonly GameData _data;
     private readonly List<SurfacePlayer> _players = new();
     private readonly List<SurfaceUnit> _units = new();
     private readonly List<SurfaceStructure> _structures = new();
+    private readonly List<CargoPod> _pods = new();
     private readonly int[] _structureAt; // structure id per tile, 0 = none
     private int _nextUnitId = 1;
     private int _nextStructureId = 1;
+    private int _nextPodId = 1;
 
     internal PlanetSurface(GameData data, SurfaceMap map)
     {
@@ -80,12 +86,144 @@ public sealed class PlanetSurface
         foreach (var s in _structures)
         {
             if (s.BaseId != baseId || s.State != StructureState.Complete) continue;
-            if (s.Status is StructureStatus.NoUpkeep or StructureStatus.Depleted) continue;
+            if (!DrawsPower(s.Status)) continue;
             var def = _data.Building(s.DefId);
             supply += def.PowerSupply;
             use += def.PowerUse;
         }
         return new BasePower(supply, use);
+    }
+
+    /// <summary>Idle buildings (no upkeep, used-up deposit, full storage, no input) neither supply nor use power.</summary>
+    private static bool DrawsPower(StructureStatus status) => status is StructureStatus.Working or StructureStatus.LowPower;
+
+    // ---------------------------------------------------------------- storage
+
+    /// <summary>How much the player can stockpile: the storage of their finished buildings.</summary>
+    public Fix64 StorageCapacity(int player)
+    {
+        var cap = Fix64.Zero;
+        foreach (var s in _structures)
+            if (s.Owner == player && s.State == StructureState.Complete) cap += _data.Building(s.DefId).Storage;
+        return cap;
+    }
+
+    /// <summary>How much of the player's stock takes storage space.</summary>
+    public Fix64 Stored(Simulation sim, int player)
+    {
+        var stock = sim.Players[player].Stock;
+        var total = Fix64.Zero;
+        for (var r = 0; r < stock.Count; r++)
+            if (_data.IsStored(r)) total += stock[r];
+        return total;
+    }
+
+    /// <summary>Ore on its way home in cargo pods (space is kept for it).</summary>
+    public Fix64 InFlight(int player)
+    {
+        var total = Fix64.Zero;
+        foreach (var p in _pods)
+            if (p.Owner == player && _data.IsStored(p.Resource)) total += p.Amount;
+        return total;
+    }
+
+    /// <summary>Room left for new materials (never negative).</summary>
+    public Fix64 FreeStorage(Simulation sim, int player) =>
+        Fix64.Max(Fix64.Zero, StorageCapacity(player) - Stored(sim, player) - InFlight(player));
+
+    /// <summary>Adds what fits (resources that take no space always fit); returns how much went in.</summary>
+    private Fix64 Store(Simulation sim, int player, int resource, Fix64 amount)
+    {
+        if (_data.IsStored(resource)) amount = Fix64.Min(amount, FreeStorage(sim, player));
+        if (amount <= Fix64.Zero) return Fix64.Zero;
+        sim.Players[player].Stock.Add(resource, amount);
+        return amount;
+    }
+
+    /// <summary>The player's nearest finished building with storage to a tile (where a crawler's pods go), or null.</summary>
+    public SurfaceStructure? NearestDepot(int player, int tile)
+    {
+        SurfaceStructure? best = null;
+        var bestDist = int.MaxValue;
+        foreach (var s in _structures)
+        {
+            if (s.Owner != player || s.State != StructureState.Complete || _data.Building(s.DefId).Storage <= Fix64.Zero) continue;
+            var d = Map.Grid.Distance(s.Tile, tile);
+            if (d < bestDist)
+            {
+                best = s;
+                bestDist = d;
+            }
+        }
+        return best;
+    }
+
+    // ---------------------------------------------------------------- mining crawlers
+
+    /// <summary>Why this unit can't be sent to mine this tile (null = it can).</summary>
+    public string? MineProblem(int player, int unitId, int tile)
+    {
+        var unit = FindUnit(unitId);
+        if (unit == null || unit.Owner != player) return "not yours";
+        if (!_data.SurfaceUnit(unit.DefId).CanMine) return "can't mine";
+        if (tile < 0 || tile >= Map.Grid.Count) return "off the map";
+        if (!_players[player].Surveyed[tile]) return "not surveyed yet";
+        return DeployProblem(unit, tile);
+    }
+
+    private string? DeployProblem(SurfaceUnit unit, int tile)
+    {
+        if (Map.DepositResource[tile] < 0) return "no deposit there";
+        if (Map.DepositAmount[tile] <= Fix64.Zero) return "that deposit is used up";
+        if (_structureAt[tile] != 0) return "a building is on it";
+        foreach (var u in _units)
+            if (u != unit && u.Tile == tile && u.Mode != UnitMode.Mobile) return "another crawler is mining it";
+        return null;
+    }
+
+    private int DeployTicks(SurfaceUnit unit) => _data.SurfaceUnit(unit.DefId).DeploySeconds * Simulation.TickRate;
+
+    /// <summary>Fold up a deployed or unfurling crawler (packing takes as long as it had unfurled).</summary>
+    private void StartPacking(SurfaceUnit unit)
+    {
+        if (unit.Mode == UnitMode.Deploying)
+        {
+            unit.ModeTicks = DeployTicks(unit) - unit.ModeTicks;
+            unit.Mode = UnitMode.Packing;
+        }
+        else if (unit.Mode == UnitMode.Deployed)
+        {
+            unit.ModeTicks = 0;
+            unit.Mode = UnitMode.Packing;
+        }
+    }
+
+    private void StartDeploying(SurfaceUnit unit)
+    {
+        if (unit.Mode == UnitMode.Packing)
+        {
+            unit.ModeTicks = DeployTicks(unit) - unit.ModeTicks;
+            unit.Mode = UnitMode.Deploying;
+        }
+        else if (unit.Mode == UnitMode.Mobile)
+        {
+            unit.ModeTicks = 0;
+            unit.Mode = UnitMode.Deploying;
+        }
+        unit.MiningStatus = MiningStatus.None;
+    }
+
+    /// <summary>Fraction of the way unfurled, 0 (folded) to 1 (deployed), for drawing.</summary>
+    public Fix64 DeployFraction(SurfaceUnit unit)
+    {
+        var total = DeployTicks(unit);
+        return unit.Mode switch
+        {
+            UnitMode.Deployed => Fix64.One,
+            UnitMode.Deploying when total > 0 => Fix64.Ratio(unit.ModeTicks, total),
+            UnitMode.Packing when total > 0 => Fix64.One - Fix64.Ratio(unit.ModeTicks, total),
+            _ => Fix64.Zero,
+        };
     }
 
     /// <summary>Whether the player could send their pod to this tile right now.</summary>
@@ -111,9 +249,14 @@ public sealed class PlanetSurface
         if (!_players[player].Surveyed[tile]) return PlacementProblem.NotSurveyed;
         if (!Map.Terrain(tile).Buildable) return PlacementProblem.TerrainUnbuildable;
         if (_structureAt[tile] != 0) return PlacementProblem.Occupied;
-        if (BaseFor(player, tile) == 0) return PlacementProblem.OutOfRange;
+        foreach (var u in _units)
+            if (u.Tile == tile && u.Mode != UnitMode.Mobile) return PlacementProblem.Occupied;
+        var baseId = BaseFor(player, tile);
+        if (baseId == 0) return PlacementProblem.OutOfRange;
         var def = _data.Building(buildingId);
+        if (def.RequiresLevel > 0 && _data.Building(FindStructure(baseId)!.DefId).Level < def.RequiresLevel) return PlacementProblem.NeedsLevel;
         if (def.RequiresDeposit && (Map.DepositResource[tile] < 0 || Map.DepositAmount[tile] <= Fix64.Zero)) return PlacementProblem.NeedsDeposit;
+        if (def.RequiresDepleted && (!Map.IsDepleted(tile) || Map.DepositReopened[tile])) return PlacementProblem.NeedsDepletedDeposit;
         if (!sim.Players[player].Stock.CanAfford(def.Cost)) return PlacementProblem.CannotAfford;
         return PlacementProblem.None;
     }
@@ -181,10 +324,15 @@ public sealed class PlanetSurface
 
     /// <summary>
     /// What the player's finished buildings make and use per minute right now (upkeep as negatives),
-    /// with power users scaled by their base's power efficiency. Mines count extraction while their deposit lasts.
+    /// with power users scaled by their base's power efficiency. Mines count extraction while their deposit
+    /// lasts, converters their inputs (negative) and outputs, and mining crawlers what they dig.
     /// </summary>
-    internal void AddIncome(int player, ResourceBag income)
+    internal void AddIncome(Simulation sim, int player, ResourceBag income)
     {
+        var stock = sim.Players[player].Stock;
+        foreach (var u in _units)
+            if (u.Owner == player && u.Mode == UnitMode.Deployed && u.MiningStatus == MiningStatus.Mining && Map.DepositResource[u.Tile] >= 0)
+                income.Add(Map.DepositResource[u.Tile], _data.SurfaceUnit(u.DefId).ExtractPerMinute);
         var efficiency = new Dictionary<int, Fix64>();
         foreach (var s in _structures)
         {
@@ -195,9 +343,26 @@ public sealed class PlanetSurface
             var speed = def.PowerUse > Fix64.Zero ? eff : Fix64.One;
             foreach (var o in def.OutputPerMinute) income.Add(o.Resource, o.Amount * speed);
             foreach (var u in def.UpkeepPerMinute) income.Add(u.Resource, -u.Amount);
-            if (def.RequiresDeposit && Map.DepositResource[s.Tile] >= 0)
+            if (def.IsMine && Map.DepositResource[s.Tile] >= 0)
                 income.Add(Map.DepositResource[s.Tile], def.ExtractPerMinute * speed);
+            if (def.IsConverter)
+            {
+                var runnable = def.Recipes.Where(r => HasInput(stock, r)).ToList();
+                foreach (var r in runnable)
+                {
+                    var cycles = def.CyclesPerMinute * speed / Fix64.FromInt(runnable.Count);
+                    foreach (var a in r.In) income.Add(a.Resource, -a.Amount * cycles);
+                    foreach (var a in r.Out) income.Add(a.Resource, a.Amount * cycles);
+                }
+            }
         }
+    }
+
+    private static bool HasInput(ResourceBag stock, Recipe r)
+    {
+        foreach (var a in r.In)
+            if (stock[a.Resource] <= Fix64.Zero) return false;
+        return true;
     }
 
     // ---------------------------------------------------------------- commands
@@ -224,11 +389,57 @@ public sealed class PlanetSurface
                     if (unit == null || unit.Owner != move.Player) continue;
                     var path = Pathfinder.Find(Map, unit.Tile, move.Tile);
                     if (path == null) continue;
-                    unit._path.Clear();
-                    unit._path.AddRange(path);
-                    unit.Progress = Fix64.Zero;
+                    SetPath(unit, path);
+                    unit.DeployOnArrival = false;
+                    StartPacking(unit); // a deployed crawler folds up, then drives off
+                    unit.MiningStatus = MiningStatus.None;
                 }
                 return true;
+
+            case MineCommand mine:
+            {
+                if (MineProblem(mine.Player, mine.UnitId, mine.Tile) != null) return true;
+                var unit = FindUnit(mine.UnitId)!;
+                if (unit.Tile == mine.Tile)
+                {
+                    unit._path.Clear();
+                    unit.Progress = Fix64.Zero;
+                    unit.DeployOnArrival = false;
+                    StartDeploying(unit);
+                    return true;
+                }
+                var path = Pathfinder.Find(Map, unit.Tile, mine.Tile);
+                if (path == null) return true;
+                SetPath(unit, path);
+                StartPacking(unit);
+                unit.DeployOnArrival = true;
+                unit.MiningStatus = MiningStatus.None;
+                return true;
+            }
+
+            case PackUpCommand pack:
+                foreach (var id in pack.UnitIds)
+                {
+                    var unit = FindUnit(id);
+                    if (unit == null || unit.Owner != pack.Player) continue;
+                    StartPacking(unit);
+                    unit.DeployOnArrival = false;
+                    unit.MiningStatus = MiningStatus.None;
+                }
+                return true;
+
+            case SalvageCommand salvage:
+            {
+                var salvaged = FindStructure(salvage.StructureId);
+                if (salvaged == null || salvaged.Owner != salvage.Player || salvaged.State != StructureState.Complete) return true;
+                var def = _data.Building(salvaged.DefId);
+                if (def.IsCore) return true;
+                var bag = sim.Players[salvaged.Owner].Stock;
+                foreach (var c in def.Cost) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
+                _structures.Remove(salvaged);
+                _structureAt[salvaged.Tile] = 0;
+                return true;
+            }
 
             case PlaceBuildingCommand place:
                 if (CheckPlacement(sim, place.Player, place.BuildingId, place.Tile) != PlacementProblem.None) return true;
@@ -269,6 +480,19 @@ public sealed class PlanetSurface
         }
     }
 
+    private static void SetPath(SurfaceUnit unit, List<int> path)
+    {
+        // Keep the effort already spent toward the next tile when that tile stays the same.
+        var keep = unit._path.Count > 0 && path.Count > 0 && unit._path[0] == path[0];
+        unit._path.Clear();
+        unit._path.AddRange(path);
+        if (!keep) unit.Progress = Fix64.Zero;
+    }
+
+    /// <summary>Salvage value of a finished building (its cost × salvage_refund).</summary>
+    public IReadOnlyList<ResourceAmount> SalvageValue(string buildingId) =>
+        _data.Building(buildingId).Cost.Select(c => new ResourceAmount(c.Resource, c.Amount * _data.SalvageRefund)).ToList();
+
     // ---------------------------------------------------------------- ticking
 
     internal void Step(Simulation sim)
@@ -281,7 +505,9 @@ public sealed class PlanetSurface
 
         Construction();
         Upgrades();
+        LandPods(sim);
         Economy(sim);
+        Crawlers(sim);
         MoveUnits();
     }
 
@@ -311,6 +537,12 @@ public sealed class PlanetSurface
         {
             s.State = StructureState.Complete;
             s.Status = StructureStatus.Working;
+            var def = _data.Building(s.DefId);
+            if (def.RequiresDepleted && Map.IsDepleted(s.Tile) && !Map.DepositReopened[s.Tile])
+            {
+                Map.DepositAmount[s.Tile] = Map.DepositStart[s.Tile] * def.ReopenShare;
+                Map.DepositReopened[s.Tile] = true;
+            }
         }
     }
 
@@ -329,9 +561,11 @@ public sealed class PlanetSurface
     }
 
     /// <summary>
-    /// Finished buildings, in id order: (1) pay upkeep or idle, (2) work out each base's power budget from
-    /// the buildings still running, (3) produce, with power users slowed by their base's efficiency;
-    /// mines move ore from the deposit under them into the owner's stock until it runs out.
+    /// Finished buildings, in list order: (1) idle if their deposit is used up, storage is full (mines) or
+    /// there's nothing to work on (converters), otherwise pay upkeep or idle; (2) work out each base's power
+    /// budget from the buildings still running; (3) produce, with power users slowed by their base's efficiency.
+    /// Output that takes storage space only goes in while there is room; mines dig only what fits.
+    /// Converters spend their inputs first, so (with recipes that shrink) their output always fits.
     /// </summary>
     private void Economy(Simulation sim)
     {
@@ -341,9 +575,19 @@ public sealed class PlanetSurface
             var def = _data.Building(s.DefId);
             var stock = sim.Players[s.Owner].Stock;
 
-            if (def.RequiresDeposit && (Map.DepositResource[s.Tile] < 0 || Map.DepositAmount[s.Tile] <= Fix64.Zero))
+            if (def.IsMine && (Map.DepositResource[s.Tile] < 0 || Map.DepositAmount[s.Tile] <= Fix64.Zero))
             {
                 s.Status = StructureStatus.Depleted;
+                continue;
+            }
+            if (def.IsMine && _data.IsStored(Map.DepositResource[s.Tile]) && FreeStorage(sim, s.Owner) <= Fix64.Zero)
+            {
+                s.Status = StructureStatus.StorageFull;
+                continue;
+            }
+            if (def.IsConverter && !def.Recipes.Any(r => HasInput(stock, r)))
+            {
+                s.Status = StructureStatus.NoInput;
                 continue;
             }
 
@@ -369,21 +613,121 @@ public sealed class PlanetSurface
             if (speed < Fix64.One) s.Status = StructureStatus.LowPower;
 
             var stock = sim.Players[s.Owner].Stock;
-            foreach (var o in def.OutputPerMinute) stock.Add(o.Resource, o.Amount * speed / Simulation.TicksPerMinute);
-            if (def.RequiresDeposit)
+            foreach (var o in def.OutputPerMinute) Store(sim, s.Owner, o.Resource, o.Amount * speed / Simulation.TicksPerMinute);
+            if (def.IsMine)
             {
                 var take = Fix64.Min(def.ExtractPerMinute * speed / Simulation.TicksPerMinute, Map.DepositAmount[s.Tile]);
-                Map.DepositAmount[s.Tile] -= take;
-                stock.Add(Map.DepositResource[s.Tile], take);
+                Map.DepositAmount[s.Tile] -= Store(sim, s.Owner, Map.DepositResource[s.Tile], take);
+            }
+            if (def.IsConverter)
+            {
+                var runnable = def.Recipes.Where(r => HasInput(stock, r)).ToList();
+                var share = def.CyclesPerMinute * speed / Simulation.TicksPerMinute / Fix64.FromInt(runnable.Count);
+                foreach (var r in runnable)
+                {
+                    var cycles = share;
+                    foreach (var a in r.In) cycles = Fix64.Min(cycles, stock[a.Resource] / a.Amount);
+                    if (cycles <= Fix64.Zero) continue;
+                    foreach (var a in r.In) stock.Add(a.Resource, -a.Amount * cycles);
+                    foreach (var a in r.Out) stock.Add(a.Resource, a.Amount * cycles);
+                }
             }
         }
+    }
+
+    /// <summary>Pods that have arrived drop their load into stock (space was kept for it at launch).</summary>
+    private void LandPods(Simulation sim)
+    {
+        for (var i = 0; i < _pods.Count;)
+        {
+            var p = _pods[i];
+            if (p.ArriveTick > sim.Tick)
+            {
+                i++;
+                continue;
+            }
+            _pods.RemoveAt(i);
+            sim.Players[p.Owner].Stock.Add(p.Resource, p.Amount);
+        }
+    }
+
+    /// <summary>
+    /// Mining crawlers: unfurl and pack up over their deploy time; when deployed, dig into the hopper and
+    /// send each full load (or the last of a used-up deposit) to the nearest storage building as a cargo pod,
+    /// waiting while storage has no room. When the deposit runs out they fold up.
+    /// </summary>
+    private void Crawlers(Simulation sim)
+    {
+        foreach (var unit in _units)
+        {
+            var def = _data.SurfaceUnit(unit.DefId);
+            switch (unit.Mode)
+            {
+                case UnitMode.Deploying:
+                    if (++unit.ModeTicks < DeployTicks(unit)) break;
+                    unit.Mode = UnitMode.Deployed;
+                    unit.ModeTicks = 0;
+                    unit.MiningStatus = MiningStatus.Mining;
+                    break;
+                case UnitMode.Packing:
+                    if (++unit.ModeTicks < DeployTicks(unit)) break;
+                    unit.Mode = UnitMode.Mobile;
+                    unit.ModeTicks = 0;
+                    break;
+                case UnitMode.Deployed:
+                    Dig(sim, unit, def);
+                    break;
+            }
+        }
+    }
+
+    private void Dig(Simulation sim, SurfaceUnit unit, SurfaceUnitDef def)
+    {
+        var tile = unit.Tile;
+        var depleted = Map.DepositResource[tile] < 0 || Map.DepositAmount[tile] <= Fix64.Zero;
+        if (unit.Hopper > Fix64.Zero && (unit.Hopper >= def.Hopper || depleted || unit.HopperResource != Map.DepositResource[tile]))
+            if (!Launch(sim, unit, def)) return;
+        if (depleted)
+        {
+            StartPacking(unit);
+            unit.MiningStatus = MiningStatus.Depleted;
+            return;
+        }
+        var take = Fix64.Min(def.ExtractPerMinute / Simulation.TicksPerMinute, Fix64.Min(Map.DepositAmount[tile], def.Hopper - unit.Hopper));
+        Map.DepositAmount[tile] -= take;
+        unit.Hopper += take;
+        unit.HopperResource = Map.DepositResource[tile];
+        unit.MiningStatus = MiningStatus.Mining;
+    }
+
+    /// <summary>Sends the hopper's load to the nearest storage building; false (and a status) if it can't go yet.</summary>
+    private bool Launch(Simulation sim, SurfaceUnit unit, SurfaceUnitDef def)
+    {
+        var depot = NearestDepot(unit.Owner, unit.Tile);
+        if (depot == null)
+        {
+            unit.MiningStatus = MiningStatus.NoDestination;
+            return false;
+        }
+        if (_data.IsStored(unit.HopperResource) && FreeStorage(sim, unit.Owner) < unit.Hopper)
+        {
+            unit.MiningStatus = MiningStatus.StorageFull;
+            return false;
+        }
+        var distance = Map.Grid.Distance(unit.Tile, depot.Tile);
+        var flight = System.Math.Max(Simulation.TickRate, (Fix64.FromInt(distance * Simulation.TickRate) / def.PodSpeed).FloorToInt() + 1);
+        _pods.Add(new CargoPod(_nextPodId++, unit.Owner, unit.HopperResource, unit.Hopper, unit.Tile, depot.Tile, sim.Tick, sim.Tick + flight));
+        unit.Hopper = Fix64.Zero;
+        unit.HopperResource = -1;
+        unit.MiningStatus = MiningStatus.Mining;
+        return true;
     }
 
     private void MoveUnits()
     {
         foreach (var unit in _units)
         {
-            if (unit._path.Count == 0) continue;
+            if (unit._path.Count == 0 || unit.Mode != UnitMode.Mobile) continue;
             unit.Progress += unit.SpeedPerTick;
             var next = unit._path[0];
             var cost = Fix64.FromInt(Map.Terrain(next).MoveCost);
@@ -391,8 +735,12 @@ public sealed class PlanetSurface
             unit.Progress -= cost;
             unit.Tile = next;
             unit._path.RemoveAt(0);
-            if (unit._path.Count == 0) unit.Progress = Fix64.Zero;
             Reveal(unit.Owner, unit.Tile, unit.SurveyRadius);
+            if (unit._path.Count > 0) continue;
+            unit.Progress = Fix64.Zero;
+            if (!unit.DeployOnArrival) continue;
+            unit.DeployOnArrival = false;
+            if (DeployProblem(unit, unit.Tile) == null) StartDeploying(unit);
         }
     }
 
@@ -437,5 +785,7 @@ public sealed class PlanetSurface
         foreach (var u in _units) u.AddToHash(ref h);
         h.Add(_structures.Count);
         foreach (var s in _structures) s.AddToHash(ref h);
+        h.Add(_pods.Count);
+        foreach (var p in _pods) p.AddToHash(ref h);
     }
 }

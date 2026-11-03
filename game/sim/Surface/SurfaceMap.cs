@@ -36,6 +36,15 @@ public sealed class SurfaceMap
 
     public Fix64[] DepositAmount { get; }
 
+    /// <summary>How big each deposit was when the planet formed (what a deep-core mine reopens a share of).</summary>
+    public Fix64[] DepositStart { get; }
+
+    /// <summary>Deposits a deep-core mine has already reopened (each can be reopened once).</summary>
+    public bool[] DepositReopened { get; }
+
+    /// <summary>A deposit that was there and is now used up.</summary>
+    public bool IsDepleted(int tile) => DepositResource[tile] >= 0 && DepositAmount[tile] <= Fix64.Zero;
+
     /// <summary>Cheapest move_cost of any passable terrain (for the pathfinding heuristic).</summary>
     public int MinMoveCost { get; }
 
@@ -50,6 +59,8 @@ public sealed class SurfaceMap
         Elevation = new Fix64[Grid.Count];
         DepositResource = Enumerable.Repeat(-1, Grid.Count).ToArray();
         DepositAmount = new Fix64[Grid.Count];
+        DepositStart = new Fix64[Grid.Count];
+        DepositReopened = new bool[Grid.Count];
         MinMoveCost = data.Terrain.Where(t => t.Passable).Select(t => t.MoveCost).DefaultIfEmpty(1).Min();
     }
 
@@ -158,6 +169,7 @@ public sealed class SurfaceMap
                 if (rng.NextFix() >= rule.Chance) continue;
                 map.DepositResource[t] = data.Resource(rule.ResourceId).Index;
                 map.DepositAmount[t] = Fix64.FromInt(rng.NextInt(rule.Min, rule.Max + 1));
+                map.DepositStart[t] = map.DepositAmount[t];
                 break;
             }
         }
@@ -186,6 +198,7 @@ public sealed class SurfaceMap
             h.Add(TerrainOf[t]);
             h.Add(DepositResource[t]);
             h.Add(DepositAmount[t]);
+            h.Add(DepositReopened[t]);
         }
     }
 }

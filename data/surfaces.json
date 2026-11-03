@@ -1,5 +1,5 @@
 {
-  "_notes": "Planet surfaces for the game prototype (game/): a hex grid on 3D terrain. The game starts in orbit: the scan shows terrain and rough deposit hints per region; the player picks a landing site, the colony pod descends, and survey rovers reveal exact deposits as they drive. terrain: move_cost = effort to enter a tile (unit speed is effort per second); height = visual relief level. planets: per planet class, how a surface is generated. Elevation and moisture come from deterministic noise (feature_size = tiles per noise cell) and are ranked, so thresholds are shares of the map: elevation ocean 0.30 = the lowest 30% of tiles are ocean, below shallows = shallows, from hills up = hills, from mountains up = mountains, the rest is lowland; within lowland, moisture picks the terrain; polar_rows at top and bottom become polar_terrain. deposits: rolled per tile on matching terrain (coastal = must touch water); amounts are ranges. hints: region totals below likely = traces, below rich = likely, otherwise rich. landing: where a colony pod may set down (tile terrain, and every neighbour must be passable land), how long it falls, what it brings (start_stock, the hub building, units) and how far the landing reveals. build_menu: buildings the player can place on the surface (their costs and stats are in buildings.json: build_seconds, output_per_min, upkeep_per_min, extract_per_min, requires_deposit; the hub's build_radius and build_queues limit where and how many build at once). Tiles must be surveyed and buildable to build on. Power: power_resource (energy) is not stockpiled on a surface; each base (a colony core and the buildings in its radius) has a power budget: power_supply of its working buildings vs power_use; when use exceeds supply, every power user at that base runs at supply/use speed. Levels: a core upgrades along upgrades_to (Colony Hub 1 → Colonial Administration 2 → Planetary Capital 3), paying the next level's cost and taking its build_seconds; it keeps working meanwhile. hud_resources: the stockpiled resources shown in the top bar, in order. All numbers are placeholders.",
+  "_notes": "Planet surfaces for the game prototype (game/): a hex grid on 3D terrain. The game starts in orbit: the scan shows terrain and rough deposit hints per region; the player picks a landing site, the colony pod descends, and survey rovers reveal exact deposits as they drive. terrain: move_cost = effort to enter a tile (unit speed is effort per second); height = visual relief level. planets: per planet class, how a surface is generated. Elevation and moisture come from deterministic noise (feature_size = tiles per noise cell) and are ranked, so thresholds are shares of the map: elevation ocean 0.30 = the lowest 30% of tiles are ocean, below shallows = shallows, from hills up = hills, from mountains up = mountains, the rest is lowland; within lowland, moisture picks the terrain; polar_rows at top and bottom become polar_terrain. deposits: rolled per tile on matching terrain (coastal = must touch water); amounts are ranges. hints: region totals below likely = traces, below rich = likely, otherwise rich. landing: where a colony pod may set down (tile terrain, and every neighbour must be passable land), how long it falls, what it brings (start_stock, the hub building, units) and how far the landing reveals. build_menu: buildings the player can place on the surface (their costs and stats are in buildings.json: build_seconds, output_per_min, upkeep_per_min, extract_per_min, requires_deposit; the hub's build_radius and build_queues limit where and how many build at once). Tiles must be surveyed and buildable to build on. Power: power_resource (energy) is not stockpiled on a surface; each base (a colony core and the buildings in its radius) has a power budget: power_supply of its working buildings vs power_use; when use exceeds supply, every power user at that base runs at supply/use speed. Levels: a core upgrades along upgrades_to (Colony Hub 1 → Colonial Administration 2 → Planetary Capital 3), paying the next level's cost and taking its build_seconds; it keeps working meanwhile. Storage: stockpiled materials (everything except storage_exempt) share one capacity per player, the sum of storage on their finished buildings (the hub's vault, Storage Containers, refineries); mining stops when it is full. Hills and plains hold raw ore, which an Ore Refinery turns into metal. salvage_refund: share of the cost returned when a finished building is salvaged. units: speed = move effort per second; a unit with extract_per_min is a mining crawler: it unfurls on a deposit (deploy_seconds), fills a hopper and sends each full load home as a cargo pod that flies pod_speed tiles per second to the nearest storage building or refinery. hud_resources: the stockpiled resources shown in the top bar, in order. All numbers are placeholders.",
   "terrain": [
     { "id": "ocean",     "name": "Ocean",     "color": "#1d4e89", "passable": false, "buildable": false, "move_cost": 0, "height": 0 },
     { "id": "shallows",  "name": "Shallows",  "color": "#3a7fb8", "passable": false, "buildable": false, "move_cost": 0, "height": 0 },
@@ -22,8 +22,8 @@
       "polar_terrain": "ice",
       "regions": [8, 5],
       "deposits": [
-        { "resource": "duranium",  "terrain": ["hills"],                    "chance": 0.22, "amount": [300, 900] },
-        { "resource": "tritanium", "terrain": ["hills", "plains"],          "chance": 0.07, "amount": [200, 600] },
+        { "resource": "duranium_ore",  "terrain": ["hills"],                "chance": 0.22, "amount": [600, 1800] },
+        { "resource": "tritanium_ore", "terrain": ["hills", "plains"],      "chance": 0.07, "amount": [400, 1200] },
         { "resource": "deuterium", "terrain": ["plains", "desert"], "coastal": true, "chance": 0.12, "amount": [200, 500] },
         { "resource": "dilithium", "terrain": ["desert"],                   "chance": 0.06, "amount": [80, 240] },
         { "resource": "topaline",  "terrain": ["hills"],                    "chance": 0.03, "amount": [50, 150] },
@@ -38,12 +38,15 @@
     "start_stock": { "tritanium": 300, "duranium": 500, "deuterium": 150, "dilithium": 50, "latinum": 100, "crew": 150 },
     "reveal_radius": 3,
     "hub": "colony_hub",
-    "units": ["survey_rover", "survey_rover"]
+    "units": ["survey_rover", "survey_rover", "mining_crawler"]
   },
-  "build_menu": ["mine", "fusion_reactor", "prefab_habitat"],
+  "build_menu": ["storage_container", "refinery", "mine", "fusion_reactor", "prefab_habitat", "foundry", "deep_core_mine"],
+  "storage_exempt": ["crew", "latinum"],
+  "salvage_refund": 0.5,
   "power_resource": "energy",
-  "hud_resources": ["duranium", "tritanium", "deuterium", "dilithium", "latinum", "crew"],
+  "hud_resources": ["duranium_ore", "tritanium_ore", "duranium", "tritanium", "parasteel", "deuterium", "dilithium", "latinum", "crew"],
   "units": [
-    { "id": "survey_rover", "speed": 2, "survey_radius": 2 }
+    { "id": "survey_rover", "speed": 2, "survey_radius": 2 },
+    { "id": "mining_crawler", "speed": 1, "survey_radius": 1, "extract_per_min": 30, "hopper": 10, "deploy_seconds": 4, "pod_speed": 3 }
   ]
 }

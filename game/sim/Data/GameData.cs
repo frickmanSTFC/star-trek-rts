@@ -43,6 +43,15 @@ public sealed class GameData
     /// <summary>Resource that is a per-base power budget on a surface, not a stockpile (surfaces.json power_resource).</summary>
     public string PowerResource { get; }
 
+    /// <summary>Resources that don't take storage space on a surface (surfaces.json storage_exempt).</summary>
+    public IReadOnlyList<ResourceDef> StorageExempt { get; }
+
+    /// <summary>Share of a finished building's cost returned when it is salvaged.</summary>
+    public Fix64 SalvageRefund { get; }
+
+    /// <summary>Whether a resource takes storage space on a surface (everything but the exempt ones and power).</summary>
+    public bool IsStored(int resource) => _stored[resource];
+
     /// <summary>Stockpiled resources shown in the planet HUD's top bar, in order.</summary>
     public IReadOnlyList<ResourceDef> HudResources { get; }
     public LandingRules Landing { get; }
@@ -63,6 +72,7 @@ public sealed class GameData
     private readonly Dictionary<string, TerrainDef> _terrain;
     private readonly Dictionary<string, PlanetSurfaceDef> _surfaces;
     private readonly Dictionary<string, SurfaceUnitDef> _surfaceUnits;
+    private readonly bool[] _stored;
 
     /// <summary>Problems found while reading (unknown resource ids, etc.). Reported by Validate().</summary>
     private readonly List<string> _loadProblems;
@@ -72,8 +82,19 @@ public sealed class GameData
         List<PlanetClassDef> planetClasses, List<BuildingDef> buildings, List<MapDef> maps,
         List<TerrainDef> terrain, List<PlanetSurfaceDef> surfaces, List<SurfaceUnitDef> surfaceUnits,
         HintRules hints, LandingRules landing, List<string> buildMenu, string powerResource, List<string> hudResources,
+        List<string> storageExempt, Fix64 salvageRefund,
         Dictionary<string, string> groundVehicles, List<string> loadProblems)
     {
+        SalvageRefund = salvageRefund;
+        var exempt = new List<ResourceDef>();
+        foreach (var id in storageExempt)
+        {
+            var r = resources.FirstOrDefault(x => x.Id == id);
+            if (r != null) exempt.Add(r);
+            else loadProblems.Add($"storage_exempt: unknown resource '{id}'.");
+        }
+        StorageExempt = exempt;
+        _stored = resources.Select(r => r.Id != powerResource && exempt.All(e => e.Index != r.Index)).ToArray();
         BuildMenu = buildMenu;
         PowerResource = powerResource;
         var hud = new List<ResourceDef>();
@@ -207,7 +228,15 @@ public sealed class GameData
                     b.TryGetProperty("power_supply", out var ps) ? Num(ps) : Fix64.Zero,
                     b.TryGetProperty("power_use", out var pu) ? Num(pu) : Fix64.Zero,
                     Int("level"),
-                    b.TryGetProperty("upgrades_to", out var up) ? up.GetString() ?? "" : "");
+                    b.TryGetProperty("upgrades_to", out var up) ? up.GetString() ?? "" : "",
+                    b.TryGetProperty("storage", out var st) ? Num(st) : Fix64.Zero,
+                    b.TryGetProperty("recipes", out var recipes)
+                        ? recipes.EnumerateArray().Select(r => new Recipe(Amounts(r, "in", $"Building {id} recipe"), Amounts(r, "out", $"Building {id} recipe"))).ToList()
+                        : new List<Recipe>(),
+                    b.TryGetProperty("cycles_per_min", out var cy) ? Num(cy) : Fix64.Zero,
+                    b.TryGetProperty("requires_depleted", out var rdp) && rdp.GetBoolean(),
+                    b.TryGetProperty("reopen_share", out var rs) ? Num(rs) : Fix64.Zero,
+                    Int("requires_level"));
             })
             .ToList();
 
@@ -277,7 +306,11 @@ public sealed class GameData
             landingEl.GetProperty("units").EnumerateArray().Select(u => u.GetString()!).ToList());
 
         var surfaceUnits = surfacesRoot.GetProperty("units").EnumerateArray()
-            .Select(u => new SurfaceUnitDef(Str(u, "id"), Num(u.GetProperty("speed")), u.GetProperty("survey_radius").GetInt32()))
+            .Select(u => new SurfaceUnitDef(Str(u, "id"), Num(u.GetProperty("speed")), u.GetProperty("survey_radius").GetInt32(),
+                u.TryGetProperty("extract_per_min", out var ex) ? Num(ex) : Fix64.Zero,
+                u.TryGetProperty("hopper", out var hop) ? Num(hop) : Fix64.Zero,
+                u.TryGetProperty("deploy_seconds", out var dep) ? dep.GetInt32() : 0,
+                u.TryGetProperty("pod_speed", out var pod) ? Num(pod) : Fix64.Zero))
             .ToList();
 
         var groundVehicles = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -289,6 +322,9 @@ public sealed class GameData
             surfacesRoot.GetProperty("build_menu").EnumerateArray().Select(b => b.GetString()!).ToList(),
             Str(surfacesRoot, "power_resource"),
             surfacesRoot.GetProperty("hud_resources").EnumerateArray().Select(r => r.GetString()!).ToList(),
+            surfacesRoot.TryGetProperty("storage_exempt", out var ex)
+                ? ex.EnumerateArray().Select(r => r.GetString()!).ToList() : new List<string>(),
+            surfacesRoot.TryGetProperty("salvage_refund", out var sr) ? Num(sr) : Fix64.Zero,
             groundVehicles, problems);
     }
 
@@ -394,13 +430,36 @@ public sealed class GameData
             if (b.BuildSeconds < 1) problems.Add($"Build menu: {id} needs build_seconds.");
             if (b.Cost.Count == 0) problems.Add($"Build menu: {id} has no cost.");
             if (b.RequiresDeposit && b.ExtractPerMinute <= Fix64.Zero) problems.Add($"Build menu: {id} requires a deposit but has no extract_per_min.");
+            if (b.RequiresDeposit && b.RequiresDepleted) problems.Add($"Build menu: {id} can't need both a deposit and a used-up one.");
+            if (b.RequiresDepleted && (b.ReopenShare <= Fix64.Zero || b.ReopenShare > Fix64.One || b.ExtractPerMinute <= Fix64.Zero))
+                problems.Add($"Build menu: {id} reopens deposits: needs reopen_share in (0, 1] and extract_per_min.");
+            if (b.Recipes.Count > 0 && b.CyclesPerMinute <= Fix64.Zero) problems.Add($"Build menu: {id} has recipes but no cycles_per_min.");
+            foreach (var r in b.Recipes)
+                if (r.In.Count == 0 || r.Out.Count == 0 || r.In.Concat(r.Out).Any(a => a.Amount <= Fix64.Zero || (power != null && a.Resource == power.Index)))
+                    problems.Add($"Build menu: {id} recipe needs positive in and out amounts, and no {PowerResource}.");
+            if (b.RequiresLevel > 0 && !seen.Any(c => _buildings[c].Level >= b.RequiresLevel))
+                problems.Add($"Build menu: {id} needs a level {b.RequiresLevel} core, but the upgrade line doesn't reach it.");
         }
+        if (SalvageRefund < Fix64.Zero || SalvageRefund > Fix64.One) problems.Add("salvage_refund must be between 0 and 1.");
+        if (!seen.Any(c => _buildings[c].Storage > Fix64.Zero)) problems.Add($"Landing: hub '{Landing.HubBuilding}' has no storage, so nothing could be stockpiled.");
+
+        // Every mined deposit must be something storage holds, and raw ores must have a refinery recipe in the build menu.
+        foreach (var s in Surfaces)
+            foreach (var d in s.Deposits)
+            {
+                if (!_resources.TryGetValue(d.ResourceId, out var r)) continue;
+                if (!IsStored(r.Index)) problems.Add($"Surface {s.ClassId} deposit {r.Id}: is storage-exempt, so mining it would bypass storage.");
+                if (r.Tier == "raw" && !BuildMenu.Any(id => _buildings.TryGetValue(id, out var b) && b.Recipes.Any(rc => rc.In.Any(a => a.Resource == r.Index))))
+                    problems.Add($"Surface {s.ClassId} deposit {r.Id}: raw ore that no building in the build menu refines.");
+            }
         foreach (var u in Landing.Units)
             if (!_surfaceUnits.ContainsKey(u)) problems.Add($"Landing: unit '{u}' has no surface stats.");
         foreach (var u in SurfaceUnits)
         {
             if (!GroundVehicleNames.ContainsKey(u.Id)) problems.Add($"Surface unit {u.Id}: not a ground vehicle in vehicles.json.");
             if (u.Speed <= Fix64.Zero) problems.Add($"Surface unit {u.Id}: speed must be positive.");
+            if (u.CanMine && (u.Hopper <= Fix64.Zero || u.PodSpeed <= Fix64.Zero || u.DeploySeconds < 1))
+                problems.Add($"Surface unit {u.Id}: a miner needs hopper, pod_speed and deploy_seconds.");
         }
     }
 

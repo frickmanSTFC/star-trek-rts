@@ -52,6 +52,7 @@ public partial class PlanetHud : CanvasLayer
     private Label _factionSub = null!;
     private readonly Dictionary<int, (Label Amount, Label Rate)> _chips = new();
     private Label _powerChip = null!;
+    private Label _storageChip = null!;
     private Label _clock = null!;
     private Label _hints = null!;
     private PanelContainer _bannerPanel = null!;
@@ -143,7 +144,7 @@ public partial class PlanetHud : CanvasLayer
         _onUpgrade = onUpgrade;
         foreach (var (id, name, key) in buildMenu)
         {
-            var button = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(96, 86), ToggleMode = true };
+            var button = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(96, 82), ToggleMode = true };
             StyleButton(button, new Color(0.17f, 0.23f, 0.36f), new Color(0.06f, 0.1f, 0.19f));
             var box = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
             box.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.Minsize, 7);
@@ -192,7 +193,7 @@ public partial class PlanetHud : CanvasLayer
 
     // ---------------------------------------------------------------- top
 
-    public void ShowTop(Simulation sim, int player, string factionSub, float powerUse, float powerSupply, string clock)
+    public void ShowTop(Simulation sim, int player, string factionSub, float powerUse, float powerSupply, float stored, float capacity, string clock)
     {
         var data = sim.Data;
         var p = sim.Players[player];
@@ -204,11 +205,13 @@ public partial class PlanetHud : CanvasLayer
             if (!_chips.TryGetValue(r.Index, out var chip)) continue;
             chip.Amount.Text = Hud.Whole(p.Stock[r.Index]);
             var rate = income[r.Index];
-            chip.Rate.Text = rate == Fix64.Zero ? r.Name.ToUpperInvariant() : $"{r.Name.ToUpperInvariant()} {Hud.PerMinute(rate)}";
+            chip.Rate.Text = rate == Fix64.Zero ? ShortName(r.Name) : $"{ShortName(r.Name)} {Hud.PerMinute(rate)}";
             chip.Rate.AddThemeColorOverride("font_color", rate > Fix64.Zero ? Good : rate < Fix64.Zero ? Warn : Dim);
         }
         _powerChip.Text = $"{Mathf.RoundToInt(powerUse)} / {Mathf.RoundToInt(powerSupply)}";
         _powerChip.AddThemeColorOverride("font_color", powerUse > powerSupply ? Warn : Ink);
+        _storageChip.Text = $"{Mathf.FloorToInt(stored)} / {Mathf.RoundToInt(capacity)}";
+        _storageChip.AddThemeColorOverride("font_color", stored >= capacity - 0.5f ? Warn : stored > capacity * 0.85f ? Accent : Ink);
         _clock.Text = clock;
     }
 
@@ -225,7 +228,7 @@ public partial class PlanetHud : CanvasLayer
             var text = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
             text.AddThemeConstantOverride("separation", -2);
             var amount = MakeLabel("0", 19, Ink);
-            var rate = MakeLabel(name.ToUpperInvariant(), 12, Dim);
+            var rate = MakeLabel(ShortName(name), 12, Dim);
             text.AddChild(amount);
             text.AddChild(rate);
             chip.AddChild(text);
@@ -233,6 +236,13 @@ public partial class PlanetHud : CanvasLayer
             row.MoveChild(chip, insertAt++);
             _chips[index] = (amount, rate);
         }
+    }
+
+    /// <summary>Top-bar label: "Duranium Ore" → "DUR ORE" so the bar fits; one-word names stay whole.</summary>
+    private static string ShortName(string name)
+    {
+        var space = name.IndexOf(' ');
+        return (space > 3 ? name[..3] + name[space..] : name).ToUpperInvariant();
     }
 
     public void ShowHints(string text) => _hints.Text = text;
@@ -381,7 +391,7 @@ public partial class PlanetHud : CanvasLayer
         bar.CustomMinimumSize = new Vector2(0, TopHeight);
         bar.MouseFilter = Control.MouseFilterEnum.Stop;
         var row = new HBoxContainer { Name = "Row", MouseFilter = Control.MouseFilterEnum.Ignore };
-        row.AddThemeConstantOverride("separation", 22);
+        row.AddThemeConstantOverride("separation", 15);
 
         var faction = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         faction.AddThemeConstantOverride("separation", 10);
@@ -407,6 +417,17 @@ public partial class PlanetHud : CanvasLayer
         powerText.AddChild(MakeLabel("POWER USED / SUPPLY", 12, Dim));
         power.AddChild(powerText);
         row.AddChild(power);
+
+        var storage = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        storage.AddThemeConstantOverride("separation", 8);
+        storage.AddChild(IconTile("storage"));
+        var storageText = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        storageText.AddThemeConstantOverride("separation", -2);
+        _storageChip = MakeLabel("0 / 0", 19, Ink);
+        storageText.AddChild(_storageChip);
+        storageText.AddChild(MakeLabel("STORAGE USED / SPACE", 12, Dim));
+        storage.AddChild(storageText);
+        row.AddChild(storage);
 
         row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore });
         _clock = MakeLabel("", 15, Dim);

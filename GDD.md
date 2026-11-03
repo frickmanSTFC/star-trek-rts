@@ -68,13 +68,29 @@ layer above it once the surface game is fun.
   2. *Land:* pick a flat site (plains or desert with passable land on all six sides). The colony pod falls for a few
      seconds, then the Colony Hub stands there and income starts.
   3. *Survey:* survey rovers roll out; exact deposits are revealed around the landing site and wherever rovers drive.
+     One **Mining Crawler** lands too (decided 2026-11-03: exactly one for now).
 - **Deposits** are rolled per tile by terrain (duranium in hills, deuterium on coasts, dilithium in deserts…).
 - **Building** (from the build bar once landed): one building per hex, on surveyed, buildable tiles within the Colony
   Hub's build radius (4). The cost is paid on placement; the hub's single build queue builds one at a time, the rest
   wait in order; unfinished buildings can be cancelled for a full refund. Buildings turn in 60° steps (hex sides).
-  - *Mining Complex:* must sit on a deposit; moves it into your stockpile (40/min) until it runs out. Upkeep: energy.
+  - *Storage Container:* +2000 storage. *Ore Refinery:* 2 ore → 1 duranium or tritanium (shares its work between the
+    ores in stock), +300 storage, uses power. *Alloy Foundry:* 2 duranium + 1 tritanium → 1 Parasteel, uses power.
+  - *Mining Complex:* must sit on a deposit; digs it into storage (40/min) until it runs out. Uses power.
+  - *Deep-Core Mine* (needs a level 2 base until research exists): goes on a used-up deposit and reopens it once at
+    50% of its first size; slower (24/min) and power-hungry.
   - *Fusion Reactor:* +power; burns deuterium. *Prefab Habitat:* +crew; uses power.
-  - A building that can't pay its upkeep idles (no output) until stock returns.
+  - A building that can't pay its upkeep, has no ore to refine, or has nowhere to store output idles and draws no power.
+  - **Salvage** (X on a finished building, not a core): returns 50% of its cost and frees the tile.
+- **Storage and ore** (decided 2026-11-03): hills and plains hold *raw ore* (Duranium Ore, Tritanium Ore) that must
+  be refined; deuterium, dilithium and strategics are mined as they are. Everything stockpiled except crew and
+  latinum shares one storage capacity: the Colony Hub's small vault (1500, about 1000 used at landing) plus Storage
+  Containers and refineries. When it's full, mines and crawlers stop. The colony core makes only a small trickle of
+  metal, so a new colony's first builds are storage and a refinery.
+- **Mining Crawler:** right-click a surveyed deposit and it drives there (slower than a rover), unfurls (legs brace,
+  boom lifts, drill lowers; 4 s) and mines 30/min anywhere on the map, outside build range too. Each full hopper (10)
+  flies home as a cargo pod to the nearest storage building (vault, container or refinery); farther = longer flight
+  (3 tiles/s). It waits when storage is full, and folds up when the deposit runs out. F unfurls / packs up; a move
+  order packs it up first.
 - **Bases:** a colony core (the hub and its upgrades) plus the buildings in its radius. Each base has its own
   build queues and **power budget** (decided 2026-11-02): energy is not stockpiled on a surface; buildings supply or
   use power, and when use exceeds supply every power user at that base slows to supply ÷ use.
@@ -120,9 +136,9 @@ Verterium (synth) ────────────────────�
 - **Supply range:** colonies/stations project supply; ships outside it lose repair and resupply. Subspace relays extend it.
 - **Trade lanes:** freighters between your colonies (or other players') generate Latinum. Pirates target them.
 - **Depletion:** deposits run out; deep-core mining and asteroid-cracking techs reopen them at a cost.
-  Proposed responses to a depleted deposit (owner's list, 2026-11-03; order not yet confirmed): leave it (or salvage
-  the mine), research deeper scanning (Deep-Core Mining reopens it at 50%), switch to mobile Mining Crawlers that
-  move between small deposits, and a mine → refinery chain so ore is refined into metals and alloys.
+  On the planet surface (built 2026-11-03, see §3b): salvage the used-up mine, refine ore through the refinery chain,
+  move the Mining Crawler between deposits, and reopen a deposit once with a Deep-Core Mine (Deep-Core Mining tech
+  once research exists; a level 2 base until then). Deeper-scan research is still to come.
 
 ## 5. Colonization Loop
 

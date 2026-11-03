@@ -27,7 +27,8 @@ B = load("buildings.json")
 T = load("tech_tree.json")["techs"]
 H = load("hazards.json")["hazards"]
 P = {p["id"]: p["name"].split(" — ")[0] for p in load("planet_classes.json")["classes"]}
-TIERS = [("flow", "Flow", "Always on the HUD: mined or generated every cycle and spent on everything."),
+TIERS = [("raw", "Raw ore", "Dug up by surface mines and mining crawlers; refined into metals before use."),
+         ("flow", "Flow", "Always on the HUD: mined or generated every cycle and spent on everything."),
          ("strategic", "Strategic", "Rarer materials that gate specific techs, modules and buildings."),
          ("exotic", "Exotic", "Late-game and dangerous: huge power with a real chance of disaster."),
          ("refined", "Refined", "Produced from other resources, never mined."),
@@ -80,6 +81,14 @@ feeds = {}
 for r in R.values():
     for i in r.get("inputs", {}):
         feeds.setdefault(i, []).append(R[r["id"]]["name"])
+# surface converters (refinery, foundry): recipe inputs feed the outputs, and the building produces them
+for b in shared:
+    for rc in b.get("recipes", []):
+        for i in rc["in"]:
+            for o in rc["out"]:
+                if R[o]["name"] not in feeds.setdefault(i, []): feeds[i].append(R[o]["name"])
+        for o in rc["out"]:
+            if b["name"] not in producers[o]: producers[o] = sorted(producers[o] + [b["name"]])[:4]
 
 resources = []
 for r in RJ["resources"]:

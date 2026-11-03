@@ -22,6 +22,9 @@ public sealed record PlanetClassDef(string Id, string Name, Fix64 Habitability, 
 /// under it (RequiresDeposit); BuildRadius / BuildQueues = for colony cores, how far from it you can
 /// build and how many constructions run at once. PowerSupply / PowerUse feed the base's power budget.
 /// Level and UpgradesTo describe a core's upgrade line (UpgradesTo "" = top level).
+/// Storage = capacity it adds for stockpiled materials. Recipes run CyclesPerMinute in total, shared between
+/// the recipes that have input. RequiresDepleted buildings go on a used-up deposit and reopen it once at
+/// ReopenShare of its first size. RequiresLevel = the base's core must be at least this level.
 /// </summary>
 public sealed record BuildingDef(
     string Id,
@@ -40,11 +43,26 @@ public sealed record BuildingDef(
     Fix64 PowerSupply,
     Fix64 PowerUse,
     int Level,
-    string UpgradesTo)
+    string UpgradesTo,
+    Fix64 Storage,
+    IReadOnlyList<Recipe> Recipes,
+    Fix64 CyclesPerMinute,
+    bool RequiresDepleted,
+    Fix64 ReopenShare,
+    int RequiresLevel)
 {
     /// <summary>A colony core (hub and its upgrades): defines a base, its build radius and queues.</summary>
     public bool IsCore => BuildRadius > 0;
+
+    /// <summary>Digs the deposit under it (a mine, or a deep-core mine once it has reopened the deposit).</summary>
+    public bool IsMine => ExtractPerMinute > Fix64.Zero;
+
+    /// <summary>Turns stock into other stock (refinery, foundry).</summary>
+    public bool IsConverter => Recipes.Count > 0 && CyclesPerMinute > Fix64.Zero;
 }
+
+/// <summary>One cycle of a converter: takes In from stock, gives Out.</summary>
+public sealed record Recipe(IReadOnlyList<ResourceAmount> In, IReadOnlyList<ResourceAmount> Out);
 
 public sealed record StarDef(string Name, string Class, Fix64 Radius);
 

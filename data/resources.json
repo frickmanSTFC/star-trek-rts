@@ -1,6 +1,12 @@
 {
-  "_notes": "source: canon = on-screen; beta = licensed books/games; original = invented for this game. tier: flow | strategic | exotic | refined | faction | trade_good. Trade goods are sold for latinum rather than spent.",
+  "_notes": "source: canon = on-screen; beta = licensed books/games; original = invented for this game. tier: raw | flow | strategic | exotic | refined | faction | trade_good. Trade goods are sold for latinum rather than spent. Raw ores are what surface mines and mining crawlers dig up; an Ore Refinery turns them into the flow metals (refine in resources = what it becomes).",
   "resources": [
+    { "id": "duranium_ore", "name": "Duranium Ore", "tier": "raw", "source": "original",
+      "found_on": ["asteroid", "class_d", "class_h", "class_m"], "refine": "duranium", "uses": ["refining"],
+      "lore": "Unprocessed duranium-bearing rock; an Ore Refinery turns 2 ore into 1 duranium." },
+    { "id": "tritanium_ore", "name": "Tritanium Ore", "tier": "raw", "source": "original",
+      "found_on": ["asteroid", "class_d", "class_k", "class_m"], "refine": "tritanium", "uses": ["refining"],
+      "lore": "Unprocessed tritanium-bearing rock; an Ore Refinery turns 2 ore into 1 tritanium." },
     { "id": "tritanium", "name": "Tritanium", "tier": "flow", "source": "canon",
       "found_on": ["asteroid", "class_d", "class_k"], "uses": ["hulls", "structures"],
       "lore": "Principal hull material of TOS-era starships; far harder than titanium." },

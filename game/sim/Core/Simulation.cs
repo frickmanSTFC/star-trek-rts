@@ -152,7 +152,7 @@ public sealed class Simulation
                 foreach (var o in Data.Building(b.DefId).OutputPerMinute)
                     income.Add(o.Resource, o.Amount);
         }
-        Surface?.AddIncome(player, income);
+        Surface?.AddIncome(this, player, income);
         return income;
     }
 
@@ -205,6 +205,9 @@ public sealed class Simulation
             case PlaceBuildingCommand:
             case CancelBuildingCommand:
             case UpgradeCommand:
+            case MineCommand:
+            case PackUpCommand:
+            case SalvageCommand:
                 break; // surface commands with no surface loaded: ignore
             default:
                 throw new NotSupportedException($"Unhandled command {command.GetType().Name}.");
