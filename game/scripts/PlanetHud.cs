@@ -380,6 +380,14 @@ public partial class PlanetHud : CanvasLayer
             ui.Cost.AddThemeColorOverride("font_color", c.Affordable ? Dim : Warn);
             ui.Tag.Text = c.Affordable ? "" : " SHORT";
         }
+        // Only the listed commands show (the build menu, or a Vehicle Bay's orders).
+        foreach (var (id, ui) in _commands)
+        {
+            var show = false;
+            foreach (var c in items)
+                if (c.Id == id) show = true;
+            if (ui.Button.Visible != show) ui.Button.Visible = show;
+        }
     }
 
     // ---------------------------------------------------------------- construction

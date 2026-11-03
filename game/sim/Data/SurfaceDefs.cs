@@ -42,10 +42,11 @@ public sealed record LandingRules(
 /// <summary>
 /// Surface stats for a ground vehicle (the vehicle itself is in vehicles.json). A unit with ExtractPerMinute
 /// is a mining crawler: it unfurls on a deposit in DeploySeconds (and packs up just as long), fills a hopper of
-/// Hopper, and sends each full load home as a cargo pod flying PodSpeed tiles per second.
+/// Hopper, and sends each full load home as a cargo pod flying PodSpeed tiles per second. Cost and BuildSeconds are
+/// what a Vehicle Bay charges and takes to assemble one.
 /// </summary>
 public sealed record SurfaceUnitDef(string Id, Fix64 Speed, int SurveyRadius, Fix64 ExtractPerMinute, Fix64 Hopper, int DeploySeconds, Fix64 PodSpeed,
-    BreakdownRules? Breakdown, RepairRules? Repair)
+    BreakdownRules? Breakdown, RepairRules? Repair, IReadOnlyList<ResourceAmount> Cost, int BuildSeconds)
 {
     public bool CanMine => ExtractPerMinute > Fix64.Zero;
 }

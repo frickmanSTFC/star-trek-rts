@@ -33,6 +33,12 @@ public sealed record MineCommand(int Player, int UnitId, int Tile) : Command(Pla
 /// <summary>Fold up deployed mining crawlers so they can drive again.</summary>
 public sealed record PackUpCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
 
+/// <summary>Order a unit at a finished Vehicle Bay; the cost is paid now and it joins the bay's queue.</summary>
+public sealed record BuildUnitCommand(int Player, int StructureId, string UnitId) : Command(Player);
+
+/// <summary>Cancel the last order in a Vehicle Bay's queue (the one in progress if it's the only one); full refund.</summary>
+public sealed record CancelUnitCommand(int Player, int StructureId) : Command(Player);
+
 /// <summary>Send damaged units to the nearest colony core's repair pad; repair starts when they get there.</summary>
 public sealed record RepairCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
 

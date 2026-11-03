@@ -336,6 +336,57 @@ public sealed class PlanetSurface
         unit.RepairTicks = 0;
     }
 
+    // ---------------------------------------------------------------- vehicle production
+
+    /// <summary>Why this unit can't be ordered at this building right now (null = it can).</summary>
+    public string? ProductionProblem(Simulation sim, int player, int structureId, string unitId)
+    {
+        var s = FindStructure(structureId);
+        if (s == null || s.Owner != player) return "not yours";
+        var def = _data.Building(s.DefId);
+        if (!def.Produces.Contains(unitId)) return "can't build that";
+        if (s.State != StructureState.Complete) return "still under construction";
+        if (s._production.Count >= def.ProductionQueue) return "queue full";
+        if (!sim.Players[player].Stock.CanAfford(_data.SurfaceUnit(unitId).Cost)) return "not enough resources";
+        return null;
+    }
+
+    /// <summary>Fraction of the first order done, 0..1 (0 when idle).</summary>
+    public Fix64 ProductionFraction(SurfaceStructure s)
+    {
+        if (s._production.Count == 0) return Fix64.Zero;
+        var total = _data.SurfaceUnit(s._production[0]).BuildSeconds * Simulation.TickRate;
+        return total <= 0 ? Fix64.One : Fix64.Min(Fix64.One, s.ProductionProgress / Fix64.FromInt(total));
+    }
+
+    /// <summary>Rolls a finished unit out beside the bay: the first free passable neighbour (no building, no vehicle), else any passable one, else the bay's own tile.</summary>
+    private void RollOut(Simulation sim, SurfaceStructure bay, string unitId)
+    {
+        var tile = -1;
+        foreach (var n in Map.Grid.Neighbours(bay.Tile))
+        {
+            if (!Map.Terrain(n).Passable || _structureAt[n] != 0) continue;
+            var taken = false;
+            foreach (var u in _units)
+                if (u.Tile == n) taken = true;
+            if (!taken)
+            {
+                tile = n;
+                break;
+            }
+            if (tile < 0) tile = n;
+        }
+        if (tile < 0) tile = bay.Tile;
+        var def = _data.SurfaceUnit(unitId);
+        var unit = new SurfaceUnit(_nextUnitId++, bay.Owner, def.Id, def.Speed * Simulation.SecondsPerTick, def.SurveyRadius, tile)
+        {
+            BuiltAtTick = sim.Tick,
+            BuiltAtTile = bay.Tile,
+        };
+        _units.Add(unit);
+        Reveal(bay.Owner, tile, def.SurveyRadius);
+    }
+
     /// <summary>Whether the player could send their pod to this tile right now.</summary>
     public bool CanLand(int player, int tile)
     {
@@ -527,6 +578,26 @@ public sealed class PlanetSurface
                 return true;
             }
 
+            case BuildUnitCommand order:
+            {
+                if (ProductionProblem(sim, order.Player, order.StructureId, order.UnitId) != null) return true;
+                var bay = FindStructure(order.StructureId)!;
+                sim.Players[order.Player].Stock.TrySpend(_data.SurfaceUnit(order.UnitId).Cost);
+                bay._production.Add(order.UnitId);
+                return true;
+            }
+
+            case CancelUnitCommand cancelUnit:
+            {
+                var bay = FindStructure(cancelUnit.StructureId);
+                if (bay == null || bay.Owner != cancelUnit.Player || bay._production.Count == 0) return true;
+                var last = bay._production.Count - 1;
+                foreach (var c in _data.SurfaceUnit(bay._production[last]).Cost) sim.Players[bay.Owner].Stock.Add(c.Resource, c.Amount);
+                bay._production.RemoveAt(last);
+                if (last == 0) bay.ProductionProgress = Fix64.Zero;
+                return true;
+            }
+
             case RepairCommand repair:
                 foreach (var id in repair.UnitIds)
                 {
@@ -568,6 +639,8 @@ public sealed class PlanetSurface
                 if (def.IsCore) return true;
                 var bag = sim.Players[salvaged.Owner].Stock;
                 foreach (var c in def.Cost) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
+                foreach (var queued in salvaged._production) // unbuilt orders come back in full
+                    foreach (var c in _data.SurfaceUnit(queued).Cost) bag.Add(c.Resource, c.Amount);
                 _structures.Remove(salvaged);
                 _structureAt[salvaged.Tile] = 0;
                 return true;
@@ -722,6 +795,11 @@ public sealed class PlanetSurface
                 s.Status = StructureStatus.NoInput;
                 continue;
             }
+            if (def.IsFactory && s._production.Count == 0)
+            {
+                s.Status = StructureStatus.NoInput;
+                continue;
+            }
 
             var affordable = true;
             foreach (var u in def.UpkeepPerMinute)
@@ -762,6 +840,17 @@ public sealed class PlanetSurface
                     if (cycles <= Fix64.Zero) continue;
                     foreach (var a in r.In) stock.Add(a.Resource, -a.Amount * cycles);
                     foreach (var a in r.Out) stock.Add(a.Resource, a.Amount * cycles);
+                }
+            }
+            if (def.IsFactory && s._production.Count > 0)
+            {
+                s.ProductionProgress += speed;
+                var unitDef = _data.SurfaceUnit(s._production[0]);
+                if (s.ProductionProgress >= Fix64.FromInt(unitDef.BuildSeconds * Simulation.TickRate))
+                {
+                    RollOut(sim, s, unitDef.Id);
+                    s._production.RemoveAt(0);
+                    s.ProductionProgress = Fix64.Zero;
                 }
             }
         }

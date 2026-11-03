@@ -25,6 +25,7 @@ public sealed record PlanetClassDef(string Id, string Name, Fix64 Habitability, 
 /// Storage = capacity it adds for stockpiled materials. Recipes run CyclesPerMinute in total, shared between
 /// the recipes that have input. RequiresDepleted buildings go on a used-up deposit and reopen it once at
 /// ReopenShare of its first size. RequiresLevel = the base's core must be at least this level.
+/// Produces = surface units it assembles one at a time, with up to ProductionQueue orders waiting.
 /// </summary>
 public sealed record BuildingDef(
     string Id,
@@ -49,8 +50,13 @@ public sealed record BuildingDef(
     Fix64 CyclesPerMinute,
     bool RequiresDepleted,
     Fix64 ReopenShare,
-    int RequiresLevel)
+    int RequiresLevel,
+    IReadOnlyList<string> Produces,
+    int ProductionQueue)
 {
+    /// <summary>Assembles surface units (a Vehicle Bay).</summary>
+    public bool IsFactory => Produces.Count > 0;
+
     /// <summary>A colony core (hub and its upgrades): defines a base, its build radius and queues.</summary>
     public bool IsCore => BuildRadius > 0;
 

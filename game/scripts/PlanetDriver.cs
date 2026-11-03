@@ -53,6 +53,7 @@ public partial class PlanetDriver : Node3D
     private readonly HashSet<int> _lowPowerBases = new();
     private readonly Dictionary<int, (UnitMode Mode, MiningStatus Status)> _seenUnits = new();
     private bool _storageFull;
+    private readonly HashSet<int> _knownUnits = new();
     private readonly Dictionary<int, (long BrokeAt, bool Broken)> _seenCondition = new();
     private bool[] _knownDeposits = System.Array.Empty<bool>();
 
@@ -83,7 +84,14 @@ public partial class PlanetDriver : Node3D
         _knownDeposits = new bool[_sim.Surface!.Map.Grid.Count];
 
         _hud.SetResources(_data.HudResources.Select(r => (r.Index, r.Id, r.Name)).ToList());
-        _hud.Setup(_data.BuildMenu.Select((id, i) => (id, _data.Building(id).Name, $"[{i + 1}]")).ToList(), StartPlacing, SelectBase, Upgrade);
+        // The command card holds the build menu and every Vehicle Bay order; UpdateHud shows one set at a time.
+        var commands = _data.BuildMenu.Select((id, i) => (id, _data.Building(id).Name, $"[{i + 1}]")).ToList();
+        foreach (var unit in _data.BuildMenu.SelectMany(id => _data.Building(id).Produces).Distinct().ToList())
+        {
+            var key = _data.BuildMenu.Select(id => _data.Building(id).Produces.ToList().IndexOf(unit)).FirstOrDefault(i => i >= 0);
+            commands.Add(($"unit:{unit}", _data.GroundVehicleNames.GetValueOrDefault(unit, unit), $"[{key + 1}]"));
+        }
+        _hud.Setup(commands, OnCommand, SelectBase, Upgrade);
         _hud.Minimap.Setup(_sim, _view, LocalPlayer);
         _hud.Minimap.OnJump = p => _focusTarget = p;
 
@@ -209,6 +217,13 @@ public partial class PlanetDriver : Node3D
             _seenCondition[u.Id] = condition;
         }
 
+        foreach (var u in Surface.Units.Where(u => u.Owner == LocalPlayer))
+        {
+            if (!_knownUnits.Add(u.Id) || u.BuiltAtTick < 0) continue;
+            var bay = Surface.StructureAt(u.BuiltAtTile);
+            _hud.PushEvent($"{UnitName(u)} rolled out of the {(bay != null ? _data.Building(bay.DefId).Name : "Vehicle Bay")}", new Color(0.62f, 0.82f, 1f));
+        }
+
         if (Me.Phase == LandingPhase.Landed)
         {
             var full = Surface.FreeStorage(_sim, LocalPlayer) <= Fix64.Zero;
@@ -311,7 +326,15 @@ public partial class PlanetDriver : Node3D
                 break;
             case >= Key.Key1 and <= Key.Key9 when landed:
                 var index = (int)(key.Keycode - Key.Key1);
-                if (index < _data.BuildMenu.Count) StartPlacing(_data.BuildMenu[index]);
+                if (SelectedBay() is { } orderAt)
+                {
+                    var produces = _data.Building(orderAt.DefId).Produces;
+                    if (index < produces.Count) OrderUnit(produces[index]);
+                }
+                else if (index < _data.BuildMenu.Count) StartPlacing(_data.BuildMenu[index]);
+                break;
+            case Key.Backspace when landed && SelectedBay() != null:
+                _sim.Schedule(_sim.Tick + InputDelayTicks, new CancelUnitCommand(LocalPlayer, SelectedBay()!.Id));
                 break;
         }
     }
@@ -353,6 +376,29 @@ public partial class PlanetDriver : Node3D
     }
 
     private string UnitName(SurfaceUnit u) => _data.GroundVehicleNames.GetValueOrDefault(u.DefId, u.DefId);
+
+    /// <summary>The selected building if it's one of our finished Vehicle Bays (its orders replace the build menu).</summary>
+    private SurfaceStructure? SelectedBay()
+    {
+        var s = _selectedStructure != 0 ? Surface.FindStructure(_selectedStructure) : null;
+        return s != null && s.Owner == LocalPlayer && s.State == StructureState.Complete && _data.Building(s.DefId).IsFactory ? s : null;
+    }
+
+    /// <summary>A command-card button: a building to place, or "unit:id" to order at the selected bay.</summary>
+    private void OnCommand(string id)
+    {
+        if (id.StartsWith("unit:")) OrderUnit(id[5..]);
+        else StartPlacing(id);
+    }
+
+    private void OrderUnit(string unitId)
+    {
+        var bay = SelectedBay();
+        if (bay == null) return;
+        var problem = Surface.ProductionProblem(_sim, LocalPlayer, bay.Id, unitId);
+        if (problem == null) _sim.Schedule(_sim.Tick + InputDelayTicks, new BuildUnitCommand(LocalPlayer, bay.Id, unitId));
+        else _hud.PushEvent($"Can't order a {_data.GroundVehicleNames.GetValueOrDefault(unitId, unitId)}: {problem}", new Color(1f, 0.7f, 0.42f));
+    }
 
     private void ClearSelection()
     {
@@ -526,7 +572,7 @@ public partial class PlanetDriver : Node3D
         var landed = Me.Phase == LandingPhase.Landed;
         _hud.ShowHints(Me.Phase == LandingPhase.InOrbit
             ? "Left-click: land  ·  WASD / middle-drag pan  ·  Q/E turn  ·  wheel zoom"
-            : $"Left-click select  ·  right-click drive / mine  ·  F unfurl / pack up / repair  ·  1–{_data.BuildMenu.Count} build  ·  R rotate  ·  U upgrade  ·  X cancel / salvage  ·  Tab next base  ·  Q/E turn  ·  H home");
+            : $"Left-click select  ·  right-click drive / mine  ·  F unfurl / pack up / repair  ·  1–{_data.BuildMenu.Count} build  ·  R rotate  ·  U upgrade  ·  X cancel / salvage  ·  Backspace cancel order  ·  Tab next base  ·  Q/E turn  ·  H home");
 
         _hud.ShowBanner(Me.Phase switch
         {
@@ -550,6 +596,18 @@ public partial class PlanetDriver : Node3D
         else if (_selectedBase != 0) ShowBase(Surface.FindStructure(_selectedBase)!);
 
         var stock = _sim.Players[LocalPlayer].Stock;
+        if (SelectedBay() is { } bay)
+        {
+            var bayDef = _data.Building(bay.DefId);
+            _hud.ShowCommands($"{bayDef.Name.ToUpperInvariant()} · ORDERS ({bay.Production.Count}/{bayDef.ProductionQueue})",
+                bayDef.Produces.Select(u =>
+                {
+                    var ud = _data.SurfaceUnit(u);
+                    var problem = Surface.ProductionProblem(_sim, LocalPlayer, bay.Id, u);
+                    return new CommandView($"unit:{u}", "", "", $"{Amounts(ud.Cost, false, shortNames: true)} · {ud.BuildSeconds}s", problem == null, false);
+                }).ToList(), true);
+            return;
+        }
         _hud.ShowCommands(landed ? $"BUILD AT {BaseName(_selectedBase).ToUpperInvariant()}" : "BUILD (after landing)",
             _data.BuildMenu.Select((id, i) =>
             {
@@ -684,6 +742,7 @@ public partial class PlanetDriver : Node3D
                 StructureStatus.Depleted => "Idle: deposit used up",
                 StructureStatus.LowPower => $"Low power: running at {Mathf.RoundToInt(power.Efficiency.ToFloat() * 100)}%",
                 StructureStatus.StorageFull => "Idle: storage full",
+                StructureStatus.NoInput when def.IsFactory => "Idle: no orders",
                 StructureStatus.NoInput => def.Recipes.Count > 0 && def.Recipes[0].In.Any(a => _data.Resources[a.Resource].Tier == "raw") ? "Idle: no ore in storage" : "Idle: nothing to work on",
                 _ => "Working",
             },
@@ -700,6 +759,18 @@ public partial class PlanetDriver : Node3D
             sb.Append("Mining ").Append(_data.Resources[Surface.Map.DepositResource[s.Tile]].Name).Append(" +").Append(Hud.Whole(def.ExtractPerMinute))
               .Append("/min · ").Append(Hud.Whole(Surface.Map.DepositAmount[s.Tile])).AppendLine(" left");
         if (def.UpkeepPerMinute.Count > 0) sb.Append("Upkeep ").AppendLine(Amounts(def.UpkeepPerMinute, true));
+        if (def.IsFactory && s.State == StructureState.Complete)
+        {
+            if (s.Production.Count == 0) sb.AppendLine("No orders: pick a vehicle on the right (or press its number)");
+            else
+            {
+                sb.Append("Assembling ").Append(_data.GroundVehicleNames.GetValueOrDefault(s.Production[0], s.Production[0])).Append(' ')
+                  .Append(Mathf.FloorToInt(Surface.ProductionFraction(s).ToFloat() * 100)).Append('%');
+                if (s.Production.Count > 1)
+                    sb.Append("  ·  then ").Append(string.Join(", ", s.Production.Skip(1).Select(u => _data.GroundVehicleNames.GetValueOrDefault(u, u))));
+                sb.AppendLine().AppendLine("[Backspace] cancel the last order (full refund)");
+            }
+        }
         if (s.State != StructureState.Complete) sb.Append("[X] cancel (full refund)");
         else if (!def.IsCore) sb.Append("[X] salvage: get back ").Append(Amounts(Surface.SalvageValue(s.DefId), false));
         _hud.ShowDetail(def.Name, status, sb.ToString().TrimEnd());

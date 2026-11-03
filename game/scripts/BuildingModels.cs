@@ -24,6 +24,7 @@ public static class BuildingModels
         "storage_container" => StorageContainer(owner),
         "refinery" => Refinery(owner),
         "foundry" => Foundry(owner),
+        "vehicle_bay" => VehicleBay(owner),
         "fusion_reactor" => Reactor(owner),
         "prefab_habitat" => Habitat(owner),
         _ => Generic(owner),
@@ -258,6 +259,63 @@ public static class BuildingModels
         });
         arm.AddChild(torch);
         n.AddChild(arm);
+        return n;
+    }
+
+    /// <summary>Height of the Vehicle Bay's door opening (the "Door" panel rolls up into the lintel).</summary>
+    public const float BayDoorHeight = 4f;
+
+    /// <summary>Where vehicles come out of the Vehicle Bay, in its own frame (just outside the door).</summary>
+    public static readonly Vector3 BayDoorOffset = new(0, 0, 3.4f);
+
+    /// <summary>
+    /// Vehicle Bay: a ribbed assembly hall with a wide roll-up door at the front ("Door": scale Y 1 = shut, ~0.08 = open),
+    /// a lit assembly bay inside ("WorkGlow"), a striped apron, and a control tower with a turning beacon ("Spin").
+    /// </summary>
+    private static Node3D VehicleBay(Color owner)
+    {
+        var n = new Node3D();
+        var hull = Metal(HullColour);
+        var dark = Metal(Trim, 0.35f, 0.55f);
+        var stripe = Metal(new Color(0.9f, 0.72f, 0.18f), 0.2f, 0.6f);
+        Add(n, new BoxMesh { Size = new Vector3(8.2f, 0.4f, 8.4f) }, new Vector3(0, 0.2f, 0.4f), dark);
+        // Hall: back wall, side walls, roof, leaving the front open for the door.
+        Add(n, new BoxMesh { Size = new Vector3(7.4f, 5f, 0.4f) }, new Vector3(0, 2.9f, -3f), hull);
+        foreach (var x in new[] { -3.5f, 3.5f })
+            Add(n, new BoxMesh { Size = new Vector3(0.4f, 5f, 5.2f) }, new Vector3(x, 2.9f, -0.6f), hull);
+        Add(n, new BoxMesh { Size = new Vector3(7.8f, 0.5f, 5.8f) }, new Vector3(0, 5.6f, -0.6f), hull);
+        for (var i = 0; i < 4; i++)
+            Add(n, new BoxMesh { Size = new Vector3(7.9f, 0.25f, 0.35f) }, new Vector3(0, 5.95f, -2.8f + i * 1.45f), dark);
+        // Front frame and lintel around a 5-wide door opening.
+        foreach (var x in new[] { -2.95f, 2.95f })
+            Add(n, new BoxMesh { Size = new Vector3(1.5f, 5f, 0.5f) }, new Vector3(x, 2.9f, 2f), hull);
+        Add(n, new BoxMesh { Size = new Vector3(7.4f, 1f, 0.6f) }, new Vector3(0, 4.9f, 2f), hull);
+        Add(n, new BoxMesh { Size = new Vector3(7.42f, 0.18f, 0.62f) }, new Vector3(0, 4.55f, 2f), Glow(owner, 1.8f));
+        // Roll-up door: pivot at the top of the opening, panel hanging down.
+        var door = new Node3D { Name = "Door", Position = new Vector3(0, 0.4f + BayDoorHeight, 2.05f) };
+        Add(door, new BoxMesh { Size = new Vector3(4.6f, BayDoorHeight, 0.15f) }, new Vector3(0, -BayDoorHeight / 2f, 0), Metal(new Color(0.62f, 0.64f, 0.68f), 0.6f, 0.4f));
+        for (var i = 0; i < 6; i++)
+            Add(door, new BoxMesh { Size = new Vector3(4.62f, 0.06f, 0.18f) }, new Vector3(0, -0.4f - i * 0.62f, 0), dark);
+        n.AddChild(door);
+        // Inside: an assembly cradle under lights (seen when the door is up).
+        Add(n, new BoxMesh { Size = new Vector3(4.2f, 0.3f, 3.6f) }, new Vector3(0, 0.55f, -0.8f), dark);
+        var glow = new Node3D { Name = "WorkGlow", Visible = false };
+        Add(glow, new BoxMesh { Size = new Vector3(5.6f, 0.12f, 0.6f) }, new Vector3(0, 5.2f, -0.8f), Glow(new Color(0.75f, 0.9f, 1f), 3f));
+        glow.AddChild(new OmniLight3D { LightColor = new Color(0.7f, 0.85f, 1f), LightEnergy = 2.2f, OmniRange = 9f, Position = new Vector3(0, 3.5f, -0.6f) });
+        n.AddChild(glow);
+        // Apron with guide stripes leading out of the door.
+        for (var i = 0; i < 4; i++)
+        {
+            Add(n, new BoxMesh { Size = new Vector3(0.3f, 0.04f, 0.9f) }, new Vector3(-2.1f, 0.42f, 2.8f + i * 1.15f), stripe);
+            Add(n, new BoxMesh { Size = new Vector3(0.3f, 0.04f, 0.9f) }, new Vector3(2.1f, 0.42f, 2.8f + i * 1.15f), stripe);
+        }
+        // Control tower and beacon at the back corner.
+        Add(n, new BoxMesh { Size = new Vector3(1.6f, 7.2f, 1.6f) }, new Vector3(3.6f, 3.6f, -3.4f), hull);
+        Add(n, new BoxMesh { Size = new Vector3(1.7f, 0.6f, 1.7f) }, new Vector3(3.6f, 6.4f, -3.4f), Glow(Window, 1.4f));
+        var spin = new Node3D { Name = "Spin", Position = new Vector3(3.6f, 7.5f, -3.4f) };
+        Add(spin, new BoxMesh { Size = new Vector3(1.2f, 0.25f, 0.3f) }, new Vector3(0.4f, 0, 0), Glow(new Color(1f, 0.6f, 0.15f), 3.5f));
+        Add(spin, new CylinderMesh { TopRadius = 0.2f, BottomRadius = 0.2f, Height = 0.4f }, Vector3.Zero, dark);
+        n.AddChild(spin);
         return n;
     }
 

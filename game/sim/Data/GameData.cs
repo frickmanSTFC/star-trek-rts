@@ -236,7 +236,9 @@ public sealed class GameData
                     b.TryGetProperty("cycles_per_min", out var cy) ? Num(cy) : Fix64.Zero,
                     b.TryGetProperty("requires_depleted", out var rdp) && rdp.GetBoolean(),
                     b.TryGetProperty("reopen_share", out var rs) ? Num(rs) : Fix64.Zero,
-                    Int("requires_level"));
+                    Int("requires_level"),
+                    b.TryGetProperty("produces", out var pr) ? pr.EnumerateArray().Select(x => x.GetString()!).ToList() : new List<string>(),
+                    Int("production_queue"));
             })
             .ToList();
 
@@ -323,7 +325,9 @@ public sealed class GameData
                 u.TryGetProperty("repair", out var rp)
                     ? new RepairRules(Num(rp.GetProperty("per_second")), rp.GetProperty("crew_seconds").GetInt32(),
                         Amounts(rp, "cost_per_point", $"Surface unit {Str(u, "id")} repair"))
-                    : null))
+                    : null,
+                Amounts(u, "cost", $"Surface unit {Str(u, "id")}"),
+                u.TryGetProperty("build_seconds", out var bs) ? bs.GetInt32() : 0))
             .ToList();
 
         var groundVehicles = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -450,6 +454,12 @@ public sealed class GameData
             foreach (var r in b.Recipes)
                 if (r.In.Count == 0 || r.Out.Count == 0 || r.In.Concat(r.Out).Any(a => a.Amount <= Fix64.Zero || (power != null && a.Resource == power.Index)))
                     problems.Add($"Build menu: {id} recipe needs positive in and out amounts, and no {PowerResource}.");
+            foreach (var unit in b.Produces)
+            {
+                if (!_surfaceUnits.TryGetValue(unit, out var ud)) problems.Add($"Build menu: {id} produces unknown surface unit '{unit}'.");
+                else if (ud.BuildSeconds < 1 || ud.Cost.Count == 0) problems.Add($"Surface unit {unit}: {id} builds it, so it needs cost and build_seconds.");
+            }
+            if (b.IsFactory && b.ProductionQueue < 1) problems.Add($"Build menu: {id} produces units but has no production_queue.");
             if (b.RequiresLevel > 0 && !seen.Any(c => _buildings[c].Level >= b.RequiresLevel))
                 problems.Add($"Build menu: {id} needs a level {b.RequiresLevel} core, but the upgrade line doesn't reach it.");
         }

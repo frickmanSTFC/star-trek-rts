@@ -97,6 +97,11 @@ layer above it once the surface game is fun.
   mine, and drives slower the worse the damage (down to 40% speed). Repair: drive it onto the Colony Hub's tile (F, or
   right-click the hub); it parks on the **repair pad** beside the hub, two crew walk out of the hub and weld it,
   restoring 5 integrity a second for 1 duranium a point; repair pauses if you can't pay.
+- **Vehicle Bay** (built 2026-11-03): a surface building (180 duranium, 60 tritanium, uses power) that assembles
+  survey rovers (60 duranium, 20 s) and mining crawlers (150 duranium + 50 tritanium, 45 s), one at a time with up
+  to 5 orders queued, paid when ordered. Select it and the command card shows its orders; Backspace cancels the
+  last order for a full refund. The door rolls up and the vehicle drives out beside the bay. Low power slows
+  assembly; an idle bay draws no power; salvaging a bay refunds its unbuilt orders in full.
 - **Bases:** a colony core (the hub and its upgrades) plus the buildings in its radius. Each base has its own
   build queues and **power budget** (decided 2026-11-02): energy is not stockpiled on a surface; buildings supply or
   use power, and when use exceeds supply every power user at that base slows to supply ÷ use.

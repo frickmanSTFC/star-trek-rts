@@ -46,6 +46,7 @@ public partial class PlanetView : Node3D
     private readonly Dictionary<int, Label3D> _unitLabels = new();
     private readonly Dictionary<int, Node3D> _pods = new();
     private readonly Dictionary<int, long> _seenBreak = new();
+    private readonly Dictionary<int, float> _doorOpen = new();
     private readonly Dictionary<int, CrewVisual> _crews = new();
 
     /// <summary>The two repair crew members working on one unit, and where they walk back to.</summary>
@@ -799,11 +800,13 @@ public partial class PlanetView : Node3D
                     StructureStatus.Depleted => "Deposit used up",
                     StructureStatus.LowPower => "Low power",
                     StructureStatus.StorageFull => "Storage full",
+                    StructureStatus.NoInput when _sim.Data.Building(s.DefId).IsFactory => "",
                     StructureStatus.NoInput => s.DefId == "refinery" ? "Idle: no ore" : "Idle: no input",
                     _ => "",
                 };
             v.Label.Modulate = s.UpgradingTo != null ? new Color(0.6f, 0.85f, 1f) : new Color(1f, 0.55f, 0.35f);
             var working = s.Status is StructureStatus.Working or StructureStatus.LowPower;
+            if (_sim.Data.Building(s.DefId).IsFactory) AnimateBay(s, v, working, delta);
             if (working && v.Model.GetNodeOrNull<Node3D>("Spin") is { } spin)
                 spin.RotateY(delta * (s.Status == StructureStatus.LowPower ? 1f : 2.5f));
         }
@@ -905,6 +908,15 @@ public partial class PlanetView : Node3D
                     model.Basis = model.Basis.Orthonormalized().Slerp(target, Mathf.Min(1f, delta * 8f));
                 }
             }
+            var rolled = RollOutFrom(u, pos, alpha, out var rolling);
+            if (rolling)
+            {
+                if (model.Position == Vector3.Zero) model.Position = rolled; // just created: start at the door, not the map origin
+                var heading = (rolled - model.Position) with { Y = 0 };
+                if (heading.LengthSquared() > 0.0004f)
+                    model.Basis = model.Basis.Orthonormalized().Slerp(Basis.LookingAt(heading.Normalized(), Vector3.Up), Mathf.Min(1f, delta * 8f));
+                pos = rolled;
+            }
             model.Position = pos + new Vector3(0, 0.1f, 0);
             if (model.GetNodeOrNull<Node3D>("Selected") is { } ring) ring.Visible = SelectedUnits.Contains(u.Id);
             if (model.GetNodeOrNull<Node3D>("Dish") is { } dish) dish.RotateY(delta * (moving ? 3f : 1f));
@@ -941,6 +953,52 @@ public partial class PlanetView : Node3D
             foreach (var p in _crews[id].People) p.QueueFree();
             _crews.Remove(id);
         }
+    }
+
+    // ---------------------------------------------------------------- vehicle bay (render-only)
+
+    private const float RollOutSeconds = 2.6f;
+
+    /// <summary>
+    /// Vehicle Bay: the assembly lights come on while it works, the label shows the order's progress, and the door
+    /// rolls up just before a vehicle is done and stays up while it drives out.
+    /// </summary>
+    private void AnimateBay(SurfaceStructure s, StructureVisual v, bool working, float delta)
+    {
+        var fraction = _surface.ProductionFraction(s).ToFloat();
+        if (working && s.Production.Count > 0 && s.UpgradingTo == null)
+        {
+            var name = _sim.Data.GroundVehicleNames.GetValueOrDefault(s.Production[0], s.Production[0]);
+            v.Label.Text = $"Assembling {name} {Mathf.FloorToInt(fraction * 100)}%" + (s.Status == StructureStatus.LowPower ? " (low power)" : "");
+            v.Label.Modulate = new Color(0.6f, 0.85f, 1f);
+        }
+        if (v.Model.GetNodeOrNull<Node3D>("WorkGlow") is { } glow) glow.Visible = working;
+
+        var leaving = false;
+        foreach (var u in _surface.Units)
+            if (u.BuiltAtTile == s.Tile && u.BuiltAtTick >= 0 && (_sim.Tick - u.BuiltAtTick) < RollOutSeconds * Simulation.TickRate) leaving = true;
+        var target = leaving || (working && fraction > 0.85f) ? 1f : 0f;
+        var open = _doorOpen.GetValueOrDefault(s.Id);
+        open = Mathf.MoveToward(open, target, delta / 0.9f);
+        _doorOpen[s.Id] = open;
+        if (v.Model.GetNodeOrNull<Node3D>("Door") is { } door) door.Scale = new Vector3(1, Mathf.Lerp(1f, 0.08f, Mathf.SmoothStep(0f, 1f, open)), 1);
+    }
+
+    /// <summary>Just after rolling out of a bay, a vehicle drives from the door to its tile instead of appearing there.</summary>
+    private Vector3 RollOutFrom(SurfaceUnit u, Vector3 spot, float alpha, out bool rolling)
+    {
+        rolling = false;
+        if (u.BuiltAtTick < 0) return spot;
+        var age = (_sim.Tick - u.BuiltAtTick + alpha) / Simulation.TickRate;
+        if (age >= RollOutSeconds || u.Path.Count > 0 || u.Mode != UnitMode.Mobile) return spot;
+        var bay = _surface.StructureAt(u.BuiltAtTile);
+        if (bay == null) return spot;
+        rolling = true;
+        var door = TileCentre(bay.Tile) + new Basis(Vector3.Up, Mathf.DegToRad(-60f * bay.Facing)) * BuildingModels.BayDoorOffset;
+        var inside = TileCentre(bay.Tile) + new Basis(Vector3.Up, Mathf.DegToRad(-60f * bay.Facing)) * new Vector3(0, 0, -0.8f);
+        var t = age / RollOutSeconds;
+        // First out through the door, then on to the tile it was given.
+        return t < 0.35f ? inside.Lerp(door, Mathf.SmoothStep(0f, 1f, t / 0.35f)) : door.Lerp(spot, Mathf.SmoothStep(0f, 1f, (t - 0.35f) / 0.65f));
     }
 
     // ---------------------------------------------------------------- breakdowns and repair (render-only)

@@ -87,6 +87,11 @@ public sealed class SurfaceUnit
     /// <summary>On the pad but the player can't pay for the next repair step.</summary>
     public bool RepairWaiting { get; internal set; }
 
+    /// <summary>Tick it rolled out of a Vehicle Bay (-1 = came with the landing), and that bay's tile.</summary>
+    public long BuiltAtTick { get; internal set; } = -1;
+
+    public int BuiltAtTile { get; internal set; } = -1;
+
     internal SurfaceUnit(int id, int owner, string defId, Fix64 speedPerTick, int surveyRadius, int tile)
     {
         Id = id;
@@ -118,6 +123,8 @@ public sealed class SurfaceUnit
         h.Add(BrokeAtTick);
         h.Add(RepairTicks);
         h.Add(RepairWaiting);
+        h.Add(BuiltAtTick);
+        h.Add(BuiltAtTile);
     }
 }
 
@@ -185,7 +192,7 @@ public enum StructureStatus
     /// <summary>A mine with nowhere to put what it digs: storage is full.</summary>
     StorageFull,
 
-    /// <summary>A refinery or foundry with nothing in stock to work on.</summary>
+    /// <summary>A refinery or foundry with nothing in stock to work on, or a Vehicle Bay with no orders.</summary>
     NoInput,
 }
 
@@ -216,6 +223,14 @@ public sealed class SurfaceStructure
     /// <summary>Ticks of construction done so far.</summary>
     public int BuildTicks { get; internal set; }
 
+    /// <summary>Unit orders at a Vehicle Bay, the one being assembled first (all already paid for).</summary>
+    public IReadOnlyList<string> Production => _production;
+
+    /// <summary>Work done on the first order, in ticks at full power.</summary>
+    public Fix64 ProductionProgress { get; internal set; }
+
+    internal readonly List<string> _production = new();
+
     public StructureStatus Status { get; internal set; }
 
     internal SurfaceStructure(int id, int owner, string defId, int tile, int facing, StructureState state, int baseId)
@@ -242,6 +257,9 @@ public sealed class SurfaceStructure
         h.Add(BaseId);
         h.Add(UpgradingTo ?? "");
         h.Add(UpgradeTicks);
+        h.Add(_production.Count);
+        foreach (var p in _production) h.Add(p);
+        h.Add(ProductionProgress);
     }
 }
 
