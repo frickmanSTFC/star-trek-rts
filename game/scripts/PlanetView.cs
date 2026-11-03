@@ -62,6 +62,7 @@ public partial class PlanetView : Node3D
     private StandardMaterial3D _hologram = null!;
     private MeshInstance3D _rangeRing = null!;
     private int _surveyedCount = -1;
+    private int _spentCount = -1;
     private LandingPhase _lastPhase = (LandingPhase)(-1);
 
     public void Build(Simulation sim, int localPlayer)
@@ -172,11 +173,18 @@ public partial class PlanetView : Node3D
     {
         var me = _surface.Players[_localPlayer];
         var surveyed = 0;
-        foreach (var s in me.Surveyed)
-            if (s) surveyed++;
-        var vision = VisionSignature();
-        if (surveyed != _surveyedCount || me.Phase != _lastPhase || vision != _visionSignature)
+        var spent = 0; // surveyed deposits that are used up: redraw their markers when one runs out (or is reopened)
+        var map = _surface.Map;
+        for (var t = 0; t < me.Surveyed.Length; t++)
         {
+            if (!me.Surveyed[t]) continue;
+            surveyed++;
+            if (map.IsDepleted(t)) spent++;
+        }
+        var vision = VisionSignature();
+        if (surveyed != _surveyedCount || spent != _spentCount || me.Phase != _lastPhase || vision != _visionSignature)
+        {
+            _spentCount = spent;
             if (me.Phase == LandingPhase.Landed && _lastPhase == LandingPhase.Descending) Dust(TileCentre(me.LandingTile));
             _surveyedCount = surveyed;
             _lastPhase = me.Phase;
@@ -592,20 +600,25 @@ public partial class PlanetView : Node3D
         if (me.Phase == LandingPhase.Descending) See(me.LandingTile, 2);
     }
 
-    /// <summary>A small cluster of glowing crystals on every surveyed deposit (dim when out of sight).</summary>
+    /// <summary>
+    /// A small cluster of glowing crystals on every surveyed deposit (dim when out of sight). Used-up deposits
+    /// shrink to small grey stubs, so they no longer look mineable but can still be found for a Deep-Core Mine.
+    /// </summary>
     private void PlaceDeposits(SurfacePlayer me)
     {
         var map = _surface.Map;
         var tiles = new List<int>();
         for (var t = 0; t < map.Grid.Count; t++)
-            if (me.Surveyed[t] && map.DepositResource[t] >= 0 && map.DepositAmount[t] > FinalFrontier.Sim.Math.Fix64.Zero) tiles.Add(t);
+            if (me.Surveyed[t] && map.DepositResource[t] >= 0) tiles.Add(t);
         _deposits.InstanceCount = tiles.Count * 3;
         for (var i = 0; i < tiles.Count; i++)
         {
             var t = tiles[i];
             var id = _sim.Data.Resources[map.DepositResource[t]].Id;
-            var size = Mathf.Clamp(map.DepositAmount[t].ToFloat() / 400f, 1f, 2.2f);
-            var colour = (Icons.ResourceColors.TryGetValue(id, out var c) ? c : new Color(0.8f, 0.6f, 1f)).SrgbToLinear();
+            var spent = map.IsDepleted(t);
+            var size = spent ? 0.45f : Mathf.Clamp(map.DepositAmount[t].ToFloat() / 400f, 1f, 2.2f);
+            var colour = spent ? new Color(0.09f, 0.085f, 0.08f)
+                : (Icons.ResourceColors.TryGetValue(id, out var c) ? c : new Color(0.8f, 0.6f, 1f)).SrgbToLinear();
             colour.A = FogAt(t) == Fog.Visible ? 1f : 0.3f;
             var basePos = TileCentre(t) + new Vector3(6.5f, 0, -3.5f);
             for (var k = 0; k < 3; k++)
