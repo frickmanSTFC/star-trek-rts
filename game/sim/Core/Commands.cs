@@ -33,5 +33,8 @@ public sealed record MineCommand(int Player, int UnitId, int Tile) : Command(Pla
 /// <summary>Fold up deployed mining crawlers so they can drive again.</summary>
 public sealed record PackUpCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
 
+/// <summary>Send damaged units to the nearest colony core's repair pad; repair starts when they get there.</summary>
+public sealed record RepairCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
+
 /// <summary>Take down a finished building (not a colony core) for part of its cost back; frees the tile.</summary>
 public sealed record SalvageCommand(int Player, int StructureId) : Command(Player);

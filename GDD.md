@@ -91,6 +91,12 @@ layer above it once the surface game is fun.
   flies home as a cargo pod to the nearest storage building (vault, container or refinery); farther = longer flight
   (3 tiles/s). It waits when storage is full, and folds up when the deposit runs out. F unfurls / packs up; a move
   order packs it up first.
+- **Breakdowns and repair** (decided 2026-11-03): while digging, a crawler has a slight chance of breaking down
+  (about 5% per minute of mining). Weighted severities: minor fault (70%, 10–25 damage), major breakdown (22%, 30–55)
+  or an explosion (8%, 60–90, loses the load in the hopper). Integrity runs 0–100. A broken crawler folds up, can't
+  mine, and drives slower the worse the damage (down to 40% speed). Repair: drive it onto the Colony Hub's tile (F, or
+  right-click the hub); it parks on the **repair pad** beside the hub, two crew walk out of the hub and weld it,
+  restoring 5 integrity a second for 1 duranium a point; repair pauses if you can't pay.
 - **Bases:** a colony core (the hub and its upgrades) plus the buildings in its radius. Each base has its own
   build queues and **power budget** (decided 2026-11-02): energy is not stockpiled on a surface; buildings supply or
   use power, and when use exceeds supply every power user at that base slows to supply ÷ use.

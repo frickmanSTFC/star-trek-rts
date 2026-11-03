@@ -208,6 +208,7 @@ public sealed class Simulation
             case MineCommand:
             case PackUpCommand:
             case SalvageCommand:
+            case RepairCommand:
                 break; // surface commands with no surface loaded: ignore
             default:
                 throw new NotSupportedException($"Unhandled command {command.GetType().Name}.");

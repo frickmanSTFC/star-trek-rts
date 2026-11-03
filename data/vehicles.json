@@ -123,7 +123,7 @@
     { "id": "cardassian_patrol_skimmer", "name": "Cardassian Patrol Skimmer", "faction": "cardassian", "source": "original",
       "role": "occupation_patrol", "abilities": ["suppress_resistance"] },
     { "id": "mining_crawler", "name": "Mining Crawler", "faction": "any", "source": "original",
-      "role": "economy", "abilities": ["mobile_mining", "prospect_deposit"], "notes": "One lands with the colony pod. Drives to a deposit, unfurls and mines it anywhere on the map, sending each full hopper home by cargo pod. Surface stats in surfaces.json." },
+      "role": "economy", "abilities": ["mobile_mining", "prospect_deposit"], "notes": "One lands with the colony pod. Drives to a deposit, unfurls and mines it anywhere on the map, sending each full hopper home by cargo pod. Can break down while mining (minor fault to explosion) and must be repaired on the Colony Hub's repair pad. Surface stats in surfaces.json." },
     { "id": "terraforming_rover", "name": "Terraforming Rover", "faction": "any", "source": "original",
       "role": "economy", "abilities": ["speed_terraform_progress"] },
     { "id": "survey_rover", "name": "Survey Rover", "faction": "any", "source": "original",

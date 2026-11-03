@@ -310,7 +310,20 @@ public sealed class GameData
                 u.TryGetProperty("extract_per_min", out var ex) ? Num(ex) : Fix64.Zero,
                 u.TryGetProperty("hopper", out var hop) ? Num(hop) : Fix64.Zero,
                 u.TryGetProperty("deploy_seconds", out var dep) ? dep.GetInt32() : 0,
-                u.TryGetProperty("pod_speed", out var pod) ? Num(pod) : Fix64.Zero))
+                u.TryGetProperty("pod_speed", out var pod) ? Num(pod) : Fix64.Zero,
+                u.TryGetProperty("breakdown", out var br)
+                    ? new BreakdownRules(Num(br.GetProperty("chance_per_min")), Num(br.GetProperty("slowest_drive")),
+                        br.GetProperty("severities").EnumerateArray().Select(v =>
+                        {
+                            var dmg = v.GetProperty("damage");
+                            return new BreakdownSeverity(Str(v, "id"), Str(v, "name"), v.GetProperty("weight").GetInt32(),
+                                dmg[0].GetInt32(), dmg[1].GetInt32(), v.TryGetProperty("loses_load", out var ll) && ll.GetBoolean());
+                        }).ToList())
+                    : null,
+                u.TryGetProperty("repair", out var rp)
+                    ? new RepairRules(Num(rp.GetProperty("per_second")), rp.GetProperty("crew_seconds").GetInt32(),
+                        Amounts(rp, "cost_per_point", $"Surface unit {Str(u, "id")} repair"))
+                    : null))
             .ToList();
 
         var groundVehicles = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -460,6 +473,17 @@ public sealed class GameData
             if (u.Speed <= Fix64.Zero) problems.Add($"Surface unit {u.Id}: speed must be positive.");
             if (u.CanMine && (u.Hopper <= Fix64.Zero || u.PodSpeed <= Fix64.Zero || u.DeploySeconds < 1))
                 problems.Add($"Surface unit {u.Id}: a miner needs hopper, pod_speed and deploy_seconds.");
+            if (u.Breakdown is { } b)
+            {
+                if (u.Repair == null) problems.Add($"Surface unit {u.Id}: it can break down, so it needs repair rules.");
+                if (b.ChancePerMinute < Fix64.Zero) problems.Add($"Surface unit {u.Id}: breakdown chance can't be negative.");
+                if (b.SlowestDrive <= Fix64.Zero || b.SlowestDrive > Fix64.One) problems.Add($"Surface unit {u.Id}: slowest_drive must be in (0, 1].");
+                if (b.Severities.Count == 0 || b.Severities.Any(v => v.Weight < 1)) problems.Add($"Surface unit {u.Id}: breakdown needs severities with positive weights.");
+                foreach (var v in b.Severities)
+                    if (v.DamageMin < 1 || v.DamageMax < v.DamageMin || v.DamageMax > 100) problems.Add($"Surface unit {u.Id} breakdown {v.Id}: damage must be within 1..100.");
+            }
+            if (u.Repair is { } r && (r.PerSecond <= Fix64.Zero || r.CrewSeconds < 0 || r.CostPerPoint.Any(a => a.Amount < Fix64.Zero)))
+                problems.Add($"Surface unit {u.Id}: repair needs a positive per_second, crew_seconds of 0 or more and costs of 0 or more.");
         }
     }
 

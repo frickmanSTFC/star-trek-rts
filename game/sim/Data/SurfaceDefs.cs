@@ -44,7 +44,20 @@ public sealed record LandingRules(
 /// is a mining crawler: it unfurls on a deposit in DeploySeconds (and packs up just as long), fills a hopper of
 /// Hopper, and sends each full load home as a cargo pod flying PodSpeed tiles per second.
 /// </summary>
-public sealed record SurfaceUnitDef(string Id, Fix64 Speed, int SurveyRadius, Fix64 ExtractPerMinute, Fix64 Hopper, int DeploySeconds, Fix64 PodSpeed)
+public sealed record SurfaceUnitDef(string Id, Fix64 Speed, int SurveyRadius, Fix64 ExtractPerMinute, Fix64 Hopper, int DeploySeconds, Fix64 PodSpeed,
+    BreakdownRules? Breakdown, RepairRules? Repair)
 {
     public bool CanMine => ExtractPerMinute > Fix64.Zero;
 }
+
+/// <summary>One kind of breakdown: picked by Weight, knocks DamageMin..DamageMax off integrity; LosesLoad empties the hopper.</summary>
+public sealed record BreakdownSeverity(string Id, string Name, int Weight, int DamageMin, int DamageMax, bool LosesLoad);
+
+/// <summary>
+/// How often a working miner breaks (ChancePerMinute while digging), how bad it gets, and how slowly a broken one
+/// drives (SlowestDrive = share of its speed at 0 integrity, rising to full speed at 100).
+/// </summary>
+public sealed record BreakdownRules(Fix64 ChancePerMinute, Fix64 SlowestDrive, IReadOnlyList<BreakdownSeverity> Severities);
+
+/// <summary>Repair at a colony core: crew walk out for CrewSeconds, then PerSecond integrity a second, paying CostPerPoint for each point.</summary>
+public sealed record RepairRules(Fix64 PerSecond, int CrewSeconds, IReadOnlyList<ResourceAmount> CostPerPoint);

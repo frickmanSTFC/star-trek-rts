@@ -53,6 +53,7 @@ public partial class PlanetDriver : Node3D
     private readonly HashSet<int> _lowPowerBases = new();
     private readonly Dictionary<int, (UnitMode Mode, MiningStatus Status)> _seenUnits = new();
     private bool _storageFull;
+    private readonly Dictionary<int, (long BrokeAt, bool Broken)> _seenCondition = new();
     private bool[] _knownDeposits = System.Array.Empty<bool>();
 
     // Camera: focus point on the ground, distance, and yaw in 90° steps (Q / E), all eased.
@@ -189,6 +190,23 @@ public partial class PlanetDriver : Node3D
                 }
             }
             _seenUnits[u.Id] = now;
+
+            var condition = (u.BrokeAtTick, u.Broken);
+            if (_seenCondition.TryGetValue(u.Id, out var before) && before != condition)
+            {
+                var name = UnitName(u);
+                var rules = _data.SurfaceUnit(u.DefId).Breakdown;
+                if (u.BrokeAtTick != before.BrokeAt && rules != null && u.Breakdown >= 0)
+                {
+                    var sev = rules.Severities[u.Breakdown];
+                    var text = sev.LosesLoad
+                        ? $"{name}: {sev.Name.ToLowerInvariant()}! Its load is lost ({Mathf.FloorToInt(u.Integrity.ToFloat())}% integrity) — send it to the Colony Hub for repair (F)"
+                        : $"{name}: {sev.Name.ToLowerInvariant()} ({Mathf.FloorToInt(u.Integrity.ToFloat())}% integrity) — send it to the Colony Hub for repair (F)";
+                    _hud.PushEvent(text, u.Breakdown >= 2 ? new Color(1f, 0.42f, 0.32f) : warn);
+                }
+                if (before.Broken && !u.Broken) _hud.PushEvent($"{name} repaired and ready to mine", new Color(0.56f, 0.83f, 0.69f));
+            }
+            _seenCondition[u.Id] = condition;
         }
 
         if (Me.Phase == LandingPhase.Landed)
@@ -301,11 +319,19 @@ public partial class PlanetDriver : Node3D
     private IEnumerable<SurfaceUnit> SelectedCrawlers() =>
         _view.SelectedUnits.OrderBy(id => id).Select(Surface.FindUnit).Where(u => u != null && _data.SurfaceUnit(u.DefId).CanMine).Select(u => u!);
 
-    /// <summary>F: selected crawlers that are folded unfurl where they stand; deployed ones pack up.</summary>
+    /// <summary>F: broken crawlers head for repair; folded ones unfurl where they stand; deployed ones pack up.</summary>
     private void ToggleDeploy()
     {
         var crawlers = SelectedCrawlers().ToList();
         if (crawlers.Count == 0) return;
+        var broken = crawlers.Where(u => u.Broken).ToList();
+        if (broken.Count > 0)
+        {
+            if (Surface.NearestRepairPad(LocalPlayer, broken[0].Tile) == null) _hud.PushEvent("No colony core to repair at", new Color(1f, 0.7f, 0.42f));
+            else _sim.Schedule(_sim.Tick + InputDelayTicks, new RepairCommand(LocalPlayer, broken.Select(u => u.Id).ToList()));
+            crawlers = crawlers.Except(broken).ToList();
+            if (crawlers.Count == 0) return;
+        }
         var pack = crawlers.Where(u => u.Mode is UnitMode.Deployed or UnitMode.Deploying).Select(u => u.Id).ToList();
         if (pack.Count > 0)
         {
@@ -318,6 +344,12 @@ public partial class PlanetDriver : Node3D
             if (problem == null) _sim.Schedule(_sim.Tick + InputDelayTicks, new MineCommand(LocalPlayer, u.Id, u.Tile));
             else _hud.PushEvent($"{UnitName(u)} can't unfurl here: {problem}", new Color(1f, 0.7f, 0.42f));
         }
+    }
+
+    private string BreakdownName(SurfaceUnit u)
+    {
+        var rules = _data.SurfaceUnit(u.DefId).Breakdown;
+        return rules != null && u.Breakdown >= 0 ? rules.Severities[u.Breakdown].Name.ToLowerInvariant() : "fault";
     }
 
     private string UnitName(SurfaceUnit u) => _data.GroundVehicleNames.GetValueOrDefault(u.DefId, u.DefId);
@@ -494,7 +526,7 @@ public partial class PlanetDriver : Node3D
         var landed = Me.Phase == LandingPhase.Landed;
         _hud.ShowHints(Me.Phase == LandingPhase.InOrbit
             ? "Left-click: land  ·  WASD / middle-drag pan  ·  Q/E turn  ·  wheel zoom"
-            : $"Left-click select  ·  right-click drive / mine  ·  F unfurl / pack up  ·  1–{_data.BuildMenu.Count} build  ·  R rotate  ·  U upgrade  ·  X cancel / salvage  ·  Tab next base  ·  Q/E turn  ·  H home");
+            : $"Left-click select  ·  right-click drive / mine  ·  F unfurl / pack up / repair  ·  1–{_data.BuildMenu.Count} build  ·  R rotate  ·  U upgrade  ·  X cancel / salvage  ·  Tab next base  ·  Q/E turn  ·  H home");
 
         _hud.ShowBanner(Me.Phase switch
         {
@@ -591,7 +623,13 @@ public partial class PlanetDriver : Node3D
         var def = _data.SurfaceUnit(u.DefId);
         var map = Surface.Map;
         var depositName = map.DepositResource[u.Tile] >= 0 ? _data.Resources[map.DepositResource[u.Tile]].Name : "";
-        var status = u.Mode switch
+        var repairing = Surface.IsRepairing(u);
+        var status = u.Broken && repairing
+            ? u.RepairWaiting ? "Repair waiting: not enough resources"
+                : Surface.CrewOut(u) < Fix64.One ? "Repair crew on the way" : $"Repairing: {Mathf.FloorToInt(u.Integrity.ToFloat())}%"
+            : u.Broken && u.Path.Count > 0 ? "Broken down: driving to the repair pad"
+            : u.Broken ? $"Broken down: {BreakdownName(u)}"
+            : u.Mode switch
         {
             UnitMode.Deploying => $"Unfurling {Mathf.RoundToInt(Surface.DeployFraction(u).ToFloat() * 100)}%",
             UnitMode.Packing => $"Packing up {Mathf.RoundToInt((1f - Surface.DeployFraction(u).ToFloat()) * 100)}%",
@@ -606,6 +644,14 @@ public partial class PlanetDriver : Node3D
             _ => "Folded up, idle",
         };
         var sb = new StringBuilder();
+        sb.Append("Integrity ").Append(Mathf.FloorToInt(u.Integrity.ToFloat())).Append('%');
+        if (u.Broken)
+        {
+            var cost = Surface.RepairCost(u);
+            sb.Append("  ·  repair costs ").Append(cost.Count == 0 ? "nothing" : Amounts(cost, false));
+            sb.Append("  ·  drives at ").Append(Mathf.RoundToInt(Surface.SpeedPerTick(u).ToFloat() / u.SpeedPerTick.ToFloat() * 100)).Append("% speed");
+        }
+        sb.AppendLine();
         var load = u.HopperResource >= 0 ? $" {_data.Resources[u.HopperResource].Name}" : "";
         sb.Append("Hopper ").Append(Hud.Whole(u.Hopper)).Append(" / ").Append(Hud.Whole(def.Hopper)).Append(load);
         if (u.Mode != UnitMode.Mobile && depositName.Length > 0)
@@ -619,7 +665,8 @@ public partial class PlanetDriver : Node3D
             var flight = Mathf.Max(1, Mathf.CeilToInt(tiles / def.PodSpeed.ToFloat()));
             sb.Append("Loads fly to ").Append(_data.Building(depot.DefId).Name).Append(" (").Append(tiles).Append(" tiles, ~").Append(flight).AppendLine(" s by cargo pod)");
         }
-        sb.Append("Right-click a deposit: drive there and unfurl  ·  F ").Append(u.Mode == UnitMode.Mobile ? "unfurl here" : "pack up");
+        if (u.Broken) sb.Append(repairing ? "The repair crew fix it on the pad beside the Colony Hub" : "F: drive to the Colony Hub's repair pad (or right-click the hub)");
+        else sb.Append("Right-click a deposit: drive there and unfurl  ·  F ").Append(u.Mode == UnitMode.Mobile ? "unfurl here" : "pack up");
         _hud.ShowDetail(UnitName(u), status, sb.ToString());
     }
 

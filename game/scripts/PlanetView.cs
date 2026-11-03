@@ -45,6 +45,16 @@ public partial class PlanetView : Node3D
     private readonly Dictionary<int, Node3D> _rovers = new();
     private readonly Dictionary<int, Label3D> _unitLabels = new();
     private readonly Dictionary<int, Node3D> _pods = new();
+    private readonly Dictionary<int, long> _seenBreak = new();
+    private readonly Dictionary<int, CrewVisual> _crews = new();
+
+    /// <summary>The two repair crew members working on one unit, and where they walk back to.</summary>
+    private sealed class CrewVisual
+    {
+        public required Node3D[] People;
+        public Vector3 Door;
+        public float Back = -1f; // walking back in: 0..1, or -1 while out at work
+    }
     private float _time;
 
     private sealed class StructureVisual
@@ -873,14 +883,20 @@ public partial class PlanetView : Node3D
                 _unitLabels[u.Id] = label;
             }
 
-            var from = TileCentre(u.Tile);
+            var from = UnitSpot(u, u.Tile, def.CanMine);
             var pos = from;
             var moving = u.Path.Count > 0 && u.Mode == UnitMode.Mobile;
+            if (!moving && def.CanMine && PadCore(u, u.Tile) is { } padCore)
+            {
+                // Parked on the repair pad: line up with it.
+                var target = new Basis(Vector3.Up, Mathf.DegToRad(-60f * padCore.Facing + BuildingModels.RepairPadYaw));
+                model.Basis = model.Basis.Orthonormalized().Slerp(target, Mathf.Min(1f, delta * 4f));
+            }
             if (moving)
             {
-                var to = TileCentre(u.Path[0]);
+                var to = UnitSpot(u, u.Path[0], def.CanMine);
                 var cost = _surface.Map.Terrain(u.Path[0]).MoveCost;
-                var f = Mathf.Clamp((u.Progress.ToFloat() + u.SpeedPerTick.ToFloat() * alpha) / cost, 0f, 1f);
+                var f = Mathf.Clamp((u.Progress.ToFloat() + _surface.SpeedPerTick(u).ToFloat() * alpha) / cost, 0f, 1f);
                 pos = from.Lerp(to, f);
                 var facing = (to - from) with { Y = 0 };
                 if (facing.LengthSquared() > 0.001f)
@@ -897,7 +913,9 @@ public partial class PlanetView : Node3D
             if (def.CanMine)
             {
                 AnimateCrawler(model, u, def, alpha, delta);
-                text = u.MiningStatus switch
+                ShowCondition(model, u, def, delta);
+                UpdateCrew(u, model, alpha, delta);
+                text = u.Broken ? RepairLabel(u) : u.MiningStatus switch
                 {
                     MiningStatus.StorageFull => "Storage full",
                     MiningStatus.NoDestination => "No storage to send to",
@@ -916,6 +934,213 @@ public partial class PlanetView : Node3D
             _rovers.Remove(id);
             _unitLabels[id].QueueFree();
             _unitLabels.Remove(id);
+        }
+        foreach (var id in new List<int>(_crews.Keys))
+        {
+            if (alive.Contains(id)) continue;
+            foreach (var p in _crews[id].People) p.QueueFree();
+            _crews.Remove(id);
+        }
+    }
+
+    // ---------------------------------------------------------------- breakdowns and repair (render-only)
+
+    /// <summary>The unit's own finished colony core on this tile (it has the repair pad), or null.</summary>
+    private SurfaceStructure? PadCore(SurfaceUnit u, int tile)
+    {
+        var s = _surface.StructureAt(tile);
+        return s != null && s.Owner == u.Owner && s.State == StructureState.Complete && _sim.Data.Building(s.DefId).IsCore ? s : null;
+    }
+
+    private Vector3 CoreLocal(SurfaceStructure core, Vector3 local) =>
+        TileCentre(core.Tile) + new Basis(Vector3.Up, Mathf.DegToRad(-60f * core.Facing)) * local;
+
+    /// <summary>Where a unit stands on a tile: crawlers on their own colony core's tile park on its repair pad.</summary>
+    private Vector3 UnitSpot(SurfaceUnit u, int tile, bool miner) =>
+        miner && PadCore(u, tile) is { } core ? CoreLocal(core, BuildingModels.RepairPadOffset) : TileCentre(tile);
+
+    private string RepairLabel(SurfaceUnit u)
+    {
+        if (!_surface.IsRepairing(u)) return "Broken down";
+        if (u.RepairWaiting) return "Repair waiting: not enough resources";
+        if (_surface.CrewOut(u) < Fix64.One) return "Repair crew on the way";
+        return $"Repairing {Mathf.FloorToInt(u.Integrity.ToFloat())}%";
+    }
+
+    /// <summary>
+    /// While broken: sparks for a minor fault, smoke for a major breakdown, smoke and fire after an explosion
+    /// (the fire goes out once the crew start work). The bang itself plays once, when the breakdown happens.
+    /// </summary>
+    private void ShowCondition(Node3D model, SurfaceUnit u, SurfaceUnitDef def, float delta)
+    {
+        if (!_seenBreak.TryGetValue(u.Id, out var seen)) _seenBreak[u.Id] = seen = u.BrokeAtTick; // don't replay old ones
+        if (u.BrokeAtTick != seen)
+        {
+            _seenBreak[u.Id] = u.BrokeAtTick;
+            Blast(model.Position, u.Breakdown);
+        }
+        var atWork = _surface.IsRepairing(u) && _surface.CrewOut(u) >= Fix64.One;
+        var severity = u.Broken ? u.Breakdown : -1;
+        void Emit(string name, bool on)
+        {
+            if (model.GetNodeOrNull<CpuParticles3D>(name) is { } p && p.Emitting != on) p.Emitting = on;
+        }
+        Emit("Smoke", severity >= 1);
+        Emit("Sparks", severity == 0 && !atWork);
+        if (model.GetNodeOrNull<Node3D>("Fire") is { } fire)
+        {
+            fire.Visible = severity == 2 && !atWork;
+            if (fire.Visible) fire.Scale = new Vector3(1, 0.8f + 0.25f * Mathf.Sin(_time * 17f) + 0.15f * Mathf.Sin(_time * 29f), 1);
+        }
+    }
+
+    /// <summary>One-shot effect at a breakdown: a spark burst (minor), a bang and dust (major) or a fireball, debris and a shock ring (explosion).</summary>
+    private void Blast(Vector3 at, int severity)
+    {
+        var root = new Node3D { Position = at + new Vector3(0, 2.5f, 0) };
+        AddChild(root);
+        var big = severity >= 2;
+        var light = new OmniLight3D { LightColor = new Color(1f, 0.6f, 0.25f), LightEnergy = big ? 14f : severity == 1 ? 6f : 2.5f, OmniRange = big ? 45f : 22f };
+        root.AddChild(light);
+        var tween = root.CreateTween().SetParallel();
+        tween.TweenProperty(light, "light_energy", 0f, big ? 1.4 : 0.6);
+
+        // Sparks for every breakdown.
+        root.AddChild(new CpuParticles3D
+        {
+            Amount = big ? 80 : 40,
+            Lifetime = 1.1f,
+            OneShot = true,
+            Explosiveness = 1f,
+            Direction = Vector3.Up,
+            Spread = 80f,
+            InitialVelocityMin = 5f,
+            InitialVelocityMax = big ? 22f : 11f,
+            Gravity = new Vector3(0, -14f, 0),
+            Mesh = new SphereMesh { Radius = 0.07f, Height = 0.14f, RadialSegments = 4, Rings = 2, Material = new StandardMaterial3D { AlbedoColor = new Color(1f, 0.8f, 0.4f), EmissionEnabled = true, Emission = new Color(1f, 0.75f, 0.35f), EmissionEnergyMultiplier = 5f } },
+            Emitting = true,
+        });
+        if (severity >= 1)
+        {
+            var puff = BuildingModels.Puffs("Burst", Vector3.Zero, big ? new Color(0.12f, 0.1f, 0.09f) : new Color(0.55f, 0.5f, 0.42f), big ? 60 : 30, 2.6f, big ? 2f : 1.2f, big ? 4.5f : 2.6f, 0f);
+            puff.OneShot = true;
+            puff.Explosiveness = 0.9f;
+            puff.Spread = 80f;
+            puff.InitialVelocityMax = big ? 9f : 5f;
+            puff.Emitting = true;
+            root.AddChild(puff);
+        }
+        if (big)
+        {
+            // Fireball: an emissive sphere that swells and fades.
+            var fireMat = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(1f, 0.55f, 0.15f, 0.95f),
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                EmissionEnabled = true,
+                Emission = new Color(1f, 0.5f, 0.12f),
+                EmissionEnergyMultiplier = 6f,
+            };
+            var ball = new MeshInstance3D { Mesh = new SphereMesh { Radius = 1f, Height = 2f }, MaterialOverride = fireMat, Scale = Vector3.One * 0.5f };
+            root.AddChild(ball);
+            tween.TweenProperty(ball, "scale", Vector3.One * 7f, 0.55).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
+            tween.TweenProperty(fireMat, "albedo_color:a", 0f, 0.8).SetDelay(0.15);
+            tween.TweenProperty(fireMat, "emission_energy_multiplier", 0f, 0.8).SetDelay(0.15);
+
+            // Shock ring along the ground.
+            var ringMat = new StandardMaterial3D { AlbedoColor = new Color(1f, 0.85f, 0.6f, 0.8f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded };
+            var ring = new MeshInstance3D { Mesh = new TorusMesh { InnerRadius = 0.85f, OuterRadius = 1f, Rings = 32 }, MaterialOverride = ringMat, Position = new Vector3(0, -2.2f, 0) };
+            root.AddChild(ring);
+            tween.TweenProperty(ring, "scale", new Vector3(16f, 1f, 16f), 0.7).SetEase(Tween.EaseType.Out);
+            tween.TweenProperty(ringMat, "albedo_color:a", 0f, 0.7);
+
+            // Debris thrown out and falling back.
+            root.AddChild(new CpuParticles3D
+            {
+                Amount = 36,
+                Lifetime = 2f,
+                OneShot = true,
+                Explosiveness = 1f,
+                Direction = Vector3.Up,
+                Spread = 60f,
+                InitialVelocityMin = 8f,
+                InitialVelocityMax = 18f,
+                Gravity = new Vector3(0, -22f, 0),
+                AngularVelocityMin = -360f,
+                AngularVelocityMax = 360f,
+                ScaleAmountMin = 0.6f,
+                ScaleAmountMax = 1.6f,
+                Mesh = new BoxMesh { Size = new Vector3(0.35f, 0.2f, 0.5f), Material = new StandardMaterial3D { AlbedoColor = new Color(0.2f, 0.18f, 0.16f), Roughness = 0.8f } },
+                Emitting = true,
+            });
+        }
+        GetTree().CreateTimer(4.0).Timeout += root.QueueFree;
+    }
+
+    /// <summary>
+    /// The repair crew: two people walk out of the core's door to either side of the crawler, weld (sparks,
+    /// flicker) until it's fixed, then walk back in. Their walk out follows the sim's crew time.
+    /// </summary>
+    private void UpdateCrew(SurfaceUnit u, Node3D model, float alpha, float delta)
+    {
+        var repairing = _surface.IsRepairing(u);
+        _crews.TryGetValue(u.Id, out var crew);
+        if (repairing && (crew == null || crew.Back >= 0f))
+        {
+            var core = PadCore(u, u.Tile)!;
+            if (crew == null)
+            {
+                var colour = PlanetDriver.PlayerColors[u.Owner % PlanetDriver.PlayerColors.Length];
+                crew = new CrewVisual { People = new[] { BuildingModels.Crew(colour), BuildingModels.Crew(colour) } };
+                foreach (var p in crew.People) AddChild(p);
+                _crews[u.Id] = crew;
+            }
+            crew.Door = CoreLocal(core, new Vector3(0, 0, 5.8f));
+            crew.Back = -1f;
+        }
+        if (crew == null) return;
+
+        var sides = new[] { new Vector3(-2.6f, 0, 0.4f), new Vector3(2.6f, 0, -0.6f) };
+        var crewTicks = Mathf.Max(1, (_sim.Data.SurfaceUnit(u.DefId).Repair?.CrewSeconds ?? 0) * Simulation.TickRate);
+        var walkOut = repairing ? Mathf.Clamp((u.RepairTicks + alpha) / crewTicks, 0f, 1f) : 1f;
+        if (!repairing)
+        {
+            crew.Back = Mathf.Min(1f, Mathf.Max(0f, crew.Back) + delta / 1.6f);
+            if (crew.Back >= 1f)
+            {
+                foreach (var p in crew.People) p.QueueFree();
+                _crews.Remove(u.Id);
+                return;
+            }
+        }
+        for (var i = 0; i < crew.People.Length; i++)
+        {
+            var person = crew.People[i];
+            var work = model.Position + model.Basis * sides[i];
+            work.Y = model.Position.Y;
+            var t = repairing ? Mathf.SmoothStep(0f, 1f, Mathf.Clamp(walkOut * 1.15f - i * 0.15f, 0f, 1f)) : 1f - crew.Back;
+            var at = crew.Door.Lerp(work, t);
+            var walking = repairing ? t < 1f : true;
+            var faceTo = walking ? (repairing ? work : crew.Door) : model.Position;
+            person.Position = at;
+            var dir = (faceTo - at) with { Y = 0 };
+            if (dir.LengthSquared() > 0.01f) person.Basis = person.Basis.Orthonormalized().Slerp(Basis.LookingAt(dir.Normalized(), Vector3.Up), Mathf.Min(1f, delta * 10f));
+
+            // Walk cycle while moving; a slight crouch and torch work at the crawler.
+            var swing = walking ? Mathf.Sin(_time * 9f + i * 1.7f) * 30f : 0f;
+            if (person.GetNodeOrNull<Node3D>("LegL") is { } l) l.RotationDegrees = new Vector3(swing, 0, 0);
+            if (person.GetNodeOrNull<Node3D>("LegR") is { } r) r.RotationDegrees = new Vector3(-swing, 0, 0);
+            var welding = repairing && !walking && !u.RepairWaiting;
+            if (person.GetNodeOrNull<Node3D>("Arm") is { } arm)
+            {
+                arm.RotationDegrees = new Vector3(welding ? -15f + Mathf.Sin(_time * 6f + i) * 10f : 20f, 0, 0);
+                if (arm.GetNodeOrNull<Node3D>("Torch") is { } torch)
+                {
+                    if (torch.GetNodeOrNull<CpuParticles3D>("Sparks") is { } sparks && sparks.Emitting != welding) sparks.Emitting = welding;
+                    if (torch.GetNodeOrNull<Node3D>("Flame") is { } flame) flame.Visible = welding && Mathf.Sin(_time * 40f + i * 3f) > -0.6f;
+                }
+            }
         }
     }
 

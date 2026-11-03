@@ -74,6 +74,7 @@ public static class BuildingModels
         Add(n, new BoxMesh { Size = new Vector3(3.4f, 2.2f, 2.2f) }, new Vector3(0, 1.1f, -4.9f), trim);
         Add(n, new BoxMesh { Size = new Vector3(3.5f, 0.18f, 2.3f) }, new Vector3(0, 1.5f, -4.9f), Glow(owner, 1.4f));
         Add(n, new BoxMesh { Size = new Vector3(1.4f, 1.3f, 0.1f) }, new Vector3(0, 0.75f, -6.02f), Metal(new Color(0.55f, 0.5f, 0.32f), 0.7f, 0.35f));
+        RepairPad(n, owner);
         // Extra modules from level 2 up.
         for (var i = 0; i < (level - 1) * 3; i++)
         {
@@ -160,6 +161,103 @@ public static class BuildingModels
         Add(n, new CylinderMesh { TopRadius = 0.32f, BottomRadius = 0.32f, Height = 4f }, new Vector3(0, 0.6f, 1.6f), hull, new Vector3(0, 0, 90));
         Add(n, new CylinderMesh { TopRadius = 0.32f, BottomRadius = 0.32f, Height = 3.2f }, new Vector3(0, 0.6f, 0), hull, new Vector3(90, 0, 0));
         Add(n, new BoxMesh { Size = new Vector3(1.4f, 0.25f, 1.4f) }, new Vector3(0, 0.13f, 3.6f), Glow(Window, 1f));
+        return n;
+    }
+
+    /// <summary>Where the repair pad sits beside a colony core, in the core's own frame (front = +Z).</summary>
+    public static readonly Vector3 RepairPadOffset = new(9.4f, 0, 2f);
+
+    /// <summary>Which way a crawler parks on the pad (yaw in the core's frame, degrees): nose toward the front.</summary>
+    public const float RepairPadYaw = 0f;
+
+    /// <summary>Repair pad beside the hub: a hazard-striped slab, a lamp mast, a tool rack and a small jib crane.</summary>
+    private static void RepairPad(Node3D hub, Color owner)
+    {
+        var pad = new Node3D { Name = "RepairPad", Position = RepairPadOffset };
+        var slab = Metal(new Color(0.36f, 0.37f, 0.4f), 0.3f, 0.75f);
+        var stripe = Metal(new Color(0.9f, 0.72f, 0.18f), 0.2f, 0.6f);
+        var dark = Metal(new Color(0.12f, 0.12f, 0.14f), 0.2f, 0.7f);
+        Add(pad, new BoxMesh { Size = new Vector3(7.4f, 0.22f, 8.6f) }, new Vector3(0, 0.11f, 0), slab);
+        // Hazard border: alternating yellow and dark blocks along the edges.
+        for (var i = 0; i < 9; i++)
+        {
+            var m = i % 2 == 0 ? stripe : dark;
+            var z = -4f + i * 1f;
+            Add(pad, new BoxMesh { Size = new Vector3(0.4f, 0.06f, 1f) }, new Vector3(-3.5f, 0.25f, z), m);
+            Add(pad, new BoxMesh { Size = new Vector3(0.4f, 0.06f, 1f) }, new Vector3(3.5f, 0.25f, z), m);
+        }
+        for (var i = 0; i < 7; i++)
+        {
+            var m = i % 2 == 0 ? dark : stripe;
+            var x = -3f + i * 1f;
+            Add(pad, new BoxMesh { Size = new Vector3(1f, 0.06f, 0.4f) }, new Vector3(x, 0.25f, -4.1f), m);
+            Add(pad, new BoxMesh { Size = new Vector3(1f, 0.06f, 0.4f) }, new Vector3(x, 0.25f, 4.1f), m);
+        }
+        // A painted wrench mark in the middle, lit in the owner's colour.
+        Add(pad, new BoxMesh { Size = new Vector3(0.5f, 0.04f, 3.2f) }, new Vector3(0, 0.24f, 0), Glow(owner, 0.9f), new Vector3(0, 45, 0));
+        Add(pad, new CylinderMesh { TopRadius = 0.9f, BottomRadius = 0.9f, Height = 0.04f, RadialSegments = 12 }, new Vector3(0.95f, 0.24f, -0.95f), Glow(owner, 0.9f));
+        // Lamp mast at the back corner.
+        var hull = Metal(HullColour);
+        Add(pad, new CylinderMesh { TopRadius = 0.12f, BottomRadius = 0.18f, Height = 6.5f, RadialSegments = 8 }, new Vector3(3.2f, 3.25f, -3.8f), hull);
+        Add(pad, new BoxMesh { Size = new Vector3(1.2f, 0.3f, 0.6f) }, new Vector3(2.8f, 6.5f, -3.6f), Glow(new Color(1f, 0.95f, 0.85f), 2.5f));
+        pad.AddChild(new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 3f, SpotRange = 14f, SpotAngle = 50f, Position = new Vector3(2.6f, 6.3f, -3.4f), RotationDegrees = new Vector3(-70, 30, 0) });
+        // Tool rack and gas bottles on the hub side.
+        Add(pad, new BoxMesh { Size = new Vector3(0.5f, 1.6f, 2.2f) }, new Vector3(-3.4f, 1f, -2.5f), Metal(new Color(0.7f, 0.22f, 0.2f), 0.4f, 0.5f));
+        foreach (var z in new[] { 0.8f, 1.5f })
+            Add(pad, new CylinderMesh { TopRadius = 0.25f, BottomRadius = 0.25f, Height = 1.4f, RadialSegments = 8 }, new Vector3(-3.4f, 0.9f, z), Metal(new Color(0.3f, 0.55f, 0.35f), 0.5f, 0.4f));
+        // Small jib crane.
+        Add(pad, new BoxMesh { Size = new Vector3(0.3f, 5f, 0.3f) }, new Vector3(-3.2f, 2.6f, 3.6f), hull);
+        Add(pad, new BoxMesh { Size = new Vector3(3.6f, 0.3f, 0.3f) }, new Vector3(-1.5f, 5f, 3.6f), hull);
+        Add(pad, new CylinderMesh { TopRadius = 0.03f, BottomRadius = 0.03f, Height = 1.8f }, new Vector3(0.1f, 4.1f, 3.6f), dark);
+        Add(pad, new BoxMesh { Size = new Vector3(0.4f, 0.3f, 0.4f) }, new Vector3(0.1f, 3.1f, 3.6f), stripe);
+        hub.AddChild(pad);
+    }
+
+    /// <summary>
+    /// One repair crew member, about 2 units tall, front = -Z: boots, coverall in the owner's colour, helmet with
+    /// a lit visor, and a welding torch ("Torch", tip glow "Flame") held forward. "Sparks" spray from the torch tip.
+    /// </summary>
+    public static Node3D Crew(Color owner)
+    {
+        var n = new Node3D();
+        var suit = Metal(owner.Darkened(0.15f), 0.1f, 0.75f);
+        var boots = Metal(new Color(0.15f, 0.14f, 0.13f), 0.1f, 0.8f);
+        foreach (var x in new[] { -0.16f, 0.16f })
+        {
+            var leg = new Node3D { Name = x < 0 ? "LegL" : "LegR", Position = new Vector3(x, 0.95f, 0) };
+            Add(leg, new CapsuleMesh { Radius = 0.13f, Height = 0.95f }, new Vector3(0, -0.45f, 0), suit);
+            Add(leg, new BoxMesh { Size = new Vector3(0.24f, 0.16f, 0.36f) }, new Vector3(0, -0.88f, -0.05f), boots);
+            n.AddChild(leg);
+        }
+        Add(n, new CapsuleMesh { Radius = 0.27f, Height = 0.95f }, new Vector3(0, 1.32f, 0), suit);
+        Add(n, new BoxMesh { Size = new Vector3(0.5f, 0.08f, 0.34f) }, new Vector3(0, 1.1f, 0), Metal(new Color(0.85f, 0.7f, 0.2f), 0.3f, 0.5f)); // tool belt
+        Add(n, new SphereMesh { Radius = 0.21f, Height = 0.42f }, new Vector3(0, 1.98f, 0), Metal(new Color(0.92f, 0.92f, 0.9f), 0.2f, 0.4f));
+        Add(n, new BoxMesh { Size = new Vector3(0.3f, 0.12f, 0.06f) }, new Vector3(0, 1.98f, -0.19f), Glow(Window, 1.4f));
+        var arm = new Node3D { Name = "Arm", Position = new Vector3(0.3f, 1.62f, 0) };
+        Add(arm, new CapsuleMesh { Radius = 0.09f, Height = 0.7f }, new Vector3(0, -0.1f, -0.25f), suit, new Vector3(-70, 0, 0));
+        var torch = new Node3D { Name = "Torch", Position = new Vector3(0, -0.2f, -0.62f) };
+        Add(torch, new CylinderMesh { TopRadius = 0.04f, BottomRadius = 0.05f, Height = 0.45f, RadialSegments = 6 }, Vector3.Zero, Metal(Trim), new Vector3(-80, 0, 0));
+        var flame = Add(torch, new SphereMesh { Radius = 0.07f, Height = 0.14f }, new Vector3(0, 0, -0.25f), Glow(new Color(0.65f, 0.85f, 1f), 6f));
+        flame.Name = "Flame";
+        torch.AddChild(new CpuParticles3D
+        {
+            Name = "Sparks",
+            Position = new Vector3(0, 0, -0.28f),
+            Amount = 30,
+            Lifetime = 0.55f,
+            Emitting = false,
+            LocalCoords = false,
+            Direction = new Vector3(0, 0.6f, 1f),
+            Spread = 55f,
+            InitialVelocityMin = 2f,
+            InitialVelocityMax = 5f,
+            Gravity = new Vector3(0, -9f, 0),
+            ScaleAmountMin = 0.6f,
+            ScaleAmountMax = 1f,
+            Mesh = new SphereMesh { Radius = 0.035f, Height = 0.07f, RadialSegments = 4, Rings = 2, Material = Glow(new Color(1f, 0.85f, 0.45f), 5f) },
+        });
+        arm.AddChild(torch);
+        n.AddChild(arm);
         return n;
     }
 
@@ -443,6 +541,28 @@ public static class BuildingModels
             },
         };
         n.AddChild(dust);
+        n.AddChild(Puffs("Smoke", new Vector3(0.4f, 3.2f, 0.6f), new Color(0.16f, 0.15f, 0.14f), 40, 3.2f, 1.2f, 2.6f, 0.15f));
+        n.AddChild(new CpuParticles3D
+        {
+            Name = "Sparks",
+            Position = new Vector3(0.9f, 2.4f, -0.6f),
+            Amount = 18,
+            Lifetime = 0.7f,
+            Emitting = false,
+            LocalCoords = false,
+            Explosiveness = 0.6f,
+            Direction = Vector3.Up,
+            Spread = 70f,
+            InitialVelocityMin = 3f,
+            InitialVelocityMax = 7f,
+            Gravity = new Vector3(0, -12f, 0),
+            Mesh = new SphereMesh { Radius = 0.06f, Height = 0.12f, RadialSegments = 4, Rings = 2, Material = Glow(new Color(1f, 0.8f, 0.35f), 5f) },
+        });
+        var fire = new Node3D { Name = "Fire", Position = new Vector3(0.2f, 2.1f, 0.9f), Visible = false };
+        Add(fire, new CylinderMesh { TopRadius = 0f, BottomRadius = 0.7f, Height = 1.8f, RadialSegments = 7 }, new Vector3(0, 0.9f, 0), Glow(new Color(1f, 0.45f, 0.1f), 4f));
+        Add(fire, new CylinderMesh { TopRadius = 0f, BottomRadius = 0.4f, Height = 1.1f, RadialSegments = 6 }, new Vector3(0.1f, 0.6f, 0.1f), Glow(new Color(1f, 0.85f, 0.4f), 5f));
+        fire.AddChild(new OmniLight3D { LightColor = new Color(1f, 0.5f, 0.2f), LightEnergy = 2.5f, OmniRange = 9f, Position = new Vector3(0, 1.2f, 0) });
+        n.AddChild(fire);
         n.AddChild(new OmniLight3D { Name = "WorkLight", LightColor = new Color(1f, 0.85f, 0.6f), LightEnergy = 1.6f, OmniRange = 10f, Position = new Vector3(0, 3.5f, -BoomReach), Visible = false });
         n.AddChild(new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 1.6f, SpotRange = 14f, SpotAngle = 30f, Position = new Vector3(0, 2.4f, -2.6f), RotationDegrees = new Vector3(-15, 0, 0) });
         n.AddChild(new MeshInstance3D
@@ -454,6 +574,48 @@ public static class BuildingModels
             Visible = false,
         });
         return n;
+    }
+
+    /// <summary>A soft particle plume (smoke, dust) that is off until the view turns it on.</summary>
+    public static CpuParticles3D Puffs(string name, Vector3 at, Color colour, int amount, float lifetime, float sizeMin, float sizeMax, float drift)
+    {
+        var c = colour;
+        return new CpuParticles3D
+        {
+            Name = name,
+            Position = at,
+            Amount = amount,
+            Lifetime = lifetime,
+            Emitting = false,
+            LocalCoords = false,
+            Direction = Vector3.Up,
+            Spread = 18f,
+            InitialVelocityMin = 1.5f,
+            InitialVelocityMax = 3f,
+            Gravity = new Vector3(drift, 0.6f, 0),
+            DampingMin = 0.3f,
+            DampingMax = 0.8f,
+            ScaleAmountMin = sizeMin,
+            ScaleAmountMax = sizeMax,
+            ColorRamp = new Gradient
+            {
+                Offsets = new[] { 0f, 0.15f, 1f },
+                Colors = new[] { new Color(c.R, c.G, c.B, 0f), new Color(c.R, c.G, c.B, 0.75f), new Color(c.R * 1.6f, c.G * 1.6f, c.B * 1.6f, 0f) },
+            },
+            Mesh = new SphereMesh
+            {
+                Radius = 0.6f,
+                Height = 1.2f,
+                RadialSegments = 6,
+                Rings = 3,
+                Material = new StandardMaterial3D
+                {
+                    VertexColorUseAsAlbedo = true,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                },
+            },
+        };
     }
 
     /// <summary>Leg pivot angles (degrees about local Z): folded up against the hull, and braced out on the ground.</summary>

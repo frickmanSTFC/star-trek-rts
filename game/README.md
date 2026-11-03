@@ -45,6 +45,9 @@ You start in orbit over Tarsis, a generated Class M world (change `Seed` on the 
    **X** cancels an unfinished one for a full refund, or salvages a finished one for half its cost. Put mines on
    deposits, and keep power and deuterium positive. A used-up deposit can be reopened once by a Deep-Core Mine
    (needs Colonial Administration).
+   The crawler can break down while mining (a minor fault, a major breakdown, or an explosion that loses its load).
+   It then folds up and drives slower: press **F** (or right-click the Colony Hub) to send it to the repair pad
+   beside the hub, where two crew members walk out and weld it back to 100% for a little duranium.
 
 6. **Run the base:** the bottom panel shows the selected base: level, upgrade (button or **U**), power used / supply,
    its buildings and build queue. Keep power supply above use (Fusion Reactors) or everything that uses power slows.
@@ -56,7 +59,7 @@ selected base or object in the middle, and the build card bottom-right. Fog: bri
 near-black = unexplored (set `FogDarkness` on the root node).
 
 Controls: left-click selects a vehicle, building, base or tile (Shift adds vehicles), **A** selects all vehicles, right-click
-drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler, **1–7** build, **R** rotate,
+drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair), **1–7** build, **R** rotate,
 **U** upgrade, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
 WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
 

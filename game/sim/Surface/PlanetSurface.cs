@@ -166,6 +166,7 @@ public sealed class PlanetSurface
         var unit = FindUnit(unitId);
         if (unit == null || unit.Owner != player) return "not yours";
         if (!_data.SurfaceUnit(unit.DefId).CanMine) return "can't mine";
+        if (unit.Broken) return "broken down: repair it at the Colony Hub first";
         if (tile < 0 || tile >= Map.Grid.Count) return "off the map";
         if (!_players[player].Surveyed[tile]) return "not surveyed yet";
         return DeployProblem(unit, tile);
@@ -224,6 +225,115 @@ public sealed class PlanetSurface
             UnitMode.Packing when total > 0 => Fix64.One - Fix64.Ratio(unit.ModeTicks, total),
             _ => Fix64.Zero,
         };
+    }
+
+    // ---------------------------------------------------------------- breakdowns and repair
+
+    private static readonly Fix64 Hundred = Fix64.FromInt(100);
+
+    /// <summary>How fast a unit drives now: full speed, or slower while broken (worse damage, slower).</summary>
+    public Fix64 SpeedPerTick(SurfaceUnit unit)
+    {
+        var rules = _data.SurfaceUnit(unit.DefId).Breakdown;
+        if (!unit.Broken || rules == null) return unit.SpeedPerTick;
+        var share = rules.SlowestDrive + (Fix64.One - rules.SlowestDrive) * unit.Integrity / Hundred;
+        return unit.SpeedPerTick * share;
+    }
+
+    /// <summary>The player's finished colony core on this tile (where the repair pad is), or null.</summary>
+    private SurfaceStructure? RepairPadAt(int player, int tile)
+    {
+        var s = StructureAt(tile);
+        return s != null && s.Owner == player && s.State == StructureState.Complete && _data.Building(s.DefId).IsCore ? s : null;
+    }
+
+    /// <summary>Parked on a repair pad and being worked on (crew walking out, repairing, or waiting for resources).</summary>
+    public bool IsRepairing(SurfaceUnit unit) =>
+        unit.Broken && unit.Mode == UnitMode.Mobile && unit._path.Count == 0 && RepairPadAt(unit.Owner, unit.Tile) != null;
+
+    /// <summary>How far the repair crew has walked out, 0..1 (1 = at work).</summary>
+    public Fix64 CrewOut(SurfaceUnit unit)
+    {
+        var total = _data.SurfaceUnit(unit.DefId).Repair?.CrewSeconds * Simulation.TickRate ?? 0;
+        return total <= 0 ? Fix64.One : Fix64.Min(Fix64.One, Fix64.Ratio(unit.RepairTicks, total));
+    }
+
+    /// <summary>What it would cost to repair the unit back to 100 from here.</summary>
+    public IReadOnlyList<ResourceAmount> RepairCost(SurfaceUnit unit)
+    {
+        var repair = _data.SurfaceUnit(unit.DefId).Repair;
+        if (repair == null) return System.Array.Empty<ResourceAmount>();
+        var missing = Hundred - unit.Integrity;
+        return repair.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * missing)).ToList();
+    }
+
+    /// <summary>The player's nearest finished colony core a unit can drive to (for repair), or null.</summary>
+    public SurfaceStructure? NearestRepairPad(int player, int tile)
+    {
+        SurfaceStructure? best = null;
+        var bestDist = int.MaxValue;
+        foreach (var s in _structures)
+        {
+            if (RepairPadAt(player, s.Tile) != s) continue;
+            var d = Map.Grid.Distance(s.Tile, tile);
+            if (d < bestDist)
+            {
+                best = s;
+                bestDist = d;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>A breakdown: pick the severity by weight, knock its damage off integrity, fold up; an explosion loses the load.</summary>
+    private void Break(Simulation sim, SurfaceUnit unit, BreakdownRules rules)
+    {
+        var total = 0;
+        foreach (var v in rules.Severities) total += v.Weight;
+        var roll = sim.Rng.NextInt(total);
+        var index = 0;
+        while (roll >= rules.Severities[index].Weight)
+        {
+            roll -= rules.Severities[index].Weight;
+            index++;
+        }
+        var severity = rules.Severities[index];
+        var damage = Fix64.FromInt(sim.Rng.NextInt(severity.DamageMin, severity.DamageMax + 1));
+        unit.Integrity = Fix64.Max(Fix64.Zero, unit.Integrity - damage);
+        unit.Broken = true;
+        unit.Breakdown = index;
+        unit.BrokeAtTick = sim.Tick;
+        unit.RepairTicks = 0;
+        unit.RepairWaiting = false;
+        if (severity.LosesLoad)
+        {
+            unit.Hopper = Fix64.Zero;
+            unit.HopperResource = -1;
+        }
+        StartPacking(unit);
+        unit.DeployOnArrival = false;
+        unit.MiningStatus = MiningStatus.None;
+    }
+
+    /// <summary>On a repair pad: the crew walk out, then each tick restores integrity while the player can pay for it.</summary>
+    private void RepairStep(Simulation sim, SurfaceUnit unit, RepairRules repair)
+    {
+        unit.RepairTicks++;
+        if (unit.RepairTicks <= repair.CrewSeconds * Simulation.TickRate) return;
+        var heal = Fix64.Min(repair.PerSecond / Simulation.TickRate, Hundred - unit.Integrity);
+        var cost = repair.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * heal)).ToList();
+        var stock = sim.Players[unit.Owner].Stock;
+        if (!stock.TrySpend(cost))
+        {
+            unit.RepairWaiting = true;
+            return;
+        }
+        unit.RepairWaiting = false;
+        unit.Integrity += heal;
+        if (unit.Integrity < Hundred) return;
+        unit.Integrity = Hundred;
+        unit.Broken = false;
+        unit.RepairTicks = 0;
     }
 
     /// <summary>Whether the player could send their pod to this tile right now.</summary>
@@ -416,6 +526,28 @@ public sealed class PlanetSurface
                 unit.MiningStatus = MiningStatus.None;
                 return true;
             }
+
+            case RepairCommand repair:
+                foreach (var id in repair.UnitIds)
+                {
+                    var unit = FindUnit(id);
+                    if (unit == null || unit.Owner != repair.Player || unit.Integrity >= Hundred) continue;
+                    var pad = NearestRepairPad(repair.Player, unit.Tile);
+                    if (pad == null) continue;
+                    unit.DeployOnArrival = false;
+                    if (pad.Tile == unit.Tile)
+                    {
+                        unit._path.Clear();
+                        unit.Progress = Fix64.Zero;
+                        continue;
+                    }
+                    var path = Pathfinder.Find(Map, unit.Tile, pad.Tile);
+                    if (path == null) continue;
+                    SetPath(unit, path);
+                    StartPacking(unit);
+                    unit.MiningStatus = MiningStatus.None;
+                }
+                return true;
 
             case PackUpCommand pack:
                 foreach (var id in pack.UnitIds)
@@ -661,6 +793,12 @@ public sealed class PlanetSurface
         foreach (var unit in _units)
         {
             var def = _data.SurfaceUnit(unit.DefId);
+            if (def.Repair != null && IsRepairing(unit)) RepairStep(sim, unit, def.Repair);
+            else if (unit.RepairTicks > 0 || unit.RepairWaiting)
+            {
+                unit.RepairTicks = 0; // drove off the pad: the crew go back in
+                unit.RepairWaiting = false;
+            }
             switch (unit.Mode)
             {
                 case UnitMode.Deploying:
@@ -691,6 +829,11 @@ public sealed class PlanetSurface
         {
             StartPacking(unit);
             unit.MiningStatus = MiningStatus.Depleted;
+            return;
+        }
+        if (def.Breakdown is { } rules && rules.ChancePerMinute > Fix64.Zero && sim.Rng.NextFix() < rules.ChancePerMinute / Simulation.TicksPerMinute)
+        {
+            Break(sim, unit, rules);
             return;
         }
         var take = Fix64.Min(def.ExtractPerMinute / Simulation.TicksPerMinute, Fix64.Min(Map.DepositAmount[tile], def.Hopper - unit.Hopper));
@@ -728,7 +871,7 @@ public sealed class PlanetSurface
         foreach (var unit in _units)
         {
             if (unit._path.Count == 0 || unit.Mode != UnitMode.Mobile) continue;
-            unit.Progress += unit.SpeedPerTick;
+            unit.Progress += SpeedPerTick(unit);
             var next = unit._path[0];
             var cost = Fix64.FromInt(Map.Terrain(next).MoveCost);
             if (unit.Progress < cost) continue;

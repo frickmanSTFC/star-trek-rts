@@ -69,6 +69,24 @@ public sealed class SurfaceUnit
 
     public int HopperResource { get; internal set; } = -1;
 
+    /// <summary>Condition, 0..100 (100 = perfect). Breakdowns knock it down; repairs bring it back to 100.</summary>
+    public Fix64 Integrity { get; internal set; } = Fix64.FromInt(100);
+
+    /// <summary>Broken down: can't mine until repaired at a colony core, and drives slower.</summary>
+    public bool Broken { get; internal set; }
+
+    /// <summary>Index into the unit's breakdown severities of the last breakdown (-1 = none yet).</summary>
+    public int Breakdown { get; internal set; } = -1;
+
+    /// <summary>Tick of the last breakdown (-1 = never); the view plays the bang/smoke from this.</summary>
+    public long BrokeAtTick { get; internal set; } = -1;
+
+    /// <summary>Ticks spent on a repair pad so far (the first stretch is the crew walking out).</summary>
+    public int RepairTicks { get; internal set; }
+
+    /// <summary>On the pad but the player can't pay for the next repair step.</summary>
+    public bool RepairWaiting { get; internal set; }
+
     internal SurfaceUnit(int id, int owner, string defId, Fix64 speedPerTick, int surveyRadius, int tile)
     {
         Id = id;
@@ -94,6 +112,12 @@ public sealed class SurfaceUnit
         h.Add((int)MiningStatus);
         h.Add(Hopper);
         h.Add(HopperResource);
+        h.Add(Integrity);
+        h.Add(Broken);
+        h.Add(Breakdown);
+        h.Add(BrokeAtTick);
+        h.Add(RepairTicks);
+        h.Add(RepairWaiting);
     }
 }
 
