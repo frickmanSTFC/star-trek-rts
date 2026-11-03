@@ -120,6 +120,9 @@ Verterium (synth) ────────────────────�
 - **Supply range:** colonies/stations project supply; ships outside it lose repair and resupply. Subspace relays extend it.
 - **Trade lanes:** freighters between your colonies (or other players') generate Latinum. Pirates target them.
 - **Depletion:** deposits run out; deep-core mining and asteroid-cracking techs reopen them at a cost.
+  Proposed responses to a depleted deposit (owner's list, 2026-11-03; order not yet confirmed): leave it (or salvage
+  the mine), research deeper scanning (Deep-Core Mining reopens it at 50%), switch to mobile Mining Crawlers that
+  move between small deposits, and a mine → refinery chain so ore is refined into metals and alloys.
 
 ## 5. Colonization Loop
 
