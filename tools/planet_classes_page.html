@@ -26,6 +26,7 @@
   --g-outpost: #f3cb5b;
   --g-orbital: #7fc4e8;
   --g-harvest: #c99ad6;
+  --r-raw: #b8a48a;
   --r-flow: #7fc4e8;
   --r-strategic: #f3cb5b;
   --r-exotic: #c99ad6;
@@ -224,7 +225,7 @@ footer p { margin: 0; max-width: 90ch; }
     <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Where resources come from</h2><p>Each resource against the bodies that yield it. The two data files don't always agree; the dot shows which one lists it.</p></div></div>
     <div class="legend" aria-hidden="true">
       <span style="--rc: var(--ink)"><span class="dot both"></span>Both files</span><span style="--rc: var(--ink)"><span class="dot planet"></span>planet_classes.json only</span><span style="--rc: var(--ink)"><span class="dot res"></span>resources.json only</span>
-      <span style="--rc: var(--r-flow)"><i></i>Flow</span><span style="--rc: var(--r-strategic)"><i></i>Strategic</span><span style="--rc: var(--r-exotic)"><i></i>Exotic</span><span style="--rc: var(--r-refined)"><i></i>Refined</span><span style="--rc: var(--r-trade_good)"><i></i>Trade good</span><span style="--rc: var(--r-faction)"><i></i>Faction</span>
+      <span style="--rc: var(--r-raw)"><i></i>Raw ore</span><span style="--rc: var(--r-flow)"><i></i>Flow</span><span style="--rc: var(--r-strategic)"><i></i>Strategic</span><span style="--rc: var(--r-exotic)"><i></i>Exotic</span><span style="--rc: var(--r-refined)"><i></i>Refined</span><span style="--rc: var(--r-trade_good)"><i></i>Trade good</span><span style="--rc: var(--r-faction)"><i></i>Faction</span>
     </div>
     <div class="scroll"><table class="map" id="map"></table></div>
   </section>
@@ -302,7 +303,7 @@ $("habchart").innerHTML = sorted.map((c) => `<div class="brow" style="${gc(c.gro
   `<div class="axis"><span></span><div class="ticks">${[0, 25, 50, 75, 100].map((v) => `<span style="left:${v}%">${v}%</span>`).join("")}</div><span></span></div>`;
 
 // ---- resource map
-const tierOrder = ["flow", "strategic", "exotic", "refined", "trade_good", "faction"];
+const tierOrder = ["raw", "flow", "strategic", "exotic", "refined", "trade_good", "faction"];
 const rows = [...D.resources].sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier) || a.name.localeCompare(b.name));
 const dotCls = { 2: "both", 1: "planet", "-1": "res" };
 const dotLbl = { 2: "listed in both files", 1: "planet_classes.json only", "-1": "resources.json only" };
