@@ -353,11 +353,11 @@ def _hull_colour(g, finish, damage, arches, z_range, y_range):
 
         # Scratches through the paint: contour lines of a noise stretched along the body (long gouges), in
         # clusters; dark primer edges with bright bare metal in the middle.
-        thr = {1: 0.5, 2: 0.46, 3: 0.42}[min(damage, 3)]
+        thr = {1: 0.58, 2: 0.55, 3: 0.52}[min(damage, 3)]
         cluster = g.smooth(g.add(g.noise(P, 0.9, 2.0), g.mul(dent, 0.5)), thr, thr + 0.06)
-        sets = [((7.0, 0.8, 7.0), (0, 0, 0))]
-        if damage >= 2:
-            sets.append(((6.0, 1.0, 6.0), (0.5, 0.0, 0.35)))
+        sets = [((7.0, 0.35, 7.0), (0, 0, 0))]
+        if damage >= 3:
+            sets.append(((6.0, 0.4, 6.0), (0.5, 0.0, 0.35)))
         for scale, rot in sets:
             sn = g.noise(g.mapping(P, scale, rot=rot), 1.2, 1.0)
             dist = g.math("ABSOLUTE", g.sub(sn, 0.5))
