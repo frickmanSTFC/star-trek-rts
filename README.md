@@ -21,7 +21,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 - `tools/gen_colony_hub.py`: the script that draws that artwork (Starfleet style: saucers, capsule modules, glow strips), so the levels stay consistent: `python3 tools/gen_colony_hub.py art/federation-colony-hub`.
 - `animation/colony-pod-drop.html`: animated prototype of the colony pod drop with a scrubbable timeline. Open it in any browser. Online: https://claude.ai/artifact/935ziqLQi7xFFeowTrP2sm. Rebuild with `python3 tools/anim_build.py animation/colony-pod-drop.html`.
 - `animation/colony-pod-drop-blender.mp4`: the 20-second pod drop rendered from the Blender scene (960×720, 30 fps).
-- `blender/build_vehicles.py`: the Federation ground vehicles, built in Blender and exported as `game/models/vehicles/*.glb` for the game (previews in `blender/previews/vehicles/`). Run with Blender (`blender --background --python blender/build_vehicles.py -- --vehicle survey_rover --out game/models/vehicles/survey_rover.glb`) or the `bpy` Python module. The survey rover has three tiers (`--tier 1|2|3`: Mk I Scout, Mk II Surveyor = Kalty, Mk III Explorer; see `blender/rover_variants.py`), a painted `--name` and `--number`, and `--shots front34,rear34,side,game` picks the previews.
+- `blender/build_vehicles.py`: the Federation ground vehicles, built in Blender and exported as `game/models/vehicles/*.glb` for the game (previews in `blender/previews/vehicles/`). Run with Blender (`blender --background --python blender/build_vehicles.py -- --vehicle survey_rover --out game/models/vehicles/survey_rover.glb`) or the `bpy` Python module. The survey rover has three tiers (`--tier 1|2|3`: Mk I Scout, Mk II Surveyor = Kalty, Mk III Explorer; see `blender/rover_variants.py`), a painted `--name` and `--number`, and `--shots front34,rear34,side,game` picks the previews. `blender/rover_finish.py` adds planet wear (`clean|dust|mud|snow`) and damage 0–3 to the paint bake and parts; preview them with `blender/render_finish.py --tier N --finish F --damage D` (renders in `blender/previews/vehicles/finish/`).
 - `blender/`: the same 20-second pod drop in 3D for Blender 5.2. Open `colony_pod.blend` and press Play, or rebuild it from `build_colony_pod.py` (Scripting tab → Open → Run Script, or `blender --background --python blender/build_colony_pod.py -- --out blender/colony_pod.blend`). `previews/` has test renders; add `--preview DIR --frames 17.6 --zoom 3` to render close-ups.
 - `concept-canvas/`: source for the structure concept boards (7 factions × 4 upgrade lines). These files render inside the online canvas, not in a plain browser.
 
@@ -48,6 +48,7 @@ After changing data, regenerate the pages (`python3 tools/gen_*_page.py`), then 
 - Resources and materials: https://claude.ai/artifact/RvherhjUTzqwb1rWZcKZeS
 - Factions of the galaxy: https://claude.ai/artifact/38uos1h4ucJyap5PYNiKDX
 - Galaxy map: https://claude.ai/artifact/MaLME4auJSy9Q437HHN2mr
+- Survey rover variants (marks, names, wear, damage): https://claude.ai/artifact/Rz3Hkh4cXu497PnWtUkwbP
 
 These links only open for people the owner has shared them with (Share menu on each page).
 
