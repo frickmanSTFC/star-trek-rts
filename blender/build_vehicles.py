@@ -234,7 +234,7 @@ def survey_rover():
     root = empty("SurveyRover")
     L, W = 4.6, 2.45            # body length (y) and width (x)
     wheel_r, wheel_w = 0.6, 0.42
-    axles = (1.45, -0.6, -1.7)  # front, middle, rear (the middle and rear pair close together, like the art)
+    axles = (1.5, -0.4, -1.75)  # front, middle, rear: the back pair close together like the art, 0.15 clear between tyres
 
     # Main hull: side profile (y forward, z up), wedge nose and windscreen slope, slight tumblehome above z 1.7.
     profile = [(-2.3, 0.78), (2.08, 0.78), (2.3, 0.98), (2.32, 1.38), (2.1, 1.58), (1.38, 2.28), (1.1, 2.36), (-2.05, 2.36),
@@ -275,15 +275,14 @@ def survey_rover():
         box(f"SideWindow{s}", (0.03, 0.55, 0.42), (s * (W / 2 * 0.93 + 0.01), -0.95, 1.95), P["glass"], root, 0.01)
         box(f"SideWindowFrame{s}", (0.02, 0.65, 0.52), (s * (W / 2 * 0.93), -0.95, 1.95), P["panel"], root, 0.01)
         # Door panel seams and a step.
-        box(f"DoorSeam{s}", (0.02, 0.03, 0.62), (s * (W / 2 + 0.003), 0.35, 1.26), P["dark"], root, 0)
-        box(f"DoorSeamB{s}", (0.02, 0.03, 0.62), (s * (W / 2 + 0.003), -0.45, 1.26), P["dark"], root, 0)
-        box(f"DoorSeamT{s}", (0.02, 0.83, 0.03), (s * (W / 2 + 0.003), -0.05, 1.56), P["dark"], root, 0)
-        box(f"Handle{s}", (0.04, 0.16, 0.04), (s * (W / 2 + 0.02), 0.15, 1.3), P["steel"], root, 0.01)
-        # Equipment boxes between the wheels and a vent grille.
-        box(f"SideBox{s}", (0.16, 0.7, 0.3), (s * (W / 2 + 0.06), -1.15, 1.02), P["panel"], root, 0.03)
+        # Door between the front and middle wheel arches, with its step; a vent grille above the back pair.
+        box(f"DoorSeam{s}", (0.02, 0.03, 0.58), (s * (W / 2 + 0.003), 0.86, 1.28), P["dark"], root, 0)
+        box(f"DoorSeamB{s}", (0.02, 0.03, 0.58), (s * (W / 2 + 0.003), 0.22, 1.28), P["dark"], root, 0)
+        box(f"DoorSeamT{s}", (0.02, 0.67, 0.03), (s * (W / 2 + 0.003), 0.54, 1.56), P["dark"], root, 0)
+        box(f"Handle{s}", (0.04, 0.16, 0.04), (s * (W / 2 + 0.02), 0.72, 1.3), P["steel"], root, 0.01)
         for k in range(4):
-            box(f"Vent{s}{k}", (0.02, 0.36, 0.025), (s * (W / 2 + 0.004), -1.55, 1.25 + k * 0.06), P["dark"], root, 0)
-        box(f"Step{s}", (0.22, 0.6, 0.06), (s * (W / 2 + 0.05), -0.05, 0.86), P["steel"], root, 0.015)
+            box(f"Vent{s}{k}", (0.02, 0.4, 0.025), (s * (W / 2 + 0.004), -1.08, 1.38 + k * 0.05), P["dark"], root, 0)
+        box(f"Step{s}", (0.22, 0.5, 0.06), (s * (W / 2 + 0.05), 0.54, 0.86), P["steel"], root, 0.015)
         # Owner-colour flash: low along the side, sweeping up over the cab like the reference art.
         ribbon(f"Flash{s}", [(-2.28, 1.42), (-0.2, 1.42), (0.6, 1.52), (1.7, 1.52)], 0.09, P["owner"], root, x=s * W / 2, outward=s)
         ribbon(f"FlashB{s}", [(-2.28, 1.27), (-0.35, 1.27)], 0.04, P["owner"], root, x=s * W / 2, outward=s)
@@ -292,7 +291,7 @@ def survey_rover():
         # On the upper rear side, lying flat on the wall, which leans in by `lean` above z 1.58 (tumblehome).
         lean = math.atan2(W / 2 * 0.07, 2.36 - 1.58)
         z = 1.95
-        num = text(f"Number{s}", "24", 0.36, (0, 0, 0), (math.radians(90), 0, math.radians(90 if s > 0 else -90)), P["number"], root)
+        num = text(f"Number{s}", "44", 0.36, (0, 0, 0), (math.radians(90), 0, math.radians(90 if s > 0 else -90)), P["number"], root)
         num.matrix_basis = (Matrix.Translation((s * (W / 2 - math.tan(lean) * (z - 1.58) + 0.004), -1.75, z))
                             @ Matrix.Rotation(-s * lean, 4, "Y") @ num.rotation_euler.to_matrix().to_4x4())
         # The rover's name, above the door.
