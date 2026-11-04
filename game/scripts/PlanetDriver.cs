@@ -1395,7 +1395,8 @@ public partial class PlanetDriver : Node3D
         var colour = new Color(1, 1, 1, 0.3f);
         if (_hoverTile >= 0 && Me.Phase == LandingPhase.InOrbit)
             colour = Surface.CanLand(LocalPlayer, _hoverTile) ? new Color(0.3f, 1f, 0.4f, 0.55f) : new Color(1f, 0.3f, 0.25f, 0.45f);
-        _view.SetHover(Me.Phase == LandingPhase.Descending ? -1 : _hoverTile, colour);
+        // Thin up close, wider from high up so it still reads: ~0.1 units at the closest zoom, 0.5 at 100, capped at 2.
+        _view.SetHover(Me.Phase == LandingPhase.Descending ? -1 : _hoverTile, colour, Mathf.Clamp(_distance * 0.005f, 0.08f, 2f));
     }
 
     // ---------------------------------------------------------------- HUD

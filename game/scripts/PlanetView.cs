@@ -221,25 +221,29 @@ public partial class PlanetView : Node3D
     /// <summary>Outline the tile under the mouse: a thin line along the hex edge that follows the ground (owner
     /// 2026-11-04: a filled hexagon was overwhelming). The line is twice as opaque as the colour asked for, since it is
     /// so much thinner than the old fill.</summary>
-    public void SetHover(int tile, Color color)
+    /// <param name="width">Line width in world units (the driver scales it with the zoom: thin up close).</param>
+    public void SetHover(int tile, Color color, float width = 0.72f)
     {
         _hover.Visible = tile >= 0;
         if (tile < 0) return;
         _hoverMaterial.AlbedoColor = color with { A = Mathf.Min(1f, color.A * 2.2f) };
-        if (tile == _hoverShown) return;
+        if (tile == _hoverShown && Mathf.Abs(width - _hoverWidth) <= _hoverWidth * 0.04f) return;
         _hoverShown = tile;
+        _hoverWidth = width;
         var c = TileCentre(tile);
         _hover.Position = c with { Y = 0 };
-        _hover.Mesh = HexOutline(tile);
+        _hover.Mesh = HexOutline(tile, width);
     }
 
     private int _hoverShown = -1;
+    private float _hoverWidth;
 
-    /// <summary>A flat band along a tile's edge (outer 97%, inner 92% of the corner radius), each side split in four so
-    /// it hugs the terrain, lifted 0.35 above the ground (above the water on sea tiles). Positions are relative to the
-    /// tile centre in X/Z and absolute in Y.</summary>
-    private Mesh HexOutline(int tile)
+    /// <summary>A flat band along a tile's edge (outer edge at 97% of the corner radius, <paramref name="width"/> wide),
+    /// each side split in four so it hugs the terrain, lifted 0.35 above the ground (above the water on sea tiles).
+    /// Positions are relative to the tile centre in X/Z and absolute in Y.</summary>
+    private Mesh HexOutline(int tile, float width)
     {
+        var inner = Mathf.Max(0.5f, 0.97f - width / HexRadius);
         const int perSide = 4;
         var water = _surface.Map.IsWater(tile);
         Vector3 Edge(int k, float f, float scale)
@@ -255,7 +259,7 @@ public partial class PlanetView : Node3D
             for (var i = 0; i < perSide; i++)
             {
                 float f0 = (float)i / perSide, f1 = (float)(i + 1) / perSide;
-                Vector3 o0 = Edge(k, f0, 0.97f), o1 = Edge(k, f1, 0.97f), i0 = Edge(k, f0, 0.92f), i1 = Edge(k, f1, 0.92f);
+                Vector3 o0 = Edge(k, f0, 0.97f), o1 = Edge(k, f1, 0.97f), i0 = Edge(k, f0, inner), i1 = Edge(k, f1, inner);
                 st.AddVertex(o0); st.AddVertex(o1); st.AddVertex(i1);
                 st.AddVertex(o0); st.AddVertex(i1); st.AddVertex(i0);
             }
