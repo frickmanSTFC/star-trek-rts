@@ -12,11 +12,17 @@ namespace FinalFrontier;
 /// share; on land the dominant terrain (blended weight plus noise) picks the palette, tinted by biomass and elevation,
 /// with mountains rock and snow-capped; oceans darken with depth and lighten to turquoise near the coast; beaches line
 /// lowland shores. Height (with fine and ridged noise on mountains) becomes a normal map in Godot's own convention.
+/// Two splat masks say how much of each satellite-photo ground layer (plains, forest, desert, hills / rock, ice) the
+/// planet shader blends in at each pixel: soft near biome borders, rock up the mountains, ice on snow and caps, sand on
+/// beaches and under the sea (so coastlines filter cleanly).
 /// Render-only. Noise fields are computed at a lower resolution and upsampled, so painting takes a fraction of a second.
 /// </summary>
 public static class OrbitPainter
 {
-    public sealed record Result(Image Albedo, Image Water, Image Normal);
+    public sealed record Result(Image Albedo, Image Water, Image Normal, Image SplatA, Image SplatB);
+
+    /// <summary>The photo ground layers, in splat order: SplatA = plains, forest, desert, hills; SplatB = rock, ice.</summary>
+    public static readonly string[] PhotoLayers = { "plains", "forest", "desert", "hills", "rock", "ice" };
 
     private static readonly string[] Kinds = { "plains", "forest", "desert", "hills", "mountains", "ice" };
 
@@ -62,6 +68,16 @@ public static class OrbitPainter
         var waterMask = new byte[width * height * 4];
         var heights = new float[width * height];
         var weights = new float[Kinds.Length];
+        var noisy = new float[Kinds.Length];
+        var splat = new float[Kinds.Length]; // same order as Kinds and PhotoLayers (mountains = rock)
+        var splatA = new byte[width * height * 4];
+        var splatB = new byte[width * height * 4];
+        void Toward(int layer, float amount)
+        {
+            if (amount <= 0f) return;
+            for (var j = 0; j < splat.Length; j++) splat[j] *= 1f - amount;
+            splat[layer] += amount;
+        }
         const float warp = 0.45f;
 
         for (var y = 0; y < height; y++)
@@ -74,8 +90,10 @@ public static class OrbitPainter
                 var i = y * width + x;
                 Color c;
                 float h, isWater = 0f;
+                Array.Clear(splat);
                 if (band < 0f || band > 1f)
                 {
+                    splat[5] = 1f;
                     var n = caps.Sample(u, v);
                     c = new Color(0.84f, 0.88f, 0.93f).Lerp(new Color(0.96f, 0.97f, 0.99f), n);
                     h = 0.12f + n * 0.08f;
@@ -106,6 +124,7 @@ public static class OrbitPainter
                         c = new Color(0.015f, 0.05f, 0.16f).Lerp(new Color(0.04f, 0.18f, 0.38f), depth);
                         c = c.Lerp(new Color(0.07f, 0.36f, 0.5f), Math.Clamp(1f - (wf - 0.5f) * 4f, 0f, 1f) * 0.7f);
                         h = 0f;
+                        splat[2] = 1f;
                     }
                     else
                     {
@@ -123,8 +142,10 @@ public static class OrbitPainter
                         var k = 0;
                         for (var j = 0; j < Kinds.Length; j++)
                         {
+                            noisy[j] = -9f;
                             if (weights[j] <= 0.02f) continue;
                             var w = weights[j] + (biome[j].Sample(u, v) - 0.5f) * 0.6f;
+                            noisy[j] = w;
                             if (w > best)
                             {
                                 best = w;
@@ -150,6 +171,18 @@ public static class OrbitPainter
                         c = c.Lerp(new Color(0.95f, 0.96f, 0.99f), Math.Clamp((h - 0.86f) * 9f, 0f, 1f)); // snow on the high peaks
                         var beach = Math.Clamp(1f - MathF.Abs(wf - 0.45f) * 5f, 0f, 1f) * (1f - mount);
                         c = c.Lerp(new Color(0.83f, 0.77f, 0.57f), beach * 0.5f);
+
+                        // Photo layers: soft across biome borders (within 0.15 of the winner), then rock, snow, sand.
+                        var total = 0f;
+                        for (var j = 0; j < Kinds.Length; j++)
+                        {
+                            splat[j] = Math.Clamp((noisy[j] - best) / 0.15f + 1f, 0f, 1f);
+                            total += splat[j];
+                        }
+                        for (var j = 0; j < Kinds.Length; j++) splat[j] /= MathF.Max(total, 1e-4f);
+                        Toward(4, mount * 0.55f);
+                        Toward(5, Math.Clamp((h - 0.86f) * 9f, 0f, 1f));
+                        Toward(2, beach * 0.5f);
                     }
                 }
                 albedo[i * 4] = (byte)(Math.Clamp(c.R, 0f, 1f) * 255f);
@@ -162,6 +195,10 @@ public static class OrbitPainter
                 waterMask[i * 4 + 2] = m;
                 waterMask[i * 4 + 3] = 255;
                 heights[i] = h;
+                for (var j = 0; j < 4; j++) splatA[i * 4 + j] = (byte)(Math.Clamp(splat[j], 0f, 1f) * 255f + 0.5f);
+                splatB[i * 4] = (byte)(Math.Clamp(splat[4], 0f, 1f) * 255f + 0.5f);
+                splatB[i * 4 + 1] = (byte)(Math.Clamp(splat[5], 0f, 1f) * 255f + 0.5f);
+                splatB[i * 4 + 3] = 255;
             }
         }
 
@@ -187,7 +224,9 @@ public static class OrbitPainter
         return new Result(
             Image.CreateFromData(width, height, false, Image.Format.Rgba8, albedo),
             Image.CreateFromData(width, height, false, Image.Format.Rgba8, waterMask),
-            Image.CreateFromData(width, height, false, Image.Format.Rgba8, normal));
+            Image.CreateFromData(width, height, false, Image.Format.Rgba8, normal),
+            Image.CreateFromData(width, height, false, Image.Format.Rgba8, splatA),
+            Image.CreateFromData(width, height, false, Image.Format.Rgba8, splatB));
     }
 
     /// <summary>Column pair and blend for one row at this u: the row's own half-tile stagger, plus the warp.</summary>

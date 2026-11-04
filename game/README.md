@@ -16,6 +16,8 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `tests/` | xUnit tests: math, RNG, data checks, determinism |
 | `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (one continuous terrain mesh over the hex grid, animated water, trees, deposit crystals, scan hints, landing, pod with touchdown dust, buildings, rovers) |
 | `shaders/` | `terrain`, `water`, `foliage` (all read the fog-of-war texture: one texel per tile) and `crystal` (glowing deposits) |
+| `scripts/OrbitView.cs`, `OrbitPainter.cs`, `shaders/planet`, `shaders/atmosphere` | Orbit view: the painted globe with satellite-photo ground and a ray-marched (Rayleigh + Mie) atmosphere |
+| `textures/planet/` | Tileable ground photos for the orbit globe, cut from NASA's Blue Marble Next Generation (public domain; credit: NASA Earth Observatory). Read at runtime, not imported (`.gdignore`) |
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
 | `scripts/BuildingModels.cs` | Primitive-built models: hub (grows with level), mine, reactor, habitat, colony pod, survey rover |
 | `scripts/PlanetHud.cs`, `Minimap.cs`, `Icons.cs` | Planet HUD: icon resource bar, event feed, tooltip, bottom panel (minimap, selected base or object, command card); icons are SVG paths drawn at runtime |

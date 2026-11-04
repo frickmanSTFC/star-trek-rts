@@ -33,6 +33,11 @@ public partial class OrbitView : Node3D
 
     private const int TextureWidth = 2048, TextureHeight = 1024;
 
+    /// <summary>Thickness of the air shell above the surface (world units; the clouds sit at 1.4 and 2.4).</summary>
+    private const float AtmosphereHeight = 3.5f;
+
+    private const int PhotoSize = 256;
+
     private Simulation _sim = null!;
     private PlanetSurface _surface = null!;
     private int _localPlayer;
@@ -97,6 +102,8 @@ public partial class OrbitView : Node3D
         painted.Albedo.GenerateMipmaps();
         painted.Water.GenerateMipmaps();
         painted.Normal.GenerateMipmaps();
+        painted.SplatA.GenerateMipmaps();
+        painted.SplatB.GenerateMipmaps();
         var albedo = ImageTexture.CreateFromImage(painted.Albedo);
         var water = ImageTexture.CreateFromImage(painted.Water);
         var normal = ImageTexture.CreateFromImage(painted.Normal);
@@ -104,17 +111,17 @@ public partial class OrbitView : Node3D
         _groundMaterial.SetShaderParameter("albedo_tex", albedo);
         _groundMaterial.SetShaderParameter("water_tex", water);
         _groundMaterial.SetShaderParameter("normal_tex", normal);
-        _groundMaterial.SetShaderParameter("detail_tex", new NoiseTexture2D
-        {
-            Width = 512, Height = 512, Seamless = true,
-            Noise = new FastNoiseLite { Seed = 77, Frequency = 0.02f, FractalOctaves = 4, NoiseType = FastNoiseLite.NoiseTypeEnum.Perlin },
-        });
+        _groundMaterial.SetShaderParameter("splat_a", ImageTexture.CreateFromImage(painted.SplatA));
+        _groundMaterial.SetShaderParameter("splat_b", ImageTexture.CreateFromImage(painted.SplatB));
+        _groundMaterial.SetShaderParameter("photo_layers", PhotoLayers());
         _groundMaterial.SetShaderParameter("detail_normal", new NoiseTexture2D
         {
             Width = 512, Height = 512, Seamless = true, AsNormalMap = true, BumpStrength = 6f,
             Noise = new FastNoiseLite { Seed = 78, Frequency = 0.03f, FractalOctaves = 5, NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth },
         });
         _groundMaterial.SetShaderParameter("sun_dir", _sunDir);
+        _groundMaterial.SetShaderParameter("planet_radius", Radius);
+        _groundMaterial.SetShaderParameter("atmosphere_height", AtmosphereHeight);
         ground.MaterialOverride = _groundMaterial;
         _globe.AddChild(ground);
         RefreshLights();
@@ -135,9 +142,8 @@ public partial class OrbitView : Node3D
         _highClouds = CloudLayer(Radius + 2.4f, 4242, 0.009f, 0.62f, 0.45f);
         AddChild(_highClouds);
 
-        // Atmosphere: a bright rim close in and a soft halo further out (Godot's own meshes: the rim shader needs their winding).
-        AddChild(Atmosphere(Radius + 4f, 3f, 1.6f));
-        AddChild(Atmosphere(Radius + 10f, 5f, 0.8f));
+        // Atmosphere: one shell, ray-marched (Rayleigh + Mie scattering) in its shader.
+        AddChild(Atmosphere());
 
         _moon = Moon();
         AddChild(_moon);
@@ -263,13 +269,52 @@ public partial class OrbitView : Node3D
         };
     }
 
-    private MeshInstance3D Atmosphere(float radius, float power, float strength)
+    /// <summary>
+    /// The atmosphere shell: a sphere a little above the clouds whose shader ray-marches the air in front of each pixel
+    /// (Rayleigh + Mie scattering of the orbit sun, the same numbers the planet shader uses to redden its sunlight).
+    /// Drawn after the clouds (render priority) and premultiplied, so it both adds sky light and dims what lies behind.
+    /// Godot's own SphereMesh, slightly larger than the shell itself so the polygon edges never clip the limb.
+    /// </summary>
+    private MeshInstance3D Atmosphere()
     {
-        var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/atmosphere.gdshader") };
+        var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/atmosphere.gdshader"), RenderPriority = 10 };
         material.SetShaderParameter("sun_dir", _sunDir);
-        material.SetShaderParameter("power", power);
-        material.SetShaderParameter("strength", strength);
-        return new MeshInstance3D { Mesh = new SphereMesh { Radius = radius, Height = radius * 2f, RadialSegments = 96, Rings = 48 }, MaterialOverride = material };
+        material.SetShaderParameter("planet_radius", Radius);
+        material.SetShaderParameter("atmosphere_height", AtmosphereHeight);
+        var r = (Radius + AtmosphereHeight) * 1.01f;
+        return new MeshInstance3D
+        {
+            Mesh = new SphereMesh { Radius = r, Height = r * 2f, RadialSegments = 128, Rings = 64 },
+            MaterialOverride = material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+    }
+
+    /// <summary>
+    /// The satellite-photo ground layers (tileable patches cut from NASA's Blue Marble, in OrbitPainter.PhotoLayers order)
+    /// as one texture array with mipmaps. They live in textures/planet behind a .gdignore and are read as plain files, so
+    /// Godot's importer never touches them; a missing file falls back to flat grey, which leaves the painted colour as is.
+    /// </summary>
+    private static Texture2DArray PhotoLayers()
+    {
+        var images = new Godot.Collections.Array<Image>();
+        foreach (var layer in OrbitPainter.PhotoLayers)
+        {
+            var image = Image.LoadFromFile(ProjectSettings.GlobalizePath($"res://textures/planet/{layer}.jpg"));
+            if (image == null || image.IsEmpty())
+            {
+                GD.PushWarning($"Orbit view: missing ground photo textures/planet/{layer}.jpg");
+                image = Image.CreateEmpty(PhotoSize, PhotoSize, false, Image.Format.Rgba8);
+                image.Fill(new Color(0.5f, 0.5f, 0.5f));
+            }
+            image.Convert(Image.Format.Rgba8);
+            if (image.GetWidth() != PhotoSize || image.GetHeight() != PhotoSize) image.Resize(PhotoSize, PhotoSize, Image.Interpolation.Lanczos);
+            image.GenerateMipmaps();
+            images.Add(image);
+        }
+        var array = new Texture2DArray();
+        array.CreateFromImages(images);
+        return array;
     }
 
     /// <summary>A small grey moon on a slow, tilted orbit (render-only scenery).</summary>

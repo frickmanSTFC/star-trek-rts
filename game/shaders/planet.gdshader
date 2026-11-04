@@ -1,24 +1,74 @@
-// Orbital globe surface (textures painted by OrbitPainter). Terrain colour with fine detail on land, relief from a
-// normal map of the painted height (plus a tiling detail normal), shiny oceans, a soft atmospheric haze toward the limb on the day side,
-// and city lights at your bases that only show on the night side. Lit by the scene's lights (the orbit "sun").
+// Orbital globe surface (textures painted by OrbitPainter). Land is satellite photography: six tileable ground layers
+// (NASA Blue Marble patches, in a texture array) blended by the painter's splat masks, sampled at two scales so the
+// detail holds up when zoomed in, and tinted part-way toward the painted map colour so biomass and elevation still
+// show. Relief from a normal map of the painted height plus a tiling detail normal; shiny oceans; sunlight reddened by
+// the air it crosses (the same air as atmosphere.gdshader), so the terminator glows warm; city lights at your bases
+// only on the night side. Lit by the scene's lights (the orbit "sun").
 shader_type spatial;
 render_mode cull_disabled;
 
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D detail_normal : hint_normal, filter_linear_mipmap, repeat_enable;
-uniform sampler2D detail_tex : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform sampler2D water_tex : hint_default_black, filter_linear_mipmap, repeat_enable;
 uniform sampler2D lights_tex : source_color, hint_default_black, filter_linear_mipmap, repeat_enable;
+// Splats: a = plains, forest, desert, hills; b.rg = rock, ice. Layers of photo_layers in the same order.
+uniform sampler2D splat_a : hint_default_black, filter_linear_mipmap, repeat_enable;
+uniform sampler2D splat_b : hint_default_black, filter_linear_mipmap, repeat_enable;
+uniform sampler2DArray photo_layers : source_color, filter_linear_mipmap, repeat_enable;
 uniform vec3 sun_dir = vec3(-0.6, 0.3, 0.75);
-uniform vec4 haze : source_color = vec4(0.45, 0.68, 1.0, 1.0);
 uniform float relief = 1.0;
 uniform float lights_energy = 3.0;
+// How far land takes the photo's own colour (0 = painted colour with photo detail only, 1 = pure photo).
+uniform float photo_mix = 0.5;
+// Photo repeats around the globe (u, v): the main layer, and a finer one mixed in for close-ups.
+uniform vec2 photo_scale = vec2(32.0, 16.0);
+uniform vec2 photo_fine_scale = vec2(128.0, 64.0);
+// The air (as in atmosphere.gdshader).
+uniform float planet_radius = 100.0;
+uniform float atmosphere_height = 3.5;
+uniform vec3 rayleigh_depth = vec3(0.046, 0.108, 0.265);
+uniform float rayleigh_height = 0.8;
+uniform float mie_depth = 0.03;
+uniform float mie_height = 0.25;
+
+// Relative optical depth of air from the ground toward a light at cosine mu: 1 overhead, about sqrt(pi R / 2H) at the horizon.
+float airmass(float mu, float scale_height) {
+	float c = 1.0 / sqrt(3.14159265 * planet_radius / (2.0 * scale_height));
+	float m = max(mu, 0.0);
+	return 1.0 / (m + c * exp(-m / c * 0.7));
+}
 
 void fragment() {
 	float water = texture(water_tex, UV).r;
-	float detail = texture(detail_tex, UV * vec2(12.0, 6.0)).r;
-	vec3 colour = texture(albedo_tex, UV).rgb * mix(0.82 + 0.36 * detail, 1.0, water);
+	vec3 base = texture(albedo_tex, UV).rgb;
+
+	// Photo ground: weighted layers at two scales. Gradients are taken here, outside the per-layer branch.
+	vec4 sa = texture(splat_a, UV);
+	vec2 sb = texture(splat_b, UV).rg;
+	float weights[6] = float[](sa.r, sa.g, sa.b, sa.a, sb.r, sb.g);
+	vec2 uv1 = UV * photo_scale;
+	vec2 uv2 = UV * photo_fine_scale;
+	vec2 dx1 = dFdx(uv1), dy1 = dFdy(uv1), dx2 = dFdx(uv2), dy2 = dFdy(uv2);
+	vec3 p1 = vec3(0.0), p2 = vec3(0.0), mean = vec3(0.0);
+	float total = 0.0;
+	for (int k = 0; k < 6; k++) {
+		float w = weights[k];
+		if (w < 0.004) continue;
+		p1 += w * textureGrad(photo_layers, vec3(uv1, float(k)), dx1, dy1).rgb;
+		p2 += w * textureGrad(photo_layers, vec3(uv2, float(k)), dx2, dy2).rgb;
+		mean += w * textureLod(photo_layers, vec3(0.5, 0.5, float(k)), 12.0).rgb; // the 1x1 mip: the layer's average colour
+		total += w;
+	}
+	vec3 colour = base;
+	if (total > 0.01) {
+		p1 /= total;
+		p2 /= total;
+		mean = max(mean / total, vec3(1e-4));
+		vec3 photo = p1 * (1.0 + (p2 / mean - 1.0) * 0.5);
+		vec3 land = mix(base, mean, photo_mix) * photo / mean;
+		colour = mix(land, base, water);
+	}
 
 	// Relief: the elevation normal map, with tiling detail added on top (land only).
 	vec3 n1 = texture(normal_tex, UV).rgb * 2.0 - 1.0;
@@ -27,13 +77,14 @@ void fragment() {
 	NORMAL_MAP = n * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = relief * (1.0 - water);
 
-	// Day side: how much the sun faces this point (NORMAL and the light both in view space).
+	// Sun height at this point (NORMAL and the light both in view space); sunlight through the air goes warm near the terminator.
 	vec3 l = normalize((VIEW_MATRIX * vec4(sun_dir, 0.0)).xyz);
-	float day = smoothstep(-0.12, 0.2, dot(NORMAL, l));
-	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
-	ALBEDO = mix(colour, haze.rgb, fresnel * 0.55 * day);
+	float mu = dot(NORMAL, l);
+	float day = smoothstep(-0.12, 0.2, mu);
+	vec3 sunlight = exp(-(rayleigh_depth * airmass(mu, rayleigh_height) + 1.1 * mie_depth * airmass(mu, mie_height)));
+	ALBEDO = colour * sunlight;
 	ROUGHNESS = mix(0.9, 0.18, water);
-	SPECULAR = mix(0.25, 0.9, water);
+	SPECULAR = mix(0.25, 0.9, water) * dot(sunlight, vec3(0.333));
 	METALLIC = 0.0;
 	EMISSION = texture(lights_tex, UV).rgb * lights_energy * (1.0 - day);
 }
