@@ -47,6 +47,18 @@ public partial class PlanetDriver : Node3D
 
     private string? _placing;
 
+    // Orbit view: the globe from the ship. The game opens here; O switches to the surface and back once landed.
+    private OrbitView _orbit = null!;
+    private bool _inOrbit;
+    private string? _orbitAction; // armed deployment: land, outpost, shuttle:<unit>, beam:<payload>, satellite
+    private int _orbitHover = -1;
+    private Vector2 _pressAt;
+    private bool _dragging;
+    private bool _pressed;
+    private double _switchToSurfaceAt = -1;
+    private double _clock;
+    private readonly Dictionary<int, (DeliveryKind Kind, string Payload, int Tile)> _seenDeliveries = new();
+
     /// <summary>What the big info card shows: a building id (while placing it), "tech:id" or "unit:id"; null = closed.</summary>
     private string? _info;
     private int _facing;
@@ -98,6 +110,8 @@ public partial class PlanetDriver : Node3D
             commands.Add(($"unit:{unit}", _data.GroundVehicleNames.GetValueOrDefault(unit, unit), $"[{key + 1}]"));
         }
         foreach (var t in _data.Techs) commands.Add(($"tech:{t.Id}", t.Name, $"[{t.Index + 1}]"));
+        var orbitCards = OrbitCards();
+        for (var i = 0; i < orbitCards.Count; i++) commands.Add((orbitCards[i].Id, orbitCards[i].Name, $"[{i + 1}]"));
         _hud.Setup(commands, OnCommand, SelectBase, Upgrade, OnAction);
         _hud.SetInfoHandlers(InfoAction, () => _info = null);
         _hud.Minimap.Setup(_sim, _view, LocalPlayer);
@@ -112,6 +126,396 @@ public partial class PlanetDriver : Node3D
         _sun = GetNodeOrNull<DirectionalLight3D>("Sun");
         _focus = _focusTarget = _view.MapCentre();
         UpdateCamera();
+
+        _orbit = new OrbitView();
+        AddChild(_orbit); // in the tree before Build: it aims its light with LookAt
+        _orbit.Build(_sim, LocalPlayer, _sim.Players[LocalPlayer].FactionId);
+        _hud.SetScanHandler(i => _orbit.SetScan((ScanMode)i));
+        EnterOrbit();
+        _orbitAction = "land";
+        _info = "orbit:land";
+    }
+
+    // ---------------------------------------------------------------- orbit
+
+    /// <summary>The deployment cards on the command card in orbit, in key order.</summary>
+    private List<(string Id, string Name)> OrbitCards()
+    {
+        var list = new List<(string, string)> { ("orbit:land", "Land Colony"), ("orbit:outpost", "Outpost Drop") };
+        var orbit = _data.Orbit;
+        if (orbit != null)
+        {
+            foreach (var u in orbit.ShuttlePayloads) list.Add(($"orbit:shuttle:{u}", $"Shuttle: {ShortUnit(u)}"));
+            var payloads = orbit.TransporterLevels.SelectMany(l => l.Payloads).Distinct().ToList();
+            foreach (var pl in payloads) list.Add(($"orbit:beam:{pl}", pl == OrbitRules.Supplies ? "Beam Supplies" : $"Beam: {ShortUnit(pl)}"));
+            list.Add(("orbit:satellite", "Survey Satellite"));
+        }
+        return list;
+    }
+
+    private string ShortUnit(string unitId) => unitId switch
+    {
+        "survey_rover" => "Rover",
+        "mining_crawler" => "Crawler",
+        "survey_team" => "Team",
+        _ => _data.GroundVehicleNames.GetValueOrDefault(unitId, unitId),
+    };
+
+    private static readonly Dictionary<string, string> EraNames = new()
+    {
+        ["ent"] = "Enterprise era", ["tos"] = "TOS era", ["kelvin"] = "Kelvin timeline", ["tng"] = "Next Generation era",
+        ["dominion_war"] = "Dominion War", ["voy"] = "Delta Quadrant", ["picard"] = "Picard era", ["far_future"] = "32nd century",
+    };
+
+    private void EnterOrbit()
+    {
+        _inOrbit = true;
+        StopPlacing();
+        ClearSelection();
+        _view.Visible = false;
+        _orbit.Visible = true;
+        _orbit.Camera.MakeCurrent();
+        if (_sun != null) _sun.Visible = false;
+        if (_environment != null)
+        {
+            _environment.FogEnabled = false;
+            _environment.SsaoEnabled = false;
+        }
+        if (Me.Phase == LandingPhase.Landed)
+        {
+            var tile = _view.TileAt(_focus);
+            if (tile >= 0) _orbit.Focus(tile, 230f);
+        }
+        _hud.Minimap.Visible = !_inOrbit || Me.Phase == LandingPhase.Landed;
+    }
+
+    /// <summary>Back down to the hex map, looking at this tile.</summary>
+    private void ExitOrbit(int tile, float distance)
+    {
+        _inOrbit = false;
+        _orbitAction = null;
+        if (_info != null && _info.StartsWith("orbit:")) _info = null;
+        _orbit.Visible = false;
+        _view.Visible = true;
+        _camera.MakeCurrent();
+        if (_sun != null) _sun.Visible = true;
+        if (_environment != null)
+        {
+            _environment.FogEnabled = true;
+            _environment.SsaoEnabled = true;
+        }
+        _hud.Minimap.Visible = true;
+        if (tile >= 0)
+        {
+            _focus = _focusTarget = _view.TileCentre(tile) with { Y = 0 };
+            _distance = _distanceTarget = distance;
+        }
+        _orbit.SetHover(-1, Colors.White);
+    }
+
+    /// <summary>Why the armed action can't go to this tile (null = it can).</summary>
+    private string? OrbitProblem(string action, int tile)
+    {
+        if (tile < 0) return "pick a spot on the planet";
+        if (action == "land") return Me.Phase != LandingPhase.InOrbit ? "the colony has landed" : Surface.CanLand(LocalPlayer, tile) ? null
+            : Surface.Map.NearNatives(tile) ? "that's the natives' land" : "not a safe landing site";
+        if (action == "outpost") return Surface.OutpostProblem(_sim, LocalPlayer, tile);
+        if (action == "satellite") return Surface.SatelliteProblem(_sim, LocalPlayer, Surface.Map.Grid.Row(tile));
+        if (action.StartsWith("shuttle:")) return Surface.ShuttleProblem(_sim, LocalPlayer, tile, action[8..]);
+        if (action.StartsWith("beam:")) return Surface.BeamProblem(_sim, LocalPlayer, tile, action[5..]);
+        return "unknown";
+    }
+
+    /// <summary>A click on the planet: send the armed deployment there, or turn the planet to centre the tile.</summary>
+    private void OrbitClick(bool shift)
+    {
+        var tile = _orbitHover;
+        if (tile < 0) return;
+        if (_orbitAction == null)
+        {
+            _orbit.Focus(tile, Mathf.Min(260f, 330f));
+            return;
+        }
+        var problem = OrbitProblem(_orbitAction, tile);
+        if (problem != null)
+        {
+            _hud.PushEvent($"Can't do that there: {problem}", new Color(1f, 0.7f, 0.42f));
+            return;
+        }
+        var when = _sim.Tick + InputDelayTicks;
+        var a = _orbitAction;
+        if (a == "land") _sim.Schedule(when, new LandColonyCommand(LocalPlayer, tile));
+        else if (a == "outpost") _sim.Schedule(when, new OutpostDropCommand(LocalPlayer, tile));
+        else if (a == "satellite") _sim.Schedule(when, new SatelliteCommand(LocalPlayer, Surface.Map.Grid.Row(tile)));
+        else if (a.StartsWith("shuttle:")) _sim.Schedule(when, new ShuttleCommand(LocalPlayer, tile, a[8..]));
+        else if (a.StartsWith("beam:")) _sim.Schedule(when, new BeamCommand(LocalPlayer, tile, a[5..]));
+        if (!shift)
+        {
+            _orbitAction = null;
+            _info = null;
+        }
+    }
+
+    private void ArmOrbit(string cardId)
+    {
+        var action = cardId[6..];
+        if (_orbitAction == action && _info == cardId)
+        {
+            _orbitAction = null; // picking it again disarms
+            _info = null;
+            return;
+        }
+        _orbitAction = action;
+        _info = cardId;
+    }
+
+    private void OrbitInput(InputEvent @event)
+    {
+        switch (@event)
+        {
+            case InputEventMouseButton { ButtonIndex: MouseButton.Left } b when !_mouseOverUi || !b.Pressed:
+                if (b.Pressed)
+                {
+                    _pressed = true;
+                    _dragging = false;
+                    _pressAt = b.Position;
+                }
+                else if (_pressed)
+                {
+                    _pressed = false;
+                    if (!_dragging) OrbitClick(b.ShiftPressed);
+                }
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
+                _orbitAction = null;
+                if (_info != null && _info.StartsWith("orbit:")) _info = null;
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
+                _orbit.Zoom(0.9f);
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
+                _orbit.Zoom(1.1f);
+                break;
+            case InputEventMouseMotion m when (m.ButtonMask & (MouseButtonMask.Left | MouseButtonMask.Middle)) != 0:
+                if (_pressed && !_dragging && m.Position.DistanceTo(_pressAt) > 6f) _dragging = true;
+                if (_dragging || (m.ButtonMask & MouseButtonMask.Middle) != 0) _orbit.Rotate(m.Relative.X * 0.005f, m.Relative.Y * 0.005f);
+                break;
+            case InputEventKey { Pressed: true, Echo: false } key:
+                OrbitKey(key);
+                break;
+        }
+    }
+
+    private void OrbitKey(InputEventKey key)
+    {
+        switch (key.Keycode)
+        {
+            case Key.O when Me.Phase == LandingPhase.Landed:
+                var centre = _orbit.PickTile(GetViewport().GetVisibleRect().Size / 2f);
+                ExitOrbit(centre >= 0 ? centre : Me.LandingTile, 320f);
+                break;
+            case Key.Tab:
+                _orbit.SetScan((ScanMode)(((int)_orbit.Mode + (key.ShiftPressed ? 4 : 1)) % 5));
+                break;
+            case Key.Escape:
+                if (_info != null) _info = null;
+                _orbitAction = null;
+                break;
+            case Key.Enter or Key.KpEnter when _orbitAction != null && _orbitHover >= 0:
+                OrbitClick(false);
+                break;
+            case Key.H:
+                if (Me.LandingTile >= 0) _orbit.Focus(Me.LandingTile, 230f);
+                break;
+            case Key.F1:
+                _hud.ToggleHelp();
+                break;
+            case >= Key.Key1 and <= Key.Key9:
+                var cards = OrbitCards();
+                var index = (int)(key.Keycode - Key.Key1);
+                if (index < cards.Count) ArmOrbit(cards[index].Id);
+                break;
+        }
+    }
+
+    /// <summary>Hover over the globe: which tile, and whether the armed action can go there.</summary>
+    private void OrbitHover(float delta)
+    {
+        var mouse = GetViewport().GetMousePosition();
+        _mouseOverUi = _hud.BlocksMouse(mouse);
+        _orbitHover = _mouseOverUi ? -1 : _orbit.PickTile(mouse);
+        var colour = _orbitAction == null ? new Color(1f, 1f, 1f, 0.6f)
+            : OrbitProblem(_orbitAction, _orbitHover) == null ? new Color(0.3f, 1f, 0.4f, 0.95f) : new Color(1f, 0.3f, 0.25f, 0.9f);
+        _orbit.SetHover(_orbitHover, colour);
+
+        // Keys turn the planet too.
+        var turn = 1.4f * delta;
+        if (Input.IsKeyPressed(Key.A) || Input.IsKeyPressed(Key.Left) || Input.IsKeyPressed(Key.Q)) _orbit.Rotate(-turn, 0);
+        if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right) || Input.IsKeyPressed(Key.E)) _orbit.Rotate(turn, 0);
+        if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) _orbit.Rotate(0, -turn);
+        if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down)) _orbit.Rotate(0, turn);
+    }
+
+    private static readonly string[] ScanLegends =
+    {
+        "True colour: oceans, plains, forest, desert, hills, mountains and polar ice.",
+        "Bright cells: surveyed deposits (colour = resource). Faint tint: the region's strongest reading, stronger = richer. Grey: used up.",
+        "Amber: grazing herds  ·  Red: predators (unsafe to land among)  ·  Violet: a native settlement and its land: no landing or building (Prime Directive).",
+        "Green: plant biomass, brighter = denser  ·  Teal: marine life  ·  Yellow-green: toxic or contaminated ground (no landing).",
+        "Green: safe landing site  ·  Yellow: risky (predators or toxic ground nearby)  ·  Red: unsafe  ·  Violet: native land  ·  Blue: too close to your bases for an outpost.",
+    };
+
+    /// <summary>What the scans say about a tile (the orbit panel and tooltip).</summary>
+    private string OrbitTileText(int tile)
+    {
+        if (tile < 0) return "Point at the planet for scan readings.";
+        var map = Surface.Map;
+        var sb = new StringBuilder();
+        var terrain = map.Terrain(tile);
+        sb.Append(terrain.Name);
+        sb.Append(map.Safety(tile) switch { LandingSafety.Safe => "  ·  safe landing site", LandingSafety.Risky => "  ·  risky landing site", _ => "" });
+        if (map.NearNatives(tile)) sb.Append(map.NativeTile == tile ? "\nNative settlement: a pre-warp civilization" : "\nNative land: no landing or building (Prime Directive)");
+        var wild = map.WildlifeAt[tile];
+        if (wild != Wildlife.None) sb.Append(wild == Wildlife.Predators ? "\nLifeforms: predators" : "\nLifeforms: grazing herds");
+        if (map.Toxic[tile]) sb.Append("\nBiologics: toxic spores, contaminated ground");
+        else if (map.Biomass[tile] > Fix64.Zero) sb.Append($"\nBiomass {Mathf.RoundToInt(map.Biomass[tile].ToFloat() * 100)}%");
+        var r = map.DepositResource[tile];
+        if (Me.Surveyed[tile]) sb.Append(r < 0 ? "\nNo deposit" : map.IsDepleted(tile) ? $"\n{_data.Resources[r].Name}: used up" : $"\nDeposit: {_data.Resources[r].Name} {Hud.Whole(map.DepositAmount[tile])}");
+        else
+        {
+            var hints = map.Hints(map.Region(tile));
+            sb.Append("\nRegion scan: ").Append(hints.Count == 0 ? "no readings" : string.Join(", ", hints.Take(3).Select(h => $"{_data.Resources[h.Resource].Name} ({h.Strength.ToString().ToLowerInvariant()})")));
+        }
+        if (_orbitAction != null)
+        {
+            var problem = OrbitProblem(_orbitAction, tile);
+            sb.Append(problem == null ? "\nClick to send it here" : $"\nCan't send it here: {problem}");
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>Everything the HUD shows while in orbit.</summary>
+    private void OrbitHud()
+    {
+        var orbit = _data.Orbit;
+        var faction = _sim.Players[LocalPlayer].FactionId;
+        var ship = orbit?.ShipFor(faction);
+        var era = orbit != null ? EraNames.GetValueOrDefault(orbit.Era, orbit.Era) : "";
+        _hud.ShowOrbit(new OrbitPanelView(ship?.Name ?? "Your ship", $"{ship?.ClassName} class  ·  orbiting {PlanetName}, Class M  ·  {era}",
+            (int)_orbit.Mode, ScanLegends[(int)_orbit.Mode], OrbitTileText(_orbitHover)));
+        _hud.ShowTooltip("", Vector2.Zero);
+
+        var me = Me;
+        var stock = _sim.Players[LocalPlayer].Stock;
+        var cards = OrbitCards();
+        var views = new List<CommandView>();
+        for (var i = 0; i < cards.Count; i++)
+        {
+            var id = cards[i].Id;
+            var a = id[6..];
+            var cost = OrbitCost(a);
+            var tag = "";
+            var disabled = false;
+            if (a == "land") { disabled = me.Phase != LandingPhase.InOrbit; tag = disabled ? "DONE" : ""; }
+            else if (a == "satellite") tag = $"{Surface.Satellites.Count(x => x.Owner == LocalPlayer)}/{orbit?.SatelliteMax}";
+            else if (me.Phase != LandingPhase.Landed) { disabled = true; tag = "AFTER LANDING"; }
+            else if (a.StartsWith("shuttle:") && me.ShuttleBackTick > _sim.Tick) tag = $"AWAY {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate}s";
+            else if (a.StartsWith("beam:"))
+            {
+                var level = orbit?.Transporter(me.TransporterLevel);
+                if (level == null || !level.Payloads.Contains(a[5..])) { disabled = true; tag = "N/A"; }
+                else if (me.TransporterReadyTick > _sim.Tick) tag = $"{(me.TransporterReadyTick - _sim.Tick) / Simulation.TickRate}s";
+            }
+            views.Add(new CommandView(id, "", "", cost.Count == 0 ? (a == "land" ? "free" : a == "beam:supplies" ? "from the hold" : "") : Amounts(cost, false, shortNames: true),
+                stock.CanAfford(cost), _orbitAction == a, disabled ? (tag.Length > 0 ? tag : "N/A") : tag)); // still clickable: the card explains why
+        }
+        _hud.ShowCommands($"FROM ORBIT · {ship?.Name?.ToUpperInvariant()}", views, true);
+    }
+
+    private IReadOnlyList<ResourceAmount> OrbitCost(string action)
+    {
+        var orbit = _data.Orbit;
+        if (orbit == null) return System.Array.Empty<ResourceAmount>();
+        if (action == "outpost") return orbit.OutpostCost;
+        if (action == "satellite") return orbit.SatelliteCost;
+        if (action.StartsWith("shuttle:")) return _data.SurfaceUnit(action[8..]).Cost;
+        if (action.StartsWith("beam:") && action[5..] != OrbitRules.Supplies) return _data.SurfaceUnit(action[5..]).Cost;
+        return System.Array.Empty<ResourceAmount>();
+    }
+
+    /// <summary>The info card for a deployment: what it is, what it costs and needs, and why the hovered spot won't do.</summary>
+    private InfoView OrbitInfo(string cardId)
+    {
+        var a = cardId[6..];
+        var orbit = _data.Orbit!;
+        var me = Me;
+        var stock = _sim.Players[LocalPlayer].Stock;
+        var cost = OrbitCost(a);
+        var rows = new List<(string, string)>();
+        string title, body, sub;
+        var icon = cardId;
+        if (a == "land")
+        {
+            title = "Land the Colony";
+            sub = me.Phase == LandingPhase.InOrbit ? "First landing" : "Landed";
+            body = "Send the colony pod down. It lands where you click and becomes your Colony Hub, with two survey rovers, a mining crawler and the starting supplies. Pick a green, safe site; yellow is risky (predators or toxic ground nearby), and the natives' land is off-limits.";
+            rows.Add(("Needs", "flat plains or desert with open land on every side, no hazards on it"));
+            rows.Add(("Descent", $"{_data.Landing.DescentSeconds} s"));
+            rows.Add(("Brings", string.Join(", ", _data.Landing.Units.GroupBy(u => u).Select(g => $"{g.Count()}× {_data.GroundVehicleNames.GetValueOrDefault(g.Key, g.Key)}")) + $", {Amounts(_data.Landing.StartStock, false)}"));
+        }
+        else if (a == "outpost")
+        {
+            title = "Outpost Drop";
+            sub = "Found another base";
+            body = "Drop a second Colony Hub from the ship to found a new base, with its own build range, power grid and crew. It needs a safe site well away from your other bases, so it's the way to reach rich ground on the far side of the world.";
+            rows.Add(("Needs", $"a safe landing site at least {orbit.OutpostMinDistance} tiles from your other bases"));
+            rows.Add(("Descent", $"{orbit.OutpostDescentSeconds} s, one drop at a time"));
+        }
+        else if (a == "satellite")
+        {
+            title = "Survey Satellite";
+            sub = $"{Surface.Satellites.Count(x => x.Owner == LocalPlayer)} of {orbit.SatelliteMax} in orbit";
+            body = $"Put a survey satellite into orbit over a band of the planet. It circles the world every {orbit.SatelliteSweepSeconds} s, surveying every tile it passes, so deposits in its band show up without a rover. Click the latitude you want it to cover.";
+            rows.Add(("Covers", $"{orbit.SatelliteBandRows} rows of tiles, all the way round"));
+            rows.Add(("Works", "from orbit, even before you land"));
+        }
+        else if (a.StartsWith("shuttle:"))
+        {
+            var u = a[8..];
+            var name = _data.GroundVehicleNames.GetValueOrDefault(u, u);
+            title = $"Shuttle: {name}";
+            sub = me.ShuttleBackTick > _sim.Tick ? $"Shuttle away: back in {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate} s" : "Shuttle ready";
+            body = $"The ship's shuttle flies a new {name} down to any safe spot on the planet, even far from your bases. {_data.SurfaceUnit(u).Description}";
+            rows.Add(("Flight", $"{orbit.ShuttleSeconds} s down, {orbit.ShuttleSeconds} s back up before it can fly again"));
+            rows.Add(("Needs", "open ground: no buildings, toxic ground, predators or native land"));
+        }
+        else
+        {
+            var payload = a[5..];
+            var level = orbit.Transporter(me.TransporterLevel);
+            var faction = _sim.Players[LocalPlayer].FactionId;
+            var era = EraNames.GetValueOrDefault(orbit.Era, orbit.Era);
+            title = payload == OrbitRules.Supplies ? "Beam Supplies" : $"Beam: {_data.GroundVehicleNames.GetValueOrDefault(payload, payload)}";
+            sub = level == null ? $"No transporters ({era})" : $"{level.Name} (level {level.Level}: {_data.Faction(faction).Name}, {era})";
+            body = payload == OrbitRules.Supplies
+                ? "Beam cargo from the ship's hold straight into one of your bases: the quickest way to top up metals and fuel early on."
+                : $"Beam a survey team down in seconds. {_data.SurfaceUnit(payload).Description}";
+            if (level != null)
+            {
+                rows.Add(("Range", level.Range == 0 ? "anywhere on the planet" : $"within {level.Range} tiles of your bases or people"));
+                if (payload == OrbitRules.Supplies)
+                    rows.Add(("Cargo", $"up to {Hud.Whole(level.Cargo)} a beam · hold: {string.Join(", ", me.Hold.Select((x, i) => (x, i)).Where(p => p.x > Fix64.Zero).Select(p => $"{Hud.Whole(p.x)} {_data.Resources[p.i].Name}"))}"));
+                rows.Add(("Cycle", $"{level.CooldownSeconds} s between beams"));
+                if (!level.Payloads.Contains(payload)) rows.Add(("Can't", $"the {level.Name.ToLowerInvariant()} can't beam this"));
+            }
+            rows.Add(("Level", "set by faction and era: early transporters (Enterprise era) beam people only, later ones cargo and anywhere"));
+        }
+        var hover = OrbitProblem(a, _orbitHover);
+        var footer = _orbitAction == a
+            ? (_orbitHover < 0 ? "Click the planet to choose where  ·  right-click / Esc cancel" : hover == null ? "Click to send it here  ·  Shift+click to keep going" : $"Can't send it here: {hover}")
+            : "Pick this card again to cancel";
+        return new InfoView(icon, title, sub, cost.Count == 0 ? (a == "land" ? "Cost  free" : "Cost  none (from the hold)") : $"Cost  {Amounts(cost, false)}",
+            stock.CanAfford(cost), body, rows, -1f, "", "", false, footer);
     }
 
     private SurfacePlayer Me => _sim.Surface!.Players[LocalPlayer];
@@ -136,10 +540,25 @@ public partial class PlanetDriver : Node3D
         if (Me.Phase == LandingPhase.Landed && Surface.FindStructure(_selectedBase) == null)
             _selectedBase = Surface.Bases(LocalPlayer).FirstOrDefault()?.Id ?? 0;
 
-        MoveCamera((float)delta);
-        UpdateHover();
-        _view.Refresh((float)(_accumulator / tickSeconds));
-        _hud.Minimap.Refresh(_camera);
+        _clock += delta;
+        if (_switchToSurfaceAt > 0 && _clock >= _switchToSurfaceAt)
+        {
+            _switchToSurfaceAt = -1;
+            ExitOrbit(Me.LandingTile, 260f);
+        }
+        var alpha = (float)(_accumulator / tickSeconds);
+        if (_inOrbit)
+        {
+            OrbitHover((float)delta);
+            _orbit.Refresh((float)delta, alpha);
+        }
+        else
+        {
+            MoveCamera((float)delta);
+            UpdateHover();
+        }
+        _view.Refresh(alpha);
+        if (!_inOrbit) _hud.Minimap.Refresh(_camera);
         UpdateHud();
     }
 
@@ -147,7 +566,16 @@ public partial class PlanetDriver : Node3D
     {
         if (Me.Phase == _lastPhase) return;
         _lastPhase = Me.Phase;
-        if (Me.Phase == LandingPhase.Descending) FlyTo(Me.LandingTile, 260f);
+        if (Me.Phase == LandingPhase.Descending)
+        {
+            FlyTo(Me.LandingTile, 260f);
+            // From orbit: swoop in on the landing site, then cut to the surface as the pod comes down.
+            if (_inOrbit)
+            {
+                _orbit.Focus(Me.LandingTile, 140f);
+                _switchToSurfaceAt = _clock + 1.6;
+            }
+        }
         if (Me.Phase == LandingPhase.Landed)
         {
             _view.SelectedUnits.UnionWith(Surface.Units.Where(u => u.Owner == LocalPlayer).Select(u => u.Id));
@@ -252,6 +680,26 @@ public partial class PlanetDriver : Node3D
             }
             _seenUpkeep[s.Id] = now;
         }
+        var live = new HashSet<int>();
+        foreach (var d in Surface.Deliveries.Where(d => d.Owner == LocalPlayer))
+        {
+            live.Add(d.Id);
+            _seenDeliveries[d.Id] = (d.Kind, d.Payload, d.Tile);
+        }
+        foreach (var id in _seenDeliveries.Keys.Where(id => !live.Contains(id)).ToList())
+        {
+            var (kind, payload, tile) = _seenDeliveries[id];
+            _seenDeliveries.Remove(id);
+            var what = _data.GroundVehicleNames.GetValueOrDefault(payload, payload);
+            var landedBase = Surface.StructureAt(tile);
+            _hud.PushEvent(kind switch
+            {
+                DeliveryKind.Outpost => landedBase != null ? $"Outpost founded: {BaseName(landedBase.Id)}" : "Outpost drop aborted: the site was taken (refunded)",
+                DeliveryKind.Shuttle => $"Shuttle landed a {what}",
+                _ => payload == OrbitRules.Supplies ? "Supplies beamed down" : $"{what} beamed down",
+            }, new Color(0.62f, 0.82f, 1f));
+        }
+
         var me = Surface.Players[LocalPlayer];
         for (var t = 0; t < me.Known.Length; t++)
         {
@@ -271,6 +719,16 @@ public partial class PlanetDriver : Node3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (_inOrbit)
+        {
+            OrbitInput(@event);
+            return;
+        }
+        if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.O } && Me.Phase == LandingPhase.Landed)
+        {
+            EnterOrbit();
+            return;
+        }
         switch (@event)
         {
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click:
@@ -437,6 +895,11 @@ public partial class PlanetDriver : Node3D
     /// </summary>
     private void OnCommand(string id)
     {
+        if (id.StartsWith("orbit:"))
+        {
+            ArmOrbit(id);
+            return;
+        }
         if (id.StartsWith("unit:") || id.StartsWith("tech:"))
         {
             if (_info == id) InfoAction();
@@ -661,9 +1124,13 @@ public partial class PlanetDriver : Node3D
     private void UpdateHud()
     {
         // The card closes when what it belongs to goes away (the lab or bay is no longer selected, placing stopped).
-        if (_info != null && (_info.StartsWith("tech:") ? SelectedLab() == null : _info.StartsWith("unit:") ? SelectedBay() == null : _placing != _info)) _info = null;
-        _hud.ShowInfo(_info == null ? null : _info.StartsWith("tech:") ? TechInfo(_data.Tech(_info[5..]))
-            : _info.StartsWith("unit:") ? UnitInfo(_info[5..]) : BuildingInfo(_info));
+        if (!_inOrbit)
+        {
+            if (_info != null && _info.StartsWith("orbit:")) _info = null; // orbit cards belong to the orbit view
+            if (_info != null && (_info.StartsWith("tech:") ? SelectedLab() == null : _info.StartsWith("unit:") ? SelectedBay() == null : _placing != _info)) _info = null;
+            _hud.ShowInfo(_info == null ? null : _info.StartsWith("tech:") ? TechInfo(_data.Tech(_info[5..]))
+                : _info.StartsWith("unit:") ? UnitInfo(_info[5..]) : BuildingInfo(_info));
+        }
 
         var supply = 0f;
         var use = 0f;
@@ -681,6 +1148,16 @@ public partial class PlanetDriver : Node3D
 
         var landed = Me.Phase == LandingPhase.Landed;
         _hud.ShowHints(ContextHints());
+        if (_inOrbit)
+        {
+            _hud.ShowBanner(Me.Phase == LandingPhase.InOrbit && _orbitAction == "land"
+                ? $"Orbiting {PlanetName}. Click a green (safe) site to land the colony  ·  drag to turn the planet, wheel to zoom, Tab to change scan"
+                : Me.Phase == LandingPhase.Descending ? "Colony pod away…" : "");
+            _hud.ShowBaseTabs(Surface.Bases(LocalPlayer).Select(b => (b.Id, BaseName(b.Id))).ToList(), _selectedBase);
+            OrbitHud();
+            _hud.ShowInfo(_info != null && _info.StartsWith("orbit:") ? OrbitInfo(_info) : null);
+            return;
+        }
 
         _hud.ShowBanner(Me.Phase switch
         {
@@ -915,7 +1392,7 @@ public partial class PlanetDriver : Node3D
     /// <summary>Short hints for what's selected (the full list is on F1).</summary>
     private string ContextHints()
     {
-        if (Me.Phase == LandingPhase.InOrbit) return "Left-click a green tile to land  ·  WASD pan  ·  Q/E turn  ·  wheel zoom  ·  F1 controls";
+        if (_inOrbit) return (Me.Phase == LandingPhase.Landed ? "O surface  ·  " : "") + "Drag / WASD turn  ·  wheel zoom  ·  Tab scan  ·  1–9 deploy  ·  right-click cancel  ·  F1 controls";
         if (Me.Phase == LandingPhase.Descending) return "F1 controls";
         if (_placing != null) return "R rotate  ·  Shift+click place more  ·  right-click / Esc stop";
         if (SelectedBay() != null) return "1–2 vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";

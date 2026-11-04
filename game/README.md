@@ -27,7 +27,10 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 1. Install **Godot 4.7.x .NET edition** and the **.NET 8 SDK**.
 2. In Godot: Import → pick `game/project.godot` → Run (F5).
 
-You start in orbit over Tarsis, a generated Class M world (change `Seed` on the root node for another planet).
+You start aboard your ship in orbit over Tarsis, a generated Class M world (change `Seed` on the root node for another
+planet). Drag (or WASD) to turn the globe, wheel to zoom, **Tab** to change scan (terrain, resources, lifeforms,
+biologics, landing), and pick a card on the right to deploy: land the colony first (click a green site), later
+outpost drops, shuttles, transporter beams and survey satellites. **O** switches between orbit and the surface.
 
 1. **Scan:** the floating labels are the orbital scan's deposit hints per region. Hover any tile for its terrain.
 2. **Land:** green tiles are valid landing sites (plains or desert, open land on every side). Left-click to drop the pod.

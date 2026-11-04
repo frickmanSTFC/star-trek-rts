@@ -44,6 +44,9 @@ public sealed record InfoView(
     bool ActionEnabled,
     string Footer);
 
+/// <summary>The orbit panel: the ship and planet, which scan is on (index into the scan names), its legend and the hovered tile.</summary>
+public sealed record OrbitPanelView(string Ship, string Subtitle, int Scan, string Legend, string Hover);
+
 /// <summary>A button in the building panel (upgrade, maintain, salvage...).</summary>
 public sealed record ActionView(string Id, string Label, string Detail, bool Enabled);
 
@@ -164,6 +167,16 @@ public partial class PlanetHud : CanvasLayer
     private readonly List<Button> _actionButtons = new();
     private readonly List<string> _actionIds = new();
     private Action<string>? _onAction;
+
+    // Orbit panel.
+    private Control _orbitPanel = null!;
+    private Label _orbitShip = null!;
+    private Label _orbitSub = null!;
+    private readonly List<Button> _scanButtons = new();
+    private Label _orbitLegend = null!;
+    private Label _orbitHover = null!;
+    private Action<int>? _onScan;
+    public static readonly string[] ScanNames = { "TERRAIN", "RESOURCES", "LIFEFORMS", "BIOLOGICS", "LANDING" };
 
     // Command card.
     private Label _commandTitle = null!;
@@ -481,7 +494,8 @@ public partial class PlanetHud : CanvasLayer
             {
                 ("Left-click", "select a building, vehicle, base or tile"), ("Shift+click", "add vehicles to the selection"), ("A", "select all vehicles"),
                 ("Right-click", "drive there (a crawler on a deposit mines it)"), ("F", "crawler: unfurl / pack up / send for repair"),
-                ("Tab", "next base"), ("Esc", "back to the base / stop placing"),
+                ("Tab", "next base (in orbit: next scan)"), ("Esc", "back to the base / stop placing"),
+                ("O", "orbit view and back"), ("Orbit", "drag or WASD turn the planet, wheel zoom, 1–9 deploy, click to send"),
             },
             new[]
             {
@@ -588,6 +602,7 @@ public partial class PlanetHud : CanvasLayer
         _baseView.Visible = true;
         _detailView.Visible = false;
         _structureView.Visible = false;
+        _orbitPanel.Visible = false;
         _baseIcon.Texture = Icons.Get(v.CoreId, PlanetDriver.PlayerColors[0]);
         _baseName.Text = v.Name.ToUpperInvariant();
         _coreName.Text = v.CoreName;
@@ -628,6 +643,7 @@ public partial class PlanetHud : CanvasLayer
     {
         _baseView.Visible = false;
         _structureView.Visible = false;
+        _orbitPanel.Visible = false;
         _detailView.Visible = true;
         _detailTitle.Text = title.ToUpperInvariant();
         _detailSubtitle.Text = subtitle;
@@ -639,6 +655,7 @@ public partial class PlanetHud : CanvasLayer
     {
         _baseView.Visible = false;
         _detailView.Visible = false;
+        _orbitPanel.Visible = false;
         _structureView.Visible = true;
         _structIcon.Texture = Icons.Get(v.IconId, PlanetDriver.PlayerColors[0]);
         _structTitle.Text = v.Title.ToUpperInvariant();
@@ -807,6 +824,8 @@ public partial class PlanetHud : CanvasLayer
         centre.AddChild(_detailView);
         _structureView = BuildStructureView();
         centre.AddChild(_structureView);
+        _orbitPanel = BuildOrbitPanel();
+        centre.AddChild(_orbitPanel);
         var centreMargin = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore };
         foreach (var side in new[] { "left", "right" }) centreMargin.AddThemeConstantOverride($"margin_{side}", 20);
         centreMargin.AddThemeConstantOverride("margin_top", 12);
@@ -827,6 +846,59 @@ public partial class PlanetHud : CanvasLayer
 
         panel.AddChild(row);
         return panel;
+    }
+
+    public void SetScanHandler(Action<int> onScan) => _onScan = onScan;
+
+    /// <summary>The orbit view's panel in place of the base / building views.</summary>
+    public void ShowOrbit(OrbitPanelView v)
+    {
+        _baseView.Visible = false;
+        _detailView.Visible = false;
+        _structureView.Visible = false;
+        _orbitPanel.Visible = true;
+        _orbitShip.Text = v.Ship.ToUpperInvariant();
+        _orbitSub.Text = v.Subtitle;
+        for (var i = 0; i < _scanButtons.Count; i++) _scanButtons[i].SetPressedNoSignal(i == v.Scan);
+        _orbitLegend.Text = v.Legend;
+        _orbitHover.Text = v.Hover.Replace("\r", "");
+    }
+
+    private Control BuildOrbitPanel()
+    {
+        var grid = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Pass, Visible = false };
+        grid.AddThemeConstantOverride("separation", 20);
+        var left = new VBoxContainer { CustomMinimumSize = new Vector2(330, 0), MouseFilter = Control.MouseFilterEnum.Pass };
+        left.AddThemeConstantOverride("separation", 6);
+        _orbitShip = MakeLabel("", 19, Ink);
+        _orbitSub = MakeLabel("", 13, Accent);
+        left.AddChild(_orbitShip);
+        left.AddChild(_orbitSub);
+        left.AddChild(Caption("SCAN  [Tab]"));
+        var scans = new HFlowContainer { MouseFilter = Control.MouseFilterEnum.Pass };
+        scans.AddThemeConstantOverride("h_separation", 5);
+        scans.AddThemeConstantOverride("v_separation", 5);
+        for (var i = 0; i < ScanNames.Length; i++)
+        {
+            var b = new Button { Text = ScanNames[i], ToggleMode = true, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(0, 30) };
+            b.AddThemeFontSizeOverride("font_size", 12);
+            StyleButton(b, Line, new Color(0.06f, 0.1f, 0.19f));
+            var index = i;
+            b.Pressed += () => _onScan?.Invoke(index);
+            scans.AddChild(b);
+            _scanButtons.Add(b);
+        }
+        left.AddChild(scans);
+        _orbitLegend = MakeLabel("", 12, Dim);
+        _orbitLegend.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _orbitLegend.CustomMinimumSize = new Vector2(330, 0);
+        left.AddChild(_orbitLegend);
+        grid.AddChild(left);
+        _orbitHover = MakeLabel("", 13, Ink);
+        _orbitHover.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _orbitHover.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        grid.AddChild(_orbitHover);
+        return grid;
     }
 
     private const int CommandColumns = 5;

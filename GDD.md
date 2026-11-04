@@ -63,6 +63,19 @@ layer above it once the surface game is fun.
 
 - **Map:** a hex grid on 3D terrain, generated from a seed per planet class (`data/surfaces.json`). Terrain:
   ocean, shallows, plains, forest, desert, hills, mountains, polar ice; each has a move cost and is or isn't buildable.
+- **Orbit view** (decided 2026-11-04): the game opens aboard the player's ship (per faction: U.S.S. Endeavour, Galaxy
+  class for the Federation; Borg cube, Klingon, Romulan shapes) over the planet as a globe you turn (drag, WASD) and
+  zoom. The hex map wraps east–west around it; the poles beyond the map are ice. **O** goes back up at any time.
+  - *Scans* (Tab): terrain; resources (surveyed deposits bright, region readings as a faint tint); lifeforms (grazing
+    herds, predators, and on some worlds a native settlement); biologics (biomass, marine life, toxic ground);
+    landing safety (safe / risky / unsafe / native land / too close to a base).
+  - *Light rules:* no landing or building within 4 tiles of a native settlement (Prime Directive); toxic ground and
+    predators make a tile unsafe to land on, and risky within 2 tiles.
+  - *Ways down:* **land the colony** (first, free); **outpost drop** (another Colony Hub, a new base, at least 10 tiles
+    from your others); **shuttle** (flies a rover, crawler or survey team to any safe spot; away for the round trip);
+    **transporter** (beams a survey team, or supplies from the ship's hold into a base; level set by faction and era:
+    Enterprise era people only within 6 tiles, TOS cargo within 12, TNG and later anywhere; the Borg always level 3);
+    **survey satellites** (up to 3; each sweeps a band of 9 rows around the planet every 60 s, surveying it, even before landing).
 - **Scan → land → survey:**
   1. *Orbit:* the scan shows all terrain plus rough deposit hints per region ("Rich: Duranium · Likely: Deuterium").
   2. *Land:* pick a flat site (plains or desert with passable land on all six sides). The colony pod falls for a few

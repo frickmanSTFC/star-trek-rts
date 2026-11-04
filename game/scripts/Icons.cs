@@ -47,6 +47,10 @@ public static class Icons
         ["science_lab"] = "<path d='M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3'/><path d='M7.5 15h9'/>",
         ["research"] = "<path d='M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3'/><path d='M7.5 15h9'/>",
         ["tech"] = "<circle cx='12' cy='12' r='3'/><path d='M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3'/>",
+        ["orbit_drop"] = "<path d='M12 2v11M8 9l4 4 4-4'/><path d='M5 21h14M7 21l2-5h6l2 5'/>",
+        ["orbit_shuttle"] = "<path d='M3 15l9-9 9 9-4 1-5-3-5 3z'/><path d='M12 13v6'/>",
+        ["orbit_beam"] = "<path d='M8 3v18M16 3v18'/><path d='M11 6v1M13 10v1M11 14v1M13 18v1'/>",
+        ["orbit_satellite"] = "<rect x='9' y='9' width='6' height='6'/><path d='M2 12h6M16 12h6M12 2v4M12 18v4'/><circle cx='12' cy='12' r='9' stroke-dasharray='2 3'/>",
         ["vehicle_bay"] = "<path d='M3 20V9l9-5 9 5v11'/><path d='M7 20v-7h10v7M7 16h10'/>",
         ["unit:survey_rover"] = "<rect x='4' y='8' width='16' height='7' rx='2'/><circle cx='8' cy='17.5' r='2'/><circle cx='16' cy='17.5' r='2'/><path d='M14 8V5h3'/>",
         ["unit:mining_crawler"] = "<rect x='3' y='12' width='18' height='5' rx='2.5'/><path d='M6 12V9h6v3M12 9l6-4M18 5v6'/>",
@@ -69,6 +73,7 @@ public static class Icons
         if (Cache.TryGetValue(key, out var cached)) return cached;
 
         if (id.StartsWith("tech:")) id = "tech";
+        if (id.StartsWith("orbit:")) id = id.Split(':')[1] switch { "land" or "outpost" => "orbit_drop", "shuttle" => "orbit_shuttle", "beam" => "orbit_beam", _ => "orbit_satellite" };
         var body = Paths.TryGetValue(id, out var p) ? p
             : id.StartsWith("colonial") || id.StartsWith("planetary") ? Paths["colony_hub"] : Paths["generic"];
         var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' " +

@@ -86,7 +86,7 @@ public partial class PlanetView : Node3D
         BuildTerrain();
         BuildWater();
         BuildTrees();
-        BuildHints();
+        // Region hints are read on the orbital globe now (no floating words over the map).
         _deposits = BuildCrystals();
 
         _hoverMaterial = Overlay(new Color(1, 1, 1, 0.35f));
