@@ -16,7 +16,8 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `tests/` | xUnit tests: math, RNG, data checks, determinism |
 | `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (one continuous terrain mesh over the hex grid, animated water, trees, deposit crystals, scan hints, landing, pod with touchdown dust, buildings, rovers) |
 | `shaders/` | `terrain`, `water`, `foliage` (all read the fog-of-war texture: one texel per tile) and `crystal` (glowing deposits) |
-| `scripts/OrbitView.cs`, `OrbitPainter.cs`, `shaders/planet`, `shaders/atmosphere` | Orbit view: the painted globe with satellite-photo ground and a ray-marched (Rayleigh + Mie) atmosphere |
+| `scripts/OrbitView.cs`, `OrbitPainter.cs`, `shaders/planet`, `atmosphere`, `clouds` (+ `air`/`clouds` includes) | Orbit view: the painted globe with satellite-photo ground, animated oceans, two lit cloud layers with ground shadows and a ray-marched (Rayleigh + Mie) atmosphere |
+| `scripts/ShipModels.cs`, `shaders/ship_hull`, `ship_glow` | The player's ship in orbit: lathed hull parts with panel plating and lit windows, glowing deflector, nacelles and running lights |
 | `textures/planet/` | Tileable ground photos for the orbit globe, cut from NASA's Blue Marble Next Generation (public domain; credit: NASA Earth Observatory). Read at runtime, not imported (`.gdignore`) |
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
 | `scripts/BuildingModels.cs` | Primitive-built models: hub (grows with level), mine, reactor, habitat, colony pod, survey rover |

@@ -38,6 +38,9 @@ public partial class OrbitView : Node3D
 
     private const int PhotoSize = 256;
 
+    /// <summary>Where the player's ship rides in camera space.</summary>
+    private static readonly Vector3 ShipAt = new(-31f, -6f, -80f);
+
     private Simulation _sim = null!;
     private PlanetSurface _surface = null!;
     private int _localPlayer;
@@ -138,11 +141,7 @@ public partial class OrbitView : Node3D
 
         // Two cloud layers: thick swirling banks low (they also shadow the ground), thin east–west wisps higher up,
         // drifting at different speeds. Both read one small tiling 3D noise (clouds.gdshaderinc).
-        var cloudNoise = new NoiseTexture3D
-        {
-            Width = 64, Height = 64, Depth = 64, Seamless = true,
-            Noise = new FastNoiseLite { Seed = 1701, Frequency = 3f / 64f, FractalType = FastNoiseLite.FractalTypeEnum.None, NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth },
-        };
+        var cloudNoise = CloudNoise(1701);
         _clouds = CloudLayer(LowClouds, cloudNoise);
         AddChild(_clouds);
         _highClouds = CloudLayer(HighClouds, cloudNoise);
@@ -176,10 +175,11 @@ public partial class OrbitView : Node3D
         _globe.AddChild(_native);
         if (_surface.Map.NativeTile >= 0) PlaceOnSurface(_native, _surface.Map.NativeTile, 0.2f);
 
-        _ship = FactionShip(factionId, PlanetDriver.PlayerColors[0]);
+        _ship = ShipModels.Build(factionId, PlanetDriver.PlayerColors[0]);
         _camera.AddChild(_ship); // rides with the camera: the view from the ship
-        _ship.Position = new Vector3(-30f, -21f, -66f);
-        _ship.RotationDegrees = new Vector3(8f, -28f, 4f);
+        // Lower left, clear of the HUD, seen three-quarters from above with its bow toward the planet.
+        _ship.Position = ShipAt;
+        _ship.RotationDegrees = new Vector3(4f, -104f, 22f);
 
         SetScan(ScanMode.Landing);
     }
@@ -250,8 +250,54 @@ public partial class OrbitView : Node3D
     /// <summary>One cloud layer's look (clouds.gdshader uniforms); the low layer's numbers also drive the ground's cloud shadows.</summary>
     private sealed record CloudSpec(float Height, Vector3 Offset, Vector3 Scale, float Cover, float Softness, float Opacity, float AirThickness);
 
-    private static readonly CloudSpec LowClouds = new(1.4f, Vector3.Zero, new Vector3(1.6f, 1.6f, 1.6f), 0.6f, 0.1f, 0.95f, 0.8f);
-    private static readonly CloudSpec HighClouds = new(2.4f, new Vector3(0.5f, 0.2f, 0.7f), new Vector3(1.2f, 3f, 1.2f), 0.66f, 0.1f, 0.5f, 0.6f);
+    private static readonly CloudSpec LowClouds = new(1.4f, Vector3.Zero, new Vector3(1.2f, 1.2f, 1.2f), 0.58f, 0.11f, 0.95f, 0.8f);
+    private static readonly CloudSpec HighClouds = new(2.4f, new Vector3(0.5f, 0.2f, 0.7f), new Vector3(1.6f, 4f, 1.6f), 0.74f, 0.1f, 0.35f, 0.6f);
+
+    /// <summary>
+    /// The clouds' noise: 64³ periodic gradient (Perlin) noise with 4 lattice cells across, so it tiles exactly in all
+    /// three directions (Godot's NoiseTexture3D makes it seamless by blending skirts, which smeared the clouds).
+    /// </summary>
+    private static ImageTexture3D CloudNoise(int seed)
+    {
+        const int n = 64, period = 4;
+        int[] grads = { 1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1, 0, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 0, 1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1, 1, 1, 0, -1, 1, 0, 0, -1, 1, 0, -1, -1 };
+        int Hash(int x, int y, int z)
+        {
+            unchecked
+            {
+                var h = (uint)(x * 73856093) ^ (uint)(y * 19349663) ^ (uint)(z * 83492791) ^ ((uint)seed * 2654435761u);
+                h = (h ^ (h >> 13)) * 1274126177u;
+                return (int)((h ^ (h >> 16)) & 15u);
+            }
+        }
+        static float Fade(float t) => t * t * t * (t * (t * 6f - 15f) + 10f);
+        var images = new Godot.Collections.Array<Image>();
+        var row = new byte[n * n];
+        for (var z = 0; z < n; z++)
+        {
+            for (var y = 0; y < n; y++)
+                for (var x = 0; x < n; x++)
+                {
+                    float fx = (x + 0.5f) * period / n, fy = (y + 0.5f) * period / n, fz = (z + 0.5f) * period / n;
+                    int cx = (int)fx, cy = (int)fy, cz = (int)fz;
+                    float tx = fx - cx, ty = fy - cy, tz = fz - cz;
+                    float sx = Fade(tx), sy = Fade(ty), sz = Fade(tz);
+                    var sum = 0f;
+                    for (var c = 0; c < 8; c++)
+                    {
+                        int dx = c & 1, dy = (c >> 1) & 1, dz = (c >> 2) & 1;
+                        var g = Hash((cx + dx) % period, (cy + dy) % period, (cz + dz) % period) * 3;
+                        var dot = grads[g] * (tx - dx) + grads[g + 1] * (ty - dy) + grads[g + 2] * (tz - dz);
+                        sum += (dx == 1 ? sx : 1f - sx) * (dy == 1 ? sy : 1f - sy) * (dz == 1 ? sz : 1f - sz) * dot;
+                    }
+                    row[y * n + x] = (byte)(Mathf.Clamp(sum * 0.75f + 0.5f, 0f, 1f) * 255f);
+                }
+            images.Add(Image.CreateFromData(n, n, false, Image.Format.R8, row));
+        }
+        var texture = new ImageTexture3D();
+        texture.Create(Image.Format.R8, n, n, n, false, images);
+        return texture;
+    }
 
     /// <summary>While a scan overlay is up, thin the clouds (and their shadows) so the scan stays readable.</summary>
     private void ThinClouds(bool thin)
@@ -263,7 +309,7 @@ public partial class OrbitView : Node3D
     }
 
     /// <summary>A cloud shell (Godot's own sphere, so cull_back keeps only the near side) with clouds.gdshader.</summary>
-    private MeshInstance3D CloudLayer(CloudSpec spec, NoiseTexture3D noise)
+    private MeshInstance3D CloudLayer(CloudSpec spec, Texture3D noise)
     {
         var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/clouds.gdshader"), RenderPriority = spec.Height > 2f ? 2 : 1 }; // low layer first, then the high one, then the air
         material.SetShaderParameter("cloud_noise", noise);
@@ -634,7 +680,7 @@ public partial class OrbitView : Node3D
         RefreshLights();
         _camera.Position = new Vector3(0, 0, _distance);
         _camera.LookAt(Vector3.Zero, Vector3.Up);
-        _ship.Position = new Vector3(-30f, -21f + Mathf.Sin(_time * 0.6f) * 0.6f, -66f);
+        _ship.Position = ShipAt + new Vector3(0f, Mathf.Sin(_time * 0.6f) * 0.6f, 0f);
 
         if (_sweepTime >= 0f)
         {
@@ -790,72 +836,5 @@ public partial class OrbitView : Node3D
             _satMarkers[id].Band.QueueFree();
             _satMarkers.Remove(id);
         }
-    }
-
-    // ---------------------------------------------------------------- the ship
-
-    /// <summary>The player's ship, close to the camera in the lower left: shapes by faction (built from primitives).</summary>
-    private static Node3D FactionShip(string faction, Color owner)
-    {
-        StandardMaterial3D Hull(Color c) => new() { AlbedoColor = c, Metallic = 0.5f, Roughness = 0.4f };
-        var n = new Node3D();
-        void Add(Mesh mesh, Vector3 at, Material m, Vector3? rot = null)
-        {
-            var mi = new MeshInstance3D { Mesh = mesh, Position = at, MaterialOverride = m };
-            if (rot is { } r) mi.RotationDegrees = r;
-            n.AddChild(mi);
-        }
-        switch (faction)
-        {
-            case "borg":
-            {
-                Add(new BoxMesh { Size = new Vector3(22, 22, 22) }, Vector3.Zero, Hull(new Color(0.18f, 0.2f, 0.18f)));
-                for (var i = 0; i < 10; i++)
-                    Add(new BoxMesh { Size = new Vector3(22.2f, 0.4f, 0.4f) }, new Vector3(0, -10f + i * 2.2f, 11.1f), GlowMaterial(new Color(0.3f, 1f, 0.35f), 2f));
-                break;
-            }
-            case "klingon":
-            {
-                var green = Hull(new Color(0.32f, 0.38f, 0.3f));
-                Add(new BoxMesh { Size = new Vector3(4, 2.4f, 16) }, Vector3.Zero, green);
-                Add(new SphereMesh { Radius = 3f, Height = 3.4f }, new Vector3(0, 0, -9f), green);
-                foreach (var x in new[] { -1f, 1f })
-                    Add(new BoxMesh { Size = new Vector3(14, 0.6f, 6) }, new Vector3(x * 8f, -1.5f, 3f), green, new Vector3(0, 0, x * -12f));
-                Add(new SphereMesh { Radius = 1f, Height = 2f }, new Vector3(0, -0.6f, -11.6f), GlowMaterial(new Color(1f, 0.25f, 0.2f), 3f));
-                break;
-            }
-            case "romulan":
-            {
-                var green = Hull(new Color(0.3f, 0.5f, 0.38f));
-                foreach (var y in new[] { -3.5f, 3.5f })
-                    Add(new CylinderMesh { TopRadius = 7f, BottomRadius = 7f, Height = 0.8f, RadialSegments = 20 }, new Vector3(0, y, 2f), green, new Vector3(0, 0, 0));
-                Add(new BoxMesh { Size = new Vector3(2, 8, 4) }, new Vector3(0, 0, 8f), green);
-                Add(new SphereMesh { Radius = 2f, Height = 3f }, new Vector3(0, 0, -6f), green);
-                Add(new SphereMesh { Radius = 0.9f, Height = 1.8f }, new Vector3(0, 0, 8f), GlowMaterial(new Color(0.4f, 1f, 0.5f), 3f));
-                break;
-            }
-            case "federation":
-            default:
-            {
-                var hull = Hull(faction == "federation" ? new Color(0.82f, 0.84f, 0.88f) : new Color(0.6f, 0.55f, 0.5f));
-                // Saucer, neck, engineering hull, two nacelles on pylons.
-                Add(new CylinderMesh { TopRadius = 9f, BottomRadius = 9.6f, Height = 1.6f, RadialSegments = 40 }, new Vector3(0, 1.5f, -6f), hull);
-                Add(new SphereMesh { Radius = 2.6f, Height = 1.6f, IsHemisphere = true }, new Vector3(0, 2.3f, -6f), hull);
-                Add(new BoxMesh { Size = new Vector3(1.6f, 3f, 4f) }, new Vector3(0, -0.4f, 0.5f), hull, new Vector3(-25, 0, 0));
-                Add(new CapsuleMesh { Radius = 2f, Height = 13f }, new Vector3(0, -2f, 5f), hull, new Vector3(90, 0, 0));
-                Add(new SphereMesh { Radius = 1.1f, Height = 1.4f }, new Vector3(0, -2f, -1.6f), GlowMaterial(new Color(0.35f, 0.7f, 1f), 3f));
-                foreach (var x in new[] { -1f, 1f })
-                {
-                    Add(new BoxMesh { Size = new Vector3(5.5f, 0.5f, 2f) }, new Vector3(x * 3.4f, 0.2f, 8f), hull, new Vector3(0, 0, x * 35f));
-                    Add(new CapsuleMesh { Radius = 1.1f, Height = 15f }, new Vector3(x * 6f, 2.4f, 9f), hull, new Vector3(90, 0, 0));
-                    Add(new BoxMesh { Size = new Vector3(0.5f, 0.3f, 12f) }, new Vector3(x * 6.9f, 2.4f, 9f), GlowMaterial(new Color(0.4f, 0.7f, 1f), 3.5f));
-                    Add(new SphereMesh { Radius = 1.05f, Height = 2.1f }, new Vector3(x * 6f, 2.4f, 1.7f), GlowMaterial(new Color(1f, 0.3f, 0.2f), 3.5f));
-                }
-                Add(new CylinderMesh { TopRadius = 9.65f, BottomRadius = 9.65f, Height = 0.2f, RadialSegments = 40 }, new Vector3(0, 1f, -6f), GlowMaterial(owner, 1.2f));
-                break;
-            }
-        }
-        n.AddChild(new OmniLight3D { LightColor = new Color(0.9f, 0.95f, 1f), LightEnergy = 0.6f, OmniRange = 40f, Position = new Vector3(10, 10, 10) });
-        return n;
     }
 }

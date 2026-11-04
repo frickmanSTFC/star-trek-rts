@@ -13,9 +13,9 @@ uniform vec3 sun_colour = vec3(1.0, 0.97, 0.9);
 uniform float sun_energy = 1.7;
 uniform float ambient = 0.07;
 uniform vec3 layer_offset = vec3(0.0);
-uniform vec3 layer_scale = vec3(1.6);
-uniform float layer_cover = 0.6;
-uniform float layer_softness = 0.1;
+uniform vec3 layer_scale = vec3(1.2);
+uniform float layer_cover = 0.58;
+uniform float layer_softness = 0.11;
 uniform float layer_opacity = 0.95;
 // How much air lies between the sun and this layer, relative to the ground (higher layers: less, so less reddening).
 uniform float air_thickness = 0.8;
@@ -32,12 +32,14 @@ void vertex() {
 
 void fragment() {
 	vec3 d = normalize(local_dir);
-	float field = cloud_field(d, layer_offset, layer_scale);
+	// Finer detail only when the camera is close (it would only shimmer from far off).
+	float detail = 1.0 - smoothstep(170.0, 300.0, length(CAMERA_POSITION_WORLD - NODE_POSITION_WORLD));
+	float field = cloud_field(d, layer_offset, layer_scale, detail);
 	float a = cloud_alpha(field, d, layer_cover, layer_softness) * layer_opacity;
 	if (a < 0.003) discard;
 	float mu = dot(normalize(world_dir), normalize(sun_dir));
-	float lit = smoothstep(-0.08, 0.27, mu);
-	float toward = cloud_field(normalize(d + normalize(sun_local) * 0.012), layer_offset, layer_scale);
+	float lit = smoothstep(-0.05, 0.2, mu);
+	float toward = cloud_field(normalize(d + normalize(sun_local) * 0.012), layer_offset, layer_scale, 0.0);
 	float shade = 1.0 - clamp((toward - field) * 4.0, 0.0, 0.45);
 	ALBEDO = 0.85 * sun_energy * lit * shade * sun_colour * sunlight_at(mu, air_thickness) + vec3(ambient * 0.9);
 	ALPHA = a;

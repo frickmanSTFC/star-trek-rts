@@ -58,6 +58,7 @@ public partial class PlanetDriver : Node3D
     private double _switchToSurfaceAt = -1;
     private double _clock;
     private float _surfaceAmbient = -1f;
+    private (float Intensity, float Bloom, float Threshold, float Level5, float Level6)? _surfaceGlow;
     private readonly Dictionary<int, (DeliveryKind Kind, string Payload, int Tile)> _seenDeliveries = new();
 
     /// <summary>What the big info card shows: a building id (while placing it), "tech:id" or "unit:id"; null = closed.</summary>
@@ -183,6 +184,14 @@ public partial class PlanetDriver : Node3D
             _environment.SsaoEnabled = false;
             if (_surfaceAmbient < 0) _surfaceAmbient = _environment.AmbientLightEnergy;
             _environment.AmbientLightEnergy = 0.07f; // space is dark: the night side should be too
+            // Glow for the orbit view: the sun glint on the sea, ship lights and the limb bloom softly, with a wide faint halo (lens glow).
+            if (_surfaceGlow == null)
+                _surfaceGlow = (_environment.GlowIntensity, _environment.GlowBloom, _environment.GlowHdrThreshold, _environment.GetGlowLevel(5), _environment.GetGlowLevel(6));
+            _environment.GlowIntensity = 0.85f;
+            _environment.GlowBloom = 0.04f;
+            _environment.GlowHdrThreshold = 0.9f;
+            _environment.SetGlowLevel(5, 0.6f);
+            _environment.SetGlowLevel(6, 0.35f);
         }
         if (Me.Phase == LandingPhase.Landed)
         {
@@ -207,6 +216,14 @@ public partial class PlanetDriver : Node3D
             _environment.FogEnabled = true;
             _environment.SsaoEnabled = true;
             if (_surfaceAmbient >= 0) _environment.AmbientLightEnergy = _surfaceAmbient;
+            if (_surfaceGlow is { } glow)
+            {
+                _environment.GlowIntensity = glow.Intensity;
+                _environment.GlowBloom = glow.Bloom;
+                _environment.GlowHdrThreshold = glow.Threshold;
+                _environment.SetGlowLevel(5, glow.Level5);
+                _environment.SetGlowLevel(6, glow.Level6);
+            }
         }
         _hud.Minimap.Visible = true;
         if (tile >= 0)

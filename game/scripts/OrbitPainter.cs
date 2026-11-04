@@ -61,6 +61,12 @@ public static class OrbitPainter
         var detail = new NoiseField(1024, 512, 51, 128, 5);
         var ridge = new NoiseField(1024, 512, 61, 96, 5, ridged: true);
         var caps = new NoiseField(512, 256, 71, 32, 4);
+        // A stronger, two-scale warp used only to pick the biome (coastlines keep the gentle one, so they match the tiles).
+        var bioWarpY = new NoiseField(512, 256, 13, 40, 3);
+        var bioWarpX = new NoiseField(512, 256, 29, 40, 3);
+        var bioWarpFineY = new NoiseField(1024, 512, 17, 120, 3);
+        var bioWarpFineX = new NoiseField(1024, 512, 31, 120, 3);
+        var biomeFine = new NoiseField(1024, 512, 89, 160, 3);
         var biome = new NoiseField[Kinds.Length];
         for (var k = 0; k < Kinds.Length; k++) biome[k] = new NoiseField(512, 256, 101 + k, 48, 4);
 
@@ -78,7 +84,7 @@ public static class OrbitPainter
             for (var j = 0; j < splat.Length; j++) splat[j] *= 1f - amount;
             splat[layer] += amount;
         }
-        const float warp = 0.45f;
+        const float warp = 0.9f; // NoiseField values sit near 0.5 (std ~0.14), so this moves edges ~0.25 tile
 
         for (var y = 0; y < height; y++)
         {
@@ -88,21 +94,17 @@ public static class OrbitPainter
             {
                 var u = (x + 0.5f) / width;
                 var i = y * width + x;
-                Color c;
-                float h, isWater = 0f;
+                var c = Colors.Black;
+                float h = 0f, isWater = 0f;
                 Array.Clear(splat);
-                if (band < 0f || band > 1f)
-                {
-                    splat[5] = 1f;
-                    var n = caps.Sample(u, v);
-                    c = new Color(0.84f, 0.88f, 0.93f).Lerp(new Color(0.96f, 0.97f, 0.99f), n);
-                    h = 0.12f + n * 0.08f;
-                }
-                else
+                // Polar caps beyond the map's rows, with a ragged edge that wanders a little either way.
+                var capEdge = MathF.Max(vTop - v, v - vBottom) + (caps.Sample(u, v) - 0.5f) * 0.05f + (detail.Sample(u, v) - 0.5f) * 0.02f;
+                var capness = Smooth(-0.012f, 0.012f, capEdge);
+                if (capness < 1f)
                 {
                     // Fractional tile coordinates; each row interpolates with its own half-tile stagger.
-                    var fy = band * H - 0.5f + (warpY.Sample(u, v) - 0.5f) * 2f * warp;
-                    var wx = (warpX.Sample(u, v) - 0.5f) * 2f * warp;
+                    var fy = band * H - 0.5f + (warpY.Sample(u, v) - 0.5f) * 2f * warp + (bioWarpFineY.Sample(u, v) - 0.5f);
+                    var wx = (warpX.Sample(u, v) - 0.5f) * 2f * warp + (bioWarpFineX.Sample(u, v) - 0.5f);
                     var y0 = (int)MathF.Floor(fy);
                     var ty = fy - y0;
                     var r0 = Math.Clamp(y0, 0, H - 1);
@@ -116,7 +118,7 @@ public static class OrbitPainter
                     var wf = Blend(water);
                     var e = Blend(elev);
                     // Coast: a noisy threshold on the blended water share, softened over a pixel or so (anti-aliased).
-                    var shore = wf + (coast.Sample(u, v) - 0.5f) * 0.55f - 0.5f;
+                    var shore = wf + (coast.Sample(u, v) - 0.5f) * 1.1f - 0.5f;
                     isWater = Smooth(-0.035f, 0.035f, shore);
                     var sea = Colors.Black;
                     if (isWater > 0f)
@@ -136,23 +138,44 @@ public static class OrbitPainter
                     }
                     else
                     {
-                        // Land: the dominant terrain around this pixel, with noise so the borders wander.
+                        // Land: the dominant terrain around this pixel, picked from the tiles under a stronger warp (falling
+                        // back to the gentle one near water), with two scales of noise so the borders wander off the hexes.
                         Array.Clear(weights);
                         void Add(int t, float w)
                         {
                             if (kind[t] >= 0) weights[kind[t]] += w;
                         }
-                        Add(t00, w00);
-                        Add(t01, w01);
-                        Add(t10, w10);
-                        Add(t11, w11);
+                        {
+                            var by = fy + (bioWarpY.Sample(u, v) - 0.5f) * 3.5f + (bioWarpFineY.Sample(u, v) - 0.5f) * 1.4f;
+                            var bx = wx + (bioWarpX.Sample(u, v) - 0.5f) * 3.5f + (bioWarpFineX.Sample(u, v) - 0.5f) * 1.4f;
+                            var by0 = (int)MathF.Floor(by);
+                            var bty = by - by0;
+                            var br0 = Math.Clamp(by0, 0, H - 1);
+                            var br1 = Math.Clamp(by0 + 1, 0, H - 1);
+                            Row(u, br0, W, bx, out var c0, out var c1, out var bta);
+                            Row(u, br1, W, bx, out var d0, out var d1, out var btb);
+                            Add(g.Index(c0, br0), (1 - bta) * (1 - bty));
+                            Add(g.Index(c1, br0), bta * (1 - bty));
+                            Add(g.Index(d0, br1), (1 - btb) * bty);
+                            Add(g.Index(d1, br1), btb * bty);
+                        }
+                        var landShare = 0f;
+                        foreach (var lw in weights) landShare += lw;
+                        if (landShare < 0.3f)
+                        {
+                            Array.Clear(weights);
+                            Add(t00, w00);
+                            Add(t01, w01);
+                            Add(t10, w10);
+                            Add(t11, w11);
+                        }
                         var best = -1f;
                         var k = 0;
                         for (var j = 0; j < Kinds.Length; j++)
                         {
                             noisy[j] = -9f;
                             if (weights[j] <= 0.02f) continue;
-                            var w = weights[j] + (biome[j].Sample(u, v) - 0.5f) * 0.6f;
+                            var w = weights[j] + (biome[j].Sample(u, v) - 0.5f) * 0.9f + (biomeFine.Sample(u, (v + j * 0.13f) % 1f) - 0.5f) * 0.4f;
                             noisy[j] = w;
                             if (w > best)
                             {
@@ -200,6 +223,20 @@ public static class OrbitPainter
                             Toward(2, isWater);
                         }
                     }
+                }
+                if (capness > 0f)
+                {
+                    // Ice: brightness drifts, blue-grey crevasse ridges, a little relief for the normal map.
+                    var n = caps.Sample(u, v);
+                    var r = ridge.Sample(u, v);
+                    var d = detail.Sample(u, v);
+                    var ice = new Color(0.8f, 0.85f, 0.91f).Lerp(new Color(0.97f, 0.98f, 1f), n) * (0.93f + 0.07f * d);
+                    ice = ice.Lerp(new Color(0.66f, 0.74f, 0.85f), Smooth(0.82f, 1f, r) * 0.35f);
+                    var iceH = 0.12f + n * 0.1f + r * 0.05f + (d - 0.5f) * 0.03f;
+                    c = c.Lerp(ice, capness);
+                    h += (iceH - h) * capness;
+                    isWater *= 1f - capness;
+                    Toward(5, capness);
                 }
                 albedo[i * 4] = (byte)(Math.Clamp(c.R, 0f, 1f) * 255f);
                 albedo[i * 4 + 1] = (byte)(Math.Clamp(c.G, 0f, 1f) * 255f);

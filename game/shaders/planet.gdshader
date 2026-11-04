@@ -36,9 +36,9 @@ uniform float water_roughness = 0.3;
 // The low cloud layer (OrbitView sets these to match it, and cloud_from_world every frame as the layer turns).
 uniform mat3 cloud_from_world = mat3(1.0);
 uniform vec3 cloud_offset = vec3(0.0);
-uniform vec3 cloud_scale = vec3(1.6);
-uniform float cloud_cover = 0.6;
-uniform float cloud_softness = 0.1;
+uniform vec3 cloud_scale = vec3(1.2);
+uniform float cloud_cover = 0.58;
+uniform float cloud_softness = 0.11;
 uniform float cloud_opacity = 0.95;
 uniform float cloud_height = 1.4;
 uniform float cloud_shadow = 0.65;
@@ -104,9 +104,12 @@ void fragment() {
 	if (mu > 0.0) {
 		vec3 q = normalize(normalize(world_dir) + normalize(sun_dir) * (cloud_height / planet_radius) / max(mu, 0.15));
 		vec3 cd = cloud_from_world * q;
-		shadow = cloud_alpha(cloud_field(cd, cloud_offset, cloud_scale), cd, cloud_cover, cloud_softness) * cloud_opacity * cloud_shadow;
+		shadow = cloud_alpha(cloud_field(cd, cloud_offset, cloud_scale, 0.0), cd, cloud_cover, cloud_softness) * cloud_opacity * cloud_shadow;
 	}
-	ALBEDO = colour * sunlight * (1.0 - shadow);
+	// A crisper sunset line: Lambert light falls off slowly toward the terminator; lift the low-sun ground a little
+	// (light ~ mu^0.75 instead of mu) so the day side stays bright closer to the edge and then drops away quickly.
+	float crisp = clamp(pow(max(mu, 0.0) + 0.02, -0.25), 1.0, 1.8);
+	ALBEDO = colour * sunlight * (1.0 - shadow) * crisp;
 	ROUGHNESS = mix(0.9, water_roughness, water);
 	SPECULAR = mix(0.25, 0.5, water) * dot(sunlight, vec3(0.333)) * (1.0 - shadow);
 	METALLIC = 0.0;
