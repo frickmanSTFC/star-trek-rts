@@ -104,13 +104,21 @@ public sealed record LandingRules(
 /// Surface stats for a ground vehicle (the vehicle itself is in vehicles.json). A unit with ExtractPerMinute
 /// is a mining crawler: it unfurls on a deposit in DeploySeconds (and packs up just as long), fills a hopper of
 /// Hopper, and sends each full load home as a cargo pod flying PodSpeed tiles per second. Cost and BuildSeconds are
-/// what a Vehicle Bay charges and takes to assemble one.
+/// what a Vehicle Bay charges and takes to assemble one. Mark = which mark of a vehicle line it is (1..3, e.g.
+/// survey_rover is the Mk I Scout), or null for a unit with no marks.
 /// </summary>
 public sealed record SurfaceUnitDef(string Id, Fix64 Speed, int SurveyRadius, Fix64 ExtractPerMinute, Fix64 Hopper, int DeploySeconds, Fix64 PodSpeed,
-    BreakdownRules? Breakdown, RepairRules? Repair, IReadOnlyList<ResourceAmount> Cost, int BuildSeconds, string Description)
+    BreakdownRules? Breakdown, RepairRules? Repair, IReadOnlyList<ResourceAmount> Cost, int BuildSeconds, string Description, int? Mark = null)
 {
     public bool CanMine => ExtractPerMinute > Fix64.Zero;
 }
+
+/// <summary>
+/// Names and hull numbers for new units (surfaces.json unit_names): Pool of names (uppercase letters) and the first
+/// band of numbers, NumbersFrom..NumbersTo. When a player has used every number in a band, the next band has one more
+/// digit (10..99 → 100..999 → 1000..9999 …).
+/// </summary>
+public sealed record UnitNameRules(IReadOnlyList<string> Pool, int NumbersFrom, int NumbersTo);
 
 /// <summary>
 /// Building wear and maintenance (surfaces.json maintenance). Below DeclineBelow condition, output falls toward

@@ -55,7 +55,7 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    It then folds up and drives slower: press **F** (or right-click the Colony Hub) to send it to the repair pad
    beside the hub, where two crew members walk out and weld it back to 100% for a little duranium.
    Build a **Vehicle Bay** (key 8) for more vehicles: select it and the command card shows its orders
-   (survey rover, mining crawler; keys 1–2). Orders are paid up front and queue up to 5; **Backspace** cancels
+   (survey rover Mk I Scout, mining crawler, Mk II Surveyor, Mk III Explorer; keys 1–4). Orders are paid up front and queue up to 5; **Backspace** cancels
    the last one. Each vehicle rolls out of the bay's door when it's done.
    Clicking a card on the build card opens a bigger **info card** above it: description, cost, stats, upgrades
    and requirements. A building card also starts placing it. A research or vehicle card only opens its info:

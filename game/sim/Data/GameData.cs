@@ -68,6 +68,9 @@ public sealed class GameData
     public IReadOnlyList<ResourceDef> HudResources { get; }
     public LandingRules Landing { get; }
 
+    /// <summary>Names and hull numbers handed to new units (surfaces.json unit_names).</summary>
+    public UnitNameRules UnitNames { get; private init; } = new(new List<string>(), 10, 99);
+
     /// <summary>Ground vehicle ids and names from vehicles.json.</summary>
     public IReadOnlyDictionary<string, string> GroundVehicleNames { get; }
 
@@ -370,8 +373,17 @@ public sealed class GameData
                     : null,
                 Amounts(u, "cost", $"Surface unit {Str(u, "id")}"),
                 u.TryGetProperty("build_seconds", out var bs) ? bs.GetInt32() : 0,
-                u.TryGetProperty("description", out var ud) ? ud.GetString() ?? "" : ""))
+                u.TryGetProperty("description", out var ud) ? ud.GetString() ?? "" : "",
+                u.TryGetProperty("mark", out var mk) ? mk.GetInt32() : null))
             .ToList();
+
+        var unitNames = new UnitNameRules(new List<string>(), 10, 99);
+        if (surfacesRoot.TryGetProperty("unit_names", out var un))
+        {
+            var numbers = un.GetProperty("numbers");
+            unitNames = new UnitNameRules(un.GetProperty("pool").EnumerateArray().Select(n => n.GetString() ?? "").ToList(),
+                numbers[0].GetInt32(), numbers[1].GetInt32());
+        }
 
         var groundVehicles = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var list in new[] { "ground_vehicles", "ground_forces" }) // surface units are vehicles or teams
@@ -399,7 +411,7 @@ public sealed class GameData
                     t.TryGetProperty("description", out var td) ? td.GetString() ?? "" : "")).ToList()
                 : new List<TechDef>(),
             surfacesRoot.TryGetProperty("orbit", out var ob) ? ReadOrbit(ob, Amounts) : null,
-            groundVehicles, problems);
+            groundVehicles, problems) { UnitNames = unitNames };
     }
 
     private static OrbitRules ReadOrbit(JsonElement o, Func<JsonElement, string, string, List<ResourceAmount>> amounts)
@@ -458,6 +470,7 @@ public sealed class GameData
 
         foreach (var m in Maps) ValidateMap(m, problems);
         ValidateSurfaces(problems);
+        ValidateUnitNames(problems);
         return problems;
     }
 
@@ -620,6 +633,7 @@ public sealed class GameData
         {
             if (!GroundVehicleNames.ContainsKey(u.Id)) problems.Add($"Surface unit {u.Id}: not a ground vehicle in vehicles.json.");
             if (u.Speed <= Fix64.Zero) problems.Add($"Surface unit {u.Id}: speed must be positive.");
+            if (u.Mark is { } mark && (mark < 1 || mark > 3)) problems.Add($"Surface unit {u.Id}: mark must be 1, 2 or 3.");
             if (u.CanMine && (u.Hopper <= Fix64.Zero || u.PodSpeed <= Fix64.Zero || u.DeploySeconds < 1))
                 problems.Add($"Surface unit {u.Id}: a miner needs hopper, pod_speed and deploy_seconds.");
             if (u.Breakdown is { } b)
@@ -634,6 +648,20 @@ public sealed class GameData
             if (u.Repair is { } r && (r.PerSecond <= Fix64.Zero || r.CrewSeconds < 0 || r.CostPerPoint.Any(a => a.Amount < Fix64.Zero)))
                 problems.Add($"Surface unit {u.Id}: repair needs a positive per_second, crew_seconds of 0 or more and costs of 0 or more.");
         }
+    }
+
+    private void ValidateUnitNames(List<string> problems)
+    {
+        var names = UnitNames;
+        if (names.Pool.Count == 0) problems.Add("unit_names: the name pool is empty.");
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var n in names.Pool)
+        {
+            if (n.Length == 0 || n.Any(c => c < 'A' || c > 'Z')) problems.Add($"unit_names: '{n}' must be uppercase letters A-Z only.");
+            if (!seen.Add(n)) problems.Add($"unit_names: '{n}' is listed more than once.");
+        }
+        if (names.NumbersFrom < 0 || names.NumbersTo < names.NumbersFrom || names.NumbersTo > 9999)
+            problems.Add($"unit_names: numbers [{names.NumbersFrom}, {names.NumbersTo}] must be a range within 0..9999.");
     }
 
     private void ValidateMap(MapDef m, List<string> problems)

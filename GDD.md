@@ -111,10 +111,17 @@ layer above it once the surface game is fun.
   right-click the hub); it parks on the **repair pad** beside the hub, two crew walk out of the hub and weld it,
   restoring 5 integrity a second for 1 duranium a point; repair pauses if you can't pay.
 - **Vehicle Bay** (built 2026-11-03): a surface building (180 duranium, 60 tritanium, uses power) that assembles
-  survey rovers (60 duranium, 20 s) and mining crawlers (150 duranium + 50 tritanium, 45 s), one at a time with up
+  survey rovers in three marks (Mk I Scout 60 duranium, 20 s; Mk II Surveyor 90 duranium + 20 tritanium, 30 s, faster
+  with a wider survey; Mk III Explorer 120 duranium + 60 tritanium + 5 dilithium, 45 s, fastest and widest; which
+  research unlocks Mk II and III is still to be decided) and mining crawlers (150 duranium + 50 tritanium, 45 s), one at a time with up
   to 5 orders queued, paid when ordered. Select it and the command card shows its orders; Backspace cancels the
   last order for a full refund. The door rolls up and the vehicle drives out beside the bay. Low power slows
   assembly; an idle bay draws no power; salvaging a bay refunds its unbuilt orders in full.
+- **Unit names** (owner 2026-11-04): every vehicle gets its own name and hull number when it lands, is delivered or
+  rolls out (e.g. KALTY 44), drawn in a random-looking order from a pool of geology and weather words
+  (`surfaces.json` `unit_names`, numbers 10–99). A player never gets the same name or number twice in a game, even
+  after the vehicle is gone; when the pool runs out names go round again as KALTY II, KALTY III…, and numbers go on
+  with three digits.
 - **Wear and maintenance** (decided 2026-11-03): working buildings lose condition (0–100) over time (refineries,
   mines and foundries 3 a minute, reactors and labs 2, habitats 1; cores and storage never wear). Below 50% their
   output falls, down to half at 0%, and they may break down outright (more likely the lower they get). A broken

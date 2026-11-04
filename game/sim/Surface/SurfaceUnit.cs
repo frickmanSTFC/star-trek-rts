@@ -92,6 +92,14 @@ public sealed class SurfaceUnit
 
     public int BuiltAtTile { get; internal set; } = -1;
 
+    /// <summary>
+    /// The unit's own name, painted on its hull (e.g. "KALTY", or "KALTY II" once the pool has gone round), and its hull
+    /// number (e.g. "44"). Set once when the unit is created and never reused by its owner, even after it is gone.
+    /// </summary>
+    public string Name { get; internal init; } = "";
+
+    public string Number { get; internal init; } = "";
+
     internal SurfaceUnit(int id, int owner, string defId, Fix64 speedPerTick, int surveyRadius, int tile)
     {
         Id = id;
@@ -125,6 +133,8 @@ public sealed class SurfaceUnit
         h.Add(RepairWaiting);
         h.Add(BuiltAtTick);
         h.Add(BuiltAtTile);
+        h.Add(Name);
+        h.Add(Number);
     }
 }
 
@@ -454,6 +464,15 @@ public sealed class SurfacePlayer
     /// <summary>The transporter can beam again from this tick.</summary>
     public long TransporterReadyTick { get; internal set; }
 
+    /// <summary>Every unit name this player has handed out, oldest first (kept after the unit is gone, so none repeats).</summary>
+    public IReadOnlyList<string> UsedUnitNames => _usedUnitNames;
+
+    /// <summary>Every hull number this player has handed out, oldest first.</summary>
+    public IReadOnlyList<string> UsedUnitNumbers => _usedUnitNumbers;
+
+    internal readonly List<string> _usedUnitNames = new();
+    internal readonly List<string> _usedUnitNumbers = new();
+
     internal SurfacePlayer(int tileCount, int techCount, int resourceCount)
     {
         Surveyed = new bool[tileCount];
@@ -476,5 +495,9 @@ public sealed class SurfacePlayer
         h.Add(TransporterLevel);
         h.Add(ShuttleBackTick);
         h.Add(TransporterReadyTick);
+        h.Add(_usedUnitNames.Count);
+        foreach (var n in _usedUnitNames) h.Add(n);
+        h.Add(_usedUnitNumbers.Count);
+        foreach (var n in _usedUnitNumbers) h.Add(n);
     }
 }
