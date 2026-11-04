@@ -43,6 +43,7 @@ public partial class PlanetView : Node3D
     private StandardMaterial3D _hoverMaterial = null!;
     private Node3D _pod = null!;
     private readonly Dictionary<int, Node3D> _rovers = new();
+    private readonly Dictionary<int, RoverLook.Grime> _grime = new();
     private readonly Dictionary<int, Label3D> _unitLabels = new();
     private readonly Dictionary<int, Node3D> _pods = new();
     private readonly Dictionary<int, long> _seenBreak = new();
@@ -985,7 +986,9 @@ public partial class PlanetView : Node3D
             if (!_rovers.TryGetValue(u.Id, out var model))
             {
                 var colour = PlanetDriver.PlayerColors[u.Owner % PlanetDriver.PlayerColors.Length];
-                model = def.CanMine ? BuildingModels.Crawler(colour) : BuildingModels.Rover(colour);
+                model = def.CanMine ? BuildingModels.Crawler(colour) : BuildingModels.Rover(colour, def.Id);
+                RoverLook.Paint(model, u.Name, u.Number);
+                _grime[u.Id] = RoverLook.Grime.Attach(model, def.CanMine ? 3.2f : 2.4f);
                 // Wheel spray from behind the rear wheels (rover) or the back of the tracks (crawler); +Z is the back.
                 model.AddChild(new SprayRig(def.CanMine
                     ? new[] { new Vector3(-1.75f, 0.2f, 2.9f), new Vector3(1.75f, 0.2f, 2.9f) }
@@ -1005,10 +1008,12 @@ public partial class PlanetView : Node3D
                 _unitLabels[u.Id] = label;
             }
 
-            var from = UnitSpot(u, u.Tile, def.CanMine);
+            // Every vehicle on its own colony core's tile stands on the repair pad (and gets washed there).
+            var from = UnitSpot(u, u.Tile, true);
             var pos = from;
             var moving = u.Path.Count > 0 && u.Mode == UnitMode.Mobile;
-            if (!moving && def.CanMine && PadCore(u, u.Tile) is { } padCore)
+            var onPad = !moving && PadCore(u, u.Tile) != null;
+            if (!moving && PadCore(u, u.Tile) is { } padCore)
             {
                 // Parked on the repair pad: line up with it.
                 var target = new Basis(Vector3.Up, Mathf.DegToRad(-60f * padCore.Facing + BuildingModels.RepairPadYaw));
@@ -1016,7 +1021,7 @@ public partial class PlanetView : Node3D
             }
             if (moving)
             {
-                var to = UnitSpot(u, u.Path[0], def.CanMine);
+                var to = UnitSpot(u, u.Path[0], true);
                 var cost = _surface.Map.Terrain(u.Path[0]).MoveCost;
                 var f = Mathf.Clamp((u.Progress.ToFloat() + _surface.SpeedPerTick(u).ToFloat() * alpha) / cost, 0f, 1f);
                 pos = from.Lerp(to, f);
@@ -1037,8 +1042,9 @@ public partial class PlanetView : Node3D
                 pos = rolled;
             }
             model.Position = pos + new Vector3(0, 0.1f, 0);
-            if (model.GetNodeOrNull<SprayRig>("SprayRig") is { } spray)
-                spray.Spray(SprayRig.KindFor(_surface.Map, TileAt(pos)), moving || rolling);
+            var ground = SprayRig.KindFor(_surface.Map, TileAt(pos));
+            if (model.GetNodeOrNull<SprayRig>("SprayRig") is { } spray) spray.Spray(ground, moving || rolling);
+            if (_grime.TryGetValue(u.Id, out var grime)) grime.Update(ground, moving || rolling, onPad, delta);
             if (model.GetNodeOrNull<Node3D>("Selected") is { } ring) ring.Visible = SelectedUnits.Contains(u.Id);
             if (model.GetNodeOrNull<Node3D>("Dish") is { } dish) dish.RotateY(delta * (moving ? 3f : 1f));
 
@@ -1065,6 +1071,7 @@ public partial class PlanetView : Node3D
             if (alive.Contains(id)) continue;
             _rovers[id].QueueFree();
             _rovers.Remove(id);
+            _grime.Remove(id);
             _unitLabels[id].QueueFree();
             _unitLabels.Remove(id);
         }
