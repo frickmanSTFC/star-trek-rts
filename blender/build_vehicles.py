@@ -13,7 +13,14 @@ Survey rover variants (contract in blender/rover_variants.py):
   --name KALTY      painted on both sides and across the back (scaled down to fit when long)
   --number 44       hull number on both sides
   --shots front34,rear34,side,game   which previews to render (default all four)
-With --tier or --name the previews are named <vehicle>-t<tier>-<name lower>-<shot>.png, otherwise <vehicle>-<shot>.png.
+  --blank           game export: no name/number geometry; empties NameL, NameR, NameRear, NumberL, NumberR mark the
+                    decal spots instead (L = -X side, R = +X side). Each empty has the text's matrix (text lies in its
+                    local XY plane facing local +Z, reading along +X, centred) and Blender scale (max_width, size, 1);
+                    number spots are as wide as three digits. Godot sees scale (max_width, 1, size) and the normal on +Y.
+With --tier or --name the previews are named <vehicle>-t<tier>-<name lower>[-blank]-<shot>.png, otherwise <vehicle>-<shot>.png.
+Game models (rover_variants.py GAME CONTRACT):
+  python3.11 blender/build_vehicles.py --vehicle survey_rover --tier 1 --blank --out game/models/vehicles/survey_rover.glb
+  (--tier 2 -> survey_rover_mk2.glb, --tier 3 -> survey_rover_mk3.glb)
 
 Conventions (so the game can animate the parts): Blender +Y is the vehicle's front (glTF/Godot then see it facing -Z,
 like the old code-built models), +Z up, units = Godot world units. Named parts the game drives keep their names
@@ -26,7 +33,7 @@ import sys
 
 import bpy  # first: importing bpy puts bmesh and mathutils on the path when run as a module
 import bmesh
-from mathutils import Matrix, Vector
+from mathutils import Euler, Matrix, Vector
 
 # ---------------------------------------------------------------- arguments
 
@@ -47,6 +54,7 @@ TIER = int(arg("--tier", "2"))
 NAME = arg("--name", "KALTY").upper()
 NUMBER = arg("--number", "44")
 SHOTS = [s.strip() for s in arg("--shots", "front34,rear34,side,game").split(",") if s.strip()]
+BLANK = "--blank" in argv  # game models: decal spots as empties, the game paints the name and number
 NAMED = "--tier" in argv or "--name" in argv  # variant previews get the tier and name in their file names
 if TIER not in (1, 2, 3):
     sys.exit(f"--tier must be 1, 2 or 3, not {TIER}")
@@ -215,9 +223,9 @@ def ring(name, radius, depth, thickness, loc, mat, parent=None, segments=24):
     return o
 
 
-def text(name, body, size, loc, rot, mat, parent=None, max_width=None):
-    """A text label as real geometry (glTF has no text): build the font curve, evaluate it to a mesh, drop the curve.
-    Longer than max_width (world units, along the text) → scaled down evenly until it fits."""
+def text_mesh(name, body, size):
+    """The font curve for `body`, centred on the origin in the local XY plane (facing +Z, reading along +X), evaluated
+    to a mesh; the curve object is dropped."""
     curve = bpy.data.curves.new(f"{name}Font", "FONT")
     curve.body = body
     curve.size = size
@@ -229,6 +237,36 @@ def text(name, body, size, loc, rot, mat, parent=None, max_width=None):
     bpy.context.view_layer.update()
     me = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
     bpy.data.objects.remove(tmp)
+    return me
+
+
+# --blank: the decal objects become these game markers (rover_variants.py GAME CONTRACT).
+MARKERS = {"Name-1": "NameL", "Name1": "NameR", "NameRear": "NameRear", "Number-1": "NumberL", "Number1": "NumberR"}
+NUMBER_DIGITS = 3  # number spots are sized for three digits
+
+
+def text(name, body, size, loc, rot, mat, parent=None, max_width=None, matrix=None):
+    """A text label as real geometry (glTF has no text): build the font curve, evaluate it to a mesh, drop the curve.
+    Longer than max_width (world units, along the text) → scaled down evenly until it fits. `matrix` (local to the
+    parent), if given, replaces loc/rot.
+    With --blank a decal listed in MARKERS is an empty instead, with the same matrix and Blender scale (width, size, 1):
+    width = max_width, or for a hull number the width of three digits at this size (at most max_width)."""
+    if BLANK and name in MARKERS:
+        width = max_width
+        if name.startswith("Number"):
+            probe = text_mesh(f"{name}Probe", "0" * NUMBER_DIGITS, size)
+            xs = [v.co.x for v in probe.vertices]
+            bpy.data.meshes.remove(probe)
+            width = math.ceil((max(xs) - min(xs)) * 100) / 100
+            if max_width is not None:
+                width = min(width, max_width)
+        e = bpy.data.objects.new(MARKERS[name], None)
+        e.empty_display_type = "ARROWS"
+        e.empty_display_size = 0.5
+        m = matrix if matrix is not None else Matrix.Translation(loc) @ Euler(rot).to_matrix().to_4x4()
+        e.matrix_basis = m @ Matrix.Diagonal((width, size, 1.0, 1.0))
+        return link(e, parent)
+    me = text_mesh(name, body, size)
     if max_width is not None and me.vertices:
         xs = [v.co.x for v in me.vertices]
         width = max(xs) - min(xs)
@@ -238,8 +276,11 @@ def text(name, body, size, loc, rot, mat, parent=None, max_width=None):
     me.materials.clear()
     me.materials.append(mat)
     o = bpy.data.objects.new(name, me)
-    o.location = loc
-    o.rotation_euler = rot
+    if matrix is not None:
+        o.matrix_basis = matrix
+    else:
+        o.location = loc
+        o.rotation_euler = rot
     o.visible_shadow = False  # a decal: its shadow on the paint just looks like a doubled number
     return link(o, parent)
 
@@ -421,14 +462,13 @@ def rover_mk2(P):
         # On the upper rear side, lying flat on the wall, which leans in by `lean` above z 1.58 (tumblehome).
         lean = math.atan2(W / 2 * 0.07, 2.36 - 1.58)
         z = 1.95
-        num = text(f"Number{s}", NUMBER, 0.36, (0, 0, 0), (math.radians(90), 0, math.radians(90 if s > 0 else -90)), P["number"], root, max_width=0.55)
-        num.matrix_basis = (Matrix.Translation((s * (W / 2 - math.tan(lean) * (z - 1.58) + 0.004), -1.75, z))
-                            @ Matrix.Rotation(-s * lean, 4, "Y") @ num.rotation_euler.to_matrix().to_4x4())
+        face = Euler(rot).to_matrix().to_4x4()
+        text(f"Number{s}", NUMBER, 0.36, None, None, P["number"], root, max_width=0.55,
+             matrix=Matrix.Translation((s * (W / 2 - math.tan(lean) * (z - 1.58) + 0.004), -1.75, z)) @ Matrix.Rotation(-s * lean, 4, "Y") @ face)
         # The rover's name, above the door.
-        name = text(f"Name{s}", NAME, 0.2, (0, 0, 0), (math.radians(90), 0, math.radians(90 if s > 0 else -90)), P["number"], root, max_width=0.95)
         zn = 1.92
-        name.matrix_basis = (Matrix.Translation((s * (W / 2 - math.tan(lean) * (zn - 1.58) + 0.004), 0.25, zn))
-                             @ Matrix.Rotation(-s * lean, 4, "Y") @ name.rotation_euler.to_matrix().to_4x4())
+        text(f"Name{s}", NAME, 0.2, None, None, P["number"], root, max_width=0.95,
+             matrix=Matrix.Translation((s * (W / 2 - math.tan(lean) * (zn - 1.58) + 0.004), 0.25, zn)) @ Matrix.Rotation(-s * lean, 4, "Y") @ face)
 
     # Name across the back.
     text("NameRear", NAME, 0.22, (0, -2.31, 1.62), (math.radians(90), 0, 0), P["number"], root, max_width=1.4)  # faces -Y, reads left to right from behind
@@ -1012,7 +1052,7 @@ def preview_scene(root, folder):
         cam.location = pos
         cam.data.lens = lens
         cam.rotation_euler = (target - pos).to_track_quat("-Z", "Y").to_euler()
-        stem = f"{VEHICLE}-t{TIER}-{NAME.lower()}" if NAMED else VEHICLE
+        stem = f"{VEHICLE}-t{TIER}-{NAME.lower()}{'-blank' if BLANK else ''}" if NAMED else VEHICLE
         scene.render.filepath = os.path.join(folder, f"{stem}-{name}.png")
         bpy.ops.render.render(write_still=True)
         print("rendered", scene.render.filepath)
