@@ -26,6 +26,24 @@ public sealed record BaseView(
 /// <summary>One button on the command card. Tag = a short note top-right (e.g. DONE, 40%); Disabled greys it out.</summary>
 public sealed record CommandView(string Id, string Key, string Name, string Cost, bool Affordable, bool Active, string Tag = "", bool Disabled = false);
 
+/// <summary>
+/// The big info card for a building, tech or vehicle picked on the command card: header, cost line, description,
+/// stat rows, optional progress, and either an action button (ActionLabel) or a footer hint. Progress below 0 hides the bar.
+/// </summary>
+public sealed record InfoView(
+    string IconId,
+    string Title,
+    string Subtitle,
+    string Cost,
+    bool Affordable,
+    string Body,
+    IReadOnlyList<(string Label, string Value)> Rows,
+    float Progress,
+    string ProgressText,
+    string ActionLabel,
+    bool ActionEnabled,
+    string Footer);
+
 /// <summary>A button in the building panel (upgrade, maintain, salvage...).</summary>
 public sealed record ActionView(string Id, string Label, string Detail, bool Enabled);
 
@@ -79,6 +97,23 @@ public partial class PlanetHud : CanvasLayer
     private Label _researchChip = null!;
     private Label _researchSub = null!;
     private PanelContainer _help = null!;
+
+    // Info card (above the command card).
+    private PanelContainer _info = null!;
+    private TextureRect _infoIcon = null!;
+    private Label _infoTitle = null!;
+    private Label _infoSubtitle = null!;
+    private Label _infoCost = null!;
+    private Label _infoBody = null!;
+    private GridContainer _infoRows = null!;
+    private readonly List<(Label Name, Label Value)> _infoRowLabels = new();
+    private Control _infoProgress = null!;
+    private Bar _infoBar = null!;
+    private Label _infoProgressText = null!;
+    private Button _infoAction = null!;
+    private Label _infoFooter = null!;
+    private Action? _onInfoAction;
+    private Action? _onInfoClose;
     private Label _clock = null!;
     private Label _hints = null!;
     private PanelContainer _bannerPanel = null!;
@@ -177,6 +212,9 @@ public partial class PlanetHud : CanvasLayer
         _help = BuildHelp();
         AddChild(_help);
 
+        _info = BuildInfoCard();
+        AddChild(_info);
+
         _tooltip = Panel(new Color(0.02f, 0.03f, 0.07f, 0.94f), Line, 8);
         _tooltipText = MakeLabel("", 14, Ink);
         _tooltip.AddChild(_tooltipText);
@@ -224,7 +262,124 @@ public partial class PlanetHud : CanvasLayer
 
     /// <summary>True when the mouse is over the HUD (so the world shouldn't react to it).</summary>
     public bool BlocksMouse(Vector2 mouse) =>
-        _topBar.GetGlobalRect().HasPoint(mouse) || _bottom.GetGlobalRect().HasPoint(mouse);
+        _topBar.GetGlobalRect().HasPoint(mouse) || _bottom.GetGlobalRect().HasPoint(mouse) ||
+        (_info.Visible && _info.GetGlobalRect().HasPoint(mouse)) || (_help.Visible && _help.GetGlobalRect().HasPoint(mouse));
+
+    /// <summary>Hooks for the info card's action button and its close button.</summary>
+    public void SetInfoHandlers(Action onAction, Action onClose)
+    {
+        _onInfoAction = onAction;
+        _onInfoClose = onClose;
+    }
+
+    private const int InfoWidth = 470;
+
+    /// <summary>Shows the info card filled from v, or hides it (null). It sits above the command card, sized to its content.</summary>
+    public void ShowInfo(InfoView? v)
+    {
+        _info.Visible = v != null;
+        if (v == null) return;
+        _infoIcon.Texture = Icons.Get(v.IconId, Accent);
+        _infoTitle.Text = v.Title.ToUpperInvariant();
+        _infoSubtitle.Text = v.Subtitle;
+        _infoCost.Text = v.Cost;
+        _infoCost.AddThemeColorOverride("font_color", v.Affordable ? Ink : Warn);
+        _infoBody.Text = v.Body.Replace("\r", "");
+        while (_infoRowLabels.Count < v.Rows.Count)
+        {
+            var name = MakeLabel("", 12, Dim);
+            name.CustomMinimumSize = new Vector2(92, 0);
+            var value = MakeLabel("", 13, Ink);
+            value.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            value.CustomMinimumSize = new Vector2(InfoWidth - 92 - 12 - 44, 0);
+            _infoRows.AddChild(name);
+            _infoRows.AddChild(value);
+            _infoRowLabels.Add((name, value));
+        }
+        for (var i = 0; i < _infoRowLabels.Count; i++)
+        {
+            var show = i < v.Rows.Count;
+            _infoRowLabels[i].Name.Visible = show;
+            _infoRowLabels[i].Value.Visible = show;
+            if (!show) continue;
+            _infoRowLabels[i].Name.Text = v.Rows[i].Label.ToUpperInvariant();
+            _infoRowLabels[i].Value.Text = v.Rows[i].Value;
+        }
+        _infoProgress.Visible = v.Progress >= 0;
+        _infoBar.Fraction = Mathf.Max(0, v.Progress);
+        _infoProgressText.Text = v.ProgressText;
+        _infoAction.Visible = v.ActionLabel.Length > 0;
+        _infoAction.Text = v.ActionLabel;
+        _infoAction.Disabled = !v.ActionEnabled;
+        _infoFooter.Visible = v.Footer.Length > 0;
+        _infoFooter.Text = v.Footer;
+
+        // Fit to the content and keep it just above the bottom panel, at the right edge.
+        _info.ResetSize();
+        var size = _info.GetCombinedMinimumSize();
+        var screen = GetViewport().GetVisibleRect().Size;
+        _info.Position = new Vector2(screen.X - size.X - 16, Mathf.Max(TopHeight + 8, screen.Y - BottomHeight - 12 - size.Y));
+    }
+
+    private PanelContainer BuildInfoCard()
+    {
+        var panel = Panel(new Color(0.02f, 0.03f, 0.07f, 0.97f), Accent, 10, 18, 14);
+        panel.Visible = false;
+        panel.MouseFilter = Control.MouseFilterEnum.Stop;
+        var box = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Pass, CustomMinimumSize = new Vector2(InfoWidth - 36, 0) };
+        box.AddThemeConstantOverride("separation", 8);
+
+        var head = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Pass };
+        head.AddThemeConstantOverride("separation", 12);
+        _infoIcon = new TextureRect { CustomMinimumSize = new Vector2(44, 44), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = Control.MouseFilterEnum.Ignore };
+        head.AddChild(_infoIcon);
+        var names = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore };
+        names.AddThemeConstantOverride("separation", 0);
+        _infoTitle = MakeLabel("", 20, Ink);
+        _infoSubtitle = MakeLabel("", 13, Accent);
+        names.AddChild(_infoTitle);
+        names.AddChild(_infoSubtitle);
+        head.AddChild(names);
+        var close = new Button { Text = "×", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(30, 30), SizeFlagsVertical = Control.SizeFlags.ShrinkBegin, TooltipText = "Close (Esc)" };
+        StyleButton(close, Line, new Color(0.04f, 0.06f, 0.11f));
+        close.Pressed += () => _onInfoClose?.Invoke();
+        head.AddChild(close);
+        box.AddChild(head);
+
+        _infoCost = MakeLabel("", 14, Ink);
+        box.AddChild(_infoCost);
+        box.AddChild(new ColorRect { Color = Line, CustomMinimumSize = new Vector2(0, 1), MouseFilter = Control.MouseFilterEnum.Ignore });
+        _infoBody = MakeLabel("", 14, Ink);
+        _infoBody.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _infoBody.CustomMinimumSize = new Vector2(InfoWidth - 36, 0);
+        box.AddChild(_infoBody);
+        _infoRows = new GridContainer { Columns = 2, MouseFilter = Control.MouseFilterEnum.Ignore };
+        _infoRows.AddThemeConstantOverride("h_separation", 12);
+        _infoRows.AddThemeConstantOverride("v_separation", 5);
+        box.AddChild(_infoRows);
+
+        var prog = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        prog.AddThemeConstantOverride("separation", 4);
+        _infoBar = new Bar { Colour = new Color(0.55f, 0.88f, 1f), CustomMinimumSize = new Vector2(0, 8) };
+        prog.AddChild(_infoBar);
+        _infoProgressText = MakeLabel("", 13, Dim);
+        prog.AddChild(_infoProgressText);
+        _infoProgress = prog;
+        box.AddChild(prog);
+
+        _infoAction = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(0, 40) };
+        _infoAction.AddThemeFontSizeOverride("font_size", 15);
+        StyleButton(_infoAction, Accent, new Color(0.12f, 0.09f, 0.03f));
+        _infoAction.Pressed += () => _onInfoAction?.Invoke();
+        box.AddChild(_infoAction);
+        _infoFooter = MakeLabel("", 13, Dim);
+        _infoFooter.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _infoFooter.CustomMinimumSize = new Vector2(InfoWidth - 36, 0);
+        box.AddChild(_infoFooter);
+
+        panel.AddChild(box);
+        return panel;
+    }
 
     public override void _Process(double delta)
     {

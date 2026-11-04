@@ -51,6 +51,9 @@ You start in orbit over Tarsis, a generated Class M world (change `Seed` on the 
    Build a **Vehicle Bay** (key 8) for more vehicles: select it and the command card shows its orders
    (survey rover, mining crawler; keys 1–2). Orders are paid up front and queue up to 5; **Backspace** cancels
    the last one. Each vehicle rolls out of the bay's door when it's done.
+   Clicking a card on the build card opens a bigger **info card** above it: description, cost, stats, upgrades
+   and requirements. A building card also starts placing it. A research or vehicle card only opens its info:
+   start or order from the card's button, with **Enter**, or by picking the same card (or number key) again. **Esc** closes it.
 7. **Research and upkeep:** build a **Research Lab** (key 9), select it and pick a tech (keys 1–7). Buildings wear
    while they work: below 50% they slow down and may break. Select one and press **M** to send the base's crew,
    or **U** to upgrade it (Mk II, Mk III: faster, wears less; Mk III and the Automated Maintenance tech add

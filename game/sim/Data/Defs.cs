@@ -58,7 +58,8 @@ public sealed record BuildingDef(
     Fix64 WearPerMinute,
     Fix64 ResearchPerMinute,
     IReadOnlyList<BuildingLevel> Levels,
-    string RequiresTech)
+    string RequiresTech,
+    string Description)
 {
     /// <summary>Loses condition while it works and needs maintenance.</summary>
     public bool Wears => WearPerMinute > Fix64.Zero;

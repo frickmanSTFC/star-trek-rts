@@ -46,7 +46,7 @@ public sealed record LandingRules(
 /// what a Vehicle Bay charges and takes to assemble one.
 /// </summary>
 public sealed record SurfaceUnitDef(string Id, Fix64 Speed, int SurveyRadius, Fix64 ExtractPerMinute, Fix64 Hopper, int DeploySeconds, Fix64 PodSpeed,
-    BreakdownRules? Breakdown, RepairRules? Repair, IReadOnlyList<ResourceAmount> Cost, int BuildSeconds)
+    BreakdownRules? Breakdown, RepairRules? Repair, IReadOnlyList<ResourceAmount> Cost, int BuildSeconds, string Description)
 {
     public bool CanMine => ExtractPerMinute > Fix64.Zero;
 }
@@ -61,7 +61,7 @@ public sealed record MaintenanceRules(Fix64 DeclineBelow, Fix64 SlowestOutput, F
     Fix64 CrewWalkSeconds, Fix64 CrewSecondsPerTile, Fix64 RepairPerSecond, IReadOnlyList<ResourceAmount> CostPerPoint);
 
 /// <summary>A surface tech a Research Lab works on. Index = position in the list (stable order for state).</summary>
-public sealed record TechDef(int Index, string Id, string Name, Fix64 Cost, IReadOnlyList<string> Requires, string Effect, IReadOnlyList<Modifier> Modifiers);
+public sealed record TechDef(int Index, string Id, string Name, Fix64 Cost, IReadOnlyList<string> Requires, string Effect, IReadOnlyList<Modifier> Modifiers, string Description);
 
 /// <summary>One kind of breakdown: picked by Weight, knocks DamageMin..DamageMax off integrity; LosesLoad empties the hopper.</summary>
 public sealed record BreakdownSeverity(string Id, string Name, int Weight, int DamageMin, int DamageMax, bool LosesLoad);

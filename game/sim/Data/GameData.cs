@@ -274,7 +274,8 @@ public sealed class GameData
                             l.TryGetProperty("requires_level", out var lrl) ? lrl.GetInt32() : 0,
                             Modifiers(l, $"Building {id} level"))).ToList()
                         : new List<BuildingLevel>(),
-                    b.TryGetProperty("requires_tech", out var rt) ? rt.GetString() ?? "" : "");
+                    b.TryGetProperty("requires_tech", out var rt) ? rt.GetString() ?? "" : "",
+                    b.TryGetProperty("description", out var ds) ? ds.GetString() ?? "" : "");
             })
             .ToList();
 
@@ -363,7 +364,8 @@ public sealed class GameData
                         Amounts(rp, "cost_per_point", $"Surface unit {Str(u, "id")} repair"))
                     : null,
                 Amounts(u, "cost", $"Surface unit {Str(u, "id")}"),
-                u.TryGetProperty("build_seconds", out var bs) ? bs.GetInt32() : 0))
+                u.TryGetProperty("build_seconds", out var bs) ? bs.GetInt32() : 0,
+                u.TryGetProperty("description", out var ud) ? ud.GetString() ?? "" : ""))
             .ToList();
 
         var groundVehicles = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -387,7 +389,8 @@ public sealed class GameData
             surfacesRoot.TryGetProperty("research", out var rs)
                 ? rs.EnumerateArray().Select((t, i) => new TechDef(i, Str(t, "id"), Str(t, "name"), Num(t.GetProperty("cost")),
                     t.GetProperty("requires").EnumerateArray().Select(x => x.GetString()!).ToList(),
-                    t.TryGetProperty("effect", out var te) ? te.GetString() ?? "" : "", Modifiers(t, $"Tech {Str(t, "id")}"))).ToList()
+                    t.TryGetProperty("effect", out var te) ? te.GetString() ?? "" : "", Modifiers(t, $"Tech {Str(t, "id")}"),
+                    t.TryGetProperty("description", out var td) ? td.GetString() ?? "" : "")).ToList()
                 : new List<TechDef>(),
             groundVehicles, problems);
     }
