@@ -986,6 +986,10 @@ public partial class PlanetView : Node3D
             {
                 var colour = PlanetDriver.PlayerColors[u.Owner % PlanetDriver.PlayerColors.Length];
                 model = def.CanMine ? BuildingModels.Crawler(colour) : BuildingModels.Rover(colour);
+                // Wheel spray from behind the rear wheels (rover) or the back of the tracks (crawler); +Z is the back.
+                model.AddChild(new SprayRig(def.CanMine
+                    ? new[] { new Vector3(-1.75f, 0.2f, 2.9f), new Vector3(1.75f, 0.2f, 2.9f) }
+                    : new[] { new Vector3(-1.35f, 0.15f, 2.3f), new Vector3(1.35f, 0.15f, 2.3f) }));
                 AddChild(model);
                 _rovers[u.Id] = model;
                 var label = new Label3D
@@ -1033,6 +1037,8 @@ public partial class PlanetView : Node3D
                 pos = rolled;
             }
             model.Position = pos + new Vector3(0, 0.1f, 0);
+            if (model.GetNodeOrNull<SprayRig>("SprayRig") is { } spray)
+                spray.Spray(SprayRig.KindFor(_surface.Map, TileAt(pos)), moving || rolling);
             if (model.GetNodeOrNull<Node3D>("Selected") is { } ring) ring.Visible = SelectedUnits.Contains(u.Id);
             if (model.GetNodeOrNull<Node3D>("Dish") is { } dish) dish.RotateY(delta * (moving ? 3f : 1f));
 

@@ -91,6 +91,14 @@ public partial class PlanetDriver : Node3D
     private DirectionalLight3D? _sun;
     private Vector3 _focusTarget;
     private float _distanceTarget = 420f;
+
+    /// <summary>Closest zoom (a rover is ~5 units long, a hex 25). Below <see cref="TiltFrom"/> the camera tilts from the
+    /// 55° strategy view down toward a 20° near-ground view so vehicles are seen from the side, not from above.</summary>
+    private const float MinZoom = 15f;
+    private const float TiltFrom = 160f;
+
+    /// <summary>Ground height under the focus, eased, so close-ups look at the terrain rather than at height 0.</summary>
+    private float _lookY;
     private int _yawSteps;
     private float _yaw;
 
@@ -994,7 +1002,7 @@ public partial class PlanetDriver : Node3D
                 else RightClick();
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-                _distanceTarget = Mathf.Max(90f, _distanceTarget * 0.88f);
+                _distanceTarget = Mathf.Max(MinZoom, _distanceTarget * 0.88f);
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
                 _distanceTarget = Mathf.Min(_overview * 1.15f, _distanceTarget * 1.12f);
@@ -2048,7 +2056,20 @@ public partial class PlanetDriver : Node3D
 
     private void UpdateCamera()
     {
-        var offset = new Vector3(0, 0.82f, 0.57f).Rotated(Vector3.Up, _yaw) * _distance;
-        _camera.LookAtFromPosition(_focus + offset, _focus, Vector3.Up);
+        // Look at the ground under the focus (eased, so panning over hills doesn't jolt).
+        var focusTile = _view.TileAt(_focus);
+        var ground = focusTile >= 0 ? _view.TopY(focusTile) : 0f;
+        _lookY = Mathf.Lerp(_lookY, ground, 0.12f);
+        var look = _focus with { Y = _lookY };
+
+        // Strategy pitch from high up, flattening toward the ground as the camera comes in.
+        var t = Mathf.SmoothStep(MinZoom, TiltFrom, _distance);
+        var dir = new Vector3(0, 0.34f, 0.94f).Lerp(new Vector3(0, 0.82f, 0.57f), t).Normalized();
+        var eye = look + dir.Rotated(Vector3.Up, _yaw) * _distance;
+
+        // Never dip into a hill between the camera and the focus.
+        var eyeTile = _view.TileAt(eye);
+        if (eyeTile >= 0) eye.Y = Mathf.Max(eye.Y, _view.TopY(eyeTile) + 4f);
+        _camera.LookAtFromPosition(eye, look, Vector3.Up);
     }
 }
