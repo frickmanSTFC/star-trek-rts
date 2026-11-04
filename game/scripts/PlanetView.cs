@@ -1042,6 +1042,7 @@ public partial class PlanetView : Node3D
                 RoverLook.Paint(model, u.Name, u.Number);
                 _grime[u.Id] = RoverLook.Grime.Attach(model, def.CanMine ? 3.2f : 2.4f);
                 _lamps[u.Id] = RoverLook.Lamps.Attach(model, u.Id);
+                if (_lamps[u.Id].Area is { } wiped) _grime[u.Id].SetWipers(wiped);
                 // Wheel spray from behind the rear wheels (rover) or the back of the tracks (crawler); +Z is the back.
                 var (sx, sz) = def.CanMine ? (1.75f, 2.9f) : def.Mark switch { 1 => (1.3f, 1.75f), 3 => (1.5f, 2.5f), _ => (1.35f, 2.3f) };
                 model.AddChild(new SprayRig(new[] { new Vector3(-sx, 0.15f, sz), new Vector3(sx, 0.15f, sz) }));
@@ -1099,6 +1100,7 @@ public partial class PlanetView : Node3D
             var dirty = false;
             if (_grime.TryGetValue(u.Id, out var grime))
             {
+                if (_lamps.TryGetValue(u.Id, out var wipers)) grime.Wiped = wipers.Wiped;
                 grime.Update(ground, moving || rolling, onPad, delta);
                 dirty = grime.Dust + grime.Mud + grime.Snow > 0.02f;
             }

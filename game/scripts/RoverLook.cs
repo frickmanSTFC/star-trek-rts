@@ -58,6 +58,10 @@ public static class RoverLook
 
     public enum WiperMode { Auto, On, Off }
 
+    /// <summary>The fan the wipers clear, in model space: the first and last pivot, the in-glass axes (Along = the
+    /// blade's parked direction, Up = up the glass), the blade length and the sweep in radians.</summary>
+    public readonly record struct WiperArea(Vector3 First, Vector3 Last, Vector3 Along, Vector3 Up, float Length, float Sweep);
+
     /// <summary>
     /// A vehicle's working lamps and wipers. The amber roof beacon ("Beacon" mesh) double-flashes while it drives and
     /// lights the ground around it with a small amber light; the red tail lamps (material "TailLamp") glow steadily and
@@ -75,7 +79,7 @@ public static class RoverLook
         private float _time, _wipe;
 
         /// <summary>Wiper sweep, degrees from the parked position up across the glass.</summary>
-        private const float WipeDegrees = 95f;
+        private const float WipeDegrees = 100f;
 
         /// <summary>Seconds for one wiper stroke up and back.</summary>
         private const float WipeSeconds = 1.3f;
@@ -100,7 +104,32 @@ public static class RoverLook
             _tailEnergy = _tail?.EmissionEnergyMultiplier ?? 1f;
             for (var k = 0; model.FindChild($"Wiper{k}", true, false) is Node3D pivot; k++)
                 _wipers.Add((pivot, pivot.Basis));
+            if (_wipers.Count > 0)
+            {
+                // The wiped fan, in the model's own space, for the grime shader to keep clean.
+                var first = ModelSpace(_wipers[0].Pivot, model);
+                var last = ModelSpace(_wipers[^1].Pivot, model);
+                var length = model.FindChild("Wiper0Blade", true, false) is MeshInstance3D blade ? blade.GetAabb().Size.X : 0.6f;
+                // Blender's local X (along the bottom edge) stays X; its local Y (up the glass) is local -Z here.
+                Area = new WiperArea(first.Origin, last.Origin, first.Basis.X.Normalized(), -first.Basis.Z.Normalized(), length,
+                    Mathf.DegToRad(WipeDegrees));
+            }
         }
+
+        /// <summary>A node's transform relative to an ancestor, from the local transforms (works before it's in the tree).</summary>
+        private static Transform3D ModelSpace(Node3D node, Node3D ancestor)
+        {
+            var t = node.Transform;
+            for (var p = node.GetParent(); p != null && p != ancestor; p = p.GetParent())
+                if (p is Node3D p3) t = p3.Transform * t;
+            return t;
+        }
+
+        /// <summary>Where the wipers sweep (null without wipers).</summary>
+        public WiperArea? Area { get; }
+
+        /// <summary>How clean the wiped fan is: up to 1 a moment after the wipers start, back to 0 over ~45 s without them.</summary>
+        public float Wiped { get; private set; }
 
         public static Lamps Attach(Node3D model, int seed) => new(model, seed);
 
@@ -130,18 +159,21 @@ public static class RoverLook
             // Wipers: keep sweeping while needed; when not, finish the stroke and park.
             if (_wipers.Count == 0) return;
             wipe = Wipers switch { WiperMode.On => true, WiperMode.Off => false, _ => wipe };
-            if (wipe || _wipe % 1f > 0.001f)
+            var sweeping = wipe || _wipe % 1f > 0.001f;
+            if (sweeping)
             {
                 var before = _wipe;
                 _wipe += delta / WipeSeconds;
                 if (!wipe && Mathf.FloorToInt(_wipe) > Mathf.FloorToInt(before)) _wipe = Mathf.Floor(_wipe); // parked
             }
+            Wiped = sweeping ? Mathf.Min(1f, Wiped + delta / WipeSeconds) : Mathf.Max(0f, Wiped - delta / 45f);
             var angle = Mathf.DegToRad(WipeDegrees) * (0.5f - 0.5f * Mathf.Cos(_wipe * Mathf.Tau));
             for (var i = 0; i < _wipers.Count; i++)
             {
                 var (pivot, parked) = _wipers[i];
-                // Blender local Z (the glass normal) is local +Y here; a negative turn lifts the blade up the glass.
-                pivot.Basis = parked * new Basis(Vector3.Up, -angle);
+                // The pivot's Blender local Z (into the glass) is local +Y here; a positive turn lifts the blade from
+                // along the bottom edge up across the glass.
+                pivot.Basis = parked * new Basis(Vector3.Up, angle);
             }
         }
 
@@ -243,6 +275,20 @@ public static class RoverLook
         }
 
         /// <summary>Advance one frame. <paramref name="kind"/> is the ground under the vehicle.</summary>
+        /// <summary>Tell the shader where the wipers sweep, so the fan they clear stays clean.</summary>
+        public void SetWipers(WiperArea area)
+        {
+            _material.SetShaderParameter("wiper0", area.First);
+            _material.SetShaderParameter("wiper1", area.Last);
+            _material.SetShaderParameter("wiper_x", area.Along);
+            _material.SetShaderParameter("wiper_y", area.Up);
+            _material.SetShaderParameter("wiper_len", area.Length);
+            _material.SetShaderParameter("wiper_sweep", area.Sweep);
+        }
+
+        /// <summary>How clean the wiped fan is (from <see cref="Lamps.Wiped"/>).</summary>
+        public float Wiped { get; set; }
+
         public void Update(SprayKind kind, bool moving, bool washing, float delta)
         {
             if (washing)
@@ -297,6 +343,7 @@ public static class RoverLook
             _material.SetShaderParameter("dust", _dust);
             _material.SetShaderParameter("mud", _mud);
             _material.SetShaderParameter("snow", _snow);
+            _material.SetShaderParameter("wiped", Wiped);
             _material.SetShaderParameter("dust_colour", _dustColour);
             // The painted names sit on the paint, so they get grubby too.
             var dirt = Mathf.Max(_dust * 0.6f, Mathf.Max(_mud * 0.8f, _snow * 0.9f));

@@ -435,7 +435,7 @@ def rover_mk2(P):
     box("WindscreenFrame", (W * 0.9, 0.03, 0.96), mid - Vector((0, 0.012, 0.012)), P["frame"], root, 0.02, rot=(slope - math.pi / 2, 0, 0))
     box("Windscreen", (W * 0.85, 0.04, 0.86), mid, P["glass"], root, 0.02, rot=(slope - math.pi / 2, 0, 0))
     _, wn, walong, _ = on_slope((2.1, 1.58), (1.38, 2.28))
-    wipers(P, root, mid, wn, walong, 0.43, (-0.1, 0.95), 0.85, 0.04)
+    wipers(P, root, mid, wn, walong, 0.43, (-0.91, 0.13), 0.78, 0.04)
     for s in (-1, 1):
         bm = bmesh.new()
         x = s * (W / 2 * 0.95 + 0.012)
@@ -542,25 +542,27 @@ def on_slope(lo, hi):
 
 
 def wipers(P, root, mid, n, along, half_height, pivots_x, length, lift):
-    """Windscreen wipers the game can sweep: one empty per wiper, named Wiper0, Wiper1, ..., at the blade's pivot on
-    the bottom edge of the glass (`lift` off the glass along the normal n), with local Z = the glass normal, local X =
-    world +X and local Y = up the glass. Each blade (and its arm) lies along the pivot's local -X at rest, so a
-    rotation about local Z by 0 to -100 degrees sweeps it up across the glass. In Godot (glTF) local Z becomes local
-    +Y: sweep = rest * Basis(Vector3.Up, -angle)."""
-    z = n.normalized()
+    """Windscreen wipers the game can sweep: one empty per wiper, named Wiper0, Wiper1, ..., at the blade's pivot near
+    the bottom -X corner of its part of the glass (`lift` off the glass along the outward normal n). Local frame: X =
+    world +X (along the bottom edge), Y = up the glass, Z = into the glass. At rest the arm and blade lie along local +X;
+    turning about local Z by 0 to +100 degrees sweeps them up across the glass, a fan-shaped arc. The blade mesh is
+    named Wiper{k}Blade and is `length` long on local X (the game reads it to clear the wiped arc in the dirt).
+    In Godot (glTF) Blender local Z becomes local +Y and local Y becomes local -Z: sweep = parked * Basis(Vector3.Up,
+    +angle)."""
     x = Vector((1.0, 0.0, 0.0))
-    y = z.cross(x)
+    y = along.normalized()
+    z = x.cross(y)  # into the glass
     for k, px in enumerate(pivots_x):
-        base = mid + z * lift - along * (half_height - 0.06) + Vector((px, 0, 0))
+        base = mid + n.normalized() * lift - y * (half_height - 0.05) + Vector((px, 0, 0))
         pivot = empty(f"Wiper{k}", (0, 0, 0), root)
         pivot.matrix_basis = Matrix((
             (x.x, y.x, z.x, base.x),
             (x.y, y.y, z.y, base.y),
             (x.z, y.z, z.z, base.z),
             (0, 0, 0, 1)))
-        box(f"Wiper{k}Arm", (length * 0.55, 0.018, 0.014), (-length * 0.275, 0, 0.018), P["dark"], pivot, 0)
-        box(f"Wiper{k}Blade", (length, 0.024, 0.02), (-length * 0.5, 0.02, 0.006), P["dark"], pivot, 0)
-        cylinder(f"Wiper{k}Hub", 0.03, 0.03, (0, 0, 0.012), P["steel"], pivot, axis="Z", segments=10)
+        box(f"Wiper{k}Arm", (length * 0.5, 0.016, 0.014), (length * 0.25, 0, -0.022), P["dark"], pivot, 0)
+        box(f"Wiper{k}Blade", (length, 0.022, 0.02), (length * 0.5, 0.012, -0.008), P["dark"], pivot, 0)
+        cylinder(f"Wiper{k}Hub", 0.03, 0.035, (0, 0, -0.012), P["steel"], pivot, axis="Z", segments=10)
 
 
 def cut_arches(hull, axles, radius, centre_z, width, side_only=None):
@@ -625,7 +627,7 @@ def rover_mk1(P):
     ws = mesh_object("Windscreen", bm, P["glass"], root, mid + n * 0.02)
     ws.rotation_euler = (rx, 0, 0)
     box("WindscreenPost", (0.08, 0.05, 0.68), mid + n * 0.025, P["frame"], root, 0.01, rot=(rx, 0, 0))
-    wipers(P, root, mid, n, along, 0.28, (-0.1, 0.88), 0.72, 0.05)
+    wipers(P, root, mid, n, along, 0.28, (-0.86, 0.12), 0.5, 0.05)
 
     # Front: flat slatted grille, round headlamps in square bezels, amber markers.
     box("Grille", (1.0, 0.04, 0.34), (0, 2.02, 1.12), P["dark"], root, 0.01)
@@ -753,7 +755,7 @@ def rover_mk3(P):
     mid, n, along, rx = on_slope((2.42, 1.86), (1.55, 2.62))
     box("WindscreenSurround", (W - 0.12, 0.01, 1.0), mid + n * 0.006, P["glassblack"], root, 0, rot=(rx, 0, 0))
     box("Windscreen", (W - 0.24, 0.012, 0.9), mid + n * 0.012, P["flushglass"], root, 0.004, rot=(rx, 0, 0))
-    wipers(P, root, mid, n, along, 0.45, (-0.08, 1.06), 1.0, 0.03)
+    wipers(P, root, mid, n, along, 0.45, (-1.01, 0.1), 0.82, 0.03)
     for s in (-1, 1):
         side_poly(f"SideGlassSurround{s}", [(1.52, 2.58), (2.26, 1.94), (0.04, 1.94), (0.04, 2.58)], s * (W / 2 + 0.003), s, P["glassblack"], root)
         side_poly(f"SideGlass{s}", [(1.48, 2.545), (2.18, 1.975), (0.08, 1.975), (0.08, 2.545)], s * (W / 2 + 0.007), s, P["flushglass"], root)
@@ -1096,6 +1098,10 @@ def main():
     reset()
     builders = {"survey_rover": survey_rover}
     root = builders[VEHICLE]()
+    if arg("--wipe-angle"):  # previews only: raise the wipers to check their sweep
+        for o in list(bpy.data.objects):
+            if o.name.startswith("Wiper") and o.name[5:].isdigit():
+                o.matrix_basis = o.matrix_basis @ Matrix.Rotation(math.radians(float(arg("--wipe-angle"))), 4, "Z")
     if BAKE:
         weather_hull(bpy.data.objects["Hull"])
     if OUT:

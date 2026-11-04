@@ -13,6 +13,14 @@ uniform vec3 snow_colour : source_color = vec3(0.92, 0.94, 0.97);
 uniform float dust : hint_range(0.0, 1.0) = 0.0;
 uniform float mud : hint_range(0.0, 1.0) = 0.0;
 uniform float snow : hint_range(0.0, 1.0) = 0.0;
+// The fan the wipers sweep on the windscreen (model space; see RoverLook.WiperArea): it stays clean while they run.
+uniform vec3 wiper0;
+uniform vec3 wiper1;
+uniform vec3 wiper_x = vec3(1.0, 0.0, 0.0);
+uniform vec3 wiper_y = vec3(0.0, 1.0, 0.0);
+uniform float wiper_len = 0.0;
+uniform float wiper_sweep = 1.75;
+uniform float wiped : hint_range(0.0, 1.0) = 0.0;
 
 varying vec3 m_pos;
 varying vec3 m_normal;
@@ -67,6 +75,20 @@ float spread(float p_field, float p_amount, float p_edge) {
 	return smoothstep(threshold - p_edge, threshold + p_edge, p_field) * smoothstep(0.0, 0.04, p_amount);
 }
 
+// 1 inside the fan one wiper sweeps (on the glass plane, within the blade's reach, between parked and fully up).
+float wiper_fan(vec3 p_pos, vec3 p_pivot) {
+	vec3 d = p_pos - p_pivot;
+	float u = dot(d, wiper_x);
+	float v = dot(d, wiper_y);
+	float off_glass = abs(dot(d, normalize(cross(wiper_x, wiper_y))));
+	float r = length(vec2(u, v));
+	float ang = atan(v, u);
+	float reach = 1.0 - smoothstep(wiper_len * 0.94, wiper_len * 1.02, r);
+	float inner = smoothstep(wiper_len * 0.08, wiper_len * 0.14, r); // the hub area near the pivot isn't wiped
+	float arc = smoothstep(-0.06, 0.0, ang) * (1.0 - smoothstep(wiper_sweep, wiper_sweep + 0.06, ang));
+	return reach * inner * arc * (1.0 - smoothstep(0.05, 0.09, off_glass));
+}
+
 void fragment() {
 	float h = clamp(m_pos.y / body_height, 0.0, 1.0);
 	float low = 1.0 - h;
@@ -88,6 +110,14 @@ void fragment() {
 	a = a + mud_a * (1.0 - a);
 	col = col * (1.0 - snow_a) + snow_colour * snow_a;
 	a = a + snow_a * (1.0 - a);
+
+	// Clear the wiped fans (premultiplied, so scale colour and coverage together).
+	if (wiper_len > 0.0 && wiped > 0.0) {
+		float fan = max(wiper_fan(m_pos, wiper0), wiper_fan(m_pos, wiper1));
+		float keep = 1.0 - wiped * fan * 0.96;
+		col *= keep;
+		a *= keep;
+	}
 
 	ALBEDO = col / max(a, 0.001);
 	ALPHA = a;
