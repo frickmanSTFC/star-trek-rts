@@ -193,7 +193,7 @@ public partial class PlanetHud : CanvasLayer
         _onUpgrade = onUpgrade;
         foreach (var (id, name, key) in buildMenu)
         {
-            var button = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(CommandWidth, 80), ToggleMode = true };
+            var button = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(CommandWidth, 88), ToggleMode = true };
             StyleButton(button, new Color(0.17f, 0.23f, 0.36f), new Color(0.06f, 0.1f, 0.19f));
             var box = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
             box.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.Minsize, 7);
@@ -605,11 +605,12 @@ public partial class PlanetHud : CanvasLayer
         var research = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Pass, TooltipText = "Research: build a Research Lab, select it and pick a tech" };
         research.AddThemeConstantOverride("separation", 8);
         research.AddChild(IconTile("research"));
-        var researchText = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(120, 0) };
+        var researchText = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(190, 0) };
         researchText.AddThemeConstantOverride("separation", -3);
         _researchChip = MakeLabel("—", 17, Ink);
         _researchSub = MakeLabel("RESEARCH", 11, Dim);
         _researchSub.ClipText = true;
+        _researchSub.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis; // "PREVENTIVE MAINTEN…" rather than a hard cut
         researchText.AddChild(_researchChip);
         researchText.AddChild(_researchSub);
         research.AddChild(researchText);
@@ -635,7 +636,7 @@ public partial class PlanetHud : CanvasLayer
         var mapBox = Section(286);
         mapBox.AddChild(Caption("SURVEY MAP"));
         mapBox.AddChild(Minimap);
-        var legend = MakeLabel("Squares: bases · dots: rovers · frame: view\nClick or drag to move the camera", 12, Dim);
+        var legend = MakeLabel("Squares: bases · dots: vehicles · frame: view\nClick or drag to move the camera", 12, Dim);
         mapBox.AddChild(legend);
         row.AddChild(Framed(mapBox, 286));
 

@@ -732,7 +732,7 @@ public partial class PlanetDriver : Node3D
         else if (def.UpgradesTo.Length > 0)
         {
             var next = _data.Building(def.UpgradesTo);
-            line = $"Next: {next.Name} (Level {next.Level}) · {next.BuildQueues} build queues, radius {next.BuildRadius}, +{Hud.Whole(next.PowerSupply - def.PowerSupply)} power";
+            line = $"Next: {next.Name} (Level {next.Level})\n{next.BuildQueues} build queues · radius {next.BuildRadius} · +{Hud.Whole(next.PowerSupply - def.PowerSupply)} power";
             cost = Amounts(next.Cost, false, shortNames: true);
             var problem = Surface.UpgradeProblem(_sim, LocalPlayer, core.Id);
             enabled = problem == null;
@@ -1091,7 +1091,8 @@ public partial class PlanetDriver : Node3D
     }
 
     private string Amounts(IReadOnlyList<ResourceAmount> amounts, bool perMinute, bool shortNames = false) =>
-        string.Join(shortNames ? " · " : ", ", amounts.Select(a =>
+        // Biggest amount first: "150 DUR · 50 TRI" reads better than file order.
+        string.Join(shortNames ? " · " : ", ", amounts.OrderByDescending(a => a.Amount).Select(a =>
         {
             var name = _data.Resources[a.Resource].Name;
             if (shortNames) name = name.Length > 3 ? name[..3].ToUpperInvariant() : name.ToUpperInvariant();
