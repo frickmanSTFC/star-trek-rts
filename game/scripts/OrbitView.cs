@@ -31,7 +31,7 @@ public partial class OrbitView : Node3D
     /// <summary>The map's rows cover this band of the globe (v from the north pole, 0..1); beyond it are polar caps.</summary>
     private const float VTop = 0.14f, VBottom = 0.86f;
 
-    private const int TextureWidth = 1024, TextureHeight = 512;
+    private const int TextureWidth = 2048, TextureHeight = 1024;
 
     private Simulation _sim = null!;
     private PlanetSurface _surface = null!;
@@ -39,6 +39,11 @@ public partial class OrbitView : Node3D
 
     private Node3D _globe = null!;
     private MeshInstance3D _clouds = null!;
+    private MeshInstance3D _highClouds = null!;
+    private ShaderMaterial _groundMaterial = null!;
+    private Node3D _moon = null!;
+    private long _lightsStamp = -1;
+    private Vector3 _sunDir;
     private MeshInstance3D _overlay = null!;
     private StandardMaterial3D _overlayMaterial = null!;
     private Camera3D _camera = null!;
@@ -79,26 +84,33 @@ public partial class OrbitView : Node3D
         _light = new DirectionalLight3D { LightEnergy = 1.7f, LightColor = new Color(1f, 0.97f, 0.9f), ShadowEnabled = false };
         AddChild(_light);
         _light.LookAtFromPosition(new Vector3(-1.2f, 0.6f, 1.4f) * 100f, Vector3.Zero, Vector3.Up);
+        _sunDir = _light.GlobalTransform.Basis.Z.Normalized(); // a directional light shines along -Z, so +Z points at the sun
 
+        AddChild(Nebula());
         AddChild(Stars());
 
         _globe = new Node3D { Name = "Globe" };
         AddChild(_globe);
-        var ground = new MeshInstance3D { Mesh = SphereMesh(Radius, 96, 192) };
-        var (albedo, roughness) = GroundTextures();
-        ground.MaterialOverride = new StandardMaterial3D
+        var ground = new MeshInstance3D { Mesh = SphereMesh(Radius, 128, 256) };
+        var (albedo, water, normal) = GroundTextures();
+        _groundMaterial = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/planet.gdshader") };
+        _groundMaterial.SetShaderParameter("albedo_tex", albedo);
+        _groundMaterial.SetShaderParameter("water_tex", water);
+        _groundMaterial.SetShaderParameter("normal_tex", normal);
+        _groundMaterial.SetShaderParameter("detail_tex", new NoiseTexture2D
         {
-            AlbedoTexture = albedo,
-            RoughnessTexture = roughness,
-            RoughnessTextureChannel = BaseMaterial3D.TextureChannel.Red,
-            Metallic = 0f,
-            Roughness = 1f,
-            RimEnabled = true,
-            Rim = 0.35f,
-            RimTint = 0.6f,
-            CullMode = BaseMaterial3D.CullModeEnum.Disabled, // both sides: safe whichever way the generated triangles wind
-        };
+            Width = 512, Height = 512, Seamless = true,
+            Noise = new FastNoiseLite { Seed = 77, Frequency = 0.02f, FractalOctaves = 4, NoiseType = FastNoiseLite.NoiseTypeEnum.Perlin },
+        });
+        _groundMaterial.SetShaderParameter("detail_normal", new NoiseTexture2D
+        {
+            Width = 512, Height = 512, Seamless = true, AsNormalMap = true, BumpStrength = 6f,
+            Noise = new FastNoiseLite { Seed = 78, Frequency = 0.03f, FractalOctaves = 5, NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth },
+        });
+        _groundMaterial.SetShaderParameter("sun_dir", _sunDir);
+        ground.MaterialOverride = _groundMaterial;
         _globe.AddChild(ground);
+        RefreshLights();
 
         _overlayMaterial = new StandardMaterial3D
         {
@@ -110,24 +122,18 @@ public partial class OrbitView : Node3D
         _overlay = new MeshInstance3D { Mesh = SphereMesh(Radius + 0.35f, 96, 192), MaterialOverride = _overlayMaterial, Visible = false };
         _globe.AddChild(_overlay);
 
-        _clouds = new MeshInstance3D
-        {
-            Mesh = SphereMesh(Radius + 1.4f, 64, 128),
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoTexture = CloudTexture(),
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                Roughness = 1f,
-                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-            },
-        };
-        AddChild(_clouds); // turns on its own, slower than you turn the planet
+        // Two cloud layers: thick swirling banks low, thin wisps higher up, drifting at different speeds.
+        _clouds = CloudLayer(Radius + 1.4f, 1701, 0.0045f, 0.5f, 0.9f);
+        AddChild(_clouds);
+        _highClouds = CloudLayer(Radius + 2.4f, 4242, 0.009f, 0.62f, 0.45f);
+        AddChild(_highClouds);
 
-        AddChild(new MeshInstance3D
-        {
-            Mesh = new SphereMesh { Radius = Radius + 4f, Height = (Radius + 4f) * 2f, RadialSegments = 96, Rings = 48 }, // Godot's own mesh: the rim shader needs its winding
-            MaterialOverride = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/atmosphere.gdshader") },
-        });
+        // Atmosphere: a bright rim close in and a soft halo further out (Godot's own meshes: the rim shader needs their winding).
+        AddChild(Atmosphere(Radius + 4f, 3f, 1.6f));
+        AddChild(Atmosphere(Radius + 10f, 5f, 0.8f));
+
+        _moon = Moon();
+        AddChild(_moon);
 
         // Scan line: a thin ring in the YZ plane, turned about Y to sweep across the face of the globe.
         var sweepMaterial = new StandardMaterial3D { AlbedoColor = new Color(0.5f, 0.95f, 1f, 0.8f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded };
@@ -185,6 +191,7 @@ public partial class OrbitView : Node3D
                 st.AddIndex(b + 1);
                 st.AddIndex(b);
             }
+        st.GenerateTangents(); // the planet shader's normal maps need them
         return st.Commit();
     }
 
@@ -214,18 +221,95 @@ public partial class OrbitView : Node3D
         };
     }
 
-    private static NoiseTexture2D CloudTexture() => new()
+    /// <summary>A cloud shell: domain-warped noise for swirls, cut off below <paramref name="cover"/> so there are clear skies between banks.</summary>
+    private static MeshInstance3D CloudLayer(float radius, int seed, float frequency, float cover, float opacity)
     {
-        Width = 1024,
-        Height = 512,
-        Seamless = true,
-        Noise = new FastNoiseLite { Seed = 1701, Frequency = 0.006f, FractalOctaves = 5, NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth },
-        ColorRamp = new Gradient
+        var noise = new FastNoiseLite
         {
-            Offsets = new[] { 0f, 0.52f, 0.68f, 1f },
-            Colors = new[] { new Color(1, 1, 1, 0), new Color(1, 1, 1, 0), new Color(1, 1, 1, 0.55f), new Color(1, 1, 1, 0.85f) },
-        },
-    };
+            Seed = seed,
+            Frequency = frequency,
+            FractalOctaves = 6,
+            NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth,
+            DomainWarpEnabled = true,
+            DomainWarpAmplitude = 40f,
+            DomainWarpFrequency = frequency * 1.5f,
+        };
+        var texture = new NoiseTexture2D
+        {
+            Width = 2048, Height = 1024, Seamless = true, Noise = noise,
+            ColorRamp = new Gradient
+            {
+                Offsets = new[] { 0f, cover, cover + 0.12f, 1f },
+                Colors = new[] { new Color(1, 1, 1, 0), new Color(1, 1, 1, 0), new Color(1, 1, 1, opacity * 0.6f), new Color(1, 1, 1, opacity) },
+            },
+        };
+        return new MeshInstance3D
+        {
+            Mesh = SphereMesh(radius, 64, 128),
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoTexture = texture,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                Roughness = 1f,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            },
+        };
+    }
+
+    private MeshInstance3D Atmosphere(float radius, float power, float strength)
+    {
+        var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/atmosphere.gdshader") };
+        material.SetShaderParameter("sun_dir", _sunDir);
+        material.SetShaderParameter("power", power);
+        material.SetShaderParameter("strength", strength);
+        return new MeshInstance3D { Mesh = new SphereMesh { Radius = radius, Height = radius * 2f, RadialSegments = 96, Rings = 48 }, MaterialOverride = material };
+    }
+
+    /// <summary>A small grey moon on a slow, tilted orbit (render-only scenery).</summary>
+    private static Node3D Moon()
+    {
+        var pivot = new Node3D { RotationDegrees = new Vector3(18f, 0, 8f) };
+        var rock = new NoiseTexture2D
+        {
+            Width = 512, Height = 256, Seamless = true,
+            Noise = new FastNoiseLite { Seed = 9, Frequency = 0.02f, FractalOctaves = 5, NoiseType = FastNoiseLite.NoiseTypeEnum.Cellular },
+            ColorRamp = new Gradient { Offsets = new[] { 0f, 1f }, Colors = new[] { new Color(0.32f, 0.31f, 0.3f), new Color(0.72f, 0.7f, 0.68f) } },
+        };
+        pivot.AddChild(new MeshInstance3D
+        {
+            Name = "Body",
+            Mesh = new SphereMesh { Radius = 9f, Height = 18f, RadialSegments = 32, Rings = 16 },
+            Position = new Vector3(0, 0, -265f),
+            MaterialOverride = new StandardMaterial3D { AlbedoTexture = rock, Roughness = 1f },
+        });
+        return pivot;
+    }
+
+    /// <summary>A faint nebula far behind the stars: an inside-out sphere with tinted noise.</summary>
+    private static MeshInstance3D Nebula()
+    {
+        var texture = new NoiseTexture2D
+        {
+            Width = 1024, Height = 512, Seamless = true,
+            Noise = new FastNoiseLite { Seed = 31, Frequency = 0.004f, FractalOctaves = 5, NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth, DomainWarpEnabled = true, DomainWarpAmplitude = 60f },
+            ColorRamp = new Gradient
+            {
+                Offsets = new[] { 0f, 0.5f, 0.75f, 1f },
+                Colors = new[] { new Color(0, 0, 0, 0), new Color(0.1f, 0.05f, 0.2f, 0f), new Color(0.25f, 0.12f, 0.4f, 0.35f), new Color(0.3f, 0.45f, 0.8f, 0.5f) },
+            },
+        };
+        return new MeshInstance3D
+        {
+            Mesh = new SphereMesh { Radius = 6000f, Height = 12000f, RadialSegments = 48, Rings = 24 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoTexture = texture,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                CullMode = BaseMaterial3D.CullModeEnum.Front, // seen from inside
+            },
+        };
+    }
 
     // ---------------------------------------------------------------- mapping
 
@@ -285,7 +369,10 @@ public partial class OrbitView : Node3D
     /// Paints one value per tile into a (2·width × height) image, each tile two pixels wide with odd rows shifted one
     /// pixel east (the hex stagger), then stretches it over the map's band of an equirectangular texture.
     /// </summary>
-    private ImageTexture TileTexture(System.Func<int, Color> colour, Color cap, bool smooth)
+    private ImageTexture TileTexture(System.Func<int, Color> colour, Color cap, bool smooth) =>
+        ImageTexture.CreateFromImage(TileImage(colour, cap, smooth));
+
+    private Image TileImage(System.Func<int, Color> colour, Color cap, bool smooth)
     {
         var g = _surface.Map.Grid;
         var tiles = Image.CreateEmpty(g.Width * 2, g.Height, false, Image.Format.Rgba8);
@@ -303,29 +390,97 @@ public partial class OrbitView : Node3D
         var full = Image.CreateEmpty(TextureWidth, TextureHeight, false, Image.Format.Rgba8);
         full.Fill(cap);
         full.BlitRect(tiles, new Rect2I(0, 0, TextureWidth, band), new Vector2I(0, top));
-        return ImageTexture.CreateFromImage(full);
+        return full;
     }
 
-    private (ImageTexture Albedo, ImageTexture Roughness) GroundTextures()
+    /// <summary>
+    /// Colour, water mask and relief normal map for the globe. Oceans darken with depth and turn turquoise in the
+    /// shallows; land greens with biomass, beaches lighten coasts, mountains go from rock to snow with height.
+    /// </summary>
+    private (ImageTexture Albedo, ImageTexture Water, ImageTexture Normal) GroundTextures()
     {
         var map = _surface.Map;
+        var def = map.Def;
         Color Ground(int t)
         {
-            var terrain = map.Terrain(t);
             var e = map.Elevation[t].ToFloat();
-            var c = Color.FromHtml(terrain.Color);
-            return terrain.Id switch
+            var bio = map.Biomass[t].ToFloat();
+            Color c;
+            switch (map.Terrain(t).Id)
             {
-                "ocean" => c.Darkened(0.55f - e * 0.9f),
-                "shallows" => c.Darkened(0.15f),
-                "mountains" => c.Lerp(new Color(0.92f, 0.93f, 0.96f), Mathf.Clamp((e - 0.95f) * 14f, 0f, 0.8f)),
-                _ => c.Darkened(0.12f).Lightened((e - 0.5f) * 0.2f),
-            };
+                case "ocean":
+                    c = new Color(0.02f, 0.07f, 0.2f).Lerp(new Color(0.05f, 0.2f, 0.42f), Mathf.Clamp(e / def.OceanBelow.ToFloat(), 0f, 1f));
+                    break;
+                case "shallows":
+                    c = new Color(0.08f, 0.36f, 0.52f);
+                    break;
+                case "plains":
+                    c = new Color(0.56f, 0.58f, 0.32f).Lerp(new Color(0.22f, 0.45f, 0.17f), bio);
+                    break;
+                case "forest":
+                    c = new Color(0.16f, 0.32f, 0.13f).Lerp(new Color(0.07f, 0.22f, 0.09f), bio);
+                    break;
+                case "desert":
+                    c = new Color(0.8f, 0.67f, 0.45f).Lerp(new Color(0.7f, 0.52f, 0.33f), Mathf.Clamp((e - 0.4f) * 3f, 0f, 1f));
+                    break;
+                case "hills":
+                    c = new Color(0.5f, 0.44f, 0.31f).Lerp(new Color(0.34f, 0.38f, 0.22f), bio);
+                    break;
+                case "mountains":
+                    c = new Color(0.36f, 0.34f, 0.33f).Lerp(new Color(0.94f, 0.95f, 0.98f), Mathf.Clamp((e - 0.955f) * 30f, 0f, 1f));
+                    break;
+                case "ice":
+                    c = new Color(0.9f, 0.93f, 0.97f);
+                    break;
+                default:
+                    c = Color.FromHtml(map.Terrain(t).Color);
+                    break;
+            }
+            // Beaches: open lowland right by the water gets a sandy edge.
+            if (!map.IsWater(t) && map.TouchesWater(t) && map.Terrain(t).Id is "plains" or "desert") c = c.Lerp(new Color(0.84f, 0.78f, 0.58f), 0.4f);
+            return c;
         }
-        var albedo = TileTexture(Ground, new Color(0.9f, 0.93f, 0.97f), smooth: true);
-        // Water shines, land doesn't.
-        var rough = TileTexture(t => map.IsWater(t) ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.95f, 0.95f, 0.95f), new Color(0.7f, 0.7f, 0.7f), smooth: true);
-        return (albedo, rough);
+        var albedo = TileImage(Ground, new Color(0.9f, 0.93f, 0.97f), smooth: true);
+        var water = TileImage(t => map.IsWater(t) ? Colors.White : Colors.Black, Colors.Black, smooth: true);
+
+        // Height for relief: flat seas, gentle lowland, hills up, mountains high. Turned into a normal map.
+        Color Height(int t)
+        {
+            var e = map.Elevation[t].ToFloat();
+            var h = map.Terrain(t).Id switch
+            {
+                "ocean" or "shallows" => 0.3f,
+                "mountains" => 0.62f + (e - def.MountainsFrom.ToFloat()) * 3.5f,
+                "hills" => 0.42f + (e - def.HillsFrom.ToFloat()) * 1.2f,
+                _ => 0.32f + e * 0.08f,
+            };
+            h = Mathf.Clamp(h, 0f, 1f);
+            return new Color(h, h, h);
+        }
+        var height = TileImage(Height, new Color(0.35f, 0.35f, 0.35f), smooth: true);
+        height.BumpMapToNormalMap(9f);
+        return (ImageTexture.CreateFromImage(albedo), ImageTexture.CreateFromImage(water), ImageTexture.CreateFromImage(height));
+    }
+
+    /// <summary>City lights for the night side: your buildings glow warm (bases brightest), the natives' settlement dimly.</summary>
+    private void RefreshLights()
+    {
+        var stamp = _surface.Structures.Count * 7919L + _surface.Bases(_localPlayer).Count;
+        if (stamp == _lightsStamp) return;
+        _lightsStamp = stamp;
+        var map = _surface.Map;
+        var glow = new Dictionary<int, float>();
+        foreach (var s in _surface.Structures)
+        {
+            if (s.Owner != _localPlayer || s.State != StructureState.Complete) continue;
+            var strength = _sim.Data.Building(s.DefId).IsCore ? 1f : 0.55f;
+            glow[s.Tile] = Mathf.Max(glow.GetValueOrDefault(s.Tile), strength);
+            foreach (var n in map.Grid.Neighbours(s.Tile)) glow[n] = Mathf.Max(glow.GetValueOrDefault(n), strength * 0.3f);
+        }
+        if (map.NativeTile >= 0)
+            foreach (var t in map.Grid.Within(map.NativeTile, 1)) glow[t] = Mathf.Max(glow.GetValueOrDefault(t), t == map.NativeTile ? 0.45f : 0.15f);
+        var warm = new Color(1f, 0.78f, 0.45f);
+        _groundMaterial.SetShaderParameter("lights_tex", TileTexture(t => glow.TryGetValue(t, out var g) ? warm * g : Colors.Black, Colors.Black, smooth: true));
     }
 
     /// <summary>The overlay colour of a tile for a scan (transparent where the scan has nothing to say).</summary>
@@ -472,6 +627,9 @@ public partial class OrbitView : Node3D
         _distance = Mathf.Lerp(_distance, _distanceTarget, 1f - Mathf.Exp(-4f * delta));
         _globe.Basis = new Basis(Vector3.Right, _pitch) * new Basis(Vector3.Up, _yaw);
         _clouds.Basis = _globe.Basis * new Basis(Vector3.Up, _time * 0.012f);
+        _highClouds.Basis = _globe.Basis * new Basis(Vector3.Up, -_time * 0.007f + 1.3f);
+        _moon.Rotation = _moon.Rotation with { Y = _time * 0.02f };
+        RefreshLights();
         _camera.Position = new Vector3(0, 0, _distance);
         _camera.LookAt(Vector3.Zero, Vector3.Up);
         _ship.Position = new Vector3(-30f, -21f + Mathf.Sin(_time * 0.6f) * 0.6f, -66f);
