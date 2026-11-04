@@ -302,7 +302,7 @@ def survey_rover():
                              @ Matrix.Rotation(-s * lean, 4, "Y") @ name.rotation_euler.to_matrix().to_4x4())
 
     # Name across the back.
-    text("NameRear", "KALTY", 0.22, (0, -2.31, 1.62), (math.radians(90), 0, math.radians(180)), P["number"], root)
+    text("NameRear", "KALTY", 0.22, (0, -2.31, 1.62), (math.radians(90), 0, 0), P["number"], root)  # faces -Y, reads left to right from behind
 
     # Front: grille, headlights, amber markers.
     box("Grille", (1.1, 0.06, 0.26), (0, 2.33, 1.17), P["dark"], root, 0.02)
