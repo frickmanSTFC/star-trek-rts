@@ -472,8 +472,25 @@ public sealed class PlanetSurface
                     tile = n;
                     break;
                 }
-        var def = _data.SurfaceUnit(unitId);
-        var unit = new SurfaceUnit(_nextUnitId++, owner, def.Id, def.Speed * Simulation.SecondsPerTick, def.SurveyRadius, tile);
+        return NewUnit(owner, _data.SurfaceUnit(unitId), tile, -1, -1);
+    }
+
+    /// <summary>
+    /// The one place units are created: gives it the owner's next name and hull number (never repeated for that player),
+    /// adds it and reveals around it. builtAtTick / builtAtTile = the Vehicle Bay roll-out (-1 = landed or delivered).
+    /// </summary>
+    private SurfaceUnit NewUnit(int owner, SurfaceUnitDef def, int tile, long builtAtTick, int builtAtTile)
+    {
+        var p = _players[owner];
+        var unit = new SurfaceUnit(_nextUnitId++, owner, def.Id, def.Speed * Simulation.SecondsPerTick, def.SurveyRadius, tile)
+        {
+            Name = UnitNaming.NameFor(_data.UnitNames, Map.Seed, owner, p._usedUnitNames.Count),
+            Number = UnitNaming.NumberFor(_data.UnitNames, Map.Seed, owner, p._usedUnitNumbers.Count),
+            BuiltAtTick = builtAtTick,
+            BuiltAtTile = builtAtTile,
+        };
+        p._usedUnitNames.Add(unit.Name);
+        p._usedUnitNumbers.Add(unit.Number);
         _units.Add(unit);
         Reveal(owner, tile, def.SurveyRadius);
         return unit;
@@ -840,14 +857,7 @@ public sealed class PlanetSurface
             if (tile < 0) tile = n;
         }
         if (tile < 0) tile = bay.Tile;
-        var def = _data.SurfaceUnit(unitId);
-        var unit = new SurfaceUnit(_nextUnitId++, bay.Owner, def.Id, def.Speed * Simulation.SecondsPerTick, def.SurveyRadius, tile)
-        {
-            BuiltAtTick = sim.Tick,
-            BuiltAtTile = bay.Tile,
-        };
-        _units.Add(unit);
-        Reveal(bay.Owner, tile, def.SurveyRadius);
+        NewUnit(bay.Owner, _data.SurfaceUnit(unitId), tile, sim.Tick, bay.Tile);
     }
 
     /// <summary>Whether the player could send their pod to this tile right now.</summary>

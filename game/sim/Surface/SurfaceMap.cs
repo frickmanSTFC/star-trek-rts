@@ -48,6 +48,9 @@ public sealed class SurfaceMap
 {
     public PlanetSurfaceDef Def { get; }
 
+    /// <summary>The seed this surface was generated from (other seeded streams, like unit names, derive from it).</summary>
+    public ulong Seed { get; private set; }
+
     /// <summary>Wildlife per tile (lifeform scan).</summary>
     public Wildlife[] WildlifeAt { get; }
 
@@ -178,7 +181,7 @@ public sealed class SurfaceMap
 
     public static SurfaceMap Generate(GameData data, PlanetSurfaceDef def, ulong seed)
     {
-        var map = new SurfaceMap(data, def);
+        var map = new SurfaceMap(data, def) { Seed = seed };
         var grid = map.Grid;
         var elevationNoise = new ValueNoise(seed ^ 0xE1E7A7E5UL);
         var moistureNoise = new ValueNoise(seed ^ 0x3015E0DEUL);
@@ -301,6 +304,7 @@ public sealed class SurfaceMap
     internal void AddToHash(ref StateHasher h)
     {
         h.Add(Grid.Count);
+        h.Add(Seed);
         h.Add(NativeTile);
         for (var t = 0; t < Grid.Count; t++)
         {
