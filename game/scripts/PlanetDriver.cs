@@ -1136,7 +1136,20 @@ public partial class PlanetDriver : Node3D
         return rules != null && u.Breakdown >= 0 ? rules.Severities[u.Breakdown].Name.ToLowerInvariant() : "fault";
     }
 
-    private string UnitName(SurfaceUnit u) => _data.GroundVehicleNames.GetValueOrDefault(u.DefId, u.DefId);
+    /// <summary>A unit's type and own name, e.g. "Mk II Surveyor Talus 17".</summary>
+    private string UnitName(SurfaceUnit u) =>
+        string.IsNullOrEmpty(u.Name) ? TypeName(u) : $"{TypeName(u)} {CallSign(u)}";
+
+    private string TypeName(SurfaceUnit u) => _data.GroundVehicleNames.GetValueOrDefault(u.DefId, u.DefId);
+
+    /// <summary>The name painted on the hull, in title case for text ("TALUS" + "17" → "Talus 17").</summary>
+    private static string CallSign(SurfaceUnit u)
+    {
+        var words = u.Name.Split(' ');
+        for (var i = 0; i < words.Length; i++)
+            if (words[i].Length > 1 && words[i].Any(c => c != 'I')) words[i] = words[i][0] + words[i][1..].ToLowerInvariant();
+        return $"{string.Join(' ', words)} {u.Number}";
+    }
 
     /// <summary>The selected building if it's one of our finished Vehicle Bays (its orders replace the build menu).</summary>
     private SurfaceStructure? SelectedBay()
@@ -1687,12 +1700,13 @@ public partial class PlanetDriver : Node3D
         }
         var rovers = units.Count(u => !_data.SurfaceUnit(u.DefId).CanMine);
         var crawlers = units.Count - rovers;
-        var title = string.Join(" + ", new[]
+        var title = units.Count == 1 ? UnitName(units[0]) : string.Join(" + ", new[]
         {
             rovers > 0 ? $"{rovers} survey rover{(rovers == 1 ? "" : "s")}" : "",
             crawlers > 0 ? $"{crawlers} mining crawler{(crawlers == 1 ? "" : "s")}" : "",
         }.Where(t => t.Length > 0));
-        _hud.ShowDetail(title, "Selected",
+        var names = units.Count > 1 ? string.Join(", ", units.Select(u => string.IsNullOrEmpty(u.Name) ? TypeName(u) : CallSign(u))) + "\n" : "";
+        _hud.ShowDetail(title, "Selected", names +
             "Right-click a tile to drive there. Rovers survey the ground around them as they go: deposits they find appear on the map." +
             (crawlers > 0 ? "\nRight-click a deposit to send the crawler to mine it." : "") +
             "\nEsc or click a base tab to go back to the base.");

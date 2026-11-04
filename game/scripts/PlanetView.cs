@@ -990,9 +990,8 @@ public partial class PlanetView : Node3D
                 RoverLook.Paint(model, u.Name, u.Number);
                 _grime[u.Id] = RoverLook.Grime.Attach(model, def.CanMine ? 3.2f : 2.4f);
                 // Wheel spray from behind the rear wheels (rover) or the back of the tracks (crawler); +Z is the back.
-                model.AddChild(new SprayRig(def.CanMine
-                    ? new[] { new Vector3(-1.75f, 0.2f, 2.9f), new Vector3(1.75f, 0.2f, 2.9f) }
-                    : new[] { new Vector3(-1.35f, 0.15f, 2.3f), new Vector3(1.35f, 0.15f, 2.3f) }));
+                var (sx, sz) = def.CanMine ? (1.75f, 2.9f) : def.Mark switch { 1 => (1.3f, 1.75f), 3 => (1.5f, 2.5f), _ => (1.35f, 2.3f) };
+                model.AddChild(new SprayRig(new[] { new Vector3(-sx, 0.15f, sz), new Vector3(sx, 0.15f, sz) }));
                 AddChild(model);
                 _rovers[u.Id] = model;
                 var label = new Label3D
