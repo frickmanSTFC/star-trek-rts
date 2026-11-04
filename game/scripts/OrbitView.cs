@@ -83,7 +83,8 @@ public partial class OrbitView : Node3D
         // Light from the front left, so the side you look at is lit with the terminator off to one side.
         _light = new DirectionalLight3D { LightEnergy = 1.7f, LightColor = new Color(1f, 0.97f, 0.9f), ShadowEnabled = false };
         AddChild(_light);
-        _light.LookAtFromPosition(new Vector3(-1.2f, 0.6f, 1.4f) * 100f, Vector3.Zero, Vector3.Up);
+        // From the left and a little in front: about a third of the globe is in night, so the terminator, the sunset band and city lights show.
+        _light.LookAtFromPosition(new Vector3(-1.0f, 0.35f, 0.55f) * 100f, Vector3.Zero, Vector3.Up);
         _sunDir = _light.GlobalTransform.Basis.Z.Normalized(); // a directional light shines along -Z, so +Z points at the sun
 
         AddChild(Nebula());
@@ -92,7 +93,13 @@ public partial class OrbitView : Node3D
         _globe = new Node3D { Name = "Globe" };
         AddChild(_globe);
         var ground = new MeshInstance3D { Mesh = SphereMesh(Radius, 128, 256) };
-        var (albedo, water, normal) = GroundTextures();
+        var painted = OrbitPainter.Paint(_surface.Map, TextureWidth, TextureHeight, VTop, VBottom);
+        painted.Albedo.GenerateMipmaps();
+        painted.Water.GenerateMipmaps();
+        painted.Normal.GenerateMipmaps();
+        var albedo = ImageTexture.CreateFromImage(painted.Albedo);
+        var water = ImageTexture.CreateFromImage(painted.Water);
+        var normal = ImageTexture.CreateFromImage(painted.Normal);
         _groundMaterial = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/planet.gdshader") };
         _groundMaterial.SetShaderParameter("albedo_tex", albedo);
         _groundMaterial.SetShaderParameter("water_tex", water);
@@ -391,75 +398,6 @@ public partial class OrbitView : Node3D
         full.Fill(cap);
         full.BlitRect(tiles, new Rect2I(0, 0, TextureWidth, band), new Vector2I(0, top));
         return full;
-    }
-
-    /// <summary>
-    /// Colour, water mask and relief normal map for the globe. Oceans darken with depth and turn turquoise in the
-    /// shallows; land greens with biomass, beaches lighten coasts, mountains go from rock to snow with height.
-    /// </summary>
-    private (ImageTexture Albedo, ImageTexture Water, ImageTexture Normal) GroundTextures()
-    {
-        var map = _surface.Map;
-        var def = map.Def;
-        Color Ground(int t)
-        {
-            var e = map.Elevation[t].ToFloat();
-            var bio = map.Biomass[t].ToFloat();
-            Color c;
-            switch (map.Terrain(t).Id)
-            {
-                case "ocean":
-                    c = new Color(0.02f, 0.07f, 0.2f).Lerp(new Color(0.05f, 0.2f, 0.42f), Mathf.Clamp(e / def.OceanBelow.ToFloat(), 0f, 1f));
-                    break;
-                case "shallows":
-                    c = new Color(0.08f, 0.36f, 0.52f);
-                    break;
-                case "plains":
-                    c = new Color(0.56f, 0.58f, 0.32f).Lerp(new Color(0.22f, 0.45f, 0.17f), bio);
-                    break;
-                case "forest":
-                    c = new Color(0.16f, 0.32f, 0.13f).Lerp(new Color(0.07f, 0.22f, 0.09f), bio);
-                    break;
-                case "desert":
-                    c = new Color(0.8f, 0.67f, 0.45f).Lerp(new Color(0.7f, 0.52f, 0.33f), Mathf.Clamp((e - 0.4f) * 3f, 0f, 1f));
-                    break;
-                case "hills":
-                    c = new Color(0.5f, 0.44f, 0.31f).Lerp(new Color(0.34f, 0.38f, 0.22f), bio);
-                    break;
-                case "mountains":
-                    c = new Color(0.36f, 0.34f, 0.33f).Lerp(new Color(0.94f, 0.95f, 0.98f), Mathf.Clamp((e - 0.955f) * 30f, 0f, 1f));
-                    break;
-                case "ice":
-                    c = new Color(0.9f, 0.93f, 0.97f);
-                    break;
-                default:
-                    c = Color.FromHtml(map.Terrain(t).Color);
-                    break;
-            }
-            // Beaches: open lowland right by the water gets a sandy edge.
-            if (!map.IsWater(t) && map.TouchesWater(t) && map.Terrain(t).Id is "plains" or "desert") c = c.Lerp(new Color(0.84f, 0.78f, 0.58f), 0.4f);
-            return c;
-        }
-        var albedo = TileImage(Ground, new Color(0.9f, 0.93f, 0.97f), smooth: true);
-        var water = TileImage(t => map.IsWater(t) ? Colors.White : Colors.Black, Colors.Black, smooth: true);
-
-        // Height for relief: flat seas, gentle lowland, hills up, mountains high. Turned into a normal map.
-        Color Height(int t)
-        {
-            var e = map.Elevation[t].ToFloat();
-            var h = map.Terrain(t).Id switch
-            {
-                "ocean" or "shallows" => 0.3f,
-                "mountains" => 0.62f + (e - def.MountainsFrom.ToFloat()) * 3.5f,
-                "hills" => 0.42f + (e - def.HillsFrom.ToFloat()) * 1.2f,
-                _ => 0.32f + e * 0.08f,
-            };
-            h = Mathf.Clamp(h, 0f, 1f);
-            return new Color(h, h, h);
-        }
-        var height = TileImage(Height, new Color(0.35f, 0.35f, 0.35f), smooth: true);
-        height.BumpMapToNormalMap(9f);
-        return (ImageTexture.CreateFromImage(albedo), ImageTexture.CreateFromImage(water), ImageTexture.CreateFromImage(height));
     }
 
     /// <summary>City lights for the night side: your buildings glow warm (bases brightest), the natives' settlement dimly.</summary>

@@ -1,5 +1,5 @@
-// Orbital globe surface. Terrain colour with fine detail on land, relief from a normal map built from the map's
-// elevation (plus a tiling detail normal), shiny oceans, a soft atmospheric haze toward the limb on the day side,
+// Orbital globe surface (textures painted by OrbitPainter). Terrain colour with fine detail on land, relief from a
+// normal map of the painted height (plus a tiling detail normal), shiny oceans, a soft atmospheric haze toward the limb on the day side,
 // and city lights at your bases that only show on the night side. Lit by the scene's lights (the orbit "sun").
 shader_type spatial;
 render_mode cull_disabled;
@@ -12,7 +12,7 @@ uniform sampler2D water_tex : hint_default_black, filter_linear_mipmap, repeat_e
 uniform sampler2D lights_tex : source_color, hint_default_black, filter_linear_mipmap, repeat_enable;
 uniform vec3 sun_dir = vec3(-0.6, 0.3, 0.75);
 uniform vec4 haze : source_color = vec4(0.45, 0.68, 1.0, 1.0);
-uniform float relief = 1.4;
+uniform float relief = 1.0;
 uniform float lights_energy = 3.0;
 
 void fragment() {

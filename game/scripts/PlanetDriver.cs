@@ -57,6 +57,7 @@ public partial class PlanetDriver : Node3D
     private bool _pressed;
     private double _switchToSurfaceAt = -1;
     private double _clock;
+    private float _surfaceAmbient = -1f;
     private readonly Dictionary<int, (DeliveryKind Kind, string Payload, int Tile)> _seenDeliveries = new();
 
     /// <summary>What the big info card shows: a building id (while placing it), "tech:id" or "unit:id"; null = closed.</summary>
@@ -180,6 +181,8 @@ public partial class PlanetDriver : Node3D
         {
             _environment.FogEnabled = false;
             _environment.SsaoEnabled = false;
+            if (_surfaceAmbient < 0) _surfaceAmbient = _environment.AmbientLightEnergy;
+            _environment.AmbientLightEnergy = 0.07f; // space is dark: the night side should be too
         }
         if (Me.Phase == LandingPhase.Landed)
         {
@@ -203,6 +206,7 @@ public partial class PlanetDriver : Node3D
         {
             _environment.FogEnabled = true;
             _environment.SsaoEnabled = true;
+            if (_surfaceAmbient >= 0) _environment.AmbientLightEnergy = _surfaceAmbient;
         }
         _hud.Minimap.Visible = true;
         if (tile >= 0)
