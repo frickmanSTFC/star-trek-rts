@@ -765,6 +765,7 @@ def _damage(root, damage, finish):
         _set_material(get("Headlamp1"), dead)
         if get("Antenna"):
             _bend_antenna(get("Antenna"))
+            _remove(get("AntennaTip"))  # the Mk I's whip has a separate tip cap that would stay floating where the top was
         _remove(get("WheelFRCap"))
         rb = get("RearBumper")
         if rb:

@@ -134,7 +134,8 @@ def preview(ns, root, folder):
         cam.data.lens = lens
         cam.rotation_euler = (target - pos).to_track_quat("-Z", "Y").to_euler()
         suffix = "" if name == "front34" else f"-{name}"
-        scene.render.filepath = os.path.join(folder, f"{FINISH}-d{DAMAGE}{suffix}.png")
+        tier = f"t{arg('--tier')}-" if arg("--tier") else ""
+        scene.render.filepath = os.path.join(folder, f"{tier}{FINISH}-d{DAMAGE}{suffix}.png")
         bpy.ops.render.render(write_still=True)
         print("rendered", scene.render.filepath)
 
@@ -142,7 +143,12 @@ def preview(ns, root, folder):
 def main():
     ns = load_build_vehicles()
     root = build(ns)
-    rover_finish.weather_hull(bpy.data.objects["Hull"], FINISH, DAMAGE, res=BAKE_RES)
+    # Fit the bake to this tier: hull bottom/top from its bounds, one arch per left wheel (pivot y, hub height).
+    hull = bpy.data.objects["Hull"]
+    zs = [(hull.matrix_world @ Vector(c)).z for c in hull.bound_box]
+    wheels = [o for o in root.children_recursive if o.type == "EMPTY" and re.fullmatch(r"Wheel[FMR]L", o.name)]
+    arches = [(o.location.y, o.location.z) for o in wheels] or None
+    rover_finish.weather_hull(hull, FINISH, DAMAGE, res=BAKE_RES, arches=arches, z_range=(min(zs), max(zs)))
     rover_finish.apply_parts(root, FINISH, DAMAGE)
     if GLB:
         ns["export"](root, GLB)
