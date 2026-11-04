@@ -35,6 +35,11 @@ public partial class PlanetDriver : Node3D
     private GameData _data = null!;
     private PlanetView _view = null!;
     private PlanetHud _hud = null!;
+    private HelmScreen _helm = null!;
+    private string? _selectedBody;
+    private List<string> _findings = new();
+    private double _findingsAt = -1;
+    private (int Water, int Biomass)? _planetShares;
     private Camera3D _camera = null!;
     private double _accumulator;
     private int _hoverTile = -1;
@@ -132,7 +137,18 @@ public partial class PlanetDriver : Node3D
         _orbit = new OrbitView();
         AddChild(_orbit); // in the tree before Build: it aims its light with LookAt
         _orbit.Build(_sim, LocalPlayer, _sim.Players[LocalPlayer].FactionId);
+        _orbit.CurrentBodyName = PlanetName;
         _hud.SetScanHandler(i => _orbit.SetScan((ScanMode)i));
+
+        // The helm screen: the frame and panels drawn over the orbit view, under the HUD's layer (so F1 help and the
+        // event feed still draw on top of it).
+        var helmLayer = new CanvasLayer { Name = "HelmLayer", Layer = 0 };
+        AddChild(helmLayer);
+        _helm = new HelmScreen { Name = "Helm", Visible = false };
+        helmLayer.AddChild(_helm);
+        _helm.ActionPicked += OnHelmAction;
+        _helm.DisplayPicked += SetOrbitDisplay;
+        _helm.SetInfoHandlers(InfoAction, () => _info = null);
         EnterOrbit();
         _orbitAction = "land";
         _info = "orbit:land";
@@ -177,6 +193,8 @@ public partial class PlanetDriver : Node3D
         _view.Visible = false;
         _orbit.Visible = true;
         _orbit.Camera.MakeCurrent();
+        _helm.Visible = true;
+        _hud.SetOrbitMode(true);
         if (_sun != null) _sun.Visible = false;
         if (_environment != null)
         {
@@ -210,6 +228,9 @@ public partial class PlanetDriver : Node3D
         _orbit.Visible = false;
         _view.Visible = true;
         _camera.MakeCurrent();
+        _helm.Visible = false;
+        _helm.ShowInfo(null);
+        _hud.SetOrbitMode(false);
         if (_sun != null) _sun.Visible = true;
         if (_environment != null)
         {
@@ -250,6 +271,16 @@ public partial class PlanetDriver : Node3D
     /// <summary>A click on the planet: send the armed deployment there, or turn the planet to centre the tile.</summary>
     private void OrbitClick(bool shift)
     {
+        if (_orbit.Display == OrbitDisplay.System)
+        {
+            var body = _orbit.PickBody(GetViewport().GetMousePosition());
+            if (body != null)
+            {
+                _selectedBody = body;
+                _orbit.HighlightBody(body);
+            }
+            return;
+        }
         var tile = _orbitHover;
         if (tile < 0) return;
         if (_orbitAction == null)
@@ -279,6 +310,7 @@ public partial class PlanetDriver : Node3D
 
     private void ArmOrbit(string cardId)
     {
+        if (_orbit.Display == OrbitDisplay.System) SetOrbitDisplay(OrbitDisplay.Planet); // deployments aim at the globe
         var action = cardId[6..];
         if (_orbitAction == action && _info == cardId)
         {
@@ -332,10 +364,9 @@ public partial class PlanetDriver : Node3D
         switch (key.Keycode)
         {
             case Key.O when Me.Phase == LandingPhase.Landed:
-                var centre = _orbit.PickTile(GetViewport().GetVisibleRect().Size / 2f);
-                ExitOrbit(centre >= 0 ? centre : Me.LandingTile, 320f);
+                LeaveOrbit();
                 break;
-            case Key.Tab:
+            case Key.Tab when _orbit.Display != OrbitDisplay.System:
                 _orbit.SetScan((ScanMode)(((int)_orbit.Mode + (key.ShiftPressed ? 4 : 1)) % 5));
                 break;
             case Key.Escape:
@@ -346,7 +377,9 @@ public partial class PlanetDriver : Node3D
                 OrbitClick(false);
                 break;
             case Key.H:
-                if (Me.LandingTile >= 0) _orbit.Focus(Me.LandingTile, 230f);
+                if (Me.LandingTile < 0) break;
+                if (_orbit.Display == OrbitDisplay.System) SetOrbitDisplay(OrbitDisplay.Planet);
+                _orbit.Focus(Me.LandingTile, 230f);
                 break;
             case Key.F1:
                 _hud.ToggleHelp();
@@ -363,7 +396,8 @@ public partial class PlanetDriver : Node3D
     private void OrbitHover(float delta)
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse);
+        if (_helm.ViewRect.Size.X > 32f && _helm.ViewRect.Size.Y > 32f) _orbit.SetViewRect(_helm.ViewRect, GetViewport().GetVisibleRect().Size);
         _orbitHover = _mouseOverUi ? -1 : _orbit.PickTile(mouse);
         var colour = _orbitAction == null ? new Color(1f, 1f, 1f, 0.6f)
             : OrbitProblem(_orbitAction, _orbitHover) == null ? new Color(0.3f, 1f, 0.4f, 0.95f) : new Color(1f, 0.3f, 0.25f, 0.9f);
@@ -415,42 +449,241 @@ public partial class PlanetDriver : Node3D
         return sb.ToString();
     }
 
-    /// <summary>Everything the HUD shows while in orbit.</summary>
-    private void OrbitHud()
+    /// <summary>A helm button (rail, action strip or card): scans, the grid, system bodies, deployments, back to the surface.</summary>
+    private void OnHelmAction(string id)
+    {
+        if (id.StartsWith("scan:")) _orbit.SetScan((ScanMode)int.Parse(id[5..]));
+        else if (id == "grid") _orbit.Grid = !_orbit.Grid;
+        else if (id.StartsWith("body:"))
+        {
+            _selectedBody = id[5..];
+            _orbit.HighlightBody(_selectedBody);
+        }
+        else if (id.StartsWith("orbit:")) ArmOrbit(id);
+        else if (id == "surface") LeaveOrbit();
+        else if (id == "display:planet") SetOrbitDisplay(OrbitDisplay.Planet);
+    }
+
+    private void SetOrbitDisplay(OrbitDisplay display)
+    {
+        _orbit.SetDisplay(display);
+        _helm.SetDisplay(display);
+        if (display != OrbitDisplay.System) _orbit.HighlightBody(null);
+        else _orbit.HighlightBody(_selectedBody);
+    }
+
+    /// <summary>Down to the hex map at whatever tile is in the middle of the viewscreen (O, or the helm's SURFACE button).</summary>
+    private void LeaveOrbit()
+    {
+        if (Me.Phase != LandingPhase.Landed) return;
+        var centre = _orbit.PickTile(_orbit.ViewCentre);
+        ExitOrbit(centre >= 0 ? centre : Me.LandingTile, 320f);
+    }
+
+    private static string ShortResource(string name) =>
+        string.Join(" ", name.Split(' ').Select(w => w.Length <= 3 ? w : w[..3])).ToUpperInvariant();
+
+    private static readonly string[] Compass = { "north-west", "north", "north-east", "west", "centre", "east", "south-west", "south", "south-east" };
+
+    /// <summary>Where a region lies on the map, roughly ("north-west").</summary>
+    private string RegionPlace(int region)
+    {
+        var def = Surface.Map.Def;
+        var col = region % def.RegionColumns;
+        var row = region / def.RegionColumns;
+        var cx = def.RegionColumns <= 1 ? 1 : Mathf.Clamp(col * 3 / def.RegionColumns, 0, 2);
+        var cy = def.RegionRows <= 1 ? 1 : Mathf.Clamp(row * 3 / def.RegionRows, 0, 2);
+        return Compass[cy * 3 + cx];
+    }
+
+    /// <summary>The helm's findings feed: what the scans know (region readings, surveyed deposits, life, hazards). Refreshed once a second.</summary>
+    private IReadOnlyList<string> Findings()
+    {
+        if (_findingsAt >= 0 && _clock - _findingsAt < 1.0) return _findings;
+        _findingsAt = _clock;
+        var map = Surface.Map;
+        var list = new List<string>();
+        for (var r = 0; r < map.RegionCount; r++)
+        {
+            var hints = map.Hints(r);
+            if (hints.Count == 0) continue;
+            var h = hints[0];
+            list.Add($"{_data.Resources[h.Resource].Name}: {h.Strength.ToString().ToLowerInvariant()} reading · {RegionPlace(r)}");
+        }
+        int surveyed = 0, deposits = 0, herds = 0, predators = 0, toxic = 0;
+        for (var t = 0; t < map.Grid.Count; t++)
+        {
+            if (Me.Surveyed[t])
+            {
+                surveyed++;
+                if (map.DepositResource[t] >= 0 && !map.IsDepleted(t)) deposits++;
+            }
+            if (map.WildlifeAt[t] == Wildlife.Predators) predators++;
+            else if (map.WildlifeAt[t] != Wildlife.None) herds++;
+            if (map.Toxic[t]) toxic++;
+        }
+        if (map.NativeTile >= 0) list.Insert(0, $"Native settlement, pre-warp · {RegionPlace(map.Region(map.NativeTile))} · their land is off-limits");
+        if (predators > 0) list.Add($"Predators on {predators} sectors: landing beside them is risky");
+        if (herds > 0) list.Add($"Grazing herds on {herds} sectors");
+        if (toxic > 0) list.Add($"Toxic ground on {toxic} sectors: no landing there");
+        if (surveyed > 0) list.Add($"Surveyed {surveyed} sectors · {deposits} deposits found");
+        _findings = list;
+        return list;
+    }
+
+    /// <summary>Everything the helm screen shows while in orbit: title, rail, action strip, data panel, feed, cursor readout, info card.</summary>
+    private void OrbitHud(long seconds)
     {
         var orbit = _data.Orbit;
         var faction = _sim.Players[LocalPlayer].FactionId;
         var ship = orbit?.ShipFor(faction);
-        var era = orbit != null ? EraNames.GetValueOrDefault(orbit.Era, orbit.Era) : "";
-        _hud.ShowOrbit(new OrbitPanelView(ship?.Name ?? "Your ship", $"{ship?.ClassName} class  ·  orbiting {PlanetName}, Class M  ·  {era}",
-            (int)_orbit.Mode, ScanLegends[(int)_orbit.Mode], OrbitTileText(_orbitHover)));
-        _hud.ShowTooltip("", Vector2.Zero);
-
+        var display = _orbit.Display;
         var me = Me;
+        var map = Surface.Map;
         var stock = _sim.Players[LocalPlayer].Stock;
+        var mouse = GetViewport().GetMousePosition();
+        _helm.SetDisplay(display);
+        _helm.SetClock($"{seconds / 60:00}:{seconds % 60:00}");
+        _helm.SetResources(string.Join("   ", _data.HudResources.Select(r => $"{ShortResource(r.Name)} {Hud.Whole(stock[r.Index])}")));
+
+        var hint = me.Phase == LandingPhase.Descending ? "COLONY POD AWAY…"
+            : _orbitAction == "land" && me.Phase == LandingPhase.InOrbit ? "CLICK A GREEN (SAFE) SITE TO LAND THE COLONY"
+            : _orbitAction != null ? "CLICK THE PLANET TO CHOOSE WHERE · RIGHT-CLICK CANCELS" : null;
+        var shipLine = $"{ship?.Name?.ToUpperInvariant() ?? "YOUR SHIP"}{(ship?.ClassName is { Length: > 0 } c ? $" · {c.ToUpperInvariant()} CLASS" : "")}";
+
+        // Rail: the scans (+ grid) on the globe displays, the bodies on the system plot.
+        var rail = new List<HelmAction>();
+        var bodies = _orbit.SystemBodies();
+        if (display == OrbitDisplay.System)
+        {
+            foreach (var b in bodies.Where(b => b.ParentId == null))
+                rail.Add(new HelmAction($"body:{b.Id}", "", b.Name.ToUpperInvariant(), Highlight: b.Id == (_selectedBody ?? bodies.FirstOrDefault(x => x.Current)?.Id)));
+        }
+        else if (display != OrbitDisplay.Atmosphere)
+        {
+            for (var i = 0; i < PlanetHud.ScanNames.Length; i++)
+                rail.Add(new HelmAction($"scan:{i}", "", PlanetHud.ScanNames[i], Highlight: (int)_orbit.Mode == i));
+            rail.Add(new HelmAction("grid", "", "GRID", Colour: _orbit.Grid ? HelmScreen.Cyan : null));
+        }
+        _helm.SetRail(rail);
+
+        // Panel and title per display.
+        var sections = new List<HelmSection>();
+        switch (display)
+        {
+            case OrbitDisplay.System:
+            {
+                var selected = bodies.FirstOrDefault(b => b.Id == _selectedBody) ?? bodies.FirstOrDefault(b => b.Current);
+                _helm.SetTitle("STAR SYSTEM", hint ?? $"{bodies.Count(b => b.ParentId == null)} BODIES · {shipLine}");
+                if (selected != null)
+                    sections.Add(new HelmSection(selected.Name.ToUpperInvariant(), HelmScreen.Peach, new List<HelmRow>
+                    {
+                        new("CLASS", selected.ClassName),
+                        new("SIZE", selected.Size.ToString()),
+                        new("MOONS", bodies.Count(b => b.ParentId == selected.Id).ToString()),
+                        new("STATUS", selected.Current ? "in orbit" : "not visited", selected.Current ? HelmScreen.Green : null),
+                    }));
+                sections.Add(new HelmSection("BODIES", HelmScreen.Sky, bodies.Where(b => b.ParentId == null).Select(b => new HelmRow(b.Name.ToUpperInvariant(), b.ClassName, b.Current ? HelmScreen.Peach : null)).ToList()));
+                _helm.SetPanel("SYSTEM DATA", sections);
+                break;
+            }
+            case OrbitDisplay.Orbit:
+            {
+                var objects = _orbit.TrackedObjects();
+                _helm.SetTitle("ORBITAL TRAFFIC", hint ?? $"{objects.Count} OBJECTS TRACKED · {PlanetName.ToUpperInvariant()}");
+                sections.Add(new HelmSection("OBJECTS IN ORBIT", HelmScreen.Lavender, objects.Select(o => new HelmRow(o.Name.ToUpperInvariant(), $"{o.Kind} · {o.Status}", o.Colour)).ToList()));
+                _helm.SetPanel("ORBIT DATA", sections);
+                break;
+            }
+            case OrbitDisplay.Atmosphere:
+                _helm.SetTitle("ATMOSPHERE", hint ?? $"{PlanetName.ToUpperInvariant()} · {shipLine}");
+                sections.Add(new HelmSection("CONDITIONS", HelmScreen.Sky, _orbit.AtmosphereRows()));
+                _helm.SetPanel("ATMOSPHERIC DATA", sections);
+                break;
+            default:
+            {
+                _planetShares ??= PlanetShares();
+                var mode = (int)_orbit.Mode;
+                _helm.SetTitle(PlanetName.ToUpperInvariant(), hint ?? $"CLASS M · STANDARD ORBIT · {shipLine}");
+                sections.Add(new HelmSection("", HelmScreen.Cyan, new List<HelmRow>
+                {
+                    new("SURFACE", $"{map.Grid.Width} × {map.Grid.Height} sectors"),
+                    new("OCEANS", $"{_planetShares.Value.Water} %"),
+                    new("BIOMASS", $"{_planetShares.Value.Biomass} % average"),
+                    new("NATIVES", map.NativeTile >= 0 ? "1 settlement" : "none found", map.NativeTile >= 0 ? HelmScreen.Peach : null),
+                    new("SATELLITES", $"{Surface.Satellites.Count(x => x.Owner == LocalPlayer)} / {orbit?.SatelliteMax}"),
+                }));
+                sections.Add(new HelmSection($"SCAN · {PlanetHud.ScanNames[mode]}", HelmScreen.Sky, new List<HelmRow> { new("", ScanLegends[mode]) }));
+                _helm.SetPanel("PLANETARY DATA", sections);
+                break;
+            }
+        }
+        _helm.SetFeed(Findings());
+
+        // Cursor readout: the tile under the mouse (or the body on the system plot).
+        if (display == OrbitDisplay.System)
+        {
+            var id = _mouseOverUi ? null : _orbit.PickBody(mouse);
+            var b = id == null ? null : bodies.FirstOrDefault(x => x.Id == id);
+            _helm.ShowReadout(b?.Name.ToUpperInvariant(), b == null ? "" : b.ClassName, HelmScreen.Peach, mouse + new Vector2(18, 14));
+        }
+        else if (_orbitHover >= 0)
+        {
+            var lines = OrbitTileText(_orbitHover).Split('\n');
+            var problem = _orbitAction == null ? null : OrbitProblem(_orbitAction, _orbitHover);
+            var colour = _orbitAction != null ? (problem == null ? HelmScreen.Green : HelmScreen.Red)
+                : map.Safety(_orbitHover) == LandingSafety.Safe ? HelmScreen.Green : map.Safety(_orbitHover) == LandingSafety.Risky ? HelmScreen.Peach : HelmScreen.Sky;
+            _helm.ShowReadout(lines[0].ToUpperInvariant(), string.Join("\n", lines.Skip(1)), colour, mouse + new Vector2(18, 14));
+        }
+        else _helm.ShowReadout(null, "", HelmScreen.Sky, Vector2.Zero);
+
+        // Action strip: the deployments (keys 1–9), then back to the surface.
+        var actions = new List<HelmAction>();
+        if (display == OrbitDisplay.System) actions.Add(new HelmAction("display:planet", "", "BACK TO PLANET", Colour: HelmScreen.Peach));
         var cards = OrbitCards();
-        var views = new List<CommandView>();
         for (var i = 0; i < cards.Count; i++)
         {
             var id = cards[i].Id;
             var a = id[6..];
-            var cost = OrbitCost(a);
             var tag = "";
             var disabled = false;
-            if (a == "land") { disabled = me.Phase != LandingPhase.InOrbit; tag = disabled ? "DONE" : ""; }
-            else if (a == "satellite") tag = $"{Surface.Satellites.Count(x => x.Owner == LocalPlayer)}/{orbit?.SatelliteMax}";
-            else if (me.Phase != LandingPhase.Landed) { disabled = true; tag = "AFTER LANDING"; }
-            else if (a.StartsWith("shuttle:") && me.ShuttleBackTick > _sim.Tick) tag = $"AWAY {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate}s";
+            if (a == "land") disabled = me.Phase != LandingPhase.InOrbit;
+            else if (a == "satellite") tag = $" {Surface.Satellites.Count(x => x.Owner == LocalPlayer)}/{orbit?.SatelliteMax}";
+            else if (me.Phase != LandingPhase.Landed) disabled = true;
+            else if (a.StartsWith("shuttle:") && me.ShuttleBackTick > _sim.Tick) tag = $" {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate}S";
             else if (a.StartsWith("beam:"))
             {
                 var level = orbit?.Transporter(me.TransporterLevel);
-                if (level == null || !level.Payloads.Contains(a[5..])) { disabled = true; tag = "N/A"; }
-                else if (me.TransporterReadyTick > _sim.Tick) tag = $"{(me.TransporterReadyTick - _sim.Tick) / Simulation.TickRate}s";
+                if (level == null || !level.Payloads.Contains(a[5..])) disabled = true;
+                else if (me.TransporterReadyTick > _sim.Tick) tag = $" {(me.TransporterReadyTick - _sim.Tick) / Simulation.TickRate}S";
             }
-            views.Add(new CommandView(id, "", "", cost.Count == 0 ? (a == "land" ? "free" : a == "beam:supplies" ? "from the hold" : "") : Amounts(cost, false, shortNames: true),
-                stock.CanAfford(cost), _orbitAction == a, disabled ? (tag.Length > 0 ? tag : "N/A") : tag)); // still clickable: the card explains why
+            var label = a == "land" ? "LAND" : a == "outpost" ? "OUTPOST" : a == "satellite" ? "SATELLITE"
+                : a.StartsWith("shuttle:") ? $"SHUTTLE {ShortUnit(a[8..]).ToUpperInvariant()}"
+                : a == "beam:" + OrbitRules.Supplies ? "BEAM SUPPLIES" : $"BEAM {ShortUnit(a[5..]).ToUpperInvariant()}";
+            actions.Add(new HelmAction(id, (i + 1).ToString(), label + tag, !disabled || _orbitAction == a, _orbitAction == a)); // greyed ones still open their card
         }
-        _hud.ShowCommands($"FROM ORBIT · {ship?.Name?.ToUpperInvariant()}", views, true);
+        if (me.Phase == LandingPhase.Landed) actions.Add(new HelmAction("surface", "O", "SURFACE", Colour: HelmScreen.Rust));
+        _helm.SetActions(actions);
+
+        _helm.ShowInfo(_info != null && _info.StartsWith("orbit:") ? OrbitInfo(_info) : null);
+    }
+
+    /// <summary>Share of water tiles and average land biomass, in percent (the map doesn't change, so this is worked out once).</summary>
+    private (int Water, int Biomass) PlanetShares()
+    {
+        var map = Surface.Map;
+        int water = 0, land = 0;
+        var biomass = 0f;
+        for (var t = 0; t < map.Grid.Count; t++)
+        {
+            if (map.IsWater(t)) water++;
+            else
+            {
+                land++;
+                biomass += map.Biomass[t].ToFloat();
+            }
+        }
+        return (Mathf.RoundToInt(100f * water / Mathf.Max(1, map.Grid.Count)), Mathf.RoundToInt(100f * biomass / Mathf.Max(1, land)));
     }
 
     private IReadOnlyList<ResourceAmount> OrbitCost(string action)
@@ -593,6 +826,7 @@ public partial class PlanetDriver : Node3D
             // From orbit: swoop in on the landing site, then cut to the surface as the pod comes down.
             if (_inOrbit)
             {
+                SetOrbitDisplay(OrbitDisplay.Planet);
                 _orbit.Focus(Me.LandingTile, 140f);
                 _switchToSurfaceAt = _clock + 1.6;
             }
@@ -1174,9 +1408,7 @@ public partial class PlanetDriver : Node3D
             _hud.ShowBanner(Me.Phase == LandingPhase.InOrbit && _orbitAction == "land"
                 ? $"Orbiting {PlanetName}. Click a green (safe) site to land the colony  ·  drag to turn the planet, wheel to zoom, Tab to change scan"
                 : Me.Phase == LandingPhase.Descending ? "Colony pod away…" : "");
-            _hud.ShowBaseTabs(Surface.Bases(LocalPlayer).Select(b => (b.Id, BaseName(b.Id))).ToList(), _selectedBase);
-            OrbitHud();
-            _hud.ShowInfo(_info != null && _info.StartsWith("orbit:") ? OrbitInfo(_info) : null);
+            OrbitHud(seconds);
             return;
         }
 

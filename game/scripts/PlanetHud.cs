@@ -91,6 +91,7 @@ public partial class PlanetHud : CanvasLayer
     public Minimap Minimap { get; } = new();
 
     private Control _topBar = null!;
+    private Control _vignette = null!;
     private Control _bottom = null!;
     private Label _factionName = null!;
     private Label _factionSub = null!;
@@ -190,7 +191,8 @@ public partial class PlanetHud : CanvasLayer
 
     public override void _Ready()
     {
-        AddChild(Vignette());
+        _vignette = Vignette();
+        AddChild(_vignette);
 
         _topBar = BuildTopBar();
         AddChild(_topBar);
@@ -273,9 +275,31 @@ public partial class PlanetHud : CanvasLayer
         }
     }
 
+    /// <summary>
+    /// In orbit the helm screen (HelmScreen) takes over: hide the top bar, bottom panel, hints, banner, vignette and
+    /// the info card here. The event feed and the F1 help stay (they draw over the helm).
+    /// </summary>
+    public void SetOrbitMode(bool orbit)
+    {
+        _topBar.Visible = !orbit;
+        _bottom.Visible = !orbit;
+        _hints.Visible = !orbit;
+        _bannerPanel.Visible = !orbit && _banner.Text.Length > 0;
+        _vignette.Visible = !orbit;
+        _feed.Position = new Vector2(orbit ? 150 : 20, orbit ? 84 : TopHeight + 16);
+        if (orbit)
+        {
+            _info.Visible = false;
+            _tooltip.Visible = false;
+        }
+        _orbitMode = orbit;
+    }
+
+    private bool _orbitMode;
+
     /// <summary>True when the mouse is over the HUD (so the world shouldn't react to it).</summary>
     public bool BlocksMouse(Vector2 mouse) =>
-        _topBar.GetGlobalRect().HasPoint(mouse) || _bottom.GetGlobalRect().HasPoint(mouse) ||
+        (_topBar.Visible && _topBar.GetGlobalRect().HasPoint(mouse)) || (_bottom.Visible && _bottom.GetGlobalRect().HasPoint(mouse)) ||
         (_info.Visible && _info.GetGlobalRect().HasPoint(mouse)) || (_help.Visible && _help.GetGlobalRect().HasPoint(mouse));
 
     /// <summary>Hooks for the info card's action button and its close button.</summary>
@@ -290,7 +314,7 @@ public partial class PlanetHud : CanvasLayer
     /// <summary>Shows the info card filled from v, or hides it (null). It sits above the command card, sized to its content.</summary>
     public void ShowInfo(InfoView? v)
     {
-        _info.Visible = v != null;
+        _info.Visible = v != null && !_orbitMode;
         if (v == null) return;
         _infoIcon.Texture = Icons.Get(v.IconId, Accent);
         _infoTitle.Text = v.Title.ToUpperInvariant();
@@ -527,7 +551,7 @@ public partial class PlanetHud : CanvasLayer
 
     public void ShowBanner(string text)
     {
-        _bannerPanel.Visible = text.Length > 0;
+        _bannerPanel.Visible = text.Length > 0 && !_orbitMode;
         if (_banner.Text == text) return;
         _banner.Text = text;
         // Shrink to the new text and re-centre.
