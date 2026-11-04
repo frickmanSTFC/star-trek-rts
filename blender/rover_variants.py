@@ -11,6 +11,24 @@ Part names every tier keeps (where the part exists) so the game and the damage p
   Hull, Windscreen, SideGlass{-1,1}, SideWindow{-1,1}, Headlamp{-1,1}, Spot<k>, Beacon, Antenna, Locker, LockerB,
   FrontBumper, RearBumper, Wheel{F,M,R}{L,R} (each with ...Cap / ...Rim children), Dish (the game spins it),
   Number{-1,1}, Name{-1,1}, NameRear, Flash{-1,1}. Mk III adds Drone (sits on its roof pad).
+
+In the game (owner 2026-11-04): names are random and never repeat for a player; a mark never becomes another mark
+(each is its own unit, maybe refitted within its mark later); dirt builds up from the ground and washes off on the
+repair pad; which research unlocks each mark is to be discussed later (for now the Vehicle Bay builds all three).
+
+GAME CONTRACT (models <-> sim <-> view)
+  Unit ids (surfaces.json units, the sim and the view): survey_rover = Mk I Scout (today's stats: speed 2, survey 2,
+  60 duranium, 20 s; lands with the colony), survey_rover_mk2 = Mk II Surveyor, survey_rover_mk3 = Mk III Explorer
+  (stats from TIERS). Each unit def gets "mark": 1|2|3. The Vehicle Bay produces all three plus mining_crawler.
+  Models: game/models/vehicles/<unit id>.glb, exported with --blank: no name/number geometry. Instead each glb has
+  empties at the decal spots, named NameL, NameR, NameRear, NumberL, NumberR. An empty's transform is the decal's
+  (text lies in the empty's local XY plane facing local +Z in Blender, reading along +X, centred), and its Blender
+  scale is (max_width, height, 1) in world units; after glTF import Godot sees scale (max_width, 1, height) and the
+  text normal on local +Y, so a Label3D child needs RotationDegrees (-90, 0, 0) and the node scale reset to 1.
+  Parts: "Dish" on every mark (the game spins it); Mk III also "Drone". Material "Owner" as before.
+  Sim: SurfaceUnit.Name (string, e.g. "KALTY") and SurfaceUnit.Number (string, e.g. "44"), set when the unit is
+  created (landing, delivery, Vehicle Bay), deterministic, never repeated for that player; part of the state hash.
+  Pool: surfaces.json "unit_names": { "pool": [...], "numbers": [10, 99] }.
 """
 
 TIERS = {
