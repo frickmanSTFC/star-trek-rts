@@ -27,9 +27,70 @@ public sealed record PlanetSurfaceDef(
     string PolarTerrain,
     int RegionColumns,
     int RegionRows,
-    IReadOnlyList<DepositRule> Deposits);
+    IReadOnlyList<DepositRule> Deposits,
+    LifeRules? Life);
+
+/// <summary>Patches of something (wildlife herds, toxic zones): how many, how big, on which terrain.</summary>
+public sealed record PatchRule(int Count, int RadiusMin, int RadiusMax, IReadOnlyList<string> Terrain);
+
+/// <summary>
+/// Life on a planet, for the orbital scans and landing safety: a chance of one native settlement (no landing or
+/// building within NativeRadius), wildlife herds (a PredatorShare of them dangerous), toxic zones, and biomass per terrain.
+/// </summary>
+public sealed record LifeRules(Fix64 NativesChance, int NativeRadius, PatchRule Wildlife, Fix64 PredatorShare, PatchRule Toxic,
+    IReadOnlyList<(string Terrain, Fix64 Biomass)> Biomass);
 
 public sealed record HintRules(int Likely, int Rich);
+
+/// <summary>The player's ship in orbit: its name and its ships.json class (faction.Name key).</summary>
+public sealed record OrbitShip(string Name, string ClassName);
+
+/// <summary>One transporter level: what it can beam (unit ids or "supplies"), how far from your bases or people (0 = anywhere), how much cargo, and the wait between beams.</summary>
+public sealed record TransporterLevel(int Level, string Name, IReadOnlyList<string> Payloads, int Range, Fix64 Cargo, int CooldownSeconds);
+
+/// <summary>
+/// Orbit (surfaces.json orbit): the match era, each faction's ship, the ship's cargo hold, and the ways down:
+/// outpost drops, the shuttle, survey satellites and transporters (level from the era, or a faction override).
+/// </summary>
+public sealed record OrbitRules(
+    string Era,
+    IReadOnlyList<(string Faction, OrbitShip Ship)> Ships,
+    IReadOnlyList<ResourceAmount> Hold,
+    string OutpostBuilding,
+    IReadOnlyList<ResourceAmount> OutpostCost,
+    int OutpostDescentSeconds,
+    int OutpostMinDistance,
+    int ShuttleSeconds,
+    IReadOnlyList<string> ShuttlePayloads,
+    IReadOnlyList<ResourceAmount> SatelliteCost,
+    int SatelliteMax,
+    int SatelliteBandRows,
+    int SatelliteSweepSeconds,
+    IReadOnlyList<TransporterLevel> TransporterLevels,
+    IReadOnlyList<(string Era, int Level)> TransporterByEra,
+    IReadOnlyList<(string Faction, int Level)> TransporterFactions)
+{
+    public const string Supplies = "supplies";
+
+    /// <summary>Transporter level for a faction in this era (0 = none): the faction's override, else the era's.</summary>
+    public int TransporterLevelFor(string faction, string era)
+    {
+        foreach (var (f, level) in TransporterFactions)
+            if (f == faction) return level;
+        foreach (var (e, level) in TransporterByEra)
+            if (e == era) return level;
+        return 0;
+    }
+
+    public TransporterLevel? Transporter(int level) => level >= 1 && level <= TransporterLevels.Count ? TransporterLevels[level - 1] : null;
+
+    public OrbitShip? ShipFor(string faction)
+    {
+        foreach (var (f, ship) in Ships)
+            if (f == faction) return ship;
+        return null;
+    }
+}
 
 public sealed record LandingRules(
     IReadOnlyList<string> Terrain,

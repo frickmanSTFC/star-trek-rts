@@ -49,6 +49,9 @@ public sealed class GameData
     /// <summary>Building wear and maintenance rules, or null when buildings never wear.</summary>
     public MaintenanceRules? Maintenance { get; }
 
+    /// <summary>The ship in orbit and the ways down to the surface, or null.</summary>
+    public OrbitRules? Orbit { get; }
+
     /// <summary>Surface techs (research), in file order.</summary>
     public IReadOnlyList<TechDef> Techs { get; }
 
@@ -92,11 +95,12 @@ public sealed class GameData
         List<PlanetClassDef> planetClasses, List<BuildingDef> buildings, List<MapDef> maps,
         List<TerrainDef> terrain, List<PlanetSurfaceDef> surfaces, List<SurfaceUnitDef> surfaceUnits,
         HintRules hints, LandingRules landing, List<string> buildMenu, string powerResource, List<string> hudResources,
-        List<string> storageExempt, Fix64 salvageRefund, MaintenanceRules? maintenance, List<TechDef> techs,
+        List<string> storageExempt, Fix64 salvageRefund, MaintenanceRules? maintenance, List<TechDef> techs, OrbitRules? orbit,
         Dictionary<string, string> groundVehicles, List<string> loadProblems)
     {
         Maintenance = maintenance;
         Techs = techs;
+        Orbit = orbit;
         SalvageRefund = salvageRefund;
         var exempt = new List<ResourceDef>();
         foreach (var id in storageExempt)
@@ -328,7 +332,8 @@ public sealed class GameData
                             d.GetProperty("terrain").EnumerateArray().Select(t => t.GetString()!).ToList(),
                             d.TryGetProperty("coastal", out var coastal) && coastal.GetBoolean(),
                             Num(d.GetProperty("chance")), amount[0].GetInt32(), amount[1].GetInt32());
-                    }).ToList());
+                    }).ToList(),
+                    p.TryGetProperty("life", out var life) ? ReadLife(life) : null);
             })
             .ToList();
 
@@ -369,8 +374,9 @@ public sealed class GameData
             .ToList();
 
         var groundVehicles = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var v in vehiclesRoot.GetProperty("ground_vehicles").EnumerateArray())
-            groundVehicles.TryAdd(Str(v, "id"), Str(v, "name"));
+        foreach (var list in new[] { "ground_vehicles", "ground_forces" }) // surface units are vehicles or teams
+            foreach (var v in vehiclesRoot.GetProperty(list).EnumerateArray())
+                groundVehicles.TryAdd(Str(v, "id"), Str(v, "name"));
 
         return new GameData(factions, hulls, classes, resources, planetClasses, buildings, maps,
             terrain, surfaces, surfaceUnits, hints, landing,
@@ -392,7 +398,42 @@ public sealed class GameData
                     t.TryGetProperty("effect", out var te) ? te.GetString() ?? "" : "", Modifiers(t, $"Tech {Str(t, "id")}"),
                     t.TryGetProperty("description", out var td) ? td.GetString() ?? "" : "")).ToList()
                 : new List<TechDef>(),
+            surfacesRoot.TryGetProperty("orbit", out var ob) ? ReadOrbit(ob, Amounts) : null,
             groundVehicles, problems);
+    }
+
+    private static OrbitRules ReadOrbit(JsonElement o, Func<JsonElement, string, string, List<ResourceAmount>> amounts)
+    {
+        List<string> Ids(JsonElement e, string p) => e.GetProperty(p).EnumerateArray().Select(x => x.GetString()!).ToList();
+        var drop = o.GetProperty("outpost_drop");
+        var shuttle = o.GetProperty("shuttle");
+        var sat = o.GetProperty("satellite");
+        var tr = o.GetProperty("transporter");
+        return new OrbitRules(
+            Str(o, "era"),
+            o.GetProperty("ships").EnumerateObject().Select(p => (p.Name, new OrbitShip(Str(p.Value, "name"), Str(p.Value, "class")))).ToList(),
+            amounts(o, "hold", "Orbit hold"),
+            Str(drop, "building"), amounts(drop, "cost", "Outpost drop"), drop.GetProperty("descent_seconds").GetInt32(), drop.GetProperty("min_distance").GetInt32(),
+            shuttle.GetProperty("flight_seconds").GetInt32(), Ids(shuttle, "payloads"),
+            amounts(sat, "cost", "Satellite"), sat.GetProperty("max").GetInt32(), sat.GetProperty("band_rows").GetInt32(), sat.GetProperty("sweep_seconds").GetInt32(),
+            tr.GetProperty("levels").EnumerateArray().Select((l, i) => new TransporterLevel(i + 1, Str(l, "name"), Ids(l, "payloads"),
+                l.GetProperty("range").GetInt32(), Num(l.GetProperty("cargo")), l.GetProperty("cooldown_seconds").GetInt32())).ToList(),
+            tr.GetProperty("by_era").EnumerateObject().Select(p => (p.Name, p.Value.GetInt32())).ToList(),
+            tr.TryGetProperty("factions", out var tf) ? tf.EnumerateObject().Select(p => (p.Name, p.Value.GetInt32())).ToList() : new List<(string, int)>());
+    }
+
+    private static LifeRules ReadLife(JsonElement l)
+    {
+        PatchRule Patch(JsonElement e, string count)
+        {
+            var r = e.GetProperty("radius");
+            return new PatchRule(e.GetProperty(count).GetInt32(), r[0].GetInt32(), r[1].GetInt32(),
+                e.GetProperty("terrain").EnumerateArray().Select(t => t.GetString()!).ToList());
+        }
+        var wildlife = l.GetProperty("wildlife");
+        return new LifeRules(Num(l.GetProperty("natives_chance")), l.GetProperty("native_radius").GetInt32(),
+            Patch(wildlife, "herds"), Num(wildlife.GetProperty("predator_share")), Patch(l.GetProperty("toxic"), "patches"),
+            l.GetProperty("biomass").EnumerateObject().Select(p => (p.Name, Num(p.Value))).ToList());
     }
 
     private static string Str(JsonElement e, string property) => e.GetProperty(property).GetString()!;
@@ -448,6 +489,13 @@ public sealed class GameData
                 foreach (var t in d.Terrain) CheckTerrain(t, $"{where} deposit {d.ResourceId}");
                 if (d.Min < 1 || d.Max < d.Min) problems.Add($"{where} deposit {d.ResourceId}: amount range is invalid.");
                 if (d.Chance <= Fix64.Zero || d.Chance > Fix64.One) problems.Add($"{where} deposit {d.ResourceId}: chance must be in (0, 1].");
+            }
+            if (s.Life is { } life)
+            {
+                foreach (var t in life.Wildlife.Terrain.Concat(life.Toxic.Terrain).Concat(life.Biomass.Select(b => b.Terrain))) CheckTerrain(t, $"{where} life");
+                if (life.NativesChance < Fix64.Zero || life.NativesChance > Fix64.One) problems.Add($"{where} life: natives_chance must be in [0, 1].");
+                foreach (var pr in new[] { life.Wildlife, life.Toxic })
+                    if (pr.Count < 0 || pr.RadiusMin < 0 || pr.RadiusMax < pr.RadiusMin) problems.Add($"{where} life: patch counts and radius ranges are invalid.");
             }
         }
 
@@ -539,6 +587,21 @@ public sealed class GameData
             problems.Add("Research: there are techs but no Research Lab in the build menu.");
         if (Maintenance is { } mr && (mr.RepairPerSecond <= Fix64.Zero || mr.DeclineBelow <= Fix64.Zero || mr.SlowestOutput <= Fix64.Zero || mr.SlowestOutput > Fix64.One))
             problems.Add("Maintenance: needs positive repair_per_second and decline_below, and slowest_output in (0, 1].");
+        if (Orbit is { } orbit)
+        {
+            foreach (var (faction, ship) in orbit.Ships)
+            {
+                if (!_factions.ContainsKey(faction)) problems.Add($"Orbit ship: unknown faction '{faction}'.");
+                if (!HasShipClass($"{faction}.{ship.ClassName}")) problems.Add($"Orbit ship for {faction}: no ships.json class '{ship.ClassName}'.");
+            }
+            if (!_buildings.TryGetValue(orbit.OutpostBuilding, out var drop) || !drop.IsCore) problems.Add($"Orbit outpost_drop: '{orbit.OutpostBuilding}' must be a colony core.");
+            foreach (var u in orbit.ShuttlePayloads.Concat(orbit.TransporterLevels.SelectMany(l => l.Payloads)).Where(p => p != OrbitRules.Supplies))
+                if (!_surfaceUnits.TryGetValue(u, out var ud)) problems.Add($"Orbit: payload '{u}' has no surface stats.");
+                else if (ud.Cost.Count == 0) problems.Add($"Orbit: payload '{u}' needs a cost.");
+            foreach (var (_, level) in orbit.TransporterByEra.Concat(orbit.TransporterFactions))
+                if (level < 0 || level > orbit.TransporterLevels.Count) problems.Add($"Orbit transporter: level {level} doesn't exist.");
+            if (orbit.SatelliteMax < 1 || orbit.SatelliteBandRows < 1 || orbit.SatelliteSweepSeconds < 1) problems.Add("Orbit satellite: needs max, band_rows and sweep_seconds of at least 1.");
+        }
         if (SalvageRefund < Fix64.Zero || SalvageRefund > Fix64.One) problems.Add("salvage_refund must be between 0 and 1.");
         if (!seen.Any(c => _buildings[c].Storage > Fix64.Zero)) problems.Add($"Landing: hub '{Landing.HubBuilding}' has no storage, so nothing could be stockpiled.");
 

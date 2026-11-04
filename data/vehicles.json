@@ -85,6 +85,7 @@
       "abilities": ["salvage_wreck", "recover_tech_fragment"] }
   ],
   "ground_forces": [
+    { "id": "survey_team", "name": "Survey Team", "faction": "any", "source": "original", "strength": 1, "traits": ["surface_survey", "beam_down"] },
     { "id": "security_team", "name": "Starfleet Security Team", "faction": "federation", "source": "canon", "strength": 3, "traits": ["disciplined"] },
     { "id": "maco", "name": "MACO Squad", "faction": "earth_uec", "era": "ent", "source": "canon", "strength": 4, "traits": ["elite", "heavy_weapons"] },
     { "id": "hazard_team", "name": "Hazard Team", "faction": "federation_lost_ship", "era": "voy", "source": "beta", "strength": 4, "traits": ["hazardous_environment_bonus"] },

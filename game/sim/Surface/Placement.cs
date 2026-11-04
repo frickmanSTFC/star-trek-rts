@@ -22,4 +22,7 @@ public enum PlacementProblem
 
     /// <summary>Its tech hasn't been researched yet.</summary>
     NeedsTech,
+
+    /// <summary>Inside the native settlement's land (Prime Directive).</summary>
+    NativeLand,
 }

@@ -39,6 +39,18 @@ public sealed record BuildUnitCommand(int Player, int StructureId, string UnitId
 /// <summary>Cancel the last order in a Vehicle Bay's queue (the one in progress if it's the only one); full refund.</summary>
 public sealed record CancelUnitCommand(int Player, int StructureId) : Command(Player);
 
+/// <summary>Drop another Colony Hub from orbit to found a new outpost (after the first landing).</summary>
+public sealed record OutpostDropCommand(int Player, int Tile) : Command(Player);
+
+/// <summary>Fly the ship's shuttle down to a tile with a new unit (paid now).</summary>
+public sealed record ShuttleCommand(int Player, int Tile, string UnitId) : Command(Player);
+
+/// <summary>Beam a team (a unit id) or "supplies" from the hold down to a tile.</summary>
+public sealed record BeamCommand(int Player, int Tile, string Payload) : Command(Player);
+
+/// <summary>Put a survey satellite into orbit over the band of rows centred on Row.</summary>
+public sealed record SatelliteCommand(int Player, int Row) : Command(Player);
+
 /// <summary>Pick the surface tech the Research Labs work on (progress on others is kept).</summary>
 public sealed record ResearchCommand(int Player, string TechId) : Command(Player);
 

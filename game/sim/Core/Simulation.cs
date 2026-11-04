@@ -86,7 +86,7 @@ public sealed class Simulation
         var startStock = Map?.StartStock ?? (Surface != null ? Data.Landing.StartStock : Array.Empty<ResourceAmount>());
         var player = new Player(_players.Count, factionId, new ResourceBag(Data.Resources.Count, startStock));
         _players.Add(player);
-        Surface?.AddPlayer();
+        Surface?.AddPlayer(factionId);
         return player;
     }
 
@@ -213,6 +213,10 @@ public sealed class Simulation
             case CancelUnitCommand:
             case ResearchCommand:
             case MaintainCommand:
+            case OutpostDropCommand:
+            case ShuttleCommand:
+            case BeamCommand:
+            case SatelliteCommand:
                 break; // surface commands with no surface loaded: ignore
             default:
                 throw new NotSupportedException($"Unhandled command {command.GetType().Name}.");

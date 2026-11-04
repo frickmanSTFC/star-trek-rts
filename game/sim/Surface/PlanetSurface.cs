@@ -30,11 +30,21 @@ public sealed class PlanetSurface
     /// <summary>Cargo pods in flight, oldest first.</summary>
     public IReadOnlyList<CargoPod> Pods => _pods;
 
+    /// <summary>Drops, shuttles and beams on their way down, oldest first.</summary>
+    public IReadOnlyList<Delivery> Deliveries => _deliveries;
+
+    /// <summary>Survey satellites in orbit, oldest first.</summary>
+    public IReadOnlyList<Satellite> Satellites => _satellites;
+
     private readonly GameData _data;
     private readonly List<SurfacePlayer> _players = new();
     private readonly List<SurfaceUnit> _units = new();
     private readonly List<SurfaceStructure> _structures = new();
     private readonly List<CargoPod> _pods = new();
+    private readonly List<Delivery> _deliveries = new();
+    private readonly List<Satellite> _satellites = new();
+    private int _nextDeliveryId = 1;
+    private int _nextSatelliteId = 1;
     private readonly int[] _structureAt; // structure id per tile, 0 = none
     private int _nextUnitId = 1;
     private int _nextStructureId = 1;
@@ -47,7 +57,16 @@ public sealed class PlanetSurface
         _structureAt = new int[map.Grid.Count];
     }
 
-    internal void AddPlayer() => _players.Add(new SurfacePlayer(Map.Grid.Count, _data.Techs.Count));
+    internal void AddPlayer(string factionId)
+    {
+        var p = new SurfacePlayer(Map.Grid.Count, _data.Techs.Count, _data.Resources.Count);
+        if (_data.Orbit is { } orbit)
+        {
+            foreach (var a in orbit.Hold) p.Hold[a.Resource] += a.Amount;
+            p.TransporterLevel = orbit.TransporterLevelFor(factionId, orbit.Era);
+        }
+        _players.Add(p);
+    }
 
     // ---------------------------------------------------------------- queries
 
@@ -334,6 +353,191 @@ public sealed class PlanetSurface
         unit.Integrity = Hundred;
         unit.Broken = false;
         unit.RepairTicks = 0;
+    }
+
+    // ---------------------------------------------------------------- orbit: drops, shuttle, transporter, satellites
+
+    /// <summary>Ground a unit can be set down on from orbit: passable, no building, not toxic, no predators, not the natives' land.</summary>
+    private bool SafeGround(int tile) =>
+        Map.Terrain(tile).Passable && _structureAt[tile] == 0 && !Map.Toxic[tile] && Map.WildlifeAt[tile] != Wildlife.Predators && !Map.NearNatives(tile);
+
+    private bool OnMap(int tile) => tile >= 0 && tile < Map.Grid.Count;
+
+    /// <summary>Why the player can't drop a new outpost here (null = they can).</summary>
+    public string? OutpostProblem(Simulation sim, int player, int tile)
+    {
+        var orbit = _data.Orbit;
+        if (orbit == null) return "no ship in orbit";
+        if (_players[player].Phase != LandingPhase.Landed) return "land the colony first";
+        if (!OnMap(tile)) return "off the map";
+        foreach (var d in _deliveries)
+            if (d.Owner == player && d.Kind == DeliveryKind.Outpost) return "an outpost is already on its way down";
+        if (Map.Safety(tile) == LandingSafety.Unsafe) return Map.NearNatives(tile) ? "that's the natives' land" : "not a safe landing site";
+        foreach (var t in Map.Grid.Within(tile, 1))
+            if (_structureAt[t] != 0) return "too close to a building";
+        foreach (var core in Bases(player))
+            if (Map.Grid.Distance(core.Tile, tile) < orbit.OutpostMinDistance) return $"too close to a base (at least {orbit.OutpostMinDistance} tiles)";
+        if (!sim.Players[player].Stock.CanAfford(orbit.OutpostCost)) return "not enough resources";
+        return null;
+    }
+
+    /// <summary>Why the shuttle can't take this unit down to this tile (null = it can).</summary>
+    public string? ShuttleProblem(Simulation sim, int player, int tile, string unitId)
+    {
+        var orbit = _data.Orbit;
+        if (orbit == null) return "no ship in orbit";
+        if (!orbit.ShuttlePayloads.Contains(unitId)) return "the shuttle can't carry that";
+        if (_players[player].Phase != LandingPhase.Landed) return "land the colony first";
+        if (_players[player].ShuttleBackTick > sim.Tick) return "the shuttle is still away";
+        if (!OnMap(tile)) return "off the map";
+        if (!SafeGround(tile)) return Map.NearNatives(tile) ? "that's the natives' land" : "nowhere safe to land there";
+        if (!sim.Players[player].Stock.CanAfford(_data.SurfaceUnit(unitId).Cost)) return "not enough resources";
+        return null;
+    }
+
+    /// <summary>Tiles from the player's nearest finished core or unit (the transporter needs a lock on your people).</summary>
+    private int DistanceToOwn(int player, int tile)
+    {
+        var best = int.MaxValue;
+        foreach (var s in _structures)
+            if (s.Owner == player && s.State == StructureState.Complete) best = System.Math.Min(best, Map.Grid.Distance(s.Tile, tile));
+        foreach (var u in _units)
+            if (u.Owner == player) best = System.Math.Min(best, Map.Grid.Distance(u.Tile, tile));
+        return best;
+    }
+
+    /// <summary>Why the transporter can't beam this payload to this tile (null = it can).</summary>
+    public string? BeamProblem(Simulation sim, int player, int tile, string payload)
+    {
+        var p = _players[player];
+        var level = _data.Orbit?.Transporter(p.TransporterLevel);
+        if (level == null) return "no transporters in this era";
+        if (!level.Payloads.Contains(payload)) return $"the {level.Name.ToLowerInvariant()} can't beam that";
+        if (p.Phase != LandingPhase.Landed) return "land the colony first";
+        if (p.TransporterReadyTick > sim.Tick) return "the transporter is cycling";
+        if (!OnMap(tile)) return "off the map";
+        if (Map.NearNatives(tile)) return "that's the natives' land";
+        if (level.Range > 0 && DistanceToOwn(player, tile) > level.Range) return $"out of range ({level.Range} tiles from your bases or people)";
+        if (payload == OrbitRules.Supplies)
+        {
+            if (BaseFor(player, tile) == 0) return "beam supplies into one of your bases";
+            if (p.Hold.All(x => x <= Fix64.Zero)) return "the hold is empty";
+            if (FreeStorage(sim, player) <= Fix64.Zero) return "storage is full";
+            return null;
+        }
+        if (!Map.Terrain(tile).Passable || _structureAt[tile] != 0) return "no room to beam down there";
+        if (!sim.Players[player].Stock.CanAfford(_data.SurfaceUnit(payload).Cost)) return "not enough crew";
+        return null;
+    }
+
+    /// <summary>Why another survey satellite can't go up over this row (null = it can). Allowed before landing too.</summary>
+    public string? SatelliteProblem(Simulation sim, int player, int row)
+    {
+        var orbit = _data.Orbit;
+        if (orbit == null) return "no ship in orbit";
+        if (row < 0 || row >= Map.Grid.Height) return "off the map";
+        if (_satellites.Count(x => x.Owner == player) >= orbit.SatelliteMax) return $"all {orbit.SatelliteMax} satellites are up";
+        if (!sim.Players[player].Stock.CanAfford(orbit.SatelliteCost)) return "not enough resources";
+        return null;
+    }
+
+    /// <summary>What a supplies beam would bring down right now: the hold in order, up to the cargo limit and free storage.</summary>
+    public IReadOnlyList<ResourceAmount> SuppliesLoad(Simulation sim, int player)
+    {
+        var p = _players[player];
+        var level = _data.Orbit?.Transporter(p.TransporterLevel);
+        var list = new List<ResourceAmount>();
+        if (level == null) return list;
+        var room = Fix64.Min(level.Cargo, FreeStorage(sim, player));
+        for (var r = 0; r < p.Hold.Length && room > Fix64.Zero; r++)
+        {
+            var take = Fix64.Min(p.Hold[r], room);
+            if (take <= Fix64.Zero) continue;
+            list.Add(new ResourceAmount(r, take));
+            room -= take;
+        }
+        return list;
+    }
+
+    private void Deliver(int owner, DeliveryKind kind, int tile, string payload, IReadOnlyList<ResourceAmount> cargo, long now, long arrive) =>
+        _deliveries.Add(new Delivery(_nextDeliveryId++, owner, kind, tile, payload, cargo, now, arrive));
+
+    /// <summary>Puts a new unit on the tile, or the nearest free passable neighbour if a building is there.</summary>
+    private SurfaceUnit SpawnUnit(int owner, string unitId, int tile)
+    {
+        if (_structureAt[tile] != 0 || !Map.Terrain(tile).Passable)
+            foreach (var n in Map.Grid.Neighbours(tile))
+                if (Map.Terrain(n).Passable && _structureAt[n] == 0)
+                {
+                    tile = n;
+                    break;
+                }
+        var def = _data.SurfaceUnit(unitId);
+        var unit = new SurfaceUnit(_nextUnitId++, owner, def.Id, def.Speed * Simulation.SecondsPerTick, def.SurveyRadius, tile);
+        _units.Add(unit);
+        Reveal(owner, tile, def.SurveyRadius);
+        return unit;
+    }
+
+    /// <summary>Deliveries that have arrived: outposts found a base (or refund if the site was taken), units step out, supplies go to storage.</summary>
+    private void LandDeliveries(Simulation sim)
+    {
+        for (var i = 0; i < _deliveries.Count;)
+        {
+            var d = _deliveries[i];
+            if (d.ArriveTick > sim.Tick)
+            {
+                i++;
+                continue;
+            }
+            _deliveries.RemoveAt(i);
+            switch (d.Kind)
+            {
+                case DeliveryKind.Outpost:
+                    var clear = true;
+                    foreach (var t in Map.Grid.Within(d.Tile, 1))
+                        if (_structureAt[t] != 0) clear = false;
+                    if (clear)
+                    {
+                        PlaceStructure(d.Owner, d.Payload, d.Tile, 0, StructureState.Complete, 0);
+                        Reveal(d.Owner, d.Tile, _data.Landing.RevealRadius);
+                    }
+                    else
+                        foreach (var c in _data.Orbit!.OutpostCost) sim.Players[d.Owner].Stock.Add(c.Resource, c.Amount);
+                    break;
+                case DeliveryKind.Shuttle:
+                    SpawnUnit(d.Owner, d.Payload, d.Tile);
+                    break;
+                case DeliveryKind.Beam when d.Payload == OrbitRules.Supplies:
+                    var hold = _players[d.Owner].Hold;
+                    foreach (var c in d.Cargo)
+                        hold[c.Resource] += c.Amount - Store(sim, d.Owner, c.Resource, c.Amount); // what doesn't fit goes back up
+                    break;
+                case DeliveryKind.Beam:
+                    SpawnUnit(d.Owner, d.Payload, d.Tile);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>Each satellite sweeps east across its band, surveying the columns it passes.</summary>
+    private void SweepSatellites(Simulation sim)
+    {
+        var orbit = _data.Orbit;
+        if (orbit == null) return;
+        var g = Map.Grid;
+        var half = orbit.SatelliteBandRows / 2;
+        foreach (var sat in _satellites)
+        {
+            var target = (int)((sim.Tick - sat.LaunchTick) * g.Width / (orbit.SatelliteSweepSeconds * Simulation.TickRate));
+            for (; sat.Swept < target; sat.Swept++)
+            {
+                var col = sat.Swept % g.Width;
+                var surveyed = _players[sat.Owner].Surveyed;
+                for (var r = System.Math.Max(0, sat.Row - half); r <= System.Math.Min(g.Height - 1, sat.Row + half); r++)
+                    surveyed[g.Index(col, r)] = true;
+            }
+        }
     }
 
     // ---------------------------------------------------------------- stats: levels, research, condition
@@ -651,7 +855,7 @@ public sealed class PlanetSurface
     {
         if (player < 0 || player >= _players.Count) return false;
         if (_players[player].Phase != LandingPhase.InOrbit) return false;
-        if (tile < 0 || tile >= Map.Grid.Count || !Map.IsLandingSite(tile)) return false;
+        if (tile < 0 || tile >= Map.Grid.Count || Map.Safety(tile) == LandingSafety.Unsafe) return false;
         foreach (var t in Map.Grid.Within(tile, 1))
             if (_structureAt[t] != 0) return false;
         return true;
@@ -668,6 +872,7 @@ public sealed class PlanetSurface
         if (player < 0 || player >= _players.Count || _players[player].Phase != LandingPhase.Landed) return PlacementProblem.NotLanded;
         if (!_players[player].Surveyed[tile]) return PlacementProblem.NotSurveyed;
         if (!Map.Terrain(tile).Buildable) return PlacementProblem.TerrainUnbuildable;
+        if (Map.NearNatives(tile)) return PlacementProblem.NativeLand;
         if (_structureAt[tile] != 0) return PlacementProblem.Occupied;
         foreach (var u in _units)
             if (u.Tile == tile && u.Mode != UnitMode.Mobile) return PlacementProblem.Occupied;
@@ -855,6 +1060,49 @@ public sealed class PlanetSurface
                 return true;
             }
 
+            case OutpostDropCommand drop:
+            {
+                if (OutpostProblem(sim, drop.Player, drop.Tile) != null) return true;
+                var orbit = _data.Orbit!;
+                sim.Players[drop.Player].Stock.TrySpend(orbit.OutpostCost);
+                Deliver(drop.Player, DeliveryKind.Outpost, drop.Tile, orbit.OutpostBuilding, System.Array.Empty<ResourceAmount>(), sim.Tick,
+                    sim.Tick + (long)orbit.OutpostDescentSeconds * Simulation.TickRate);
+                return true;
+            }
+
+            case ShuttleCommand shuttle:
+            {
+                if (ShuttleProblem(sim, shuttle.Player, shuttle.Tile, shuttle.UnitId) != null) return true;
+                var flight = (long)_data.Orbit!.ShuttleSeconds * Simulation.TickRate;
+                sim.Players[shuttle.Player].Stock.TrySpend(_data.SurfaceUnit(shuttle.UnitId).Cost);
+                Deliver(shuttle.Player, DeliveryKind.Shuttle, shuttle.Tile, shuttle.UnitId, System.Array.Empty<ResourceAmount>(), sim.Tick, sim.Tick + flight);
+                _players[shuttle.Player].ShuttleBackTick = sim.Tick + flight * 2; // down, then back up to the ship
+                return true;
+            }
+
+            case BeamCommand beam:
+            {
+                if (BeamProblem(sim, beam.Player, beam.Tile, beam.Payload) != null) return true;
+                var beamer = _players[beam.Player];
+                var beamLevel = _data.Orbit!.Transporter(beamer.TransporterLevel)!;
+                IReadOnlyList<ResourceAmount> cargo = System.Array.Empty<ResourceAmount>();
+                if (beam.Payload == OrbitRules.Supplies)
+                {
+                    cargo = SuppliesLoad(sim, beam.Player);
+                    foreach (var c in cargo) beamer.Hold[c.Resource] -= c.Amount;
+                }
+                else sim.Players[beam.Player].Stock.TrySpend(_data.SurfaceUnit(beam.Payload).Cost);
+                Deliver(beam.Player, DeliveryKind.Beam, beam.Tile, beam.Payload, cargo, sim.Tick, sim.Tick + 2L * Simulation.TickRate); // two seconds of shimmer
+                beamer.TransporterReadyTick = sim.Tick + (long)beamLevel.CooldownSeconds * Simulation.TickRate;
+                return true;
+            }
+
+            case SatelliteCommand satellite:
+                if (SatelliteProblem(sim, satellite.Player, satellite.Row) != null) return true;
+                sim.Players[satellite.Player].Stock.TrySpend(_data.Orbit!.SatelliteCost);
+                _satellites.Add(new Satellite(_nextSatelliteId++, satellite.Player, satellite.Row, sim.Tick));
+                return true;
+
             case ResearchCommand research:
                 if (ResearchProblem(research.Player, research.TechId) != null) return true;
                 _players[research.Player].ActiveTech = _data.Tech(research.TechId).Index;
@@ -1041,6 +1289,8 @@ public sealed class PlanetSurface
         Construction();
         Upgrades();
         LandPods(sim);
+        LandDeliveries(sim);
+        SweepSatellites(sim);
         Economy(sim);
         Maintenance(sim);
         Crawlers(sim);
@@ -1371,11 +1621,7 @@ public sealed class PlanetSurface
         foreach (var n in Map.Grid.Neighbours(p.LandingTile))
             if (Map.Terrain(n).Passable && _structureAt[n] == 0) spots.Add(n);
         for (var i = 0; i < _data.Landing.Units.Count && spots.Count > 0; i++)
-        {
-            var def = _data.SurfaceUnit(_data.Landing.Units[i]);
-            var tile = spots[i % spots.Count];
-            _units.Add(new SurfaceUnit(_nextUnitId++, player, def.Id, def.Speed * Simulation.SecondsPerTick, def.SurveyRadius, tile));
-        }
+            SpawnUnit(player, _data.Landing.Units[i], spots[i % spots.Count]);
     }
 
     /// <summary>baseId 0 = this structure is a new base of its own.</summary>
@@ -1403,5 +1649,9 @@ public sealed class PlanetSurface
         foreach (var s in _structures) s.AddToHash(ref h);
         h.Add(_pods.Count);
         foreach (var p in _pods) p.AddToHash(ref h);
+        h.Add(_deliveries.Count);
+        foreach (var d in _deliveries) d.AddToHash(ref h);
+        h.Add(_satellites.Count);
+        foreach (var s in _satellites) s.AddToHash(ref h);
     }
 }

@@ -128,6 +128,90 @@ public sealed class SurfaceUnit
     }
 }
 
+/// <summary>How something reaches the surface from the ship.</summary>
+public enum DeliveryKind
+{
+    /// <summary>A Colony Hub dropped as a new outpost.</summary>
+    Outpost,
+
+    /// <summary>The ship's shuttle bringing a unit down.</summary>
+    Shuttle,
+
+    /// <summary>A transporter beam: a team or supplies.</summary>
+    Beam,
+}
+
+/// <summary>Something on its way down from orbit; it arrives at ArriveTick. Payload: a building or unit id, or "supplies" (then Cargo).</summary>
+public sealed class Delivery
+{
+    public int Id { get; }
+    public int Owner { get; }
+    public DeliveryKind Kind { get; }
+    public int Tile { get; }
+    public string Payload { get; }
+    public IReadOnlyList<Data.ResourceAmount> Cargo { get; }
+    public long LaunchTick { get; }
+    public long ArriveTick { get; }
+
+    internal Delivery(int id, int owner, DeliveryKind kind, int tile, string payload, IReadOnlyList<Data.ResourceAmount> cargo, long launchTick, long arriveTick)
+    {
+        Id = id;
+        Owner = owner;
+        Kind = kind;
+        Tile = tile;
+        Payload = payload;
+        Cargo = cargo;
+        LaunchTick = launchTick;
+        ArriveTick = arriveTick;
+    }
+
+    internal void AddToHash(ref StateHasher h)
+    {
+        h.Add(Id);
+        h.Add(Owner);
+        h.Add((int)Kind);
+        h.Add(Tile);
+        h.Add(Payload);
+        h.Add(Cargo.Count);
+        foreach (var c in Cargo)
+        {
+            h.Add(c.Resource);
+            h.Add(c.Amount);
+        }
+        h.Add(LaunchTick);
+        h.Add(ArriveTick);
+    }
+}
+
+/// <summary>A survey satellite over a band of rows centred on Row; it sweeps east every sweep_seconds, surveying what it passes.</summary>
+public sealed class Satellite
+{
+    public int Id { get; }
+    public int Owner { get; }
+    public int Row { get; }
+    public long LaunchTick { get; }
+
+    /// <summary>Columns swept so far (keeps counting past the width as it goes round again).</summary>
+    public int Swept { get; internal set; }
+
+    internal Satellite(int id, int owner, int row, long launchTick)
+    {
+        Id = id;
+        Owner = owner;
+        Row = row;
+        LaunchTick = launchTick;
+    }
+
+    internal void AddToHash(ref StateHasher h)
+    {
+        h.Add(Id);
+        h.Add(Owner);
+        h.Add(Row);
+        h.Add(LaunchTick);
+        h.Add(Swept);
+    }
+}
+
 /// <summary>A load of ore flying from a crawler to a storage building; it lands in stock at ArriveTick.</summary>
 public sealed class CargoPod
 {
@@ -358,11 +442,24 @@ public sealed class SurfacePlayer
     /// <summary>The tech the labs are working on (TechDef.Index), or -1.</summary>
     public int ActiveTech { get; internal set; } = -1;
 
-    internal SurfacePlayer(int tileCount, int techCount)
+    /// <summary>The ship's cargo hold, by resource index (supplies beam down from here).</summary>
+    public Fix64[] Hold { get; }
+
+    /// <summary>Transporter level from the faction and era (0 = none).</summary>
+    public int TransporterLevel { get; internal set; }
+
+    /// <summary>The shuttle is away until this tick (down and back up).</summary>
+    public long ShuttleBackTick { get; internal set; }
+
+    /// <summary>The transporter can beam again from this tick.</summary>
+    public long TransporterReadyTick { get; internal set; }
+
+    internal SurfacePlayer(int tileCount, int techCount, int resourceCount)
     {
         Surveyed = new bool[tileCount];
         Known = new bool[techCount];
         ResearchProgress = new Fix64[techCount];
+        Hold = new Fix64[resourceCount];
     }
 
     internal void AddToHash(ref StateHasher h)
@@ -375,5 +472,9 @@ public sealed class SurfacePlayer
         foreach (var k in Known) h.Add(k);
         foreach (var r in ResearchProgress) h.Add(r);
         h.Add(ActiveTech);
+        foreach (var x in Hold) h.Add(x);
+        h.Add(TransporterLevel);
+        h.Add(ShuttleBackTick);
+        h.Add(TransporterReadyTick);
     }
 }
