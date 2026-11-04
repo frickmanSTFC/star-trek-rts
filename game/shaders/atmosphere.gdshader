@@ -21,7 +21,6 @@ uniform float sun_intensity = 4.5;
 
 const int VIEW_STEPS = 16;
 const int LIGHT_STEPS = 6;
-const float PI = 3.14159265;
 
 varying vec3 world_pos;
 
@@ -48,8 +47,8 @@ void fragment() {
 	if (air.y <= 0.0) discard;
 	float t0 = max(air.x, 0.0);
 	float t1 = air.y;
-	vec2 ground = sphere(o, d, planet_radius);
-	if (ground.x > 0.0) t1 = ground.x;
+	vec2 surface = sphere(o, d, planet_radius);
+	if (surface.x > 0.0) t1 = surface.x;
 
 	vec3 beta_r = rayleigh_depth / rayleigh_height;
 	float beta_m = mie_depth / mie_height;
@@ -82,9 +81,9 @@ void fragment() {
 	float phase_r = 3.0 / (16.0 * PI) * (1.0 + mu * mu);
 	float g2 = mie_g * mie_g;
 	float phase_m = 3.0 / (8.0 * PI) * ((1.0 - g2) * (1.0 + mu * mu)) / ((2.0 + g2) * pow(1.0 + g2 - 2.0 * mie_g * mu, 1.5));
-	vec3 light = sun_intensity * (sum_r * beta_r * phase_r + sum_m * beta_m * phase_m);
+	vec3 inscatter = sun_intensity * (sum_r * beta_r * phase_r + sum_m * beta_m * phase_m);
 	vec3 transmittance = exp(-(beta_r * od_r + 1.1 * beta_m * od_m));
 
-	ALBEDO = light;
+	ALBEDO = inscatter;
 	ALPHA = clamp(1.0 - dot(transmittance, vec3(1.0 / 3.0)), 0.0, 1.0);
 }
