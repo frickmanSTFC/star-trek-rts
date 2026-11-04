@@ -586,14 +586,18 @@ public static class BuildingModels
         foreach (var child in node.GetChildren()) Recolour(child, owner);
     }
 
-    public static Node3D Rover(Color owner)
+    /// <summary>A survey rover: the unit's own model (survey_rover = Mk I, survey_rover_mk2, survey_rover_mk3), falling
+    /// back to the Mk I file and then to primitives. Its blank decal markers (NameL/NameR/NameRear/NumberL/NumberR) are
+    /// left in place for <see cref="RoverLook.Paint"/>.</summary>
+    public static Node3D Rover(Color owner, string unitId = "survey_rover")
     {
-        if (Imported("survey_rover", owner, "Dish") is { } made)
+        if ((Imported(unitId, owner, "Dish", "Drone") ?? Imported("survey_rover", owner, "Dish")) is { } made)
         {
+            var mk3 = unitId.EndsWith("mk3");
             made.AddChild(new MeshInstance3D
             {
                 Name = "Selected",
-                Mesh = new TorusMesh { InnerRadius = 3.0f, OuterRadius = 3.3f, Rings = 32 },
+                Mesh = new TorusMesh { InnerRadius = mk3 ? 3.4f : 3.0f, OuterRadius = mk3 ? 3.7f : 3.3f, Rings = 32 },
                 Position = new Vector3(0, 0.15f, 0),
                 MaterialOverride = Glow(new Color(1f, 0.95f, 0.5f), 2f),
                 Visible = false,
