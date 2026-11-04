@@ -777,15 +777,17 @@ def rover_mk3(P):
             cylinder(f"PadLight{x}{y}", 0.025, 0.02, (x, y, 2.775), P["amber"], root, axis="Z", segments=8)
     drone(P, root, (0, -1.55, 2.77))
 
-    # Raised double-wishbone suspension with owner-colour coil-overs, and the big wheels.
+    # Raised double-wishbone suspension with dark coil-overs (an owner-colour coil read as a red bar floating in the
+    # well), each shock bolted to a mount plate under the arch roof (z ~1.65 at y - 0.12), and the big wheels.
     for y in axles:
         for s in (-1, 1):
             xo = W / 2 + 0.15
             strut(f"ArmLow{y}{s}", (s * (W / 2 - 0.42), y, 0.88), (s * (xo - 0.3), y, 0.62), 0.045, P["steel"], root)
             strut(f"ArmUp{y}{s}", (s * (W / 2 - 0.42), y, 1.1), (s * (xo - 0.3), y, 0.86), 0.035, P["steel"], root)
             box(f"Upright{y}{s}", (0.08, 0.14, 0.34), (s * (xo - 0.3), y, 0.74), P["dark"], root, 0.02)
-            strut(f"Shock{y}{s}", (s * (xo - 0.34), y - 0.12, 0.78), (s * (W / 2 - 0.36), y - 0.12, 1.62), 0.04, P["steel"], root)
-            strut(f"Coil{y}{s}", (s * (xo - 0.345), y - 0.12, 0.9), (s * (W / 2 - 0.37), y - 0.12, 1.4), 0.065, P["owner"], root)
+            strut(f"Shock{y}{s}", (s * (xo - 0.34), y - 0.12, 0.78), (s * (W / 2 - 0.36), y - 0.12, 1.66), 0.04, P["steel"], root)
+            strut(f"Coil{y}{s}", (s * (xo - 0.345), y - 0.12, 0.9), (s * (W / 2 - 0.37), y - 0.12, 1.4), 0.065, P["gunmetal"], root)
+            box(f"ShockMount{y}{s}", (0.3, 0.26, 0.1), (s * (W / 2 - 0.3), y - 0.12, 1.66), P["dark"], root, 0.02)
             explorer_wheel(f"Wheel{'F' if y > 1 else 'M' if y > -1 else 'R'}{'L' if s < 0 else 'R'}", s * xo, y, wheel_r, wheel_w, P, root)
     return root
 
