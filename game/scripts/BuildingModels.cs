@@ -659,6 +659,14 @@ public static class BuildingModels
         Add(body, new BoxMesh { Size = new Vector3(2.72f, 0.16f, 5.42f) }, new Vector3(0, 1.75f, 0), Glow(owner, 1.6f));
         // Cab at the front.
         Add(body, new BoxMesh { Size = new Vector3(2.2f, 1.2f, 1.5f) }, new Vector3(0, 2.5f, -1.8f), hull);
+        // Amber roof beacon and red tail lamps, named like the rover parts so RoverLook.Lamps drives them.
+        var amber = Glow(new Color(1f, 0.55f, 0.12f), 3f);
+        amber.ResourceName = "Amber";
+        Add(body, new CylinderMesh { TopRadius = 0.13f, BottomRadius = 0.13f, Height = 0.2f, RadialSegments = 12 }, new Vector3(0.7f, 3.2f, -1.8f), amber).Name = "Beacon";
+        var tail = Glow(new Color(0.95f, 0.08f, 0.05f), 2f);
+        tail.ResourceName = "TailLamp";
+        foreach (var x in new[] { -1.05f, 1.05f })
+            Add(body, new BoxMesh { Size = new Vector3(0.36f, 0.16f, 0.06f) }, new Vector3(x, 1.55f, 2.72f), tail);
         Add(body, new BoxMesh { Size = new Vector3(1.9f, 0.55f, 0.08f) }, new Vector3(0, 2.65f, -2.56f), Glow(Window, 1.5f));
         // Hopper at the back, with the ore load inside.
         Add(body, new BoxMesh { Size = new Vector3(2.4f, 0.15f, 2f) }, new Vector3(0, 2.05f, 1.6f), trim);

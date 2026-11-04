@@ -57,6 +57,130 @@ public static class RoverLook
     }
 
     /// <summary>
+    /// A vehicle's working lamps and wipers. The amber roof beacon ("Beacon" mesh) double-flashes while it drives and
+    /// lights the ground around it with a small amber light; the red tail lamps (material "TailLamp") glow steadily and
+    /// flash when the vehicle is broken down or badly damaged. Wipers (pivots "Wiper0", "Wiper1", … from the glb) sweep
+    /// on wet, muddy, snowy or dusty ground and while the vehicle is washed, then park at the bottom of the glass.
+    /// Each vehicle gets its own copies of the lamp materials, and its own phase so a convoy doesn't blink in step.
+    /// </summary>
+    public sealed class Lamps
+    {
+        private readonly BaseMaterial3D? _beacon;
+        private readonly OmniLight3D? _beaconLight;
+        private readonly BaseMaterial3D? _tail;
+        private readonly float _tailEnergy;
+        private readonly List<(Node3D Pivot, Basis Parked)> _wipers = new();
+        private float _time, _wipe;
+
+        /// <summary>Wiper sweep, degrees from the parked position up across the glass.</summary>
+        private const float WipeDegrees = 95f;
+
+        /// <summary>Seconds for one wiper stroke up and back.</summary>
+        private const float WipeSeconds = 1.3f;
+
+        private Lamps(Node3D model, int seed)
+        {
+            _time = seed * 0.37f;
+            if (model.FindChild("Beacon", true, false) is MeshInstance3D beacon)
+            {
+                _beacon = OwnCopy(beacon, "Amber") ?? OwnCopy(beacon, null);
+                _beaconLight = new OmniLight3D
+                {
+                    LightColor = new Color(1f, 0.55f, 0.15f),
+                    OmniRange = 7f,
+                    LightEnergy = 0f,
+                    ShadowEnabled = false,
+                    Position = new Vector3(0, 0.25f, 0),
+                };
+                beacon.AddChild(_beaconLight);
+            }
+            _tail = ShareTail(model);
+            _tailEnergy = _tail?.EmissionEnergyMultiplier ?? 1f;
+            for (var k = 0; model.FindChild($"Wiper{k}", true, false) is Node3D pivot; k++)
+                _wipers.Add((pivot, pivot.Basis));
+        }
+
+        public static Lamps Attach(Node3D model, int seed) => new(model, seed);
+
+        /// <summary>Advance one frame.</summary>
+        public void Update(bool moving, bool alarm, bool wipe, float delta)
+        {
+            _time += delta;
+
+            // Beacon: two quick flashes every 1.2 s while driving, dark when parked.
+            if (_beacon != null)
+            {
+                var t = _time % 1.2f;
+                var flash = moving && (t < 0.12f || (t > 0.24f && t < 0.36f)) ? 1f : 0f;
+                _beacon.EmissionEnergyMultiplier = moving ? 0.6f + flash * 7f : 0.25f;
+                if (_beaconLight != null) _beaconLight.LightEnergy = flash * 1.6f;
+            }
+
+            // Tail lamps: steady, or a hard red flash twice a second when something is wrong.
+            if (_tail != null)
+                _tail.EmissionEnergyMultiplier = alarm ? ((_time * 2f) % 1f < 0.5f ? _tailEnergy * 2.5f : 0.15f) : _tailEnergy;
+
+            // Wipers: keep sweeping while needed; when not, finish the stroke and park.
+            if (_wipers.Count == 0) return;
+            if (wipe || _wipe % 1f > 0.001f)
+            {
+                var before = _wipe;
+                _wipe += delta / WipeSeconds;
+                if (!wipe && Mathf.FloorToInt(_wipe) > Mathf.FloorToInt(before)) _wipe = Mathf.Floor(_wipe); // parked
+            }
+            var angle = Mathf.DegToRad(WipeDegrees) * (0.5f - 0.5f * Mathf.Cos(_wipe * Mathf.Tau));
+            for (var i = 0; i < _wipers.Count; i++)
+            {
+                var (pivot, parked) = _wipers[i];
+                // Blender local Z (the glass normal) is local +Y here; a negative turn lifts the blade up the glass.
+                pivot.Basis = parked * new Basis(Vector3.Up, -angle);
+            }
+        }
+
+        /// <summary>Give this mesh its own copy of the material named <paramref name="name"/> (any material when null)
+        /// and return it, or null if the mesh has no such material.</summary>
+        private static BaseMaterial3D? OwnCopy(MeshInstance3D mi, string? name)
+        {
+            if (mi.MaterialOverride is BaseMaterial3D over && (name == null || over.ResourceName == name))
+            {
+                var copy = (BaseMaterial3D)over.Duplicate();
+                mi.MaterialOverride = copy;
+                return copy;
+            }
+            if (mi.Mesh == null) return null;
+            for (var i = 0; i < mi.Mesh.GetSurfaceCount(); i++)
+                if (mi.GetActiveMaterial(i) is BaseMaterial3D m && (name == null || m.ResourceName == name))
+                {
+                    var copy = (BaseMaterial3D)m.Duplicate();
+                    mi.SetSurfaceOverrideMaterial(i, copy);
+                    return copy;
+                }
+            return null;
+        }
+
+        /// <summary>One shared copy of the tail-lamp material for every tail lamp on this model.</summary>
+        private static BaseMaterial3D? ShareTail(Node model)
+        {
+            BaseMaterial3D? copy = null;
+            void Visit(Node node)
+            {
+                if (node is MeshInstance3D mi)
+                {
+                    if (mi.MaterialOverride is BaseMaterial3D over && over.ResourceName == "TailLamp")
+                        mi.MaterialOverride = copy ??= (BaseMaterial3D)over.Duplicate();
+                    else if (mi.Mesh != null)
+                        for (var i = 0; i < mi.Mesh.GetSurfaceCount(); i++)
+                            if (mi.GetActiveMaterial(i) is BaseMaterial3D m && m.ResourceName == "TailLamp")
+                                mi.SetSurfaceOverrideMaterial(i, copy ??= (BaseMaterial3D)m.Duplicate());
+                }
+                foreach (var child in node.GetChildren()) Visit(child);
+            }
+            Visit(model);
+            return copy;
+        }
+    }
+
+    /// <summary>
     /// Dirt on one vehicle: an overlay material (shaders/grime.gdshader) on every mesh of the model, fed three amounts
     /// (dust, mud, snow; 0 clean to 1 caked) that grow while the vehicle drives on matching ground, slowly fade
     /// otherwise (snow melts, dust shakes off a little) and wash off quickly while it is parked on its repair pad.

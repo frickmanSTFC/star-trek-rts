@@ -44,6 +44,7 @@ public partial class PlanetView : Node3D
     private Node3D _pod = null!;
     private readonly Dictionary<int, Node3D> _rovers = new();
     private readonly Dictionary<int, RoverLook.Grime> _grime = new();
+    private readonly Dictionary<int, RoverLook.Lamps> _lamps = new();
     private readonly Dictionary<int, Label3D> _unitLabels = new();
     private readonly Dictionary<int, Node3D> _pods = new();
     private readonly Dictionary<int, long> _seenBreak = new();
@@ -989,6 +990,7 @@ public partial class PlanetView : Node3D
                 model = def.CanMine ? BuildingModels.Crawler(colour) : BuildingModels.Rover(colour, def.Id);
                 RoverLook.Paint(model, u.Name, u.Number);
                 _grime[u.Id] = RoverLook.Grime.Attach(model, def.CanMine ? 3.2f : 2.4f);
+                _lamps[u.Id] = RoverLook.Lamps.Attach(model, u.Id);
                 // Wheel spray from behind the rear wheels (rover) or the back of the tracks (crawler); +Z is the back.
                 var (sx, sz) = def.CanMine ? (1.75f, 2.9f) : def.Mark switch { 1 => (1.3f, 1.75f), 3 => (1.5f, 2.5f), _ => (1.35f, 2.3f) };
                 model.AddChild(new SprayRig(new[] { new Vector3(-sx, 0.15f, sz), new Vector3(sx, 0.15f, sz) }));
@@ -1043,7 +1045,18 @@ public partial class PlanetView : Node3D
             model.Position = pos + new Vector3(0, 0.1f, 0);
             var ground = SprayRig.KindFor(_surface.Map, TileAt(pos));
             if (model.GetNodeOrNull<SprayRig>("SprayRig") is { } spray) spray.Spray(ground, moving || rolling);
-            if (_grime.TryGetValue(u.Id, out var grime)) grime.Update(ground, moving || rolling, onPad, delta);
+            var dirty = false;
+            if (_grime.TryGetValue(u.Id, out var grime))
+            {
+                grime.Update(ground, moving || rolling, onPad, delta);
+                dirty = grime.Dust + grime.Mud + grime.Snow > 0.02f;
+            }
+            if (_lamps.TryGetValue(u.Id, out var lamps))
+            {
+                // Wipers run on wet, muddy, snowy or dusty ground, and while the pad washes a dirty vehicle.
+                var wipe = ((moving || rolling) && ground is SprayKind.Water or SprayKind.Mud or SprayKind.Snow or SprayKind.Dust) || (onPad && dirty);
+                lamps.Update(moving || rolling, u.Broken || u.Integrity < Fix64.FromInt(50), wipe, delta);
+            }
             if (model.GetNodeOrNull<Node3D>("Selected") is { } ring) ring.Visible = SelectedUnits.Contains(u.Id);
             if (model.GetNodeOrNull<Node3D>("Dish") is { } dish) dish.RotateY(delta * (moving ? 3f : 1f));
 
@@ -1071,6 +1084,7 @@ public partial class PlanetView : Node3D
             _rovers[id].QueueFree();
             _rovers.Remove(id);
             _grime.Remove(id);
+            _lamps.Remove(id);
             _unitLabels[id].QueueFree();
             _unitLabels.Remove(id);
         }
