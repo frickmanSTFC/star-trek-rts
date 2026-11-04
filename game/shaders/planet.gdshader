@@ -1,11 +1,15 @@
 // Orbital globe surface (textures painted by OrbitPainter). Land is satellite photography: six tileable ground layers
 // (NASA Blue Marble patches, in a texture array) blended by the painter's splat masks, sampled at two scales so the
 // detail holds up when zoomed in, and tinted part-way toward the painted map colour so biomass and elevation still
-// show. Relief from a normal map of the painted height plus a tiling detail normal; shiny oceans; sunlight reddened by
-// the air it crosses (the same air as atmosphere.gdshader), so the terminator glows warm; city lights at your bases
-// only on the night side. Lit by the scene's lights (the orbit "sun").
+// show. Relief from a normal map of the painted height plus a tiling detail normal. Oceans: two scrolling wave normals
+// and a broad, rough sun glint. Sunlight reddened by the air it crosses (air.gdshaderinc, the same air as
+// atmosphere.gdshader), so the terminator glows warm; the low cloud layer's shadows (clouds.gdshaderinc, looked up
+// toward the sun from each point); city lights at your bases only on the night side. Lit by the scene's lights.
 shader_type spatial;
 render_mode cull_disabled;
+
+#include "res://shaders/air.gdshaderinc"
+#include "res://shaders/clouds.gdshaderinc"
 
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
@@ -24,19 +28,25 @@ uniform float photo_mix = 0.5;
 // Photo repeats around the globe (u, v): the main layer, and a finer one mixed in for close-ups.
 uniform vec2 photo_scale = vec2(32.0, 16.0);
 uniform vec2 photo_fine_scale = vec2(128.0, 64.0);
-// The air (as in atmosphere.gdshader).
-uniform float planet_radius = 100.0;
-uniform float atmosphere_height = 3.5;
-uniform vec3 rayleigh_depth = vec3(0.046, 0.108, 0.265);
-uniform float rayleigh_height = 0.8;
-uniform float mie_depth = 0.03;
-uniform float mie_height = 0.25;
+// Ocean waves: repeats of the detail normal around the globe, scroll speed (UV per second) and strength.
+uniform vec2 wave_scale = vec2(48.0, 24.0);
+uniform float wave_speed = 0.004;
+uniform float wave_strength = 0.35;
+uniform float water_roughness = 0.3;
+// The low cloud layer (OrbitView sets these to match it, and cloud_from_world every frame as the layer turns).
+uniform mat3 cloud_from_world = mat3(1.0);
+uniform vec3 cloud_offset = vec3(0.0);
+uniform vec3 cloud_scale = vec3(1.6);
+uniform float cloud_cover = 0.6;
+uniform float cloud_softness = 0.1;
+uniform float cloud_opacity = 0.95;
+uniform float cloud_height = 1.4;
+uniform float cloud_shadow = 0.65;
 
-// Relative optical depth of air from the ground toward a light at cosine mu: 1 overhead, about sqrt(pi R / 2H) at the horizon.
-float airmass(float mu, float scale_height) {
-	float c = 1.0 / sqrt(3.14159265 * planet_radius / (2.0 * scale_height));
-	float m = max(mu, 0.0);
-	return 1.0 / (m + c * exp(-m / c * 0.7));
+varying vec3 world_dir;
+
+void vertex() {
+	world_dir = (MODEL_MATRIX * vec4(VERTEX, 0.0)).xyz;
 }
 
 void fragment() {
@@ -73,18 +83,32 @@ void fragment() {
 	// Relief: the elevation normal map, with tiling detail added on top (land only).
 	vec3 n1 = texture(normal_tex, UV).rgb * 2.0 - 1.0;
 	vec3 n2 = texture(detail_normal, UV * vec2(16.0, 8.0)).rgb * 2.0 - 1.0;
-	vec3 n = normalize(vec3(n1.xy + n2.xy * 0.45, max(n1.z, 0.2)));
+	vec3 n_land = vec3(n1.xy + n2.xy * 0.45, max(n1.z, 0.2));
+	// Waves: two copies of the detail normal drifting different ways (water only).
+	vec2 wuv = UV * wave_scale;
+	vec3 w1 = texture(detail_normal, wuv + vec2(1.0, 0.6) * TIME * wave_speed).rgb * 2.0 - 1.0;
+	vec3 w2 = texture(detail_normal, wuv * 1.7 + vec2(-0.8, 0.3) * TIME * wave_speed).rgb * 2.0 - 1.0;
+	vec3 n_sea = vec3((w1.xy + w2.xy) * 0.5, 1.0);
+	vec3 n = normalize(mix(n_land, n_sea, water));
 	NORMAL_MAP = n * 0.5 + 0.5;
-	NORMAL_MAP_DEPTH = relief * (1.0 - water);
+	NORMAL_MAP_DEPTH = mix(relief, wave_strength, water);
 
 	// Sun height at this point (NORMAL and the light both in view space); sunlight through the air goes warm near the terminator.
 	vec3 l = normalize((VIEW_MATRIX * vec4(sun_dir, 0.0)).xyz);
 	float mu = dot(NORMAL, l);
 	float day = smoothstep(-0.12, 0.2, mu);
-	vec3 sunlight = exp(-(rayleigh_depth * airmass(mu, rayleigh_height) + 1.1 * mie_depth * airmass(mu, mie_height)));
-	ALBEDO = colour * sunlight;
-	ROUGHNESS = mix(0.9, 0.18, water);
-	SPECULAR = mix(0.25, 0.9, water) * dot(sunlight, vec3(0.333));
+	vec3 sunlight = sunlight_at(mu, 1.0);
+
+	// Cloud shadow: the low layer where the ray toward the sun crosses it.
+	float shadow = 0.0;
+	if (mu > 0.0) {
+		vec3 q = normalize(normalize(world_dir) + normalize(sun_dir) * (cloud_height / planet_radius) / max(mu, 0.15));
+		vec3 cd = cloud_from_world * q;
+		shadow = cloud_alpha(cloud_field(cd, cloud_offset, cloud_scale), cd, cloud_cover, cloud_softness) * cloud_opacity * cloud_shadow;
+	}
+	ALBEDO = colour * sunlight * (1.0 - shadow);
+	ROUGHNESS = mix(0.9, water_roughness, water);
+	SPECULAR = mix(0.25, 0.5, water) * dot(sunlight, vec3(0.333)) * (1.0 - shadow);
 	METALLIC = 0.0;
 	EMISSION = texture(lights_tex, UV).rgb * lights_energy * (1.0 - day);
 }

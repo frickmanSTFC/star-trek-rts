@@ -115,14 +115,22 @@ public static class OrbitPainter
 
                     var wf = Blend(water);
                     var e = Blend(elev);
-                    if (wf + (coast.Sample(u, v) - 0.5f) * 0.55f > 0.5f)
+                    // Coast: a noisy threshold on the blended water share, softened over a pixel or so (anti-aliased).
+                    var shore = wf + (coast.Sample(u, v) - 0.5f) * 0.55f - 0.5f;
+                    isWater = Smooth(-0.035f, 0.035f, shore);
+                    var sea = Colors.Black;
+                    if (isWater > 0f)
                     {
-                        // Sea: deeper = darker; near the coast, turquoise shallows.
-                        isWater = 1f;
+                        // Sea: deeper = darker; near the coast, turquoise shallows; a faint large-scale mottle (currents, plankton).
                         float depth = Math.Clamp((water[t00] > 0 ? elev[t00] : oceanBelow) * w00 + (water[t01] > 0 ? elev[t01] : oceanBelow) * w01
                             + (water[t10] > 0 ? elev[t10] : oceanBelow) * w10 + (water[t11] > 0 ? elev[t11] : oceanBelow) * w11, 0f, oceanBelow) / oceanBelow;
-                        c = new Color(0.015f, 0.05f, 0.16f).Lerp(new Color(0.04f, 0.18f, 0.38f), depth);
-                        c = c.Lerp(new Color(0.07f, 0.36f, 0.5f), Math.Clamp(1f - (wf - 0.5f) * 4f, 0f, 1f) * 0.7f);
+                        sea = new Color(0.015f, 0.05f, 0.16f).Lerp(new Color(0.04f, 0.18f, 0.38f), depth);
+                        sea = sea.Lerp(new Color(0.07f, 0.36f, 0.5f), Math.Clamp(1f - (wf - 0.5f) * 4f, 0f, 1f) * 0.7f);
+                        sea *= 0.88f + 0.24f * caps.Sample(u * 2f % 1f, v);
+                    }
+                    if (isWater >= 1f)
+                    {
+                        c = sea;
                         h = 0f;
                         splat[2] = 1f;
                     }
@@ -183,6 +191,14 @@ public static class OrbitPainter
                         Toward(4, mount * 0.55f);
                         Toward(5, Math.Clamp((h - 0.86f) * 9f, 0f, 1f));
                         Toward(2, beach * 0.5f);
+
+                        // Along the shore, fade into the sea (sand under the water).
+                        if (isWater > 0f)
+                        {
+                            c = c.Lerp(sea, isWater);
+                            h *= 1f - isWater;
+                            Toward(2, isWater);
+                        }
                     }
                 }
                 albedo[i * 4] = (byte)(Math.Clamp(c.R, 0f, 1f) * 255f);
@@ -227,6 +243,12 @@ public static class OrbitPainter
             Image.CreateFromData(width, height, false, Image.Format.Rgba8, normal),
             Image.CreateFromData(width, height, false, Image.Format.Rgba8, splatA),
             Image.CreateFromData(width, height, false, Image.Format.Rgba8, splatB));
+    }
+
+    private static float Smooth(float edge0, float edge1, float x)
+    {
+        var t = Math.Clamp((x - edge0) / (edge1 - edge0), 0f, 1f);
+        return t * t * (3f - 2f * t);
     }
 
     /// <summary>Column pair and blend for one row at this u: the row's own half-tile stagger, plus the warp.</summary>

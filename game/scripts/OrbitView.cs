@@ -136,11 +136,24 @@ public partial class OrbitView : Node3D
         _overlay = new MeshInstance3D { Mesh = SphereMesh(Radius + 0.35f, 96, 192), MaterialOverride = _overlayMaterial, Visible = false };
         _globe.AddChild(_overlay);
 
-        // Two cloud layers: thick swirling banks low, thin wisps higher up, drifting at different speeds.
-        _clouds = CloudLayer(Radius + 1.4f, 1701, 0.0045f, 0.5f, 0.9f);
+        // Two cloud layers: thick swirling banks low (they also shadow the ground), thin east–west wisps higher up,
+        // drifting at different speeds. Both read one small tiling 3D noise (clouds.gdshaderinc).
+        var cloudNoise = new NoiseTexture3D
+        {
+            Width = 64, Height = 64, Depth = 64, Seamless = true,
+            Noise = new FastNoiseLite { Seed = 1701, Frequency = 3f / 64f, FractalType = FastNoiseLite.FractalTypeEnum.None, NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth },
+        };
+        _clouds = CloudLayer(LowClouds, cloudNoise);
         AddChild(_clouds);
-        _highClouds = CloudLayer(Radius + 2.4f, 4242, 0.009f, 0.62f, 0.45f);
+        _highClouds = CloudLayer(HighClouds, cloudNoise);
         AddChild(_highClouds);
+        _groundMaterial.SetShaderParameter("cloud_noise", cloudNoise);
+        _groundMaterial.SetShaderParameter("cloud_offset", LowClouds.Offset);
+        _groundMaterial.SetShaderParameter("cloud_scale", LowClouds.Scale);
+        _groundMaterial.SetShaderParameter("cloud_cover", LowClouds.Cover);
+        _groundMaterial.SetShaderParameter("cloud_softness", LowClouds.Softness);
+        _groundMaterial.SetShaderParameter("cloud_opacity", LowClouds.Opacity);
+        _groundMaterial.SetShaderParameter("cloud_height", LowClouds.Height);
 
         // Atmosphere: one shell, ray-marched (Rayleigh + Mie scattering) in its shader.
         AddChild(Atmosphere());
@@ -234,38 +247,42 @@ public partial class OrbitView : Node3D
         };
     }
 
-    /// <summary>A cloud shell: domain-warped noise for swirls, cut off below <paramref name="cover"/> so there are clear skies between banks.</summary>
-    private static MeshInstance3D CloudLayer(float radius, int seed, float frequency, float cover, float opacity)
+    /// <summary>One cloud layer's look (clouds.gdshader uniforms); the low layer's numbers also drive the ground's cloud shadows.</summary>
+    private sealed record CloudSpec(float Height, Vector3 Offset, Vector3 Scale, float Cover, float Softness, float Opacity, float AirThickness);
+
+    private static readonly CloudSpec LowClouds = new(1.4f, Vector3.Zero, new Vector3(1.6f, 1.6f, 1.6f), 0.6f, 0.1f, 0.95f, 0.8f);
+    private static readonly CloudSpec HighClouds = new(2.4f, new Vector3(0.5f, 0.2f, 0.7f), new Vector3(1.2f, 3f, 1.2f), 0.66f, 0.1f, 0.5f, 0.6f);
+
+    /// <summary>While a scan overlay is up, thin the clouds (and their shadows) so the scan stays readable.</summary>
+    private void ThinClouds(bool thin)
     {
-        var noise = new FastNoiseLite
-        {
-            Seed = seed,
-            Frequency = frequency,
-            FractalOctaves = 6,
-            NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth,
-            DomainWarpEnabled = true,
-            DomainWarpAmplitude = 40f,
-            DomainWarpFrequency = frequency * 1.5f,
-        };
-        var texture = new NoiseTexture2D
-        {
-            Width = 2048, Height = 1024, Seamless = true, Noise = noise,
-            ColorRamp = new Gradient
-            {
-                Offsets = new[] { 0f, cover, cover + 0.12f, 1f },
-                Colors = new[] { new Color(1, 1, 1, 0), new Color(1, 1, 1, 0), new Color(1, 1, 1, opacity * 0.6f), new Color(1, 1, 1, opacity) },
-            },
-        };
+        var k = thin ? 0.3f : 1f;
+        ((ShaderMaterial)_clouds.MaterialOverride).SetShaderParameter("layer_opacity", LowClouds.Opacity * k);
+        ((ShaderMaterial)_highClouds.MaterialOverride).SetShaderParameter("layer_opacity", HighClouds.Opacity * k);
+        _groundMaterial.SetShaderParameter("cloud_opacity", LowClouds.Opacity * k);
+    }
+
+    /// <summary>A cloud shell (Godot's own sphere, so cull_back keeps only the near side) with clouds.gdshader.</summary>
+    private MeshInstance3D CloudLayer(CloudSpec spec, NoiseTexture3D noise)
+    {
+        var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/clouds.gdshader"), RenderPriority = spec.Height > 2f ? 2 : 1 }; // low layer first, then the high one, then the air
+        material.SetShaderParameter("cloud_noise", noise);
+        material.SetShaderParameter("sun_dir", _sunDir);
+        material.SetShaderParameter("sun_colour", new Vector3(_light.LightColor.R, _light.LightColor.G, _light.LightColor.B));
+        material.SetShaderParameter("sun_energy", _light.LightEnergy);
+        material.SetShaderParameter("layer_offset", spec.Offset);
+        material.SetShaderParameter("layer_scale", spec.Scale);
+        material.SetShaderParameter("layer_cover", spec.Cover);
+        material.SetShaderParameter("layer_softness", spec.Softness);
+        material.SetShaderParameter("layer_opacity", spec.Opacity);
+        material.SetShaderParameter("air_thickness", spec.AirThickness);
+        material.SetShaderParameter("planet_radius", Radius);
+        var r = Radius + spec.Height;
         return new MeshInstance3D
         {
-            Mesh = SphereMesh(radius, 64, 128),
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoTexture = texture,
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                Roughness = 1f,
-                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-            },
+            Mesh = new SphereMesh { Radius = r, Height = r * 2f, RadialSegments = 128, Rings = 64 },
+            MaterialOverride = material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
     }
 
@@ -553,6 +570,7 @@ public partial class OrbitView : Node3D
     {
         var i = (int)Mode;
         _overlay.Visible = Mode != ScanMode.Terrain;
+        ThinClouds(_overlay.Visible);
         if (Mode == ScanMode.Terrain) return;
         var stamp = OverlayStamp(Mode);
         if (_overlayTextures[i] == null || _overlayStamp[i] != stamp)
@@ -611,6 +629,7 @@ public partial class OrbitView : Node3D
         _globe.Basis = new Basis(Vector3.Right, _pitch) * new Basis(Vector3.Up, _yaw);
         _clouds.Basis = _globe.Basis * new Basis(Vector3.Up, _time * 0.012f);
         _highClouds.Basis = _globe.Basis * new Basis(Vector3.Up, -_time * 0.007f + 1.3f);
+        _groundMaterial.SetShaderParameter("cloud_from_world", _clouds.GlobalTransform.Basis.Inverse());
         _moon.Rotation = _moon.Rotation with { Y = _time * 0.02f };
         RefreshLights();
         _camera.Position = new Vector3(0, 0, _distance);
