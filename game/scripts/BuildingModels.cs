@@ -536,8 +536,71 @@ public static class BuildingModels
     }
 
     /// <summary>Survey rover: six wheels, cabin with a lit window, spinning sensor dish ("Dish"), selection ring ("Selected").</summary>
+    /// <summary>
+    /// A vehicle model made in Blender (blender/build_vehicles.py → models/vehicles/&lt;id&gt;.glb), wrapped in a plain
+    /// Node3D, with the "Owner" material recoloured and the named animated parts (e.g. "Dish") moved up to be direct
+    /// children so the view finds them like on the code-built models. Null when the file isn't there or hasn't been
+    /// imported yet, so callers fall back to the primitive model.
+    /// </summary>
+    private static Node3D? Imported(string id, Color owner, params string[] parts)
+    {
+        var path = $"res://models/vehicles/{id}.glb";
+        if (!ResourceLoader.Exists(path)) return null;
+        if (GD.Load<PackedScene>(path)?.Instantiate() is not Node3D model) return null;
+        var n = new Node3D { Name = id };
+        n.AddChild(model);
+        Recolour(model, owner);
+        foreach (var part in parts)
+        {
+            if (model.FindChild(part, true, false) is not Node3D node) continue;
+            var t = RelativeTo(node, n);
+            node.GetParent().RemoveChild(node);
+            node.Transform = t;
+            n.AddChild(node);
+        }
+        return n;
+    }
+
+    /// <summary>The node's transform relative to an ancestor, from the local transforms (works before it's in the tree).</summary>
+    private static Transform3D RelativeTo(Node3D node, Node3D ancestor)
+    {
+        var t = node.Transform;
+        for (var p = node.GetParent(); p != null && p != ancestor; p = p.GetParent())
+            if (p is Node3D p3) t = p3.Transform * t;
+        return t;
+    }
+
+    private static void Recolour(Node node, Color owner)
+    {
+        if (node is MeshInstance3D mi && mi.Mesh != null)
+            for (var i = 0; i < mi.Mesh.GetSurfaceCount(); i++)
+                if (mi.Mesh.SurfaceGetMaterial(i) is BaseMaterial3D m && m.ResourceName == "Owner")
+                {
+                    var copy = (BaseMaterial3D)m.Duplicate();
+                    copy.AlbedoColor = owner;
+                    copy.EmissionEnabled = true;
+                    copy.Emission = owner;
+                    copy.EmissionEnergyMultiplier = 0.35f;
+                    mi.SetSurfaceOverrideMaterial(i, copy);
+                }
+        foreach (var child in node.GetChildren()) Recolour(child, owner);
+    }
+
     public static Node3D Rover(Color owner)
     {
+        if (Imported("survey_rover", owner, "Dish") is { } made)
+        {
+            made.AddChild(new MeshInstance3D
+            {
+                Name = "Selected",
+                Mesh = new TorusMesh { InnerRadius = 3.0f, OuterRadius = 3.3f, Rings = 32 },
+                Position = new Vector3(0, 0.15f, 0),
+                MaterialOverride = Glow(new Color(1f, 0.95f, 0.5f), 2f),
+                Visible = false,
+            });
+            made.AddChild(new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 2f, SpotRange = 16f, SpotAngle = 30f, Position = new Vector3(0, 1.3f, -2.6f), RotationDegrees = new Vector3(-12, 0, 0) });
+            return made;
+        }
         var n = new Node3D();
         var hull = Metal(HullColour, 0.45f, 0.4f);
         var tyre = Metal(new Color(0.12f, 0.12f, 0.14f), 0.1f, 0.9f);
