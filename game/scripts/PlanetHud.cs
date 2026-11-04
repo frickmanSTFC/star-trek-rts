@@ -517,7 +517,7 @@ public partial class PlanetHud : CanvasLayer
             new[]
             {
                 ("Left-click", "select a building, vehicle, base or tile"), ("Shift+click", "add vehicles to the selection"), ("A", "select all vehicles"),
-                ("Right-click", "drive there (a crawler on a deposit mines it)"), ("F", "crawler: unfurl / pack up / send for repair"),
+                ("Right-click", "drive there (a crawler on a deposit mines it)"), ("F", "crawler: unfurl / pack up / send for repair"), ("V", "rovers: wipers auto / on / off"),
                 ("Tab", "next base (in orbit: next scan)"), ("Esc", "back to the base / stop placing"),
                 ("O", "orbit view and back"), ("Orbit", "drag or WASD turn the planet, wheel zoom, 1–9 deploy, click to send"),
             },

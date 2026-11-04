@@ -1060,6 +1060,16 @@ public partial class PlanetDriver : Node3D
             case Key.F when landed:
                 ToggleDeploy();
                 break;
+            case Key.V when landed && _view.SelectedUnits.Count > 0:
+                var wipers = _view.CycleWipers(_view.SelectedUnits);
+                _hud.PushEvent(wipers switch
+                {
+                    null => "The selected vehicles have no wipers",
+                    RoverLook.WiperMode.On => "Wipers on",
+                    RoverLook.WiperMode.Off => "Wipers off",
+                    _ => "Wipers on automatic: they run on wet, muddy, snowy or dusty ground",
+                }, new Color(0.62f, 0.82f, 1f));
+                break;
             case Key.U when landed:
                 Upgrade();
                 break;
@@ -1672,7 +1682,7 @@ public partial class PlanetDriver : Node3D
         if (SelectedBay() != null) return "1–2 vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (_selectedStructure != 0) return "U upgrade  ·  M maintain  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
-        if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  Esc back  ·  F1 controls";
+        if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  V wipers  ·  Esc back  ·  F1 controls";
         return $"1–{_data.BuildMenu.Count} build  ·  U upgrade base  ·  Tab next base  ·  H home  ·  F1 controls";
     }
 

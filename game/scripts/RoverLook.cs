@@ -56,6 +56,8 @@ public static class RoverLook
         }
     }
 
+    public enum WiperMode { Auto, On, Off }
+
     /// <summary>
     /// A vehicle's working lamps and wipers. The amber roof beacon ("Beacon" mesh) double-flashes while it drives and
     /// lights the ground around it with a small amber light; the red tail lamps (material "TailLamp") glow steadily and
@@ -102,6 +104,11 @@ public static class RoverLook
 
         public static Lamps Attach(Node3D model, int seed) => new(model, seed);
 
+        public bool HasWipers => _wipers.Count > 0;
+
+        /// <summary>The V key's setting: automatic (by the ground), or forced on or off.</summary>
+        public WiperMode Wipers { get; set; }
+
         /// <summary>Advance one frame.</summary>
         public void Update(bool moving, bool alarm, bool wipe, float delta)
         {
@@ -122,6 +129,7 @@ public static class RoverLook
 
             // Wipers: keep sweeping while needed; when not, finish the stroke and park.
             if (_wipers.Count == 0) return;
+            wipe = Wipers switch { WiperMode.On => true, WiperMode.Off => false, _ => wipe };
             if (wipe || _wipe % 1f > 0.001f)
             {
                 var before = _wipe;

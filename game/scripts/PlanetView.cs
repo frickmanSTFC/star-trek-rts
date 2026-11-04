@@ -92,10 +92,11 @@ public partial class PlanetView : Node3D
         _deposits = BuildCrystals();
 
         _hoverMaterial = Overlay(new Color(1, 1, 1, 0.35f));
+        _hoverMaterial.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
         _hover = new MeshInstance3D
         {
-            Mesh = new CylinderMesh { TopRadius = HexRadius * 0.95f, BottomRadius = HexRadius * 0.95f, Height = 0.3f, RadialSegments = 6, Rings = 1 },
             MaterialOverride = _hoverMaterial,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             Visible = false,
         };
         AddChild(_hover);
@@ -217,12 +218,62 @@ public partial class PlanetView : Node3D
         UpdatePods(alpha);
     }
 
+    /// <summary>Outline the tile under the mouse: a thin line along the hex edge that follows the ground (owner
+    /// 2026-11-04: a filled hexagon was overwhelming). The line is twice as opaque as the colour asked for, since it is
+    /// so much thinner than the old fill.</summary>
     public void SetHover(int tile, Color color)
     {
         _hover.Visible = tile >= 0;
         if (tile < 0) return;
-        _hover.Position = TileCentre(tile) + new Vector3(0, 0.3f, 0);
-        _hoverMaterial.AlbedoColor = color;
+        _hoverMaterial.AlbedoColor = color with { A = Mathf.Min(1f, color.A * 2.2f) };
+        if (tile == _hoverShown) return;
+        _hoverShown = tile;
+        var c = TileCentre(tile);
+        _hover.Position = c with { Y = 0 };
+        _hover.Mesh = HexOutline(tile);
+    }
+
+    private int _hoverShown = -1;
+
+    /// <summary>A flat band along a tile's edge (outer 97%, inner 92% of the corner radius), each side split in four so
+    /// it hugs the terrain, lifted 0.35 above the ground (above the water on sea tiles). Positions are relative to the
+    /// tile centre in X/Z and absolute in Y.</summary>
+    private Mesh HexOutline(int tile)
+    {
+        const int perSide = 4;
+        var water = _surface.Map.IsWater(tile);
+        Vector3 Edge(int k, float f, float scale)
+        {
+            var p = Corner(k).Lerp(Corner((k + 1) % 6), f) * scale;
+            var y = GroundHeight(tile, p);
+            if (water) y = Mathf.Max(y, SeaLevel);
+            return p with { Y = y + 0.35f };
+        }
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        for (var k = 0; k < 6; k++)
+            for (var i = 0; i < perSide; i++)
+            {
+                float f0 = (float)i / perSide, f1 = (float)(i + 1) / perSide;
+                Vector3 o0 = Edge(k, f0, 0.97f), o1 = Edge(k, f1, 0.97f), i0 = Edge(k, f0, 0.92f), i1 = Edge(k, f1, 0.92f);
+                st.AddVertex(o0); st.AddVertex(o1); st.AddVertex(i1);
+                st.AddVertex(o0); st.AddVertex(i1); st.AddVertex(i0);
+            }
+        return st.Commit();
+    }
+
+    /// <summary>Step the wipers of these vehicles to the next setting (automatic → on → off → automatic), all to the
+    /// same one, starting from the first vehicle's. Null when none of them has wipers.</summary>
+    public RoverLook.WiperMode? CycleWipers(IEnumerable<int> unitIds)
+    {
+        RoverLook.WiperMode? next = null;
+        foreach (var id in unitIds)
+        {
+            if (!_lamps.TryGetValue(id, out var lamps) || !lamps.HasWipers) continue;
+            next ??= lamps.Wipers switch { RoverLook.WiperMode.Auto => RoverLook.WiperMode.On, RoverLook.WiperMode.On => RoverLook.WiperMode.Off, _ => RoverLook.WiperMode.Auto };
+            lamps.Wipers = next.Value;
+        }
+        return next;
     }
 
     /// <summary>Rover ids the view should draw highlighted.</summary>
