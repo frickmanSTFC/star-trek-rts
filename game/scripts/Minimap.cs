@@ -29,6 +29,7 @@ public partial class Minimap : Control
         TextureFilter = TextureFilterEnum.Nearest;
         MouseFilter = MouseFilterEnum.Stop;
         CustomMinimumSize = new Vector2(254, 140);
+        ClipContents = true; // the camera frame never draws outside the map
     }
 
     /// <summary>World size of the map (x across, z down).</summary>
@@ -63,13 +64,21 @@ public partial class Minimap : Control
         var vp = camera.GetViewport().GetVisibleRect().Size;
         var corners = new[] { new Vector2(0, 0), new Vector2(vp.X, 0), new Vector2(vp.X, vp.Y - 236), new Vector2(0, vp.Y - 236) };
         var frame = new Vector2[4];
+        // Close up the camera tilts toward the horizon, so the top corners' rays hit the ground very far away or not
+        // at all: cap the frame at a few times the camera's height (at least 250 units) from the point under it.
+        var eye = camera.GlobalPosition;
+        var reach = Mathf.Max(250f, eye.Y * 6f);
         for (var i = 0; i < 4; i++)
         {
             var origin = camera.ProjectRayOrigin(corners[i]);
             var dir = camera.ProjectRayNormal(corners[i]);
-            var t = Mathf.Abs(dir.Y) > 1e-4f ? -origin.Y / dir.Y : 0f;
-            if (t < 0) t = 4000f; // looking above the horizon: clamp far away
-            frame[i] = ToMap(origin + dir * t);
+            var flat = new Vector3(dir.X, 0, dir.Z);
+            if (flat.LengthSquared() < 1e-8f) flat = -camera.GlobalBasis.Z with { Y = 0 };
+            flat = flat.Normalized();
+            var hit = dir.Y < -1e-4f ? origin + dir * (-origin.Y / dir.Y) : origin + flat * reach;
+            var away = new Vector3(hit.X - eye.X, 0, hit.Z - eye.Z);
+            if (away.Length() > reach) hit = new Vector3(eye.X, 0, eye.Z) + flat * reach;
+            frame[i] = ToMap(hit);
         }
         _frame = frame;
         QueueRedraw();
