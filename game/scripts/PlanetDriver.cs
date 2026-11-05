@@ -167,6 +167,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _helm.ActionPicked += OnHelmAction;
         _helm.DisplayPicked += SetOrbitDisplay;
         _helm.SetInfoHandlers(InfoAction, () => _info = null);
+        SetupUplink(helmLayer); // the outpost's surface feed window, over the helm
 
         // The test panel exists only in debug builds (editor runs); release exports never get it.
         if (OS.IsDebugBuild())
@@ -404,6 +405,9 @@ public partial class PlanetDriver : Node3D, ITestHost
             case Key.Enter or Key.KpEnter when _orbitAction != null && _orbitHover >= 0:
                 OrbitClick(false);
                 break;
+            case Key.F when Me.Phase == LandingPhase.Landed:
+                ToggleFeed();
+                break;
             case Key.H:
                 if (Me.LandingTile < 0) break;
                 if (_orbit.Display == OrbitDisplay.System) SetOrbitDisplay(OrbitDisplay.Planet);
@@ -424,7 +428,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void OrbitHover(float delta)
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse);
         if (_helm.ViewRect.Size.X > 32f && _helm.ViewRect.Size.Y > 32f) _orbit.SetViewRect(_helm.ViewRect, GetViewport().GetVisibleRect().Size);
         _orbitHover = _mouseOverUi ? -1 : _orbit.PickTile(mouse);
         var colour = _orbitAction == null ? new Color(1f, 1f, 1f, 0.6f)
@@ -490,6 +494,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         else if (id.StartsWith("orbit:")) ArmOrbit(id);
         else if (id == "surface") LeaveOrbit();
         else if (id == "display:planet") SetOrbitDisplay(OrbitDisplay.Planet);
+        else if (id == "feed") ToggleFeed();
     }
 
     private void SetOrbitDisplay(OrbitDisplay display)
@@ -555,6 +560,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (herds > 0) list.Add($"Grazing herds on {herds} sectors");
         if (toxic > 0) list.Add($"Toxic ground on {toxic} sectors: no landing there");
         if (surveyed > 0) list.Add($"Surveyed {surveyed} sectors · {deposits} deposits found");
+        list.InsertRange(0, UplinkFindings());
         _findings = list;
         return list;
     }
@@ -625,7 +631,8 @@ public partial class PlanetDriver : Node3D, ITestHost
             }
             case OrbitDisplay.Atmosphere:
                 _helm.SetTitle("ATMOSPHERE", hint ?? $"{PlanetName.ToUpperInvariant()} · {shipLine}");
-                sections.Add(new HelmSection("CONDITIONS", HelmScreen.Sky, _orbit.AtmosphereRows()));
+                sections.Add(new HelmSection("CONDITIONS", HelmScreen.Sky, AtmosphereConditions()));
+                sections.AddRange(_telemetry.Sections(_readings, UplinkStatus()));
                 _helm.SetPanel("ATMOSPHERIC DATA", sections);
                 break;
             default:
@@ -642,6 +649,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                     new("SATELLITES", $"{Surface.Satellites.Count(x => x.Owner == LocalPlayer)} / {orbit?.SatelliteMax}"),
                 }));
                 sections.Add(new HelmSection($"SCAN · {PlanetHud.ScanNames[mode]}", HelmScreen.Sky, new List<HelmRow> { new("", ScanLegends[mode]) }));
+                sections.Add(_telemetry.Glance(_readings, UplinkStatus())); // "awaiting surface uplink" until the outpost reports
                 _helm.SetPanel("PLANETARY DATA", sections);
                 break;
             }
@@ -690,6 +698,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 : a == "beam:" + OrbitRules.Supplies ? "BEAM SUPPLIES" : $"BEAM {ShortUnit(a[5..]).ToUpperInvariant()}";
             actions.Add(new HelmAction(id, (i + 1).ToString(), label + tag, !disabled || _orbitAction == a, _orbitAction == a)); // greyed ones still open their card
         }
+        if (me.Phase == LandingPhase.Landed) actions.Add(FeedPill());
         if (me.Phase == LandingPhase.Landed) actions.Add(new HelmAction("surface", "O", "SURFACE", Colour: HelmScreen.Rust));
         _helm.SetActions(actions);
 
@@ -880,6 +889,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             UpdateHover();
         }
         _view.Refresh(alpha);
+        UpdateUplink((float)delta);
         if (!_inOrbit) _hud.Minimap.Refresh(_camera);
         UpdateHud();
     }

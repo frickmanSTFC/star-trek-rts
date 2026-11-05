@@ -1244,9 +1244,8 @@ public partial class OrbitView : Node3D
         rows.Add(new HelmRow("BIOMASS", $"{Mathf.RoundToInt(_meanBiomass * 100f)} % average"));
         rows.Add(new HelmRow("CLOUD COVER", $"{Mathf.RoundToInt(_cloudCover * 100f)} % (low layer)"));
         rows.Add(new HelmRow("STORM CELLS", _stormCells.Count.ToString()));
-        rows.Add(new HelmRow("COMPOSITION", "unknown"));
-        rows.Add(new HelmRow("PRESSURE", "unknown"));
-        rows.Add(new HelmRow("TEMPERATURE", "unknown"));
+        // Composition, pressure and temperature come from the outpost's sensors once its uplink is online (the driver adds
+        // the telemetry sections under these rows).
         return rows;
     }
 

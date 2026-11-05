@@ -71,7 +71,7 @@ These links only open for people the owner has shared them with (Share menu on e
 | `hazards.json` | Anomalies, habitat dangers, raiders, crisis entities and wildcards |
 | `galaxy_map.json` | Star systems, territories, warp lanes and wormholes, warp scale and drive speeds |
 | `maps.json` | Skirmish maps for the game prototype: one star system each (bodies, deposits, player starts, starting stock) |
-| `surfaces.json` | Planet surfaces for the game prototype: terrain types, how each planet class's hex map is generated, deposits, orbital hints, landing rules, rover and mining crawler stats, storage and salvage rules |
+| `surfaces.json` | Planet surfaces for the game prototype: terrain types, how each planet class's hex map is generated, deposits, orbital hints, landing rules, rover and mining crawler stats, storage and salvage rules, planet environments per class (temperature, humidity, wind, pressure, radiation, atmosphere and trace gases) and the outpost telemetry's hazard limits |
 
 Each entry is tagged `canon` (on screen), `beta` (licensed books/games) or `original` (invented for this game). All costs and stats are placeholders.
 

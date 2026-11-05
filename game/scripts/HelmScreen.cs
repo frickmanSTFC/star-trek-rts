@@ -165,6 +165,19 @@ public partial class HelmScreen : Control
 
     public bool PanelOpen => _panelOpen;
 
+    /// <summary>Where floating windows may go, in viewport pixels: the viewscreen minus the open data panel.</summary>
+    public Rect2 OpenRect
+    {
+        get
+        {
+            var area = OpenArea();
+            return new Rect2(area.Position + GlobalPosition, area.Size);
+        }
+    }
+
+    /// <summary>The frame's scale (1.0 at 1280×720).</summary>
+    public float UiScale => _s;
+
     /// <summary>True over the frame, its buttons, the open data panel, the object card and the info card.</summary>
     public bool IsOverUi(Vector2 screenPos)
     {

@@ -221,13 +221,13 @@ public static class Telemetry
     public static Fix64 DayPhase(EnvironmentDef env, SurfaceMap map, int tile, long tick) =>
         Frac(TimeIn(tick, env.DaySeconds * Simulation.TickRate) + Fix64.Ratio(map.Grid.Column(tile), map.Grid.Width) + Fix64.Ratio(35, 100));
 
-    /// <summary>Altitude in km: land rises with the square of its elevation share above the ocean, to ReliefKm; water is 0.</summary>
+    /// <summary>Altitude in km: land rises with the cube of its elevation share above the ocean (lowlands stay low), to ReliefKm; water is 0.</summary>
     public static Fix64 AltitudeKm(EnvironmentDef env, SurfaceMap map, int tile)
     {
         if (map.IsWater(tile)) return Fix64.Zero;
         var ocean = map.Def.OceanBelow;
         var share = ocean >= Fix64.One ? Fix64.Zero : Fix64.Clamp((map.Elevation[tile] - ocean) / (Fix64.One - ocean), Fix64.Zero, Fix64.One);
-        return env.ReliefKm * share * share;
+        return env.ReliefKm * share * share * share;
     }
 
     /// <summary>Latitude as a share of the map's half-height: +1 = the top row (north), -1 = the bottom row.</summary>
