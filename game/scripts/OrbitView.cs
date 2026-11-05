@@ -921,7 +921,7 @@ public partial class OrbitView : Node3D
         }
     }
 
-    /// <summary>Outpost pods and shuttles fall from high orbit to their tile; a beam is a shimmering column.</summary>
+    /// <summary>Outpost pods and drop ships fall from high orbit to their tile; a beam is a shimmering column.</summary>
     private void UpdateDeliveries(float alpha)
     {
         var alive = new HashSet<int>();
@@ -1153,7 +1153,7 @@ public partial class OrbitView : Node3D
         var ship = _sim.Data.Orbit?.ShipFor(_factionId);
         var status = new List<string> { "In orbit" };
         if (ship != null) status.Add($"{ship.ClassName} class");
-        if (me.ShuttleBackTick > _sim.Tick) status.Add($"shuttle away, back in {SecondsTo(me.ShuttleBackTick)} s");
+        if (me.ShuttleBackTick > _sim.Tick) status.Add($"drop ship away, back in {SecondsTo(me.ShuttleBackTick)} s");
         if (me.TransporterReadyTick > _sim.Tick) status.Add($"transporter ready in {SecondsTo(me.TransporterReadyTick)} s");
         list.Add((new OrbitObject(ship?.Name ?? "Our ship", "Ship", string.Join(" · ", status), Peach), _shipMarker));
 
@@ -1185,7 +1185,7 @@ public partial class OrbitView : Node3D
             var (label, colour) = d.Kind switch
             {
                 DeliveryKind.Outpost => ("Outpost drop", DropColour),
-                DeliveryKind.Shuttle => ("Shuttle", DropColour),
+                DeliveryKind.Shuttle => ("Drop ship", DropColour),
                 _ => ("Transporter beam", BeamColour),
             };
             var eta = d.ArriveTick > _sim.Tick ? $"lands in {SecondsTo(d.ArriveTick)} s" : "landing";

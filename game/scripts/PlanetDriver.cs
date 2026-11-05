@@ -191,7 +191,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var orbit = _data.Orbit;
         if (orbit != null)
         {
-            foreach (var u in orbit.ShuttlePayloads) list.Add(($"orbit:shuttle:{u}", $"Shuttle: {ShortUnit(u)}"));
+            foreach (var u in orbit.ShuttlePayloads) list.Add(($"orbit:shuttle:{u}", $"Drop Ship: {ShortUnit(u)}"));
             var payloads = orbit.TransporterLevels.SelectMany(l => l.Payloads).Distinct().ToList();
             foreach (var pl in payloads) list.Add(($"orbit:beam:{pl}", pl == OrbitRules.Supplies ? "Beam Supplies" : $"Beam: {ShortUnit(pl)}"));
             list.Add(("orbit:satellite", "Survey Satellite"));
@@ -686,7 +686,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 else if (me.TransporterReadyTick > _sim.Tick) tag = $" {(me.TransporterReadyTick - _sim.Tick) / Simulation.TickRate}S";
             }
             var label = a == "land" ? "LAND" : a == "outpost" ? "OUTPOST" : a == "satellite" ? "SATELLITE"
-                : a.StartsWith("shuttle:") ? $"SHUTTLE {ShortUnit(a[8..]).ToUpperInvariant()}"
+                : a.StartsWith("shuttle:") ? $"DROP {ShortUnit(a[8..]).ToUpperInvariant()}"
                 : a == "beam:" + OrbitRules.Supplies ? "BEAM SUPPLIES" : $"BEAM {ShortUnit(a[5..]).ToUpperInvariant()}";
             actions.Add(new HelmAction(id, (i + 1).ToString(), label + tag, !disabled || _orbitAction == a, _orbitAction == a)); // greyed ones still open their card
         }
@@ -765,9 +765,9 @@ public partial class PlanetDriver : Node3D, ITestHost
         {
             var u = a[8..];
             var name = _data.GroundVehicleNames.GetValueOrDefault(u, u);
-            title = $"Shuttle: {name}";
-            sub = me.ShuttleBackTick > _sim.Tick ? $"Shuttle away: back in {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate} s" : "Shuttle ready";
-            body = $"The ship's shuttle flies a new {name} down to any safe spot on the planet, even far from your bases. {_data.SurfaceUnit(u).Description}";
+            title = $"Drop Ship: {name}";
+            sub = me.ShuttleBackTick > _sim.Tick ? $"Drop ship away: back in {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate} s" : "Drop ship ready";
+            body = $"The drop ship flies a new {name} down from the ship to any safe spot on the planet, even far from your bases. {_data.SurfaceUnit(u).Description}";
             rows.Add(("Flight", $"{orbit.ShuttleSeconds} s down, {orbit.ShuttleSeconds} s back up before it can fly again"));
             rows.Add(("Needs", "open ground: no buildings, toxic ground, predators or native land"));
         }
@@ -1018,7 +1018,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             _hud.PushEvent(kind switch
             {
                 DeliveryKind.Outpost => landedBase != null ? $"Outpost founded: {BaseName(landedBase.Id)}" : "Outpost drop aborted: the site was taken (refunded)",
-                DeliveryKind.Shuttle => $"Shuttle landed a {what}",
+                DeliveryKind.Shuttle => $"Drop ship landed a {what}",
                 _ => payload == OrbitRules.Supplies ? "Supplies beamed down" : $"{what} beamed down",
             }, new Color(0.62f, 0.82f, 1f));
         }

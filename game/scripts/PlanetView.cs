@@ -42,6 +42,7 @@ public partial class PlanetView : Node3D
     private MeshInstance3D _hover = null!;
     private StandardMaterial3D _hoverMaterial = null!;
     private Node3D _pod = null!;
+    private DropShipView _dropShips = null!;
     private readonly Dictionary<int, Node3D> _rovers = new();
     private readonly Dictionary<int, RoverLook.Grime> _grime = new();
     private readonly Dictionary<int, RoverLook.Lamps> _lamps = new();
@@ -111,6 +112,8 @@ public partial class PlanetView : Node3D
         _pod = BuildingModels.Pod();
         _pod.Visible = false;
         AddChild(_pod);
+        _dropShips = new DropShipView(this, sim, localPlayer) { Name = "DropShips" };
+        AddChild(_dropShips);
         Refresh(0f);
     }
 
@@ -132,6 +135,16 @@ public partial class PlanetView : Node3D
 
     /// <summary>Height of the ground at a tile's centre (the water surface for sea tiles).</summary>
     public float TopY(int tile) => _surface.Map.IsWater(tile) ? SeaLevel : _centreHeight[tile];
+
+    /// <summary>Approximate ground height under any world point (the water surface over the sea; 0 off the map).</summary>
+    public float GroundAt(Vector3 p)
+    {
+        var tile = TileAt(p);
+        if (tile < 0) return 0f;
+        if (_surface.Map.IsWater(tile)) return SeaLevel;
+        var c = TileCentre(tile);
+        return GroundHeight(tile, new Vector3(p.X - c.X, 0, p.Z - c.Z));
+    }
 
     public Vector3 MapCentre()
     {
@@ -215,6 +228,7 @@ public partial class PlanetView : Node3D
         UpdatePod(me, alpha);
         UpdateStructures(delta);
         _time += delta;
+        _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
         UpdateRovers(alpha, delta);
         UpdatePods(alpha);
     }
@@ -1119,6 +1133,13 @@ public partial class PlanetView : Node3D
                 if (heading.LengthSquared() > 0.0004f)
                     model.Basis = model.Basis.Orthonormalized().Slerp(Basis.LookingAt(heading.Normalized(), Vector3.Up), Mathf.Min(1f, delta * 8f));
                 pos = rolled;
+            }
+            if (_dropShips.Unloading(u, pos, alpha, out var carried, out var driving))
+            {
+                // Just delivered: it waits in its drop ship's bay, drives down the ramp, then on to its tile.
+                if (carried.Basis is { } pose) model.Basis = pose;
+                pos = carried.Origin;
+                rolling = driving;
             }
             model.Position = pos + new Vector3(0, 0.1f, 0);
             var ground = SprayRig.KindFor(_surface.Map, TileAt(pos));

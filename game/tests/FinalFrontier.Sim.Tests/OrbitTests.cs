@@ -88,15 +88,18 @@ public class OrbitTests
         var spot = Enumerable.Range(0, map.Grid.Count).First(t => map.Grid.Distance(t, hub) > 20 && s.ShuttleProblem(sim, 0, t, "survey_rover") == null);
         var units = s.Units.Count;
         Do(sim, new ShuttleCommand(0, spot, "survey_rover"));
-        Assert.Equal("the shuttle is still away", s.ShuttleProblem(sim, 0, spot, "survey_rover"));
+        Assert.Equal("the drop ship is still away", s.ShuttleProblem(sim, 0, spot, "survey_rover"));
+        var delivery = s.Deliveries.Single(d => d.Kind == DeliveryKind.Shuttle);
+        Assert.All(s.Units, u => Assert.Equal(0, u.DeliveryId)); // the landing party came with the colony pod
         for (var i = 0; i < Sec(Orbit.ShuttleSeconds) + 1; i++) sim.Step();
         Assert.Equal(units + 1, s.Units.Count);
         Assert.Equal(spot, s.Units[^1].Tile);
+        Assert.Equal(delivery.Id, s.Units[^1].DeliveryId); // the view drives it down its drop ship's ramp
         Assert.True(s.Players[0].Surveyed[spot]);
         Assert.NotNull(s.ShuttleProblem(sim, 0, spot, "survey_rover")); // still flying back up
         for (var i = 0; i < Sec(Orbit.ShuttleSeconds) + 1; i++) sim.Step();
         Assert.Null(s.ShuttleProblem(sim, 0, spot, "survey_rover"));
-        Assert.Equal("the shuttle can't carry that", s.ShuttleProblem(sim, 0, spot, "terraforming_rover"));
+        Assert.Equal("the drop ship can't carry that", s.ShuttleProblem(sim, 0, spot, "terraforming_rover"));
     }
 
     [Fact]
@@ -131,6 +134,7 @@ public class OrbitTests
         Assert.Equal("the transporter is cycling", s.BeamProblem(sim, 0, near, "survey_team"));
         for (var i = 0; i < Sec(3); i++) sim.Step();
         Assert.Equal("survey_team", s.Units[^1].DefId);
+        Assert.NotEqual(0, s.Units[^1].DeliveryId);
         Assert.True(sim.Players[0].Stock[R("crew")] < crew); // the team came from the crew pool
     }
 

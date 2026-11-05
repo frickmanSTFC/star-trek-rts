@@ -10,7 +10,7 @@ Overall 12.6 long, 9.4 wide over the landing pads, 5.6 high to the beacon, 6.3 t
 Run (bpy 5.x, see CLAUDE.md "Vehicle models"):
   /root/bpyenv/bin/python blender/build_dropship.py --pose landed --preview blender/previews/dropship --res 640 --samples 16
   /root/bpyenv/bin/python blender/build_dropship.py --pose unloading --shots rear34 --preview blender/previews/dropship
-  /root/bpyenv/bin/python blender/build_dropship.py --pose landed --blank --out /tmp/dropship.glb   (no preview)
+  /root/bpyenv/bin/python blender/build_dropship.py --game      (the game model, game/models/vehicles/dropship.glb, ~10 s)
   python3 blender/build_dropship.py --sheet blender/previews/dropship      (contact sheet; needs PIL, not bpy)
 
 Flags:
@@ -19,11 +19,21 @@ Flags:
   --preview <dir>   render the shots into <dir>/dropship-<pose>-<shot>.png
   --shots a,b       front34, rear34, side, game (game camera tilt, next to a Mk II rover and a hex outline for scale)
   --res, --samples  render size (width; height is 2/3) and Cycles samples
-  --out <file.glb>  export the ship alone (never the preview rover, plumes or lights). Not into game/models yet.
+  --out <file.glb>  export the ship alone (never the preview rover, plumes or lights), joined for the game (see below).
   --blank           decals as empties NameL, NameR, NameRear, NumberL, NumberR (build_vehicles.py --blank convention:
                     text in the empty's local XY plane facing local +Z, Blender scale (max_width, size, 1))
   --name, --number  painted name and hull number (default HALYARD 07)
   --no-bake         skip the scuffed-paint bakes (faster layout checks)
+  --game            the game model: --blank, landed pose, paint baked, static parts joined, written to
+                    game/models/vehicles/dropship.glb (or --out). No preview unless --preview is given too.
+  --no-join         export every part as its own node (the mockup's ~290 nodes) instead of the joined game layout
+
+Game export (--game, or any --out): every modifier is applied, then the static parts are joined into one mesh "Body"
+(one surface per material) and each animated pivot's parts into one child mesh: Ramp/RampBody, LegK/LegKBody,
+FootK/FootKBody. Kept as their own mesh nodes so the game can drive them: Thruster0..5, NacelleGlow0/1, BayLight,
+Beacon. The decal markers stay empties. ~35 nodes. Checked in the glb: Ramp, LegK and FootK have identity rest
+rotations, and a Blender turn about local X is Godot's rest * Basis(Vector3.Right, angle) with the same sign (the
+glTF Y-up conversion is itself a turn about X): the open ramp's toe lands at Godot (0, 0.14, 9.13), aft = +Z.
 
 PARTS THE GAME CAN DRIVE (Blender +Y front, +Z up, 1 unit = 1 world unit; the export is in the landed rest pose):
   Ramp        empty on the hinge line (0, -6.0, 1.25) at the bay floor's rear edge. Rest = closed (slab standing up
@@ -86,8 +96,10 @@ PREVIEW = arg("--preview")
 RES = int(arg("--res", "960"))
 SAMPLES = int(arg("--samples", "40"))
 SHOTS = [s.strip() for s in arg("--shots", "front34,rear34,side").split(",") if s.strip()]
-OUT = arg("--out")
-BLANK = "--blank" in argv
+GAME = "--game" in argv
+OUT = arg("--out") or (os.path.join(os.path.dirname(HERE), "game", "models", "vehicles", "dropship.glb") if GAME else None)
+BLANK = "--blank" in argv or GAME
+JOIN = "--no-join" not in argv
 BAKE = "--no-bake" not in argv
 NAME = arg("--name", "HALYARD").upper()
 NUMBER = arg("--number", "07")
@@ -557,6 +569,68 @@ def bake_paint(obj, res):
     obj.data.materials.append(final)
 
 
+# ---------------------------------------------------------------- game export: join the static parts
+
+PIVOTS = ["Ramp"] + [f"Leg{k}" for k in range(4)] + [f"Foot{k}" for k in range(4)]  # animated empties
+KEEP = [f"Thruster{k}" for k in range(6)] + ["NacelleGlow0", "NacelleGlow1", "BayLight", "Beacon"]  # driven meshes
+
+
+def join_for_game(root):
+    """Collapse the mockup's ~290 part objects into the game layout: every modifier applied, then one mesh per pivot
+    (root -> "Body", Ramp -> "RampBody", LegK -> "LegKBody", FootK -> "FootKBody"), each with one material slot per
+    material. KEEP meshes and the decal marker empties stay as they are. Joined meshes get their own transform baked
+    in, so each body sits at its pivot's origin."""
+    meshes = [o for o in root.children_recursive if o.type == "MESH" and not o.hide_render]
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    applied = {o: bpy.data.meshes.new_from_object(o.evaluated_get(depsgraph), preserve_all_data_layers=True, depsgraph=depsgraph)
+               for o in meshes if o.modifiers}
+    for o, me in applied.items():
+        o.modifiers.clear()
+        o.data = me
+    cut = bpy.data.objects.get("BayCut")
+    if cut is not None:
+        bpy.data.objects.remove(cut)
+
+    def pivot_of(o):
+        p = o.parent
+        while p is not None and p is not root and p.name not in PIVOTS:
+            p = p.parent
+        return p or root
+
+    groups = {}
+    for o in meshes:
+        if o.name in KEEP:
+            continue
+        groups.setdefault(pivot_of(o), []).append(o)
+    # Join maps UV layers by name and drops what doesn't match the active object's: give every part one layer called
+    # "UVMap" (an empty one on the untextured parts) so the baked hulls keep their paint UVs.
+    for o in meshes:
+        if not o.data.uv_layers:
+            o.data.uv_layers.new(name="UVMap")
+        o.data.uv_layers[0].name = "UVMap"
+        while len(o.data.uv_layers) > 1:
+            o.data.uv_layers.remove(o.data.uv_layers[1])
+        o.data.uv_layers.active_index = 0
+        o.data.uv_layers[0].active_render = True
+    for pivot, objs in groups.items():
+        target = objs[0]
+        bpy.ops.object.select_all(action="DESELECT")
+        for o in objs:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = target
+        if len(objs) > 1:
+            bpy.ops.object.join()
+        target.name = "Body" if pivot is root else f"{pivot.name}Body"
+        target.data.name = target.name
+        # Bake the body's own offset into its vertices so it sits exactly on the pivot.
+        target.data.transform(target.matrix_basis)
+        target.matrix_basis = Matrix.Identity(4)
+        target.parent = pivot
+    bpy.ops.object.select_all(action="DESELECT")
+    names = sorted(o.name for o in root.children_recursive)
+    print(f"joined for the game: {len(names) + 1} nodes:", ", ".join(names))
+
+
 # ---------------------------------------------------------------- poses
 
 
@@ -790,6 +864,8 @@ def main():
         for obj, res in parts["bake"]:
             bake_paint(obj, res)
     if OUT:
+        if JOIN:
+            join_for_game(parts["root"])
         V["export"](parts["root"], OUT)
     if not PREVIEW:
         return
