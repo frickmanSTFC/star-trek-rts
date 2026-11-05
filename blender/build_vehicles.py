@@ -520,6 +520,10 @@ def rover_mk2(P):
     solid = d.modifiers.new("Thick", "SOLIDIFY")
     solid.thickness = 0.03
     cylinder("DishFeed", 0.02, 0.4, (0, 0.08, 1.12), P["steel"], dish, axis="Z", segments=8)
+    # Neck from the mount up into the saucer's underside, with a hub plate, so the dish sits on its mast instead of
+    # hovering above it (owner 2026-11-05: "the radar dish is free-floating" close up in the game).
+    cylinder("DishNeck", 0.05, 0.42, (0, 0, 0.86), P["steel"], dish, axis="Z", segments=12)
+    cylinder("DishHub", 0.16, 0.06, (0, 0, 1.04), P["dark"], dish, axis="Z", segments=16)
 
     # Suspension arms and wheels.
     for y in axles:
