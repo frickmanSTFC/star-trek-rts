@@ -140,30 +140,36 @@ pi, cos, sin, rad = math.pi, math.cos, math.sin, math.radians
 
 def kpalette():
     m = material
-    return {
+    P = {
         "hull": m("Hull", (0.05, 0.053, 0.058), 0.3, 0.58),                    # dark gunmetal
         "plate": m("Verdigris", (0.1, 0.14, 0.09), 0.35, 0.55),              # oxidised bronze-green armour
         "bronze": m("Bronze", (0.36, 0.22, 0.1), 0.9, 0.36),
         "dark": m("Chassis", (0.03, 0.03, 0.035), 0.4, 0.6),
         "steel": m("Steel", (0.3, 0.29, 0.28), 0.85, 0.35),
         "tyre": m("Tyre", (0.04, 0.04, 0.045), 0.0, 0.9),
-        "window": m("WindowGlow", (0.25, 0.04, 0.01), 0.0, 0.4, emission=(1.0, 0.2, 0.03), strength=3.0),
-        "gate": m("GateGlow", (0.2, 0.04, 0.01), 0.0, 0.5, emission=(1.0, 0.24, 0.04), strength=2.2),
-        "run": m("RunLight", (1.0, 0.05, 0.03), 0.0, 0.3, emission=(1.0, 0.04, 0.02), strength=10.0),
-        "tail": m("TailLamp", (0.9, 0.06, 0.04), 0.0, 0.3, emission=(1.0, 0.06, 0.03), strength=4.0),
-        "beacon": m("BeaconLamp", (1.0, 0.12, 0.05), 0.0, 0.3, emission=(1.0, 0.1, 0.04), strength=6.0),
-        "lamp": m("Lamp", (1.0, 0.86, 0.7), 0.0, 0.2, emission=(1.0, 0.82, 0.62), strength=5.0),
+        "window": m("WindowGlow", (0.25, 0.04, 0.01), 0.0, 0.4, emission=(1.0, 0.2, 0.03), strength=1.6),
+        "gate": m("GateGlow", (0.2, 0.04, 0.01), 0.0, 0.5, emission=(1.0, 0.24, 0.04), strength=1.4),
+        "run": m("RunLight", (0.3, 0.02, 0.01), 0.0, 0.3, emission=(1.0, 0.04, 0.02), strength=4.0),
+        "tail": m("TailLamp", (0.9, 0.06, 0.04), 0.0, 0.3, emission=(1.0, 0.06, 0.03), strength=2.5),
+        "beacon": m("BeaconLamp", (1.0, 0.12, 0.05), 0.0, 0.3, emission=(1.0, 0.1, 0.04), strength=4.0),
+        "lamp": m("Lamp", (1.0, 0.86, 0.7), 0.0, 0.2, emission=(1.0, 0.82, 0.62), strength=3.0),
         "owner": m("Owner", (0.55, 0.05, 0.04), 0.2, 0.45),
         "emblem": m("Emblem", (0.62, 0.42, 0.14), 1.0, 0.28),
         "number": m("Number", (0.72, 0.62, 0.44), 0.2, 0.55),
-        "fire": m("Fire", (0.3, 0.08, 0.01), 0.0, 0.5, emission=(1.0, 0.36, 0.05), strength=5.0),
-        "engine": m("EngineGlow", (1.0, 0.3, 0.1), 0.0, 0.4, emission=(1.0, 0.26, 0.05), strength=14.0),
+        "fire": m("Fire", (0.3, 0.08, 0.01), 0.0, 0.5, emission=(1.0, 0.36, 0.05), strength=3.0),
+        "engine": m("EngineGlow", (1.0, 0.3, 0.1), 0.0, 0.4, emission=(1.0, 0.26, 0.05), strength=4.0),
         "disruptor": m("DisruptorGlow", (0.3, 1.0, 0.3), 0.0, 0.3, emission=(0.25, 1.0, 0.2), strength=6.0),
         "stone": m("Stone", (0.085, 0.075, 0.07), 0.0, 0.92),
         "ore": m("Ore", (0.23, 0.17, 0.12), 0.1, 0.9),
         "pad": m("PadPaint", (0.45, 0.36, 0.25), 0.0, 0.75),
         "hexline": m("HexLine", (0.9, 0.84, 0.72), 0.0, 0.8),
     }
+    for key in ("window", "gate", "run", "tail", "beacon", "lamp", "fire", "engine", "disruptor"):
+        # Glows: no sky reflection on top of the emission (a glossy slit facing the sky reads as a white bar).
+        bsdf = P[key].node_tree.nodes["Principled BSDF"]
+        bsdf.inputs["Specular IOR Level"].default_value = 0.0
+        bsdf.inputs["Roughness"].default_value = 1.0
+    return P
 
 
 # ---------------------------------------------------------------- geometry helpers
@@ -1074,9 +1080,9 @@ def preview(target, k, stem, folder, hexes=(), game_k=None):
     bm.to_mesh(ground)
     ground.materials.append(material("Sand", (0.36, 0.27, 0.18), 0.0, 0.95))
     link(bpy.data.objects.new("Ground", ground))
-    P = kpalette()
+    line = material("HexLine", (0.9, 0.84, 0.72), 0.0, 0.8)  # not kpalette(): that would recolour fedref's "Hull" etc.
     for i, c in enumerate(hexes):
-        hex_outline(f"PreviewHex{i}", c, 25 / math.sqrt(3), 0.25 if i == 0 else 0.18, P["hexline"])
+        hex_outline(f"PreviewHex{i}", c, 25 / math.sqrt(3), 0.25 if i == 0 else 0.18, line)
     cam = bpy.data.objects.new("Camera", bpy.data.cameras.new("Camera"))
     cam.data.clip_end = 5000
     link(cam)
