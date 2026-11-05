@@ -622,6 +622,9 @@ public partial class PlanetView : Node3D
     /// <summary>The dirt on a vehicle's model, or null before it is drawn.</summary>
     public RoverLook.Grime? GrimeOf(int unitId) => _grime.GetValueOrDefault(unitId);
 
+    /// <summary>A unit's model, or null before it is drawn (the helm's surface feed follows it).</summary>
+    public Node3D? UnitModel(int unitId) => _rovers.GetValueOrDefault(unitId);
+
     /// <summary>Set when the fog changed this frame (the minimap redraws its terrain then).</summary>
     public bool FogChanged { get; set; }
 
