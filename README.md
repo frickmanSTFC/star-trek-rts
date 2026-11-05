@@ -49,6 +49,8 @@ After changing data, regenerate the pages (`python3 tools/gen_*_page.py`), then 
 - Factions of the galaxy: https://claude.ai/artifact/38uos1h4ucJyap5PYNiKDX
 - Galaxy map: https://claude.ai/artifact/MaLME4auJSy9Q437HHN2mr
 - Survey rover variants (marks, names, wear, damage): https://claude.ai/artifact/Rz3Hkh4cXu497PnWtUkwbP
+- Test panel mockup: https://claude.ai/artifact/SCdjcY4gKUYcE1QRqMqp14
+- Ground kit mockups (all factions; Federation miner, drop ship, outpost levels 1-10): https://claude.ai/artifact/StNcu8UNbSTbBLFvydqmew
 
 These links only open for people the owner has shared them with (Share menu on each page).
 
