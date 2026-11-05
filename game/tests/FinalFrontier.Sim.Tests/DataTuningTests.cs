@@ -106,7 +106,7 @@ public class DataTuningTests
         var sim = MatchSetup.CreatePlanetLanding(Data, 1701);
         var site = Enumerable.Range(0, sim.Surface!.Map.Grid.Count).First(t => sim.Surface.CanLand(0, t));
         sim.Schedule(0, new LandColonyCommand(0, site));
-        for (var i = 0; i <= Data.Landing.DescentSeconds * Simulation.TickRate; i++) sim.Step();
+        for (var i = 0; i <= TestData.ReadyTicks(Data); i++) sim.Step();
         var rover = sim.Surface.Units.First(u => u.DefId == "survey_rover");
         var speed = Number("surfaces.json", "units › survey_rover › speed");
         Assert.Null(DataTuning.SetNumber(Data.Sources["surfaces.json"], speed.Path, "3", out var text));

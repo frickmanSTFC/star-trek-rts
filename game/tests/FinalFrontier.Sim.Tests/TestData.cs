@@ -1,3 +1,4 @@
+using FinalFrontier.Sim.Core;
 using FinalFrontier.Sim.Data;
 
 namespace FinalFrontier.Sim.Tests;
@@ -6,6 +7,10 @@ internal static class TestData
 {
     private static readonly Lazy<GameData> Cached = new(() =>
         GameData.Load(GameData.FindDataDirectory(AppContext.BaseDirectory)));
+
+    /// <summary>Ticks from a landing order at tick 0 until the landed Colony Hub has assembled (descent + assemble_seconds):
+    /// step through `i &lt;= ReadyTicks` and the hub is Complete.</summary>
+    public static int ReadyTicks(GameData d) => (d.Landing.DescentSeconds + d.Landing.AssembleSeconds) * Simulation.TickRate;
 
     /// <summary>The real design data from the repo's data/ folder.</summary>
     public static GameData Real => Cached.Value;

@@ -10,12 +10,14 @@ namespace FinalFrontier;
 /// The first landing, drawn (render-only): three drop ships bring the Level 1 outpost down in three modules, set them
 /// down round the landing tile, land beside it and unload the rovers and the crawler; the modules crawl together onto
 /// the tile centre, lock into the round hub and unfurl (owner 2026-11-05: "come down in 3 drop ships and then
-/// unfurl/combine into the level1 outpost"). The sim only knows the landing tile, LandsAtTick (touchdown: the Colony Hub
-/// and the units appear) and <see cref="SurfacePlayer.UplinkTick"/> (touchdown + landing.assemble_seconds); this view
-/// hides the real hub model until UplinkTick and plays the assembly on its own copy of the same model
+/// unfurl/combine into the level1 outpost"). The sim knows the landing tile, LandsAtTick (touchdown: the Colony Hub
+/// appears as <see cref="StructureState.Assembling"/> and the units roll out) and <see cref="SurfacePlayer.UplinkTick"/>
+/// (touchdown + landing.assemble_seconds = the hub's <see cref="SurfaceStructure.ReadyTick"/>, when it turns Complete and
+/// starts working); this view hides the real hub model until then and plays the assembly on its own copy of the same model
 /// (<see cref="BuildingModels.Build"/>, outpost_l1.glb), whose final pose is the glb's rest pose, so the swap is seamless.
 /// Outpost drops from orbit (<see cref="DeliveryKind.Outpost"/>) play the same sequence with empty ships that fly
-/// straight back up (if the site was taken, they take their modules back up).
+/// straight back up (if the site was taken, they take their modules back up); their core is ready at ArriveTick +
+/// assemble_seconds, the same end this view uses.
 /// <para>Timeline in seconds from touchdown T (ship times fixed; assembly times are for assemble_seconds 20 and scale
 /// with it):</para>
 /// <list type="bullet">

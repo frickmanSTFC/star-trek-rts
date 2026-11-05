@@ -54,7 +54,7 @@ public class LifeTests
                 .DefaultIfEmpty(-1).First();
             if (site < 0) continue;
             sim.Schedule(0, new LandColonyCommand(0, site));
-            for (var i = 0; i <= Data.Landing.DescentSeconds * Simulation.TickRate; i++) sim.Step();
+            for (var i = 0; i <= TestData.ReadyTicks(Data); i++) sim.Step();
             var inside = map.Grid.Within(site, 4).FirstOrDefault(t => map.NearNatives(t) && sim.Surface.Players[0].Surveyed[t] && map.Terrain(t).Buildable, -1);
             if (inside < 0) continue;
             Assert.Equal(PlacementProblem.NativeLand, sim.Surface.CheckPlacement(sim, 0, "storage_container", inside));

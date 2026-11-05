@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using FinalFrontier.Sim.Core;
 using FinalFrontier.Sim.Data;
 using FinalFrontier.Sim.Math;
@@ -653,7 +654,9 @@ public partial class OrbitView : Node3D
     /// <summary>City lights for the night side: your buildings glow warm (bases brightest), the natives' settlement dimly.</summary>
     private void RefreshLights()
     {
-        var stamp = _surface.Structures.Count * 7919L + _surface.Bases(_localPlayer).Count;
+        // Assembling cores light up when they turn Complete, so count those too.
+        var stamp = _surface.Structures.Count * 7919L + _surface.Bases(_localPlayer).Count
+            + 104729L * _surface.Structures.Count(x => x.State == StructureState.Complete);
         if (stamp == _lightsStamp) return;
         _lightsStamp = stamp;
         var map = _surface.Map;

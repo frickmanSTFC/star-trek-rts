@@ -40,7 +40,8 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
 
 1. **Scan:** the floating labels are the orbital scan's deposit hints per region. Hover any tile for its terrain.
 2. **Land:** green tiles are valid landing sites (plains or desert, open land on every side). Left-click to land: three drop ships bring the outpost down in three modules, which crawl together and unfold into the Colony Hub (its uplink to the ship comes online when it is done).
-3. **Survey:** after touchdown the Colony Hub starts a small trickle of metal, and two survey rovers and a mining
+3. **Survey:** at touchdown two survey rovers and a mining crawler roll out; the Colony Hub needs about 20 s to assemble
+   (no power, storage, building or trickle until then), then it starts a small trickle of metal. The rovers and the mining
    crawler roll out (all selected). Right-click a tile to drive there; deposits appear as glowing crystals as tiles
    are surveyed.
 4. **Mine:** select the crawler and right-click a surveyed deposit: it drives there, unfurls and starts digging.

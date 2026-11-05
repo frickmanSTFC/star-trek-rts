@@ -17,7 +17,7 @@ public class VehicleBayTests
         var sim = MatchSetup.CreatePlanetLanding(Data, 1701);
         var site = Enumerable.Range(0, sim.Surface!.Map.Grid.Count).First(t => sim.Surface.CanLand(0, t));
         sim.Schedule(0, new LandColonyCommand(0, site));
-        for (var i = 0; i <= Data.Landing.DescentSeconds * Simulation.TickRate; i++) sim.Step();
+        for (var i = 0; i <= TestData.ReadyTicks(Data); i++) sim.Step();
         hub = site;
         // Plenty to spend, so costs never get in the way unless a test wants them to.
         sim.Players[0].Stock.Add(R("duranium"), Fix64.FromInt(1000));

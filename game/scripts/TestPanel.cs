@@ -560,7 +560,7 @@ public partial class TestPanel : PanelContainer
             if (Live() is not { } x) return;
             var d = Data.Building(x.DefId);
             title.Text = (d.Levels.Count > 0 ? $"{d.Name} · {Surface.LevelName(x)}" : d.Name).ToUpperInvariant();
-            var state = x.State != StructureState.Complete ? "under construction" : x.Broken ? "broken down" : x.Status switch
+            var state = x.Assembling ? "assembling" : x.State != StructureState.Complete ? "under construction" : x.Broken ? "broken down" : x.Status switch
             {
                 StructureStatus.Working => "running",
                 StructureStatus.LowPower => "low power",
@@ -745,7 +745,13 @@ public partial class TestPanel : PanelContainer
         }
 
         var any = false;
-        if (s.State != StructureState.Complete)
+        if (s.Assembling) // down from orbit: it can only be finished now (BuildProgress 1), not scrubbed
+        {
+            any = true;
+            Progress("Assembly", x => Surface.AssembleFraction(x, Sim.Tick).ToFloat(), "Finish now",
+                x => Apply($"finished assembling {def.Name}", new[] { new DebugStructureCommand(Me, id, DebugStructureField.BuildProgress, Fix64.One) }, null), null);
+        }
+        else if (s.State != StructureState.Complete)
         {
             any = true;
             Progress("Construction", x => Surface.BuildFraction(x).ToFloat(), "Finish now",

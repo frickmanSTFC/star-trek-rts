@@ -942,7 +942,8 @@ public partial class PlanetDriver : Node3D, ITestHost
             if (_seen.TryGetValue(s.Id, out var was) && was != now)
             {
                 var name = _data.Building(s.DefId).Name;
-                if (was.State != StructureState.Complete && s.State == StructureState.Complete) _hud.PushEvent($"{name} completed", new Color(0.62f, 0.82f, 1f));
+                if (was.State != StructureState.Complete && s.State == StructureState.Complete)
+                    _hud.PushEvent(was.State == StructureState.Assembling ? $"{name} assembled: {BaseName(s.BaseId)} is working" : $"{name} completed", new Color(0.62f, 0.82f, 1f));
                 if (was.DefId != s.DefId) _hud.PushEvent($"{BaseName(s.BaseId)} upgraded: {name} (Level {_data.Building(s.DefId).Level})", PlanetHud.Accent);
                 if (was.Status != StructureStatus.NoUpkeep && s.Status == StructureStatus.NoUpkeep) _hud.PushEvent($"{name} idle: can't pay upkeep", new Color(1f, 0.7f, 0.42f));
                 if (was.Status != StructureStatus.Depleted && s.Status == StructureStatus.Depleted) _hud.PushEvent($"{name}: deposit used up", new Color(1f, 0.7f, 0.42f));
@@ -1337,7 +1338,8 @@ public partial class PlanetDriver : Node3D, ITestHost
                 else _hud.PushEvent($"Can't upgrade the {name}: {problem}", warn);
                 break;
             case "cancel":
-                _sim.Schedule(_sim.Tick + InputDelayTicks, new CancelBuildingCommand(LocalPlayer, s.Id));
+                if (s.Assembling) _hud.PushEvent($"{name}: {PlanetSurface.AssemblingProblem}", warn); // came down from orbit: nothing to cancel
+                else _sim.Schedule(_sim.Tick + InputDelayTicks, new CancelBuildingCommand(LocalPlayer, s.Id));
                 break;
             case "maintain":
                 var why = s.MaintenanceOrdered ? null : Surface.MaintenanceProblem(LocalPlayer, s.Id);
@@ -1606,12 +1608,18 @@ public partial class PlanetDriver : Node3D, ITestHost
                 }).ToList(), true);
             return;
         }
-        _hud.ShowCommands(landed ? $"BUILD AT {BaseName(_selectedBase).ToUpperInvariant()}" : "BUILD (after landing)",
+        // Nothing can be placed until a base has assembled (the first hub, or an outpost dropped from orbit).
+        var readyBase = Surface.Bases(LocalPlayer).Any(b => b.State == StructureState.Complete);
+        var selectedCore = Surface.FindStructure(_selectedBase);
+        var buildTitle = !landed ? "BUILD (after landing)"
+            : selectedCore is { Assembling: true } ? $"BUILD · {BaseName(_selectedBase).ToUpperInvariant()} ASSEMBLING {PlanetSurface.AssembleSecondsLeft(selectedCore, _sim.Tick)} S"
+            : $"BUILD AT {BaseName(_selectedBase).ToUpperInvariant()}";
+        _hud.ShowCommands(buildTitle,
             _data.BuildMenu.Select((id, i) =>
             {
                 var def = _data.Building(id);
                 return new CommandView(id, $"[{i + 1}]", def.Name, Amounts(def.Cost, false, shortNames: true), stock.CanAfford(def.Cost), _placing == id);
-            }).ToList(), landed);
+            }).ToList(), landed && readyBase);
     }
 
     private void ShowBase(SurfaceStructure core)
@@ -1642,7 +1650,9 @@ public partial class PlanetDriver : Node3D, ITestHost
             cost = Amounts(next.Cost, false, shortNames: true);
             var problem = Surface.UpgradeProblem(_sim, LocalPlayer, core.Id);
             enabled = problem == null;
-            if (problem != null && problem != "not enough resources") line += $"\n({problem})";
+            if (core.Assembling) // came down from orbit and isn't working yet: the button stays disabled
+                line = $"Assembling… {PlanetSurface.AssembleSecondsLeft(core, _sim.Tick)} s: no power, storage, build range or repair pad yet\nNext: {next.Name} (Level {next.Level}) once it is done";
+            else if (problem != null && problem != "not enough resources") line += $"\n({problem})";
         }
         else line = "Top level";
 
@@ -1914,6 +1924,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var red = new Color(1f, 0.42f, 0.36f);
         var (status, statusColour) = s.State switch
         {
+            StructureState.Assembling => ($"Assembling… {PlanetSurface.AssembleSecondsLeft(s, _sim.Tick)} s", new Color(0.62f, 0.82f, 1f)),
             StructureState.Queued => ("Queued: waits for a free build queue", PlanetHud.Accent),
             StructureState.Building => ($"Under construction", new Color(0.62f, 0.82f, 1f)),
             _ => s.Status switch
@@ -2023,7 +2034,13 @@ public partial class PlanetDriver : Node3D, ITestHost
         var progress = -1f;
         var progressLabel = "";
         var progressText = "";
-        if (!complete)
+        if (s.Assembling)
+        {
+            progress = Surface.AssembleFraction(s, _sim.Tick).ToFloat();
+            progressLabel = "Assembling";
+            progressText = $"{PlanetSurface.AssembleSecondsLeft(s, _sim.Tick)} s left  ·  no output, power, storage or build range until then";
+        }
+        else if (!complete)
         {
             progress = Surface.BuildFraction(s).ToFloat();
             progressLabel = s.State == StructureState.Queued ? "Queued" : "Construction";
@@ -2054,7 +2071,11 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         // Buttons.
         var actions = new List<ActionView>();
-        if (!complete) actions.Add(new ActionView("cancel", "CANCEL [X]", "full refund", true));
+        if (s.Assembling)
+        {
+            if (def.Wears) actions.Add(new ActionView("maintain", "MAINTAIN [M]", PlanetSurface.AssemblingProblem, false));
+        }
+        else if (!complete) actions.Add(new ActionView("cancel", "CANCEL [X]", "full refund", true));
         else
         {
             if (s.UpgradingLevel > 0) actions.Add(new ActionView("cancel", "CANCEL UPGRADE [X]", "full refund", true));
@@ -2091,7 +2112,11 @@ public partial class PlanetDriver : Node3D, ITestHost
         sb.Append(terrain.Passable ? $" · move cost {terrain.MoveCost}" : " · impassable");
         if (terrain.Buildable) sb.Append(" · buildable");
         var structure = Surface.StructureAt(tile);
-        if (structure != null) sb.Append('\n').Append(_data.Building(structure.DefId).Name);
+        if (structure != null)
+        {
+            sb.Append('\n').Append(_data.Building(structure.DefId).Name);
+            if (structure.Assembling) sb.Append($" · Assembling… {PlanetSurface.AssembleSecondsLeft(structure, _sim.Tick)} s");
+        }
 
         if (Me.Phase == LandingPhase.InOrbit)
         {
@@ -2153,6 +2178,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         PlacementProblem.NeedsTech => "research it first (build a Research Lab)",
         PlacementProblem.NotLanded => "land first",
         PlacementProblem.OffMap => "off the map",
+        PlacementProblem.CoreAssembling => PlanetSurface.AssemblingProblem,
         _ => "not available",
     };
 

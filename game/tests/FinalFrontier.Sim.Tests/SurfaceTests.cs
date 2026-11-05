@@ -98,7 +98,7 @@ public class LandingTests
         var sim = MatchSetup.CreatePlanetLanding(TestData.Real, 1701);
         site = FirstLandingSite(sim);
         sim.Schedule(0, new LandColonyCommand(0, site));
-        for (var i = 0; i <= TestData.Real.Landing.DescentSeconds * Simulation.TickRate; i++) sim.Step();
+        for (var i = 0; i <= TestData.ReadyTicks(TestData.Real); i++) sim.Step();
         return sim;
     }
 
@@ -131,6 +131,14 @@ public class LandingTests
         Assert.Equal(data.Landing.Units.Count, sim.Surface.Units.Count);
         Assert.All(sim.Surface.Units, u => Assert.Equal(1, sim.Surface.Map.Grid.Distance(site, u.Tile)));
         foreach (var t in sim.Surface.Map.Grid.Within(site, data.Landing.RevealRadius)) Assert.True(p.Surveyed[t]);
+
+        // The hub is down but still assembling: no trickle until its uplink comes online.
+        var hub = sim.Surface.StructureAt(site)!;
+        Assert.Equal(StructureState.Assembling, hub.State);
+        Assert.Equal(p.UplinkTick, hub.ReadyTick);
+        Assert.Equal(Fix64.Zero, sim.IncomePerMinute(0)[data.Resource("duranium").Index]);
+        while (sim.Tick < p.UplinkTick) sim.Step();
+        Assert.Equal(StructureState.Complete, hub.State);
         Assert.True(sim.IncomePerMinute(0)[data.Resource("duranium").Index] > Fix64.Zero);
     }
 

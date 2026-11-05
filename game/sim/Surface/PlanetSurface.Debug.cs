@@ -84,18 +84,19 @@ public sealed partial class PlanetSurface
                         if (!def.Wears) return "this building doesn't wear";
                         return IsPercent(c.Value) ? null : "condition is 0 to 100";
                     case DebugStructureField.Broken:
-                        return s.State == StructureState.Complete ? null : "still under construction";
+                        return NotReadyProblem(s);
                     case DebugStructureField.NoWear:
                         return def.Wears ? null : "this building doesn't wear";
                     case DebugStructureField.Level:
                         if (def.Levels.Count == 0) return "this building has no levels";
-                        if (s.State != StructureState.Complete) return "still under construction";
+                        if (NotReadyProblem(s) is { } notReady) return notReady;
                         return c.Value >= Fix64.One && c.Value <= Fix64.FromInt(def.MaxLevel) && c.Value == Fix64.FromInt(c.Value.FloorToInt())
                             ? null : $"levels are 1 to {def.MaxLevel}";
                     case DebugStructureField.WorkSpeed:
                         return c.Value > Fix64.Zero && c.Value <= MaxWorkSpeed ? null : "work speed is above 0, up to 100";
                     case DebugStructureField.BuildProgress:
                         if (s.State == StructureState.Complete) return "already built";
+                        if (s.Assembling && c.Value < Fix64.One) return "still assembling: it can only be finished now";
                         return IsShare(c.Value) ? null : "progress is 0 to 1";
                     case DebugStructureField.UpgradeProgress:
                         if (s.UpgradingLevel == 0 && s.UpgradingTo == null) return "not upgrading";

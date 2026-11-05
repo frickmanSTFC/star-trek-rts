@@ -25,4 +25,7 @@ public enum PlacementProblem
 
     /// <summary>Inside the native settlement's land (Prime Directive).</summary>
     NativeLand,
+
+    /// <summary>Only in range of a colony core that is still assembling after coming down from orbit.</summary>
+    CoreAssembling,
 }

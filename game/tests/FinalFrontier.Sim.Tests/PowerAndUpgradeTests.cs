@@ -20,7 +20,7 @@ public class PowerAndUpgradeTests
                 .FirstOrDefault(t => t != site && map.DepositResource[t] >= 0 && map.Terrain(t).Buildable, -1);
             if (near < 0) continue;
             sim.Schedule(0, new LandColonyCommand(0, site));
-            for (var i = 0; i <= data.Landing.DescentSeconds * Simulation.TickRate; i++) sim.Step();
+            for (var i = 0; i <= TestData.ReadyTicks(data); i++) sim.Step();
             hub = site;
             deposit = near;
             return sim;

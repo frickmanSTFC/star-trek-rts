@@ -728,9 +728,10 @@ public partial class PlanetView : Node3D
         foreach (var s in _surface.Structures)
         {
             seen.Add(s.Id);
-            var complete = s.State == StructureState.Complete;
+            // An assembling core (down from orbit) is a solid model, not a hologram; LandingView hides it while it plays.
+            var complete = s.State is StructureState.Complete or StructureState.Assembling;
             var needsModel = !_structures.TryGetValue(s.Id, out var v)
-                || (v.State != StructureState.Complete && complete)
+                || (v.State is not (StructureState.Complete or StructureState.Assembling) && complete)
                 || v.DefId != s.DefId; // a finished upgrade changes the model
             if (needsModel)
             {
@@ -771,6 +772,13 @@ public partial class PlanetView : Node3D
             }
 
             v.Model.Scale = Vector3.One;
+            if (s.Assembling)
+            {
+                // (LandingView lets go within the last tick, so no label for that sliver.)
+                v.Label.Text = s.ReadyTick - _sim.Tick > 1 ? $"Assembling {PlanetSurface.AssembleSecondsLeft(s, _sim.Tick)} s" : "";
+                v.Label.Modulate = new Color(0.6f, 0.85f, 1f);
+                continue;
+            }
             var upgrading = s.UpgradingTo != null || s.UpgradingLevel > 0;
             v.Label.Text = upgrading ? $"Upgrading {Mathf.RoundToInt(_surface.UpgradeFraction(s).ToFloat() * 100)}%"
                 : s.Broken ? (s.AutoRepairing ? "Drones repairing" : "Broken down")

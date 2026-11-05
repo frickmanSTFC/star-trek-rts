@@ -29,6 +29,57 @@ public sealed partial class PlanetSurface
     /// (feeds the helm's surface video and telemetry).</summary>
     public bool UplinkOnline(int player, long tick) =>
         player >= 0 && player < _players.Count && _players[player].Phase == LandingPhase.Landed && tick >= _players[player].UplinkTick;
+
+    // ---------------------------------------------------------------- assembling cores
+    // A core that comes down from orbit (the first landing's hub, an outpost drop) stands on its tile from touchdown but is
+    // StructureState.Assembling until its ReadyTick. Every "finished building" rule here tests State == Complete, so an
+    // assembling core gets no output, power, storage, build range, build queues, repair pad, depot, crew or wear for free;
+    // the problem texts below say why.
+
+    /// <summary>What players are told while a core is still assembling.</summary>
+    public const string AssemblingProblem = "the outpost is still assembling";
+
+    /// <summary>Why a structure can't be worked with yet (null = it's finished): still assembling, or under construction.</summary>
+    public static string? NotReadyProblem(SurfaceStructure s) => s.State switch
+    {
+        StructureState.Complete => null,
+        StructureState.Assembling => AssemblingProblem,
+        _ => "still under construction",
+    };
+
+    /// <summary>How long a core that comes down from orbit takes to assemble (landing.assemble_seconds), in ticks.</summary>
+    private long AssembleTicks => (long)_data.Landing.AssembleSeconds * Simulation.TickRate;
+
+    /// <summary>Whole seconds (rounded up) until an assembling core is ready at this tick; 0 if it isn't assembling.</summary>
+    public static int AssembleSecondsLeft(SurfaceStructure s, long tick) =>
+        s.Assembling ? (int)System.Math.Max(0, (s.ReadyTick - tick + Simulation.TickRate - 1) / Simulation.TickRate) : 0;
+
+    /// <summary>How far an assembling core has got at this tick, 0..1 (1 if it isn't assembling).</summary>
+    public Fix64 AssembleFraction(SurfaceStructure s, long tick)
+    {
+        var total = AssembleTicks;
+        if (!s.Assembling || total <= 0) return Fix64.One;
+        var left = System.Math.Clamp(s.ReadyTick - tick, 0, total);
+        return Fix64.One - Fix64.FromInt((int)left) / Fix64.FromInt((int)total);
+    }
+
+    /// <summary>A colony core coming down from orbit: on its tile at once, assembling until readyTick (Complete at once
+    /// when there's nothing to wait for, e.g. assemble_seconds 0).</summary>
+    private SurfaceStructure PlaceCore(int owner, string defId, int tile, long now, long readyTick)
+    {
+        var assembling = readyTick > now;
+        var s = PlaceStructure(owner, defId, tile, 0, assembling ? StructureState.Assembling : StructureState.Complete, 0);
+        if (assembling) s.ReadyTick = readyTick;
+        return s;
+    }
+
+    /// <summary>Cores turn Complete at the end of the step before their ReadyTick, so from that tick on (the tick
+    /// UplinkOnline turns true for the first landing) they count as finished, and the next step is their first working one.</summary>
+    private void FinishAssembly(long nextTick)
+    {
+        foreach (var s in _structures)
+            if (s.Assembling && nextTick >= s.ReadyTick) Complete(s);
+    }
     public IReadOnlyList<SurfaceUnit> Units => _units;
     public IReadOnlyList<SurfaceStructure> Structures => _structures;
 
@@ -430,7 +481,7 @@ public sealed partial class PlanetSurface
         if (level.Range > 0 && DistanceToOwn(player, tile) > level.Range) return $"out of range ({level.Range} tiles from your bases or people)";
         if (payload == OrbitRules.Supplies)
         {
-            if (BaseFor(player, tile) == 0) return "beam supplies into one of your bases";
+            if (BaseFor(player, tile) == 0) return CoreFor(player, tile, StructureState.Assembling) != 0 ? AssemblingProblem : "beam supplies into one of your bases";
             if (p.Hold.All(x => x <= Fix64.Zero)) return "the hold is empty";
             if (FreeStorage(sim, player) <= Fix64.Zero) return "storage is full";
             return null;
@@ -527,7 +578,7 @@ public sealed partial class PlanetSurface
                         if (_structureAt[t] != 0) clear = false;
                     if (clear)
                     {
-                        PlaceStructure(d.Owner, d.Payload, d.Tile, 0, StructureState.Complete, 0);
+                        PlaceCore(d.Owner, d.Payload, d.Tile, sim.Tick, d.ArriveTick + AssembleTicks); // LandingView: touchdown at ArriveTick
                         Reveal(d.Owner, d.Tile, _data.Landing.RevealRadius);
                     }
                     else
@@ -690,7 +741,7 @@ public sealed partial class PlanetSurface
         var s = FindStructure(structureId);
         if (s == null || s.Owner != player) return "not yours";
         if (!_data.Building(s.DefId).Wears || _data.Maintenance == null) return "doesn't need maintenance";
-        if (s.State != StructureState.Complete) return "still under construction";
+        if (NotReadyProblem(s) is { } notReady) return notReady;
         if (s.Condition >= Full && !s.Broken) return "in perfect condition";
         if (s.AutoRepairing) return "drones are already fixing it";
         return null;
@@ -837,7 +888,7 @@ public sealed partial class PlanetSurface
         if (s == null || s.Owner != player) return "not yours";
         var def = _data.Building(s.DefId);
         if (!def.Produces.Contains(unitId)) return "can't build that";
-        if (s.State != StructureState.Complete) return "still under construction";
+        if (NotReadyProblem(s) is { } notReady) return notReady;
         if (s._production.Count >= def.ProductionQueue) return "queue full";
         if (!sim.Players[player].Stock.CanAfford(_data.SurfaceUnit(unitId).Cost)) return "not enough resources";
         return null;
@@ -899,7 +950,7 @@ public sealed partial class PlanetSurface
         foreach (var u in _units)
             if (u.Tile == tile && u.Mode != UnitMode.Mobile) return PlacementProblem.Occupied;
         var baseId = BaseFor(player, tile);
-        if (baseId == 0) return PlacementProblem.OutOfRange;
+        if (baseId == 0) return CoreFor(player, tile, StructureState.Assembling) != 0 ? PlacementProblem.CoreAssembling : PlacementProblem.OutOfRange;
         var def = _data.Building(buildingId);
         if (def.RequiresLevel > 0 && _data.Building(FindStructure(baseId)!.DefId).Level < def.RequiresLevel) return PlacementProblem.NeedsLevel;
         if (def.RequiresTech.Length > 0 && (!_data.HasTech(def.RequiresTech) || !_players[player].Known[_data.Tech(def.RequiresTech).Index])) return PlacementProblem.NeedsTech;
@@ -915,13 +966,16 @@ public sealed partial class PlanetSurface
     /// The base a new building on this tile would join: the nearest of the player's finished cores whose
     /// build radius reaches it (ties go to the older base). 0 = out of range of every base.
     /// </summary>
-    public int BaseFor(int player, int tile)
+    public int BaseFor(int player, int tile) => CoreFor(player, tile, StructureState.Complete);
+
+    /// <summary>The nearest of the player's cores in this state whose build radius reaches the tile (0 = none).</summary>
+    private int CoreFor(int player, int tile, StructureState state)
     {
         var best = 0;
         var bestDist = int.MaxValue;
         foreach (var s in _structures)
         {
-            if (s.Owner != player || s.State != StructureState.Complete || s.Id != s.BaseId) continue;
+            if (s.Owner != player || s.State != state || s.Id != s.BaseId) continue;
             var radius = _data.Building(s.DefId).BuildRadius;
             var d = Map.Grid.Distance(s.Tile, tile);
             if (radius > 0 && d <= radius && d < bestDist)
@@ -933,18 +987,19 @@ public sealed partial class PlanetSurface
         return best;
     }
 
-    /// <summary>How many constructions the player can run at once across all bases.</summary>
+    /// <summary>How many constructions the player can run at once across all finished bases.</summary>
     public int BuildQueues(int player)
     {
         var n = 0;
-        foreach (var b in Bases(player)) n += _data.Building(b.DefId).BuildQueues;
+        foreach (var b in Bases(player))
+            if (b.State == StructureState.Complete) n += _data.Building(b.DefId).BuildQueues;
         return n;
     }
 
     /// <summary>Fraction of construction done, 0..1.</summary>
     public Fix64 BuildFraction(SurfaceStructure s)
     {
-        if (s.State == StructureState.Complete) return Fix64.One;
+        if (s.State is StructureState.Complete or StructureState.Assembling) return Fix64.One; // assembling ≠ under construction
         var total = _data.Building(s.DefId).BuildSeconds * Simulation.TickRate;
         return total <= 0 ? Fix64.One : Fix64.Ratio(s.BuildTicks, total);
     }
@@ -967,7 +1022,7 @@ public sealed partial class PlanetSurface
     {
         var s = FindStructure(structureId);
         if (s == null || s.Owner != player) return "not yours";
-        if (s.State != StructureState.Complete) return "still under construction";
+        if (NotReadyProblem(s) is { } notReady) return notReady;
         if (s.UpgradingTo != null || s.UpgradingLevel > 0) return "already upgrading";
         var def = _data.Building(s.DefId);
         if (def.Levels.Count > 0)
@@ -1248,7 +1303,7 @@ public sealed partial class PlanetSurface
 
             case CancelBuildingCommand cancel:
                 var s = FindStructure(cancel.StructureId);
-                if (s == null || s.Owner != cancel.Player) return true;
+                if (s == null || s.Owner != cancel.Player || s.Assembling) return true; // a core from orbit can't be cancelled
                 var stock = sim.Players[s.Owner].Stock;
                 if (s.State == StructureState.Complete)
                 {
@@ -1310,7 +1365,7 @@ public sealed partial class PlanetSurface
         for (var i = 0; i < _players.Count; i++)
         {
             var p = _players[i];
-            if (p.Phase == LandingPhase.Descending && sim.Tick >= p.LandsAtTick) Touchdown(i, p);
+            if (p.Phase == LandingPhase.Descending && sim.Tick >= p.LandsAtTick) Touchdown(sim, i, p);
         }
 
         Construction();
@@ -1322,6 +1377,7 @@ public sealed partial class PlanetSurface
         Maintenance(sim);
         Crawlers(sim);
         MoveUnits();
+        FinishAssembly(sim.Tick + 1);
     }
 
     /// <summary>Each base's oldest unfinished buildings get that base's free build queues; the rest wait.</summary>
@@ -1333,7 +1389,7 @@ public sealed partial class PlanetSurface
             var free = core.State == StructureState.Complete ? _data.Building(core.DefId).BuildQueues : 0;
             foreach (var s in _structures)
             {
-                if (s.BaseId != core.Id || s.State == StructureState.Complete) continue;
+                if (s.BaseId != core.Id || s.State is StructureState.Complete or StructureState.Assembling) continue;
                 if (_players[s.Owner].InstantBuild) // test panel: no waiting, no queue used
                 {
                     finished.Add(s);
@@ -1655,11 +1711,12 @@ public sealed partial class PlanetSurface
         }
     }
 
-    private void Touchdown(int player, SurfacePlayer p)
+    /// <summary>The landing convoy is down: the hub stands on the landing tile (assembling until UplinkTick), the units roll out.</summary>
+    private void Touchdown(Simulation sim, int player, SurfacePlayer p)
     {
         p.Phase = LandingPhase.Landed;
-        p.UplinkTick = p.LandsAtTick + (long)_data.Landing.AssembleSeconds * Simulation.TickRate;
-        PlaceStructure(player, _data.Landing.HubBuilding, p.LandingTile, 0, StructureState.Complete, 0);
+        p.UplinkTick = p.LandsAtTick + AssembleTicks;
+        PlaceCore(player, _data.Landing.HubBuilding, p.LandingTile, sim.Tick, p.UplinkTick);
         Reveal(player, p.LandingTile, _data.Landing.RevealRadius);
 
         // Rovers roll out onto the first free passable neighbours, in neighbour order.

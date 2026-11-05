@@ -275,6 +275,14 @@ public enum StructureState
     Building,
 
     Complete,
+
+    /// <summary>
+    /// A colony core that has come down from orbit (the first landing's Colony Hub, or an outpost drop) and is still
+    /// combining its modules and unfurling: it stands on its tile but does nothing (no output, power, storage, build range,
+    /// build queues, repair pad, depot, crew or wear) until <see cref="SurfaceStructure.ReadyTick"/>, when it turns
+    /// Complete. Last in the enum so the hashed values of the others stay put.
+    /// </summary>
+    Assembling,
 }
 
 public enum StructureStatus
@@ -341,6 +349,13 @@ public sealed class SurfaceStructure
 
     /// <summary>Ticks of construction done so far.</summary>
     public int BuildTicks { get; internal set; }
+
+    /// <summary>For a core that came down from orbit: the tick it has finished assembling and is Complete (touchdown +
+    /// landing.assemble_seconds; for the first landing this is <see cref="SurfacePlayer.UplinkTick"/>). 0 = it never assembled.</summary>
+    public long ReadyTick { get; internal set; }
+
+    /// <summary>Still assembling after coming down from orbit (see <see cref="StructureState.Assembling"/>).</summary>
+    public bool Assembling => State == StructureState.Assembling;
 
     /// <summary>Unit orders at a Vehicle Bay, the one being assembled first (all already paid for).</summary>
     public IReadOnlyList<string> Production => _production;
@@ -414,6 +429,7 @@ public sealed class SurfaceStructure
         h.Add(Facing);
         h.Add((int)State);
         h.Add(BuildTicks);
+        h.Add(ReadyTick);
         h.Add((int)Status);
         h.Add(BaseId);
         h.Add(UpgradingTo ?? "");

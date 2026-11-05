@@ -19,7 +19,7 @@ public class DebugCommandTests
         var sim = MatchSetup.CreatePlanetLanding(data, 1701);
         var site = Enumerable.Range(0, sim.Surface!.Map.Grid.Count).First(t => sim.Surface.CanLand(0, t));
         sim.Schedule(0, new LandColonyCommand(0, site));
-        for (var i = 0; i <= data.Landing.DescentSeconds * Simulation.TickRate; i++) sim.Step();
+        for (var i = 0; i <= TestData.ReadyTicks(data); i++) sim.Step();
         hub = site;
         return sim;
     }

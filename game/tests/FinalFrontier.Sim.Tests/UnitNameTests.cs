@@ -27,7 +27,7 @@ public class UnitNameTests
             taken.Add(site);
             sim.Schedule(0, new LandColonyCommand(p, site));
         }
-        for (var i = 0; i <= data.Landing.DescentSeconds * Simulation.TickRate; i++) sim.Step();
+        for (var i = 0; i <= TestData.ReadyTicks(data); i++) sim.Step();
         foreach (var pl in sim.Players)
         {
             pl.Stock.Add(R("duranium"), Fix64.FromInt(2000));

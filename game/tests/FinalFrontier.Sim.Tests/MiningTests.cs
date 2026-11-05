@@ -23,7 +23,7 @@ public class MiningTests
                 t != site && map.DepositResource[t] >= 0 && map.Terrain(t).Buildable && map.Terrain(t).Passable, -1);
             if (near < 0) continue;
             sim.Schedule(0, new LandColonyCommand(0, site));
-            for (var i = 0; i <= Data.Landing.DescentSeconds * Simulation.TickRate; i++) sim.Step();
+            for (var i = 0; i <= TestData.ReadyTicks(Data); i++) sim.Step();
             hub = site;
             deposit = near;
             return sim;
