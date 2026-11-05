@@ -662,10 +662,10 @@ def dropship(P, name="VERAKH", number="09"):
         cylinder(f"NozzleGlow{s}", 0.31, 0.05, (s * 0.62, -5.92, 4.6), P["glow"], root, axis="Y", segments=24)
         box(f"Landing{s}", (0.3, 0.1, 0.1), (s * 0.45, 5.6, 4.05), P["lamp"], root, 0.02)
         # Decals on the lower flank, behind the wing root.
-        for nm, body, size, y, z, mw in ((f"Name{s}", name, 0.3, 1.6, 4.3, 1.5), (f"Number{s}", number, 0.55, -2.6, 4.5, 0.9)):
+        for nm, body, size, y, z, mw in ((f"Name{s}", name, 0.3, 1.6, 4.3, 1.5), (f"Number{s}", number, 0.5, -4.1, 4.7, 0.8)):
             x = se_surface_x(y, z, SHIP_W, SHIP_ZB, SHIP_ZT, 1.8, 2.4) + 0.02
             slope = (pchip(SHIP_W, y + 0.1) - pchip(SHIP_W, y - 0.1)) / 0.2
-            side_text(nm, body, size, y, z, s * x, s, P["number"], root, mw, yaw=s * math.atan(slope))
+            side_text(nm, body, size, y, z, s * x, s, P["number"], root, mw, yaw=-s * math.atan(slope))
     # Tail strut (third foot) and tail fan.
     strut("TailStrut", (0, -4.4, 4.0), (0, -5.2, 0.25), 0.13, P["grey"], root)
     box("TailFoot", (0.8, 0.9, 0.14), (0, -5.25, 0.07), P["dark"], root, 0.04)
