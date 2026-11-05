@@ -15,7 +15,8 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `sim/Ai/` | `ChaseAi`: placeholder opponent that only issues commands |
 | `tests/` | xUnit tests: math, RNG, data checks, determinism |
 | `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (one continuous terrain mesh over the hex grid, animated water, trees, deposit crystals, scan hints, landing, pod with touchdown dust, buildings, rovers) |
-| `shaders/` | `terrain`, `water`, `foliage` (all read the fog-of-war texture: one texel per tile) and `crystal` (glowing deposits) |
+| `shaders/` | `terrain`, `water`, `foliage`, `rock` (all read the fog-of-war texture: one texel per tile) and `crystal` (glowing deposits) |
+| `scripts/Scatter.cs`, `PlanetView.Scatter.cs`, `models/scatter/scatter.glb` | Landscape scatter: trees, bushes, grass, ferns, rocks, sandstone and ice per terrain (built by `blender/build_scatter.py`), chunked MultiMeshes with near/far LOD, wind and clearings under buildings |
 | `scripts/OrbitView.cs`, `OrbitPainter.cs`, `shaders/planet`, `atmosphere`, `clouds` (+ `air`/`clouds` includes) | Orbit view (the helm viewscreen): the painted globe with satellite-photo ground, animated oceans, two lit cloud layers with ground shadows and a ray-marched (Rayleigh + Mie) atmosphere; displays Planet (optional lat/long grid), Orbit (tracks of the ship, satellites and moon), Atmosphere (full clouds, storm cells) and System |
 | `scripts/SystemPlot.cs`, `OrbitLines.cs` | The helm's top-down star-system plot from the map's bodies; thin line meshes for tracks, rings and the grid |
 | `textures/planet/` | Tileable ground photos for the orbit globe, cut from NASA's Blue Marble Next Generation (public domain; credit: NASA Earth Observatory). Read at runtime, not imported (`.gdignore`) |

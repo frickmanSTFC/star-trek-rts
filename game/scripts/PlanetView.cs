@@ -88,7 +88,7 @@ public partial class PlanetView : Node3D
         BuildFogTexture();
         BuildTerrain();
         BuildWater();
-        BuildTrees();
+        BuildScatter();
         // Region hints are read on the orbital globe now (no floating words over the map).
         _deposits = BuildCrystals();
 
@@ -227,6 +227,7 @@ public partial class PlanetView : Node3D
         var delta = (float)GetProcessDeltaTime();
         UpdatePod(me, alpha);
         UpdateStructures(delta);
+        UpdateScatter();
         _time += delta;
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
         UpdateRovers(alpha, delta);
@@ -495,55 +496,7 @@ public partial class PlanetView : Node3D
         AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = FogMaterial("res://shaders/water.gdshader"), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
     }
 
-    /// <summary>
-    /// Scatter, placed with render-only randomness: conifers filling forest tiles, a few trees on plains,
-    /// boulders on hills and mountain slopes. Kept off the centre of buildable tiles, where buildings go.
-    /// </summary>
-    private void BuildTrees()
-    {
-        var map = _surface.Map;
-        var rng = new RandomNumberGenerator { Seed = 4242UL };
-        var trees = (new List<Transform3D>(), new List<Color>());
-        var rocks = (new List<Transform3D>(), new List<Color>());
-        for (var t = 0; t < map.Grid.Count; t++)
-        {
-            var id = map.Terrain(t).Id;
-            var treeCount = id switch
-            {
-                "forest" => 22,
-                "plains" => rng.Randf() < 0.45f ? rng.RandiRange(1, 4) : 0,
-                "hills" => rng.Randf() < 0.3f ? rng.RandiRange(1, 3) : 0,
-                _ => 0,
-            };
-            var rockCount = id switch { "hills" => rng.RandiRange(2, 5), "desert" => rng.Randf() < 0.3f ? 1 : 0, _ => 0 };
-            var keepClear = map.Terrain(t).Buildable ? 0.32f : 0f; // leave room for a building in the middle
-
-            for (var i = 0; i < treeCount + rockCount; i++)
-            {
-                var angle = rng.RandfRange(0, Mathf.Tau);
-                var dist = Mathf.Lerp(keepClear, 0.82f, Mathf.Sqrt(rng.Randf())) * HexRadius;
-                var offset = new Vector3(Mathf.Cos(angle) * dist, 0, Mathf.Sin(angle) * dist);
-                var ground = TileCentre(t) + offset;
-                ground.Y = GroundHeight(t, offset);
-                if (i < treeCount)
-                {
-                    var size = rng.RandfRange(0.8f, 1.5f);
-                    trees.Item1.Add(new Transform3D(Basis.Identity.Scaled(new Vector3(size, size * rng.RandfRange(0.9f, 1.4f), size)), ground + new Vector3(0, 1.6f * size, 0)));
-                    trees.Item2.Add(new Color(0.12f, 0.29f, 0.13f).Lerp(new Color(0.25f, 0.43f, 0.2f), rng.Randf()).SrgbToLinear());
-                }
-                else
-                {
-                    var size = rng.RandfRange(0.6f, id == "mountains" ? 2.4f : 1.6f);
-                    var basis = new Basis(new Vector3(rng.Randf(), rng.Randf(), rng.Randf()).Normalized(), rng.RandfRange(0, Mathf.Tau))
-                        .Scaled(new Vector3(size, size * rng.RandfRange(0.5f, 0.9f), size));
-                    rocks.Item1.Add(new Transform3D(basis, ground + new Vector3(0, 0.3f * size, 0)));
-                    rocks.Item2.Add(new Color(0.36f, 0.34f, 0.31f).Lerp(new Color(0.5f, 0.47f, 0.42f), rng.Randf()).SrgbToLinear());
-                }
-            }
-        }
-        AddScatter(new CylinderMesh { TopRadius = 0f, BottomRadius = 1.1f, Height = 3.4f, RadialSegments = 7, Rings = 1 }, trees.Item1, trees.Item2);
-        AddScatter(new SphereMesh { Radius = 1f, Height = 1.6f, RadialSegments = 6, Rings = 3 }, rocks.Item1, rocks.Item2);
-    }
+    // Trees, grass and rocks: BuildScatter / UpdateScatter in PlanetView.Scatter.cs.
 
     /// <summary>
     /// Approximate ground height at an offset from a tile's centre: blends from the centre height toward the
@@ -558,19 +511,6 @@ public partial class PlanetView : Node3D
         var edge = Mathf.Lerp(_cornerHeight[tile * 6 + k], _cornerHeight[tile * 6 + (k + 1) % 6], f);
         var r = Mathf.Clamp(offset.Length() / HexRadius, 0f, 1f);
         return Mathf.Lerp(_centreHeight[tile], edge, r);
-    }
-
-    private void AddScatter(Mesh mesh, List<Transform3D> transforms, List<Color> colours)
-    {
-        if (transforms.Count == 0) return;
-        var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = mesh };
-        mm.InstanceCount = transforms.Count;
-        for (var i = 0; i < transforms.Count; i++)
-        {
-            mm.SetInstanceTransform(i, transforms[i]);
-            mm.SetInstanceColor(i, colours[i]);
-        }
-        AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = FogMaterial("res://shaders/foliage.gdshader") });
     }
 
     private MultiMesh BuildCrystals()
