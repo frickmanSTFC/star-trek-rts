@@ -53,7 +53,7 @@ SHEET = [
     ("cardassian-outpost-l1-game.png", "Garrison Post L1, game camera", "x1.9"),
     ("cardassian-outpost-l5-front34.png", "Prefecture L5", "camera x3.6, one hex"),
     ("cardassian-outpost-l5-game.png", "Prefecture L5, game camera", "x2.0"),
-    ("cardassian-outpost-l10-front34.png", "Central Command L10 (capital)", "camera x9.5, seven hexes"),
+    ("cardassian-outpost-l10-front34.png", "Central Command L10 (capital)", "camera x11, seven hexes"),
     ("cardassian-outpost-l10-game.png", "Central Command L10, game camera", "x5.3"),
 ]
 
@@ -1173,7 +1173,7 @@ SHOT_LENS = {"front34": 40, "game": 30, "rear34": 40, "side": 38, "top": 30}
 # for the oblique shots (outposts read better from higher up).
 FRAMING = {
     "rover": (1.0, 1.3, 0.0, 1.0), "fed": (1.0, 1.3, 0.0, 1.0), "miner": (1.15, 1.4, 0.0, 1.15), "dropship": (2.1, 3.2, 0.1, 2.1),
-    "outpost1": (3.4, 2.4, 0.25, 1.9), "outpost5": (3.6, 3.6, 0.25, 2.0), "outpost10": (9.5, 15.0, 0.3, 5.3),
+    "outpost1": (3.4, 2.4, 0.25, 1.9), "outpost5": (3.6, 3.6, 0.25, 2.0), "outpost10": (11.0, 17.0, 0.3, 5.3),
 }
 
 
