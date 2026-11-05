@@ -633,13 +633,45 @@ public static class BuildingModels
     }
 
     /// <summary>
-    /// Mining crawler, folded for driving. Parts the view animates as it unfurls: "Leg0".."Leg3" (stabilizer
-    /// pivots; rotate about local Z from FoldedLeg to DeployedLeg), "Boom" (arm pivot; rotate about X up to
-    /// DeployedBoom), "Drill" under the boom tip (keep it upright, scale Y to reach the ground, spin "Bit"),
-    /// "Fill" (ore in the hopper; scale Y 0..1), "Dust" (particles while digging), "WorkLight", "Selected".
-    /// Front is -Z, like the rover.
+    /// Mining crawler (Mining Vehicle Mk I), folded for driving: the Blender model models/vehicles/mining_crawler.glb
+    /// (blender/build_miner.py --blank --out ...), or primitives when it isn't there or not imported yet. Parts the
+    /// view animates as it unfurls: "Leg0".."Leg3" (stabilizer pivots; rotate about local Z from FoldedLeg to
+    /// DeployedLeg; the glb's "Leg{i}Foot" hinges turn about local Z from FoldedFoot to 0), "Boom" (arm pivot; rotate
+    /// about X up to DeployedBoom), "Drill" under the boom tip (keep it upright, scale "String" Y to reach the ground,
+    /// spin "Bit"), "Body" (shakes while digging; holds "Fill" = ore in the hopper, scale Y 0..1, and in the glb the
+    /// lift-ram barrels "RamL"/"RamR" that aim at "RamRodL"/"RamRodR" on the Boom), "Dust" (particles while digging),
+    /// "WorkLight", "Selected", and "Smoke"/"Sparks"/"Fire" for breakdowns. "Beacon", the "TailLamp" material,
+    /// "Wiper0/1" and the decal markers (glb only) are RoverLook's. Front is -Z, like the rover.
     /// </summary>
     public static Node3D Crawler(Color owner)
+    {
+        var made = Imported("mining_crawler", owner, "Body", "Leg0", "Leg1", "Leg2", "Leg3", "Boom");
+        var n = made ?? PrimitiveCrawler(owner);
+        var glb = made != null;
+        // Where the work gear sits: the glb's power pack is mid-deck under the boom; the primitive's hopper is at the back.
+        var smokeAt = glb ? new Vector3(0.35f, 2.75f, -0.4f) : new Vector3(0.4f, 3.2f, 0.6f);
+        var sparksAt = glb ? new Vector3(0.78f, 2.25f, -0.2f) : new Vector3(0.9f, 2.4f, -0.6f);
+        var fireAt = glb ? new Vector3(0.45f, 2.6f, -0.3f) : new Vector3(0.2f, 2.1f, 0.9f);
+        AddCrawlerEffects(n, smokeAt, sparksAt, fireAt);
+        // Headlights in the nose (glb: lamps at 1.5 up on the front face, z -2.85).
+        n.AddChild(glb
+            ? new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 1.8f, SpotRange = 16f, SpotAngle = 32f, Position = new Vector3(0, 1.6f, -3.0f), RotationDegrees = new Vector3(-10, 0, 0) }
+            : new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 1.6f, SpotRange = 14f, SpotAngle = 30f, Position = new Vector3(0, 2.4f, -2.6f), RotationDegrees = new Vector3(-15, 0, 0) });
+        // Selection ring: round the hull, the boom tip (z -4.3 folded) and the braced pads (glb: their outer corners
+        // land at x 3.1, z -2.9 / 2.6, up to 4.24 from the centre).
+        n.AddChild(new MeshInstance3D
+        {
+            Name = "Selected",
+            Mesh = glb ? new TorusMesh { InnerRadius = 4.25f, OuterRadius = 4.55f, Rings = 32 } : new TorusMesh { InnerRadius = 3.6f, OuterRadius = 3.9f, Rings = 32 },
+            Position = new Vector3(0, 0.15f, 0),
+            MaterialOverride = Glow(new Color(1f, 0.95f, 0.5f), 2f),
+            Visible = false,
+        });
+        return n;
+    }
+
+    /// <summary>The crawler's body, legs and boom from primitives (until the glb is imported).</summary>
+    private static Node3D PrimitiveCrawler(Color owner)
     {
         var n = new Node3D();
         var hull = Metal(new Color(0.86f, 0.74f, 0.36f), 0.45f, 0.45f); // hazard yellow work vehicle
@@ -705,7 +737,12 @@ public static class BuildingModels
         Add(drill, new BoxMesh { Size = new Vector3(0.8f, 0.5f, 0.8f) }, Vector3.Zero, trim);
         boom.AddChild(drill);
         n.AddChild(boom);
+        return n;
+    }
 
+    /// <summary>The crawler's effects (both models): drill dust, work light, and breakdown smoke, sparks and fire.</summary>
+    private static void AddCrawlerEffects(Node3D n, Vector3 smokeAt, Vector3 sparksAt, Vector3 fireAt)
+    {
         // Dust kicked up where the drill meets the ground (off until digging).
         var dust = new CpuParticles3D
         {
@@ -742,11 +779,11 @@ public static class BuildingModels
             },
         };
         n.AddChild(dust);
-        n.AddChild(Puffs("Smoke", new Vector3(0.4f, 3.2f, 0.6f), new Color(0.16f, 0.15f, 0.14f), 40, 3.2f, 1.2f, 2.6f, 0.15f));
+        n.AddChild(Puffs("Smoke", smokeAt, new Color(0.16f, 0.15f, 0.14f), 40, 3.2f, 1.2f, 2.6f, 0.15f));
         n.AddChild(new CpuParticles3D
         {
             Name = "Sparks",
-            Position = new Vector3(0.9f, 2.4f, -0.6f),
+            Position = sparksAt,
             Amount = 18,
             Lifetime = 0.7f,
             Emitting = false,
@@ -759,22 +796,12 @@ public static class BuildingModels
             Gravity = new Vector3(0, -12f, 0),
             Mesh = new SphereMesh { Radius = 0.06f, Height = 0.12f, RadialSegments = 4, Rings = 2, Material = Glow(new Color(1f, 0.8f, 0.35f), 5f) },
         });
-        var fire = new Node3D { Name = "Fire", Position = new Vector3(0.2f, 2.1f, 0.9f), Visible = false };
+        var fire = new Node3D { Name = "Fire", Position = fireAt, Visible = false };
         Add(fire, new CylinderMesh { TopRadius = 0f, BottomRadius = 0.7f, Height = 1.8f, RadialSegments = 7 }, new Vector3(0, 0.9f, 0), Glow(new Color(1f, 0.45f, 0.1f), 4f));
         Add(fire, new CylinderMesh { TopRadius = 0f, BottomRadius = 0.4f, Height = 1.1f, RadialSegments = 6 }, new Vector3(0.1f, 0.6f, 0.1f), Glow(new Color(1f, 0.85f, 0.4f), 5f));
         fire.AddChild(new OmniLight3D { LightColor = new Color(1f, 0.5f, 0.2f), LightEnergy = 2.5f, OmniRange = 9f, Position = new Vector3(0, 1.2f, 0) });
         n.AddChild(fire);
         n.AddChild(new OmniLight3D { Name = "WorkLight", LightColor = new Color(1f, 0.85f, 0.6f), LightEnergy = 1.6f, OmniRange = 10f, Position = new Vector3(0, 3.5f, -BoomReach), Visible = false });
-        n.AddChild(new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 1.6f, SpotRange = 14f, SpotAngle = 30f, Position = new Vector3(0, 2.4f, -2.6f), RotationDegrees = new Vector3(-15, 0, 0) });
-        n.AddChild(new MeshInstance3D
-        {
-            Name = "Selected",
-            Mesh = new TorusMesh { InnerRadius = 3.6f, OuterRadius = 3.9f, Rings = 32 },
-            Position = new Vector3(0, 0.15f, 0),
-            MaterialOverride = Glow(new Color(1f, 0.95f, 0.5f), 2f),
-            Visible = false,
-        });
-        return n;
     }
 
     /// <summary>A soft particle plume (smoke, dust) that is off until the view turns it on.</summary>
@@ -819,9 +846,14 @@ public static class BuildingModels
         };
     }
 
-    /// <summary>Leg pivot angles (degrees about local Z): folded up against the hull, and braced out on the ground.</summary>
-    public const float FoldedLeg = 78f;
+    /// <summary>Leg pivot angles (degrees about local Z): folded up against the hull (85: the Mk I's beams stand
+    /// nearly upright beside the deck, clear of the hopper), and braced out on the ground (its pads sit flat at -38).</summary>
+    public const float FoldedLeg = 85f;
     public const float DeployedLeg = -38f;
+
+    /// <summary>The glb's foot hinge ("Leg{i}Foot", degrees about the leg's local Z) when folded: jack square to the
+    /// beam, pad flat on the beam's inner face; 0 when braced (blender/build_miner.py FOLDED_FOOT).</summary>
+    public const float FoldedFoot = 142f;
 
     /// <summary>Boom raise when deployed (degrees about X; positive lifts the front end).</summary>
     public const float DeployedBoom = 32f;

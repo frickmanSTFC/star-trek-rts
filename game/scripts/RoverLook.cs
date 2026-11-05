@@ -18,7 +18,7 @@ public static class RoverLook
     /// <summary>
     /// Paint the name and number on the model's decal markers. Each marker (an empty from the glb) carries the decal's
     /// placement, with its scale = (max width, 1, text height) in world units and the text normal on local +Y.
-    /// Models without markers (the primitive fallback, the crawler) are left alone.
+    /// Models without markers (the primitive fallbacks) are left alone; the rovers' and the mining crawler's glbs have them.
     /// </summary>
     public static void Paint(Node3D model, string? name, string? number)
     {

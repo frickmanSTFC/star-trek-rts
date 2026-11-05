@@ -1068,8 +1068,9 @@ public partial class PlanetView : Node3D
                 _grime[u.Id] = RoverLook.Grime.Attach(model, def.CanMine ? 3.2f : 2.4f);
                 _lamps[u.Id] = RoverLook.Lamps.Attach(model, u.Id);
                 if (_lamps[u.Id].Area is { } wiped) _grime[u.Id].SetWipers(wiped);
-                // Wheel spray from behind the rear wheels (rover) or the back of the tracks (crawler); +Z is the back.
-                var (sx, sz) = def.CanMine ? (1.75f, 2.9f) : def.Mark switch { 1 => (1.3f, 1.75f), 3 => (1.5f, 2.5f), _ => (1.35f, 2.3f) };
+                // Wheel spray from behind the rear wheels (rover) or just behind the tracks' rear sprockets (crawler,
+                // Mining Vehicle Mk I: tracks at x ±1.13, ending at z 2.16 behind the scrapers); +Z is the back.
+                var (sx, sz) = def.CanMine ? (1.13f, 2.4f) : def.Mark switch { 1 => (1.3f, 1.75f), 3 => (1.5f, 2.5f), _ => (1.35f, 2.3f) };
                 model.AddChild(new SprayRig(new[] { new Vector3(-sx, 0.15f, sz), new Vector3(sx, 0.15f, sz) }));
                 AddChild(model);
                 _rovers[u.Id] = model;
@@ -1436,13 +1437,19 @@ public partial class PlanetView : Node3D
         if (u.Mode == UnitMode.Packing) f = Mathf.Max(0f, f - alpha / total);
 
         var legs = Stage(f, 0f, 0.4f);
+        var feet = Stage(f, 0.02f, 0.3f); // the pads swing down off the beams while the legs go out, before they touch
         var boom = Stage(f, 0.3f, 0.75f);
         var drill = Stage(f, 0.7f, 1f);
         for (var i = 0; i < 4; i++)
             if (model.GetNodeOrNull<Node3D>($"Leg{i}") is { } leg)
+            {
                 leg.RotationDegrees = new Vector3(0, i >= 2 ? 180 : 0, Mathf.Lerp(BuildingModels.FoldedLeg, BuildingModels.DeployedLeg, legs)); // legs 2 and 3 are on the left
+                if (leg.GetNodeOrNull<Node3D>($"Leg{i}Foot") is { } foot)
+                    foot.RotationDegrees = new Vector3(0, 0, Mathf.Lerp(BuildingModels.FoldedFoot, 0f, feet));
+            }
         var angle = BuildingModels.DeployedBoom * boom;
-        if (model.GetNodeOrNull<Node3D>("Boom") is { } arm)
+        var arm = model.GetNodeOrNull<Node3D>("Boom");
+        if (arm != null)
         {
             arm.RotationDegrees = new Vector3(angle, 0, 0);
             if (arm.GetNodeOrNull<Node3D>("Drill") is { } head)
@@ -1471,6 +1478,16 @@ public partial class PlanetView : Node3D
                 var y = target < fill.Scale.Y ? target : Mathf.Lerp(fill.Scale.Y, target, Mathf.Min(1f, delta * 6f));
                 fill.Scale = new Vector3(1, y, 1);
             }
+            // Lift rams (glb): each barrel on the hull points at its rod's pin on the boom, and the rod back at the
+            // barrel's lug, so the pair telescopes as the boom rises. Both turn about X only; their glb axis is -Z.
+            if (arm != null)
+                foreach (var side in new[] { "L", "R" })
+                {
+                    if (body.GetNodeOrNull<Node3D>($"Ram{side}") is not { } barrel || arm.GetNodeOrNull<Node3D>($"RamRod{side}") is not { } rod) continue;
+                    var d = arm.Transform * rod.Position - body.Transform * barrel.Position; // lug → pin, in model space
+                    barrel.Rotation = new Vector3(Mathf.Atan2(d.Y, -d.Z), 0, 0);
+                    rod.Rotation = new Vector3(Mathf.Atan2(-d.Y, d.Z) - Mathf.DegToRad(angle), 0, 0);
+                }
         }
     }
 

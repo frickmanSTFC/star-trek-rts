@@ -8,13 +8,15 @@ render_finish.py does: the source is exec'd with its trailing main() call stripp
 
   /root/bpyenv/bin/python blender/build_miner.py --mode travel --preview blender/previews/miner --res 640 --samples 16
   /root/bpyenv/bin/python blender/build_miner.py --mode deployed --shots front34,side --preview blender/previews/miner
-  /root/bpyenv/bin/python blender/build_miner.py --blank --out /tmp/miner.glb      (glb; NOT into game/models yet)
+  /root/bpyenv/bin/python blender/build_miner.py --blank --out game/models/vehicles/mining_crawler.glb   (the game's model)
   python3 blender/build_miner.py --sheet blender/previews/miner                    (contact sheet, PIL, no Blender)
 
 Flags: --mode travel|deployed (deployed = legs braced, boom raised, drill string down to the ground), --preview <dir>,
 --res, --samples, --shots front34,rear34,side,game, --out <glb>, --name / --number (painted decals), --blank (decal
 spots as empties NameL/NameR/NameRear/NumberL/NumberR, build_vehicles' GAME CONTRACT), --fill 0..1 (ore in the hopper;
-default 0.6 travel / 0.85 deployed), --no-bake. Previews: <dir>/miner-<mode>-<shot>.png.
+default 0.6 travel / 0.85 deployed), --no-bake, --no-join. Previews: <dir>/miner-<mode>-<shot>.png.
+With --out the static parts are joined first (join_static: one mesh per rigid group, ~440 meshes -> ~20) and the
+baked paint goes in as JPEG; previews rendered in the same run show the joined model (it looks the same).
 
 Game contract (kept from the primitive so this can replace it; Blender +Y front, +Z up, 1 unit = 1 world unit):
   MiningCrawler (root)
@@ -22,15 +24,17 @@ Game contract (kept from the primitive so this can replace it; Blender +Y front,
                     decal markers, the rams' barrels RamL/RamR
       Fill          ore in the hopper: origin on the hopper floor, scale Blender Z (Godot Y) 0.01..1
     Leg0..Leg3      stabiliser pivots (0 right front, 1 right rear, 2 left front, 3 left rear); the leg reaches along
-                    local +X; Godot sets RotationDegrees (0, 0 | 180 for 2 and 3, angle), angle FoldedLeg 78 ->
+                    local +X; Godot sets RotationDegrees (0, 0 | 180 for 2 and 3, angle), angle FoldedLeg 85 ->
                     DeployedLeg -38 (BuildingModels' constants; the pads sit flat on the ground at -38)
+      Leg{i}Foot    jack + pad hinge at the beam end; Godot RotationDegrees (0, 0, FoldedFoot 142 -> 0): folded, the
+                    pad lies flat on top of the beam (tucked against the hull) instead of sticking out like an ear
     Boom            pivot at (0, -1.1, 3.45) (Godot (0, 3.45, 1.1)), BoomLength 5.4, rotates about X up to 32
                     (DeployedBoom); BoomReach / BoomTipHeight in the game stay valid
       Drill         at the boom tip (boom-local y 5.4), counter-rotated to hang straight down
         String      drill rod, 1 unit long down local -Z: scale Z = reach (0.3 folded, BoomTipHeight - 1 deployed)
         Bit         at z = -reach; 1.0 long, so the tip just touches the ground when deployed; the game spins it
-      RamRodL/R     lift-ram rods (pivot at the boom's cross pin); RamL/R in Body hold the barrels. Not animated by the
-                    game yet: each needs aiming at the other's pivot (see pose()).
+      RamRodL/R     lift-ram rods (pivot at the boom's cross pin); RamL/R in Body hold the barrels. PlanetView.
+                    AnimateCrawler aims each at the other's pivot every frame (the formula is in pose()).
   Materials: "Owner" (recoloured per player), "Amber" on the Beacon, "TailLamp" on the tail lamps.
 """
 import math
@@ -124,7 +128,8 @@ box, cylinder, prism, ribbon, text, empty, mesh_object, material, strut = (
 
 # ---------------------------------------------------------------- the game's numbers (BuildingModels.cs)
 
-FOLDED_LEG, DEPLOYED_LEG = 78.0, -38.0
+FOLDED_LEG, DEPLOYED_LEG = 85.0, -38.0
+FOLDED_FOOT = 142.0            # foot hinge when folded: jack square to the beam, pad flat on the beam's top (inner) face
 DEPLOYED_BOOM = 32.0
 BOOM_LENGTH = 5.4
 BOOM_PIVOT = Vector((0.0, -1.1, 3.45))
@@ -292,17 +297,18 @@ def leg(i, P, root):
     # Leg ram along the top (it would drive the swing).
     strut(f"Leg{i}Ram", (0.12, 0, 0.2), (BEAM * 0.62, 0, 0.17), 0.045, P["dark"], p)
     strut(f"Leg{i}RamRod", (BEAM * 0.62, 0, 0.17), (BEAM * 0.85, 0, 0.14), 0.026, P["chrome"], p)
-    # The jack hangs from the beam end, vertical in the deployed pose.
+    # The jack hangs from the beam end on the foot hinge (Leg{i}Foot), vertical in the deployed pose; folded, the foot
+    # turns FOLDED_FOOT so the pad lies on the beam's top face.
     a = math.radians(-DEPLOYED_LEG)
     down = Vector((math.sin(a), 0, -math.cos(a)))      # world down, in leg-local coordinates at the deployed angle
     tilt = (0, math.radians(DEPLOYED_LEG), 0)          # local rotation that makes local Z world-up when deployed
-    end = Vector((BEAM, 0, 0))
-    box(f"Leg{i}JackHead", (0.3, 0.3, 0.2), end + down * 0.02, P["yellow"], p, 0.02, rot=tilt)
-    cylinder(f"Leg{i}Jack", 0.075, JACK, end + down * (JACK / 2), P["chrome"], p, axis="Z", segments=14).rotation_euler = tilt
+    foot = empty(f"Leg{i}Foot", (BEAM, 0, 0), p)
+    box(f"Leg{i}JackHead", (0.3, 0.3, 0.2), down * 0.02, P["yellow"], foot, 0.02, rot=tilt)
+    cylinder(f"Leg{i}Jack", 0.075, JACK, down * (JACK / 2), P["chrome"], foot, axis="Z", segments=14).rotation_euler = tilt
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=8, radius=0.1)
-    mesh_object(f"Leg{i}Ball", bm, P["steel"], p, end + down * JACK, smooth=True)
-    pad = empty(f"Leg{i}Pad", end + down * (JACK + PAD_T / 2), p)
+    mesh_object(f"Leg{i}Ball", bm, P["steel"], foot, down * JACK, smooth=True)
+    pad = empty(f"Leg{i}Pad", down * (JACK + PAD_T / 2), foot)
     pad.rotation_euler = tilt
     # Square ribbed pad (backhoe style) on a hinge block.
     box(f"Leg{i}PadPlate", (0.56, 0.46, PAD_T), (0, 0, 0), P["dark"], pad, 0.015)
@@ -647,7 +653,7 @@ def ore_mound(P, parent, hx, hy, h):
 
 
 def pose(rig, mode, fill):
-    """Travel: legs folded (FOLDED_LEG), boom down on its rest, drill rod 0.3. Deployed: legs at DEPLOYED_LEG, boom
+    """Travel: legs folded (FOLDED_LEG, feet FOLDED_FOOT), boom down on its rest, drill rod 0.3. Deployed: legs at DEPLOYED_LEG, boom
     at DEPLOYED_BOOM, Drill hanging straight, rod down to the ground. The ram barrels (Body) and rods (Boom) are aimed
     at each other's pivot - the game would do the same each frame:
       barrel angle about X = atan2(dz, dy) of (pin - base);  rod angle = atan2 of (base - pin) - boom angle."""
@@ -655,6 +661,7 @@ def pose(rig, mode, fill):
     a = DEPLOYED_LEG if deployed else FOLDED_LEG
     for i, p in enumerate(rig["legs"]):
         p.rotation_euler = (0, -math.radians(a), math.pi if i >= 2 else 0)  # = Godot (0, 0|180, a)
+        bpy.data.objects[f"Leg{i}Foot"].rotation_euler = (0, -math.radians(0.0 if deployed else FOLDED_FOOT), 0)  # = Godot (0, 0, angle)
     phi = math.radians(DEPLOYED_BOOM if deployed else 0.0)
     rig["boom"].rotation_euler = (phi, 0, 0)
     rig["drill"].rotation_euler = (-phi, 0, 0)
@@ -772,6 +779,72 @@ def preview(folder):
         print("rendered", scene.render.filepath)
 
 
+# ---------------------------------------------------------------- game export
+
+# Nodes the game moves or looks up by name (BuildingModels.Crawler, PlanetView.AnimateCrawler, RoverLook): they stay
+# separate objects with their names; everything else is static relative to the nearest of them and gets joined.
+KEEP = ({"Body", "Boom", "Drill", "String", "Bit", "Fill", "Beacon", "RamL", "RamR", "RamRodL", "RamRodR"}
+        | set(bv["MARKERS"].values())
+        | {f"Leg{i}" for i in range(4)} | {f"Leg{i}Foot" for i in range(4)}
+        | {f"Wiper{k}" for k in range(2)} | {f"Wiper{k}Blade" for k in range(2)})
+
+
+def join_static(root):
+    """Join every mesh that never moves on its own into one mesh per rigid group: the group is the nearest ancestor
+    in KEEP (or the root); the joined object is "<group>Mesh", a child of the group at its origin, with one material
+    slot per material. Modifiers (bevels) are applied first; empties left with nothing under them are removed."""
+    def kept(o):
+        return o is root or o.name in KEEP
+
+    groups = {}
+    for o in root.children_recursive:
+        if o.type == "MESH" and not kept(o):
+            g = o.parent
+            while not kept(g):
+                g = g.parent
+            groups.setdefault(g, []).append(o)
+    parts = [o for os_ in groups.values() for o in os_]
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in parts:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = parts[0]
+    bpy.ops.object.convert(target="MESH")  # applies the bevel/solidify modifiers
+    for g, members in groups.items():
+        target = bv["link"](bpy.data.objects.new(f"{g.name}Mesh", bpy.data.meshes.new(f"{g.name}Mesh")), g)
+        bpy.context.view_layer.update()
+        bpy.ops.object.select_all(action="DESELECT")
+        for o in members:
+            o.select_set(True)
+        target.select_set(True)
+        bpy.context.view_layer.objects.active = target
+        bpy.ops.object.join()
+    while True:
+        bare = [o for o in root.children_recursive if o.type == "EMPTY" and not kept(o) and not o.children]
+        if not bare:
+            break
+        for o in bare:
+            bpy.data.objects.remove(o)
+    left = [root] + list(root.children_recursive)
+    missing = sorted(KEEP - {o.name for o in left})
+    if missing:
+        sys.exit(f"join_static: lost {missing}")
+    print(f"join_static: {len(parts)} meshes -> {len(groups)} joined; {len(left)} objects, "
+          f"{sum(o.type == 'MESH' for o in left)} meshes")
+
+
+def export_game(root, path):
+    """build_vehicles.export with the baked paint as JPEG (dirt paint doesn't need PNG; ~1.9 MB less)."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in [root] + list(root.children_recursive):
+        if not o.hide_render:
+            o.select_set(True)
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_apply=True, export_yup=True,
+                              export_lights=False, export_cameras=False, export_image_format="JPEG",
+                              export_jpeg_quality=90, export_image_quality=90)
+    print("exported", path)
+
+
 def main():
     if set(SHOTS) - set(SHOT_CAMS["travel"]):
         sys.exit(f"--shots takes {', '.join(SHOT_CAMS['travel'])}")
@@ -783,7 +856,9 @@ def main():
         for name in ("Hull", "Cab"):
             bv["weather_hull"](bpy.data.objects[name])
     if OUT:
-        bv["export"](root, OUT)
+        if "--no-join" not in argv:
+            join_static(root)
+        export_game(root, OUT)
     if PREVIEW:
         preview(PREVIEW)
 
