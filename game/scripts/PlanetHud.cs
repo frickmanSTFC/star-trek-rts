@@ -98,6 +98,7 @@ public partial class PlanetHud : CanvasLayer
     private readonly Dictionary<int, (Label Amount, Label Rate)> _chips = new();
     private Label _powerChip = null!;
     private Label _storageChip = null!;
+    private Control _storageBox = null!;
     private Label _researchChip = null!;
     private Label _researchSub = null!;
     private PanelContainer _help = null!;
@@ -460,7 +461,11 @@ public partial class PlanetHud : CanvasLayer
         _researchSub.Text = researchSub;
         _powerChip.Text = $"{Mathf.RoundToInt(powerUse)} / {Mathf.RoundToInt(powerSupply)}";
         _powerChip.AddThemeColorOverride("font_color", powerUse > powerSupply ? Warn : Ink);
-        _storageChip.Text = $"{Mathf.FloorToInt(stored)} / {Mathf.RoundToInt(capacity)}";
+        // capacity < 0 = hidden (the first outpost is still assembling, so there is no storage to show yet); the
+        // chip keeps its place in the bar so nothing shifts when it comes back.
+        _storageBox.Modulate = capacity < 0 ? Colors.Transparent : Colors.White;
+        _storageBox.MouseFilter = capacity < 0 ? Control.MouseFilterEnum.Ignore : Control.MouseFilterEnum.Pass;
+        _storageChip.Text = $"{Mathf.FloorToInt(stored)} / {Mathf.RoundToInt(Mathf.Max(capacity, 0))}";
         _storageChip.AddThemeColorOverride("font_color", stored >= capacity - 0.5f ? Warn : stored > capacity * 0.85f ? Accent : Ink);
         _clock.Text = clock;
     }
@@ -795,6 +800,7 @@ public partial class PlanetHud : CanvasLayer
         row.AddChild(power);
 
         var storage = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        _storageBox = storage;
         storage.AddThemeConstantOverride("separation", 8);
         storage.AddChild(IconTile("storage"));
         var storageText = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };

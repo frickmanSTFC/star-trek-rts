@@ -53,7 +53,7 @@ public partial class PlanetDriver
         if (online && !_uplinkAnnounced)
         {
             _uplinkAnnounced = true;
-            _hud.PushEvent("Outpost uplink established — surface feed and telemetry online", UplinkColour);
+            _hud.PushEvent($"{_data.Building(_data.Landing.HubBuilding).Name} assembled and working — uplink established, surface feed and telemetry online", UplinkColour);
             if (_inOrbit) _feed.Open = true;
             else _hud.PushEvent("Press O for the helm: the outpost's video feed and sensor readings are up", UplinkColour);
             _findingsAt = -1; // refresh the helm's findings now

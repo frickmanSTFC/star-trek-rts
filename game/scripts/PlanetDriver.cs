@@ -942,7 +942,9 @@ public partial class PlanetDriver : Node3D, ITestHost
             if (_seen.TryGetValue(s.Id, out var was) && was != now)
             {
                 var name = _data.Building(s.DefId).Name;
-                if (was.State != StructureState.Complete && s.State == StructureState.Complete)
+                // The first landing's hub finishes on the uplink tick; its "assembled" line is folded into the uplink event.
+                var firstHub = was.State == StructureState.Assembling && s.Tile == Me.LandingTile;
+                if (was.State != StructureState.Complete && s.State == StructureState.Complete && !firstHub)
                     _hud.PushEvent(was.State == StructureState.Assembling ? $"{name} assembled: {BaseName(s.BaseId)} is working" : $"{name} completed", new Color(0.62f, 0.82f, 1f));
                 if (was.DefId != s.DefId) _hud.PushEvent($"{BaseName(s.BaseId)} upgraded: {name} (Level {_data.Building(s.DefId).Level})", PlanetHud.Accent);
                 if (was.Status != StructureStatus.NoUpkeep && s.Status == StructureStatus.NoUpkeep) _hud.PushEvent($"{name} idle: can't pay upkeep", new Color(1f, 0.7f, 0.42f));
@@ -1544,8 +1546,10 @@ public partial class PlanetDriver : Node3D, ITestHost
         var seconds = _sim.Tick / Simulation.TickRate;
         var stored = (Surface.Stored(_sim, LocalPlayer) + Surface.InFlight(LocalPlayer)).ToFloat();
         var (research, researchSub) = ResearchChip();
+        var capacity = Surface.StorageCapacity(LocalPlayer).ToFloat();
+        if (capacity <= 0f && Surface.Structures.Any(s => s.Owner == LocalPlayer && s.Assembling)) capacity = -1f; // hidden while the outpost assembles
         _hud.ShowTop(_sim, LocalPlayer, $"{PlanetName.ToUpperInvariant()} · CLASS M", use, supply, stored,
-            Surface.StorageCapacity(LocalPlayer).ToFloat(), research, researchSub, $"{seconds / 60:00}:{seconds % 60:00}");
+            capacity, research, researchSub, $"{seconds / 60:00}:{seconds % 60:00}");
 
         var landed = Me.Phase == LandingPhase.Landed;
         _hud.ShowHints(ContextHints());
