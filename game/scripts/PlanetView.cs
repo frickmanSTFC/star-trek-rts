@@ -41,8 +41,8 @@ public partial class PlanetView : Node3D
     private readonly List<Label3D> _hintLabels = new();
     private MeshInstance3D _hover = null!;
     private StandardMaterial3D _hoverMaterial = null!;
-    private Node3D _pod = null!;
     private DropShipView _dropShips = null!;
+    private LandingView _landing = null!;
     private readonly Dictionary<int, Node3D> _rovers = new();
     private readonly Dictionary<int, RoverLook.Grime> _grime = new();
     private readonly Dictionary<int, RoverLook.Lamps> _lamps = new();
@@ -109,11 +109,10 @@ public partial class PlanetView : Node3D
         _rangeRing = new MeshInstance3D { Visible = false };
         AddChild(_rangeRing);
 
-        _pod = BuildingModels.Pod();
-        _pod.Visible = false;
-        AddChild(_pod);
         _dropShips = new DropShipView(this, sim, localPlayer) { Name = "DropShips" };
         AddChild(_dropShips);
+        _landing = new LandingView(this, sim, localPlayer, _dropShips) { Name = "Landing" };
+        AddChild(_landing);
         Refresh(0f);
     }
 
@@ -213,7 +212,6 @@ public partial class PlanetView : Node3D
         if (surveyed != _surveyedCount || spent != _spentCount || me.Phase != _lastPhase || vision != _visionSignature)
         {
             _spentCount = spent;
-            if (me.Phase == LandingPhase.Landed && _lastPhase == LandingPhase.Descending) Dust(TileCentre(me.LandingTile));
             _surveyedCount = surveyed;
             _lastPhase = me.Phase;
             _visionSignature = vision;
@@ -225,7 +223,7 @@ public partial class PlanetView : Node3D
         }
 
         var delta = (float)GetProcessDeltaTime();
-        UpdatePod(me, alpha);
+        _landing.Update(alpha, delta); // the first landing's drop ships and assembly (hides the hub until the uplink)
         UpdateStructures(delta);
         _time += delta;
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
@@ -777,63 +775,6 @@ public partial class PlanetView : Node3D
 
     // ---------------------------------------------------------------- dynamic objects
 
-    private void UpdatePod(SurfacePlayer me, float alpha)
-    {
-        _pod.Visible = me.Phase == LandingPhase.Descending;
-        if (!_pod.Visible) return;
-        var total = (float)(me.LandsAtTick - me.DescentStartTick);
-        var t = Mathf.Clamp((_sim.Tick - me.DescentStartTick + alpha) / total, 0f, 1f);
-        var eased = 1f - (1f - t) * (1f - t) * (1f - t); // fast entry, slow final braking
-        var ground = TileCentre(me.LandingTile);
-        _pod.Position = ground + new Vector3(0, Mathf.Lerp(420f, 0.2f, eased), 0);
-        _pod.RotationDegrees = new Vector3(0, t * 40f, 0);
-        if (_pod.GetNodeOrNull<Node3D>("Flame") is { } flame) flame.Scale = new Vector3(1, Mathf.Lerp(0.7f, 1.6f, t), 1);
-    }
-
-    /// <summary>One-shot dust cloud when the pod touches down.</summary>
-    private void Dust(Vector3 at)
-    {
-        var ramp = new Gradient
-        {
-            Offsets = new[] { 0f, 0.3f, 1f },
-            Colors = new[] { new Color(0.82f, 0.74f, 0.6f, 0.0f), new Color(0.78f, 0.7f, 0.56f, 0.55f), new Color(0.6f, 0.55f, 0.45f, 0f) },
-        };
-        var dust = new CpuParticles3D
-        {
-            Position = at + new Vector3(0, 0.5f, 0),
-            Amount = 90,
-            Lifetime = 2.6f,
-            OneShot = true,
-            Explosiveness = 0.95f,
-            Direction = Vector3.Up,
-            Spread = 85f,
-            InitialVelocityMin = 6f,
-            InitialVelocityMax = 22f,
-            Gravity = new Vector3(0, -2.5f, 0),
-            DampingMin = 3f,
-            DampingMax = 5f,
-            ScaleAmountMin = 0.8f,
-            ScaleAmountMax = 2.2f,
-            ColorRamp = ramp,
-            Mesh = new SphereMesh
-            {
-                Radius = 0.7f,
-                Height = 1.4f,
-                RadialSegments = 6,
-                Rings = 3,
-                Material = new StandardMaterial3D
-                {
-                    VertexColorUseAsAlbedo = true,
-                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                },
-            },
-            Emitting = true,
-        };
-        AddChild(dust);
-        GetTree().CreateTimer(4.0).Timeout += dust.QueueFree;
-    }
-
     /// <summary>
     /// Keeps one model per structure: a blue hologram that rises with construction progress, swapped for
     /// the solid model on completion. Labels show queue/progress or why a building is idle.
@@ -874,6 +815,8 @@ public partial class PlanetView : Node3D
                 _structures[s.Id] = v;
             }
             v!.State = s.State;
+            var assembling = _landing.Hides(s); // the landed outpost is still coming together (LandingView draws it)
+            v.Model.Visible = v.Label.Visible = !assembling;
 
             if (!complete)
             {
@@ -1134,12 +1077,14 @@ public partial class PlanetView : Node3D
                     model.Basis = model.Basis.Orthonormalized().Slerp(Basis.LookingAt(heading.Normalized(), Vector3.Up), Mathf.Min(1f, delta * 8f));
                 pos = rolled;
             }
+            var aboard = false;
             if (_dropShips.Unloading(u, pos, alpha, out var carried, out var driving))
             {
                 // Just delivered: it waits in its drop ship's bay, drives down the ramp, then on to its tile.
                 if (carried.Basis is { } pose) model.Basis = pose;
                 pos = carried.Origin;
                 rolling = driving;
+                aboard = carried.Basis != null && !driving; // still in the bay (maybe flying): no selection ring
             }
             model.Position = pos + new Vector3(0, 0.1f, 0);
             var ground = SprayRig.KindFor(_surface.Map, TileAt(pos));
@@ -1157,7 +1102,7 @@ public partial class PlanetView : Node3D
                 var wipe = ((moving || rolling) && ground is SprayKind.Water or SprayKind.Mud or SprayKind.Snow or SprayKind.Dust) || (onPad && dirty);
                 lamps.Update(moving || rolling, u.Broken || u.Integrity < Fix64.FromInt(50), wipe, delta);
             }
-            if (model.GetNodeOrNull<Node3D>("Selected") is { } ring) ring.Visible = SelectedUnits.Contains(u.Id);
+            if (model.GetNodeOrNull<Node3D>("Selected") is { } ring) ring.Visible = SelectedUnits.Contains(u.Id) && !aboard;
             if (model.GetNodeOrNull<Node3D>("Dish") is { } dish) dish.RotateY(delta * (moving ? 3f : 1f));
 
             var text = "";

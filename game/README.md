@@ -14,13 +14,14 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `sim/Surface/` | Planet surface: `HexGrid`, `SurfaceMap` (seeded terrain and deposit generation, orbital hints, landing sites), `Pathfinder` (A*), `PlanetSurface` (landing, rovers, surveying, placing and constructing buildings, upkeep, storage, mining, refining, mining crawlers and cargo pods, salvage) |
 | `sim/Ai/` | `ChaseAi`: placeholder opponent that only issues commands |
 | `tests/` | xUnit tests: math, RNG, data checks, determinism |
-| `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (one continuous terrain mesh over the hex grid, animated water, trees, deposit crystals, scan hints, landing, pod with touchdown dust, buildings, rovers) |
+| `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (one continuous terrain mesh over the hex grid, animated water, trees, deposit crystals, scan hints, landing, buildings, rovers) |
+| `scripts/DropShipView.cs`, `LandingView.cs` | Drop ships for orbit deliveries, and the first landing: three drop ships set the Level 1 outpost down in three modules, unload the rovers and the crawler, and the modules crawl together, lock and unfurl until the uplink comes online |
 | `shaders/` | `terrain`, `water`, `foliage` (all read the fog-of-war texture: one texel per tile) and `crystal` (glowing deposits) |
 | `scripts/OrbitView.cs`, `OrbitPainter.cs`, `shaders/planet`, `atmosphere`, `clouds` (+ `air`/`clouds` includes) | Orbit view (the helm viewscreen): the painted globe with satellite-photo ground, animated oceans, two lit cloud layers with ground shadows and a ray-marched (Rayleigh + Mie) atmosphere; displays Planet (optional lat/long grid), Orbit (tracks of the ship, satellites and moon), Atmosphere (full clouds, storm cells) and System |
 | `scripts/SystemPlot.cs`, `OrbitLines.cs` | The helm's top-down star-system plot from the map's bodies; thin line meshes for tracks, rings and the grid |
 | `textures/planet/` | Tileable ground photos for the orbit globe, cut from NASA's Blue Marble Next Generation (public domain; credit: NASA Earth Observatory). Read at runtime, not imported (`.gdignore`) |
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
-| `scripts/BuildingModels.cs` | Primitive-built models: hub (grows with level), mine, reactor, habitat, colony pod, survey rover |
+| `scripts/BuildingModels.cs`, `BuildingModels.Outpost.cs` | Primitive-built models (hub levels 2–3, mine, reactor, habitat, …) and the imported glb models: the Level 1 outpost (`models/buildings/outpost_l1.glb`), rovers, crawler, drop ship |
 | `scripts/PlanetHud.cs`, `Minimap.cs`, `Icons.cs` | Planet HUD: icon resource bar, event feed, tooltip, bottom panel (minimap, selected base or object, command card); icons are SVG paths drawn at runtime |
 | `scripts/Hud.cs` | The star-system view's simpler HUD |
 | `FinalFrontier.sln` | One solution for everything (Godot opens it too) |
@@ -36,7 +37,7 @@ biologics, landing), and pick a card on the right to deploy: land the colony fir
 outpost drops, shuttles, transporter beams and survey satellites. **O** switches between orbit and the surface.
 
 1. **Scan:** the floating labels are the orbital scan's deposit hints per region. Hover any tile for its terrain.
-2. **Land:** green tiles are valid landing sites (plains or desert, open land on every side). Left-click to drop the pod.
+2. **Land:** green tiles are valid landing sites (plains or desert, open land on every side). Left-click to land: three drop ships bring the outpost down in three modules, which crawl together and unfold into the Colony Hub (its uplink to the ship comes online when it is done).
 3. **Survey:** after touchdown the Colony Hub starts a small trickle of metal, and two survey rovers and a mining
    crawler roll out (all selected). Right-click a tile to drive there; deposits appear as glowing crystals as tiles
    are surveyed.

@@ -21,6 +21,10 @@ namespace FinalFrontier;
 /// The ship lands beside the unit's tile centre with its ramp toward it, turned to whichever of 12 headings keeps
 /// its footprint off buildings, water and mountains and on the flattest ground, then tilted to the ground under its
 /// pads. Another player's ship only shows while its tile is in sight (fog); your own always shows.
+/// <para>The first landing's three ships (<see cref="LandingView"/>) are convoy ships: LandingView flies them
+/// (<see cref="ConvoyShip.Approach"/>: down from orbit with an outpost module slung underneath, set it down, hop over
+/// to their landing spot) and names the unit each one carries; from touchdown on they unload and leave like any other.
+/// A convoy ship with <see cref="ConvoyShip.FliesAway"/> never lands: LandingView flies it the whole time.</para>
 /// </summary>
 public partial class DropShipView : Node3D
 {
@@ -70,6 +74,25 @@ public partial class DropShipView : Node3D
     private readonly Dictionary<int, Ship> _ships = new();   // by delivery id
     private readonly Dictionary<int, Ship> _byUnit = new();  // by the id of the unit it carries
 
+    /// <summary>Where a convoy ship is and how its engines and legs look at a moment (LandingView's flight).</summary>
+    public readonly record struct Flight(Transform3D Pose, float Lift, float Impulse, float LegsOut);
+
+    /// <summary>A ship LandingView flies (see the class summary). Times are seconds from <see cref="ArriveTick"/>.</summary>
+    public sealed class ConvoyShip
+    {
+        public required int Key;              // negative, so it never meets a delivery id
+        public required int Owner;
+        public required long ArriveTick;      // touchdown is 2 s before it (TouchdownAt), the ramp opens at it
+        public required float ShowFrom;       // first shown (seconds from ArriveTick, negative)
+        public required Transform3D Landed;   // from ConvoyLanding (unused when FliesAway)
+        public required bool Crawler;         // what it carries, for the ramp drive (wheelbase)
+        public required string Name, Number;
+        public required System.Func<float, Flight> Approach; // used before touchdown (the whole time when FliesAway)
+        public required System.Func<int> Resolve;            // the carried unit's id: 0 = not down yet, -1 = none
+        public bool FliesAway;
+        public float GoneAt;                  // FliesAway only: freed after this
+    }
+
     private sealed class Ship
     {
         public required int DeliveryId;
@@ -94,12 +117,15 @@ public partial class DropShipView : Node3D
         public float PathLength, DriveSeconds;
         public bool TouchedDown, LiftedOff, Shown;
         public float Time;          // this frame, seconds from ArriveTick
+        public ConvoyShip? Convoy;  // flown by LandingView until touchdown
+
+        public bool Flown => Convoy != null && (Convoy.FliesAway || Time < TouchdownAt);
 
         public float DescentFrom => Mathf.Min(TouchdownAt - 1f, Mathf.Max(-DescentSeconds, -(ArriveTick - LaunchTick) / (float)Simulation.TickRate));
         public float UnloadEnd => DriveFrom + DriveSeconds;
         public float CloseFrom => Mathf.Max(RampSeconds, UnloadEnd + CloseDelay);
         public float LiftFrom => CloseFrom + RampSeconds + SpoolSeconds;
-        public float Gone => LiftFrom + ClimbSeconds;
+        public float Gone => Convoy is { FliesAway: true } c ? c.GoneAt : LiftFrom + ClimbSeconds;
     }
 
     /// <summary>Where a unit coming off a drop ship is drawn: Origin on the ground under it; Basis null = leave its
@@ -131,12 +157,12 @@ public partial class DropShipView : Node3D
         foreach (var ship in _ships.Values)
         {
             ship.Time = (_sim.Tick - ship.ArriveTick + alpha) / Simulation.TickRate;
-            if (ship.Time < 0 && !InFlight(ship.DeliveryId))
+            if (ship.Time < 0 && ship.Convoy == null && !InFlight(ship.DeliveryId))
             {
                 done.Add(ship.DeliveryId); // the delivery vanished before landing (test panel): nothing comes down
                 continue;
             }
-            if (ship.UnitId == 0 && ship.Time >= 0) FindUnit(ship);
+            if (ship.UnitId == 0 && (ship.Time >= 0 || ship.Convoy != null)) FindUnit(ship);
             if (ship.Time >= ship.Gone)
             {
                 done.Add(ship.DeliveryId);
@@ -174,6 +200,12 @@ public partial class DropShipView : Node3D
             var k = t < DriveFrom || ship.DriveSeconds <= 0f ? 0f : Mathf.SmoothStep(0f, 1f, (t - DriveFrom) / ship.DriveSeconds);
             driving = t >= DriveFrom;
             pose = PoseAt(ship, ship.Wheelbase + travel * k);
+            if (ship.Flown)
+            {
+                // Still flying (a convoy ship hopping to its spot): the unit rides in the bay wherever the ship is.
+                var rel = ship.Model.Transform * ship.Landed.AffineInverse();
+                pose = new Carried(rel * pose.Origin, rel.Basis * (pose.Basis ?? Basis.Identity));
+            }
             return true;
         }
         if (t < ship.UnloadEnd + ReleaseSeconds)
@@ -196,6 +228,18 @@ public partial class DropShipView : Node3D
 
     private void FindUnit(Ship ship)
     {
+        if (ship.Convoy != null)
+        {
+            var id = ship.Convoy.Resolve();
+            if (id > 0 && _surface.FindUnit(id) is { } carried)
+            {
+                ship.UnitId = id;
+                _byUnit[id] = ship;
+                ship.Path = PathFor(ship, _view.TileCentre(carried.Tile));
+            }
+            else if (id < 0 || ship.Time >= DriveFrom) ship.UnitId = -1;
+            return;
+        }
         foreach (var u in _surface.Units)
             if (u.DeliveryId == ship.DeliveryId)
             {
@@ -261,7 +305,7 @@ public partial class DropShipView : Node3D
     private void Animate(Ship ship, float delta)
     {
         var t = ship.Time;
-        var from = ship.DescentFrom;
+        var from = ship.Convoy?.ShowFrom ?? ship.DescentFrom;
         ship.Shown = t >= from && (ship.Owner == _localPlayer || (ship.Tile >= 0 && _view.FogAt(ship.Tile) == PlanetView.Fog.Visible));
         ship.Model.Visible = ship.Shown;
         var l = ship.Landed;
@@ -271,7 +315,16 @@ public partial class DropShipView : Node3D
         float lift, impulse, legsOut;
         var offset = Vector3.Zero;
         var turn = Basis.Identity;
-        if (t < TouchdownAt)
+        Transform3D? flown = null;
+        if (ship.Flown)
+        {
+            var f = ship.Convoy!.Approach(t);
+            flown = f.Pose;
+            lift = f.Lift;
+            impulse = f.Impulse;
+            legsOut = f.LegsOut;
+        }
+        else if (t < TouchdownAt)
         {
             var f = Mathf.Clamp((t - from) / (TouchdownAt - from), 0f, 1f);
             var h = Mathf.Min(1f, f / 0.8f);
@@ -298,7 +351,7 @@ public partial class DropShipView : Node3D
             impulse = Mathf.SmoothStep(0f, 1f, (c - 1.5f) / 2f);
             legsOut = 1f - Mathf.SmoothStep(0f, 1f, (c - 1f) / 2f);
         }
-        ship.Model.Transform = new Transform3D(l.Basis * turn, l.Origin + offset);
+        ship.Model.Transform = flown ?? new Transform3D(l.Basis * turn, l.Origin + offset);
 
         // Legs fold under the pods for flight: front ones aft (-90°), rear ones forward (+90°); feet stay level.
         for (var k = 0; k < 4; k++)
@@ -309,7 +362,7 @@ public partial class DropShipView : Node3D
         }
 
         // Ramp: opens at ArriveTick, closes once the unit is out.
-        var open = Mathf.SmoothStep(0f, 1f, t / RampSeconds) * (1f - Mathf.SmoothStep(0f, 1f, (t - ship.CloseFrom) / RampSeconds));
+        var open = ship.Convoy is { FliesAway: true } ? 0f : Mathf.SmoothStep(0f, 1f, t / RampSeconds) * (1f - Mathf.SmoothStep(0f, 1f, (t - ship.CloseFrom) / RampSeconds));
         if (ship.Ramp != null) ship.Ramp.Basis = ship.RampRest * new Basis(Vector3.Right, Mathf.DegToRad(RampOpenDegrees) * open);
 
         // Glow: lift grilles blue, aft impulse exhausts orange, the bay lit while the ramp is down.
@@ -328,12 +381,12 @@ public partial class DropShipView : Node3D
         ship.Wash.Position = under;
         var wash = ship.Shown && lift > 0.3f && height < 26f;
         if (ship.Wash.Emitting != wash) ship.Wash.Emitting = wash;
-        if (!ship.TouchedDown && t >= TouchdownAt)
+        if (!ship.TouchedDown && t >= TouchdownAt && ship.Convoy is not { FliesAway: true })
         {
             ship.TouchedDown = true;
             if (ship.Shown) Burst(ship, under);
         }
-        if (!ship.LiftedOff && t >= ship.LiftFrom)
+        if (!ship.LiftedOff && t >= ship.LiftFrom && ship.Convoy is not { FliesAway: true })
         {
             ship.LiftedOff = true;
             if (ship.Shown) Burst(ship, under);
@@ -351,24 +404,44 @@ public partial class DropShipView : Node3D
     private Ship Create(Delivery d)
     {
         var def = _sim.Data.SurfaceUnit(d.Payload);
-        var landed = LandingFor(d, def.CanMine);
-        var colour = PlanetDriver.PlayerColors[d.Owner % PlanetDriver.PlayerColors.Length];
-        var model = BuildingModels.DropShip(colour) ?? Primitive(colour);
         var hull = Hulls[d.Owner % Hulls.Length];
-        RoverLook.Paint(model, hull.Name, hull.Number);
+        return Create(d.Id, d.Owner, d.LaunchTick, d.ArriveTick, LandingFor(d.Tile, d.Id, def.CanMine), def.CanMine, hull.Name, hull.Number);
+    }
+
+    /// <summary>Start a convoy ship (LandingView). Its key must be negative; a key already flying is ignored.</summary>
+    public void AddConvoyShip(ConvoyShip c)
+    {
+        if (_ships.ContainsKey(c.Key)) return;
+        var ship = Create(c.Key, c.Owner, c.ArriveTick, c.ArriveTick, c.Landed, c.Crawler, c.Name, c.Number);
+        ship.Convoy = c;
+        if (c.FliesAway) ship.Tile = _view.TileAt(c.Approach(0f).Pose.Origin);
+        _ships[c.Key] = ship;
+    }
+
+    /// <summary>Where a convoy ship will stand to unload the unit the sim puts on <paramref name="unitTile"/>: as for a
+    /// delivery's ship, but also clear of the outpost (no footprint point within <paramref name="hubClear"/> of
+    /// <paramref name="hubTile"/>'s centre) and 9 away from the other convoy ships' spots.</summary>
+    public Transform3D ConvoyLanding(int unitTile, int seed, bool crawler, int hubTile, float hubClear, IReadOnlyList<Vector3> others) =>
+        LandingFor(unitTile, seed, crawler, hubTile, hubClear, others);
+
+    private Ship Create(int key, int owner, long launchTick, long arriveTick, Transform3D landed, bool crawler, string name, string number)
+    {
+        var colour = PlanetDriver.PlayerColors[owner % PlanetDriver.PlayerColors.Length];
+        var model = BuildingModels.DropShip(colour) ?? Primitive(colour);
+        RoverLook.Paint(model, name, number);
         model.Visible = false;
         AddChild(model);
 
         var ship = new Ship
         {
-            DeliveryId = d.Id,
-            Owner = d.Owner,
-            LaunchTick = d.LaunchTick,
-            ArriveTick = d.ArriveTick,
+            DeliveryId = key,
+            Owner = owner,
+            LaunchTick = launchTick,
+            ArriveTick = arriveTick,
             Model = model,
             Landed = landed,
             Tile = _view.TileAt(landed.Origin),
-            Wheelbase = def.CanMine ? 4.2f : 3f,
+            Wheelbase = crawler ? 4.2f : 3f,
         };
         if (model.FindChild("Ramp", true, false) is Node3D ramp)
         {
@@ -401,7 +474,7 @@ public partial class DropShipView : Node3D
             }
         ship.Nacelle = nacelle;
         if (model.FindChild("BayLight", true, false) is MeshInstance3D bay) ship.Bay = OwnGlow(bay, null);
-        ship.Lamps = RoverLook.Lamps.Attach(model, d.Id);
+        ship.Lamps = RoverLook.Lamps.Attach(model, key & 0xffff); // convoy keys are negative: the flash phase needs a time >= 0
 
         ship.Glow = new OmniLight3D { LightColor = LiftColour, OmniRange = 18f, LightEnergy = 0f, ShadowEnabled = false, Position = new Vector3(0, 0.2f, 0.5f) };
         model.AddChild(ship.Glow);
@@ -416,7 +489,7 @@ public partial class DropShipView : Node3D
         AddChild(ship.Burst);
 
         // Seen for the first time part-way through (e.g. after a test-panel speed-up): don't replay old bursts.
-        var t = (_sim.Tick - d.ArriveTick) / (float)Simulation.TickRate;
+        var t = (_sim.Tick - arriveTick) / (float)Simulation.TickRate;
         ship.TouchedDown = t > TouchdownAt + 0.5f;
         return ship;
     }
@@ -427,10 +500,9 @@ public partial class DropShipView : Node3D
     /// onto open ground and stops on the centre. Of 12 headings, the one whose footprint stays off buildings, water,
     /// mountains and the map edge on the flattest ground wins; then the ship is tilted to the ground under its pads.
     /// </summary>
-    private Transform3D LandingFor(Delivery d, bool crawler)
+    private Transform3D LandingFor(int tile, int seed, bool crawler, int keepOff = -1, float keepOffRadius = 0f, IReadOnlyList<Vector3>? others = null)
     {
         var map = _surface.Map;
-        var tile = d.Tile;
         if (_surface.StructureAt(tile) != null || !map.Terrain(tile).Passable)
             foreach (var n in map.Grid.Neighbours(tile))
                 if (map.Terrain(n).Passable && _surface.StructureAt(n) == null)
@@ -444,12 +516,12 @@ public partial class DropShipView : Node3D
         var best = Transform3D.Identity;
         for (var i = 0; i < 12; i++)
         {
-            var k = (i + d.Id * 5) % 12; // a different first choice per delivery, so repeat drops don't all line up
+            var k = ((i + seed * 5) % 12 + 12) % 12; // a different first choice per delivery, so repeat drops don't all line up
             var a = Mathf.DegToRad(30f * k);
             var dir = new Vector3(Mathf.Sin(a), 0, Mathf.Cos(a));
             var basis = Basis.LookingAt(dir, Vector3.Up); // nose away from the spot, ramp (+Z) toward it
             var origin = spot with { Y = 0 } + dir * reach;
-            var score = FootprintScore(origin, basis);
+            var score = FootprintScore(origin, basis, keepOff, keepOffRadius, others);
             if (score < bestScore - 0.01f)
             {
                 bestScore = score;
@@ -459,7 +531,7 @@ public partial class DropShipView : Node3D
         return Settle(best);
     }
 
-    private float FootprintScore(Vector3 origin, Basis basis)
+    private float FootprintScore(Vector3 origin, Basis basis, int keepOff, float keepOffRadius, IReadOnlyList<Vector3>? others)
     {
         var map = _surface.Map;
         float lo = float.MaxValue, hi = float.MinValue, penalty = 0f;
@@ -474,6 +546,10 @@ public partial class DropShipView : Node3D
             }
             if (!map.Terrain(t).Passable || map.IsWater(t)) penalty += 200f;
             if (_surface.StructureAt(t) != null && Flat(w - _view.TileCentre(t)).Length() < 11f) penalty += 100f;
+            if (keepOff >= 0 && Flat(w - _view.TileCentre(keepOff)).Length() < keepOffRadius) penalty += 100f;
+            if (others != null)
+                foreach (var o in others)
+                    if (Flat(w - o).Length() < 9f) penalty += 100f;
             var h = _view.GroundAt(w);
             lo = Mathf.Min(lo, h);
             hi = Mathf.Max(hi, h);
@@ -533,7 +609,7 @@ public partial class DropShipView : Node3D
 
     /// <summary>Soft puffs of the ground's haze (SprayRig's colours) streaming out along the ground from under the ship;
     /// world-space, so they stay behind as it climbs. The burst version throws a thick ring out at once.</summary>
-    private static CpuParticles3D Downwash(Color haze, bool burst)
+    internal static CpuParticles3D Downwash(Color haze, bool burst)
     {
         var ramp = new Gradient { Offsets = new[] { 0f, 0.15f, 1f }, Colors = new[] { haze with { A = 0f }, haze, haze with { A = 0f } } };
         var grow = new Curve();
