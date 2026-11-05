@@ -23,7 +23,7 @@ public sealed record ShipClassDef(string Faction, string Name, string HullId, st
 /// design pages use). Lists keep file order, so iteration is deterministic.
 /// Numbers are parsed from their raw text into Fix64, never through double.
 /// </summary>
-public sealed class GameData
+public sealed partial class GameData
 {
     public IReadOnlyList<FactionDef> Factions { get; }
     public IReadOnlyList<HullDef> Hulls { get; }
@@ -435,6 +435,8 @@ public sealed class GameData
             groundVehicles, problems)
         {
             UnitNames = unitNames,
+            Environments = ReadEnvironments(surfacesRoot),
+            Telemetry = ReadTelemetry(surfacesRoot),
             Sources = FileNames.ToDictionary(f => f, f => files[f], StringComparer.Ordinal),
         };
     }
@@ -496,6 +498,7 @@ public sealed class GameData
         foreach (var m in Maps) ValidateMap(m, problems);
         ValidateSurfaces(problems);
         ValidateUnitNames(problems);
+        ValidateEnvironments(problems);
         return problems;
     }
 
