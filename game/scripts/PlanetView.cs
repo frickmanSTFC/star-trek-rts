@@ -591,6 +591,25 @@ public partial class PlanetView : Node3D
     private bool[] _visible = System.Array.Empty<bool>();
     private long _visionSignature = -1;
 
+    private bool _fogOff;
+
+    /// <summary>Test panel: show the whole planet as if in sight (render only; the sim's surveying is unchanged).</summary>
+    public bool FogOff
+    {
+        get => _fogOff;
+        set
+        {
+            _fogOff = value;
+            Redraw();
+        }
+    }
+
+    /// <summary>Redraw the fog and the deposit markers next frame (after a test-panel edit changed them).</summary>
+    public void Redraw() => _visionSignature = long.MinValue;
+
+    /// <summary>The dirt on a vehicle's model, or null before it is drawn.</summary>
+    public RoverLook.Grime? GrimeOf(int unitId) => _grime.GetValueOrDefault(unitId);
+
     /// <summary>Set when the fog changed this frame (the minimap redraws its terrain then).</summary>
     public bool FogChanged { get; set; }
 
@@ -602,6 +621,7 @@ public partial class PlanetView : Node3D
     /// </summary>
     public Fog FogAt(int tile)
     {
+        if (_fogOff) return Fog.Visible;
         var me = _surface.Players[_localPlayer];
         if (me.Phase == LandingPhase.InOrbit) return Fog.Visible;
         if (tile < _visible.Length && _visible[tile]) return Fog.Visible;

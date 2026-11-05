@@ -289,6 +289,15 @@ public static class RoverLook
         /// <summary>How clean the wiped fan is (from <see cref="Lamps.Wiped"/>).</summary>
         public float Wiped { get; set; }
 
+        /// <summary>Test panel: set the dirt directly (each 0..1); it then builds up and washes off as usual.</summary>
+        public void Set(float dust, float mud, float snow)
+        {
+            _dust = Mathf.Clamp(dust, 0f, 1f);
+            _mud = Mathf.Clamp(mud, 0f, 1f);
+            _snow = Mathf.Clamp(snow, 0f, 1f);
+            Push();
+        }
+
         public void Update(SprayKind kind, bool moving, bool washing, float delta)
         {
             if (washing)

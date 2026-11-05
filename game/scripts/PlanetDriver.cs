@@ -15,7 +15,7 @@ namespace FinalFrontier;
 /// survey rovers to find deposits, then build and upgrade the base. Like SimDriver, this only
 /// schedules commands; the sim decides what happens.
 /// </summary>
-public partial class PlanetDriver : Node3D
+public partial class PlanetDriver : Node3D, ITestHost
 {
     [Export] public int InputDelayTicks { get; set; } = 2;
 
@@ -32,7 +32,16 @@ public partial class PlanetDriver : Node3D
     private const int LocalPlayer = 0;
 
     private Simulation _sim = null!;
-    private GameData _data = null!;
+
+    /// <summary>The game's data (the sim's: the test panel can tune it while the game runs).</summary>
+    private GameData _data => _sim.Data;
+
+    // Test panel (F9, dev builds only): null in release exports.
+    private TestPanel? _test;
+    private System.Action<int>? _pick; // the panel asked for a map tile (teleport, place at cursor)
+    private string _pickPrompt = "";
+    private int _cursorTile = -1;
+    private string _dataDirectory = "";
     private PlanetView _view = null!;
     private PlanetHud _hud = null!;
     private HelmScreen _helm = null!;
@@ -104,10 +113,11 @@ public partial class PlanetDriver : Node3D
 
     public override void _Ready()
     {
-        _data = GameData.Load(GameData.FindDataDirectory(ProjectSettings.GlobalizePath("res://")));
-        foreach (var problem in _data.Validate()) GD.PushWarning($"Data check: {problem}");
+        _dataDirectory = GameData.FindDataDirectory(ProjectSettings.GlobalizePath("res://"));
+        var data = GameData.Load(_dataDirectory);
+        foreach (var problem in data.Validate()) GD.PushWarning($"Data check: {problem}");
 
-        _sim = MatchSetup.CreatePlanetLanding(_data, Seed);
+        _sim = MatchSetup.CreatePlanetLanding(data, Seed);
         _camera = GetNode<Camera3D>("Camera3D");
         _hud = GetNode<PlanetHud>("Hud");
         _view = new PlanetView { FogDarkness = FogDarkness };
@@ -157,6 +167,16 @@ public partial class PlanetDriver : Node3D
         _helm.ActionPicked += OnHelmAction;
         _helm.DisplayPicked += SetOrbitDisplay;
         _helm.SetInfoHandlers(InfoAction, () => _info = null);
+
+        // The test panel exists only in debug builds (editor runs); release exports never get it.
+        if (OS.IsDebugBuild())
+        {
+            var testLayer = new CanvasLayer { Name = "TestLayer", Layer = 2 };
+            AddChild(testLayer);
+            _test = new TestPanel { Visible = false };
+            testLayer.AddChild(_test);
+            _test.Setup(this);
+        }
         EnterOrbit();
         _orbitAction = "land";
         _info = "orbit:land";
@@ -781,20 +801,60 @@ public partial class PlanetDriver : Node3D
     }
 
     private SurfacePlayer Me => _sim.Surface!.Players[LocalPlayer];
+
+    // ---------------------------------------------------------------- test panel host
+
+    Simulation ITestHost.Sim => _sim;
+    PlanetView ITestHost.View => _view;
+    int ITestHost.LocalPlayer => LocalPlayer;
+    int ITestHost.CursorTile => _cursorTile;
+    string ITestHost.DataDirectory => _dataDirectory;
+    string ITestHost.UnitName(SurfaceUnit u) => UnitName(u);
+    string ITestHost.BaseName(int baseId) => BaseName(baseId);
+
+    void ITestHost.Notify(string text, bool warn) => _hud.PushEvent(text, warn ? new Color(1f, 0.7f, 0.42f) : new Color(0.62f, 0.82f, 1f));
+
+    void ITestHost.BeginPick(string prompt, System.Action<int> onTile)
+    {
+        if (_placing != null) StopPlacing();
+        _pick = onTile;
+        _pickPrompt = prompt;
+    }
+
+    /// <summary>What the test panel edits: the selected building, else the first selected vehicle, else the selected base's core.</summary>
+    (SurfaceUnit? Unit, SurfaceStructure? Structure, int Count) ITestHost.Selection()
+    {
+        if (_selectedStructure != 0 && Surface.FindStructure(_selectedStructure) is { } s) return (null, s, 1);
+        var units = _view.SelectedUnits.OrderBy(id => id).Select(Surface.FindUnit).Where(u => u != null).ToList();
+        if (units.Count > 0) return (units[0], null, units.Count);
+        if (_selectedBase != 0 && Surface.FindStructure(_selectedBase) is { } core) return (null, core, 1);
+        return (null, null, 0);
+    }
     private PlanetSurface Surface => _sim.Surface!;
 
     public override void _Process(double delta)
     {
-        _accumulator += delta;
+        // Game speed and pause come from the test panel (render-side pacing; the sim just steps).
+        var speed = _test?.Speed ?? 1.0;
+        if (!(_test?.Paused ?? false)) _accumulator += delta * speed;
         var tickSeconds = 1.0 / Simulation.TickRate;
         var steps = 0;
-        while (_accumulator >= tickSeconds && steps < 5)
+        var maxSteps = Mathf.Max(5, Mathf.CeilToInt(5 * speed));
+        while (_accumulator >= tickSeconds && steps < maxSteps)
         {
             _sim.Step();
             _accumulator -= tickSeconds;
             steps++;
         }
-        if (steps == 5) _accumulator = 0;
+        if (steps == maxSteps) _accumulator = 0;
+        for (var owed = _test?.TakeSteps() ?? 0; owed > 0; owed--) _sim.Step(); // step one tick, skip a minute
+        if (_test != null)
+        {
+            if (_inOrbit && _test.Visible) _test.Visible = false; // the panel works on the surface
+            _view.SelectedUnits.RemoveWhere(id => Surface.FindUnit(id) == null); // removed by the panel
+            _hud.SetTestMode(_sim.DebugEdits > 0 || _test.LocalEdits);
+        }
+        if (_inOrbit) _pick = null;
 
         OnPhaseChange();
         DetectEvents();
@@ -982,6 +1042,47 @@ public partial class PlanetDriver : Node3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        // Typing in a test-panel field: no game hotkeys.
+        if (@event is InputEventKey && GetViewport().GuiGetFocusOwner() is LineEdit) return;
+        if (@event is InputEventMouseButton { Pressed: true }) GetViewport().GuiReleaseFocus(); // clicking the map ends typing
+        if (_test != null && @event is InputEventKey { Pressed: true, Echo: false } testKey)
+        {
+            if (testKey.Keycode == Key.F9)
+            {
+                if (_inOrbit) _hud.PushEvent("The test panel works on the surface: press O first", new Color(1f, 0.7f, 0.42f));
+                else _test.Visible = !_test.Visible;
+                return;
+            }
+            if (testKey.Keycode == Key.Z && (testKey.CtrlPressed || testKey.MetaPressed))
+            {
+                _test.Undo();
+                return;
+            }
+            if (testKey.Keycode == Key.Space && _test.Visible && !_inOrbit)
+            {
+                _test.TogglePause();
+                return;
+            }
+        }
+        if (_pick != null && !_inOrbit)
+        {
+            switch (@event)
+            {
+                case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }:
+                    if (_hoverTile >= 0 && !_mouseOverUi)
+                    {
+                        var pick = _pick;
+                        _pick = null;
+                        pick(_hoverTile);
+                    }
+                    return;
+                case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
+                case InputEventKey { Pressed: true, Keycode: Key.Escape }:
+                    _pick = null;
+                    _hud.PushEvent("Test panel: cancelled", new Color(0.62f, 0.82f, 1f));
+                    return;
+            }
+        }
         if (_inOrbit)
         {
             OrbitInput(@event);
@@ -1376,11 +1477,12 @@ public partial class PlanetDriver : Node3D
     private void UpdateHover()
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false);
         _hoverTile = -1;
         if (!_mouseOverUi)
         {
             _hoverTile = _view.PickTile(_camera.ProjectRayOrigin(mouse), _camera.ProjectRayNormal(mouse));
+            if (_hoverTile >= 0) _cursorTile = _hoverTile;
         }
 
         if (_placing != null)
@@ -1448,6 +1550,7 @@ public partial class PlanetDriver : Node3D
         {
             LandingPhase.InOrbit => $"In orbit over {PlanetName}. Choose a landing site: plains or desert with open land on every side (green).",
             LandingPhase.Descending => $"Colony pod descending… touchdown in {(Me.LandsAtTick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate} s",
+            _ when _pick != null => $"{_pickPrompt}  ·  right-click / Esc cancel",
             _ when _placing != null => $"Placing {_data.Building(_placing).Name}  ·  R rotate  ·  Shift+click place more  ·  right-click / Esc stop",
             _ => "",
         });
@@ -2057,10 +2160,11 @@ public partial class PlanetDriver : Node3D
         var forward = new Vector3(0, 0, -1).Rotated(Vector3.Up, _yaw);
         var right = new Vector3(1, 0, 0).Rotated(Vector3.Up, _yaw);
         var move = Vector3.Zero;
-        if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) move += forward;
-        if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down)) move -= forward;
-        if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right)) move += right;
-        if (Input.IsKeyPressed(Key.Left) || (Input.IsKeyPressed(Key.A) && Me.Phase != LandingPhase.Landed)) move -= right;
+        var typing = GetViewport().GuiGetFocusOwner() is LineEdit; // a test-panel field has the keyboard
+        if (!typing && (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up))) move += forward;
+        if (!typing && (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down))) move -= forward;
+        if (!typing && (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right))) move += right;
+        if (!typing && (Input.IsKeyPressed(Key.Left) || (Input.IsKeyPressed(Key.A) && Me.Phase != LandingPhase.Landed))) move -= right;
         if (move != Vector3.Zero) _focusTarget += move.Normalized() * _distance * 0.9f * delta;
 
         var k = 1f - Mathf.Exp(-4f * delta);

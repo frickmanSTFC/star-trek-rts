@@ -498,6 +498,14 @@ public partial class PlanetHud : CanvasLayer
 
     public void ShowHints(string text) => _hints.Text = text;
 
+    private PanelContainer _testTag = null!;
+
+    /// <summary>The orange TEST MODE tag in the top bar (the test panel has changed the game).</summary>
+    public void SetTestMode(bool on)
+    {
+        if (_testTag.Visible != on) _testTag.Visible = on;
+    }
+
     public bool HelpVisible => _help.Visible;
 
     public void ToggleHelp() => _help.Visible = !_help.Visible;
@@ -526,6 +534,7 @@ public partial class PlanetHud : CanvasLayer
                 ("1–9", "build (or order / research when a bay or lab is selected)"), ("R / Shift+R", "rotate while placing"),
                 ("U", "upgrade the selected building or base"), ("M", "maintain the selected building"), ("X", "cancel a build or upgrade / salvage"),
                 ("Backspace", "cancel the bay's last order"), ("WASD, middle-drag", "pan"), ("Q / E", "turn the view"), ("Wheel", "zoom"), ("H", "fly home"), ("F1", "this list"),
+                ("F9", "test panel (dev builds): edit anything for testing"), ("Ctrl+Z", "undo the last test-panel edit"), ("Space", "pause / resume while the test panel is open"),
             },
         };
         foreach (var g in groups)
@@ -813,6 +822,14 @@ public partial class PlanetHud : CanvasLayer
         row.AddChild(research);
 
         row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore });
+        // Shown once the test panel (F9) has changed anything in this game.
+        _testTag = Panel(Accent, Accent, 10, 9, 2);
+        _testTag.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        _testTag.MouseFilter = Control.MouseFilterEnum.Pass;
+        _testTag.TooltipText = "The test panel (F9) has changed this game";
+        _testTag.AddChild(MakeLabel("TEST MODE", 12, new Color(0.043f, 0.059f, 0.102f)));
+        _testTag.Visible = false;
+        row.AddChild(_testTag);
         _clock = MakeLabel("", 15, Dim);
         row.AddChild(_clock);
         bar.AddChild(row);

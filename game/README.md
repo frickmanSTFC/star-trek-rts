@@ -79,6 +79,14 @@ drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up
 **U** upgrade the selected building (or the base), **M** maintain the selected building, **F1** all controls, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
 WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
 
+**Test panel (dev builds only, F9 on the surface):** change anything for testing — the selected vehicle's integrity,
+breakdown, dirt, position (teleport), clone or remove it; the selected building's condition, wear, level, work speed,
+construction / upgrade / order progress ("finish now"), whole-base repairs; every resource, limits (no storage cap,
+unlimited power, free and instant building), game speed ¼–8×, pause (**Space**), step a tick, skip a minute; research;
+fog off, survey everything, deposit amounts, place any vehicle or building for any player; and any number in the data
+files (search, apply to this game, reload, save back to JSON). Every change is a sim command (in replays and the state
+hash); the top bar shows TEST MODE once one is made. **Ctrl+Z** undoes the last edit.
+
 Map size is `width` / `height` in `data/surfaces.json` (Class M: 128×88 tiles); the camera adapts to it.
 
 The older star-system view is `scenes/System.tscn` (open it and press F6).
