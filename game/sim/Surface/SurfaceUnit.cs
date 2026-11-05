@@ -94,6 +94,10 @@ public sealed class SurfaceUnit
 
     public int BuiltAtTile { get; internal set; } = -1;
 
+    /// <summary>The <see cref="Delivery"/> (its Id) that brought it down from orbit, 0 = landed with the colony or
+    /// built here. The view uses it to drive the unit out of its drop ship.</summary>
+    public int DeliveryId { get; internal init; }
+
     /// <summary>
     /// The unit's own name, painted on its hull (e.g. "KALTY", or "KALTY II" once the pool has gone round), and its hull
     /// number (e.g. "44"). Set once when the unit is created and never reused by its owner, even after it is gone.
@@ -135,6 +139,7 @@ public sealed class SurfaceUnit
         h.Add(RepairWaiting);
         h.Add(BuiltAtTick);
         h.Add(BuiltAtTile);
+        h.Add(DeliveryId);
         h.Add(Name);
         h.Add(Number);
     }
@@ -146,7 +151,7 @@ public enum DeliveryKind
     /// <summary>A Colony Hub dropped as a new outpost.</summary>
     Outpost,
 
-    /// <summary>The ship's shuttle bringing a unit down.</summary>
+    /// <summary>The ship's drop ship (the orbit "shuttle") bringing a unit down.</summary>
     Shuttle,
 
     /// <summary>A transporter beam: a team or supplies.</summary>

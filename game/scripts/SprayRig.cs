@@ -111,6 +111,15 @@ public partial class SprayRig : Node3D
         },
     };
 
+    /// <summary>The soft haze colour of a kind of ground (the drop ship's downwash uses it); desert dust for None.</summary>
+    public static Color HazeColour(SprayKind kind)
+    {
+        if (Looks.TryGetValue(kind == SprayKind.None ? SprayKind.Dust : kind, out var layers))
+            foreach (var l in layers)
+                if (l.Soft) return l.Colour;
+        return Looks[SprayKind.Dust][0].Colour;
+    }
+
     private static StandardMaterial3D? _softMaterial, _hardMaterial;
 
     private static StandardMaterial3D SoftMaterial => _softMaterial ??= new StandardMaterial3D

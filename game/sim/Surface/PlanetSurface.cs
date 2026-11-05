@@ -391,9 +391,9 @@ public sealed partial class PlanetSurface
     {
         var orbit = _data.Orbit;
         if (orbit == null) return "no ship in orbit";
-        if (!orbit.ShuttlePayloads.Contains(unitId)) return "the shuttle can't carry that";
+        if (!orbit.ShuttlePayloads.Contains(unitId)) return "the drop ship can't carry that";
         if (_players[player].Phase != LandingPhase.Landed) return "land the colony first";
-        if (_players[player].ShuttleBackTick > sim.Tick) return "the shuttle is still away";
+        if (_players[player].ShuttleBackTick > sim.Tick) return "the drop ship is still away";
         if (!OnMap(tile)) return "off the map";
         if (!SafeGround(tile)) return Map.NearNatives(tile) ? "that's the natives' land" : "nowhere safe to land there";
         if (!sim.Players[player].Stock.CanAfford(_data.SurfaceUnit(unitId).Cost)) return "not enough resources";
@@ -468,7 +468,7 @@ public sealed partial class PlanetSurface
         _deliveries.Add(new Delivery(_nextDeliveryId++, owner, kind, tile, payload, cargo, now, arrive));
 
     /// <summary>Puts a new unit on the tile, or the nearest free passable neighbour if a building is there.</summary>
-    private SurfaceUnit SpawnUnit(int owner, string unitId, int tile)
+    private SurfaceUnit SpawnUnit(int owner, string unitId, int tile, int deliveryId = 0)
     {
         if (_structureAt[tile] != 0 || !Map.Terrain(tile).Passable)
             foreach (var n in Map.Grid.Neighbours(tile))
@@ -477,14 +477,14 @@ public sealed partial class PlanetSurface
                     tile = n;
                     break;
                 }
-        return NewUnit(owner, _data.SurfaceUnit(unitId), tile, -1, -1);
+        return NewUnit(owner, _data.SurfaceUnit(unitId), tile, -1, -1, deliveryId);
     }
 
     /// <summary>
     /// The one place units are created: gives it the owner's next name and hull number (never repeated for that player),
     /// adds it and reveals around it. builtAtTick / builtAtTile = the Vehicle Bay roll-out (-1 = landed or delivered).
     /// </summary>
-    private SurfaceUnit NewUnit(int owner, SurfaceUnitDef def, int tile, long builtAtTick, int builtAtTile)
+    private SurfaceUnit NewUnit(int owner, SurfaceUnitDef def, int tile, long builtAtTick, int builtAtTile, int deliveryId = 0)
     {
         var p = _players[owner];
         var unit = new SurfaceUnit(_nextUnitId++, owner, def.Id, def.Speed * Simulation.SecondsPerTick, def.SurveyRadius, tile)
@@ -493,6 +493,7 @@ public sealed partial class PlanetSurface
             Number = UnitNaming.NumberFor(_data.UnitNames, Map.Seed, owner, p._usedUnitNumbers.Count),
             BuiltAtTick = builtAtTick,
             BuiltAtTile = builtAtTile,
+            DeliveryId = deliveryId,
         };
         p._usedUnitNames.Add(unit.Name);
         p._usedUnitNumbers.Add(unit.Number);
@@ -528,7 +529,7 @@ public sealed partial class PlanetSurface
                         foreach (var c in _data.Orbit!.OutpostCost) sim.Players[d.Owner].Stock.Add(c.Resource, c.Amount);
                     break;
                 case DeliveryKind.Shuttle:
-                    SpawnUnit(d.Owner, d.Payload, d.Tile);
+                    SpawnUnit(d.Owner, d.Payload, d.Tile, d.Id);
                     break;
                 case DeliveryKind.Beam when d.Payload == OrbitRules.Supplies:
                     var hold = _players[d.Owner].Hold;
@@ -536,7 +537,7 @@ public sealed partial class PlanetSurface
                         hold[c.Resource] += c.Amount - Store(sim, d.Owner, c.Resource, c.Amount); // what doesn't fit goes back up
                     break;
                 case DeliveryKind.Beam:
-                    SpawnUnit(d.Owner, d.Payload, d.Tile);
+                    SpawnUnit(d.Owner, d.Payload, d.Tile, d.Id);
                     break;
             }
         }

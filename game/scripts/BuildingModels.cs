@@ -586,6 +586,11 @@ public static class BuildingModels
         foreach (var child in node.GetChildren()) Recolour(child, owner);
     }
 
+    /// <summary>The drop ship (models/vehicles/dropship.glb from blender/build_dropship.py --game; parts Ramp, Leg0-3,
+    /// Foot0-3, Thruster0-5, NacelleGlow0/1, BayLight, Beacon and the decal markers stay in the glb's hierarchy), or
+    /// null if the file is missing or not imported yet (DropShipView then builds a primitive stand-in).</summary>
+    public static Node3D? DropShip(Color owner) => Imported("dropship", owner);
+
     /// <summary>A survey rover: the unit's own model (survey_rover = Mk I, survey_rover_mk2, survey_rover_mk3), falling
     /// back to the Mk I file and then to primitives. Its blank decal markers (NameL/NameR/NameRear/NumberL/NumberR) are
     /// left in place for <see cref="RoverLook.Paint"/>.</summary>
