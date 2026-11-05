@@ -30,12 +30,12 @@ Build and preview: `blender/factions/build_borg.py` (header lists the flags). Re
   open (shell petals round a rubble crater). A tilted, stepped black spire (12.5 tall, `Beacon` on the tip, sensor
   ring `Spin`) stands in the crater, seven conduit roots spread toward the hex edge, there are two regeneration alcoves
   with drones and a power cell, and a root has started to plate over a native dwelling.
-- **Outpost L5: assimilation node** (`--level 5`, inside one hex): a taller spire (17) with four hive blocks under
+- **Outpost L5: assimilation node** (`--level 5`, inside one hex): a taller spire (18 to the tip) with four hive blocks under
   dashed green grids, conduits at height linking them to the spire, a six-alcove block, three caged power cells, a
   lattice mast with a laser eye, an assembly-matrix cube frame with a cube half grown inside, a regeneration pad (the
   Borg repair pad), roots out to the hex edge, and the native dwelling about two-thirds converted.
 - **Outpost L10: assimilated complex** (`--level 10`, spreads over seven hexes): a plated ground field, a 14-unit
-  central hub cube with a glowing core on its face, a 38-unit spire on its back corner, three rings of hive blocks
+  central hub cube with a glowing core on its face, a spire on its back corner reaching 42, three rings of hive blocks
   (some stacked) joined to the hub by elevated conduits, three lattice masts, three alcove blocks, a power farm, two
   regeneration pads, fully plated native buildings, and a sphere moored overhead on a tractor beam from a docking mast.
 - **Comparison:** `--model fed_mk1` renders build_vehicles' Mk I Scout (tier 1, no paint bake) under the Borg rover's

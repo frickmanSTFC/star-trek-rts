@@ -66,9 +66,9 @@ def make_sheet(folder):
         ("borg-miner-front34.png", "Mining vehicle: extraction crawler", "camera x1"),
         ("borg-dropship-front34.png", "Drop ship: descent block (miner slung)", "camera x2"),
         ("borg-outpost-l1-front34.png", "Outpost L1: seeded node", "camera x3, one 25-unit hex"),
-        ("borg-outpost-l5-front34.png", "Outpost L5: assimilation node", "camera x3.6, one 25-unit hex"),
-        ("borg-outpost-l10-front34.png", "Outpost L10: assimilated complex", "camera x8, seven hexes"),
-        ("borg-lineup-front34.png", "Scale lineup: Fed Mk I, rover, miner, drop ship", "one camera"),
+        ("borg-outpost-l5-front34.png", "Outpost L5: assimilation node", "camera x4.4, one 25-unit hex"),
+        ("borg-outpost-l10-front34.png", "Outpost L10: assimilated complex", "camera x10.5, seven hexes"),
+        ("borg-lineup-front34.png", "Scale lineup: Fed Mk I, rover, miner, drop ship", "one camera, left to right"),
     ]
     cw, ch, cols = 600, 400, 4
     head, label = 70, 54
