@@ -39,6 +39,7 @@
   "landing": {
     "terrain": ["plains", "desert"],
     "descent_seconds": 8,
+    "assemble_seconds": 20,
     "start_stock": { "tritanium": 300, "duranium": 500, "deuterium": 150, "dilithium": 50, "latinum": 100, "crew": 150 },
     "reveal_radius": 3,
     "hub": "colony_hub",

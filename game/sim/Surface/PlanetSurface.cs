@@ -24,6 +24,11 @@ public sealed partial class PlanetSurface
 {
     public SurfaceMap Map { get; }
     public IReadOnlyList<SurfacePlayer> Players => _players;
+
+    /// <summary>True once the player's landed outpost has assembled and its uplink to the ship is online
+    /// (feeds the helm's surface video and telemetry).</summary>
+    public bool UplinkOnline(int player, long tick) =>
+        player >= 0 && player < _players.Count && _players[player].Phase == LandingPhase.Landed && tick >= _players[player].UplinkTick;
     public IReadOnlyList<SurfaceUnit> Units => _units;
     public IReadOnlyList<SurfaceStructure> Structures => _structures;
 
@@ -1653,6 +1658,7 @@ public sealed partial class PlanetSurface
     private void Touchdown(int player, SurfacePlayer p)
     {
         p.Phase = LandingPhase.Landed;
+        p.UplinkTick = p.LandsAtTick + (long)_data.Landing.AssembleSeconds * Simulation.TickRate;
         PlaceStructure(player, _data.Landing.HubBuilding, p.LandingTile, 0, StructureState.Complete, 0);
         Reveal(player, p.LandingTile, _data.Landing.RevealRadius);
 

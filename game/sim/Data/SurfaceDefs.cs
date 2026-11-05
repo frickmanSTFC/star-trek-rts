@@ -95,6 +95,7 @@ public sealed record OrbitRules(
 public sealed record LandingRules(
     IReadOnlyList<string> Terrain,
     int DescentSeconds,
+    int AssembleSeconds,
     IReadOnlyList<ResourceAmount> StartStock,
     int RevealRadius,
     string HubBuilding,

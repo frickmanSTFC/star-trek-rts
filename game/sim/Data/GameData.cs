@@ -367,6 +367,7 @@ public sealed class GameData
         var landing = new LandingRules(
             landingEl.GetProperty("terrain").EnumerateArray().Select(t => t.GetString()!).ToList(),
             landingEl.GetProperty("descent_seconds").GetInt32(),
+            landingEl.TryGetProperty("assemble_seconds", out var assemble) ? assemble.GetInt32() : 0,
             Amounts(landingEl, "start_stock", "Landing"),
             landingEl.GetProperty("reveal_radius").GetInt32(),
             Str(landingEl, "hub"),

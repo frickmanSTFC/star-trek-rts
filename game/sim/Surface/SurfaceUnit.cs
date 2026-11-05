@@ -459,6 +459,10 @@ public sealed class SurfacePlayer
     public long LandsAtTick { get; internal set; }
     public long DescentStartTick { get; internal set; }
 
+    /// <summary>Tick the landed outpost finishes assembling (its modules combined and unfurled) and its uplink to the
+    /// ship in orbit comes online: touchdown + landing.assemble_seconds. 0 = not landed yet.</summary>
+    public long UplinkTick { get; internal set; }
+
     /// <summary>Tiles whose deposits this player knows exactly.</summary>
     public bool[] Surveyed { get; }
 
@@ -520,6 +524,7 @@ public sealed class SurfacePlayer
         h.Add(LandingTile);
         h.Add(LandsAtTick);
         h.Add(DescentStartTick);
+        h.Add(UplinkTick);
         foreach (var s in Surveyed) h.Add(s);
         foreach (var k in Known) h.Add(k);
         foreach (var r in ResearchProgress) h.Add(r);
