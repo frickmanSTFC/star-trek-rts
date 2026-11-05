@@ -36,13 +36,29 @@ public sealed class ScatterAssets
 
     private void Collect(Node node)
     {
-        if (node is MeshInstance3D mi && mi.Mesh != null)
+        if (node is MeshInstance3D mi && mi.Mesh != null && mi.Mesh.GetSurfaceCount() > 0)
         {
-            _meshes[mi.Name.ToString()] = mi.Mesh;
-            if (Atlas == null && mi.Mesh.GetSurfaceCount() > 0 && mi.GetActiveMaterial(0) is BaseMaterial3D m && m.AlbedoTexture != null)
+            _meshes[mi.Name.ToString()] = WithoutLods(mi.Mesh);
+            if (Atlas == null && mi.GetActiveMaterial(0) is BaseMaterial3D m && m.AlbedoTexture != null)
                 Atlas = m.AlbedoTexture;
         }
         foreach (var child in node.GetChildren()) Collect(child);
+    }
+
+    /// <summary>
+    /// The same triangles without the importer's automatic LODs: a MultiMesh picks one LOD for a whole chunk, and
+    /// simplified alpha cards come out ragged. Near / far meshes and the shaders' fades do the LOD work instead.
+    /// </summary>
+    private static Mesh WithoutLods(Mesh mesh)
+    {
+        var plain = new ArrayMesh();
+        for (var s = 0; s < mesh.GetSurfaceCount(); s++)
+        {
+            var arrays = mesh.SurfaceGetArrays(s);
+            if (arrays.Count == 0) return mesh;
+            plain.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        }
+        return plain;
     }
 
     /// <summary>The imported mesh, or null.</summary>

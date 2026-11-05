@@ -45,7 +45,8 @@ public partial class PlanetView
     private static readonly Color DryGrass = new(1.3f, 1.1f, 0.66f);
 
     /// <summary>What grows or lies on each land terrain (none on ocean / shallows). Budget on the 128×88 Class M map
-    /// (seed 1701): ~29k trees, ~150k grass clumps, ~45k bushes/ferns/shrubs, ~25k rocks, ~10k scree/pebble patches.</summary>
+    /// (seed 1701, before the slope / height filters): ~28k trees, ~150k grass clumps, ~36k bushes/ferns/shrubs,
+    /// ~18k rocks, ~9k scree/pebble patches, plus ~46k far copies of the trees and rocks.</summary>
     private static readonly Dictionary<string, ScatterRule[]> ScatterRules = new()
     {
         ["forest"] = new ScatterRule[]
@@ -133,6 +134,7 @@ public partial class PlanetView
     {
         public required MultiMesh Multi;
         public required Vector3[] World; // instance origins in world space (for clearings)
+        public required Transform3D[] Local; // instance transforms as built (restored when a clearing goes)
     }
 
     private sealed class ScatterBuilder
@@ -151,7 +153,7 @@ public partial class PlanetView
     private List<ScatterBatch>[] _scatterChunks = System.Array.Empty<List<ScatterBatch>>();
     private int _chunkColumns, _chunkRows;
     private readonly List<ShaderMaterial> _scatterMaterials = new();
-    private readonly List<(MultiMesh Multi, int Index, Transform3D Local)> _scatterHidden = new();
+    private readonly List<(ScatterBatch Batch, int Index)> _scatterHidden = new();
     private long _clearingSignature = long.MinValue;
     private Vector3 _scatterEye = new(float.MaxValue, 0, 0);
     private bool? _bufferLayoutOk;
@@ -368,7 +370,7 @@ public partial class PlanetView
         node.VisibilityRangeBegin = begin;
         node.VisibilityRangeEnd = end;
         _scatterRoot!.AddChild(node);
-        _scatterChunks[b.Chunk].Add(new ScatterBatch { Multi = mm, World = worldPos });
+        _scatterChunks[b.Chunk].Add(new ScatterBatch { Multi = mm, World = worldPos, Local = local });
     }
 
     /// <summary>Distances from the camera over which each kind goes: near trees and rocks hand over to their far
@@ -458,7 +460,7 @@ public partial class PlanetView
     /// back when the building goes (salvaged or cancelled).</summary>
     private void UpdateClearings()
     {
-        foreach (var (multi, index, local) in _scatterHidden) multi.SetInstanceTransform(index, local);
+        foreach (var (batch, index) in _scatterHidden) batch.Multi.SetInstanceTransform(index, batch.Local[index]);
         _scatterHidden.Clear();
 
         var sites = new List<(Vector3 Centre, float Radius)>();
@@ -468,7 +470,7 @@ public partial class PlanetView
             if (p.Phase != LandingPhase.InOrbit && p.LandingTile >= 0) sites.Add((TileCentre(p.LandingTile), 14.5f));
 
         var zero = new Basis(Vector3.Zero, Vector3.Zero, Vector3.Zero);
-        var done = new HashSet<(MultiMesh, int)>();
+        var done = new HashSet<(ScatterBatch, int)>();
         foreach (var (centre, radius) in sites)
         {
             int x0 = Mathf.Clamp(Mathf.FloorToInt((centre.X - radius) / ChunkWidth), 0, _chunkColumns - 1);
@@ -482,10 +484,9 @@ public partial class PlanetView
                         for (var i = 0; i < batch.World.Length; i++)
                         {
                             var d = batch.World[i] - centre;
-                            if (d.X * d.X + d.Z * d.Z > r2 || !done.Add((batch.Multi, i))) continue;
-                            var original = batch.Multi.GetInstanceTransform(i);
-                            batch.Multi.SetInstanceTransform(i, new Transform3D(zero, original.Origin));
-                            _scatterHidden.Add((batch.Multi, i, original));
+                            if (d.X * d.X + d.Z * d.Z > r2 || !done.Add((batch, i))) continue;
+                            batch.Multi.SetInstanceTransform(i, new Transform3D(zero, batch.Local[i].Origin));
+                            _scatterHidden.Add((batch, i));
                         }
         }
     }

@@ -582,43 +582,51 @@ def blob(mb, c, radii, colour, seg=8, rings=4, region="speckle", dark=0.5, seed=
 
 
 def pine(H, seed, needle=(0.24, 0.34, 0.2)):
-    """Scots-pine-like hardy tree for hills: tall bare trunk (grey low, orange high), a few limbs with flat needle pads."""
+    """Scots-pine-like hardy tree for hills: tall bare trunk (grey-brown low, orange high), a few upswept limbs, each
+    ending in a rounded, flattened clump of needle sprays around a dark core (an irregular, open crown)."""
     rnd = random.Random(seed)
     mb = MB()
     needle = srgb(needle)
     low, high = srgb((0.3, 0.26, 0.23)), srgb((0.62, 0.38, 0.22))
     lean = Vector((rnd.uniform(-0.3, 0.3), rnd.uniform(-0.3, 0.3), 0))
-    trunk = [Vector((0, 0, -0.4)), Vector((0, 0, H * 0.3)) + lean * 0.4, Vector((0, 0, H * 0.6)) + lean, Vector((0, 0, H * 0.92)) + lean * 1.2]
-    mb.tube(trunk, [0.26, 0.21, 0.15, 0.05], 6, "bark", [low, lerp3(low, high, 0.5), high, high], [0, 0.05, 0.2, 0.45])
-    pads = [(trunk[-1] + Vector((0, 0, 0.2)), 1.5)]
-    for i in range(6):
-        z = H * rnd.uniform(0.55, 0.85)
-        a = i * TAU / 6 + rnd.uniform(-0.4, 0.4)
-        L = rnd.uniform(1.2, 2.3) * (1.1 - (z / H - 0.55))
+    trunk = [Vector((0, 0, -0.4)), Vector((0, 0, H * 0.3)) + lean * 0.4, Vector((0, 0, H * 0.6)) + lean, Vector((0, 0, H * 0.86)) + lean * 1.2]
+    mb.tube(trunk, [0.26, 0.21, 0.15, 0.07], 6, "bark", [low, lerp3(low, high, 0.5), high, high], [0, 0.05, 0.2, 0.45])
+    clumps = [(trunk[-1] + Vector((0, 0, 0.35)), 1.55)]
+    n = 6
+    a0 = rnd.random() * TAU
+    for i in range(n):
+        f = i / (n - 1)
+        z = H * (0.56 + 0.26 * f + rnd.uniform(-0.03, 0.03))
+        a = a0 + i * TAU * 0.382 + rnd.uniform(-0.3, 0.3)  # golden-angle spiral
+        L = rnd.uniform(1.5, 2.3) * (1.15 - 0.55 * f)
         start = Vector((0, 0, z)) + lean * (z / H / 0.6)
-        end = start + Vector((math.cos(a) * L, math.sin(a) * L, L * rnd.uniform(0.3, 0.7)))
-        mid = start.lerp(end, 0.5) + Vector((0, 0, 0.15))
-        mb.tube([start, mid, end], [0.09, 0.06, 0.03], 4, "bark", [high] * 3, [0.2, 0.35, 0.55])
-        pads.append((end, rnd.uniform(1.1, 1.5)))
-    for c, size in pads:
-        ph = rnd.random()
-        for k in range(5):
-            a = k * TAU / 5 + rnd.uniform(-0.3, 0.3)
-            d = Vector((math.cos(a), math.sin(a), rnd.uniform(-0.1, 0.25))).normalized()
-            side = Vector((-math.sin(a), math.cos(a), 0))
-            kk = rnd.uniform(0.85, 1.1)
-            mb.card(c - d * 0.25, side, d, size * 0.8, size, (d * 0.4 + UP).normalized(), "needles",
-                    None, lambda t: 0.5 + 0.5 * t, ph, segs=1, droop=0.15 * size,
-                    cols=lambda t, kk=kk: mul(needle, (0.6 + 0.45 * t) * kk))
-        # a flat speckle cushion under each pad hides the gaps
-        ring = []
-        for j in range(6):
-            a = j * TAU / 6
-            ring.append(mb.v(c + Vector((math.cos(a) * size * 0.55, math.sin(a) * size * 0.55, -0.15)),
-                             (Vector((math.cos(a), math.sin(a), 0)) * 0.4 + UP), ruv("speckle", j / 6, 0.2), (0.6, ph), mul(needle, 0.5)))
-        top = mb.v(c + Vector((0, 0, 0.35)), UP, ruv("speckle", 0.5, 0.8), (0.7, ph), mul(needle, 0.75))
-        for j in range(6):
-            mb.f(ring[j], ring[(j + 1) % 6], top)
+        end = start + Vector((math.cos(a) * L, math.sin(a) * L, L * rnd.uniform(0.35, 0.65)))
+        mid = start.lerp(end, 0.5) + Vector((0, 0, 0.2))
+        mb.tube([start, mid, end], [0.1, 0.065, 0.035], 4, "bark", [high] * 3, [0.2, 0.35, 0.55])
+        clumps.append((end, rnd.uniform(1.15, 1.55) * (1.1 - 0.25 * f)))
+    centre = sum((c for c, _ in clumps), Vector()) / len(clumps)
+    for c, size in clumps:
+        # flattened needle clump: a dark core plus sprays radiating from it, leaning up and out of the whole crown
+        blob(mb, c, (size * 0.62, size * 0.62, size * 0.36), mul(needle, 0.55), 6, 3, seed=rnd.randint(0, 999), dark=0.45,
+             lumpy=0.2, flex=0.45)
+        out_c = (c - centre)
+        out_c = (out_c.normalized() if out_c.length > 1e-3 else UP)
+        for k in range(11):
+            d = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.35, 0.9)))
+            if d.length < 1e-3:
+                continue
+            d.normalize()
+            p = c + Vector((d.x * size * 0.55, d.y * size * 0.55, d.z * size * 0.3))
+            out = (d * 0.65 + out_c * 0.35 + UP * 0.25).normalized()
+            x, y = perp_basis(out, rnd.random() * TAU)
+            if y.z < 0:
+                y = -y
+            sz = size * rnd.uniform(0.85, 1.15)
+            shade = (0.7 + 0.42 * max(0.0, d.z)) * rnd.uniform(0.88, 1.1)
+            nrm = (out * 0.8 + UP * 0.45).normalized()
+            ph = rnd.random()
+            mb.card(p - y * sz * 0.45, x, y, sz, sz, nrm, "needles", mul(needle, shade), lambda t: 0.55 + 0.45 * t, ph)
+            mb.card(p - y * sz * 0.45, out, y, sz * 0.85, sz, nrm, "needles", mul(needle, shade * 0.88), lambda t: 0.55 + 0.45 * t, ph)
     return mb
 
 
