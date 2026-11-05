@@ -93,6 +93,7 @@ public partial class PlanetView : Node3D
 
         _hoverMaterial = Overlay(new Color(1, 1, 1, 0.35f));
         _hoverMaterial.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
+        _hoverMaterial.NoDepthTest = false; // vehicles, buildings and trees in front hide the outline (owner 2026-11-05)
         _hover = new MeshInstance3D
         {
             MaterialOverride = _hoverMaterial,
@@ -239,7 +240,7 @@ public partial class PlanetView : Node3D
     private float _hoverWidth;
 
     /// <summary>A flat band along a tile's edge (outer edge at 97% of the corner radius, <paramref name="width"/> wide),
-    /// each side split in four so it hugs the terrain, lifted 0.35 above the ground (above the water on sea tiles).
+    /// each side split in four so it hugs the terrain, lifted 0.5 above the ground (above the water on sea tiles).
     /// Positions are relative to the tile centre in X/Z and absolute in Y.</summary>
     private Mesh HexOutline(int tile, float width)
     {
@@ -251,7 +252,7 @@ public partial class PlanetView : Node3D
             var p = Corner(k).Lerp(Corner((k + 1) % 6), f) * scale;
             var y = GroundHeight(tile, p);
             if (water) y = Mathf.Max(y, SeaLevel);
-            return p with { Y = y + 0.35f };
+            return p with { Y = y + 0.5f };
         }
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
