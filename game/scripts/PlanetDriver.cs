@@ -574,7 +574,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _helm.SetClock($"{seconds / 60:00}:{seconds % 60:00}");
         _helm.SetResources(string.Join("   ", _data.HudResources.Select(r => $"{ShortResource(r.Name)} {Hud.Whole(stock[r.Index])}")));
 
-        var hint = me.Phase == LandingPhase.Descending ? "COLONY POD AWAY…"
+        var hint = me.Phase == LandingPhase.Descending ? "DROP SHIPS AWAY…"
             : _orbitAction == "land" && me.Phase == LandingPhase.InOrbit ? "CLICK A GREEN (SAFE) SITE TO LAND THE COLONY"
             : _orbitAction != null ? "CLICK THE PLANET TO CHOOSE WHERE · RIGHT-CLICK CANCELS" : null;
         var shipLine = $"{ship?.Name?.ToUpperInvariant() ?? "YOUR SHIP"}{(ship?.ClassName is { Length: > 0 } c ? $" · {c.ToUpperInvariant()} CLASS" : "")}";
@@ -890,7 +890,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _lastPhase = Me.Phase;
         if (Me.Phase == LandingPhase.Descending)
         {
-            FlyTo(Me.LandingTile, 260f);
+            FlyTo(Me.LandingTile, 170f); // close enough to watch the three drop ships and the outpost assemble
             // From orbit: swoop in on the landing site, then cut to the surface as the pod comes down.
             if (_inOrbit)
             {
@@ -1541,7 +1541,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         {
             _hud.ShowBanner(Me.Phase == LandingPhase.InOrbit && _orbitAction == "land"
                 ? $"Orbiting {PlanetName}. Click a green (safe) site to land the colony  ·  drag to turn the planet, wheel to zoom, Tab to change scan"
-                : Me.Phase == LandingPhase.Descending ? "Colony pod away…" : "");
+                : Me.Phase == LandingPhase.Descending ? "Drop ships away…" : "");
             OrbitHud(seconds);
             return;
         }
@@ -1549,7 +1549,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _hud.ShowBanner(Me.Phase switch
         {
             LandingPhase.InOrbit => $"In orbit over {PlanetName}. Choose a landing site: plains or desert with open land on every side (green).",
-            LandingPhase.Descending => $"Colony pod descending… touchdown in {(Me.LandsAtTick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate} s",
+            LandingPhase.Descending => $"Three drop ships descending… touchdown in {(Me.LandsAtTick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate} s",
             _ when _pick != null => $"{_pickPrompt}  ·  right-click / Esc cancel",
             _ when _placing != null => $"Placing {_data.Building(_placing).Name}  ·  R rotate  ·  Shift+click place more  ·  right-click / Esc stop",
             _ => "",
@@ -1562,7 +1562,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var bases = Surface.Bases(LocalPlayer);
         _hud.ShowBaseTabs(bases.Select(b => (b.Id, BaseName(b.Id))).ToList(), _selectedBase);
         if (Me.Phase == LandingPhase.InOrbit) _hud.ShowDetail("Orbital scan", $"{PlanetName} · Class M", "The scan shows terrain and, per region, which resources are likely below.\nHover a tile for details; green tiles are landing sites. Once down, survey rovers find the exact deposits.");
-        else if (Me.Phase == LandingPhase.Descending) _hud.ShowDetail("Colony pod", "Descending", "The pod carries the Colony Hub (with a small storage vault), two survey rovers, a mining crawler and starting supplies.");
+        else if (Me.Phase == LandingPhase.Descending) _hud.ShowDetail("Landing convoy", "Descending", "Three drop ships carry the Colony Hub in three modules (it assembles on the ground and its uplink to the ship comes online), two survey rovers, a mining crawler and starting supplies.");
         else if (_selectedStructure != 0) ShowStructure(Surface.FindStructure(_selectedStructure)!);
         else if (_view.SelectedUnits.Count > 0) ShowUnits();
         else if (_selectedTile >= 0) _hud.ShowDetail(Surface.Map.Terrain(_selectedTile).Name, "Tile", DescribeTile(_selectedTile));

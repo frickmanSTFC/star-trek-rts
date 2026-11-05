@@ -8,7 +8,7 @@ namespace FinalFrontier;
 /// (60° steps) is visible. Nodes named "Spin" turn while the building works; glowing parts use
 /// emission so the scene's glow picks them up.
 /// </summary>
-public static class BuildingModels
+public static partial class BuildingModels
 {
     private static readonly Color HullColour = new(0.84f, 0.86f, 0.9f);
     private static readonly Color Trim = new(0.3f, 0.32f, 0.38f);
@@ -16,7 +16,7 @@ public static class BuildingModels
 
     public static Node3D Build(string defId, Color owner) => defId switch
     {
-        "colony_hub" => Hub(owner, 1),
+        "colony_hub" => OutpostL1(owner),
         "colonial_administration" => Hub(owner, 2),
         "planetary_capital" => Hub(owner, 3),
         "mine" => Mine(owner),
@@ -542,9 +542,12 @@ public static class BuildingModels
     /// children so the view finds them like on the code-built models. Null when the file isn't there or hasn't been
     /// imported yet, so callers fall back to the primitive model.
     /// </summary>
-    private static Node3D? Imported(string id, Color owner, params string[] parts)
+    private static Node3D? Imported(string id, Color owner, params string[] parts) =>
+        ImportedFile($"res://models/vehicles/{id}.glb", id, owner, parts);
+
+    /// <summary><see cref="Imported"/> for any glb path (buildings live in models/buildings/).</summary>
+    private static Node3D? ImportedFile(string path, string id, Color owner, params string[] parts)
     {
-        var path = $"res://models/vehicles/{id}.glb";
         if (!ResourceLoader.Exists(path)) return null;
         if (GD.Load<PackedScene>(path)?.Instantiate() is not Node3D model) return null;
         var n = new Node3D { Name = id };

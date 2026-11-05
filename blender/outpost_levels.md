@@ -59,3 +59,13 @@ then `python3 blender/build_outpost.py --sheet blender/previews/outpost`.
 - **Should levels 7–10 claim the neighbouring tiles** (see above)?
 - **Are the later pieces separate buildings?** Several pieces could become their own buildings later instead of being
   part of the core: the shuttle pad, the comms array, the solar halls, and the terraced blocks as habitats.
+
+## Level 1 in the game (2026-11-05)
+
+The owner asked for the first landing to come down in three drop ships and unfurl/combine into the level 1 outpost.
+`blender/build_outpost_l1.py` builds a **game-ready** Federation level 1 outpost, a different design from the mockup's
+"Landing Site" above: a round drum-and-dome hub cut into three 120° wedges (ModuleA command + comms mast, ModuleB hab +
+solar wings, ModuleC ops + vault, radiators and floodlight). `--game` exports `game/models/buildings/outpost_l1.glb`
+(assembled rest pose); the game's `LandingView` flies each wedge down under a drop ship, crawls them together and
+unfurls them. Previews: `previews/outpost/outpost-l1-assembled.png`, `-game`, `-top`, `-unfurl`, `-crawl`, `-convoy`.
+Levels 2–10 are still only this mockup (levels 2 and 3 of the data are primitive models in `BuildingModels.Hub`).
