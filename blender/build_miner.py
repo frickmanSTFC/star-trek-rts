@@ -145,12 +145,13 @@ HULL_Z = (1.1, 1.85)           # hull bottom / deck
 TRACK_X, TRACK_W = 1.13, 0.6
 TRACK_YF, TRACK_YR, TRACK_ZC, TRACK_R = 1.72, -1.72, 0.5, 0.44  # idler / sprocket centres, path radius (plate centres)
 CAB_W = 2.1
+HOPPER_FLOOR = 2.3             # top of the bin floor (the walls run from the deck at 1.85 to 3.0)
 
 
 def palette():
     P = bv["tier_palette"](bv["palette"]())
     P.update({
-        "yellow": material("WorkYellow", (0.86, 0.6, 0.08), 0.1, 0.5),
+        "yellow": material("WorkYellow", (0.92, 0.5, 0.02), 0.1, 0.5),
         "black": material("HazardBlack", (0.02, 0.02, 0.022), 0.0, 0.6),
         "hopper": material("HopperSteel", (0.36, 0.36, 0.35), 0.6, 0.6),
         "ore": material("Ore", (0.3, 0.22, 0.15), 0.0, 0.92),
@@ -587,7 +588,7 @@ def mining_vehicle():
                           ("HopperFront", (2 * hx, 0.08, hz1 - hz0), (0, hy1 - 0.04, (hz0 + hz1) / 2)),
                           ("HopperSideL", (0.08, hy1 - hy0, hz1 - hz0), (-hx + 0.04, (hy0 + hy1) / 2, (hz0 + hz1) / 2)),
                           ("HopperSideR", (0.08, hy1 - hy0, hz1 - hz0), (hx - 0.04, (hy0 + hy1) / 2, (hz0 + hz1) / 2)),
-                          ("HopperFloor", (2 * hx, hy1 - hy0, 0.08), (0, (hy0 + hy1) / 2, hz0 + 0.04))):
+                          ("HopperFloor", (2 * hx, hy1 - hy0, 0.08), (0, (hy0 + hy1) / 2, HOPPER_FLOOR - 0.04))):
         box(nm, size, loc, P["hopper"], body, 0.015)
     for s in (-1, 1):
         cylinder(f"HopperRimSide{s}", 0.04, hy1 - hy0 + 0.08, (s * hx, (hy0 + hy1) / 2, hz1), P["steel"], body, axis="Y", segments=8)
@@ -600,8 +601,9 @@ def mining_vehicle():
     pr.visible_shadow = False
     hazard("HopperHazard", 2 * hx - 0.1, 0.12, frame((0, hy0 - 0.05, hz1 - 0.12), (math.radians(90), 0, 0)), P, body, stripe=0.1)
     text("NameRear", NAME, 0.24, (0, hy0 - 0.008, 2.45), (math.radians(90), 0, 0), P["number"], body, max_width=1.6)
-    fill = empty("Fill", (0, (hy0 + hy1) / 2, hz0 + 0.08), body)
-    ore_mound(P, fill, hx - 0.09, (hy1 - hy0) / 2 - 0.09, hz1 - hz0 - 0.1)
+    # The bin's floor sits well up inside the walls (a shallow bin reads from the game camera as it fills).
+    fill = empty("Fill", (0, (hy0 + hy1) / 2, HOPPER_FLOOR), body)
+    ore_mound(P, fill, hx - 0.09, (hy1 - hy0) / 2 - 0.09, hz1 - HOPPER_FLOOR - 0.05)
 
     legs = [leg(i, P, root) for i in range(4)]
     bm_, drill, string, bit, rods = boom(P, root)
