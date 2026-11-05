@@ -61,7 +61,7 @@ if "--sheet" in argv:
     from PIL import Image, ImageDraw
     folder = arg("--sheet")
     tiles = [(f"{p} {s}", Image.open(os.path.join(folder, f"dropship-{p}-{s}.png")).convert("RGB")) for p, s in SHEET]
-    w, h = tiles[0][1].size
+    w, h = 640, 640 * tiles[0][1].size[1] // tiles[0][1].size[0]
     sheet = Image.new("RGB", (w * 3, h * 2), (20, 22, 26))
     draw = ImageDraw.Draw(sheet)
     for k, (label, im) in enumerate(tiles):
