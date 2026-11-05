@@ -41,8 +41,10 @@ public sealed class SurfaceUnit
     public int Id { get; }
     public int Owner { get; }
     public string DefId { get; }
-    public Fix64 SpeedPerTick { get; }
-    public int SurveyRadius { get; }
+    /// <summary>From its data (speed, survey_radius); refreshed when the test panel tunes the data.</summary>
+    public Fix64 SpeedPerTick { get; internal set; }
+
+    public int SurveyRadius { get; internal set; }
 
     public int Tile { get; internal set; }
 
@@ -378,6 +380,15 @@ public sealed class SurfaceStructure
 
     public StructureStatus Status { get; internal set; }
 
+    /// <summary>Test panel: it doesn't wear.</summary>
+    public bool NoWear { get; internal set; }
+
+    /// <summary>Test panel: multiplies its work speed (1 = normal).</summary>
+    public Fix64 WorkSpeed { get; internal set; } = Fix64.One;
+
+    /// <summary>Placed without paying (test panel): cancelling or salvaging it refunds nothing for the building itself.</summary>
+    public bool Free { get; internal set; }
+
     internal SurfaceStructure(int id, int owner, string defId, int tile, int facing, StructureState state, int baseId)
     {
         BaseId = baseId == 0 ? id : baseId;
@@ -417,6 +428,9 @@ public sealed class SurfaceStructure
         h.Add((int)CrewPhase);
         h.Add(CrewTicks);
         h.Add(CrewWalkTicks);
+        h.Add(NoWear);
+        h.Add(WorkSpeed);
+        h.Add(Free);
     }
 }
 
@@ -473,6 +487,20 @@ public sealed class SurfacePlayer
     internal readonly List<string> _usedUnitNames = new();
     internal readonly List<string> _usedUnitNumbers = new();
 
+    // Test-panel limits (DebugFlagCommand).
+
+    /// <summary>Storage never fills.</summary>
+    public bool NoStorageCap { get; internal set; }
+
+    /// <summary>Every base's power supply covers its use.</summary>
+    public bool UnlimitedPower { get; internal set; }
+
+    /// <summary>Placing buildings costs nothing.</summary>
+    public bool FreeBuilding { get; internal set; }
+
+    /// <summary>Construction and upgrades finish at once.</summary>
+    public bool InstantBuild { get; internal set; }
+
     internal SurfacePlayer(int tileCount, int techCount, int resourceCount)
     {
         Surveyed = new bool[tileCount];
@@ -499,5 +527,9 @@ public sealed class SurfacePlayer
         foreach (var n in _usedUnitNames) h.Add(n);
         h.Add(_usedUnitNumbers.Count);
         foreach (var n in _usedUnitNumbers) h.Add(n);
+        h.Add(NoStorageCap);
+        h.Add(UnlimitedPower);
+        h.Add(FreeBuilding);
+        h.Add(InstantBuild);
     }
 }

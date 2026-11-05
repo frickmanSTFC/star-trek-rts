@@ -176,11 +176,31 @@ public sealed class GameData
     private static T Get<T>(Dictionary<string, T> d, string id, string what) =>
         d.TryGetValue(id, out var v) ? v : throw new KeyNotFoundException($"Unknown {what} '{id}'.");
 
+    /// <summary>The data files the sim reads, in a fixed order.</summary>
+    public static readonly IReadOnlyList<string> FileNames = new[]
+    {
+        "factions.json", "ships.json", "resources.json", "planet_classes.json", "buildings.json", "maps.json", "surfaces.json", "vehicles.json",
+    };
+
+    /// <summary>
+    /// The text of every data file this was loaded from (by file name, e.g. "surfaces.json"). The test panel's data
+    /// tuning patches these and loads a new GameData from them (<see cref="DataTuning"/>).
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Sources { get; private init; } = new Dictionary<string, string>();
+
     public static GameData Load(string dataDirectory)
+    {
+        var files = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var f in FileNames) files[f] = File.ReadAllText(Path.Combine(dataDirectory, f));
+        return Load(files);
+    }
+
+    /// <summary>Loads from file texts already in memory (every name in <see cref="FileNames"/>).</summary>
+    public static GameData Load(IReadOnlyDictionary<string, string> files)
     {
         JsonElement Read(string file)
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(dataDirectory, file)));
+            using var doc = JsonDocument.Parse(files[file]);
             return doc.RootElement.Clone();
         }
 
@@ -411,7 +431,11 @@ public sealed class GameData
                     t.TryGetProperty("description", out var td) ? td.GetString() ?? "" : "")).ToList()
                 : new List<TechDef>(),
             surfacesRoot.TryGetProperty("orbit", out var ob) ? ReadOrbit(ob, Amounts) : null,
-            groundVehicles, problems) { UnitNames = unitNames };
+            groundVehicles, problems)
+        {
+            UnitNames = unitNames,
+            Sources = FileNames.ToDictionary(f => f, f => files[f], StringComparer.Ordinal),
+        };
     }
 
     private static OrbitRules ReadOrbit(JsonElement o, Func<JsonElement, string, string, List<ResourceAmount>> amounts)

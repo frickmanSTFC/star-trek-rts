@@ -20,7 +20,7 @@ public readonly record struct BasePower(Fix64 Supply, Fix64 Use)
 /// player; mines and mining crawlers stop when it is full. Crawlers mine anywhere and send their loads home
 /// as cargo pods. Owned by the Simulation, which routes surface commands here and steps it every tick.
 /// </summary>
-public sealed class PlanetSurface
+public sealed partial class PlanetSurface
 {
     public SurfaceMap Map { get; }
     public IReadOnlyList<SurfacePlayer> Players => _players;
@@ -36,7 +36,7 @@ public sealed class PlanetSurface
     /// <summary>Survey satellites in orbit, oldest first.</summary>
     public IReadOnlyList<Satellite> Satellites => _satellites;
 
-    private readonly GameData _data;
+    private GameData _data;
     private readonly List<SurfacePlayer> _players = new();
     private readonly List<SurfaceUnit> _units = new();
     private readonly List<SurfaceStructure> _structures = new();
@@ -102,14 +102,18 @@ public sealed class PlanetSurface
     {
         var supply = Fix64.Zero;
         var use = Fix64.Zero;
+        var owner = -1;
         foreach (var s in _structures)
         {
-            if (s.BaseId != baseId || s.State != StructureState.Complete) continue;
+            if (s.BaseId != baseId) continue;
+            owner = s.Owner;
+            if (s.State != StructureState.Complete) continue;
             if (!DrawsPower(s.Status)) continue;
             var def = _data.Building(s.DefId);
             supply += def.PowerSupply * ConditionFactor(s); // worn reactors supply less
             use += def.PowerUse;
         }
+        if (owner >= 0 && _players[owner].UnlimitedPower) supply = Fix64.Max(supply, use); // test panel
         return new BasePower(supply, use);
     }
 
@@ -146,9 +150,10 @@ public sealed class PlanetSurface
         return total;
     }
 
-    /// <summary>Room left for new materials (never negative).</summary>
+    /// <summary>Room left for new materials (never negative; practically endless with the test panel's no-storage-cap).</summary>
     public Fix64 FreeStorage(Simulation sim, int player) =>
-        Fix64.Max(Fix64.Zero, StorageCapacity(player) - Stored(sim, player) - InFlight(player));
+        _players[player].NoStorageCap ? Simulation.DebugMaxAmount
+            : Fix64.Max(Fix64.Zero, StorageCapacity(player) - Stored(sim, player) - InFlight(player));
 
     /// <summary>Adds what fits (resources that take no space always fit); returns how much went in.</summary>
     private Fix64 Store(Simulation sim, int player, int resource, Fix64 amount)
@@ -605,8 +610,9 @@ public sealed class PlanetSurface
         return sum;
     }
 
-    /// <summary>Speed of its work (extraction, cycles, assembly, research): 1 + level + research bonuses.</summary>
-    public Fix64 SpeedMultiplier(SurfaceStructure s) => Fix64.Max(Fix64.Zero, Fix64.One + LevelBonus(s, Modifier.Speed) + ResearchBonus(s.Owner, s.DefId, Modifier.Speed));
+    /// <summary>Speed of its work (extraction, cycles, assembly, research): 1 + level + research bonuses, times the test panel's work speed.</summary>
+    public Fix64 SpeedMultiplier(SurfaceStructure s) =>
+        Fix64.Max(Fix64.Zero, Fix64.One + LevelBonus(s, Modifier.Speed) + ResearchBonus(s.Owner, s.DefId, Modifier.Speed)) * s.WorkSpeed;
 
     /// <summary>Share of recipe output it gets: 1 + level + research bonuses.</summary>
     public Fix64 YieldMultiplier(SurfaceStructure s) => Fix64.Max(Fix64.Zero, Fix64.One + LevelBonus(s, Modifier.Yield) + ResearchBonus(s.Owner, s.DefId, Modifier.Yield));
@@ -893,7 +899,7 @@ public sealed class PlanetSurface
         if (def.RequiresTech.Length > 0 && (!_data.HasTech(def.RequiresTech) || !_players[player].Known[_data.Tech(def.RequiresTech).Index])) return PlacementProblem.NeedsTech;
         if (def.RequiresDeposit && (Map.DepositResource[tile] < 0 || Map.DepositAmount[tile] <= Fix64.Zero)) return PlacementProblem.NeedsDeposit;
         if (def.RequiresDepleted && (!Map.IsDepleted(tile) || Map.DepositReopened[tile])) return PlacementProblem.NeedsDepletedDeposit;
-        if (!sim.Players[player].Stock.CanAfford(def.Cost)) return PlacementProblem.CannotAfford;
+        if (!_players[player].FreeBuilding && !sim.Players[player].Stock.CanAfford(def.Cost)) return PlacementProblem.CannotAfford;
         return PlacementProblem.None;
     }
 
@@ -1195,7 +1201,8 @@ public sealed class PlanetSurface
                 var def = _data.Building(salvaged.DefId);
                 if (def.IsCore) return true;
                 var bag = sim.Players[salvaged.Owner].Stock;
-                foreach (var c in def.Cost) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
+                if (!salvaged.Free) // placed free by the test panel: nothing back for the building itself
+                    foreach (var c in def.Cost) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
                 for (var l = 0; l < salvaged.Level - 1 && l < def.Levels.Count; l++) // levels bought count too
                     foreach (var c in def.Levels[l].Cost) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
                 if (salvaged.UpgradingLevel > 0) // an unfinished upgrade comes back in full
@@ -1208,11 +1215,14 @@ public sealed class PlanetSurface
             }
 
             case PlaceBuildingCommand place:
+            {
                 if (CheckPlacement(sim, place.Player, place.BuildingId, place.Tile) != PlacementProblem.None) return true;
-                sim.Players[place.Player].Stock.TrySpend(_data.Building(place.BuildingId).Cost);
+                var free = _players[place.Player].FreeBuilding;
+                if (!free) sim.Players[place.Player].Stock.TrySpend(_data.Building(place.BuildingId).Cost);
                 PlaceStructure(place.Player, place.BuildingId, place.Tile, ((place.Facing % 6) + 6) % 6,
-                    StructureState.Queued, BaseFor(place.Player, place.Tile));
+                    StructureState.Queued, BaseFor(place.Player, place.Tile)).Free = free;
                 return true;
+            }
 
             case UpgradeCommand upgrade:
                 if (UpgradeProblem(sim, upgrade.Player, upgrade.StructureId) != null) return true;
@@ -1250,7 +1260,8 @@ public sealed class PlanetSurface
                     s.UpgradeTicks = 0;
                     return true;
                 }
-                foreach (var c in _data.Building(s.DefId).Cost) stock.Add(c.Resource, c.Amount);
+                if (!s.Free)
+                    foreach (var c in _data.Building(s.DefId).Cost) stock.Add(c.Resource, c.Amount);
                 _structures.Remove(s);
                 _structureAt[s.Tile] = 0;
                 return true;
@@ -1317,6 +1328,11 @@ public sealed class PlanetSurface
             foreach (var s in _structures)
             {
                 if (s.BaseId != core.Id || s.State == StructureState.Complete) continue;
+                if (_players[s.Owner].InstantBuild) // test panel: no waiting, no queue used
+                {
+                    finished.Add(s);
+                    continue;
+                }
                 if (free == 0)
                 {
                     s.State = StructureState.Queued;
@@ -1329,16 +1345,19 @@ public sealed class PlanetSurface
             }
         }
         // Finish after the loop so nothing finished this tick changes this tick's queues.
-        foreach (var s in finished)
+        foreach (var s in finished) Complete(s);
+    }
+
+    /// <summary>A building's construction is done: it starts working (a Deep-Core Mine reopens its deposit).</summary>
+    private void Complete(SurfaceStructure s)
+    {
+        s.State = StructureState.Complete;
+        s.Status = StructureStatus.Working;
+        var def = _data.Building(s.DefId);
+        if (def.RequiresDepleted && Map.IsDepleted(s.Tile) && !Map.DepositReopened[s.Tile])
         {
-            s.State = StructureState.Complete;
-            s.Status = StructureStatus.Working;
-            var def = _data.Building(s.DefId);
-            if (def.RequiresDepleted && Map.IsDepleted(s.Tile) && !Map.DepositReopened[s.Tile])
-            {
-                Map.DepositAmount[s.Tile] = Map.DepositStart[s.Tile] * def.ReopenShare;
-                Map.DepositReopened[s.Tile] = true;
-            }
+            Map.DepositAmount[s.Tile] = Map.DepositStart[s.Tile] * def.ReopenShare;
+            Map.DepositReopened[s.Tile] = true;
         }
     }
 
@@ -1347,25 +1366,40 @@ public sealed class PlanetSurface
     {
         foreach (var s in _structures)
         {
+            var instant = _players[s.Owner].InstantBuild; // test panel
             if (s.UpgradingLevel > 0)
             {
-                // A new level is a refit: it comes back in perfect condition.
-                if (++s.UpgradeTicks < _data.Building(s.DefId).Levels[s.UpgradingLevel - 2].BuildSeconds * Simulation.TickRate) continue;
-                s.Level = s.UpgradingLevel;
-                s.UpgradingLevel = 0;
-                s.UpgradeTicks = 0;
-                s.Condition = Full;
-                s.Broken = false;
-                s.MaintenanceOrdered = false;
+                if (!instant && ++s.UpgradeTicks < _data.Building(s.DefId).Levels[s.UpgradingLevel - 2].BuildSeconds * Simulation.TickRate) continue;
+                FinishLevel(s);
                 continue;
             }
             if (s.UpgradingTo == null) continue;
-            s.UpgradeTicks++;
-            if (s.UpgradeTicks < _data.Building(s.UpgradingTo).BuildSeconds * Simulation.TickRate) continue;
-            s.DefId = s.UpgradingTo;
-            s.UpgradingTo = null;
-            s.UpgradeTicks = 0;
+            if (!instant)
+            {
+                s.UpgradeTicks++;
+                if (s.UpgradeTicks < _data.Building(s.UpgradingTo).BuildSeconds * Simulation.TickRate) continue;
+            }
+            FinishCoreUpgrade(s);
         }
+    }
+
+    /// <summary>A new level is a refit: it comes back in perfect condition.</summary>
+    private static void FinishLevel(SurfaceStructure s)
+    {
+        s.Level = s.UpgradingLevel;
+        s.UpgradingLevel = 0;
+        s.UpgradeTicks = 0;
+        s.Condition = Full;
+        s.Broken = false;
+        s.MaintenanceOrdered = false;
+    }
+
+    /// <summary>A colony core becomes the next building of its line (Colony Hub → Colonial Administration → ...).</summary>
+    private static void FinishCoreUpgrade(SurfaceStructure s)
+    {
+        s.DefId = s.UpgradingTo!;
+        s.UpgradingTo = null;
+        s.UpgradeTicks = 0;
     }
 
     /// <summary>
@@ -1462,12 +1496,7 @@ public sealed class PlanetSurface
             {
                 s.ProductionProgress += speed;
                 var unitDef = _data.SurfaceUnit(s._production[0]);
-                if (s.ProductionProgress >= Fix64.FromInt(unitDef.BuildSeconds * Simulation.TickRate))
-                {
-                    RollOut(sim, s, unitDef.Id);
-                    s._production.RemoveAt(0);
-                    s.ProductionProgress = Fix64.Zero;
-                }
+                if (s.ProductionProgress >= Fix64.FromInt(unitDef.BuildSeconds * Simulation.TickRate)) FinishOrder(sim, s);
             }
             if (def.IsLab)
             {
@@ -1485,8 +1514,8 @@ public sealed class PlanetSurface
                 }
             }
 
-            // Wear while working; once below decline_below it may break down outright.
-            if (def.Wears && _data.Maintenance != null)
+            // Wear while working; once below decline_below it may break down outright (not with the test panel's stop-wear).
+            if (def.Wears && _data.Maintenance != null && !s.NoWear)
             {
                 s.Condition = Fix64.Max(Fix64.Zero, s.Condition - WearPerMinute(s) / Simulation.TicksPerMinute);
                 var chance = BreakdownChancePerMinute(s);
@@ -1635,11 +1664,12 @@ public sealed class PlanetSurface
     }
 
     /// <summary>baseId 0 = this structure is a new base of its own.</summary>
-    private void PlaceStructure(int owner, string defId, int tile, int facing, StructureState state, int baseId)
+    private SurfaceStructure PlaceStructure(int owner, string defId, int tile, int facing, StructureState state, int baseId)
     {
         var s = new SurfaceStructure(_nextStructureId++, owner, defId, tile, facing, state, baseId);
         _structures.Add(s);
         _structureAt[tile] = s.Id;
+        return s;
     }
 
     private void Reveal(int player, int centre, int radius)

@@ -21,7 +21,17 @@ public sealed class Simulation
 
     public static readonly Fix64 SecondsPerTick = Fix64.Ratio(1, TickRate);
 
-    public GameData Data { get; }
+    /// <summary>The game data in use. Only the test panel's data tuning (DebugDataCommand) ever swaps it.</summary>
+    public GameData Data { get; private set; }
+
+    /// <summary>
+    /// How many test-panel edits (DebugCommand) this game has had; 0 = untouched. In the state hash, so a tested
+    /// replay or save never passes for a clean one.
+    /// </summary>
+    public int DebugEdits { get; private set; }
+
+    /// <summary>A hash of each data change made by the test panel, in order (in the state hash).</summary>
+    private readonly List<ulong> _dataChanges = new();
     public DeterministicRng Rng { get; }
     public long Tick { get; private set; }
 
@@ -188,6 +198,11 @@ public sealed class Simulation
     private void Apply(Command command)
     {
         if (command.Player < 0 || command.Player >= _players.Count) return;
+        if (command is DebugCommand debug)
+        {
+            ApplyDebug(debug);
+            return;
+        }
         if (Surface != null && Surface.Apply(this, command)) return;
         switch (command)
         {
@@ -221,6 +236,80 @@ public sealed class Simulation
             default:
                 throw new NotSupportedException($"Unhandled command {command.GetType().Name}.");
         }
+    }
+
+    // ---------------------------------------------------------------- test panel
+
+    /// <summary>Most of any one resource (or deposit) the test panel can set.</summary>
+    public static readonly Fix64 DebugMaxAmount = Fix64.FromInt(1_000_000_000);
+
+    /// <summary>Why a test-panel command would be refused right now (null = it would run). The sim checks again when it runs.</summary>
+    public string? DebugProblem(DebugCommand command)
+    {
+        switch (command)
+        {
+            case DebugStockCommand stock:
+                if (stock.Target < 0 || stock.Target >= _players.Count) return "no such player";
+                if (stock.Values.Count == 0) return "nothing to set";
+                foreach (var v in stock.Values)
+                {
+                    if (v.Resource < 0 || v.Resource >= Data.Resources.Count) return "unknown resource";
+                    if (v.Amount < Fix64.Zero || v.Amount > DebugMaxAmount) return "amounts are 0 to 1 000 000 000";
+                }
+                return null;
+            case DebugAddPlayerCommand add:
+                if (_players.Count >= 8) return "8 players already";
+                return Data.Factions.Any(f => f.Id == add.FactionId) ? null : "unknown faction";
+            case DebugDataCommand data:
+                return DataTuning.Rebuild(Data, data.Edits, Array.Empty<DataFile>(), out _);
+            case DebugReloadDataCommand reload:
+                return DataTuning.Rebuild(Data, Array.Empty<DataEdit>(), reload.Files, out _);
+            default:
+                return Surface == null ? "no planet surface" : Surface.DebugProblem(this, command);
+        }
+    }
+
+    /// <summary>Runs a test-panel command if it is valid (otherwise nothing changes) and counts it.</summary>
+    private void ApplyDebug(DebugCommand command)
+    {
+        if (command is DebugDataCommand or DebugReloadDataCommand)
+        {
+            var edits = command is DebugDataCommand d ? d.Edits : Array.Empty<DataEdit>();
+            var files = command is DebugReloadDataCommand r ? r.Files : Array.Empty<DataFile>();
+            if (DataTuning.Rebuild(Data, edits, files, out var next) != null) return;
+            var h = StateHasher.Create();
+            foreach (var e in edits)
+            {
+                h.Add(e.File);
+                h.Add(e.Path);
+                h.Add(e.Value);
+            }
+            foreach (var f in files)
+            {
+                h.Add(f.File);
+                h.Add(f.Text);
+            }
+            _dataChanges.Add(h.Value);
+            Data = next!;
+            Surface?.ReplaceData(next!);
+            DebugEdits++;
+            return;
+        }
+        if (DebugProblem(command) != null) return;
+        switch (command)
+        {
+            case DebugStockCommand stock:
+                var bag = _players[stock.Target].Stock;
+                foreach (var v in stock.Values) bag.Add(v.Resource, v.Amount - bag[v.Resource]);
+                break;
+            case DebugAddPlayerCommand add:
+                AddPlayer(add.FactionId);
+                break;
+            default:
+                Surface!.ApplyDebug(this, command);
+                break;
+        }
+        DebugEdits++;
     }
 
     /// <summary>Buildings add their per-minute output in equal slices every tick.</summary>
@@ -267,6 +356,9 @@ public sealed class Simulation
         foreach (var s in _ships) s.AddToHash(ref h);
         h.Add(Surface != null);
         Surface?.AddToHash(ref h);
+        h.Add(DebugEdits);
+        h.Add(_dataChanges.Count);
+        foreach (var c in _dataChanges) h.Add(c);
         return h.Value;
     }
 }
