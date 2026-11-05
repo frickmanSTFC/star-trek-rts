@@ -474,7 +474,7 @@ public partial class DropShipView : Node3D
             }
         ship.Nacelle = nacelle;
         if (model.FindChild("BayLight", true, false) is MeshInstance3D bay) ship.Bay = OwnGlow(bay, null);
-        ship.Lamps = RoverLook.Lamps.Attach(model, key);
+        ship.Lamps = RoverLook.Lamps.Attach(model, key & 0xffff); // convoy keys are negative: the flash phase needs a time >= 0
 
         ship.Glow = new OmniLight3D { LightColor = LiftColour, OmniRange = 18f, LightEnergy = 0f, ShadowEnabled = false, Position = new Vector3(0, 0.2f, 0.5f) };
         model.AddChild(ship.Glow);
