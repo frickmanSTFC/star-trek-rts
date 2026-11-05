@@ -31,6 +31,40 @@ import os
 import re
 import sys
 
+
+def compose(spec_path):
+    """The sheet itself (system python3 + PIL, no bpy): a labelled 3 x 3 grid of the renders."""
+    from PIL import Image, ImageDraw, ImageFont
+    with open(spec_path) as f:
+        spec = json.load(f)
+    cw, ch, lab, cols = 480, 320, 46, 3
+    rows = (len(spec["cells"]) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * cw, rows * (ch + lab) + 40), (18, 12, 8))
+    d = ImageDraw.Draw(sheet)
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 17)
+        small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 13)
+    except OSError:
+        font = small = ImageFont.load_default()
+    d.text((10, 10), "Ferengi ground kit mockups - front 3/4 at build_vehicles' rover camera x scale; last cell: game camera",
+           fill=(232, 192, 74), font=font)
+    for i, c in enumerate(spec["cells"]):
+        x, y = (i % cols) * cw, 40 + (i // cols) * (ch + lab)
+        if os.path.exists(c["path"]):
+            sheet.paste(Image.open(c["path"]).convert("RGB").resize((cw, ch), Image.LANCZOS), (x, y))
+        else:
+            d.text((x + 20, y + 140), "missing " + os.path.basename(c["path"]), fill=(200, 80, 60), font=small)
+        d.rectangle((x, y + ch, x + cw - 1, y + ch + lab - 1), fill=(40, 22, 12))
+        d.text((x + 8, y + ch + 4), c["label"], fill=(190, 200, 215) if c["fed"] else (200, 232, 106), font=font)
+        d.text((x + 8, y + ch + 26), c["caption"], fill=(240, 232, 220), font=small)
+    sheet.save(spec["out"])
+    print("sheet", spec["out"])
+
+
+if "--compose" in sys.argv:
+    compose(sys.argv[sys.argv.index("--compose") + 1])
+    sys.exit(0)
+
 import bpy  # first: importing bpy puts bmesh and mathutils on the path when run as a module
 import bmesh
 from mathutils import Euler, Matrix, Vector
@@ -762,7 +796,7 @@ def ticker_tower(name, P, parent, loc, height, boards, beacon=None):
     cylinder(f"{name}Mast", 0.16, height, (0, 0, height / 2), P["umber"], g, axis="Z", segments=14)
     cylinder(f"{name}Foot", 0.5, 0.3, (0, 0, 0.15), P["gold"], g, axis="Z", segments=16)
     for k, (body, z) in enumerate(boards):
-        sign(f"{name}Board{k}", body, 2.0, 0.5, (0, 0, z), PI / 6 + PI / 3 * k, P, g, d=0.14, two_sided=True, marquee=30)
+        sign(f"{name}Board{k}", body, 2.0, 0.5, (0, 0, z), PI / 6 + PI / 3 * k, P, g, d=0.38, two_sided=True, marquee=30)
     cylinder(f"{name}BeaconBase", 0.14, 0.1, (0, 0, height + 0.05), P["gold"], g, axis="Z", segments=14)
     cylinder(beacon or f"{name}Lamp", 0.12, 0.22, (0, 0, height + 0.2), P["amber"], g, axis="Z", segments=14)
     return g
@@ -806,7 +840,7 @@ def outpost_l1(P):
     # Blade sign on a mast at the front-right corner, beacon on top.
     mx, my = -3.4, 2.9
     cylinder("SignMast", 0.12, 7.2, (mx, my, 3.6 + 0.8 - 0.8), P["umber"], root, axis="Z", segments=12)
-    blade = sign("BladeSign", "O\nP\nE\nN", 0.8, 3.0, (mx, my + 0.0, 4.6), PI * 0.75, P, root, d=0.16, two_sided=True,
+    blade = sign("BladeSign", "O\nP\nE\nN", 0.8, 3.0, (mx, my, 4.6), PI * 0.75, P, root, d=0.3, two_sided=True,
                  marquee=36, size=0.55)
     cylinder("BeaconBase", 0.14, 0.1, (mx, my, 7.25), P["gold"], root, axis="Z", segments=14)
     cylinder("Beacon", 0.12, 0.24, (mx, my, 7.42), P["amber"], root, axis="Z", segments=14)
@@ -1077,7 +1111,10 @@ SHEET = [
 
 
 def make_sheet(folder):
-    from PIL import Image, ImageDraw, ImageFont
+    """Measure every sheet model here (bpy), then draw the sheet with the system python3 and PIL (the bpy venv has no
+    PIL): this same file run with --compose <cells.json>."""
+    import subprocess
+    import tempfile
     dims = {}
     for st, model, level, pose, _ in SHEET:
         if st in dims:
@@ -1086,35 +1123,17 @@ def make_sheet(folder):
         bpy.context.view_layer.update()
         lo, hi = measure(root)
         dims[st] = hi - lo
-    cw, ch, lab = 480, 320, 46
-    cols, rows = 3, 3
-    sheet = Image.new("RGB", (cols * cw, rows * (ch + lab) + 40), (18, 12, 8))
-    d = ImageDraw.Draw(sheet)
-    try:
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 17)
-        small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 13)
-    except OSError:
-        font = small = ImageFont.load_default()
-    d.text((10, 10), "Ferengi ground kit - mockups (front 3/4 at build_vehicles' rover camera x scale; last cell: game camera)",
-           fill=(232, 192, 74), font=font)
+    cells = []
     for i, (st, model, level, pose, label) in enumerate(SHEET):
-        shot = "game" if i == len(SHEET) - 1 else "front34"
-        path = os.path.join(folder, f"{st}-{shot}.png")
-        x, y = (i % cols) * cw, 40 + (i // cols) * (ch + lab)
-        if os.path.exists(path):
-            im = Image.open(path).convert("RGB").resize((cw, ch), Image.LANCZOS)
-            sheet.paste(im, (x, y))
-        else:
-            d.text((x + 20, y + 140), f"missing {os.path.basename(path)}", fill=(200, 80, 60), font=small)
         key = f"outpost{level}" if model == "outpost" else model
         v = dims[st]
-        d.rectangle((x, y + ch, x + cw - 1, y + ch + lab - 1), fill=(40, 22, 12))
-        d.text((x + 8, y + ch + 4), label, fill=(200, 232, 106) if i else (190, 200, 215), font=font)
-        d.text((x + 8, y + ch + 26), f"{v.y:.1f} long x {v.x:.1f} wide x {v.z:.1f} tall  |  camera x{CAM_SCALE[key]:g}",
-               fill=(240, 232, 220), font=small)
-    out = os.path.join(folder, "ferengi-sheet.png")
-    sheet.save(out)
-    print("sheet", out, json.dumps({k: [round(c, 2) for c in v] for k, v in dims.items()}))
+        shot = "game" if i == len(SHEET) - 1 else "front34"
+        cells.append({"path": os.path.join(folder, f"{st}-{shot}.png"), "label": label, "fed": model == "fedscout",
+                      "caption": f"{v.y:.1f} long x {v.x:.1f} wide x {v.z:.1f} tall  |  camera x{CAM_SCALE[key]:g}"})
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump({"out": os.path.join(folder, "ferengi-sheet.png"), "cells": cells}, f)
+    subprocess.run(["python3", os.path.abspath(__file__), "--compose", f.name], check=True)
+    os.unlink(f.name)
 
 
 def main():
