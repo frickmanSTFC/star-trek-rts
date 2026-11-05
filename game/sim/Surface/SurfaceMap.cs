@@ -103,9 +103,16 @@ public sealed class SurfaceMap
     public bool IsDepleted(int tile) => DepositResource[tile] >= 0 && DepositAmount[tile] <= Fix64.Zero;
 
     /// <summary>Cheapest move_cost of any passable terrain (for the pathfinding heuristic).</summary>
-    public int MinMoveCost { get; }
+    public int MinMoveCost { get; private set; }
 
-    private readonly GameData _data;
+    private GameData _data;
+
+    /// <summary>The test panel tuned the data: terrain stats (move costs, passable) now come from the new data. The map itself stays as generated.</summary>
+    internal void ReplaceData(GameData data)
+    {
+        _data = data;
+        MinMoveCost = data.Terrain.Where(t => t.Passable).Select(t => t.MoveCost).DefaultIfEmpty(1).Min();
+    }
 
     private SurfaceMap(GameData data, PlanetSurfaceDef def)
     {
