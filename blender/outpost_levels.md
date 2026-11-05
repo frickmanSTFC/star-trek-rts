@@ -12,10 +12,10 @@ control tower and then into the capital's spire.
 |---|---|---|
 | 1 | **Landing Site** | The colony pod has just landed and deployed: saucer on its legs, boarding ramp down, a red beacon on a short mast. Two inflatable hab modules, three supply capsules, the repair pad (striped slab, lamp mast, tool rack, gas bottles, jib crane) and amber beacons at the six hex corners. |
 | 2 | **Outpost** | A walled ground floor under the saucer, so the legs become buttresses. It has a window band, an owner-colour band, a front porch with a canopy, and blue running lights. Also: a third hab, lit tubes joining the habs to the hub, the supply capsules unpacked into three hex cargo modules, a comms mast with a dish at the back corner, and a sensor dish on the beacon mast. |
-| 3 | **Colony Hub** | The mast becomes a tapered pylon with a small saucer cap: windows, amber rim lights and an antenna. Also: the first terraced block (two steps, window strips), three floodlights, and worn vehicle tracks to the pad and the front. |
+| 3 | **Colony Hub** | The mast becomes a tapered pylon with a small saucer cap: windows, amber rim lights and an antenna. Also: the first terraced block on the left edge behind the habs (two steps, window strips), three floodlights, and worn vehicle tracks to the pad and the front. |
 | 4 | **Settlement** | A striped shuttle landing pad with blue edge lights and a parked shuttle ("14"). Six cargo modules, two of them stacked, and an arched storage shed. |
 | 5 | **Township** | A control tower: a taller pylon with a wide windowed saucer cap. The terraced block gets a third step and grows longer. Also: two radomes by the comms mast and paved walks with blue edge lights. |
-| 6 | **Colonial Administration** | An administration wing (a second terraced block on the left edge), a squat saucer-topped cone tower, a skybridge from the pod to the terraced block, and the first deck ring on the pylon. |
+| 6 | **Colonial Administration** | An administration wing (a second terraced block on the back-left edge), a squat saucer-topped cone tower at the back right, a skybridge from the pod to the administration wing, and the first deck ring on the pylon. |
 | 7 | **Provincial Centre** | *Spills onto the neighbours' edges.* A large round pad with a red centre and amber ring lights, plus a second shuttle ("37"). Two solar halls with blue roofs on the right-hand neighbour's edge. Also: a needle spire with stacked rings above the cap, and a glass lift tube beside the pylon. |
 | 8 | **Colony City** | A big ribbed assembly dome with a ring of windows and an antenna spire with a dish (on the back neighbour's edge). A fourth step on the terraced block, a second deck ring, and owner-colour fins up the pylon. |
 | 9 | **Metropolitan Hub** | Two needle towers with pagoda rings (left neighbour), twin saucer platforms on column clusters with lift tubes (back-right neighbour), and a third step on the administration wing. |
@@ -37,6 +37,17 @@ control tower and then into the capital's spire.
   the 7.4-wide pad stays inside the hex.
 - For scale, a Mk I survey rover (from `build_vehicles.py`, without the paint bake) parks on the repair pad. There are
   2 + 2 × level colonists, each 1.9 units tall.
+
+## Previews
+
+- `blender/previews/outpost/outpost-L01.png` … `outpost-L10.png` all use the same camera, framed for level 10.
+- `outpost-L01-game.png`, `outpost-L05-game.png` and `outpost-L10-game.png` show the game's camera at zoom distance 50
+  (45° fov).
+- `outpost-sheet.png` shows all ten levels side by side.
+
+To rebuild them:
+`/root/bpyenv/bin/python blender/build_outpost.py --level N --preview blender/previews/outpost --res 960 --samples 32 --shots front34,game`,
+then `python3 blender/build_outpost.py --sheet blender/previews/outpost`.
 
 ## Questions for the owner
 

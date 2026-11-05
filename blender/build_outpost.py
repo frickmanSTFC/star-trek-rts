@@ -19,6 +19,7 @@ Run (bpy 5.x module, e.g. /root/bpyenv/bin/python):
   ... --shots front34,game   front34 = one fixed camera for every level (framed for level 10); game = the game's
                              camera at zoom distance 50 (PlanetDriver's tilt curve, Planet.tscn's 45 degree fov);
                              close = a nearer look at the hex for checking details (outpost-LNN-close.png)
+                             top = orthographic plan view for checking the footprint (outpost-LNN-top.png)
   ... --out /tmp/outpost-L03.glb   optional glTF of the outpost alone (not the rover/ground; NOT into game/models)
   ... --threads 3            Cycles threads (default: automatic)
   python3 blender/build_outpost.py --sheet blender/previews/outpost   contact sheet from outpost-L01..L10.png (PIL)
@@ -66,7 +67,7 @@ def contact_sheet(folder):
         sheet.paste(t.resize((w, h), Image.LANCZOS), (x, y + bar))
         d.rectangle((x, y, x + w - 1, y + bar - 1), fill=(28, 32, 40))
         d.text((x + 10, y + 6), f"L{i + 1}", fill=(255, 196, 92), font=font)
-        d.text((x + 52, y + 6), LEVEL_NAMES[i], fill=(220, 226, 236), font=font)
+        d.text((x + 64, y + 6), LEVEL_NAMES[i], fill=(220, 226, 236), font=font)
     out = os.path.join(folder, "outpost-sheet.png")
     sheet.save(out)
     print("wrote", out)
@@ -89,8 +90,8 @@ THREADS = int(arg("--threads", "0"))
 SHOTS = [s.strip() for s in arg("--shots", "front34,game").split(",") if s.strip()]
 if not 1 <= LEVEL <= 10:
     sys.exit(f"--level must be 1..10, not {LEVEL}")
-if set(SHOTS) - {"front34", "game", "close"}:
-    sys.exit("--shots takes front34, game and close")
+if set(SHOTS) - {"front34", "game", "close", "top"}:
+    sys.exit("--shots takes front34, game, close and top")
 
 HEX = 25.0
 HEX_R = HEX / math.sqrt(3)  # corner radius
@@ -264,6 +265,18 @@ def torus(name, major, minor, loc, mat, parent=None, segs=48):
     o.parent = parent
     o.location = loc
     return o
+
+
+def dish(name, r, parent, feed=True):
+    """Concave dish (a thin lathed bowl, opening toward local +Z) with a feed horn; origin at the bowl's centre."""
+    d = r * 0.32
+    t = max(0.03, r * 0.03)
+    D = lathe(name, [(0, 0), (r * 0.35, d * 0.12), (r * 0.7, d * 0.5), (r, d), (r * 0.97, d + t), (r * 0.68, d * 0.5 + t),
+                     (r * 0.34, d * 0.12 + t), (0, t)], M["hull"], parent, segs=32)
+    if feed:
+        strut(f"{name}Feed", (0, 0, t), (0, 0, r * 0.62), max(0.02, r * 0.03), M["grey"], D, 6)
+        sphere(f"{name}Horn", max(0.05, r * 0.07), (0, 0, r * 0.62), M["dark"], D, 8)
+    return D
 
 
 def sphere(name, radius, loc, mat, parent=None, segs=16):
@@ -441,7 +454,7 @@ def tower(root, L, base_z):
         if L == 2:
             torus("MastSensorRing2", 0.45, 0.05, (0, 0, base_z + 2.4), M["hull"], T)
             box("DishArm", (0.9, 0.08, 0.08), (0.45, 0, base_z + 2.0), M["grey"], T, 0.0)
-            d = zcyl("MastDish", 0.05, 0, 0.25, M["hull"], T, segs=20, radius2=0.55)
+            d = dish("MastDish", 0.55, T)
             d.location = (0.95, 0, base_z + 2.1)
             d.rotation_euler = (0, math.radians(60), 0)
         return T
@@ -512,7 +525,7 @@ def tower(root, L, base_z):
             lathe(f"SpireRing{k}", [(0, z - 0.12), (rr, z), (rr * 0.5, z + 0.22), (0, z + 0.22)], M["hull"], T, segs=32)
             sphere(f"SpireLight{k}", 0.07, (rr, 0, z + 0.02), M["amber"], T, 8)
         if L >= 10:
-            d = zcyl("SpireDish", 0.06, 0, 0.35, M["hull"], T, segs=24, radius2=1.0)
+            d = dish("SpireDish", 1.0, T)
             d.location = (0.9, 0, sz + spire * 0.72)
             d.rotation_euler = (0, math.radians(70), 0)
             box("SpireDishArm", (0.8, 0.08, 0.08), (0.45, 0, sz + spire * 0.72), M["grey"], T, 0.0)
@@ -669,7 +682,7 @@ def beacon_pole(name, loc, parent, colour="amber", h=2.6):
     sphere(f"{name}Lamp", 0.17, (loc[0], loc[1], h + 0.1), M[colour], parent, 10)
 
 
-def comms_mast(name, loc, parent, h=7.0, dish=1.1):
+def comms_mast(name, loc, parent, h=7.0, dish_r=1.1):
     C = empty(name, loc, parent)
     zcyl(f"{name}Foot", 0.6, 0.0, 0.35, M["concrete"], C, segs=12)
     for k in range(3):  # lattice: three legs
@@ -677,7 +690,7 @@ def comms_mast(name, loc, parent, h=7.0, dish=1.1):
         strut(f"{name}Leg{k}", (0.45 * math.cos(a), 0.45 * math.sin(a), 0.3), (0.08 * math.cos(a), 0.08 * math.sin(a), h), 0.05, M["grey"], C)
     for z in (h * 0.3, h * 0.6):
         torus(f"{name}Brace{z:.1f}", 0.45 - 0.37 * z / h, 0.03, (0, 0, z), M["grey"], C, 12)
-    d = zcyl(f"{name}Dish", 0.05, 0, 0.35, M["hull"], C, segs=28, radius2=dish)
+    d = dish(f"{name}Dish", dish_r, C)
     d.location = (0.25, -0.1, h * 0.72)
     d.rotation_euler = (math.radians(55), 0, math.radians(200))
     sphere(f"{name}Light", 0.14, (0, 0, h + 0.1), M["red"], C, 10)
@@ -748,7 +761,7 @@ def ribbed_dome(name, loc, parent, r, h):
     zcyl(f"{name}Oculus", r * 0.2, 1.9 + h - 0.15, 1.9 + h + 0.35, M["glass"], D, segs=24)
     z0 = 1.9 + h + 0.3
     zcyl(f"{name}Spire", 0.22, z0, z0 + 7.5, M["hull"], D, segs=16, radius2=0.06)
-    dd = zcyl(f"{name}Dish", 0.06, 0, 0.4, M["hull"], D, segs=28, radius2=1.3)
+    dd = dish(f"{name}Dish", 1.3, D)
     dd.location = (0.9, 0.0, z0 + 3.0)
     dd.rotation_euler = (0, math.radians(65), math.radians(-30))
     sphere(f"{name}Light", 0.2, (0, 0, z0 + 7.6), M["red"], D, 12)
@@ -793,10 +806,10 @@ def dish_array(name, loc, parent, n=3):
         a = 2 * math.pi * k / n + 0.3
         p = (2.4 * math.cos(a), 2.4 * math.sin(a))
         zcyl(f"{name}Ped{k}", 0.35, 0.2, 2.0, M["panel"], A, xy=p, segs=12)
-        d = zcyl(f"{name}Dish{k}", 0.1, 0, 0.5, M["hull"], A, segs=32, radius2=1.5)
-        d.location = (p[0], p[1], 2.5)
-        d.rotation_euler = (math.radians(50), 0, math.radians(150 + 20 * k))
-        sphere(f"{name}Feed{k}", 0.1, (p[0], p[1], 3.2), M["amber"], A, 8)
+        d = dish(f"{name}Dish{k}", 1.6, A)
+        d.location = (p[0], p[1], 2.3)
+        d.rotation_euler = (math.radians(55), 0, math.radians(10 + 18 * k))
+        sphere(f"{name}Lamp{k}", 0.1, (p[0], p[1], 2.05), M["amber"], A, 8)
     zcyl(f"{name}Hut", 0.9, 0.2, 1.5, M["hull"], A, segs=6)
     return A
 
@@ -881,7 +894,7 @@ def build(L):
         flat_path("TrackPad", [(9.2, -13.5), (8.9, -9.0), (8.6, -6.4)], 2.4, M["track"], 0.012, root)
         flat_path("TrackFront", [(0, -14.5), (0, -9.5), (0.0, -4.6)], 2.0, M["track"], 0.012, root)
         flat_path("TrackLink", [(0.6, -7.0), (3.5, -6.6), (5.6, -5.0)], 1.8, M["track"], 0.011, root)
-        for k, (p, yaw) in enumerate((((-3.2, -11.0), math.radians(200)), ((4.0, -10.6), math.radians(160)), ((-11.0, 4.5), math.radians(110)))):
+        for k, (p, yaw) in enumerate((((-9.6, -6.4), math.radians(240)), ((4.0, -10.6), math.radians(160)), ((-11.0, 4.5), math.radians(110)))):
             floodlight(f"Flood{k}", (*p, 0), root, 4.5 + 0.25 * L, yaw)
     if L >= 5:
         walks = [[(0, -4.6), (0, -12.5)], [(-0.9, -6.0), (-2.6, -6.4)], [(-3.5, -0.25), (-8.8, -0.25)]]
@@ -992,11 +1005,11 @@ def shoot(folder):
     for name in SHOTS:
         if name == "front34":
             # fixed for every level, framed for level 10 so smaller levels read as growth
-            scene.render.resolution_x, scene.render.resolution_y = RES, int(RES * 2 / 3)
-            target = Vector((0.5, 1.0, 6.5))
+            scene.render.resolution_x, scene.render.resolution_y = RES, int(RES * 3 / 4)
+            target = Vector((0.0, 0.5, 12.5))
             pos = Vector((40.0, -56.0, 44.0))
-            cam.data.sensor_fit = "AUTO"
-            cam.data.lens = 34
+            cam.data.sensor_fit = "VERTICAL"
+            cam.data.angle_y = math.radians(48)
             path = os.path.join(folder, f"outpost-L{LEVEL:02d}.png")
         elif name == "game":
             # the game camera: PlanetDriver eases the view direction from (0, 0.34, 0.94) to (0, 0.82, 0.57) between
@@ -1019,6 +1032,14 @@ def shoot(folder):
             cam.data.sensor_fit = "AUTO"
             cam.data.lens = 30
             path = os.path.join(folder, f"outpost-L{LEVEL:02d}-close.png")
+        if name == "top":
+            scene.render.resolution_x, scene.render.resolution_y = RES, RES
+            target, pos = Vector((0, 0, 0)), Vector((0, -0.01, 120))
+            cam.data.type = "ORTHO"
+            cam.data.ortho_scale = 60
+            path = os.path.join(folder, f"outpost-L{LEVEL:02d}-top.png")
+        else:
+            cam.data.type = "PERSP"
         cam.location = pos
         cam.rotation_euler = (target - pos).to_track_quat("-Z", "Y").to_euler()
         scene.render.filepath = path
