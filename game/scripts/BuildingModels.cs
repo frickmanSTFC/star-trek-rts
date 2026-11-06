@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 
 namespace FinalFrontier;
@@ -14,20 +15,34 @@ public static partial class BuildingModels
     private static readonly Color Trim = new(0.3f, 0.32f, 0.38f);
     private static readonly Color Window = new(0.55f, 0.8f, 1f);
 
-    public static Node3D Build(string defId, Color owner) => defId switch
+    /// <summary>The canonical look of a building (placement ghost): no per-instance variety.</summary>
+    public static Node3D Build(string defId, Color owner) => BuildModel(defId, owner, Look.Plain);
+
+    /// <summary>A building with its own render-only look (BuildingModels.Variety.cs): <paramref name="seed"/> picks the
+    /// tint, accent, weathering, proportions, mirrored sub-parts and add-ons; <paramref name="serial"/> is the number
+    /// painted on it ("STORAGE 03"), 0 = none.</summary>
+    public static Node3D Build(string defId, Color owner, int seed, int serial = 0)
+    {
+        var look = new Look(defId, seed);
+        var n = BuildModel(defId, owner, look);
+        Dress(n, defId, look, serial);
+        return n;
+    }
+
+    private static Node3D BuildModel(string defId, Color owner, Look v) => defId switch
     {
         "colony_hub" => OutpostL1(owner),
         "colonial_administration" => Hub(owner, 2),
         "planetary_capital" => Hub(owner, 3),
-        "mine" => Mine(owner),
-        "deep_core_mine" => DeepCoreMine(owner),
-        "storage_container" => StorageContainer(owner),
-        "refinery" => Refinery(owner),
-        "foundry" => Foundry(owner),
-        "vehicle_bay" => VehicleBay(owner),
-        "science_lab" => ResearchLab(owner),
-        "fusion_reactor" => Reactor(owner),
-        "prefab_habitat" => Habitat(owner),
+        "mine" => Mine(owner, v),
+        "deep_core_mine" => DeepCoreMine(owner, v),
+        "storage_container" => StorageContainer(owner, v),
+        "refinery" => Refinery(owner, v),
+        "foundry" => Foundry(owner, v),
+        "vehicle_bay" => VehicleBay(owner, v),
+        "science_lab" => ResearchLab(owner, v),
+        "fusion_reactor" => Reactor(owner, v),
+        "prefab_habitat" => Habitat(owner, v),
         _ => Generic(owner),
     };
 
@@ -90,31 +105,36 @@ public static partial class BuildingModels
         return n;
     }
 
-    private static Node3D Mine(Color owner)
+    /// <summary>Mine: a derrick (height ±10% per instance) over a drill ("Spin"), the ore hopper on one side or the
+    /// other, a conveyor to the front.</summary>
+    private static Node3D Mine(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour);
         var dark = Metal(Trim, 0.3f, 0.6f);
         Add(n, new BoxMesh { Size = new Vector3(6.6f, 0.7f, 6.6f) }, new Vector3(0, 0.35f, 0), dark);
         // Derrick: four angled legs meeting under a cap.
+        var h = v.Height;
         foreach (var (x, z) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
         {
-            var leg = Add(n, new CylinderMesh { TopRadius = 0.1f, BottomRadius = 0.18f, Height = 7f, RadialSegments = 6 }, new Vector3(x * 1.1f, 4.1f, z * 1.1f), hull);
+            var leg = Add(n, new CylinderMesh { TopRadius = 0.1f, BottomRadius = 0.18f, Height = 7f * h, RadialSegments = 6 }, new Vector3(x * 1.1f, 0.6f + 3.5f * h, z * 1.1f), hull);
             leg.RotationDegrees = new Vector3(z * 8f, 0, -x * 8f);
         }
-        Add(n, new BoxMesh { Size = new Vector3(1.6f, 0.7f, 1.6f) }, new Vector3(0, 7.6f, 0), Glow(owner, 2f));
+        Add(n, new BoxMesh { Size = new Vector3(1.6f, 0.7f, 1.6f) }, new Vector3(0, 0.6f + 7f * h, 0), Glow(owner, 2f));
         var spin = new Node3D { Name = "Spin", Position = new Vector3(0, 2.6f, 0) };
         Add(spin, new CylinderMesh { TopRadius = 0.75f, BottomRadius = 0.1f, Height = 3.2f, RadialSegments = 6 }, Vector3.Zero, Metal(new Color(0.7f, 0.62f, 0.45f), 0.8f, 0.25f));
         n.AddChild(spin);
-        // Ore hopper, conveyor toward the front, and a work light.
-        Add(n, new CylinderMesh { TopRadius = 1.4f, BottomRadius = 0.7f, Height = 2.2f, RadialSegments = 8 }, new Vector3(2.3f, 1.8f, -1.9f), hull);
+        // Ore hopper (in the accent colour, on either side), conveyor toward the front, and a work light.
+        Add(n, new CylinderMesh { TopRadius = 1.4f, BottomRadius = 0.7f, Height = 2.2f, RadialSegments = 8 }, new Vector3(2.3f * v.Side, 1.8f, -1.9f), Metal(v.Accent, 0.45f, 0.45f));
         Add(n, new BoxMesh { Size = new Vector3(1f, 0.35f, 3.6f) }, new Vector3(0, 0.95f, 2.6f), dark);
         Add(n, new BoxMesh { Size = new Vector3(0.9f, 0.08f, 3.4f) }, new Vector3(0, 1.15f, 2.6f), Glow(new Color(1f, 0.75f, 0.4f), 1.2f));
         n.AddChild(new OmniLight3D { LightColor = new Color(1f, 0.82f, 0.6f), LightEnergy = 0.9f, OmniRange = 12f, Position = new Vector3(0, 5, 2) });
         return n;
     }
 
-    private static Node3D Reactor(Color owner)
+    /// <summary>Fusion reactor: core drum with a turning glow ring ("Spin"), two cooling towers (height ±10% per
+    /// instance) and a control block in the accent colour, offset to one side.</summary>
+    private static Node3D Reactor(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour);
@@ -127,21 +147,26 @@ public static partial class BuildingModels
         Add(spin, new BoxMesh { Size = new Vector3(5.6f, 0.25f, 0.25f) }, Vector3.Zero, hull);
         n.AddChild(spin);
         // Two cooling towers at the back.
-        foreach (var x in new[] { -2.7f, 2.7f })
+        foreach (var (x, th) in new[] { (-2.7f, v.Height), (2.7f, v.Height2) })
         {
-            Add(n, new CylinderMesh { TopRadius = 0.85f, BottomRadius = 1.25f, Height = 3.8f, RadialSegments = 14 }, new Vector3(x, 2.3f, -2.1f), hull);
-            Add(n, new CylinderMesh { TopRadius = 0.86f, BottomRadius = 0.86f, Height = 0.2f, RadialSegments = 14 }, new Vector3(x, 4.1f, -2.1f), Glow(owner, 1.6f));
+            var tower = 3.8f * th;
+            Add(n, new CylinderMesh { TopRadius = 0.85f, BottomRadius = 1.25f, Height = tower, RadialSegments = 14 }, new Vector3(x, 0.4f + tower / 2f, -2.1f), hull);
+            Add(n, new CylinderMesh { TopRadius = 0.86f, BottomRadius = 0.86f, Height = 0.2f, RadialSegments = 14 }, new Vector3(x, 0.2f + tower, -2.1f), Glow(owner, 1.6f));
         }
-        Add(n, new BoxMesh { Size = new Vector3(1.6f, 1.2f, 1f) }, new Vector3(0, 1.1f, 3.4f), hull);
-        Add(n, new BoxMesh { Size = new Vector3(1f, 0.6f, 0.1f) }, new Vector3(0, 1.2f, 3.92f), Glow(Window, 1.2f));
+        var bx = v.IsPlain ? 0f : 0.6f * v.Side;
+        Add(n, new BoxMesh { Size = new Vector3(1.6f, 1.2f, 1f) }, new Vector3(bx, 1.1f, 3.4f), Metal(v.Accent, 0.4f, 0.45f));
+        Add(n, new BoxMesh { Size = new Vector3(1f, 0.6f, 0.1f) }, new Vector3(bx, 1.2f, 3.92f), Glow(Window, 1.2f));
         n.AddChild(new OmniLight3D { LightColor = core, LightEnergy = 1.6f, OmniRange = 16f, Position = new Vector3(0, 4, 0) });
         return n;
     }
 
-    private static Node3D Habitat(Color owner)
+    /// <summary>Prefab habitat: three glass domes (each ±8% per instance, warm or cool interior light) joined by
+    /// tubes in the accent colour, and a lit commons at the front.</summary>
+    private static Node3D Habitat(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour, 0.35f, 0.4f);
+        var warmth = v.IsPlain ? 0.5f : v.Next();
         var glass = new StandardMaterial3D
         {
             AlbedoColor = new Color(0.55f, 0.75f, 0.9f, 0.55f),
@@ -149,19 +174,21 @@ public static partial class BuildingModels
             Metallic = 0.6f,
             Roughness = 0.08f,
             EmissionEnabled = true,
-            Emission = new Color(1f, 0.85f, 0.6f),
+            Emission = new Color(1f, 0.85f, 0.6f).Lerp(new Color(0.75f, 0.9f, 1f), warmth),
             EmissionEnergyMultiplier = 0.35f,
         };
         var domes = new[] { new Vector3(0, 0, -2f), new Vector3(-2.3f, 0, 1.6f), new Vector3(2.3f, 0, 1.6f) };
         foreach (var d in domes)
         {
+            var s = v.IsPlain ? 1f : v.Range(0.92f, 1.06f);
             Add(n, new CylinderMesh { TopRadius = 1.9f, BottomRadius = 2.05f, Height = 0.6f, RadialSegments = 16 }, d + new Vector3(0, 0.3f, 0), hull);
-            Add(n, new SphereMesh { Radius = 1.8f, Height = 2.4f, IsHemisphere = true, RadialSegments = 16 }, d + new Vector3(0, 0.6f, 0), glass);
+            Add(n, new SphereMesh { Radius = 1.8f, Height = 2.4f * s, IsHemisphere = true, RadialSegments = 16 }, d + new Vector3(0, 0.6f, 0), glass);
             Add(n, new CylinderMesh { TopRadius = 1.92f, BottomRadius = 1.92f, Height = 0.1f, RadialSegments = 16 }, d + new Vector3(0, 0.62f, 0), Glow(owner, 1.4f));
         }
         // Connecting tubes and a lit commons at the front.
-        Add(n, new CylinderMesh { TopRadius = 0.32f, BottomRadius = 0.32f, Height = 4f }, new Vector3(0, 0.6f, 1.6f), hull, new Vector3(0, 0, 90));
-        Add(n, new CylinderMesh { TopRadius = 0.32f, BottomRadius = 0.32f, Height = 3.2f }, new Vector3(0, 0.6f, 0), hull, new Vector3(90, 0, 0));
+        var tube = Metal(v.Accent, 0.4f, 0.45f);
+        Add(n, new CylinderMesh { TopRadius = 0.32f, BottomRadius = 0.32f, Height = 4f }, new Vector3(0, 0.6f, 1.6f), tube, new Vector3(0, 0, 90));
+        Add(n, new CylinderMesh { TopRadius = 0.32f, BottomRadius = 0.32f, Height = 3.2f }, new Vector3(0, 0.6f, 0), tube, new Vector3(90, 0, 0));
         Add(n, new BoxMesh { Size = new Vector3(1.4f, 0.25f, 1.4f) }, new Vector3(0, 0.13f, 3.6f), Glow(Window, 1f));
         return n;
     }
@@ -267,7 +294,7 @@ public static partial class BuildingModels
     /// Research Lab: a glass-roofed lab block beside a sensor mast with a dish, and a glowing containment ring
     /// that turns while it works ("Spin").
     /// </summary>
-    private static Node3D ResearchLab(Color owner)
+    private static Node3D ResearchLab(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour);
@@ -289,12 +316,14 @@ public static partial class BuildingModels
         // Windows along the front.
         for (var i = 0; i < 3; i++)
             Add(n, new BoxMesh { Size = new Vector3(1f, 0.6f, 0.08f) }, new Vector3(-2.4f + i * 1.6f, 1.8f, 2.74f), Glow(Window, 1.3f));
-        // Sensor mast and dish at the back right.
-        Add(n, new CylinderMesh { TopRadius = 0.18f, BottomRadius = 0.3f, Height = 6.5f, RadialSegments = 8 }, new Vector3(2.6f, 3.6f, -2f), hull);
-        Add(n, new CylinderMesh { TopRadius = 1.4f, BottomRadius = 0.2f, Height = 0.6f, RadialSegments = 14 }, new Vector3(2.6f, 6.8f, -2f), hull, new Vector3(35, 0, 0));
-        Add(n, new SphereMesh { Radius = 0.2f, Height = 0.4f }, new Vector3(2.6f, 7.4f, -1.6f), Glow(new Color(1f, 0.6f, 0.15f), 3f));
-        // Containment ring on a plinth: the "experiment".
-        Add(n, new CylinderMesh { TopRadius = 0.9f, BottomRadius = 1.1f, Height = 0.8f, RadialSegments = 12 }, new Vector3(2.4f, 0.8f, 1.8f), dark);
+        // Sensor mast and dish at the back right (height ±10% per instance, the dish tilted a little differently).
+        var mh = 6.5f * v.Height;
+        var tilt = v.IsPlain ? 35f : v.Range(25f, 50f);
+        Add(n, new CylinderMesh { TopRadius = 0.18f, BottomRadius = 0.3f, Height = mh, RadialSegments = 8 }, new Vector3(2.6f, 0.35f + mh / 2f, -2f), hull);
+        Add(n, new CylinderMesh { TopRadius = 1.4f, BottomRadius = 0.2f, Height = 0.6f, RadialSegments = 14 }, new Vector3(2.6f, 0.3f + mh, -2f), hull, new Vector3(tilt, 0, 0));
+        Add(n, new SphereMesh { Radius = 0.2f, Height = 0.4f }, new Vector3(2.6f, 0.9f + mh, -1.6f), Glow(new Color(1f, 0.6f, 0.15f), 3f));
+        // Containment ring on a plinth in the accent colour: the "experiment".
+        Add(n, new CylinderMesh { TopRadius = 0.9f, BottomRadius = 1.1f, Height = 0.8f, RadialSegments = 12 }, new Vector3(2.4f, 0.8f, 1.8f), Metal(v.Accent, 0.4f, 0.45f));
         var spin = new Node3D { Name = "Spin", Position = new Vector3(2.4f, 2.1f, 1.8f) };
         Add(spin, new TorusMesh { InnerRadius = 0.75f, OuterRadius = 0.95f, Rings = 24 }, Vector3.Zero, Glow(new Color(0.55f, 0.9f, 1f), 3f), new Vector3(70, 0, 0));
         Add(spin, new SphereMesh { Radius = 0.3f, Height = 0.6f }, Vector3.Zero, Glow(new Color(0.85f, 0.95f, 1f), 4f));
@@ -340,7 +369,7 @@ public static partial class BuildingModels
     /// Vehicle Bay: a ribbed assembly hall with a wide roll-up door at the front ("Door": scale Y 1 = shut, ~0.08 = open),
     /// a lit assembly bay inside ("WorkGlow"), a striped apron, and a control tower with a turning beacon ("Spin").
     /// </summary>
-    private static Node3D VehicleBay(Color owner)
+    private static Node3D VehicleBay(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour);
@@ -377,10 +406,13 @@ public static partial class BuildingModels
             Add(n, new BoxMesh { Size = new Vector3(0.3f, 0.04f, 0.9f) }, new Vector3(-2.1f, 0.42f, 2.8f + i * 1.15f), stripe);
             Add(n, new BoxMesh { Size = new Vector3(0.3f, 0.04f, 0.9f) }, new Vector3(2.1f, 0.42f, 2.8f + i * 1.15f), stripe);
         }
-        // Control tower and beacon at the back corner.
-        Add(n, new BoxMesh { Size = new Vector3(1.6f, 7.2f, 1.6f) }, new Vector3(3.6f, 3.6f, -3.4f), hull);
-        Add(n, new BoxMesh { Size = new Vector3(1.7f, 0.6f, 1.7f) }, new Vector3(3.6f, 6.4f, -3.4f), Glow(Window, 1.4f));
-        var spin = new Node3D { Name = "Spin", Position = new Vector3(3.6f, 7.5f, -3.4f) };
+        // Control tower and beacon at one back corner (either side per instance, height ±10%, accent band).
+        var tx = 3.6f * v.Side;
+        var th = 7.2f * v.Height;
+        Add(n, new BoxMesh { Size = new Vector3(1.6f, th, 1.6f) }, new Vector3(tx, th / 2f, -3.4f), hull);
+        Add(n, new BoxMesh { Size = new Vector3(1.64f, 0.5f, 1.64f) }, new Vector3(tx, th * 0.45f, -3.4f), Metal(v.Accent, 0.4f, 0.45f));
+        Add(n, new BoxMesh { Size = new Vector3(1.7f, 0.6f, 1.7f) }, new Vector3(tx, th - 0.8f, -3.4f), Glow(Window, 1.4f));
+        var spin = new Node3D { Name = "Spin", Position = new Vector3(tx, th + 0.3f, -3.4f) };
         Add(spin, new BoxMesh { Size = new Vector3(1.2f, 0.25f, 0.3f) }, new Vector3(0.4f, 0, 0), Glow(new Color(1f, 0.6f, 0.15f), 3.5f));
         Add(spin, new CylinderMesh { TopRadius = 0.2f, BottomRadius = 0.2f, Height = 0.4f }, Vector3.Zero, dark);
         n.AddChild(spin);
@@ -388,45 +420,61 @@ public static partial class BuildingModels
     }
 
     /// <summary>Deep-core mine: a heavier derrick over a lit shaft ring, with a big drill ("Spin") and pressure tanks.</summary>
-    private static Node3D DeepCoreMine(Color owner)
+    private static Node3D DeepCoreMine(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour);
         var dark = Metal(Trim, 0.3f, 0.6f);
         Add(n, new CylinderMesh { TopRadius = 3.6f, BottomRadius = 4.1f, Height = 0.8f, RadialSegments = 8 }, new Vector3(0, 0.4f, 0), dark);
         Add(n, new TorusMesh { InnerRadius = 1.5f, OuterRadius = 1.9f, Rings = 24 }, new Vector3(0, 0.85f, 0), Glow(new Color(1f, 0.5f, 0.2f), 2.6f));
+        var h = v.Height3;
         foreach (var (x, z) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
         {
-            var leg = Add(n, new BoxMesh { Size = new Vector3(0.35f, 10f, 0.35f) }, new Vector3(x * 1.6f, 5.4f, z * 1.6f), hull);
+            var leg = Add(n, new BoxMesh { Size = new Vector3(0.35f, 10f * h, 0.35f) }, new Vector3(x * 1.6f, 0.4f + 5f * h, z * 1.6f), hull);
             leg.RotationDegrees = new Vector3(z * 7f, 0, -x * 7f);
         }
-        Add(n, new BoxMesh { Size = new Vector3(2.4f, 1f, 2.4f) }, new Vector3(0, 10.4f, 0), hull);
-        Add(n, new BoxMesh { Size = new Vector3(2.5f, 0.2f, 2.5f) }, new Vector3(0, 10.9f, 0), Glow(owner, 2f));
+        Add(n, new BoxMesh { Size = new Vector3(2.4f, 1f, 2.4f) }, new Vector3(0, 0.4f + 10f * h, 0), hull);
+        Add(n, new BoxMesh { Size = new Vector3(2.5f, 0.2f, 2.5f) }, new Vector3(0, 0.9f + 10f * h, 0), Glow(owner, 2f));
         var spin = new Node3D { Name = "Spin", Position = new Vector3(0, 4f, 0) };
         Add(spin, new CylinderMesh { TopRadius = 0.25f, BottomRadius = 0.25f, Height = 6f, RadialSegments = 8 }, new Vector3(0, 1.5f, 0), Metal(new Color(0.6f, 0.6f, 0.65f), 0.85f, 0.2f));
         Add(spin, new CylinderMesh { TopRadius = 1.1f, BottomRadius = 0.15f, Height = 3f, RadialSegments = 6 }, new Vector3(0, -2.4f, 0), Metal(new Color(0.75f, 0.62f, 0.4f), 0.8f, 0.25f));
         n.AddChild(spin);
-        foreach (var x in new[] { -2.9f, 2.9f })
-            Add(n, new CylinderMesh { TopRadius = 0.8f, BottomRadius = 0.8f, Height = 3f, RadialSegments = 12 }, new Vector3(x, 2.3f, 2.2f), hull);
+        // Pressure tanks in the accent colour, one taller than the other.
+        foreach (var (x, k) in new[] { (-2.9f, v.Height), (2.9f, v.Height2) })
+            Add(n, new CylinderMesh { TopRadius = 0.8f, BottomRadius = 0.8f, Height = 3f * k, RadialSegments = 12 }, new Vector3(x, 0.8f + 1.5f * k, 2.2f), Metal(v.Accent, 0.45f, 0.4f));
         n.AddChild(new OmniLight3D { LightColor = new Color(1f, 0.6f, 0.3f), LightEnergy = 1.4f, OmniRange = 14f, Position = new Vector3(0, 2, 0) });
         return n;
     }
 
     /// <summary>Storage container yard: stacked, ribbed cargo containers in a few colours and a small gantry crane.</summary>
-    private static Node3D StorageContainer(Color owner)
+    /// <summary>Storage container yard: stacked, ribbed cargo containers and a gantry crane. Per instance: which
+    /// slots carry a second container, the container colours (one in the accent colour) and their slight skew, and
+    /// where the crane's trolley stands.</summary>
+    private static Node3D StorageContainer(Color owner, Look v)
     {
         var n = new Node3D();
         Add(n, new BoxMesh { Size = new Vector3(7.4f, 0.4f, 7f) }, new Vector3(0, 0.2f, 0), Metal(Trim, 0.3f, 0.7f));
-        var colours = new[] { new Color(0.72f, 0.36f, 0.22f), new Color(0.3f, 0.45f, 0.62f), new Color(0.78f, 0.7f, 0.42f), new Color(0.42f, 0.55f, 0.4f) };
-        var slots = new[] { (-1.8f, -1.8f, 0), (1.8f, -1.8f, 0), (-1.8f, 1.2f, 0), (1.8f, 1.2f, 0), (-1.8f, -1.8f, 1), (1.8f, 1.2f, 1), (-1.8f, 1.2f, 1) };
-        for (var i = 0; i < slots.Length; i++)
+        var colours = new[] { new Color(0.72f, 0.36f, 0.22f), new Color(0.3f, 0.45f, 0.62f), new Color(0.78f, 0.7f, 0.42f), new Color(0.42f, 0.55f, 0.4f), new Color(0.62f, 0.62f, 0.64f), new Color(0.55f, 0.24f, 0.2f) };
+        var ground = new[] { (-1.8f, -1.8f), (1.8f, -1.8f), (-1.8f, 1.2f), (1.8f, 1.2f) };
+        // the upper level: the canonical three, or one of a few other layouts (always two or three stacked, so it reads
+        // as the same yard)
+        var layouts = new[] { new[] { 0, 3, 2 }, new[] { 1, 2 }, new[] { 0, 1, 3 }, new[] { 2, 3 }, new[] { 0, 1 } };
+        var upper = layouts[v.Int(layouts.Length)];
+        var slots = new List<(float X, float Z, int Level)>();
+        foreach (var (x, z) in ground) slots.Add((x, z, 0));
+        foreach (var k in upper) slots.Add((ground[k].Item1, ground[k].Item2, 1));
+        var offset = v.Int(colours.Length);
+        var accentSlot = v.IsPlain ? -1 : v.Int(slots.Count);
+        for (var i = 0; i < slots.Count; i++)
         {
             var (x, z, level) = slots[i];
-            var box = new Node3D { Position = new Vector3(x, 0.4f + 1.35f + level * 2.7f, z), RotationDegrees = new Vector3(0, i % 2 * 2f - 1f, 0) };
-            var paint = Metal(colours[i % colours.Length], 0.45f, 0.55f);
+            var skew = v.IsPlain ? i % 2 * 2f - 1f : v.Range(-3f, 3f);
+            var box = new Node3D { Position = new Vector3(x, 0.4f + 1.35f + level * 2.7f, z), RotationDegrees = new Vector3(0, skew, 0) };
+            var colour = i == accentSlot ? v.Accent : colours[(i + offset) % colours.Length];
+            var paint = Metal(colour, 0.45f, 0.55f);
             Add(box, new BoxMesh { Size = new Vector3(3.2f, 2.6f, 2.6f) }, Vector3.Zero, paint);
             for (var r = -1; r <= 1; r++)
-                Add(box, new BoxMesh { Size = new Vector3(0.12f, 2.4f, 2.7f) }, new Vector3(r * 1.1f, 0, 0), Metal(colours[i % colours.Length].Darkened(0.25f), 0.45f, 0.55f));
+                Add(box, new BoxMesh { Size = new Vector3(0.12f, 2.4f, 2.7f) }, new Vector3(r * 1.1f, 0, 0), Metal(colour.Darkened(0.25f), 0.45f, 0.55f));
             n.AddChild(box);
         }
         // Gantry crane over the yard.
@@ -434,43 +482,14 @@ public static partial class BuildingModels
         foreach (var x in new[] { -3.5f, 3.5f })
             Add(n, new BoxMesh { Size = new Vector3(0.3f, 7.4f, 0.3f) }, new Vector3(x, 3.9f, 3.1f), hull);
         Add(n, new BoxMesh { Size = new Vector3(7.4f, 0.45f, 0.45f) }, new Vector3(0, 7.6f, 3.1f), hull);
-        Add(n, new BoxMesh { Size = new Vector3(1f, 0.6f, 0.9f) }, new Vector3(0.8f, 7.1f, 3.1f), Glow(owner, 1.6f));
-        Add(n, new CylinderMesh { TopRadius = 0.04f, BottomRadius = 0.04f, Height = 2.6f }, new Vector3(0.8f, 5.6f, 3.1f), Metal(Trim));
-        return n;
-    }
-
-    /// <summary>Ore refinery: a squat smelter with a glowing melt slot, two stacks, an ore hopper and a spinning cooling fan ("Spin").</summary>
-    private static Node3D Refinery(Color owner)
-    {
-        var n = new Node3D();
-        var hull = Metal(HullColour);
-        var dark = Metal(Trim, 0.35f, 0.55f);
-        var molten = new Color(1f, 0.48f, 0.15f);
-        Add(n, new BoxMesh { Size = new Vector3(7f, 0.6f, 6.6f) }, new Vector3(0, 0.3f, 0), dark);
-        Add(n, new CylinderMesh { TopRadius = 2.1f, BottomRadius = 2.6f, Height = 4.2f, RadialSegments = 16 }, new Vector3(-0.6f, 2.7f, 0), hull);
-        Add(n, new BoxMesh { Size = new Vector3(2.4f, 0.5f, 0.2f) }, new Vector3(-0.6f, 1.6f, 2.5f), Glow(molten, 3.2f));
-        foreach (var (x, z) in new[] { (-1.7f, -1.4f), (0.4f, -1.6f) })
-        {
-            Add(n, new CylinderMesh { TopRadius = 0.45f, BottomRadius = 0.6f, Height = 6.5f, RadialSegments = 10 }, new Vector3(x, 5.2f, z), hull);
-            Add(n, new CylinderMesh { TopRadius = 0.47f, BottomRadius = 0.47f, Height = 0.25f, RadialSegments = 10 }, new Vector3(x, 8.4f, z), Glow(molten, 2f));
-        }
-        // Ore hopper on the right, chute into the smelter.
-        Add(n, new CylinderMesh { TopRadius = 1.3f, BottomRadius = 0.5f, Height = 2f, RadialSegments = 8 }, new Vector3(2.4f, 3.4f, 1f), hull);
-        Add(n, new BoxMesh { Size = new Vector3(2f, 0.3f, 0.7f) }, new Vector3(1.4f, 2.4f, 1f), dark, new Vector3(0, 0, 25));
-        Add(n, new BoxMesh { Size = new Vector3(0.3f, 2.4f, 0.3f) }, new Vector3(2.4f, 1.2f, 1f), dark);
-        // Cooling fan housing at the back right.
-        Add(n, new CylinderMesh { TopRadius = 1.2f, BottomRadius = 1.2f, Height = 0.6f, RadialSegments = 16 }, new Vector3(2.3f, 1f, -2f), dark);
-        var spin = new Node3D { Name = "Spin", Position = new Vector3(2.3f, 1.35f, -2f) };
-        Add(spin, new BoxMesh { Size = new Vector3(2.1f, 0.08f, 0.35f) }, Vector3.Zero, hull);
-        Add(spin, new BoxMesh { Size = new Vector3(0.35f, 0.08f, 2.1f) }, Vector3.Zero, hull);
-        n.AddChild(spin);
-        Add(n, new BoxMesh { Size = new Vector3(7.02f, 0.16f, 6.62f) }, new Vector3(0, 0.62f, 0), Glow(owner, 1.2f));
-        n.AddChild(new OmniLight3D { LightColor = molten, LightEnergy = 1.5f, OmniRange = 12f, Position = new Vector3(-0.6f, 1.8f, 3.5f) });
+        var trolley = v.IsPlain ? 0.8f : v.Range(-2.4f, 2.4f);
+        Add(n, new BoxMesh { Size = new Vector3(1f, 0.6f, 0.9f) }, new Vector3(trolley, 7.1f, 3.1f), Glow(owner, 1.6f));
+        Add(n, new CylinderMesh { TopRadius = 0.04f, BottomRadius = 0.04f, Height = 2.6f }, new Vector3(trolley, 5.6f, 3.1f), Metal(Trim));
         return n;
     }
 
     /// <summary>Alloy foundry: a long casting hall with a glowing crucible under an arch, ingot stacks out front and a stack ("Spin" = crucible stirrer).</summary>
-    private static Node3D Foundry(Color owner)
+    private static Node3D Foundry(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour);
@@ -479,21 +498,25 @@ public static partial class BuildingModels
         Add(n, new BoxMesh { Size = new Vector3(7.2f, 0.5f, 7f) }, new Vector3(0, 0.25f, 0), dark);
         Add(n, new BoxMesh { Size = new Vector3(6.2f, 3.4f, 3.2f) }, new Vector3(0, 2.2f, -1.6f), hull);
         Add(n, new BoxMesh { Size = new Vector3(6.3f, 0.2f, 3.3f) }, new Vector3(0, 3.95f, -1.6f), Glow(owner, 1.5f));
-        Add(n, new CylinderMesh { TopRadius = 0.55f, BottomRadius = 0.7f, Height = 5f, RadialSegments = 10 }, new Vector3(2.2f, 5.5f, -2.2f), hull);
+        // the stack: on either side, height ±10%
+        var sh = 5f * v.Height;
+        Add(n, new CylinderMesh { TopRadius = 0.55f, BottomRadius = 0.7f, Height = sh, RadialSegments = 10 }, new Vector3(2.2f * v.Side, 3f + sh / 2f, -2.2f), hull);
         // Arch and crucible in front of the hall.
+        var arch = Metal(v.Accent, 0.4f, 0.45f);
         foreach (var x in new[] { -1.6f, 1.6f })
-            Add(n, new BoxMesh { Size = new Vector3(0.35f, 3.6f, 0.35f) }, new Vector3(x, 2.3f, 1.2f), hull);
-        Add(n, new BoxMesh { Size = new Vector3(3.6f, 0.4f, 0.5f) }, new Vector3(0, 4.1f, 1.2f), hull);
+            Add(n, new BoxMesh { Size = new Vector3(0.35f, 3.6f, 0.35f) }, new Vector3(x, 2.3f, 1.2f), arch);
+        Add(n, new BoxMesh { Size = new Vector3(3.6f, 0.4f, 0.5f) }, new Vector3(0, 4.1f, 1.2f), arch);
         Add(n, new CylinderMesh { TopRadius = 1.1f, BottomRadius = 0.8f, Height = 1.2f, RadialSegments = 14 }, new Vector3(0, 1.1f, 1.2f), dark);
         Add(n, new CylinderMesh { TopRadius = 0.95f, BottomRadius = 0.95f, Height = 0.1f, RadialSegments = 14 }, new Vector3(0, 1.72f, 1.2f), Glow(hot, 3.5f));
         var spin = new Node3D { Name = "Spin", Position = new Vector3(0, 2.6f, 1.2f) };
         Add(spin, new BoxMesh { Size = new Vector3(1.4f, 0.12f, 0.12f) }, Vector3.Zero, dark);
         Add(spin, new CylinderMesh { TopRadius = 0.06f, BottomRadius = 0.06f, Height = 1.4f }, new Vector3(0.6f, -0.6f, 0), dark);
         n.AddChild(spin);
-        // Parasteel ingots stacked by the door.
+        // Parasteel ingots stacked by the door (how many, and on which side, varies).
         var ingot = Metal(new Color(0.62f, 0.66f, 0.74f), 0.85f, 0.25f);
-        for (var i = 0; i < 6; i++)
-            Add(n, new BoxMesh { Size = new Vector3(1.1f, 0.35f, 0.45f) }, new Vector3(-2.6f + (i % 3) * 0.05f, 0.7f + (i / 2) * 0.36f, 2.2f + (i % 2) * 0.5f), ingot);
+        var bars = v.IsPlain ? 6 : 3 + v.Int(6);
+        for (var i = 0; i < bars; i++)
+            Add(n, new BoxMesh { Size = new Vector3(1.1f, 0.35f, 0.45f) }, new Vector3(-2.6f * v.Side + (i % 3) * 0.05f, 0.7f + (i / 2) * 0.36f, 2.2f + (i % 2) * 0.5f), ingot);
         n.AddChild(new OmniLight3D { LightColor = hot, LightEnergy = 1.6f, OmniRange = 12f, Position = new Vector3(0, 2.5f, 2f) });
         return n;
     }
@@ -898,6 +921,7 @@ public static partial class BuildingModels
         {
             if (child is MeshInstance3D mesh) mesh.MaterialOverride = material;
             if (child is Light3D light) light.Visible = false;
+            if (child is Label3D label) label.Visible = false; // painted numbers and signs
             Override(child, material);
         }
     }
