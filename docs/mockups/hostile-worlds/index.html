@@ -1,0 +1,1107 @@
+<title>Hostile Worlds</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@500;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: a design-review page (dark-first, follows the viewer's theme) framing HUD mockups at game scale; the HUD and
+   helm frames always use the game's own colours (PlanetHud.cs, HelmScreen.cs), like docs/mockups/build-card. */
+:root {
+  --page: #070a12; --page-2: #0c1220; --ink: #e6ebf5; --dim: #9aa6c0; --rule: #27304a; --mark: #f5a624; --link: #8cc8ff;
+  /* world colours: one per example world, used for its column, chips and minimap */
+  --w-cinder: #ff7a3d; --w-veyra: #d39a62; --w-tarsis: #9fb4d6;
+  /* HUD (PlanetHud.cs) */
+  --hud-ground: #05080f; --hud-panel: #050812; --hud-ink: #e6ebf5; --hud-dim: #99a6bf; --hud-line: #263049;
+  --hud-good: #8fd4b0; --hud-warn: #ffb36b; --hud-bad: #ff6f61; --hud-accent: #f5a624; --hud-btn: #0f1930; --hud-btn-edge: #2b3a5c;
+  --hud-sky: #9ed1ff; --hud-chip: #111829; --hud-pressed: #3d2b0d;
+  /* helm (HelmScreen.cs) */
+  --helm-peach: #f2a65a; --helm-lav: #a9a3e0; --helm-sky: #7fb0e8; --helm-rust: #c8664a; --helm-cyan: #5ff2e6; --helm-green: #9be37a;
+  --helm-red: #e8645a; --helm-ink: #f2e6d8; --helm-grey: #3d404b; --helm-greytext: #8d909a;
+  /* tiers */
+  --t-open: #8fd4b0; --t-masks: #c9d36a; --t-suits: #ffb36b; --t-domes: #ff8a5c; --t-tech: #e8645a; --t-imp: #8d909a;
+  --display: "Antonio", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --page: #eef1f6; --page-2: #e2e7f0; --ink: #141a2a; --dim: #4a5570; --rule: #c4ccdb; --mark: #9a5a00; --link: #1f5fae;
+    --w-cinder: #c2410c; --w-veyra: #93602f; --w-tarsis: #4a6390; color-scheme: light; }
+}
+:root[data-theme="light"] { --page: #eef1f6; --page-2: #e2e7f0; --ink: #141a2a; --dim: #4a5570; --rule: #c4ccdb; --mark: #9a5a00; --link: #1f5fae;
+  --w-cinder: #c2410c; --w-veyra: #93602f; --w-tarsis: #4a6390; color-scheme: light; }
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font: 400 16px/1.55 var(--body); }
+a { color: var(--link); }
+.wrap { max-width: 1320px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.mast { padding-block: 40px 28px; border-bottom: 1px solid var(--rule); }
+.eyebrow { font: 600 13px/1.2 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--mark); }
+h1 { font: 700 clamp(44px, 8vw, 84px)/0.92 var(--display); letter-spacing: .01em; text-transform: uppercase; margin: 10px 0 14px; text-wrap: balance; }
+h2 { font: 700 clamp(28px, 4vw, 40px)/1 var(--display); text-transform: uppercase; letter-spacing: .02em; margin: 0; text-wrap: balance; }
+h3 { font: 600 22px/1.15 var(--label); letter-spacing: .04em; text-transform: uppercase; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.lede { max-width: 70ch; font-size: 18px; }
+.muted { color: var(--dim); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; font: 500 14px var(--label); letter-spacing: .06em; color: var(--dim); text-transform: uppercase; align-items: center; }
+.src { display: inline-block; padding: 1px 7px; border-radius: 4px; font: 600 11px/1.6 var(--label); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.src.real { background: #123522; color: #9ff0c4; }
+.src.stand { background: #3a2a0c; color: #ffd18a; }
+.src.data { background: #10233d; color: #a8d4ff; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 16px; font: 600 14px var(--label); letter-spacing: .08em; text-transform: uppercase; }
+nav.toc a { text-decoration: none; }
+section.part { padding-block: 44px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 22px; }
+.part-head { display: flex; flex-direction: column; gap: 8px; max-width: 78ch; }
+.sub { display: flex; flex-direction: column; gap: 14px; }
+.sub + .sub { margin-top: 18px; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px 28px; font-size: 15px; }
+.notes > div { min-width: 0; }
+.notes b { font: 600 13px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); display: block; }
+.rec { border: 1px solid var(--mark); border-radius: 10px; padding: 14px 18px; background: var(--page-2); display: flex; flex-direction: column; gap: 6px; max-width: 980px; }
+code { font: .86em ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+kbd { font: 600 12px/1 var(--label); letter-spacing: .06em; padding: 2px 6px; border-radius: 4px; border: 1px solid currentColor; white-space: nowrap; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: 7px; overflow: hidden; }
+.seg button { font: 600 13px var(--label); letter-spacing: .08em; text-transform: uppercase; padding: 6px 11px; border: 0; background: var(--page-2); color: var(--dim); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--mark); color: #0b0f18; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font: 500 14px var(--label); letter-spacing: .06em; color: var(--dim); text-transform: uppercase; }
+.toolbar label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+button:focus-visible, input:focus-visible, .seg button:focus-visible { outline: 2px solid var(--hud-accent); outline-offset: 2px; }
+.scroll { overflow-x: auto; padding-bottom: 6px; }
+.cap { font: 500 13px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+
+/* ------------------------------------------------ world columns */
+.worlds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.wcard { border: 1px solid var(--rule); border-top: 3px solid var(--wc); border-radius: 10px; background: var(--page-2); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.wcard img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.wcard .in { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+.wname { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.wname h3 { font: 700 30px/1 var(--display); color: var(--wc); }
+.wname .cls { font: 600 13px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.fact { padding: 5px 8px; border-radius: 6px; background: var(--page); display: flex; flex-direction: column; min-width: 0; }
+.fact span { font: 600 11px var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.fact b { font: 600 17px/1.15 var(--label); font-variant-numeric: tabular-nums; }
+.hook { font-size: 15px; }
+.hook b { font: 600 13px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--wc); margin-right: 6px; }
+.tier { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 5px; font: 700 14px/1.5 var(--label); letter-spacing: .12em; text-transform: uppercase; color: #0b0f18; background: var(--tc); }
+.cinder { --wc: var(--w-cinder); } .veyra { --wc: var(--w-veyra); } .tarsis { --wc: var(--w-tarsis); }
+
+/* habitability matrix */
+table.mx { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 14.5px; }
+table.mx th, table.mx td { padding: 8px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+table.mx th { font: 600 12px var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+table.mx td.w { font-variant-numeric: tabular-nums; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--tc); margin-right: 7px; vertical-align: 1px; }
+.t-open { --tc: var(--t-open); } .t-masks { --tc: var(--t-masks); } .t-suits { --tc: var(--t-suits); } .t-domes { --tc: var(--t-domes); } .t-tech { --tc: var(--t-tech); } .t-imp { --tc: var(--t-imp); }
+.tierbar { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ------------------------------------------------ shot viewer */
+.shotrow { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr); gap: 18px 24px; align-items: start; }
+.shot { position: relative; border-radius: 8px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; max-width: 100%; }
+.shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.shot .badge { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+.shot .lbl { position: absolute; transform: translate(-50%, -100%); padding: 2px 7px; border-radius: 4px; background: rgba(5, 8, 18, .82); border: 1px solid rgba(255,255,255,.15); color: #e6ebf5; font: 600 12px/1.4 var(--label); letter-spacing: .06em; white-space: nowrap; pointer-events: none; }
+.shotside { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.needs { display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; }
+.needs div { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 10px; }
+.needs b { font: 600 12px/1.7 var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--wc); }
+
+/* ------------------------------------------------ HUD frame */
+.hud { position: relative; background: var(--hud-ground); color: var(--hud-ink); font: 400 14px/1.35 var(--body); border-radius: 8px; overflow: hidden; }
+.hud-label { font: 600 12px/1.2 var(--label); letter-spacing: .12em; color: var(--hud-dim); text-transform: uppercase; }
+.panel { background: rgba(5, 8, 18, .96); border: 1px solid var(--hud-line); border-radius: 10px; }
+svg.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+/* map viewer with overlays */
+.mapgrid { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 0; }
+.mapview { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; overflow: hidden; }
+.mapview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mapview svg.ov { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mapview svg.ov polygon { vector-effect: non-scaling-stroke; }
+.mapside { border-left: 1px solid var(--hud-line); display: flex; flex-direction: column; gap: 10px; padding: 12px; min-width: 0; }
+.mini { width: 100%; aspect-ratio: 1.25; background: #03050a; border: 1px solid var(--hud-line); border-radius: 6px; }
+.legend { display: flex; flex-direction: column; gap: 4px; font: 500 13px var(--label); letter-spacing: .04em; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+.tooltip { position: absolute; z-index: 5; width: 270px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--hud-line); background: rgba(5, 8, 18, .96); font-size: 13px; line-height: 1.35; box-shadow: 0 10px 30px rgba(0,0,0,.55); pointer-events: none; display: flex; flex-direction: column; gap: 4px; color: var(--hud-ink); }
+.tooltip b { font: 600 15px var(--label); letter-spacing: .04em; }
+.tooltip .r { display: flex; justify-content: space-between; gap: 8px; color: var(--hud-dim); }
+.tooltip .r em { font-style: normal; color: var(--hud-ink); font-variant-numeric: tabular-nums; }
+.tooltip .w { color: var(--hud-warn); }
+.tooltip .bad { color: var(--hud-bad); }
+.maptools { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--hud-line); background: rgba(5, 8, 16, .95); }
+.maptools .hud-label { margin-right: 4px; }
+.chk { display: inline-flex; align-items: center; gap: 6px; font: 500 13px var(--label); letter-spacing: .06em; color: var(--hud-ink); cursor: pointer; text-transform: uppercase; }
+.chk input { accent-color: var(--hud-accent); }
+.tseg { display: inline-flex; border: 1px solid var(--hud-btn-edge); border-radius: 6px; overflow: hidden; }
+.tseg button { border: 0; padding: 5px 10px; background: var(--hud-btn); color: var(--hud-dim); font: 600 12px var(--label); letter-spacing: .08em; cursor: pointer; }
+.tseg button[aria-pressed="true"] { background: var(--hud-pressed); color: var(--hud-ink); box-shadow: inset 0 -2px 0 var(--hud-accent); }
+.feed { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.feed div { padding: 3px 8px; border-radius: 5px; background: rgba(17, 24, 41, .85); }
+.feed .i { color: #9ecfff; } .feed .w { color: var(--hud-warn); } .feed .b { color: var(--hud-bad); } .feed .g { color: var(--hud-good); }
+.feed time { color: var(--hud-dim); font: 500 12px var(--label); margin-right: 6px; font-variant-numeric: tabular-nums; }
+.feedover { position: absolute; left: 10px; bottom: 10px; width: min(420px, 60%); }
+
+/* top bar */
+.topbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 12px; background: rgba(5, 8, 16, .95); border-bottom: 1px solid var(--hud-line); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 6px; background: var(--hud-chip); font: 500 14px var(--label); letter-spacing: .04em; white-space: nowrap; }
+.chip small { color: var(--hud-dim); font-size: 12px; letter-spacing: .08em; }
+.chip.ls { border: 1px solid #6e4520; background: #1c1308; padding: 3px 10px; gap: 10px; }
+.chip.ls.ok { border-color: #285a43; background: #0a1a13; }
+.lsg { display: inline-flex; align-items: center; gap: 4px; }
+.lsg .bar { width: 38px; height: 6px; border-radius: 3px; background: #1d2438; overflow: hidden; display: inline-block; }
+.lsg .bar i { display: block; height: 100%; }
+.spacer { flex: 1; }
+.lsdrop { margin: 8px 12px 12px auto; width: 380px; max-width: calc(100% - 24px); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.hrow { display: grid; grid-template-columns: 112px minmax(0, 1fr) 70px; gap: 8px; align-items: center; font-size: 13.5px; }
+.hrow .bar { height: 8px; border-radius: 4px; background: #141a2c; overflow: hidden; }
+.hrow .bar i { display: block; height: 100%; }
+.hrow em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* helm frame */
+.helm { background: #000; color: var(--helm-ink); border-radius: 8px; overflow: hidden; font: 400 14px/1.35 var(--body); position: relative; }
+.helm .frame { display: grid; grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; min-height: 420px; }
+.helm .elbow-t { grid-column: 1 / 3; display: flex; align-items: stretch; height: 34px; gap: 4px; }
+.helm .elbow-t .cap { background: var(--helm-peach); border-radius: 22px 0 0 0; width: 96px; flex: none; }
+.helm .elbow-t .bar { background: var(--helm-lav); flex: 1; display: flex; align-items: center; justify-content: flex-end; padding: 0 12px; font: 700 16px var(--display); letter-spacing: .12em; color: #000; }
+.helm .elbow-t .bar.b2 { flex: none; width: 120px; background: var(--helm-peach); justify-content: center; }
+.helm .rail { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; }
+.helm .rail span { background: var(--helm-grey); color: #000; font: 600 12px var(--label); letter-spacing: .1em; padding: 16px 8px 4px; text-align: right; border-radius: 0; }
+.helm .rail span.on { background: var(--helm-peach); }
+.helm .rail span.alt { background: var(--helm-sky); }
+.helm .body { padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; min-width: 0; }
+.helm .elbow-b { grid-column: 1 / 3; display: flex; gap: 4px; height: 26px; }
+.helm .elbow-b .cap { background: var(--helm-lav); border-radius: 0 0 0 18px; width: 96px; }
+.helm .elbow-b .bar { flex: 1; background: var(--helm-grey); display: flex; align-items: center; gap: 10px; padding: 0 10px; font: 600 12px var(--label); letter-spacing: .12em; color: #000; }
+.helm .elbow-b .pill { background: var(--helm-peach); padding: 2px 10px; border-radius: 10px; }
+.helm .elbow-b .pill.dis { background: var(--helm-greytext); }
+.helm h4 { margin: 0; font: 700 24px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--helm-peach); }
+.helm .kv { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 4px 10px; font-size: 14px; }
+.helm .kv dt { font: 600 12px/1.7 var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--helm-lav); }
+.helm .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+.helm .bigtier { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 0 16px 16px 0; background: var(--tc); color: #000; }
+.helm .bigtier b { font: 700 34px/1 var(--display); letter-spacing: .08em; }
+.helm .bigtier span { font: 600 13px/1.3 var(--label); letter-spacing: .06em; }
+.checks { display: flex; flex-direction: column; gap: 5px; }
+.checks div { display: grid; grid-template-columns: 96px 76px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13.5px; }
+.checks .k { font: 600 12px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--helm-lav); }
+.checks .t { font: 700 12px/1.6 var(--label); letter-spacing: .1em; text-transform: uppercase; color: #000; background: var(--tc); text-align: center; border-radius: 3px; }
+.helm ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; font-size: 14px; }
+.helm .find { display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; }
+.helm .find div::before { content: "› "; color: var(--helm-peach); }
+.helm .warnline { color: var(--helm-red); }
+.helm .alert { position: absolute; right: 10px; top: 44px; padding: 4px 10px; border-radius: 12px; background: var(--helm-red); color: #000; font: 700 12px var(--label); letter-spacing: .14em; }
+.spark { width: 100%; height: 34px; }
+.telerow { display: grid; grid-template-columns: 74px minmax(0, 1fr) 74px; gap: 8px; align-items: center; font-size: 13.5px; }
+.telerow .k { font: 600 12px var(--label); letter-spacing: .1em; color: var(--helm-lav); text-transform: uppercase; }
+.telerow em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
+.gasbar { display: flex; height: 16px; border-radius: 3px; overflow: hidden; }
+.gasbar i { display: block; height: 100%; }
+.gaslegend { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 500 12.5px var(--label); letter-spacing: .04em; }
+.gaslegend span { display: inline-flex; gap: 5px; align-items: center; }
+.gaslegend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+/* panels: life support, EVA, vehicles */
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; }
+.bpanel { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.bpanel .ttl { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.bpanel .ttl b { font: 700 22px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.bpanel .ttl small { color: var(--hud-accent); font: 500 13px var(--label); letter-spacing: .06em; }
+.fails { display: flex; flex-direction: column; gap: 6px; }
+.fails .f { display: grid; grid-template-columns: 22px minmax(0, 1fr) 64px; gap: 8px; align-items: center; font-size: 13.5px; }
+.fails .f .n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--label); color: #000; background: var(--hud-warn); }
+.fails .f.b .n { background: var(--hud-bad); }
+.fails .f.g .n { background: var(--hud-good); }
+.fails em { font-style: normal; text-align: right; color: var(--hud-dim); font-variant-numeric: tabular-nums; }
+.acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.act { min-height: 34px; padding: 0 12px; border-radius: 7px; border: 1px solid var(--hud-accent); background: #1f1607; color: var(--hud-ink); font: 600 14px var(--label); letter-spacing: .1em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.act.ghost { border-color: var(--hud-line); background: #0a0f1c; }
+.act.sky { border-color: #2f6fa8; background: #0b1a30; }
+.act.red { border-color: #8c2f28; background: #2a0d0b; }
+.ring { width: 92px; height: 92px; flex: none; }
+.eva { display: flex; gap: 14px; align-items: center; }
+.eva .txt { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; min-width: 0; }
+.vrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.vcard { border: 1px solid var(--hud-line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13.5px; }
+.vcard img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 5px; }
+.vcard .nm { font: 600 16px var(--label); letter-spacing: .04em; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font: 700 11px/1.6 var(--label); letter-spacing: .12em; text-transform: uppercase; }
+.pill.ok { background: #143526; color: var(--hud-good); }
+.pill.no { background: #3a1410; color: var(--hud-bad); }
+.ibar { height: 8px; border-radius: 4px; background: #141a2c; overflow: hidden; }
+.ibar i { display: block; height: 100%; }
+
+/* placement */
+.placer { display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+.pstrip { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--hud-line); background: rgba(5,8,16,.95); flex-wrap: wrap; }
+.pstrip .name { font: 700 18px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.pstrip .why { font-size: 13.5px; }
+
+/* large card (build-card's .card.large) */
+.card { color: var(--hud-ink); font: 400 14px/1.4 var(--body); background: rgba(5, 8, 18, .97); border: 1px solid var(--hud-accent); border-radius: 10px; }
+.card.large { padding: 18px 20px 20px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px 24px; }
+.card .left, .card .right { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card-title { font: 700 34px/1 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+.card-sub { font: 500 14px var(--label); letter-spacing: .06em; color: var(--hud-accent); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.hero { position: relative; border-radius: 8px; overflow: hidden; background: #0a1020; aspect-ratio: 4 / 3; max-width: 100%; }
+.hero img, .hero svg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hero .badge { position: absolute; left: 8px; top: 8px; }
+.cost { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 500 15px var(--label); letter-spacing: .04em; }
+.cost span small { color: var(--hud-dim); font-size: 12px; margin-left: 3px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.stat-t { padding: 6px 8px; border-radius: 7px; background: var(--hud-chip); display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.stat-t span { font: 600 11px var(--label); letter-spacing: .12em; color: var(--hud-dim); text-transform: uppercase; }
+.stat-t b { font: 600 18px/1.1 var(--label); font-variant-numeric: tabular-nums; }
+.stat-t b.warn { color: var(--hud-warn); } .stat-t b.good { color: var(--hud-good); }
+.sec { display: flex; flex-direction: column; gap: 7px; }
+.sec h4 { margin: 0; font: 600 13px var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--hud-accent); }
+table.lv { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.lv th { text-align: left; font: 600 11px var(--label); letter-spacing: .12em; color: var(--hud-dim); text-transform: uppercase; padding: 4px 8px 4px 0; border-bottom: 1px solid var(--hud-line); }
+table.lv td { padding: 6px 8px 6px 0; border-bottom: 1px solid #161d30; vertical-align: top; }
+table.lv td:first-child { font: 600 14px var(--label); color: var(--hud-accent); white-space: nowrap; }
+ul.tips { margin: 0; padding-left: 18px; font-size: 13.5px; display: flex; flex-direction: column; gap: 3px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button { padding: 7px 12px; border-radius: 7px; border: 1px solid var(--hud-btn-edge); background: var(--hud-btn); color: var(--hud-dim); font: 600 13px var(--label); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.tabs button[aria-selected="true"] { border-color: var(--hud-accent); color: var(--hud-ink); background: var(--hud-pressed); }
+
+/* what it will take */
+table.take { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 14.5px; }
+table.take th, table.take td { padding: 9px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+table.take th { font: 600 12px var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+table.take td:first-child { font: 600 16px var(--label); letter-spacing: .04em; white-space: nowrap; }
+table.take td.n { font: 600 15px var(--label); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wtag { display: inline-block; padding: 0 6px; margin: 1px 2px 1px 0; border-radius: 4px; font: 600 11px/1.6 var(--label); letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--wc); color: var(--wc); }
+.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.ph { border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; background: var(--page-2); display: flex; flex-direction: column; gap: 5px; font-size: 14.5px; min-width: 0; }
+.ph .num { font: 700 26px/1 var(--display); color: var(--mark); }
+.ph b { font: 600 15px var(--label); letter-spacing: .06em; text-transform: uppercase; }
+.ph .gate { font-size: 13.5px; color: var(--dim); border-top: 1px dashed var(--rule); padding-top: 5px; }
+.ph.hl { border-color: var(--mark); }
+ol.q { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; max-width: 92ch; }
+ol.q b { font-weight: 600; }
+
+@media (max-width: 980px) {
+  .worlds { grid-template-columns: minmax(0, 1fr); }
+  .shotrow, .card.large, .placer { grid-template-columns: minmax(0, 1fr); }
+  .mapgrid { grid-template-columns: minmax(0, 1fr); }
+  .mapside { border-left: 0; border-top: 1px solid var(--hud-line); }
+  .helm .body { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .helm .frame { grid-template-columns: 28px minmax(0, 1fr); }
+  .helm .elbow-t .cap, .helm .elbow-b .cap { width: 28px; }
+  .helm .rail span { font-size: 0; padding: 14px 0 0; }
+  .helm .elbow-t .bar.b2 { display: none; }
+  .helm .kv { grid-template-columns: 96px minmax(0, 1fr); }
+  .checks div { grid-template-columns: 76px 64px minmax(0, 1fr); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vrow { grid-template-columns: minmax(0, 1fr); }
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .feedover { position: static; width: auto; padding: 8px; }
+  .hrow { grid-template-columns: 90px minmax(0, 1fr) 58px; }
+  .lsdrop { margin: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+<header class="mast">
+  <div class="eyebrow">Mockup · non-Class-M surfaces · for the owner</div>
+  <h1>Hostile Worlds</h1>
+  <p class="lede">What it takes to land on a world that is not Class M: three example surfaces side by side, the new things on the map (lava that advances and cools, eruptions, CO₂ pockets, dust storms, radiation), and the HUD for suits, domes, shields and life support. It builds on the <a href="https://claude.ai/artifact/MwC7Wky5jjMxS5a4FB1nMc">Gravity &amp; Hostile Worlds</a> design doc: its six habitability tiers, one unique hook per class, and its phasing.</p>
+  <div class="meta">
+    <span><span class="src real">Real render</span> Blender + the game's glbs, game camera</span>
+    <span><span class="src stand">Mockup</span> drawn here, not in the game</span>
+    <span><span class="src data">Data</span> numbers from <code>data/surfaces/environments.json</code></span>
+    <span>All numbers are placeholders</span>
+  </div>
+  <nav class="toc" aria-label="Sections">
+    <a href="#worlds">Three worlds</a><a href="#look">Surface look</a><a href="#mechanics">On the map</a><a href="#hud">HUD &amp; UI</a><a href="#cards">Building cards</a><a href="#take">What it will take</a><a href="#questions">Questions</a>
+  </nav>
+</header>
+
+<!-- ============================================================ 1. worlds -->
+<section class="part" id="worlds">
+  <div class="part-head">
+    <div class="eyebrow">1 · The examples</div>
+    <h2>Three worlds, three kinds of hostile</h2>
+    <p>Each world keeps the shared rules (gravity curves, protection tier) and adds one hook of its own. Veyra and Tarsis A are bodies on the Kalandra duel map. The volcanic world is new: no class in the data has lava, so this page proposes <b>Class F (geometallic)</b>, a tidally heated moon of Hesper and Ilium, like Io round Jupiter.</p>
+  </div>
+  <div class="worlds">
+    <article class="wcard cinder">
+      <img src="cinder-game.jpg" alt="Cinder: lava channels, a lava barrier and a domed outpost at the game camera">
+      <div class="in">
+        <div class="wname"><h3>Cinder</h3><span class="cls">Class F (proposed) · moon of Hesper</span></div>
+        <div><span class="tier t-domes">Domes</span> <span class="muted" style="font-size:14px">no O₂, 11 kPa, SO₂ 60× limit</span></div>
+        <div class="facts">
+          <div class="fact"><span>Gravity</span><b>0.42 g</b></div><div class="fact"><span>Pressure</span><b>11 kPa</b></div><div class="fact"><span>Day / night</span><b>38 / −46 °C</b></div>
+          <div class="fact"><span>CO₂</span><b>71 %</b></div><div class="fact"><span>SO₂</span><b>120 ppm</b></div><div class="fact"><span>Radiation</span><b>140 µSv/h</b></div>
+        </div>
+        <p class="hook"><b>Hook</b>The lava clock. Flows advance a hex every 1–2 min, cool to crust, and bury what is in the way; a Geothermal Tap on a vent is the cheapest power anywhere.</p>
+      </div>
+    </article>
+    <article class="wcard veyra">
+      <img src="veyra-game.jpg" alt="Veyra: rust regolith, frost, an outpost and rovers at the game camera">
+      <div class="in">
+        <div class="wname"><h3>Veyra</h3><span class="cls">Class L · Kalandra 1.2 AU</span></div>
+        <div><span class="tier t-masks">Masks</span> <span class="muted" style="font-size:14px">O₂ 13.5 %, CO₂ 4.5 % (9× limit)</span></div>
+        <div class="facts">
+          <div class="fact"><span>Gravity</span><b>0.90 g</b></div><div class="fact"><span>Pressure</span><b>78 kPa</b></div><div class="fact"><span>Day / night</span><b>18 / −6 °C</b></div>
+          <div class="fact"><span>O₂</span><b>13.5 %</b></div><div class="fact"><span>CO₂</span><b>4.5 %</b></div><div class="fact"><span>Radiation</span><b>1.2 µSv/h</b></div>
+        </div>
+        <p class="hook"><b>Hook</b>The terraform race. Masks cost 15 % crew time until a Terraforming Station pushes Veyra to Class M; Oscen, its twin, is the rival's race. Dust storms ground drop ships.</p>
+      </div>
+    </article>
+    <article class="wcard tarsis">
+      <img src="tarsis_a-game.jpg" alt="Tarsis A: grey regolith, craters and a geodesic dome at the game camera">
+      <div class="in">
+        <div class="wname"><h3>Tarsis A</h3><span class="cls">Class D · moon of Tarsis</span></div>
+        <div><span class="tier t-domes">Domes</span> <span class="muted" style="font-size:14px">vacuum, −170 to 120 °C</span></div>
+        <div class="facts">
+          <div class="fact"><span>Gravity</span><b>0.16 g</b></div><div class="fact"><span>Pressure</span><b>0 kPa</b></div><div class="fact"><span>Day / night</span><b>120 / −170 °C</b></div>
+          <div class="fact"><span>Day</span><b>24 min</b></div><div class="fact"><span>Air</span><b>none</b></div><div class="fact"><span>Radiation</span><b>60 µSv/h</b></div>
+        </div>
+        <p class="hook"><b>Hook</b>Cheap lift. Lift cost ×0.28 makes it the spaceport moon; Thermal Regulators swing with the 24-minute day, and micrometeorites replace weather.</p>
+      </div>
+    </article>
+  </div>
+
+  <div class="sub">
+    <h3>Why each world gets its tier</h3>
+    <p class="muted" style="max-width:80ch">The tier is the worst of four checks, with the design doc's thresholds. Class M is shown for reference.</p>
+    <div class="scroll">
+      <table class="mx">
+        <thead><tr><th>Check</th><th>Class M (Tarsis)</th><th>Cinder (F, proposed)</th><th>Veyra (L)</th><th>Tarsis A (D)</th></tr></thead>
+        <tbody>
+          <tr><th>Gravity</th><td class="w t-open"><span class="dot"></span>Open · 0.97 g</td><td class="w t-masks"><span class="dot"></span>Masks · 0.42 g</td><td class="w t-open"><span class="dot"></span>Open · 0.90 g</td><td class="w t-suits"><span class="dot"></span>Suits · 0.16 g</td></tr>
+          <tr><th>Air pressure</th><td class="w t-open"><span class="dot"></span>Open · 101 kPa</td><td class="w t-suits"><span class="dot"></span>Suits · 11 kPa</td><td class="w t-open"><span class="dot"></span>Open · 78 kPa</td><td class="w t-domes"><span class="dot"></span>Domes · vacuum</td></tr>
+          <tr><th>O₂ and gases</th><td class="w t-open"><span class="dot"></span>Open · O₂ 20.9 %</td><td class="w t-domes"><span class="dot"></span>Domes · no O₂, SO₂ 60×</td><td class="w t-masks"><span class="dot"></span>Masks · O₂ 13.5 %, CO₂ 9×</td><td class="w t-domes"><span class="dot"></span>Domes · no O₂</td></tr>
+          <tr><th>Temperature</th><td class="w t-open"><span class="dot"></span>Open · 11 to 24 °C</td><td class="w t-masks"><span class="dot"></span>Masks · −46 to 38 °C; lava 1,100 °C</td><td class="w t-open"><span class="dot"></span>Open · −6 to 18 °C</td><td class="w t-domes"><span class="dot"></span>Domes · −170 to 120 °C</td></tr>
+          <tr><th>Radiation (day)</th><td class="w t-open"><span class="dot"></span>Open · 0.3</td><td class="w t-suits"><span class="dot"></span>Suits · 140 µSv/h (Hesper's belts)</td><td class="w t-open"><span class="dot"></span>Open · 1.2</td><td class="w t-suits"><span class="dot"></span>Suits · 60 µSv/h</td></tr>
+          <tr><th>Result</th><td><span class="tier t-open">Open</span></td><td><span class="tier t-domes">Domes</span><br><span class="muted" style="font-size:13.5px">Vent pockets locally Tech (SO₂ 3,000 ppm = corrosive)</span></td><td><span class="tier t-masks">Masks</span><br><span class="muted" style="font-size:13.5px">Suits inside night CO₂ pockets</span></td><td><span class="tier t-domes">Domes</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="max-width:86ch;font-size:14.5px">The brief's example line read "Domes · CO₂ 4.5 %, O₂ 13.5 %, −15 °C". With the doc's thresholds those numbers come out as <b>Masks</b> (O₂ 12–19.5 % and gases under 20× the limit), so Veyra stays Masks here and Domes is shown on Cinder and Tarsis A. CO₂ is heavier than air, so on calm nights it pools in Veyra's basins above 20× the limit: those hexes need suits.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 2. look -->
+<section class="part" id="look">
+  <div class="part-head">
+    <div class="eyebrow">2 · Surface look</div>
+    <h2>Real renders at the game camera</h2>
+    <p>Each world is a patch of the game's own hex terrain (pointy-top hexes 25 units wide, odd rows shifted) built and rendered in Blender by <code>blender/build_hostile_worlds.py</code>, with the game's glbs for scale: <code>outpost_l1</code>, <code>refinery</code>, the Mk II and Mk III rovers, the mining crawler and the construction rover. Three cameras: the strategy pitch at zoom 290, the eased pitch at zoom 50 (PlanetDriver's camera formula), and the outpost's video feed (fov 52).</p>
+  </div>
+  <div id="shots"></div>
+</section>
+
+<!-- ============================================================ 3. mechanics -->
+<section class="part" id="mechanics">
+  <div class="part-head">
+    <div class="eyebrow">3 · New surface mechanics</div>
+    <h2>Hazards on the map, minimap and tooltip</h2>
+    <p>The overlays are drawn over the strategy render using the real projected hex corners. Hover a hex for its tooltip, step the clock to see the lava advance and cool, and switch worlds. Lava hexes become impassable; buildings next to a flow take heat damage and get a warning ring before it arrives.</p>
+  </div>
+  <div class="toolbar">
+    <span>World</span>
+    <div class="seg" id="mworld"><button type="button" data-w="cinder" aria-pressed="true">Cinder</button><button type="button" data-w="veyra" aria-pressed="false">Veyra</button><button type="button" data-w="tarsis_a" aria-pressed="false">Tarsis A</button></div>
+  </div>
+  <div class="hud panel" style="border-radius:10px">
+    <div class="mapgrid">
+      <div>
+        <div class="mapview" id="mapview">
+          <img id="mapimg" src="cinder-overview.jpg" alt="Strategy view of the selected world with hazard overlays">
+          <svg class="ov" id="ov" viewBox="0 0 1280 720" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="feedover"><div class="feed" id="mapfeed"></div></div>
+          <div class="tooltip" id="tip" hidden></div>
+        </div>
+        <div class="maptools">
+          <span class="hud-label">Clock</span>
+          <div class="tseg" id="clock"><button type="button" data-t="0" aria-pressed="true">Now</button><button type="button" data-t="1">+1 min</button><button type="button" data-t="2">+2 min</button><button type="button" data-t="4">+4 min</button></div>
+          <span class="hud-label">Layers</span>
+          <label class="chk"><input type="checkbox" id="l-grid" checked> Hex grid</label>
+          <label class="chk"><input type="checkbox" id="l-haz" checked> Hazards</label>
+          <label class="chk"><input type="checkbox" id="l-fog" checked> Fog</label>
+          <label class="chk" id="l-extra-wrap"><input type="checkbox" id="l-extra"> <span id="l-extra-txt">Lava Barrier built</span></label>
+        </div>
+      </div>
+      <div class="mapside">
+        <div class="hud-label">Minimap</div>
+        <svg class="mini" id="mini" viewBox="-20 -20 500 380" role="img" aria-label="Minimap of the hazards"></svg>
+        <div class="legend" id="legend"></div>
+        <div class="hud-label" style="margin-top:4px">What the player reads</div>
+        <p style="font-size:13.5px;color:var(--hud-dim)" id="mapnote"></p>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <div><b>Lava (Cinder)</b>A sim system, not scenery: each lava tile has an age; the front advances one hex every 60–120 s along the steepest descent (map-seeded, no <code>sim.Rng</code> so replays match), then the oldest tiles cool to crust (passable at ×0.3 speed, tyre wear ×3). Lava tiles are impassable in <code>FindPath</code>; a structure on or next to one takes heat wear.</div>
+    <div><b>Eruptions</b>Scheduled per vent from the seed, warned 40 s ahead: a red ring on the vent's neighbours, a helm finding, an event line. Bombs land in the ring (damage 10–30, like a rover hazard hit).</div>
+    <div><b>Dust storms, CO₂ (Veyra)</b>Already in the climate sim (<code>dust_storm</code> spells drift −2 tiles/min). New: a CO₂ pocket is a tile state computed from night + low ground + calm wind, read by <code>Telemetry</code> as a toxic patch, so the existing toxic tooltip and rover damage apply.</div>
+    <div><b>Radiation, micrometeorites (Tarsis A)</b>Micrometeorites become a weather-like spell of struck hexes (the doc's hazard row, damage 6–18). A stellar flare raises radiation everywhere for 45 s; only crews in a shelter or dome are safe. The terminator sweeps the map in the 24-minute locked day.</div>
+  </div>
+</section>
+
+<!-- ============================================================ 4. HUD -->
+<section class="part" id="hud">
+  <div class="part-head">
+    <div class="eyebrow">4 · HUD and UI</div>
+    <h2>Scanning, surviving and building inside the line</h2>
+    <p>The game's two frames: the helm screen in orbit (HelmScreen.cs colours, slim elbows) and the surface HUD (PlanetHud.cs). Everything here is a mockup drawn in HTML.</p>
+  </div>
+
+  <div class="sub">
+    <h3>Orbit landing scan</h3>
+    <div class="toolbar"><span>World</span><div class="seg" id="sworld"><button type="button" data-w="cinder" aria-pressed="true">Cinder</button><button type="button" data-w="veyra" aria-pressed="false">Veyra</button><button type="button" data-w="tarsis_a" aria-pressed="false">Tarsis A</button></div></div>
+    <div class="helm" id="scan"></div>
+    <div class="notes">
+      <div><b>New on the scan</b>A habitability tier strip with the four checks and the readings that set them, the kit the colony must bring, and a landing filter that refuses sites inside a lava path or a CO₂ basin.</div>
+      <div><b>Where it comes from</b>The tier is a pure function of the class environment (and the body's override) plus the faction's species tolerance, so the helm can show it before landing; the readings are the existing uplink telemetry.</div>
+      <div><b>Landing kit</b>On a Domes world the three drop ships bring the outpost's radius-1 dome (the doc's rule), so the opening still works without research.</div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <h3>Top bar: the life-support chip</h3>
+    <div class="hud" style="border:1px solid var(--hud-line)">
+      <div class="topbar" id="topbar"></div>
+      <div class="panel lsdrop" id="lsdrop"></div>
+    </div>
+    <p class="muted" style="font-size:14.5px;max-width:86ch">The chip sits beside the climate chip, only on worlds above Open. Three gauges: air reserve, heat, dome integrity; the power for life support is part of the base's budget. Hover opens the per-base breakdown (shown open here). On Masks worlds it shrinks to a mask icon with the crew-time penalty.</p>
+  </div>
+
+  <div class="sub">
+    <h3>Placing inside a dome or shield</h3>
+    <div class="toolbar"><span>Placing</span><div class="seg" id="pbuild">
+      <button type="button" data-b="prefab_habitat" aria-pressed="true">Prefab Habitat</button><button type="button" data-b="sealed_habitat" aria-pressed="false">Sealed Habitat</button><button type="button" data-b="refinery" aria-pressed="false">Ore Refinery</button><button type="button" data-b="pressure_dome" aria-pressed="false">Pressure Dome</button></div></div>
+    <div class="hud panel" style="border-radius:10px">
+      <div class="placer">
+        <div>
+          <div class="mapview" id="pview">
+            <img src="tarsis_a-overview.jpg" alt="Tarsis A strategy view with the dome coverage ring">
+            <svg class="ov" id="pov" viewBox="0 0 1280 720" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+          <div class="pstrip" id="pstrip"></div>
+        </div>
+        <div class="mapside">
+          <div class="hud-label">Base 1 · life support</div>
+          <div id="pls" style="display:flex;flex-direction:column;gap:8px"></div>
+          <p style="font-size:13px;color:var(--hud-dim)">Hover the map: the ghost turns green inside the dome's coverage, red outside for a crewed building. Automated buildings (crewed: false) can stand anywhere but still take radiation wear. Placing a Pressure Dome shows its own 2-tile ring and the power it will draw.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <h3>Life support, crews in suits, sealed vehicles</h3>
+    <div class="panels">
+      <div class="hud panel bpanel">
+        <div class="ttl"><b>Life support · Base 1</b><small>Tarsis A · night in 0:52</small></div>
+        <div class="hrow"><span class="hud-label">Air reserve</span><div class="bar"><i style="width:71%;background:var(--hud-sky)"></i></div><em>71 % ▼</em></div>
+        <div class="hrow"><span class="hud-label">Heat</span><div class="bar"><i style="width:88%;background:var(--hud-good)"></i></div><em>19 °C</em></div>
+        <div class="hrow"><span class="hud-label">Dome</span><div class="bar"><i style="width:92%;background:var(--hud-good)"></i></div><em>92 %</em></div>
+        <div class="hrow"><span class="hud-label">Crewed bldgs</span><div class="bar"><i style="width:75%;background:var(--hud-accent)"></i></div><em>3 / 4</em></div>
+        <div class="hud-label">Power budget</div>
+        <svg viewBox="0 0 360 54" style="width:100%;height:auto" role="img" aria-label="Power budget: supply 30, use 34 at night">
+          <rect x="0" y="6" width="300" height="16" rx="3" fill="#141a2c"/>
+          <rect x="0" y="6" width="90" height="16" fill="#8fd4b0"/><rect x="90" y="6" width="60" height="16" fill="#9ed1ff"/><rect x="150" y="6" width="72" height="16" fill="#ffb36b"/><rect x="222" y="6" width="84" height="16" fill="#f5a624"/><rect x="306" y="6" width="34" height="16" fill="#ff6f61"/>
+          <line x1="300" y1="2" x2="300" y2="26" stroke="#e6ebf5" stroke-width="2"/>
+          <text x="300" y="40" fill="#99a6bf" font-size="11" text-anchor="middle" font-family="Barlow Condensed, sans-serif">supply 30</text>
+          <text x="0" y="40" fill="#99a6bf" font-size="11" font-family="Barlow Condensed, sans-serif">mines 9 · LS 6 · domes 6 · regulator 12 → night</text>
+          <text x="345" y="18" fill="#ff6f61" font-size="11" text-anchor="end" font-family="Barlow Condensed, sans-serif">34</text>
+        </svg>
+        <div class="hud-label">What fails first (night, power 30 of 34)</div>
+        <div class="fails">
+          <div class="f"><span class="n">1</span><span>Everything runs at 88 %: refinery and mines slow first</span><em>now</em></div>
+          <div class="f"><span class="n">2</span><span>Heat: the regulator falls behind, habitat drops to 5 °C</span><em>in 2:10</em></div>
+          <div class="f b"><span class="n">3</span><span>Air reserve empty: crewed buildings lose 2 crew a minute</span><em>in 9:40</em></div>
+          <div class="f g"><span class="n">✓</span><span>Fix: second reactor, or pause the refinery at night</span><em></em></div>
+        </div>
+        <div class="acts"><button class="act" type="button">Night shift</button><button class="act ghost" type="button">Priorities</button></div>
+      </div>
+
+      <div class="hud panel bpanel">
+        <div class="ttl"><b>EVA Team · Cairn 08</b><small>Hazard Team · 10 crew</small></div>
+        <div class="eva">
+          <svg class="ring" viewBox="0 0 92 92" role="img" aria-label="Air left 2 minutes 14 seconds of 6 minutes">
+            <circle cx="46" cy="46" r="38" fill="none" stroke="#141a2c" stroke-width="9"/>
+            <circle cx="46" cy="46" r="38" fill="none" stroke="#ffb36b" stroke-width="9" stroke-dasharray="238.8" stroke-dashoffset="150" transform="rotate(-90 46 46)"/>
+            <circle cx="46" cy="46" r="38" fill="none" stroke="#ff6f61" stroke-width="9" stroke-dasharray="3 235.8" stroke-dashoffset="-60" transform="rotate(-90 46 46)"/>
+            <text x="46" y="45" text-anchor="middle" fill="#e6ebf5" font-size="20" font-family="Antonio, sans-serif" font-weight="700">2:14</text>
+            <text x="46" y="61" text-anchor="middle" fill="#99a6bf" font-size="10" font-family="Barlow Condensed, sans-serif" letter-spacing="1">AIR LEFT</text>
+          </svg>
+          <div class="txt">
+            <div><b style="color:var(--hud-warn)">Return soon:</b> airlock 1.4 hexes away, 0:48 on foot (0.16 g bounce, ×0.8)</div>
+            <div class="hud-label">Suit integrity</div><div class="ibar"><i style="width:72%;background:var(--hud-warn)"></i></div>
+            <div style="color:var(--hud-dim)">72 % · micrometeorite hit 0:31 ago · leaks 1 % air a minute below 50 %</div>
+          </div>
+        </div>
+        <div class="feed"><div class="w"><time>+0:00</time>Cairn 08: air 2:14 left, the airlock is 0:48 away</div><div class="b"><time>+1:26</time>Cairn 08 must turn back now (air = walk × 1.5)</div></div>
+        <div class="acts"><button class="act" type="button">Return to airlock [R]</button><button class="act sky" type="button">Rover pick-up</button></div>
+        <p style="font-size:13px;color:var(--hud-dim)">On the map: a dashed line to the nearest airlock or sealed rover, and the ring turns red at the turn-back point. Survey Teams cannot leave a base on Suits-tier worlds or worse.</p>
+      </div>
+
+      <div class="hud panel bpanel">
+        <div class="ttl"><b>Sealed vs unsealed</b><small>Tarsis A · Domes tier</small></div>
+        <div class="vrow">
+          <div class="vcard">
+            <img src="crop-rover-mk3.jpg" alt="Mk III Explorer on Tarsis A">
+            <span class="nm">Mk III Explorer Scree 62</span>
+            <span><span class="pill ok">Sealed</span> no exposure loss</span>
+            <div class="ibar"><i style="width:94%;background:var(--hud-good)"></i></div>
+            <span style="color:var(--hud-dim)">Integrity 94 · wear ×1.0 · regolith</span>
+          </div>
+          <div class="vcard">
+            <div style="aspect-ratio:16/9;border-radius:5px;background:repeating-linear-gradient(135deg,#1a1210 0 8px,#120c0b 8px 16px);display:grid;place-items:center;color:var(--hud-bad);font:600 13px var(--label);letter-spacing:.1em">UNSEALED OUTSIDE</div>
+            <span class="nm">Mk I Scout Talus 17</span>
+            <span><span class="pill no">Unsealed</span> −4 integrity a minute</span>
+            <div class="ibar"><i style="width:46%;background:var(--hud-bad)"></i></div>
+            <span style="color:var(--hud-warn)">Integrity 46 · sensors fail at 35 in 2:45</span>
+          </div>
+        </div>
+        <div class="feed"><div class="w"><time>+0:00</time>Mk I Scout Talus 17 is unsealed: losing 4 integrity a minute outside the dome</div><div class="i"><time>+0:00</time>Seal it at the Vehicle Bay: +20 duranium, 15 s</div></div>
+        <p style="font-size:13px;color:var(--hud-dim)">The order is refused with a reason when it would end in a breakdown: "Talus 17 is unsealed: it reaches 0 integrity before it gets back." The move card shows the round-trip integrity on hover.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <h3>Telemetry by world</h3>
+    <div class="toolbar"><span>World</span><div class="seg" id="tworld"><button type="button" data-w="cinder" aria-pressed="true">Cinder</button><button type="button" data-w="veyra" aria-pressed="false">Veyra</button><button type="button" data-w="tarsis_a" aria-pressed="false">Tarsis A</button></div></div>
+    <div class="helm" id="tele"></div>
+  </div>
+
+  <div class="sub">
+    <h3>Event feed and helm findings</h3>
+    <div class="panels" id="feeds"></div>
+  </div>
+</section>
+
+<!-- ============================================================ 5. cards -->
+<section class="part" id="cards">
+  <div class="part-head">
+    <div class="eyebrow">5 · Large building cards</div>
+    <h2>Six new buildings</h2>
+    <p>In the build drawer's large-card layout (the decided build-card mockup). Pictures are crops of the real renders where a model exists; the rest are labelled schematics until the models are built.</p>
+  </div>
+  <div class="tabs" id="ctabs" role="tablist"></div>
+  <div id="cardhost"></div>
+</section>
+
+<!-- ============================================================ 6. take -->
+<section class="part" id="take">
+  <div class="part-head">
+    <div class="eyebrow">6 · What it will take</div>
+    <h2>System by system</h2>
+    <p>Sizes are rough working sessions (one build-and-test round each), as in the design doc. The tags show which world needs it first.</p>
+  </div>
+  <div class="scroll">
+    <table class="take">
+      <thead><tr><th>System</th><th>What has to change</th><th>For</th><th>Sessions</th></tr></thead>
+      <tbody>
+        <tr><td>Data tables</td><td><code>data/worlds/</code> (tiers, checks, species; the doc's worlds.json, split like the other documents); a <code>class_f</code> environment and a <code>volcanic</code> climate template; two new bodies (Cinder and its twin, for the point-symmetric duel map); <code>planets</code> entries per class with terrain thresholds; terrains regolith, crater, ridge, dune, ash, crust, lava, ice plain; <code>crewed</code> on every building, <code>sealed</code> + <code>drive</code> on units; hazard rows (eruption, CO₂ pocket, micrometeorite, flare)</td><td><span class="wtag veyra">Veyra</span><span class="wtag tarsis">Tarsis A</span><span class="wtag cinder">Cinder</span></td><td class="n">1–2</td></tr>
+        <tr><td>Sim: tiers and crews</td><td>Habitability tier (pure function, testable per class and faction); Masks crew penalty; crewed buildings need dome coverage or sealing; life support per base (air reserve, heat, power share; failure order and crew loss); EVA air timer; vehicle exposure by <code>sealed</code></td><td><span class="wtag veyra">Veyra</span><span class="wtag tarsis">Tarsis A</span></td><td class="n">3–4</td></tr>
+        <tr><td>Sim: lava</td><td>Per-tile lava age and state (Lava → Crust → Basalt), deterministic advance from vents along the steepest descent, cooling, barrier blocking and wear, heat damage to neighbours, path costs refreshed, eruptions scheduled per vent from the seed, all in the state hash</td><td><span class="wtag cinder">Cinder</span></td><td class="n">2–3</td></tr>
+        <tr><td>Terrain generation</td><td>Per-class noise → terrains (the doc's planets entries); stamps for craters (bowl, rim, ejecta, central peak), lava channels (downhill polylines with levees), vents, polar caps, mesas and dune fields; the landing check avoids lava paths and basins</td><td><span class="wtag veyra">Veyra</span><span class="wtag tarsis">Tarsis A</span><span class="wtag cinder">Cinder</span></td><td class="n">2</td></tr>
+        <tr><td>Shaders</td><td><code>terrain.gdshader</code>: a per-class palette table instead of fixed class-M colours; lava emission (Voronoi crust plates and cracks, slow flow scroll, glow fades with tile age from a per-tile texture like the fog texture); frost on shadowed slopes from the sky include's sun direction; heat shimmer (screen-space distortion over lava tiles); dome glass and containment field (fresnel + hex cells, additive); <code>sky_dome</code> per class (black sky + stars + the parent planet on D, ash-brown on F)</td><td><span class="wtag cinder">Cinder</span><span class="wtag tarsis">Tarsis A</span><span class="wtag veyra">Veyra</span></td><td class="n">2–3</td></tr>
+        <tr><td>Scatter</td><td><code>build_scatter.py</code> sets per class: basalt rubble, pumice, sulphur crystals, fumarole cones (F); wind-carved rocks, lichen mats, frost-rimmed boulders (L); boulders and ejecta blocks (D, ice moon); <code>ScatterRules</code> per class and terrain</td><td><span class="wtag cinder">Cinder</span><span class="wtag veyra">Veyra</span><span class="wtag tarsis">Tarsis A</span></td><td class="n">1–2</td></tr>
+        <tr><td>Particles and effects</td><td>Vent smoke columns, ash fall (a WeatherView kind), lava spatter and eruption bombs; dust devils and ground-hugging CO₂ haze; micrometeorite streaks and impacts; flare flash. Wheel spray kinds for ash, regolith and frost</td><td><span class="wtag cinder">Cinder</span><span class="wtag veyra">Veyra</span><span class="wtag tarsis">Tarsis A</span></td><td class="n">1–2</td></tr>
+        <tr><td>Models</td><td>Pressure Dome (glass + frame + airlock), the containment field shell, Life Support Plant, Thermal Regulator, Environmental Shield emitter, Lava Barrier segment, Insulated Pad, Geothermal Tap; a sealing collar add-on for crewed buildings (via the Variety dress slots); suited EVA figures</td><td><span class="wtag tarsis">Tarsis A</span><span class="wtag cinder">Cinder</span></td><td class="n">2–3</td></tr>
+        <tr><td>UI</td><td>Landing-scan tier strip and kit list; life-support chip + drop-down; LS panel; dome/shield ring and ghost while placing; EVA card + turn-back line; sealed/unsealed rows and refusals; hazard tooltips, minimap layers, warning rings; telemetry per class; event lines and helm findings; large cards</td><td><span class="wtag veyra">Veyra</span><span class="wtag tarsis">Tarsis A</span><span class="wtag cinder">Cinder</span></td><td class="n">2–3</td></tr>
+        <tr><td>Balance and tests</td><td>Runner scenarios per world (the doc's targets: Masks 85–95 % of M, Domes 60–80 %); tier tests for every environment; a lava determinism test; Data Lab world preview</td><td><span class="wtag veyra">Veyra</span><span class="wtag tarsis">Tarsis A</span><span class="wtag cinder">Cinder</span></td><td class="n">1–2</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">About 17–24 sessions for all three worlds, on top of the doc's phase 0 (gravity core, 1–2 sessions). Placeholders.</p>
+
+  <div class="sub">
+    <h3>Recommended order</h3>
+    <div class="phases">
+      <div class="ph"><span class="num">0</span><b>Gravity core</b><span>As the doc: curves, GravityProfile, hooks. Class M unchanged.</span><span class="gate">Gate: all tests pass, M identical</span></div>
+      <div class="ph hl"><span class="num">1</span><b>First slice: Veyra</b><span>Tier system, Masks penalty, an L terrain set and palette, frost + dust devils, CO₂ pockets, the landing-scan tier strip, the top-bar chip, telemetry per class. Smallest step that makes a non-M world look and play differently.</span><span class="gate">Gate: Veyra opener 85–95 % of M · 3–4 sessions</span></div>
+      <div class="ph"><span class="num">2</span><b>Domes kit: Tarsis A</b><span>Crewed flag, Pressure Dome + field, Life Support, Thermal Regulator, sealed rovers, EVA Team, micrometeorites, black sky + Tarsis overhead.</span><span class="gate">Gate: opener 60–80 % of M · 4–5 sessions</span></div>
+      <div class="ph"><span class="num">3</span><b>Lava: Cinder</b><span>Reuses the whole domes kit and adds one system: lava tiles, eruptions, Lava Barrier, Geothermal Tap, the lava shader and vent VFX.</span><span class="gate">Gate: lava deterministic, base survivable with a barrier · 4–5 sessions</span></div>
+    </div>
+    <div class="rec">
+      <div class="eyebrow">If lava is what the owner wants to see first</div>
+      <p>Lava cannot come before the domes kit: Cinder has no O₂, so it needs domes, life support and sealing first. Two ways to get there sooner: (a) build phase 2 on Cinder instead of Tarsis A (domes kit + lava together, ~8 sessions before it plays, one big step), or (b) a <b>look-only lava pass</b> after phase 1: the terrain set, lava shader and vents on a Cinder map you can land on with the Test panel, no lava rules yet (~2 sessions), then the rules after phase 2. The page recommends (b): it shows the world early without skipping the parts it depends on.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 7. questions -->
+<section class="part" id="questions">
+  <div class="part-head">
+    <div class="eyebrow">7 · Questions for the owner</div>
+    <h2>One word back per line is enough</h2>
+  </div>
+  <ol class="q">
+    <li><b>Volcanic world as a new Class F (geometallic) moon of Hesper/Ilium?</b> Or a volcanic variant of an existing class (H with lava fields, K with old volcanoes)? Recommended: Class F, two twin bodies so the duel map stays symmetric.</li>
+    <li><b>Lava as a sim system</b> (tiles advance, cool, block paths, damage buildings), or scenery plus scripted eruption events? Recommended: a sim system; it is the world's whole point.</li>
+    <li><b>Domes as drawn:</b> a glass dome over the core's own hex plus a containment field reaching 1 (outpost) or 2 tiles (Pressure Dome)? Or one giant glass dome over the whole radius? Recommended: as drawn; hexes are 25 units and buildings ~10, so a glass dome of 2 tiles would be 125 units wide.</li>
+    <li><b>First hostile world:</b> Veyra (the doc's pick) or straight to the domes kit? And is the look-only lava pass after Veyra wanted?</li>
+    <li><b>Veyra's tier:</b> the doc's thresholds give Masks, not Domes. Keep Masks (with suits only in night CO₂ pockets), or tighten the thresholds so Veyra needs domes?</li>
+    <li><b>Lava Barrier:</b> a passive berm that wears while holding lava (drawn), or a powered heat-shield field (costs power, fails on brown-outs)? Or both, as Mk I and Mk II?</li>
+    <li><b>Veyra's polar caps:</b> the data's poles reach about −62 °C, too warm for CO₂ ice at Veyra's pressure. Raise <code>polar_drop</code> for CO₂ frost, or call the caps water ice?</li>
+    <li><b>EVA teams:</b> a selectable unit with an air timer (drawn), or crews that only walk out for jobs like today's repair crews?</li>
+    <li><b>Ash fall:</b> a weather kind that cuts solar and visibility and adds wear (like dust), or visual only?</li>
+    <li><b>Life-support failure:</b> lose crew (the doc's rule), or slow down first and only lose crew at zero air, as in the failure order drawn?</li>
+  </ol>
+</section>
+
+<footer class="part" style="border-bottom:0;font-size:14px" >
+  <p class="muted">Renders: <code>blender/build_hostile_worlds.py</code> (Blender 5.0, Cycles, 40 samples), hex projections exported with each strategy shot. Data: <code>data/surfaces/environments.json</code> (class_l, class_d), <code>data/climate/</code> (Veyra marginal, Tarsis A airless), <code>data/maps/mvp_duel.json</code>; Class F and Cinder are proposals on this page only.</p>
+</footer>
+</div>
+
+<script id="ov-data" type="application/json">/*OVERLAYS*/null</script>
+<script>
+(() => {
+"use strict";
+const OV = JSON.parse(document.getElementById("ov-data").textContent) || {};
+const $ = (s, r = document) => r.querySelector(s);
+const el = (tag, attrs = {}, html = "") => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (html) e.innerHTML = html; return e; };
+const NS = "http://www.w3.org/2000/svg";
+const sv = (tag, attrs = {}) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+function segment(host, cb) {
+  host.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    host.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+    cb(b);
+  });
+}
+
+/* ------------------------------------------------ world data (environments.json + the proposed class_f) */
+const W = {
+  cinder: { name: "Cinder", cls: "Class F (geometallic) · proposed", body: "Moon of Hesper · tidally heated", tier: "domes", g: 0.42, kpa: 11, tday: 38, tnight: -46, rad: [140, 120], uv: 6, wind: [4, 14], day: "20 min (1,200 s, locked to Hesper)",
+    gases: [["CO₂", 71.4, "#c9a27a"], ["N₂", 19.6, "#7fb0e8"], ["H₂O", 6.1, "#5ff2e6"], ["Ar", 2.9, "#a9a3e0"]],
+    trace: "SO₂ 120 · CO 90 · H₂S 40 · HCl 3 ppm", toxic: "Vent pockets: SO₂ 3,000 · H₂S 400 · HCl 25 ppm",
+    checks: [["Gravity", "masks", "0.42 g"], ["Pressure", "suits", "11 kPa"], ["O₂ / gases", "domes", "no O₂ · SO₂ 60× limit"], ["Temperature", "masks", "−46 to 38 °C"], ["Radiation", "suits", "140 µSv/h"]],
+    kit: ["Outpost dome (radius 1) comes with the landing", "Pressure Domes for crewed buildings", "Life Support Plant (4 crewed buildings each)", "Sealed rovers; EVA teams 6 min air", "Lava Barrier where a flow points at the base", "Geothermal Tap on a vent: +30 power"],
+    land: "Refused: sites within 2 tiles of an active flow or a vent", yields: "duranium ore, tritanium ore (rich), kelbonite, sulphur → boronite",
+    find: ["Habitability DOMES · no O₂ · 11 kPa", "3 active vents · lava covers 9 % of the surface", "Flow front advancing 1 hex / 90 s toward grid 7-9", "Eruption cycle: Vent 2 every ~6 min", "Landing sites: 6 safe of 41 surveyed"],
+    sky: "#5a3a2a" },
+  veyra: { name: "Veyra", cls: "Class L (marginal)", body: "Kalandra · 1.2 AU · retrograde", tier: "masks", g: 0.9, kpa: 78, tday: 18, tnight: -6, rad: [1.2, 0.6], uv: 9, wind: [7, 18], day: "11 min (660 s, retrograde)",
+    gases: [["N₂", 64, "#7fb0e8"], ["Ar", 18, "#a9a3e0"], ["O₂", 13.5, "#9be37a"], ["CO₂", 4.5, "#c9a27a"]],
+    trace: "Ne 30 · CH₄ 12 · He 6 ppm", toxic: "Toxic patch: H₂S 20 ppm · night basins: CO₂ above 10 %",
+    checks: [["Gravity", "open", "0.90 g"], ["Pressure", "open", "78 kPa"], ["O₂ / gases", "masks", "O₂ 13.5 % · CO₂ 4.5 % (9×)"], ["Temperature", "open", "−6 to 18 °C"], ["Radiation", "open", "1.2 µSv/h"]],
+    kit: ["Filter masks: crew work ×0.85 until filter_masks", "Sealed rovers for the night basins", "Terraforming Station for the race to Class M", "Drop ships grounded in dust storms"],
+    land: "Refused: basins (CO₂ pockets at night)", yields: "dilithium (800), zenite (200)",
+    find: ["Habitability MASKS · O₂ 13.5 % · CO₂ 4.5 %", "Dust season: storms drifting west 2 tiles/min", "2 basins hold CO₂ at night (suits)", "Dilithium deposits: 4 surveyed", "Oscen terraforming: rival at 11 %"],
+    sky: "#a9b6a0" },
+  tarsis_a: { name: "Tarsis A", cls: "Class D (planetoid/moon)", body: "Moon of Tarsis · locked", tier: "domes", g: 0.16, kpa: 0, tday: 120, tnight: -170, rad: [60, 45], uv: 25, wind: [0, 0], day: "24 min (1,440 s, locked to Tarsis)",
+    gases: [], trace: "Exosphere: He 40 · Ar 30 · Na 5 ppm", toxic: "No air: nothing to breathe or to burn",
+    checks: [["Gravity", "suits", "0.16 g"], ["Pressure", "domes", "vacuum"], ["O₂ / gases", "domes", "no O₂"], ["Temperature", "domes", "−170 to 120 °C"], ["Radiation", "suits", "60 µSv/h"]],
+    kit: ["Outpost dome (radius 1) comes with the landing", "Thermal Regulator: 2 power by day, 12 at night", "Life Support Plant", "Sealed rovers; EVA teams 6 min air", "Kelbonite Shelter for flares"],
+    land: "Refused: crater floors (no sun for 70 % of the day)", yields: "tritanium (2000), duranium (3000), rodinium, pergium",
+    find: ["Habitability DOMES · vacuum · −170 to 120 °C", "Terminator crosses the site in 0:52 (night 12 min)", "Lift cost ×0.28: cheapest orbit lift in the system", "Micrometeorite flux: low", "Tarsis overhead: uplink always in view"],
+    sky: "#05060a" }
+};
+const TIER = { open: "Open", masks: "Masks", suits: "Suits", domes: "Domes", tech: "Tech", imp: "Impossible" };
+
+/* ------------------------------------------------ 2. shots */
+const SHOTS = {
+  cinder: { cls: "cinder", label: "Cinder · Class F (proposed)",
+    shots: [["overview", "Strategy · zoom 290"], ["game", "Game camera · zoom 62"], ["feed", "Outpost feed"]],
+    labels: { overview: [["dome", "Outpost dome + field"], ["barrier", "Lava Barrier"], ["front", "Flow front"], ["vent0", "Vent 1"], ["vent1", "Vent 2"], ["refinery", "Refinery (automated)"]] },
+    see: "Basalt plains rising to a vent field; two active flows with crust plates and glowing cracks, older flows cooled to black crust; sulphur crusts round the vents, ash drifts, smoke columns lit orange from below, ash fall in the air. The outpost sits under a hardened glass dome inside its containment field; the refinery is automated and stands outside; a Lava Barrier turns the western flow.",
+    needs: [["Terrain", "class palette (basalt, ash, sulphur, crust); lava emission driven by a per-tile age texture; channels with levees from the generator"], ["Shader", "Voronoi crust plates + crack glow, slow scroll; heat shimmer over lava; emissive light into fog"], ["Scatter", "basalt rubble, pumice, sulphur crystals, fumarole cones"], ["Effects", "vent smoke, ash fall (WeatherView kind), spatter, eruption bombs; lava as a light source (a few OmniLights per flow front)"], ["Models", "Pressure Dome, containment field, Lava Barrier, Geothermal Tap"]] },
+  veyra: { cls: "veyra", label: "Veyra · Class L",
+    shots: [["overview", "Strategy · zoom 290"], ["game", "Game camera · zoom 50"], ["feed", "Outpost feed"]],
+    labels: { overview: [["outpost", "Outpost (no dome: masks)"], ["refinery", "Refinery"], ["crawler", "Mining crawler"], ["devil0", "Dust devil"], ["basin", "CO₂ basin"], ["cap", "Polar ice"]] },
+    see: "Rust and ochre regolith with pale dust and dark basalt outcrops, mesas, a dune field, frost on the slopes facing away from the low sun, sparse lichen in the damp hollows, a polar cap to the north, a dust devil crossing the plain, and a hazy pale sky (the environment's #a9b6a0).",
+    needs: [["Terrain", "L palette; frost by slope vs the sun direction (the sky include already has it); lichen mask from humidity"], ["Shader", "frost sparkle, dust in the fog colour, CO₂ haze sitting in basins at night"], ["Scatter", "wind-carved rocks, lichen mats, frost-rimmed boulders"], ["Effects", "dust devils, storm walls (dust_storm weather is in the sim already), ground haze"], ["Models", "Terraforming Station (exists in data, no model)"]] },
+  tarsis_a: { cls: "tarsis", label: "Tarsis A · Class D",
+    shots: [["overview", "Strategy · zoom 290"], ["game", "Game camera · zoom 50"], ["feed", "Outpost feed"]],
+    labels: { overview: [["dome", "Outpost dome + field"], ["refinery", "Refinery (automated)"], ["constructor", "Construction rover"], ["crater", "Crater, central peak"], ["rover", "Mk III (sealed)"]] },
+    see: "Grey regolith, craters of every size with raised rims, ejecta and bright rays, a large crater with a central peak, boulders; hard shadows from a sun with no air to soften it, black sky with stars, and Tarsis hanging over the horizon in the outpost feed. The outpost is under a geodesic dome with an airlock for vehicles.",
+    needs: [["Terrain", "D palette; crater stamps (bowl, rim, ejecta, central peak, rays)"], ["Shader", "no fog or haze; the sky dome goes black with stars and draws the parent planet (lit by the same sun, with phases over the year)"], ["Scatter", "boulders and ejecta blocks, no plants"], ["Effects", "no wheel spray haze (dust falls ballistically at 0.16 g); micrometeorite streaks and impacts"], ["Models", "Pressure Dome, airlock, Thermal Regulator, Life Support Plant"]] }
+};
+const shotsHost = $("#shots");
+for (const w of ["cinder", "veyra", "tarsis_a"]) {
+  const S = SHOTS[w];
+  const sub = el("div", { class: "sub " + S.cls });
+  sub.innerHTML = `<div class="toolbar"><h3 style="color:var(--wc)">${S.label}</h3><div class="seg" data-w="${w}">${S.shots.map((s, i) => `<button type="button" data-s="${s[0]}" aria-pressed="${i === 0}">${s[1]}</button>`).join("")}</div></div>
+  <div class="shotrow"><div class="shot" id="shot-${w}"><img src="${w}-overview.jpg" alt="${S.label} render"><div class="badge"><span class="src real">Real render</span></div></div>
+  <div class="shotside"><p style="font-size:15px">${S.see}</p><div class="needs">${S.needs.map(n => `<div><b>${n[0]}</b><span>${n[1]}</span></div>`).join("")}</div></div></div>`;
+  shotsHost.appendChild(sub);
+  const shot = $("#shot-" + w, sub);
+  const show = s => {
+    $("img", shot).src = `${w}-${s}.jpg`;
+    shot.querySelectorAll(".lbl").forEach(x => x.remove());
+    const O = OV[w];
+    if (s === "overview" && O) for (const [k, t] of (S.labels.overview || [])) {
+      const p = O.points[k]; if (!p) continue;
+      const l = el("span", { class: "lbl" }, t); l.style.left = (p[0] / 12.8) + "%"; l.style.top = (p[1] / 7.2) + "%"; shot.appendChild(l);
+    }
+  };
+  segment($(".seg", sub), b => show(b.dataset.s));
+  show("overview");
+}
+
+/* ------------------------------------------------ hex helpers (odd-r offset) */
+const cube = (c, r) => { const x = c - (r - (r & 1)) / 2; return [x, r, -x - r]; };
+const hdist = (a, b) => { const p = cube(a[0], a[1]), q = cube(b[0], b[1]); return Math.max(Math.abs(p[0] - q[0]), Math.abs(p[1] - q[1]), Math.abs(p[2] - q[2])); };
+const key = (c, r) => c + "," + r;
+
+/* ------------------------------------------------ 3. mechanics map */
+const MAP = {
+  cinder: { base: [8, 10], vent: [[5, 1], [11, 1], [15, 3]],
+    legend: [["#ff5a1a", "Lava: impassable, 1,100 °C"], ["#ffb36b", "Lava path (forecast)"], ["#3b3330", "Crust: ×0.3 speed, tyres ×3"], ["#e8d33a", "SO₂ pocket: suits leak"], ["#ff6f61", "Eruption ring / heat damage"], ["#5ff2e6", "Dome coverage"]],
+    extra: "Lava Barrier built",
+    note: "Orange hexes are lava now; amber hexes are where the front will be at the chosen time. The Colony Hub gets a red heat ring when the flow will touch its neighbour. With the barrier, the forecast turns west and the ring clears. The minimap shows the same colours; a flashing amber dot marks each front." },
+  veyra: { base: [6, 10],
+    legend: [["#d39a62", "Dust storm: drop ships grounded, survey −1"], ["#9be37a", "CO₂ pocket (night): suits needed"], ["#e9eef5", "Polar ice: rovers ×0.6, sharp ice"], ["#5ff2e6", "Base"]],
+    extra: "Night",
+    note: "The storm front drifts west 2 tiles a minute (the climate's drift for 'marginal'). At night the basin fills with CO₂ above 10 %: a mask is not enough there, so the tooltip and the rover card say suits. Drop-ship orders over the storm are refused with the time it clears." },
+  tarsis_a: { base: [6, 10],
+    legend: [["#0b1020", "Night side: −170 °C"], ["#ff6f61", "Micrometeorite shower"], ["#ffb36b", "Unstable rim: rockslide ×3"], ["#c9a0ff", "Flare: 900 µSv/h (shelter)"], ["#5ff2e6", "Dome coverage"]],
+    extra: "Stellar flare",
+    note: "The terminator sweeps east to west over the 24-minute day; on the night side Thermal Regulators draw up to 12 power. A micrometeorite shower marks its hexes 10 s ahead. The big crater's rim is unstable ground. A flare paints the whole map until it passes: crews must be in a dome or shelter." }
+};
+let mw = "cinder", mt = 0;
+const ov = $("#ov"), mini = $("#mini"), tip = $("#tip");
+function hazardOf(w, h, t, extra) {
+  const M = MAP[w], c = h.c, r = h.r;
+  if (w === "cinder") {
+    const fc = extra ? [[6, 9], [5, 10], [5, 11]] : [[7, 9], [7, 10], [7, 11]];
+    const steps = t === 0 ? 0 : t === 1 ? 1 : t === 2 ? 2 : 3;
+    const fi = fc.findIndex(p => p[0] === c && p[1] === r);
+    if (h.kind === "lava") return t >= 4 && (r <= 2) && (c === 5 || c === 6) ? "crust" : "lava";
+    if (fi >= 0) return fi < steps ? "lava" : (fi < steps + 2 ? "forecast" : (h.kind === "forecast" ? "basalt" : h.kind));
+    if (h.kind === "forecast") return "basalt";
+    if (h.kind === "toxic") return t >= 1 && hdist([c, r], [11, 1]) <= 1 ? "erupt" : "toxic";
+    return h.kind;
+  }
+  if (w === "veyra") {
+    const front = 16 - t * 2 - 2;   // storm band drifts west
+    if (h.kind === "ice") return "ice";
+    if (h.kind === "co2") return extra ? "co2" : "regolith";
+    if (c >= front && c <= front + 4) return "storm";
+    return "regolith";
+  }
+  if (w === "tarsis_a") {
+    if (extra) return "flare";
+    const term = 17 - t * 2.5;
+    if (c + (r & 1) * 0.5 > term) return "night";
+    if (t >= 1 && hdist([c, r], [3, 6]) <= 1) return "meteor";
+    if (h.kind === "ridge") return "rim";
+    return h.kind;
+  }
+}
+const FILL = { lava: ["#ff5a1a", .55], forecast: ["#ffb36b", .35], crust: ["#1a1412", .45], toxic: ["#e8d33a", .22], erupt: ["#ff6f61", .4], storm: ["#d39a62", .42], co2: ["#9be37a", .32], ice: ["#e9eef5", .12], night: ["#02040c", .62], meteor: ["#ff6f61", .35], rim: ["#ffb36b", .2], flare: ["#c9a0ff", .22] };
+const TIPS = {
+  lava: ["Lava flow", [["Temperature", "1,100 °C"], ["Moves", "impassable"], ["Cools to crust", "in ~6 min"]], "Heat damage to anything next to it: 4 wear a minute", "bad"],
+  forecast: ["Lava path", [["Front arrives", "in ~1–2 min"], ["Now", "basalt, passable"]], "Do not park here; buildings here will be buried", "w"],
+  crust: ["Cooling crust", [["Surface", "180 °C"], ["Moves", "×0.3, tyre wear ×3"], ["Buildable", "on an Insulated Pad"]], "", ""],
+  toxic: ["SO₂ pocket by a vent", [["SO₂", "3,000 ppm (1,500×)"], ["Suits", "seals leak 2 % a minute"]], "Sealed rovers only; no EVA", "w"],
+  erupt: ["Eruption warning: Vent 2", [["In", "0:40"], ["Ring", "1 hex"], ["Bombs", "10–30 damage"]], "Clear the ring", "bad"],
+  basalt: ["Basalt plain", [["Temperature", "31 °C"], ["Pressure", "11 kPa"], ["Moves", "×1.0"]], "", ""],
+  storm: ["Dust storm", [["Wind", "22 m/s, gusts 31"], ["Visibility", "0.3"], ["Drop ships", "grounded"]], "Survey radius −1; rovers ×0.7", "w"],
+  co2: ["CO₂ pocket (night)", [["CO₂", "11 % (22× limit)"], ["O₂", "12 %"], ["Tier here", "Suits"]], "Masks are not enough: sealed rovers or EVA suits", "w"],
+  ice: ["Polar ice", [["Temperature", "−41 °C"], ["Moves", "×0.6, sharp ice flats"]], "", ""],
+  regolith: ["Regolith", [["Temperature", "16 °C"], ["O₂", "13.5 %"], ["Tier", "Masks"]], "", ""],
+  night: ["Night side", [["Temperature", "−170 °C"], ["Regulator", "12 power"], ["Sun back in", "~11 min"]], "Unsealed rovers freeze: −6 integrity a minute", "w"],
+  meteor: ["Micrometeorite shower", [["Strikes", "in 0:10"], ["Damage", "6–18"]], "Move vehicles out; domes lose 1–3 %", "bad"],
+  rim: ["Crater rim", [["Slope", "28°"], ["Rockslide", "×3 chance"]], "Unstable ground: no buildings", "w"],
+  crater: ["Crater floor", [["Sunlight", "30 % of the day"], ["Temperature", "−150 °C average"]], "Landing refused", ""],
+  ridge: ["Ridge", [["Moves", "×0.5"]], "", ""],
+  flare: ["Stellar flare", [["Radiation", "900 µSv/h"], ["Lasts", "0:45"]], "Crews outside a dome or shelter: −1 crew every 10 s", "bad"]
+};
+function drawMap() {
+  const O = OV[mw]; const M = MAP[mw];
+  $("#mapimg").src = mw + "-overview.jpg";
+  ov.innerHTML = ""; mini.innerHTML = "";
+  if (!O) return;
+  const extra = $("#l-extra").checked, showGrid = $("#l-grid").checked, showHaz = $("#l-haz").checked, showFog = $("#l-fog").checked;
+  const gGrid = sv("g"), gHaz = sv("g"), gFog = sv("g"), gTop = sv("g");
+  const base = M.base;
+  const fogOf = h => { const d = hdist([h.c, h.r], base); return d > 7 ? .78 : d > 5 ? .45 : 0; };
+  for (const h of O.hex) {
+    const pts = h.pts.map(p => p.join(",")).join(" ");
+    const hz = hazardOf(mw, h, mt, extra);
+    if (showHaz && FILL[hz]) { const [col, a] = FILL[hz]; gHaz.appendChild(sv("polygon", { points: pts, fill: col, "fill-opacity": a, stroke: col, "stroke-opacity": Math.min(1, a + .35), "stroke-width": 1.4 })); }
+    if (showGrid) gGrid.appendChild(sv("polygon", { points: pts, fill: "none", stroke: "#cfe3ff", "stroke-opacity": .16, "stroke-width": 1 }));
+    if (showFog) { const f = fogOf(h); if (f) gFog.appendChild(sv("polygon", { points: pts, fill: "#02040a", "fill-opacity": f, stroke: "none" })); }
+    const hit = sv("polygon", { points: pts, fill: "transparent", "data-k": key(h.c, h.r) });
+    hit.addEventListener("mouseenter", ev => showTip(h, hz, ev));
+    hit.addEventListener("mousemove", ev => moveTip(ev));
+    hit.addEventListener("mouseleave", () => { tip.hidden = true; hl.setAttribute("points", ""); });
+    gTop.appendChild(hit);
+  }
+  // dome coverage ring and warnings
+  const ring = sv("g");
+  if (mw !== "veyra") for (const h of O.hex) if (hdist([h.c, h.r], base) <= 1) ring.appendChild(sv("polygon", { points: h.pts.map(p => p.join(",")).join(" "), fill: "#5ff2e6", "fill-opacity": .06, stroke: "#5ff2e6", "stroke-opacity": .7, "stroke-width": 1.6, "stroke-dasharray": "6 4" }));
+  if (mw === "cinder" && showHaz) {
+    const fc = extra ? [[6, 9], [5, 10]] : [[7, 9], [7, 10]];
+    const reached = !extra && mt >= 2;
+    const hub = O.hex.find(h => h.c === base[0] && h.r === base[1]);
+    if (!extra && mt >= 1) {
+      ring.appendChild(sv("circle", { cx: hub.cx, cy: hub.cy, r: 56, fill: "none", stroke: "#ff6f61", "stroke-width": 3, "stroke-dasharray": "10 6" }));
+      const t = sv("text", { x: hub.cx, y: hub.cy - 64, fill: "#ff8a7a", "font-size": 18, "text-anchor": "middle", "font-family": "Barlow Condensed, sans-serif", "font-weight": 600 }); t.textContent = reached ? "COLONY HUB: HEAT DAMAGE 4/MIN" : "LAVA REACHES THE HUB IN ~1 MIN"; ring.appendChild(t);
+    }
+    if (extra) { const b = O.points.barrier; const t = sv("text", { x: b[0], y: b[1] - 18, fill: "#9ed1ff", "font-size": 16, "text-anchor": "middle", "font-family": "Barlow Condensed, sans-serif", "font-weight": 600 }); t.textContent = `LAVA BARRIER HOLDING · ${100 - mt * 9} %`; ring.appendChild(t); }
+    if (mt >= 1) { const v = O.points.vent1; const t = sv("text", { x: v[0], y: v[1] + 46, fill: "#ff8a7a", "font-size": 16, "text-anchor": "middle", "font-family": "Barlow Condensed, sans-serif", "font-weight": 600 }); t.textContent = "ERUPTION IN 0:40"; ring.appendChild(t); }
+  }
+  hl = sv("polygon", { points: "", fill: "none", stroke: "#f5a624", "stroke-width": 2.2 });
+  ov.append(gHaz, gGrid, gFog, ring, hl, gTop);
+  // minimap: top-down hexes from grid coords
+  const R = 13.5, Wd = R * Math.sqrt(3);
+  const mpos = (c, r) => [(c + 0.5 * (r & 1)) * Wd, r * R * 1.5];
+  for (const h of O.hex) {
+    const [x, y] = mpos(h.c, h.r);
+    const hz = hazardOf(mw, h, mt, extra);
+    const pts = [0, 1, 2, 3, 4, 5].map(k => { const a = Math.PI / 180 * (60 * k - 90); return (x + R * Math.cos(a)).toFixed(1) + "," + (y + R * Math.sin(a)).toFixed(1); }).join(" ");
+    const baseCol = { cinder: "#2c2622", veyra: "#6e4630", tarsis_a: "#4d4c4a" }[mw];
+    const f = FILL[hz];
+    mini.appendChild(sv("polygon", { points: pts, fill: f ? f[0] : baseCol, "fill-opacity": f ? Math.min(1, f[1] + .35) : 1, stroke: "#03050a", "stroke-width": .8 }));
+    const fogv = fogOf(h); if (fogv) mini.appendChild(sv("polygon", { points: pts, fill: "#000", "fill-opacity": fogv * .8 }));
+  }
+  const [bx, by] = mpos(base[0], base[1]);
+  mini.appendChild(sv("circle", { cx: bx, cy: by, r: 6, fill: "#5ff2e6", stroke: "#000" }));
+  // the camera's footprint: the visible hexes' bounding box
+  const vis = O.hex.filter(h => h.cx >= 0 && h.cx <= 1280 && h.cy >= 0 && h.cy <= 720).map(h => mpos(h.c, h.r));
+  if (vis.length) { const xs = vis.map(p => p[0]), ys = vis.map(p => p[1]); mini.appendChild(sv("rect", { x: Math.min(...xs) - 8, y: Math.min(...ys) - 8, width: Math.max(...xs) - Math.min(...xs) + 16, height: Math.max(...ys) - Math.min(...ys) + 16, fill: "none", stroke: "#e6ebf5", "stroke-width": 1.5, "stroke-opacity": .7 })); }
+  $("#legend").innerHTML = M.legend.map(l => `<span><i style="background:${l[0]}"></i>${l[1]}</span>`).join("");
+  $("#l-extra-txt").textContent = M.extra;
+  $("#mapnote").textContent = M.note;
+  $("#mapfeed").innerHTML = (FEED[mw].map[mt] || []).map(l => `<div class="${l[0]}"><time>${l[1]}</time>${l[2]}</div>`).join("");
+}
+let hl = null;
+function showTip(h, hz, ev) {
+  hl.setAttribute("points", h.pts.map(p => p.join(",")).join(" "));
+  const T = TIPS[hz] || TIPS[h.kind] || [h.kind, [], "", ""];
+  tip.innerHTML = `<b>${T[0]}</b><span class="hud-label">Grid ${h.c}-${h.r} · ${W[mw].name}</span>${T[1].map(r => `<span class="r">${r[0]}<em>${r[1]}</em></span>`).join("")}${T[2] ? `<span class="${T[3]}">${T[2]}</span>` : ""}`;
+  tip.hidden = false; moveTip(ev);
+}
+function moveTip(ev) {
+  const r = $("#mapview").getBoundingClientRect();
+  let x = ev.clientX - r.left + 16, y = ev.clientY - r.top + 16;
+  if (x + 280 > r.width) x = ev.clientX - r.left - 290;
+  if (y + 150 > r.height) y = Math.max(4, ev.clientY - r.top - 150);
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+segment($("#mworld"), b => { mw = b.dataset.w; $("#l-extra").checked = false; drawMap(); });
+segment($("#clock"), b => { mt = +b.dataset.t; drawMap(); });
+["l-grid", "l-haz", "l-fog", "l-extra"].forEach(id => $("#" + id).addEventListener("change", drawMap));
+
+/* ------------------------------------------------ feeds */
+const FEED = {
+  cinder: { map: {
+      0: [["w", "0:00", "Lava flow advancing toward grid 7-9: about 2 min from the Colony Hub"], ["i", "0:00", "Geothermal Tap on Vent 1: +30 power"]],
+      1: [["b", "+1:00", "Eruption warning: Vent 2 in 0:40, 1-hex ring"], ["w", "+1:00", "Lava reaches the Colony Hub's neighbour in ~1 min"]],
+      2: [["b", "+2:00", "Colony Hub: lava next door, heat damage 4 a minute"], ["w", "+2:00", "Grid 7-10 buried: route to the refinery re-planned"]],
+      4: [["g", "+4:00", "Lava crust cooled at grid 5-2: passable, slow"], ["b", "+4:00", "Colony Hub condition 82: build a Lava Barrier at 7-9"]] },
+    lines: [["b", "Eruption warning: Vent 2 in 0:40 — 3 hexes in the ring"], ["w", "Lava flow advancing: reaches the Colony Hub in ~2 min"], ["i", "Lava Barrier holding: 64 %"], ["w", "SO₂ pocket: Mk II Talus 17 seals −6"], ["g", "Crust cooled: 2 hexes passable again"], ["i", "Geothermal Tap on Vent 1: +30 power"]] },
+  veyra: { map: {
+      0: [["w", "0:00", "Dust storm from the east: arrives in ~50 s, drop ships grounded"]],
+      1: [["w", "+1:00", "Dust storm over grid 9-6: survey radius −1, rovers ×0.7"]],
+      2: [["i", "+2:00", "Storm passing west; the outpost's solar ×0.5"]],
+      4: [["g", "+4:00", "Storm clears the base; drop ships cleared to land"]] },
+    lines: [["w", "Dust storm from the east: arrives in 50 s, drop ships grounded"], ["w", "Night: CO₂ pooling in the basin at grid 13-8 — suits needed"], ["i", "Frost on the north slopes: traction −15 %"], ["i", "Masks: crew work ×0.85 until Filter Masks"], ["g", "Terraforming: Veyra 8 % toward Class M"], ["b", "Oscen terraforming at 11 %: the rival is ahead"]] },
+  tarsis_a: { map: {
+      0: [["i", "0:00", "Night falls on the base in 0:52: regulator 2 → 12 power"]],
+      1: [["b", "+1:00", "Micrometeorite shower over grid 3-6 in 0:10"], ["w", "+1:00", "Terminator at grid 14: night side −170 °C"]],
+      2: [["w", "+2:00", "Night side reaches grid 12: Thermal Regulator at 8 power"]],
+      4: [["b", "+4:00", "Base 1 on the night side: power 30 of 34, life support 88 %"]] },
+    lines: [["i", "Night falls in 0:52: Thermal Regulator 2 → 12 power"], ["b", "Micrometeorite shower: 4 hexes, 0:20"], ["w", "Dome integrity 92 %: breach risk below 25 %"], ["w", "EVA Cairn 08: air 1:10 left, airlock 0:48 away"], ["b", "Stellar flare: radiation 60 → 900 µSv/h for 0:45 — crews inside"], ["g", "Mass driver ready: lift cost ×0.28"]] }
+};
+const feedsHost = $("#feeds");
+for (const w of ["cinder", "veyra", "tarsis_a"]) {
+  const d = el("div", { class: "hud panel bpanel " + SHOTS[w].cls });
+  d.innerHTML = `<div class="ttl"><b style="color:var(--wc)">${W[w].name}</b><small>event feed · helm findings</small></div>
+    <div class="feed">${FEED[w].lines.map(l => `<div class="${l[0]}">${l[1]}</div>`).join("")}</div>
+    <div class="helm" style="padding:10px 12px;border-radius:0 14px 14px 0;border-left:10px solid var(--helm-peach)"><div class="find">${W[w].find.map(f => `<div>${f}</div>`).join("")}</div></div>`;
+  feedsHost.appendChild(d);
+}
+
+/* ------------------------------------------------ 4a. landing scan */
+function scan(w) {
+  const D = W[w];
+  $("#scan").innerHTML = `<div class="frame">
+    <div class="elbow-t"><div class="cap"></div><div class="bar">PLANET · LANDING SCAN</div><div class="bar b2">${D.name.toUpperCase()}</div></div>
+    <div class="rail"><span>LIFE</span><span>RESOURCES</span><span class="on">HABITABILITY</span><span>LANDING</span><span class="alt">GRID</span></div>
+    <div class="body">
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+        <h4>${D.name} <span style="color:var(--helm-lav);font-size:16px">${D.cls}</span></h4>
+        <div class="bigtier t-${D.tier}"><b>${TIER[D.tier].toUpperCase()}</b><span>${D.tier === "masks" ? "Crews breathe through filter masks; no domes needed" : "Crews live and work only under domes or in sealed buildings"}</span></div>
+        <div class="checks">${D.checks.map(c => `<div class="t-${c[1]}"><span class="k">${c[0]}</span><span class="t">${TIER[c[1]]}</span><span>${c[2]}</span></div>`).join("")}</div>
+        <div class="find"><div class="warnline">${D.land}</div><div>Yields: ${D.yields}</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+        <div class="hud-label" style="color:var(--helm-peach)">The colony must bring</div>
+        <ul>${D.kit.map(k => `<li>${k}</li>`).join("")}</ul>
+        <dl class="kv"><dt>Body</dt><dd>${D.body}</dd><dt>Day</dt><dd>${D.day}</dd><dt>Gravity</dt><dd>${D.g} g</dd><dt>Surface</dt><dd>${D.kpa} kPa · ${D.tnight} to ${D.tday} °C</dd></dl>
+        <div class="hud-label" style="color:var(--helm-peach)">Findings</div>
+        <div class="find">${D.find.slice(1).map(f => `<div>${f}</div>`).join("")}</div>
+      </div>
+    </div>
+    <div class="elbow-b"><div class="cap"></div><div class="bar"><span class="pill">LAND COLONY</span><span class="pill">DROP ROVER</span><span class="pill dis">TRANSPORTER</span><span class="pill">SATELLITE</span></div></div>
+  </div>${D.tier === "domes" ? `<div class="alert">DOMES REQUIRED</div>` : ""}`;
+}
+segment($("#sworld"), b => scan(b.dataset.w)); scan("cinder");
+
+/* ------------------------------------------------ 4b. top bar + LS dropdown */
+const ic = { air: '<path d="M4 9h11a3 3 0 1 0-3-3M4 15h14a3 3 0 1 1-3 3M4 12h8"/>', heat: '<path d="M12 3v11"/><circle cx="12" cy="17" r="3.5"/><path d="M9 6h0M15 6h0"/>', dome: '<path d="M3 18a9 9 0 0 1 18 0zM8 18a4 7 0 0 1 8 0M3 18h18"/>', power: '<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>' };
+const svgi = (p, c) => `<svg class="ic" viewBox="0 0 24 24" style="color:${c}">${p}</svg>`;
+$("#topbar").innerHTML = `<span class="chip" style="font-weight:600;color:var(--hud-accent)">FEDERATION</span>
+  <span class="chip">${svgi('<rect x="4" y="9" width="16" height="6" rx="1"/>', "#c9cfdb")}312 <small>DURANIUM</small></span>
+  <span class="chip">${svgi('<rect x="4" y="9" width="16" height="6" rx="1"/>', "#9ed1ff")}96 <small>TRITANIUM</small></span>
+  <span class="chip">${svgi(ic.power, "#ffd36b")}30 / 34 <small>POWER</small></span>
+  <span class="chip">${svgi('<circle cx="9" cy="9" r="3"/><circle cx="16" cy="10" r="2.5"/><path d="M4 19c1-3 3-5 5-5s4 2 5 5M14 18c.5-2 1.5-3.5 3-3.5 1.4 0 2.5 1.4 3 3.5"/>', "#c9cfdb")}132 <small>CREW</small></span>
+  <span class="spacer"></span>
+  <span class="chip ls" title="Life support">${svgi(ic.dome, "#ffb36b")}<span class="lsg">${svgi(ic.air, "#9ed1ff")}<span class="bar"><i style="width:71%;background:#9ed1ff"></i></span></span><span class="lsg">${svgi(ic.heat, "#8fd4b0")}<span class="bar"><i style="width:88%;background:#8fd4b0"></i></span></span><span class="lsg">${svgi(ic.dome, "#8fd4b0")}<span class="bar"><i style="width:92%;background:#8fd4b0"></i></span></span><small style="color:#ffb36b">LS 88 %</small></span>
+  <span class="chip">${svgi('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>', "#ffd36b")}DAY 2 · 18:40 <small>NIGHT IN 0:52</small></span>`;
+$("#lsdrop").innerHTML = `<div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font:600 16px var(--label);letter-spacing:.06em">LIFE SUPPORT · DOMES WORLD</b><span class="hud-label">Tarsis A</span></div>
+  <div class="hrow"><span class="hud-label">Air reserve</span><div class="bar"><i style="width:71%;background:var(--hud-sky)"></i></div><em>71 % ▼2</em></div>
+  <div class="hrow"><span class="hud-label">Heat</span><div class="bar"><i style="width:88%;background:var(--hud-good)"></i></div><em>19 °C</em></div>
+  <div class="hrow"><span class="hud-label">Dome integrity</span><div class="bar"><i style="width:92%;background:var(--hud-good)"></i></div><em>92 %</em></div>
+  <div class="hrow"><span class="hud-label">LS power</span><div class="bar"><i style="width:88%;background:var(--hud-warn)"></i></div><em>21 / 24</em></div>
+  <div style="font-size:13px;color:var(--hud-warn)">Night in 0:52: the Thermal Regulator rises to 12 power and the base runs short by 4. Air runs out in 9:40 if nothing changes.</div>
+  <div style="font-size:13px;color:var(--hud-dim)">Base 1 · 3 of 4 crewed buildings covered · 1 EVA team out (2:14 air)</div>`;
+
+/* ------------------------------------------------ 4c. placement */
+const PB = {
+  prefab_habitat: { name: "Prefab Habitat", crewed: true, power: 2, extra: 2, ok: "Inside the dome: life support 3 → 4 of 4", bad: "Outside the dome: a crewed building needs a dome here, or build the Sealed Habitat (+15 % metal, +2 power)" },
+  sealed_habitat: { name: "Sealed Habitat", crewed: true, sealed: true, power: 3, extra: 0, ok: "Sealed: can stand anywhere; draws 3 power, uses 1 life-support slot", bad: "" },
+  refinery: { name: "Ore Refinery", crewed: false, power: 3, extra: 0, ok: "Automated: no dome needed; radiation wear 0.5 a minute outside", bad: "" },
+  pressure_dome: { name: "Pressure Dome", crewed: false, power: 6, extra: 0, ring: 2, ok: "Covers crewed buildings within 2 tiles · 6 power · 45 s", bad: "Too close: domes must stand 3 tiles apart" }
+};
+let pb = "prefab_habitat";
+const pov = $("#pov");
+function drawPlace(hover) {
+  const O = OV.tarsis_a; if (!O) return;
+  pov.innerHTML = "";
+  const base = MAP.tarsis_a.base, P = PB[pb];
+  for (const h of O.hex) {
+    const pts = h.pts.map(p => p.join(",")).join(" ");
+    pov.appendChild(sv("polygon", { points: pts, fill: "none", stroke: "#cfe3ff", "stroke-opacity": .12 }));
+    if (hdist([h.c, h.r], base) <= 1) pov.appendChild(sv("polygon", { points: pts, fill: "#5ff2e6", "fill-opacity": .07, stroke: "#5ff2e6", "stroke-opacity": .75, "stroke-width": 1.6, "stroke-dasharray": "6 4" }));
+  }
+  let msg = `<span class="name">${P.name}</span><span class="why" style="color:var(--hud-dim)">Hover the map to place</span>`;
+  let lsUse = 3;
+  if (hover) {
+    const d = hdist([hover.c, hover.r], base);
+    let good, why;
+    if (hover.c === base[0] && hover.r === base[1]) { good = false; why = "The Colony Hub stands here"; }
+    else if (hover.kind === "crater" || hover.kind === "ridge") { good = false; why = hover.kind === "ridge" ? "Unstable crater rim: no buildings" : "Crater floor: too steep and dark"; }
+    else if (pb === "pressure_dome") { good = d >= 3; why = good ? P.ok : P.bad; }
+    else if (P.crewed && !P.sealed) { good = d <= 1; why = good ? P.ok : P.bad; if (good) lsUse = 4; }
+    else { good = true; why = P.ok; if (P.sealed) lsUse = 4; }
+    const col = good ? "#8fd4b0" : "#ff6f61";
+    pov.appendChild(sv("polygon", { points: hover.pts.map(p => p.join(",")).join(" "), fill: col, "fill-opacity": .32, stroke: col, "stroke-width": 2.4 }));
+    if (pb === "pressure_dome") for (const h of O.hex) if (hdist([h.c, h.r], [hover.c, hover.r]) <= 2) pov.appendChild(sv("polygon", { points: h.pts.map(p => p.join(",")).join(" "), fill: "none", stroke: col, "stroke-opacity": .8, "stroke-width": 1.4, "stroke-dasharray": "4 4" }));
+    const t = sv("text", { x: hover.cx, y: hover.cy - 26, fill: col, "font-size": 17, "text-anchor": "middle", "font-family": "Barlow Condensed, sans-serif", "font-weight": 600 });
+    t.textContent = (good ? "OK" : "CAN'T BUILD") + (P.crewed ? (P.sealed ? " · SEALED" : (d <= 1 ? " · IN DOME" : " · NO DOME")) : (pb === "pressure_dome" ? " · RING 2" : " · AUTOMATED"));
+    pov.appendChild(t);
+    msg = `<span class="name" style="color:${col}">${P.name}</span><span class="why" style="color:${good ? "var(--hud-ink)" : "var(--hud-warn)"}">${why}</span><span class="spacer"></span><span class="chip">${svgi(ic.power, "#ffd36b")}+${P.power + (P.crewed && !P.sealed && d > 1 ? 0 : 0)} <small>POWER</small></span>`;
+  }
+  $("#pstrip").innerHTML = msg;
+  $("#pls").innerHTML = `<div class="hrow" style="grid-template-columns:96px minmax(0,1fr) 46px"><span class="hud-label">LS slots</span><div class="bar"><i style="width:${lsUse * 25}%;background:${lsUse >= 4 ? "var(--hud-warn)" : "var(--hud-good)"}"></i></div><em>${lsUse} / 4</em></div>
+    <div class="hrow" style="grid-template-columns:96px minmax(0,1fr) 46px"><span class="hud-label">Power</span><div class="bar"><i style="width:${Math.min(100, (26 + (hover ? P.power : 0)) / 30 * 100)}%;background:${26 + (hover ? P.power : 0) > 30 ? "var(--hud-bad)" : "var(--hud-good)"}"></i></div><em>${26 + (hover ? P.power : 0)} / 30</em></div>`;
+}
+(function wirePlace() {
+  const view = $("#pview");
+  view.addEventListener("mousemove", ev => {
+    const O = OV.tarsis_a; if (!O) return;
+    const r = view.getBoundingClientRect();
+    const x = (ev.clientX - r.left) / r.width * 1280, y = (ev.clientY - r.top) / r.height * 720;
+    let best = null, bd = 1e9;
+    for (const h of O.hex) { const d = (h.cx - x) ** 2 + (h.cy - y) ** 2; if (d < bd) { bd = d; best = h; } }
+    drawPlace(best);
+  });
+  view.addEventListener("mouseleave", () => drawPlace(null));
+  segment($("#pbuild"), b => { pb = b.dataset.b; drawPlace(null); });
+  const O = OV.tarsis_a; drawPlace(O ? O.hex.find(h => h.c === 7 && h.r === 9) : null);
+})();
+
+/* ------------------------------------------------ 4d. telemetry */
+function tele(w) {
+  const D = W[w];
+  const total = D.gases.reduce((a, g) => a + g[1], 0);
+  const spark = (() => { const pts = []; for (let i = 0; i <= 48; i++) { const t = i / 48; const v = (D.tday + D.tnight) / 2 + (D.tday - D.tnight) / 2 * Math.cos((t - .6) * Math.PI * 2); pts.push([i * 6, 30 - (v - D.tnight) / (D.tday - D.tnight || 1) * 26]); } return pts.map(p => p.map(n => n.toFixed(1)).join(",")).join(" "); })();
+  const radMax = Math.max(D.rad[0], 10);
+  $("#tele").innerHTML = `<div class="frame">
+    <div class="elbow-t"><div class="cap"></div><div class="bar">ATMOSPHERE · OUTPOST SENSORS</div><div class="bar b2">${D.name.toUpperCase()}</div></div>
+    <div class="rail"><span>PLANET</span><span>ORBIT</span><span class="on">ATMOSPHERE</span><span>SYSTEM</span><span class="alt">FEED</span></div>
+    <div class="body">
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+        <h4>Atmosphere</h4>
+        ${D.gases.length ? `<div class="gasbar">${D.gases.map(g => `<i style="width:${g[1] / total * 100}%;background:${g[2]}"></i>`).join("")}</div>
+        <div class="gaslegend">${D.gases.map(g => `<span><i style="background:${g[2]}"></i>${g[0]} ${g[1]} %</span>`).join("")}</div>` : `<div style="padding:10px;border:1px dashed var(--helm-grey);color:var(--helm-greytext);font:600 13px var(--label);letter-spacing:.1em">NO ATMOSPHERE · VACUUM</div>`}
+        <dl class="kv"><dt>Trace</dt><dd>${D.trace}</dd><dt>Hazard</dt><dd style="color:var(--helm-red)">${D.toxic}</dd><dt>Pressure</dt><dd>${D.kpa} kPa${D.kpa ? "" : " (breathable 60–180)"}</dd><dt>O₂</dt><dd>${(D.gases.find(g => g[0] === "O₂") || [0, 0])[1]} % <span style="color:var(--helm-greytext)">(breathable 19.5–23.5)</span></dd></dl>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+        <h4>Weather · radiation</h4>
+        <div class="telerow"><span class="k">Temp</span><svg class="spark" viewBox="0 0 288 34" preserveAspectRatio="none" aria-hidden="true"><polyline points="${spark}" fill="none" stroke="#f2a65a" stroke-width="2"/></svg><em>${D.tnight} → ${D.tday} °C</em></div>
+        <div class="telerow"><span class="k">Radiation</span><div class="ibar"><i style="width:${Math.min(100, Math.log10(D.rad[0] + 1) / Math.log10(1001) * 100)}%;background:${D.rad[0] >= 50 ? "#ffb36b" : "#9be37a"}"></i></div><em>${D.rad[0]} µSv/h</em></div>
+        <div class="telerow"><span class="k">UV</span><div class="ibar"><i style="width:${Math.min(100, D.uv * 4)}%;background:#a9a3e0"></i></div><em>${D.uv}</em></div>
+        <div class="telerow"><span class="k">Wind</span><div class="ibar"><i style="width:${D.wind[1] * 2}%;background:#7fb0e8"></i></div><em>${D.wind[0]} / ${D.wind[1]} m/s</em></div>
+        <div class="telerow"><span class="k">Gravity</span><div class="ibar"><i style="width:${D.g * 50}%;background:#5ff2e6"></i></div><em>${D.g} g</em></div>
+        <div class="telerow"><span class="k">Sky</span><div style="height:16px;border-radius:3px;background:${D.sky};border:1px solid #333"></div><em>${D.sky}</em></div>
+        <div class="find">${W[w].find.slice(0, 2).map(f => `<div>${f}</div>`).join("")}</div>
+      </div>
+    </div>
+    <div class="elbow-b"><div class="cap"></div><div class="bar"><span class="pill">FEED [F]</span><span class="pill">SURFACE</span>${w === "cinder" ? '<span style="color:#000">CLASS F IS A PROPOSAL</span>' : '<span style="color:#000">DATA: environments.json</span>'}</div></div>
+  </div>`;
+}
+segment($("#tworld"), b => tele(b.dataset.w)); tele("cinder");
+
+/* ------------------------------------------------ 5. cards */
+const schematic = (kind) => {
+  const g = { life_support: `<rect x="70" y="120" width="120" height="70" rx="6" fill="#1b2438" stroke="#4d6699"/><rect x="200" y="100" width="40" height="90" rx="20" fill="#14324a" stroke="#4fb5ff"/><rect x="250" y="100" width="40" height="90" rx="20" fill="#14324a" stroke="#4fb5ff"/><path d="M190 150h10M240 150h10" stroke="#9ed1ff" stroke-width="4"/><circle cx="110" cy="150" r="14" fill="none" stroke="#8fd4b0" stroke-width="3"/><path d="M60 190h250" stroke="#4d6699"/>`,
+    thermal: `<rect x="110" y="110" width="100" height="80" rx="4" fill="#1b2438" stroke="#4d6699"/><g stroke="#ff8a5c" stroke-width="3">${[0,1,2,3,4,5].map(i => `<path d="M${222 + i * 10} 100v90"/>`).join("")}</g><g stroke="#9ed1ff" stroke-width="3">${[0,1,2,3,4,5].map(i => `<path d="M${48 + i * 10} 100v90"/>`).join("")}</g><path d="M30 190h290" stroke="#4d6699"/><text x="160" y="155" fill="#99a6bf" font-size="13" text-anchor="middle" font-family="Barlow Condensed">HEAT PUMP</text>`,
+    shield: `<path d="M40 190a120 110 0 0 1 240 0" fill="#ffb36b" fill-opacity=".08" stroke="#ffb36b" stroke-dasharray="6 5"/><rect x="145" y="120" width="30" height="70" fill="#1b2438" stroke="#4d6699"/><circle cx="160" cy="112" r="14" fill="#ffd36b" fill-opacity=".35" stroke="#ffd36b"/><path d="M30 190h260" stroke="#4d6699"/>`,
+    pad: `<path d="M60 170l100-30 100 30-100 30z" fill="#1b2438" stroke="#9ed1ff"/><path d="M60 170v10l100 30 100-30v-10" fill="none" stroke="#4d6699"/><path d="M110 165l50-15 50 15-50 15z" fill="none" stroke="#5ff2e6" stroke-dasharray="4 3"/><text x="160" y="235" fill="#99a6bf" font-size="13" text-anchor="middle" font-family="Barlow Condensed">AEROGEL + RADIATOR FOOTING</text>` }[kind];
+  return `<svg viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice"><rect width="320" height="240" fill="#0a1020"/>${g}<text x="12" y="228" fill="#4d6699" font-size="12" font-family="Barlow Condensed" letter-spacing="1">SCHEMATIC · NO MODEL YET</text></svg>`;
+};
+const CARDS = [
+  { id: "pressure_dome", name: "Pressure Dome", cat: "Habitation", img: "crop-dome.jpg", real: true, cost: [["Duranium", 200, 312], ["Parasteel", 60, 0]], stats: [["Power", "6"], ["Build", "45 s"], ["Ring", "2 tiles", "good"], ["Crew", "0"]],
+    desc: "A transparent-aluminium dome over its own hex and a containment field that holds air over every hex within two tiles. Crewed buildings in the ring need no sealing. Below 25 % integrity it can breach: crewed buildings under it lose crew until it is repaired.",
+    rows: [["Where", "Domes-tier worlds: Tarsis A, Cinder, K, ice moons, asteroids"], ["Requires", "Pressure Domes research (granted in TNG)"], ["Covers", "crewed buildings within 2 tiles; domes 3 tiles apart"], ["Wears", "micrometeorites 1–3 %, eruption bombs 5–10 %"], ["Power out", "the field drops; air leaks 5 % a minute"]],
+    warn: "Parasteel 0 of 60: build an Alloy Foundry first", tips: ["The landing outpost already brings a radius-1 dome", "Put automated buildings outside to save slots"] },
+  { id: "environmental_shield", name: "Environmental Shield", cat: "Habitation", schematic: "shield", cost: [["Parasteel", 200, 0], ["Dilithium", 20, 50]], stats: [["Power", "25", "warn"], ["Build", "60 s"], ["Ring", "3 tiles", "good"], ["Crew", "4"]],
+    desc: "A heavy shield bubble that stops heat, acid and radiation wear on everything within three tiles. On Class Y it is the only way to keep buildings alive; on Cinder it also turns aside eruption bombs. If power drops, wear spikes at once.",
+    rows: [["Where", "Class Y (required), Cinder vents, flare-prone moons"], ["Requires", "Heat Shielding (defense 3)"], ["Stops", "heat and acid wear, radiation, eruption bombs"], ["Does not stop", "lava: it flows straight through"], ["Brown-out", "×3 wear for 30 s after power returns"]],
+    warn: "Heat Shielding not researched", tips: ["Pair it with a Geothermal Tap on Cinder", "Its 25 power is a whole reactor"] },
+  { id: "life_support", name: "Life Support Plant", cat: "Power & crew", schematic: "life_support", cost: [["Duranium", 120, 312], ["Tritanium", 30, 96]], stats: [["Power", "5"], ["Build", "25 s"], ["Slots", "4", "good"], ["Crew", "2"]],
+    desc: "Air and water for four crewed buildings of its base. It fills the base's air reserve; when power is short the reserve drains and, at zero, crewed buildings lose crew every minute. On Masks worlds it is not needed.",
+    rows: [["Where", "Suits and Domes worlds"], ["Supports", "4 crewed buildings, +1 per level"], ["Reserve", "10 minutes of air when unpowered"], ["Fails", "at 0 air: −2 crew a minute per building"], ["Levels", "Mk II 6 slots · Mk III 8 slots, recycles 20 % water"]],
+    warn: "", tips: ["Hover the top-bar chip to see what fails first", "One plant per four crewed buildings"] },
+  { id: "thermal_regulator", name: "Thermal Regulator", cat: "Power & crew", schematic: "thermal", cost: [["Duranium", 100, 312]], stats: [["Power", "2–12", "warn"], ["Build", "20 s"], ["Base", "1 each"], ["Crew", "1"]],
+    desc: "Heats or cools a whole base. Its power follows the climate sim: 1 power per 20 °C between the site and 20 °C, so on Tarsis A it draws 2 by day and 12 on the night side. Without it, crewed buildings in a dome get too cold or hot to work.",
+    rows: [["Where", "D, ice moons, K, Y; Cinder by day near lava"], ["Power", "Tarsis A day 120 °C → 5 · night −170 °C → 10–12"], ["Without it", "crew work ×0.5, then crew loss"], ["Night shift", "a toggle pauses mines to keep it fed"]],
+    warn: "", tips: ["The Data Lab can plot its power over a day and a year"] },
+  { id: "lava_barrier", name: "Lava Barrier", cat: "Defence", img: "crop-barrier.jpg", real: true, cost: [["Duranium", 80, 312], ["Tritanium", 20, 96]], stats: [["Power", "0 / 4"], ["Build", "15 s"], ["Holds", "6 min", "good"], ["Hexes", "1"]],
+    desc: "A ferrocrete berm along one hex with a heat-shield emitter on top. A lava front that meets it turns to the next lowest neighbour instead of flowing on. It wears while lava presses on it; at 0 the flow breaks through. Powered, it holds twice as long.",
+    rows: [["Where", "Cinder (any world with lava)"], ["Requires", "nothing (powered field: Thermal Deflectors)"], ["Wear", "15 a minute with lava against it, ×0.5 powered"], ["Placement", "on a basalt or crust hex, not on lava"], ["Shows", "the flow's new path while placing"]],
+    warn: "", tips: ["Place it one hex ahead of the forecast front", "Two in a row hold a flow indefinitely while they are repaired"] },
+  { id: "insulated_pad", name: "Insulated Pad", cat: "Foundations", schematic: "pad", cost: [["Duranium", 40, 312]], stats: [["Power", "0"], ["Build", "8 s"], ["Under", "1 bldg"], ["Crew", "0"]],
+    desc: "A foundation that keeps a building's heat out of the ground and the ground's heat out of the building. On an ice moon, heated buildings stop melting their footing; on Cinder, it lets you build on cooled lava crust before it has fully set.",
+    rows: [["Where", "Ice moons; Cinder crust"], ["Ice moon", "heated buildings wear +50 % without it"], ["Cinder", "crust hexes buildable 4 min earlier"], ["Placed", "with the building, +8 s"]],
+    warn: "", tips: ["Shown as an option on the placing strip when the hex needs it"] }
+];
+const tabs = $("#ctabs"), host = $("#cardhost");
+CARDS.forEach((c, i) => { const b = el("button", { type: "button", role: "tab", "aria-selected": i === 0 ? "true" : "false" }, c.name); b.addEventListener("click", () => { tabs.querySelectorAll("button").forEach(x => x.setAttribute("aria-selected", x === b ? "true" : "false")); card(c); }); tabs.appendChild(b); });
+function card(c) {
+  host.innerHTML = `<div class="card large">
+    <div class="left">
+      <div><div class="card-title">${c.name}</div><div class="card-sub"><span>${c.cat}</span><span>Mk I</span><span style="color:var(--hud-dim)">id ${c.id}</span></div></div>
+      <div class="hero">${c.img ? `<img src="${c.img}" alt="${c.name} in the render">` : schematic(c.schematic)}<div class="badge">${c.real ? '<span class="src real">Real render crop</span>' : '<span class="src stand">Schematic</span>'}</div></div>
+      <div class="cost">${c.cost.map(x => `<span style="color:${x[2] < x[1] ? "var(--hud-warn)" : "var(--hud-ink)"}">${x[1]} ${x[0]}<small>have ${x[2]}</small></span>`).join("")}</div>
+      <div class="stats">${c.stats.map(s => `<div class="stat-t"><span>${s[0]}</span><b class="${s[2] || ""}">${s[1]}</b></div>`).join("")}</div>
+      <p>${c.desc}</p>
+      ${c.warn ? `<div style="padding:8px 10px;border-radius:7px;background:#2a1a0a;border:1px solid #6e4520;color:var(--hud-warn);font-size:13.5px">${c.warn}</div>` : ""}
+      <div class="acts"><button class="act" type="button"${c.warn ? " disabled" : ""}>Place [Enter]</button><button class="act ghost" type="button">Close</button></div>
+    </div>
+    <div class="right">
+      <div class="sec"><h4>Rules</h4><table class="lv"><tbody>${c.rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</tbody></table></div>
+      <div class="sec"><h4>Tips</h4><ul class="tips">${c.tips.map(t => `<li>${t}</li>`).join("")}</ul></div>
+    </div></div>`;
+}
+card(CARDS[0]);
+
+drawMap();
+})();
+</script>

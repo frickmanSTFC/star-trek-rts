@@ -1051,7 +1051,7 @@ def main():
     if args.quick:
         step *= 2
     x0, x1 = -HEX - margin, COLS * HEX + margin
-    y0, y1 = -(ROWS) * ROW - margin, ROW + margin + (380 if args.shot != "overview" else 0)
+    y0, y1 = -(ROWS) * ROW - margin, ROW + margin + (380 if args.shot != "overview" else 170)
     T = Terrain(x0, x1, y0, y1, step)
     extra = {}
 
