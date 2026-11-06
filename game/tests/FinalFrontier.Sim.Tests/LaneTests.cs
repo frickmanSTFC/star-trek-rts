@@ -364,4 +364,26 @@ public class LaneTests
         }
         Assert.Fail("no straight plains run found");
     }
+
+    [Fact]
+    public void RandomOrdersInACrowdedBaseNeverEnterAFootprintOrDeadlock()
+    {
+        var sim = CrowdedBase(out var rovers, out var hub, out _);
+        var s = sim.Surface!;
+        var rng = new DeterministicRng(5);
+        var tiles = s.Map.Grid.Within(hub, 4).Where(t => s.Map.Terrain(t).Passable).ToList();
+        for (var round = 0; round < 25; round++)
+        {
+            foreach (var r in rovers)
+                if (rng.NextInt(3) == 0) sim.Schedule(sim.Tick, new MoveUnitsCommand(0, new[] { r.Id }, tiles[rng.NextInt(tiles.Count)]));
+            if (rng.NextInt(4) == 0) sim.Schedule(sim.Tick, new MoveUnitsCommand(0, rovers.Select(r => r.Id).ToArray(), tiles[rng.NextInt(tiles.Count)]));
+            for (var i = 0; i < Sec(6); i++)
+            {
+                sim.Step();
+                AssertClearOfFootprints(sim);
+            }
+        }
+        for (var i = 0; i < Sec(120) && rovers.Any(r => r.Path.Count > 0); i++) sim.Step();
+        Assert.All(rovers, r => Assert.Empty(r.Path));
+    }
 }

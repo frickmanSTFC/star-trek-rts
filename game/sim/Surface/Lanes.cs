@@ -84,9 +84,11 @@ public sealed partial class PlanetSurface
         var c = CentreOf(tile);
         var list = new List<FixVec2>(7);
         Fix64 ring;
+        FixVec2? access = null;
         if (BlockRadius(tile, self) > Fix64.Zero)
         {
-            if (AccessPoint(tile) is { } a) list.Add(a);
+            access = AccessPoint(tile);
+            if (access is { } a) list.Add(a);
             ring = CornerPark;
         }
         else
@@ -98,7 +100,7 @@ public sealed partial class PlanetSurface
         {
             // 30° + 60°·k: between the edge middles, toward the corners.
             var spot = c + Turn(new FixVec2(Root3Half, Fix64.Half), k) * ring;
-            if (list.Count > 0 && list[0] != c && (spot - list[0]).Length() < Lanes.AvoidRadius + Fix64.Half) continue; // beside the access point
+            if (access is { } a && (spot - a).Length() < Lanes.AvoidRadius + Fix64.Half) continue; // beside the access point
             list.Add(spot);
         }
         return list;
