@@ -117,6 +117,9 @@ public partial class PlanetDriver
             case "tyre":
                 ChangeTyres();
                 return true;
+            case "found":
+                ArmFounding(); // a construction rover's FOUND OUTPOST (PlanetDriver.Founding.cs)
+                return true;
         }
         return false;
     }
@@ -139,6 +142,7 @@ public partial class PlanetDriver
             : changing ? ("Changing a tyre", new Color(0.62f, 0.82f, 1f))
             : flats >= 2 ? ($"{flats} flat tyres: barely crawling", RoverBad)
             : flats == 1 ? ("Flat tyre: driving slower", RoverWarn)
+            : FounderStatus(u) is { } founding ? founding
             : u.Path.Count > 0 ? ("Driving", RoverGood)
             : ("Parked", new Color(0.6f, 0.65f, 0.75f));
 
@@ -197,6 +201,17 @@ public partial class PlanetDriver
         {
             var why = Surface.ChangeTyreProblem(LocalPlayer, u.Id);
             actions.Add(new ActionView("tyre", "CHANGE TYRE [T]", why ?? $"{t.ChangeSeconds} s, uses a spare", why == null));
+        }
+        if (def.Found is { } found)
+        {
+            var stuck = Surface.Disabled(u) ? Surface.FoundText(FoundProblem.Disabled) : null;
+            actions.Add(new ActionView("found", "FOUND OUTPOST [F]", stuck ?? Amounts(found.Cost, false, shortNames: true), stuck == null));
+            if (Surface.Unfolding(u) && progress < 0f)
+            {
+                progress = Surface.DeployFraction(u).ToFloat();
+                progressLabel = "Unfolding";
+                progressText = $"{Mathf.RoundToInt(progress * 100)}%  ·  {def.DeploySeconds} s, then it becomes the new hub  ·  a move order folds it up (refunded)";
+            }
         }
 
         _hud.ShowStructure(new StructureView(UnitName(u), $"{TypeName(u)}  ·  {Surface.Map.Terrain(u.Tile).Name.ToLowerInvariant()}", "rover", status, colour,

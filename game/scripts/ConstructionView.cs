@@ -691,10 +691,16 @@ public partial class ConstructionView : Node3D
         d.Site = null;
     }
 
-    /// <summary>Where a player's drones live: on top of the nearest finished colony core or Vehicle Bay (or in orbit
-    /// above the point if there is none). Never the building they just worked on.</summary>
+    /// <summary>Exocomp docks by site (structure id): a hub founded on the ground launches and takes back its drones at
+    /// the construction rover parked beside it (PlanetView.Founding.cs keeps this up to date).</summary>
+    public readonly Dictionary<int, Vector3> Docks = new();
+
+    /// <summary>Where a player's drones live: the site's own dock if it has one (a founded hub's construction rover),
+    /// else on top of the nearest finished colony core or Vehicle Bay (or in orbit above the point if there is none).
+    /// Never the building they just worked on.</summary>
     private Vector3 HomeFor(int owner, Vector3 near, int except)
     {
+        if (Docks.TryGetValue(except, out var dock)) return dock;
         var best = near + new Vector3(0, 90f, 0);
         var bestDist = float.MaxValue;
         var structures = _surface.Structures;
