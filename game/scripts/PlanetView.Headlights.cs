@@ -20,7 +20,7 @@ public partial class PlanetView
     private readonly Dictionary<int, VehicleLights.Rig> _headlights = new();
     private readonly List<VehicleLights.Rig> _lightRigs = new();
     private float[] _rigDistance = System.Array.Empty<float>();
-    private int[] _rigOrder = System.Array.Empty<int>();
+    private VehicleLights.Rig[] _rigOrder = System.Array.Empty<VehicleLights.Rig>(); // references: removals mid-loop can't shift them
     private float _headlightClock;
 
     /// <summary>Build a new unit model's lamps (UpdateRovers, before the model enters the tree).</summary>
@@ -42,7 +42,7 @@ public partial class PlanetView
     /// <summary>Lamps that aren't a unit's (drop ships) join the same budget.</summary>
     public void AddLightRig(VehicleLights.Rig rig)
     {
-        rig.NextWeather = _headlightClock + rig.Stagger; // spread the weather look-ups
+        rig.NextWeather = _headlightClock; // first look at once; later ones are spread by each rig's stagger
         _lightRigs.Add(rig);
     }
 
@@ -104,7 +104,7 @@ public partial class PlanetView
         if (_rigDistance.Length < count)
         {
             _rigDistance = new float[count + 16];
-            _rigOrder = new int[count + 16];
+            _rigOrder = new VehicleLights.Rig[count + 16];
         }
 
         var sky = SkyOverride;
@@ -133,7 +133,12 @@ public partial class PlanetView
             var day = daylightAt(pos);
             var dark = rig.AutoOn ? day < VehicleLights.DarkOff : day < VehicleLights.DarkOn;
             var want = dark || murky;
-            if (want != rig.AutoOn)
+            if (rig.Fresh)
+            {
+                rig.Fresh = false;
+                rig.AutoOn = want; // a new vehicle starts with its lamps already right (no hold)
+            }
+            else if (want != rig.AutoOn)
             {
                 rig.AutoHeld += delta;
                 if (rig.AutoHeld >= VehicleLights.SwitchDelay + rig.Stagger)
@@ -154,7 +159,7 @@ public partial class PlanetView
                 continue;
             }
             _rigDistance[lit] = pos.DistanceSquaredTo(eye);
-            _rigOrder[lit] = i;
+            _rigOrder[lit] = rig;
             lit++;
         }
 
@@ -164,7 +169,7 @@ public partial class PlanetView
         var shadows = 0;
         for (var k = 0; k < lit; k++)
         {
-            var rig = _lightRigs[_rigOrder[k]];
+            var rig = _rigOrder[k];
             var d2 = _rigDistance[k];
             var need = rig.SpotsWanted;
             var real = d2 < VehicleLights.LightDistance * VehicleLights.LightDistance && spots + need <= VehicleLights.MaxSpots;
@@ -173,6 +178,7 @@ public partial class PlanetView
             if (shadow) shadows++;
             var pool = !real && d2 < VehicleLights.PoolDistance * VehicleLights.PoolDistance;
             rig.Apply(real, shadow, pool, _headlightClock);
+            _rigOrder[k] = null!; // don't keep freed models alive through the scratch array
         }
     }
 

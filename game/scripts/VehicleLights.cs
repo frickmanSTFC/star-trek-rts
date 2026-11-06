@@ -231,7 +231,7 @@ public static class VehicleLights
 
         // Written by PlanetView.Headlights.
         public float Level, Murk;
-        public bool AutoOn, Damaged, Dead, Hidden;
+        public bool AutoOn, Damaged, Dead, Hidden, Fresh = true;
         public float AutoHeld;
         public double NextWeather;
         public string Reason = "daylight";
