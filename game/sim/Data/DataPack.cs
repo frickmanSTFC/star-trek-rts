@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -62,11 +63,11 @@ public static class DataPack
     {
         if (pack.Length < HeaderSize || !pack.AsSpan(0, Magic.Length).SequenceEqual(Magic))
             throw new InvalidDataException("Not a Final Frontier data pack.");
-        var version = BitConverter.ToUInt16(pack, 8);
+        var version = BinaryPrimitives.ReadUInt16LittleEndian(pack.AsSpan(8, 2));
         if (version != FormatVersion) throw new InvalidDataException($"Data pack format {version} isn't supported (this build reads {FormatVersion}).");
         fingerprint = Convert.ToHexString(pack, 10, 32).ToLowerInvariant();
         var bodyHash = pack.AsSpan(42, 32);
-        var length = BitConverter.ToInt32(pack, 74);
+        var length = BinaryPrimitives.ReadInt32LittleEndian(pack.AsSpan(74, 4));
         if (length < 0 || HeaderSize + length != pack.Length) throw new InvalidDataException("The data pack is truncated or has extra bytes.");
         var compressed = pack.AsSpan(HeaderSize, length).ToArray();
         if (!SHA256.HashData(compressed).AsSpan().SequenceEqual(bodyHash)) throw new InvalidDataException("The data pack was changed or is damaged (body hash).");

@@ -1,0 +1,10 @@
+{
+  "_notes": "Scenario layer for trying build orders fast: a bigger landing stock and a quicker hub assembly. Applied last (after the era and faction layers) when the game's setup names scenario 'quick_start'. Placeholder numbers.",
+  "patches": [
+    { "op": "set", "doc": "surfaces", "path": "landing/assemble_seconds", "value": 5 },
+    { "op": "set", "doc": "surfaces", "path": "landing/start_stock/duranium", "value": 1500 },
+    { "op": "set", "doc": "surfaces", "path": "landing/start_stock/tritanium", "value": 900 },
+    { "op": "add_field", "doc": "surfaces", "path": "landing/start_stock/duranium_ore", "value": 400 },
+    { "op": "list_add", "doc": "surfaces", "path": "landing/units", "value": "construction_rover" }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "_notes": "Era layer: what changes when a game is set in the Enterprise era (2151–2161). Applied after the base data when the game's setup names era 'ent' (GameData.Load(dir, new DataSetup(Era: \"ent\"))), before faction and scenario layers. An era layer sets orbit/era itself, so the transporter level (surfaces orbit transporter by_era: ent = 1, the early transporter) follows. Earth's NX-class and a Klingon Raptor are the ships in orbit; ops: set (existing value), add_field, add_record (after), remove, list_add, list_remove; paths name records by id.",
+  "patches": [
+    { "op": "set", "doc": "surfaces", "path": "orbit/era", "value": "ent" },
+    { "op": "add_field", "doc": "surfaces", "path": "orbit/ships/earth_uec", "value": { "name": "Enterprise NX-01", "class": "NX" } },
+    { "op": "set", "doc": "surfaces", "path": "orbit/ships/klingon", "value": { "name": "I.K.S. Somraw", "class": "Raptor" } }
+  ]
+}
