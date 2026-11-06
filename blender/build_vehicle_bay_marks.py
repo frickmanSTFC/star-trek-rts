@@ -31,7 +31,7 @@ import marks_kit as MK  # noqa: E402
 from building_kit import MT, P, bx, obox, beam, zcyl, sphere, strut, empty, cylinder  # noqa: E402
 
 SLAB = 0.3
-DOOR_OPEN = 0.45   # preview pose: the door part-way up so the lit bay shows
+DOOR_OPEN = 0.62   # preview pose: the door part-way up so the lit bay shows
 
 
 def door(name, cx, y, w, h, parent, skin):
@@ -51,7 +51,8 @@ def hall(g, x0, x1, y0, y1, h, doors, skin, wall=0.3, ribs=True, roof=True):
     z = SLAB
     bx("HallBack", (x1 - x0, wall, h), P((x0 + x1) / 2, y1 - wall / 2, z + h / 2), skin, g, 0.03)
     for k, x in enumerate((x0 + wall / 2, x1 - wall / 2)):
-        bx(f"HallSide{k}", (wall, y1 - y0, h), P(x, (y0 + y1) / 2, z + h / 2), skin, g, 0.03)
+        sy0, sy1 = y0 + wall + 0.12, y1 - wall      # between the front piers and the back wall (no coplanar faces)
+        bx(f"HallSide{k}", (wall, sy1 - sy0, h), P(x, (sy0 + sy1) / 2, z + h / 2), skin, g, 0.03)
         if ribs:
             n = int((y1 - y0) / 0.62)
             for i in range(n + 1):
@@ -67,14 +68,36 @@ def hall(g, x0, x1, y0, y1, h, doors, skin, wall=0.3, ribs=True, roof=True):
         if b - a > 0.01:
             bx(f"HallPier{i}", (b - a, wall + 0.1, h), P((a + b) / 2, y0 + wall / 2, z + h / 2), skin, g, 0.03)
     dh = max(d[2] for d in doors)
-    bx("HallLintel", (x1 - x0, wall + 0.12, h - dh), P((x0 + x1) / 2, y0 + wall / 2, z + dh + (h - dh) / 2), skin, g, 0.03)
+    bx("HallLintel", (x1 - x0 - 0.06, wall + 0.12, h - dh - 0.02), P((x0 + x1) / 2, y0 + wall / 2, z + dh + (h - dh) / 2), skin, g, 0.03)
     if roof:
         bx("HallRoof", (x1 - x0 + 0.3, y1 - y0 + 0.3, 0.22), P((x0 + x1) / 2, (y0 + y1) / 2, z + h + 0.11), MT["panel"], g, 0.03)
     # the dark bay inside, its floor, an assembly cradle per door
-    bx("HallInterior", (x1 - x0 - 2 * wall - 0.05, y1 - y0 - wall - 0.2, h - 0.05), P((x0 + x1) / 2, (y0 + y1) / 2 + 0.15, z + h / 2), MT["dark"], g)
+    iw, iy0, iy1 = x1 - x0 - 2 * wall - 0.05, y0 + wall + 0.02, y1 - wall - 0.02
+    bx("BayFloor", (iw, iy1 - iy0, 0.04), P((x0 + x1) / 2, (iy0 + iy1) / 2, z + 0.02), MT["trim"], g)
+    bx("BayBackWall", (iw, 0.05, h - 0.1), P((x0 + x1) / 2, iy1 - 0.03, z + h / 2), MT["trim"], g)
+    bx("BayCeiling", (iw, iy1 - iy0, 0.05), P((x0 + x1) / 2, (iy0 + iy1) / 2, z + h - 0.06), MT["dark"], g)
+    for k, x in enumerate(((x0 + x1) / 2 - iw / 2 + 0.03, (x0 + x1) / 2 + iw / 2 - 0.03)):
+        bx(f"BaySideWall{k}", (0.05, iy1 - iy0, h - 0.1), P(x, (iy0 + iy1) / 2, z + h / 2), MT["panel"], g)
+    for k, (cx, w, dh) in enumerate(doors):
+        if k:
+            bx(f"BayDivider{k}", (0.3, iy1 - iy0, h - 0.1), P((doors[k - 1][0] + cx) / 2, (iy0 + iy1) / 2, z + h / 2), MT["panel"], g)
     for k, (cx, w, dh) in enumerate(doors):
         bx(f"Cradle{k}", (w * 0.8, 2.8, 0.3), P(cx, y0 + 2.2, z + 0.2), MT["trim"], g)
         bx(f"CradleHaz{k}", (w * 0.82, 0.12, 0.31), P(cx, y0 + 0.85, z + 0.2), MT["hazard"], g)
+        chassis(g, cx, y0 + 2.2, z + 0.35, k)
+
+
+def chassis(g, x, y, z, k):
+    """A half-built rover on the cradle: frame rails, axles, three wheels on, the cab shell waiting."""
+    for s in (-1, 1):
+        bx(f"Rail{k}{s}", (0.14, 2.6, 0.18), P(x + s * 0.55, y, z + 0.45), MT["steel"], g)
+    for j, yy in enumerate((-0.9, 0.1, 1.0)):
+        bx(f"Axle{k}{j}", (1.6, 0.12, 0.12), P(x, y + yy, z + 0.4), MT["trim"], g)
+        for s in (-1, 1):
+            if (j, s) != (2, 1):
+                cylinder(f"Wheel{k}{j}{s}", 0.42, 0.3, P(x + s * 0.85, y + yy, z + 0.42), MT["rubber"], g, axis="X", segments=14)
+    bx(f"CabShell{k}", (1.5, 1.0, 0.9), P(x, y - 0.8, z + 1.05), MT["white"], g, 0.06)
+    bx(f"CabGlass{k}", (1.3, 0.05, 0.4), P(x, y - 1.31, z + 1.2), MT["glass"], g)
 
 
 def work_glow(g, doors, y0, h):
@@ -204,9 +227,9 @@ def build(mark, M):
     skin = MT["prefab"] if mark == 1 else MT["ribbed"] if mark == 2 else MT["white"]
     accent = MT["accent"] if mark <= 2 else MT["navy"]
     if not two:
-        H = [5.0, 5.8, 6.0][mark - 1]
-        x0, x1 = [(-3.3, 3.3), (-3.5, 3.5), (-3.5, 3.5)][mark - 1]
-        y0, y1 = -2.2, [3.4, 4.0, 4.0][mark - 1]
+        H = [4.6, 5.8, 6.0][mark - 1]
+        x0, x1 = [(-3.0, 3.0), (-3.5, 3.5), (-3.5, 3.5)][mark - 1]
+        y0, y1 = -2.2, [2.8, 4.0, 4.0][mark - 1]
         doors = [(0.0, 4.6, 4.0)]
     else:
         H = 6.2 if mark == 4 else 6.4
@@ -217,7 +240,7 @@ def build(mark, M):
     # --- 0 foundation + apron
     g = M.piece("Foundation")
     if mark <= 3:
-        MK.slab("Slab", [8.6, 11.6, 11.8][mark - 1], 9.6, SLAB, g, xy=(0.6 if mark > 1 else 0, -0.6), mat=MT["concrete"])
+        MK.slab("Slab", [8.0, 11.6, 11.8][mark - 1], [8.8, 9.6, 9.6][mark - 1], SLAB, g, xy=(0.6 if mark > 1 else 0, [-1.0, -0.6, -0.6][mark - 1]), mat=MT["concrete"])
     else:
         MK.slab("Slab", 12.0, 10.0, SLAB, g, xy=(0, -0.9), chamfer=1.8, mat=MT["concrete"])
         MK.slab("SlabEdge", 12.3, 10.3, SLAB - 0.12, g, xy=(0, -0.9), chamfer=1.9, mat=MT["dark"])
@@ -250,7 +273,7 @@ def build(mark, M):
     top = SLAB + H + 0.22
     if mark == 1:
         bx("RoofEdge", (x1 - x0 + 0.34, 0.12, 0.3), P(0, y0 - 0.17, top - 0.05), MT["trim"], g)
-        roof_vents(g, (-1.8, 1.6), 1.8, top)
+        roof_vents(g, (1.6,), 1.2, top)
     elif mark == 2:
         bx("Skylight", (1.4, y1 - y0 - 1.6, 0.25), P(0, (y0 + y1) / 2 + 0.3, top + 0.12), MT["glass"], g, 0.02)
         bx("SkylightFrame", (1.6, y1 - y0 - 1.4, 0.12), P(0, (y0 + y1) / 2 + 0.3, top + 0.04), MT["trim"], g)
@@ -303,7 +326,7 @@ def build(mark, M):
     # --- 4 control: cabin / tower / spire with the beacon
     g = M.piece("Control")
     if mark == 1:
-        c = P(-2.0, 2.2, SLAB + H + 0.22)
+        c = P(-1.8, 1.6, SLAB + H + 0.22)
         bx("Cabin", (1.8, 1.6, 1.3), c + P(0, 0, 0.65), MT["prefab"], g, 0.04)
         bx("CabinGlass", (1.6, 0.04, 0.5), c + P(0, -0.81, 0.85), MT["glass"], g)
         bx("CabinLit", (1.4, 0.02, 0.35), c + P(0, -0.83, 0.85), MT["window"], g).visible_shadow = False
@@ -352,8 +375,8 @@ def build(mark, M):
     # --- 5 annex / side works
     g = M.piece("Annex")
     if mark == 1:
-        crates(g, 3.7, -3.6, 4)
-        tyre_stack(g, -3.9, -3.5, 3)
+        crates(g, 3.3, -3.9, 3)
+        tyre_stack(g, -3.5, -3.6, 3)
     elif mark in (2, 3):
         ax0, ax1, ay0, ay1 = x1, x1 + 1.7, -1.0, 3.4
         bx("Annex", (ax1 - ax0, ay1 - ay0, 3.0), P((ax0 + ax1) / 2, (ay0 + ay1) / 2, SLAB + 1.5), skin, g, 0.03)
@@ -388,8 +411,8 @@ def build(mark, M):
     # --- 6 lights + sign
     g = M.piece("Lights")
     if mark == 1:
-        flood_pole(g, 3.9, -2.8, 4.2, -120)
-        sign(M, g, 0, y0 - 0.32, SLAB + 4.75, 2.4, "VEHICLE BAY")
+        flood_pole(g, 3.6, -2.8, 4.2, -120)
+        sign(M, g, 0, y0 - 0.32, SLAB + 4.4, 2.4, "VEHICLE BAY")
     elif mark == 2:
         K.light_mast("Mast", 4.9, -3.4, SLAB, 6.5, 120, g)
         sign(M, g, 0, y0 - 0.32, SLAB + 5.1, 2.8, "VEHICLE BAY 01")
@@ -409,7 +432,7 @@ def build(mark, M):
         sphere(f"Nav{k}", 0.07, P(s * (x1 + 0.05), y0, SLAB + H + 0.1), MT["beacon"], g, 8)
 
     # preview extras
-    M.info["rover"] = (-3.0 if not two else -2.6, -7.6, 200) if mark != 5 else (2.6, -7.4, 160)
+    M.info["rover"] = (-3.0 if not two else -2.6, -7.6, 200) if mark != 5 else (2.4, -8.6, 195)
     for d in doors:
         M.lamp((0.75, 0.88, 1.0), 120, P(d[0], y0 + 1.5, SLAB + H - 0.8))
         M.lamp((1.0, 0.92, 0.8), 140, P(d[0], y0 - 2.5, SLAB + 4.5))

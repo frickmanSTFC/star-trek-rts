@@ -372,8 +372,8 @@ def run(building_id, build, hero, close, lineup_target_z=3.0, ground_z=0.3):
         show_only(marks, None)
         n = len(marks)
         span = (n - 1) * SPACING + 20
-        dist = span * 0.95
-        shoot("lineup", (0, -dist * 0.86, dist * 0.42), (0, 0, lineup_target_z), lens=36, w=int(res * 2), h=int(res * 0.62))
+        dist = span * 1.12
+        shoot("lineup", (0, -dist * 0.84, dist * 0.5), (0, -2.0, lineup_target_z), lens=34, w=int(res * 2), h=int(res * 0.6))
     for M in marks:
         o = M.root.location
         if "hero" in shots:
