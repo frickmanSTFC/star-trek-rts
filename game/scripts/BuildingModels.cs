@@ -113,12 +113,13 @@ public static partial class BuildingModels
         var hull = Metal(HullColour);
         var dark = Metal(Trim, 0.3f, 0.6f);
         Add(n, new BoxMesh { Size = new Vector3(6.6f, 0.7f, 6.6f) }, new Vector3(0, 0.35f, 0), dark);
-        // Derrick: four angled legs meeting under a cap.
+        // Derrick: four legs leaning in to meet under the cap (bottoms ~1.3 out, tops ~0.35, clear of the hopper).
         var h = v.Height;
         foreach (var (x, z) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
         {
-            var leg = Add(n, new CylinderMesh { TopRadius = 0.1f, BottomRadius = 0.18f, Height = 7f * h, RadialSegments = 6 }, new Vector3(x * 1.1f, 0.6f + 3.5f * h, z * 1.1f), hull);
-            leg.RotationDegrees = new Vector3(z * 8f, 0, -x * 8f);
+            var leg = Add(n, new CylinderMesh { TopRadius = 0.1f, BottomRadius = 0.18f, Height = 7f * h, RadialSegments = 6 }, new Vector3(x * 0.85f, 0.6f + 3.5f * h, z * 0.85f), hull);
+            // +Z turns +Y toward -X, +X turns +Y toward +Z: these signs tilt each top toward the centre.
+            leg.RotationDegrees = new Vector3(-z * 8f, 0, x * 8f);
         }
         Add(n, new BoxMesh { Size = new Vector3(1.6f, 0.7f, 1.6f) }, new Vector3(0, 0.6f + 7f * h, 0), Glow(owner, 2f));
         var spin = new Node3D { Name = "Spin", Position = new Vector3(0, 2.6f, 0) };
@@ -427,11 +428,12 @@ public static partial class BuildingModels
         var dark = Metal(Trim, 0.3f, 0.6f);
         Add(n, new CylinderMesh { TopRadius = 3.6f, BottomRadius = 4.1f, Height = 0.8f, RadialSegments = 8 }, new Vector3(0, 0.4f, 0), dark);
         Add(n, new TorusMesh { InnerRadius = 1.5f, OuterRadius = 1.9f, Rings = 24 }, new Vector3(0, 0.85f, 0), Glow(new Color(1f, 0.5f, 0.2f), 2.6f));
+        // Derrick legs lean in under the cap (bottoms ~1.9 out, tops ~0.7, clear of the pressure tanks).
         var h = v.Height3;
         foreach (var (x, z) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
         {
-            var leg = Add(n, new BoxMesh { Size = new Vector3(0.35f, 10f * h, 0.35f) }, new Vector3(x * 1.6f, 0.4f + 5f * h, z * 1.6f), hull);
-            leg.RotationDegrees = new Vector3(z * 7f, 0, -x * 7f);
+            var leg = Add(n, new BoxMesh { Size = new Vector3(0.35f, 10f * h, 0.35f) }, new Vector3(x * 1.3f, 0.4f + 5f * h, z * 1.3f), hull);
+            leg.RotationDegrees = new Vector3(-z * 7f, 0, x * 7f);
         }
         Add(n, new BoxMesh { Size = new Vector3(2.4f, 1f, 2.4f) }, new Vector3(0, 0.4f + 10f * h, 0), hull);
         Add(n, new BoxMesh { Size = new Vector3(2.5f, 0.2f, 2.5f) }, new Vector3(0, 0.9f + 10f * h, 0), Glow(owner, 2f));
