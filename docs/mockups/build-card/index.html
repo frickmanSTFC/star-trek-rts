@@ -1,0 +1,932 @@
+<title>Build Menu Cards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@500;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: a design-review page (dark-first, follows the viewer's theme) that frames HUD mockups drawn at game scale;
+   the HUD frames themselves always use the game's own colours (PlanetHud.cs). */
+:root {
+  /* page */
+  --page: #070a12;
+  --page-2: #0c1220;
+  --ink: #e6ebf5;
+  --dim: #9aa6c0;
+  --rule: #27304a;
+  --mark: #f5a624;
+  --link: #8cc8ff;
+  /* HUD (PlanetHud.cs: Ink, Dim, Line, Ground, Good, Warn, Accent; StyleButton fills) - fixed, the game is dark */
+  --hud-ground: #05080f;
+  --hud-panel: #050812;
+  --hud-ink: #e6ebf5;
+  --hud-dim: #99a6bf;
+  --hud-line: #263049;
+  --hud-good: #8fd4b0;
+  --hud-warn: #ffb36b;
+  --hud-accent: #f5a624;
+  --hud-btn: #0f1930;
+  --hud-btn-edge: #2b3a5c;
+  --hud-hover-edge: #4d6699;
+  --hud-pressed: #3d2b0d;
+  --hud-bar: #4fb5ff;
+  --hud-sky: #9ed1ff;
+  --hud-chip: #111829;
+  --display: "Antonio", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --page: #eef1f6; --page-2: #e2e7f0; --ink: #141a2a; --dim: #4a5570; --rule: #c4ccdb; --mark: #9a5a00; --link: #1f5fae;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --page: #eef1f6; --page-2: #e2e7f0; --ink: #141a2a; --dim: #4a5570; --rule: #c4ccdb; --mark: #9a5a00; --link: #1f5fae;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font: 400 16px/1.55 var(--body); }
+a { color: var(--link); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.mast { padding-block: 40px 28px; border-bottom: 1px solid var(--rule); }
+.eyebrow { font: 600 13px/1.2 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--mark); }
+h1 { font: 700 clamp(40px, 7vw, 76px)/0.95 var(--display); letter-spacing: .01em; text-transform: uppercase; margin: 10px 0 14px; text-wrap: balance; }
+h2 { font: 700 clamp(28px, 4vw, 40px)/1 var(--display); text-transform: uppercase; letter-spacing: .02em; margin: 0; text-wrap: balance; }
+h3 { font: 600 22px/1.15 var(--label); letter-spacing: .04em; text-transform: uppercase; margin: 0; }
+p { margin: 0; }
+.lede { max-width: 68ch; font-size: 18px; color: var(--ink); }
+.muted { color: var(--dim); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; font: 500 14px var(--label); letter-spacing: .06em; color: var(--dim); text-transform: uppercase; }
+.key { display: inline-flex; align-items: center; gap: 6px; }
+.src { display: inline-block; padding: 1px 7px; border-radius: 4px; font: 600 11px/1.6 var(--label); letter-spacing: .1em; text-transform: uppercase; }
+.src.real { background: #123522; color: #9ff0c4; }
+.src.stand { background: #3a2a0c; color: #ffd18a; }
+section.part { padding-block: 44px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 22px; }
+.part-head { display: flex; flex-direction: column; gap: 8px; max-width: 76ch; }
+.option { display: flex; flex-direction: column; gap: 12px; }
+.option-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.option-head .tag { font: 700 30px/1 var(--display); color: var(--mark); }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 28px; font-size: 15px; max-width: 1100px; }
+.notes p { min-width: 0; }
+.notes b { font: 600 13px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin-right: 6px; }
+.scroll { overflow-x: auto; padding-bottom: 6px; }
+.rec { border: 1px solid var(--mark); border-radius: 10px; padding: 14px 18px; max-width: 900px; background: var(--page-2); }
+.rec .eyebrow { margin-bottom: 4px; }
+code { font: .86em ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+
+/* ------------------------------------------------ HUD frame (game scale, game colours) */
+.hud { position: relative; background: var(--hud-ground); color: var(--hud-ink); font: 400 14px/1.3 var(--body); border-radius: 6px; overflow: hidden;
+  background-image: radial-gradient(ellipse at 30% 0%, #1a2a24 0%, transparent 60%), radial-gradient(ellipse at 85% 20%, #2a2419 0%, transparent 55%); }
+.hud-map { position: absolute; inset: 0 0 auto 0; height: 100%; opacity: .35; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='90' viewBox='0 0 52 90'%3E%3Cpath d='M26 0l26 15v30L26 60 0 45V15zM26 60v30M0 45l-26 15M52 45l26 15' fill='none' stroke='%2366809e' stroke-width='.8' opacity='.5'/%3E%3C/svg%3E"); }
+.panel { background: rgba(5, 8, 18, .97); border: 1px solid var(--hud-line); border-radius: 10px; }
+.hud-label { font: 600 13px/1.2 var(--label); letter-spacing: .12em; color: var(--hud-dim); text-transform: uppercase; }
+.hud-bottom { position: relative; display: flex; gap: 0; background: rgba(5, 8, 16, .95); border-top: 1px solid var(--hud-line); }
+.hud-bottom .cmd { padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+.stub { width: 230px; flex: none; padding: 12px 16px; border-right: 1px solid var(--hud-line); display: flex; flex-direction: column; gap: 8px; }
+.stub .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--hud-dim); }
+.stub .row b { color: var(--hud-ink); font-weight: 500; }
+.stub .bar { height: 8px; border-radius: 4px; background: #141a2c; overflow: hidden; }
+.stub .bar i { display: block; height: 100%; background: var(--hud-accent); }
+
+.stock { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; background: rgba(5, 8, 16, .95); border-bottom: 1px solid var(--hud-line); }
+.stock .s { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 6px; background: var(--hud-chip); font: 500 14px var(--label); letter-spacing: .04em; }
+.stock .s small { color: var(--hud-dim); font-size: 12px; letter-spacing: .08em; }
+svg.ic { width: 16px; height: 16px; flex: none; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+/* cost chips */
+.cost { display: flex; flex-wrap: wrap; gap: 4px 8px; font: 500 12px/1.2 var(--label); letter-spacing: .04em; color: var(--hud-dim); }
+.cost .c { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.cost .c svg.ic { width: 12px; height: 12px; }
+.cost .c.short { color: var(--hud-warn); }
+
+/* tiles, shared */
+.tile { position: relative; display: flex; flex-direction: column; text-align: left; padding: 0; border-radius: 9px; overflow: hidden; cursor: pointer;
+  border: 1px solid var(--hud-btn-edge); background: var(--hud-btn); color: var(--hud-ink); font: inherit; transition: border-color .12s, background .12s; }
+.tile .pic { position: relative; overflow: hidden; background: #0a1020; }
+.tile .pic img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .25s, filter .25s; }
+.tile .k { position: absolute; left: 5px; top: 4px; padding: 0 5px; border-radius: 4px; background: rgba(5, 8, 18, .78); font: 600 12px/1.45 var(--label); letter-spacing: .06em; color: var(--hud-dim); }
+.tile .lock { position: absolute; right: 5px; top: 4px; display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: 4px; background: rgba(5, 8, 18, .85); font: 600 11px/1.6 var(--label); letter-spacing: .08em; color: var(--hud-sky); }
+.tile .lock svg { width: 11px; height: 11px; stroke: currentColor; }
+.tile .txt { display: flex; flex-direction: column; gap: 3px; padding: 5px 7px 7px; }
+.tile .nm { font: 600 14px/1.05 var(--label); letter-spacing: .03em; }
+.tile:hover, .tile.is-hover { border-color: var(--hud-hover-edge); background: #142140; }
+.tile:hover img, .tile.is-hover img { transform: scale(1.06); filter: brightness(1.15); }
+.tile.is-active { border-color: var(--hud-accent); background: var(--hud-pressed); box-shadow: 0 0 0 1px var(--hud-accent) inset; }
+.tile.is-locked { background: #0a0f1c; border-color: #1c2438; }
+.tile.is-locked img { filter: grayscale(.85) brightness(.55); }
+.tile.is-locked .nm { color: var(--hud-dim); }
+.tile:focus-visible, button:focus-visible, .seg button:focus-visible, select:focus-visible { outline: 2px solid var(--hud-accent); outline-offset: 2px; }
+
+/* option A: today's 5 x 2 grid, 100 px tiles */
+.grid-a { display: grid; grid-template-columns: repeat(5, 100px); gap: 6px; }
+.grid-a .tile { height: 88px; }
+.grid-a .pic { height: 64px; }
+.grid-a .tile .txt { padding: 4px 6px 0; gap: 2px; }
+.tile .nm.ov { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 6px 3px; font-size: 13px; line-height: 1; background: linear-gradient(transparent, rgba(5, 8, 18, .92) 55%); text-shadow: 0 1px 2px #000; }
+.tip { position: absolute; z-index: 3; width: 290px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--hud-line); background: rgba(5, 8, 18, .96); font-size: 13.5px; line-height: 1.35; box-shadow: 0 10px 30px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 5px; }
+.tip b { font: 600 15px var(--label); letter-spacing: .04em; }
+.tip .hint { color: var(--hud-dim); font-size: 12.5px; }
+
+/* option B: category strip + big tiles */
+.b-wrap { display: flex; }
+.cats { width: 132px; flex: none; display: flex; flex-direction: column; gap: 4px; padding: 12px 10px; border-right: 1px solid var(--hud-line); }
+.cats button { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 7px 9px; border-radius: 7px; border: 1px solid transparent; background: transparent; color: var(--hud-dim);
+  font: 600 13px var(--label); letter-spacing: .1em; text-transform: uppercase; cursor: pointer; text-align: left; }
+.cats button span { color: var(--hud-dim); font-weight: 500; }
+.cats button[aria-selected="true"] { color: var(--hud-ink); border-color: var(--hud-btn-edge); background: var(--hud-btn); }
+.cats button[aria-selected="true"] span { color: var(--hud-accent); }
+.grid-b { display: grid; grid-template-columns: repeat(4, 150px); gap: 8px; }
+.grid-b .tile { height: 178px; }
+.grid-b .pic { height: 96px; }
+.grid-b .stat { font: 500 12px var(--label); letter-spacing: .04em; color: var(--hud-dim); }
+
+/* option C: drawer */
+.c-stage { position: relative; min-height: 540px; display: flex; flex-direction: column; justify-content: flex-end; }
+.drawer { margin: 0 12px; border-radius: 12px 12px 0 0; border: 1px solid var(--hud-line); border-bottom: 0; background: rgba(5, 8, 18, .96); padding: 12px 16px 16px;
+  transform-origin: bottom; transition: transform .28s cubic-bezier(.2,.8,.2,1), opacity .2s; display: flex; flex-direction: column; gap: 12px; }
+.drawer[data-open="false"] { transform: translateY(24px) scaleY(.0); opacity: 0; pointer-events: none; height: 0; padding: 0; border: 0; }
+.drawer-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; }
+.drawer-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px 16px; }
+.dg { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.dg .tiles { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.dg .tile { flex-direction: row; height: 74px; }
+.dg .pic { width: 92px; flex: none; }
+.dg .tile .txt { justify-content: center; min-width: 0; }
+.c-bottom { display: flex; flex-wrap: wrap; align-items: stretch; }
+.buildbtn { display: flex; flex-direction: column; justify-content: center; gap: 2px; width: 170px; margin: 12px 0 14px 16px; padding: 10px 14px; border-radius: 9px; border: 1px solid var(--hud-accent);
+  background: var(--hud-pressed); color: var(--hud-ink); font: 700 26px/1 var(--display); letter-spacing: .04em; cursor: pointer; text-align: left; }
+.buildbtn small { font: 500 12px var(--label); letter-spacing: .1em; color: var(--hud-dim); }
+.recent { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 14px; }
+.recent .row { display: flex; flex-wrap: wrap; gap: 6px; }
+.recent .tile { width: 100px; height: 88px; }
+.recent .pic { height: 56px; }
+
+/* ------------------------------------------------ cards */
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; max-width: 1180px; counter-reset: step; }
+.step { position: relative; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 10px; background: var(--page-2); display: flex; flex-direction: column; gap: 4px; font-size: 15px; min-width: 0; }
+.step::before { counter-increment: step; content: counter(step); font: 700 26px/1 var(--display); color: var(--mark); }
+.step b { font: 600 15px var(--label); letter-spacing: .06em; text-transform: uppercase; }
+kbd { font: 600 12px/1 var(--label); letter-spacing: .06em; padding: 2px 6px; border-radius: 4px; border: 1px solid currentColor; opacity: .9; white-space: nowrap; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font: 500 14px var(--label); letter-spacing: .06em; color: var(--dim); text-transform: uppercase; }
+.toolbar label { display: inline-flex; gap: 8px; align-items: center; }
+select { font: 500 15px var(--body); padding: 5px 8px; border-radius: 6px; border: 1px solid var(--rule); background: var(--page-2); color: var(--ink); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: 7px; overflow: hidden; }
+.seg button { font: 600 13px var(--label); letter-spacing: .08em; text-transform: uppercase; padding: 6px 11px; border: 0; background: var(--page-2); color: var(--dim); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--mark); color: #0b0f18; }
+.seg button:disabled { opacity: .35; cursor: not-allowed; }
+
+.cards-row { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.card-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; max-width: 100%; }
+.card-cap { font: 500 13px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+
+.card { color: var(--hud-ink); font: 400 14px/1.4 var(--body); background: rgba(5, 8, 18, .97); border: 1px solid var(--hud-accent); border-radius: 10px; }
+.card.compact { width: 470px; max-width: 100%; padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 10px; }
+.card-head { display: flex; gap: 12px; align-items: flex-start; }
+.card-head .names { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.card-title { font: 700 26px/1 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+.card-sub { font: 500 14px var(--label); letter-spacing: .06em; color: var(--hud-accent); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.pips { display: inline-flex; gap: 3px; }
+.pips i { display: inline-block; width: 22px; height: 6px; border-radius: 2px; background: #1c2640; }
+.pips i.on { background: var(--hud-accent); }
+.x { width: 32px; height: 32px; flex: none; border-radius: 7px; border: 1px solid var(--hud-line); background: #0a0f1c; color: var(--hud-ink); font: 500 20px/1 var(--body); cursor: pointer; }
+.hero { position: relative; border-radius: 8px; overflow: hidden; background: #0a1020; aspect-ratio: 4 / 3; max-width: 100%; }
+.c-top { display: flex; flex-wrap: wrap; gap: 12px; }
+.card.compact .hero { width: 200px; flex: none; }
+.card.compact .hero .drag { display: none; }
+.card.compact .hero .angles button { width: 26px; }
+.c-side { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 8px; }
+.c-side .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ctabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--hud-line); }
+.ctabs button { padding: 6px 8px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--hud-dim); font: 600 12px var(--label); letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.ctabs button[aria-selected="true"] { color: var(--hud-ink); border-bottom-color: var(--hud-accent); }
+.cpanel { max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; padding-right: 4px; }
+.hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .9s ease; }
+.hero img.on { opacity: 1; }
+.hero .badge { position: absolute; left: 8px; top: 8px; }
+.hero .angles { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 4px; }
+.hero .angles button { width: 30px; height: 22px; border-radius: 5px; border: 1px solid var(--hud-btn-edge); background: rgba(5, 8, 18, .8); color: var(--hud-dim); font: 600 11px var(--label); cursor: pointer; }
+.hero .angles button[aria-pressed="true"] { border-color: var(--hud-accent); color: var(--hud-ink); }
+.hero .drag { position: absolute; left: 8px; bottom: 8px; font: 500 12px var(--label); letter-spacing: .08em; color: var(--hud-dim); background: rgba(5,8,18,.7); padding: 2px 7px; border-radius: 4px; }
+.costline { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.costline .cost { font-size: 15px; gap: 6px 12px; color: var(--hud-ink); }
+.costline .cost .c svg.ic { width: 15px; height: 15px; }
+.costline .cost .c .have { color: var(--hud-dim); font-size: 12px; margin-left: 2px; }
+.costline .cost .c.short .have { color: var(--hud-warn); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.stat-t { padding: 6px 8px; border-radius: 7px; background: var(--hud-chip); display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.stat-t span { font: 600 11px var(--label); letter-spacing: .12em; color: var(--hud-dim); text-transform: uppercase; }
+.stat-t b { font: 600 18px/1.1 var(--label); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.stat-t b.good { color: var(--hud-good); }
+.stat-t b.warn { color: var(--hud-warn); }
+.desc { color: var(--hud-ink); }
+.card.compact .desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sep { height: 1px; background: var(--hud-line); }
+.acc { border-top: 1px solid var(--hud-line); }
+.acc summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; padding: 7px 0; font: 600 13px var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--hud-dim); }
+.acc summary::-webkit-details-marker { display: none; }
+.acc summary::after { content: "+"; color: var(--hud-accent); }
+.acc[open] summary::after { content: "–"; }
+.acc .in { padding: 0 0 8px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.rows { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 5px 12px; font-size: 13.5px; }
+.rows dt { font: 600 12px/1.6 var(--label); letter-spacing: .1em; color: var(--hud-dim); text-transform: uppercase; }
+.rows dd { margin: 0; min-width: 0; }
+.actions { display: flex; gap: 8px; }
+.act { flex: 1; min-height: 42px; border-radius: 7px; border: 1px solid var(--hud-accent); background: #1f1607; color: var(--hud-ink); font: 600 16px var(--label); letter-spacing: .1em; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.act:hover { background: #2e200a; }
+.act:disabled { border-color: #1c2438; background: #0a0f1c; color: var(--hud-dim); cursor: not-allowed; }
+.act.ghost { flex: none; padding: 0 14px; border-color: var(--hud-line); background: #0a0f1c; }
+.act.sky { border-color: #2f6fa8; background: #0b1a30; }
+.foot { font-size: 13px; color: var(--hud-dim); }
+.foot.warn { color: var(--hud-warn); }
+.lockline { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 7px; background: #0b1a30; border: 1px solid #22476e; color: var(--hud-sky); font-size: 13.5px; }
+.shortline { padding: 8px 10px; border-radius: 7px; background: #2a1a0a; border: 1px solid #6e4520; color: var(--hud-warn); font-size: 13.5px; }
+
+.card.large { width: 100%; max-width: 1120px; padding: 18px 20px 20px; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px 24px; }
+.card.large .left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.large .right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card.large .card-title { font-size: 34px; }
+.sec { display: flex; flex-direction: column; gap: 7px; }
+.sec h4 { margin: 0; font: 600 13px var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--hud-accent); }
+.recipe { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 7px 10px; border-radius: 7px; background: var(--hud-chip); font: 500 15px var(--label); letter-spacing: .03em; }
+.recipe .arrow { color: var(--hud-accent); font-weight: 600; }
+.recipe .amt { display: inline-flex; align-items: center; gap: 4px; }
+table.lv { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.lv th { text-align: left; font: 600 11px var(--label); letter-spacing: .12em; color: var(--hud-dim); text-transform: uppercase; padding: 4px 8px 4px 0; border-bottom: 1px solid var(--hud-line); }
+table.lv td { padding: 6px 8px 6px 0; border-bottom: 1px solid #161d30; vertical-align: top; }
+table.lv td:first-child { font: 600 14px var(--label); color: var(--hud-accent); white-space: nowrap; }
+table.lv .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.terr { display: flex; flex-wrap: wrap; gap: 5px; }
+.terr span { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 4px; border-radius: 5px; background: var(--hud-chip); font: 500 13px var(--label); letter-spacing: .04em; }
+.terr span i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.terr span.no { color: #6d7894; text-decoration: line-through; }
+.links { display: flex; flex-direction: column; gap: 5px; font-size: 13.5px; }
+.links div { display: flex; gap: 8px; }
+.links b { flex: none; width: 66px; font: 600 12px/1.6 var(--label); letter-spacing: .1em; color: var(--hud-dim); text-transform: uppercase; }
+ul.tips { margin: 0; padding-left: 18px; font-size: 13.5px; display: flex; flex-direction: column; gap: 3px; }
+.placing { width: 470px; max-width: 100%; padding: 10px 14px; display: flex; gap: 12px; align-items: center; }
+.placing img { width: 96px; height: 64px; object-fit: cover; border-radius: 6px; flex: none; }
+.placing .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+
+/* ------------------------------------------------ godot + tables */
+.cmp { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; max-width: 1180px; }
+.cmp > div { border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; background: var(--page-2); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cmp ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 15px; }
+pre.code { margin: 0; overflow-x: auto; padding: 12px 14px; border-radius: 8px; background: #05080f; color: #d7deee; font: 13px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; border: 1px solid var(--rule); }
+.tbl { overflow-x: auto; max-width: 1180px; }
+table.img { border-collapse: collapse; width: 100%; font-size: 15px; min-width: 620px; }
+table.img th, table.img td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+table.img th { font: 600 13px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+table.img img { width: 64px; height: 64px; border-radius: 6px; display: block; }
+ol.q { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; max-width: 80ch; }
+footer { padding-block: 28px 48px; color: var(--dim); font-size: 14px; }
+
+@media (max-width: 860px) {
+  .card.large { grid-template-columns: minmax(0, 1fr); }
+  .stub { display: none; }
+  #opt-a .hud { width: 590px !important; }
+  #tip-a { left: 128px !important; }
+}
+@media (max-width: 520px) {
+  .card.compact .hero { width: 100%; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card.compact { padding: 12px 12px 14px; }
+  .card.large { padding: 14px 12px 16px; }
+  .rows { grid-template-columns: minmax(0, 1fr); gap: 0 0; }
+  .rows dd { margin-bottom: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero img, .tile img, .drawer { transition: none; }
+}
+</style>
+
+<div class="wrap">
+<header class="mast">
+  <div class="eyebrow">Star Trek RTS · planet HUD mockup · build menu</div>
+  <h1>Build Menu Cards</h1>
+  <p class="lede">The owner asked for building pictures on the HUD and a card that explains everything about a building when you click its build icon. This page shows three ways to put renders on the command card, two building-card layouts with every number from the data files, and how to make the pictures in Godot.</p>
+  <div class="meta">
+    <span>Data: buildings.json + surfaces.json, 2026-11-06</span>
+    <span class="key"><span class="src real">Real model</span> rendered from the game glb</span>
+    <span class="key"><span class="src stand">Stand-in</span> rebuilt from the primitives in BuildingModels.cs</span>
+  </div>
+</header>
+
+<section class="part" id="command-card">
+  <div class="part-head">
+    <div class="eyebrow">Part 1 · Command card</div>
+    <h2>Build icons with pictures</h2>
+    <p class="muted">Every option uses the same example: the stock below, no research done, the Research Lab picked (placing), the refinery under the mouse. Red costs mean you can't afford it yet, as today. The Deep-Core Mine shows a new state: locked until its tech is researched.</p>
+  </div>
+
+  <div class="hud stock-demo">
+    <div class="stock" id="stock"></div>
+  </div>
+
+  <div class="option" id="opt-a">
+    <div class="option-head"><span class="tag">A</span><h3>Picture tiles in today's grid</h3></div>
+    <div class="notes">
+      <p><b>Size</b>5 columns of 100 px, two rows, fits the 236 px bottom panel as it is.</p>
+      <p><b>Change</b>The 18 px line icon becomes a 100 × 64 render with the name on it; the hotkey sits in its corner, cost chips under it. Same 88 px tiles.</p>
+      <p><b>Limit</b>Ten slots. The faction build lists are longer, so this runs out once more buildings join.</p>
+    </div>
+    <div class="scroll">
+      <div class="hud" style="width: 860px; padding-top: 150px;">
+        <div class="hud-map"></div>
+        <div class="hud-bottom">
+          <div class="stub" aria-hidden="true">
+            <span class="hud-label">Tarsis Colony</span>
+            <div class="row"><span>Colony Hub</span><b>Level 1</b></div>
+            <div class="row"><span>Power</span><b>14 / 30</b></div>
+            <div class="bar"><i style="width: 47%"></i></div>
+            <div class="row"><span>Storage</span><b>587 / 1,500</b></div>
+            <div class="row"><span>Build radius</span><b>4</b></div>
+          </div>
+          <div class="cmd">
+            <span class="hud-label">Build at Tarsis Colony</span>
+            <div class="grid-a" id="grid-a"></div>
+          </div>
+        </div>
+        <div class="tip" id="tip-a" style="left: 362px; top: 18px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" id="opt-b">
+    <div class="option-head"><span class="tag">B</span><h3>Bigger tiles with a category strip</h3></div>
+    <div class="notes">
+      <p><b>Size</b>150 × 178 tiles, one row per category, same panel height.</p>
+      <p><b>Change</b>Categories from the data (resource, industry, power, habitation, research) grouped into four tabs. Number keys stay global, so <kbd>2</kbd> is always the refinery.</p>
+      <p><b>Limit</b>One more click to reach a building in another tab; room for a stat line (power, build time).</p>
+    </div>
+    <div class="scroll">
+      <div class="hud" style="width: 860px; padding-top: 40px;">
+        <div class="hud-map"></div>
+        <div class="hud-bottom b-wrap">
+          <div class="cats" role="tablist" aria-label="Building categories" id="cats"></div>
+          <div class="cmd">
+            <span class="hud-label" id="b-title">Build at Tarsis Colony · Industry</span>
+            <div class="grid-b" id="grid-b" role="tabpanel"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" id="opt-c">
+    <div class="option-head"><span class="tag">C</span><h3>Slide-up build drawer</h3></div>
+    <div class="notes">
+      <p><b>Size</b>The command card keeps one BUILD button and the last three builds; <kbd>B</kbd> opens a drawer over the bottom of the map with every building, grouped.</p>
+      <p><b>Change</b>Room for long lists and pictures with a one-line summary; scales to the faction trees.</p>
+      <p><b>Limit</b>Covers part of the map while open, and takes a key press or click before every build.</p>
+    </div>
+    <div>
+      <div class="hud c-stage">
+        <div class="hud-map"></div>
+        <div class="drawer" id="drawer" data-open="true">
+          <div class="drawer-head">
+            <span class="hud-label">Build at Tarsis Colony · all buildings</span>
+            <span class="hud-label" style="letter-spacing: .08em">1–9 pick · <kbd>B</kbd> or <kbd>Esc</kbd> close</span>
+          </div>
+          <div class="drawer-groups" id="drawer-groups"></div>
+        </div>
+        <div class="hud-bottom c-bottom">
+          <button class="buildbtn" type="button" id="buildbtn" aria-expanded="true" aria-controls="drawer">BUILD <small>[B] · 9 buildings</small></button>
+          <div class="recent">
+            <span class="hud-label">Recent</span>
+            <div class="row" id="recent"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rec">
+    <div class="eyebrow">Recommendation</div>
+    <p><b>A now, B when the list grows.</b> A is a small change to <code>PlanetHud.Setup</code> (a TextureRect instead of the 18 px icon, two more labels) and keeps the hotkeys and the panel height. When the menu passes ten buildings, add B's category strip on the left of the same grid. C is the right shape for faction trees with 20+ buildings, but it adds a step to every build.</p>
+  </div>
+</section>
+
+<section class="part" id="building-card">
+  <div class="part-head">
+    <div class="eyebrow">Part 2 · Building card</div>
+    <h2>Click a building, read everything</h2>
+    <p class="muted">The card works like the tech and vehicle cards already do (CLAUDE.md "Info cards"): the first pick opens it, the card's button, <kbd>Enter</kbd> or a second pick acts. For a building, acting means placing. Today a building pick arms placement straight away; this changes it so the card comes first.</p>
+  </div>
+  <div class="flow">
+    <div class="step"><b>Hover a tile</b><span>Tooltip: name, cost, build time, power, one line of what it does.</span></div>
+    <div class="step"><b>Click it, or press <kbd>2</kbd></b><span>The card opens with the picture and every number. The base's build area shows on the map; clicks on the map do nothing yet.</span></div>
+    <div class="step"><b>PLACE, <kbd>Enter</kbd>, or pick it again</b><span>Placement is armed: the card shrinks to the placing strip with the ghost under the cursor. <kbd>Shift</kbd>+pick skips the card.</span></div>
+    <div class="step"><b>Click a tile</b><span>Placed. <kbd>Shift</kbd>+click keeps placing, <kbd>R</kbd> turns 60°, <kbd>Esc</kbd> steps back one stage.</span></div>
+  </div>
+
+  <div class="option">
+    <div class="option-head"><span class="tag">1</span><h3>Compact side card</h3></div>
+    <div class="notes">
+      <p><b>Where</b>Above the command card at the right edge, 470 px wide, the same place and width as <code>PlanetHud.ShowInfo</code>.</p>
+      <p><b>Fits</b>About 600 px free between the top bar and the bottom panel in the game's 1600 × 900 window; the card is about 550 px tall, with the details in tabs that scroll.</p>
+      <p><b>Good for</b>Quick decisions with the map in view; the placing strip is the same card, shrunk.</p>
+    </div>
+    <div class="toolbar" id="tb-compact"></div>
+    <div class="cards-row" id="compact-row"></div>
+  </div>
+
+  <div class="option">
+    <div class="option-head"><span class="tag">2</span><h3>Large centre card</h3></div>
+    <div class="notes">
+      <p><b>Where</b>Centred over the map (world dimmed, game keeps running), up to 1120 px wide; two columns.</p>
+      <p><b>Fits</b>Everything at once: production, levels, research that changes it, placement, links, wear and tips. In the game window the right column scrolls past about 780 px.</p>
+      <p><b>Good for</b>Learning the economy, and later the faction buildings. <kbd>Enter</kbd> places and drops back to the compact strip.</p>
+    </div>
+    <div class="toolbar" id="tb-large"></div>
+    <div id="large-slot"></div>
+  </div>
+
+  <div class="rec">
+    <div class="eyebrow">Recommendation</div>
+    <p><b>Use both, each for one stage.</b> The first click opens the large card (the owner asked for a card that explains everything); <kbd>Enter</kbd> places and the compact card stays as the placing strip, so the map is clear while you pick a tile. Players who know the building use <kbd>Shift</kbd>+pick to go straight to placing.</p>
+  </div>
+</section>
+
+<section class="part" id="godot">
+  <div class="part-head">
+    <div class="eyebrow">Part 3 · In the game</div>
+    <h2>How it would work in Godot</h2>
+    <p class="muted">Two ways to get the pictures into <code>PlanetHud</code>.</p>
+  </div>
+  <div class="cmp">
+    <div>
+      <h3>Rendered at runtime</h3>
+      <p>A <code>SubViewport</code> with its own <code>World3D</code>, a fixed 3/4 camera, three lights and a transparent background. At start-up it builds each build-menu model with <code>BuildingModels.Build(id, owner)</code> (the plain look, no variety add-ons), renders one frame per building, and keeps <code>GetTexture().GetImage()</code> as an <code>ImageTexture</code> for the tile.</p>
+      <ul>
+        <li>Always matches the game: new glbs (mine, storage, reactor) and primitive changes show up with no extra step.</li>
+        <li>Player colour, and later Mk II / III models, come for free.</li>
+        <li>The card's turntable can be the live model turning in the same viewport.</li>
+        <li>Costs about a frame per building at start-up (9 × 256²); Godot's lighting is plainer than these Cycles renders.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Pre-rendered images in the repo</h3>
+      <p>Render with <code>blender/render_build_cards.py</code> (the script that made this page's images), commit JPEGs or WebPs under <code>game/textures/ui/buildings/</code>, load them like the planet photos.</p>
+      <ul>
+        <li>Nicest pictures (Cycles, soft shadows, AgX).</li>
+        <li>Goes stale every time a model changes, and someone has to remember to re-run the script.</li>
+        <li>One colour only unless rendered per player; about 2–4 MB more in the repo.</li>
+        <li>No live turntable; the card cycles four angles instead.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="rec">
+    <div class="eyebrow">Recommendation</div>
+    <p><b>Render at runtime.</b> The models change every week right now, and the game already builds every one of them. A small <code>BuildingThumbnails</code> class would own the viewport, render the thumbnails once after loading (cached by id and owner colour) and lend the viewport to the large card for the turntable. Keep the Blender script for pages like this one.</p>
+  </div>
+  <pre class="code" aria-label="Sketch of a runtime thumbnail renderer">// sketch, not game code
+var vp = new SubViewport { Size = new Vector2I(256, 256), TransparentBg = true, OwnWorld3D = true,
+                           RenderTargetUpdateMode = SubViewport.UpdateMode.Once };
+vp.AddChild(studioCamera); vp.AddChild(keyLight); vp.AddChild(rimLight);
+var model = BuildingModels.Build(defId, PlanetDriver.PlayerColors[0]);
+vp.AddChild(model);                       // fit the camera to the model's AABB, 38° round, 27° down
+await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+Thumbs[defId] = ImageTexture.CreateFromImage(vp.GetTexture().GetImage());
+model.QueueFree();</pre>
+</section>
+
+<section class="part" id="images">
+  <div class="part-head">
+    <div class="eyebrow">Part 4 · The images</div>
+    <h2>What is real, what is a stand-in</h2>
+    <p class="muted">All renders: Blender 5.0 Cycles, 32 samples, denoised, AgX, the same 3/4 camera (38° round from the front, 27° down) fitted to each model, a shadow catcher on the HUD's navy. Thumbnails 512², card angles 1024 × 768, four angles 90° apart. Only the refinery has a game glb among the build-menu buildings on this branch; the others are rebuilt from their primitive builders with the same sizes, colours and materials, so they look like the game does today. That includes one thing that looks like a slip in the game's code: the Mining Complex and Deep-Core Mine derrick legs lean outward at the top, where the builder's comment says they meet under the cap.</p>
+  </div>
+  <div class="tbl"><table class="img" id="img-table">
+    <thead><tr><th>Picture</th><th>Building</th><th>Source</th><th>Model</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+</section>
+
+<section class="part" id="questions">
+  <div class="part-head">
+    <div class="eyebrow">Part 5 · For the owner</div>
+    <h2>Questions</h2>
+  </div>
+  <ol class="q">
+    <li><b>Card first, or place first?</b> Should a building pick open the card and wait for <kbd>Enter</kbd> (like techs and vehicles), or keep today's behaviour (pick arms placement, card alongside) with the large card one key away?</li>
+    <li><b>Which command card?</b> A (pictures in today's grid), B (category strip), or C (drawer)?</li>
+    <li><b>Which card for the first click?</b> Large centre card, or the compact one with sections you open?</li>
+    <li><b>Runtime renders or images in the repo?</b> The recommendation is runtime, which also gives a live turning model in the card.</li>
+    <li><b>Locked buildings:</b> show research-gated buildings greyed with a lock (as here), or hide them until the tech is done? Should the card's button jump to a lab's research list?</li>
+    <li><b>Vehicle Bay orders and lab techs</b> use the same command card. Put vehicle renders on those tiles too (the rover and crawler glbs exist), and icons or art for techs?</li>
+  </ol>
+</section>
+
+<footer class="wrap">Mockup only: no game code changed. Images in <code>docs/mockups/build-card/</code>, made by <code>blender/render_build_cards.py</code>.</footer>
+</div>
+
+<script>
+const D = {"menu":["storage_container","refinery","mine","fusion_reactor","prefab_habitat","foundry","deep_core_mine","vehicle_bay","science_lab"],"buildings":{"colony_hub":{"id":"colony_hub","name":"Colony Hub","layer":"surface","category":"core","source":"original","cost":{"duranium":100,"crew":50},"effect":"Founds a colony; supply range 1; 1 build queue; a small storage vault.","upgrades_to":"colonial_administration","level":1,"output_per_min":{"duranium":4,"tritanium":2,"crew":6},"power_supply":30,"build_radius":4,"build_queues":1,"storage":1500},"colonial_administration":{"id":"colonial_administration","name":"Colonial Administration","layer":"surface","category":"core","source":"original","cost":{"duranium":300,"tritanium":150},"effect":"Supply range 2; unlocks districts tier 2.","upgrades_to":"planetary_capital","level":2,"build_seconds":40,"output_per_min":{"duranium":6,"tritanium":3,"crew":10},"power_supply":45,"build_radius":6,"build_queues":2,"storage":2500},"prefab_habitat":{"id":"prefab_habitat","name":"Prefab Habitat","layer":"surface","category":"habitation","source":"canon","cost":{"duranium":60},"effect":"+Pop cap (small). Shown in many TOS/TNG colonies.","description":"Prefabricated living domes shipped down from orbit, the first homes of most Federation colonies. Colonists living here join your crew pool over time, for a little power.","build_seconds":12,"output_per_min":{"crew":10},"power_use":2,"wear_per_min":1},"mine":{"id":"mine","name":"Mining Complex","layer":"surface","category":"resource","source":"canon","cost":{"duranium":80},"effect":"Extracts the deposit under it into storage (ore goes to a refinery).","description":"A drilling derrick that sits on a surveyed deposit and digs it into storage until it runs dry. Ore still needs a refinery; deuterium, dilithium and strategic deposits come out ready to use. Salvage a used-up mine to free the tile, and a Deep-Core Mine can reopen the deposit later.","build_seconds":20,"requires_deposit":true,"extract_per_min":40,"power_use":6,"wear_per_min":3,"levels":[{"name":"Mk II","cost":{"duranium":80,"tritanium":30},"build_seconds":20,"modifiers":[{"stat":"speed","add":0.25},{"stat":"wear","add":-0.25}]},{"name":"Mk III","cost":{"duranium":100,"parasteel":15},"build_seconds":30,"requires_level":2,"modifiers":[{"stat":"speed","add":0.5},{"stat":"wear","add":-0.4},{"stat":"auto_maintain"}]}]},"deep_core_mine":{"id":"deep_core_mine","name":"Deep-Core Mine","layer":"surface","category":"resource","source":"canon","cost":{"duranium":150,"tritanium":60},"requires_tech":"deep_core_mining","effect":"Reopens a depleted deposit at 50% of its first size, once; slower and power-hungry. Seismic collapse risk.","description":"A heavy derrick with a deep-core drill that reaches past the spent layers of a used-up deposit and reopens it once, at half its original size. It's slower than a normal mine and needs a lot of power.","build_seconds":35,"requires_depleted":true,"reopen_share":0.5,"extract_per_min":24,"power_use":14,"wear_per_min":4},"storage_container":{"id":"storage_container","name":"Storage Container","layer":"surface","category":"logistics","source":"original","cost":{"duranium":60},"effect":"Stacked cargo containers: +2000 storage for ore, metals, fuel and strategics.","description":"Stacked duranium cargo containers on a reinforced pad. Everything you mine or refine needs somewhere to sit: ores, metals, deuterium, dilithium and strategic materials all share one storage space, and when it's full your mines and crawlers stop. Each container adds 2,000 space; crew and latinum need none.","build_seconds":15,"storage":2000},"vehicle_bay":{"id":"vehicle_bay","name":"Vehicle Bay","layer":"surface","category":"production","source":"original","cost":{"duranium":180,"tritanium":60},"effect":"Assembles ground vehicles (survey rovers Mk I\u2013III, mining crawlers) one at a time; they roll out beside it.","description":"An assembly hall for ground vehicles. Order survey rovers (Mk I Scout, Mk II Surveyor, Mk III Explorer) to explore and mining crawlers to dig remote deposits. Vehicles are paid for when ordered, built one at a time, and drive out through the bay door when they're done.","build_seconds":30,"power_use":6,"produces":["survey_rover","mining_crawler","survey_rover_mk2","survey_rover_mk3"],"production_queue":5,"wear_per_min":2},"refinery":{"id":"refinery","name":"Ore Refinery","layer":"surface","category":"industry","source":"original","cost":{"duranium":120},"effect":"Raw ore \u2192 Duranium/Tritanium (2 ore \u2192 1 metal), from storage.","description":"A compact smelter that turns raw ore from storage into usable metal: 2 Duranium Ore into 1 Duranium, 2 Tritanium Ore into 1 Tritanium. With both ores in stock it splits its time between them. Refining frees storage, since the metal takes half the room of the ore. Upgrade it for speed, and research Improved Smelting for more metal per load.","build_seconds":30,"power_use":8,"storage":300,"cycles_per_min":20,"recipes":[{"in":{"duranium_ore":2},"out":{"duranium":1}},{"in":{"tritanium_ore":2},"out":{"tritanium":1}}],"wear_per_min":3,"levels":[{"name":"Mk II","cost":{"duranium":120,"tritanium":40},"build_seconds":25,"modifiers":[{"stat":"speed","add":0.3},{"stat":"wear","add":-0.25}]},{"name":"Mk III","cost":{"duranium":150,"parasteel":20},"build_seconds":35,"requires_level":2,"modifiers":[{"stat":"speed","add":0.6},{"stat":"yield","add":0.1},{"stat":"wear","add":-0.4},{"stat":"auto_maintain"}]}]},"foundry":{"id":"foundry","name":"Alloy Foundry","layer":"surface","category":"industry","source":"original","cost":{"duranium":150,"tritanium":50},"effect":"Produces Parasteel (2 duranium + 1 tritanium \u2192 1); later Transparent Aluminum, Plasma Conduits.","description":"An alloy works that fuses duranium and tritanium into parasteel, the structural alloy behind hull sections, Mk III upgrades and the Planetary Capital. It draws its metals straight from storage, so keep an eye on your duranium and tritanium while it runs.","build_seconds":35,"power_use":10,"cycles_per_min":6,"recipes":[{"in":{"duranium":2,"tritanium":1},"out":{"parasteel":1}}],"wear_per_min":3,"levels":[{"name":"Mk II","cost":{"duranium":150,"tritanium":60},"build_seconds":30,"modifiers":[{"stat":"speed","add":0.3},{"stat":"wear","add":-0.25}]},{"name":"Mk III","cost":{"tritanium":60,"parasteel":30},"build_seconds":40,"requires_level":2,"modifiers":[{"stat":"speed","add":0.6},{"stat":"yield","add":0.1},{"stat":"wear","add":-0.4},{"stat":"auto_maintain"}]}]},"fusion_reactor":{"id":"fusion_reactor","name":"Fusion Reactor","layer":"surface","category":"power","source":"canon","cost":{"duranium":80,"deuterium":20},"effect":"+Energy; burns deuterium.","description":"A deuterium fusion plant, the backbone of a colony's power grid. It supplies power to its base and burns deuterium; without fuel it shuts down. Power is a budget, not a stockpile: when a base uses more than it makes, every building there slows. A worn reactor supplies less, so keep it maintained.","build_seconds":25,"power_supply":40,"upkeep_per_min":{"deuterium":3},"wear_per_min":2},"science_lab":{"id":"science_lab","name":"Research Lab","layer":"surface","category":"research","source":"original","cost":{"duranium":120,"tritanium":40},"effect":"+Research: works on the tech you pick (surface research list in surfaces.json).","description":"A research facility with a sensor mast and a containment experiment. It produces research points toward the tech you choose; more labs research faster. Select the lab to see the techs and pick one.","build_seconds":30,"power_use":8,"research_per_min":10,"wear_per_min":2}},"units":{"survey_team":{"id":"survey_team","cost":{"crew":10},"build_seconds":null,"mark":null},"survey_rover":{"id":"survey_rover","cost":{"duranium":60},"build_seconds":20,"mark":1},"survey_rover_mk2":{"id":"survey_rover_mk2","cost":{"duranium":90,"tritanium":20},"build_seconds":30,"mark":2},"survey_rover_mk3":{"id":"survey_rover_mk3","cost":{"duranium":120,"tritanium":60,"dilithium":5},"build_seconds":45,"mark":3},"mining_crawler":{"id":"mining_crawler","cost":{"duranium":150,"tritanium":50},"build_seconds":45,"mark":null}},"techs":{"improved_smelting":{"id":"improved_smelting","name":"Improved Smelting","cost":60,"requires":[],"effect":"Refineries get 20% more metal from every load of ore.","modifiers":[{"stat":"yield","buildings":["refinery"],"add":0.2}]},"ore_conveyors":{"id":"ore_conveyors","name":"Ore Conveyors","cost":80,"requires":[],"effect":"Mines, deep-core mines and refineries work 20% faster.","modifiers":[{"stat":"speed","buildings":["mine","deep_core_mine","refinery"],"add":0.2}]},"preventive_maintenance":{"id":"preventive_maintenance","name":"Preventive Maintenance","cost":60,"requires":[],"effect":"Every building wears 30% slower.","modifiers":[{"stat":"wear","add":-0.3}]},"automated_maintenance":{"id":"automated_maintenance","name":"Automated Maintenance","cost":150,"requires":["preventive_maintenance"],"effect":"Maintenance drones fix any building below 70% without a crew (parts still cost duranium).","modifiers":[{"stat":"auto_maintain"}]},"alloy_metallurgy":{"id":"alloy_metallurgy","name":"Alloy Metallurgy","cost":100,"requires":["improved_smelting"],"effect":"Alloy Foundries work 25% faster and get 10% more parasteel.","modifiers":[{"stat":"speed","buildings":["foundry"],"add":0.25},{"stat":"yield","buildings":["foundry"],"add":0.1}]},"reinforced_drills":{"id":"reinforced_drills","name":"Reinforced Drills","cost":80,"requires":[],"effect":"Mining crawlers break down half as often.","modifiers":[{"stat":"breakdown","units":["mining_crawler"],"add":-0.5}]},"deep_core_mining":{"id":"deep_core_mining","name":"Deep-Core Mining","cost":100,"requires":[],"effect":"Unlocks the Deep-Core Mine: reopen a used-up deposit once at 50%.","modifiers":[]}},"terrain":[{"id":"ocean","name":"Ocean","buildable":false,"color":"#1d4e89"},{"id":"shallows","name":"Shallows","buildable":false,"color":"#3a7fb8"},{"id":"plains","name":"Plains","buildable":true,"color":"#8fae5a"},{"id":"forest","name":"Forest","buildable":false,"color":"#3f6e35"},{"id":"desert","name":"Desert","buildable":true,"color":"#d2b77a"},{"id":"hills","name":"Hills","buildable":true,"color":"#8a7a5a"},{"id":"mountains","name":"Mountains","buildable":false,"color":"#6e6a66"},{"id":"ice","name":"Polar ice","buildable":false,"color":"#e8f0f5"}],"maintenance":{"decline_below":50,"slowest_output":0.5,"break_chance_per_min_at_zero":0.6,"auto_below":70,"crew_walk_seconds":2,"crew_seconds_per_tile":0.6,"repair_per_second":10,"cost_per_point":{"duranium":0.3}},"salvage_refund":0.5,"resources":{"duranium_ore":"Duranium Ore","tritanium_ore":"Tritanium Ore","tritanium":"Tritanium","duranium":"Duranium","deuterium":"Deuterium","dilithium":"Dilithium","crew":"Crew","parasteel":"Parasteel"},"res_colours":{"duranium":"#c9d1db","duranium_ore":"#a8998a","tritanium_ore":"#758fb8","parasteel":"#99dbeb","storage":"#d9c78c","research":"#8ce0ff","tritanium":"#80b2ff","deuterium":"#5ee3f0","dilithium":"#ff8ad9","latinum":"#f2cc5c","crew":"#e6ebf5","energy":"#f5a624","topaline":"#ffd94c","cormaline":"#80ff8c"},"icons":{"duranium":"<path d='M12 3l7 4v10l-7 4-7-4V7z'/><path d='M5 7l7 4 7-4M12 11v10'/>","tritanium":"<rect x='4' y='5' width='16' height='5' rx='1'/><rect x='4' y='14' width='16' height='5' rx='1'/>","deuterium":"<path d='M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z'/>","dilithium":"<path d='M12 2l5 7-5 13-5-13z'/><path d='M7 9h10'/>","latinum":"<path d='M3 16l3-7h12l3 7z'/><path d='M3 16h18v3H3z'/>","crew":"<circle cx='12' cy='8' r='3.5'/><path d='M5 20c1-4 4-6 7-6s6 2 7 6'/>","energy":"<path d='M13 2L5 14h6l-1 8 8-12h-6z'/>","duranium_ore":"<path d='M4 17l3-7 5-3 6 3 2 7-7 3z'/><path d='M9 12l3 2 4-2'/>","tritanium_ore":"<path d='M3 18l4-9 4-3 4 2 3 2 3 8z'/><circle cx='10' cy='13' r='1.3'/><circle cx='15' cy='14' r='1.3'/>","parasteel":"<path d='M3 15l5-5h13l-5 5z'/><path d='M3 15v3h13v-3M16 18l5-5v-3'/>","storage":"<rect x='3' y='11' width='8' height='8'/><rect x='13' y='11' width='8' height='8'/><rect x='8' y='3' width='8' height='8'/>","storage_container":"<rect x='3' y='11' width='8' height='8'/><rect x='13' y='11' width='8' height='8'/><rect x='8' y='3' width='8' height='8'/>","refinery":"<path d='M4 20V11l5 3V11l5 3V5h4v15z'/><path d='M8 17h2M13 17h2'/>","foundry":"<path d='M5 9h14l-2 6H7z'/><path d='M12 15v3M8 21h8M9 9V5M15 9V6'/>","deep_core_mine":"<path d='M8 21l4-18 4 18M9 15h6M10 9h4M4 21h16'/><path d='M12 21v-3'/>","science_lab":"<path d='M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3'/><path d='M7.5 15h9'/>","research":"<path d='M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3'/><path d='M7.5 15h9'/>","tech":"<circle cx='12' cy='12' r='3'/><path d='M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3'/>","orbit_drop":"<path d='M12 2v11M8 9l4 4 4-4'/><path d='M5 21h14M7 21l2-5h6l2 5'/>","orbit_shuttle":"<path d='M3 15l9-9 9 9-4 1-5-3-5 3z'/><path d='M12 13v6'/>","orbit_beam":"<path d='M8 3v18M16 3v18'/><path d='M11 6v1M13 10v1M11 14v1M13 18v1'/>","orbit_satellite":"<rect x='9' y='9' width='6' height='6'/><path d='M2 12h6M16 12h6M12 2v4M12 18v4'/><circle cx='12' cy='12' r='9' stroke-dasharray='2 3'/>","vehicle_bay":"<path d='M3 20V9l9-5 9 5v11'/><path d='M7 20v-7h10v7M7 16h10'/>","unit:survey_rover":"<rect x='4' y='8' width='16' height='7' rx='2'/><circle cx='8' cy='17.5' r='2'/><circle cx='16' cy='17.5' r='2'/><path d='M14 8V5h3'/>","unit:mining_crawler":"<rect x='3' y='12' width='18' height='5' rx='2.5'/><path d='M6 12V9h6v3M12 9l6-4M18 5v6'/>","crawler":"<rect x='3' y='12' width='18' height='5' rx='2.5'/><path d='M6 12V9h6v3M12 9l6-4M18 5v6'/>","colony_hub":"<path d='M3 18h18M6 18a6 6 0 0 1 12 0M12 12V4M12 4l3 1.5'/>","mine":"<path d='M8 20l4-16 4 16M9.4 14h5.2M10.4 9h3.2M4 20h16'/>","fusion_reactor":"<ellipse cx='12' cy='12' rx='9' ry='4'/><circle cx='12' cy='12' r='2.5'/><path d='M12 3v3M12 18v3'/>","prefab_habitat":"<path d='M2 19h20M4 19a3.5 3.5 0 0 1 7 0M11 19a5 5 0 0 1 10 0'/>","rover":"<rect x='4' y='8' width='16' height='7' rx='2'/><circle cx='8' cy='17.5' r='2'/><circle cx='16' cy='17.5' r='2'/><path d='M14 8V5h3'/>","generic":"<rect x='5' y='7' width='14' height='12' rx='1.5'/><path d='M9 7V4h6v3'/>"}};
+const B = D.buildings;
+const MENU = D.menu;
+const KEYS = Object.fromEntries(MENU.map((id, i) => [id, i + 1]));
+const SOURCES = { refinery: "real" };
+const MODEL = { refinery: "game/models/buildings/refinery.glb" };
+const PRIM = { storage_container: "StorageContainer", mine: "Mine", fusion_reactor: "Reactor", prefab_habitat: "Habitat", foundry: "Foundry",
+  deep_core_mine: "DeepCoreMine", vehicle_bay: "VehicleBay", science_lab: "ResearchLab" };
+const UNIT_NAMES = { survey_rover: "Mk I Scout", survey_rover_mk2: "Mk II Surveyor", survey_rover_mk3: "Mk III Explorer", mining_crawler: "Mining Crawler" };
+const ANGLE_NAMES = ["Front right", "Back right", "Back left", "Front left"];
+// Example stock for the command card (the "short" state of the cards uses it too).
+const STOCK = { duranium: 340, tritanium: 45, deuterium: 12, parasteel: 0, duranium_ore: 180, tritanium_ore: 60, dilithium: 0, crew: 64 };
+const RICH = { duranium: 900, tritanium: 400, deuterium: 200, parasteel: 80, duranium_ore: 600, tritanium_ore: 300, dilithium: 20, crew: 200 };
+const KNOWN = new Set();
+const BASE = { name: "Tarsis Colony", powerUse: 14, powerSupply: 30, radius: 4 };
+const CATS = [
+  { id: "resources", name: "Resources", ids: ["mine", "deep_core_mine", "storage_container"] },
+  { id: "industry", name: "Industry", ids: ["refinery", "foundry", "vehicle_bay"] },
+  { id: "power", name: "Power & crew", ids: ["fusion_reactor", "prefab_habitat"] },
+  { id: "science", name: "Science", ids: ["science_lab"] },
+];
+const CAT_LABEL = { logistics: "Logistics", industry: "Industry", resource: "Resources", power: "Power", habitation: "Habitation", production: "Production", research: "Research" };
+
+// What each building takes from and gives to the rest of the economy (from the sim rules in CLAUDE.md).
+const LINKS = {
+  storage_container: { from: "Everything you mine, refine or produce, except crew and latinum. Mining Crawler cargo pods land at the nearest finished building with storage, so a container near the crawlers shortens pod flights.", to: "Space for the whole base: mines, crawlers and production stop when storage is full." },
+  refinery: { from: "Duranium Ore and Tritanium Ore from storage: Mining Crawler cargo pods (it has 300 storage, so pods land on its pad) and Mining Complexes on ore deposits.", to: "Duranium and Tritanium into storage: the Alloy Foundry, Vehicle Bay orders, every Mk II upgrade and the Colony Hub's next level." },
+  mine: { from: "The surveyed deposit under it, until it runs dry.", to: "Ore into storage for the Ore Refinery; deuterium, dilithium and strategic deposits come out ready to use. A used-up mine can be salvaged, then reopened by a Deep-Core Mine." },
+  fusion_reactor: { from: "3 Deuterium a minute from storage (a deuterium deposit + Mining Complex, or drop-ship supplies).", to: "40 power for its base. Power is a budget per base: every working building there shares it." },
+  prefab_habitat: { from: "2 power.", to: "10 crew a minute into the crew pool: survey teams, and the Colony Hub's next level costs crew." },
+  foundry: { from: "Duranium and Tritanium straight from storage (Ore Refinery output).", to: "Parasteel: Mk III upgrades of the mine, refinery and foundry, and the Planetary Capital." },
+  deep_core_mine: { from: "A used-up deposit that hasn't been reopened before. Needs Deep-Core Mining research at a Research Lab.", to: "Ore or other resources into storage, like a Mining Complex, at 24 a minute." },
+  vehicle_bay: { from: "Order costs, paid up front when you order; 6 power while building.", to: "Survey rovers (Mk I–III) and Mining Crawlers, rolled out of the bay door one at a time." },
+  science_lab: { from: "8 power while researching.", to: "Research points toward the tech you pick; every lab adds its 10 a minute." },
+};
+const TIPS = {
+  storage_container: ["Build one early: the Colony Hub's vault is 1,500 and fills fast.", "Never wears and needs no power.", "Refining frees room: metal takes half the space of its ore."],
+  refinery: ["With both ores in stock it splits its cycles between the recipes.", "Idle (no ore, storage full) it draws no power.", "Research Ore Conveyors for speed and Improved Smelting for 20% more metal per load."],
+  mine: ["Must sit on a surveyed deposit: send a rover first.", "Salvage a used-up mine (X) for half its cost and the free tile.", "Mk II needs Tritanium; Mk III needs Parasteel from an Alloy Foundry."],
+  fusion_reactor: ["Without Deuterium it shuts down and the whole base slows.", "A worn reactor supplies less: keep it above 50% (M orders the crew).", "Base over budget? Every power user runs at supply ÷ use."],
+  prefab_habitat: ["Cheap and quick: 12 s and 60 Duranium.", "The only building that makes crew besides the Colony Hub."],
+  foundry: ["It starts eating Duranium and Tritanium as soon as it's built; there is no pause yet.", "One cycle needs 2 Duranium + 1 Tritanium in stock.", "Alloy Metallurgy: 25% faster, 10% more Parasteel."],
+  deep_core_mine: ["Reopens a deposit once, at 50% of its first size.", "Slower than a Mining Complex and needs 14 power: plan a reactor.", "Salvage the old mine first to free the tile."],
+  vehicle_bay: ["Orders are paid when placed; Backspace cancels the last one with a full refund.", "Up to 5 orders queued; low power slows the assembly.", "Rovers survey the land you need before you can build on it."],
+  science_lab: ["Select the lab to pick a tech; the command card shows the list.", "More labs research the same tech faster.", "Deep-Core Mining (100 RP) unlocks the Deep-Core Mine."],
+};
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const whole = n => Number.isInteger(n) ? n.toLocaleString("en-US") : (Math.round(n * 100) / 100).toLocaleString("en-US");
+const pct = a => (a > 0 ? "+" : "−") + Math.round(Math.abs(a) * 100) + "%";
+const resName = r => D.resources[r] || r;
+const barName = r => { const n = resName(r), i = n.indexOf(" "); return (i > 3 ? n.slice(0, 3) + n.slice(i) : n).toUpperCase(); }; // PlanetHud.ShortName
+const shortName = r => resName(r).length > 3 ? resName(r).slice(0, 3).toUpperCase() : resName(r).toUpperCase();
+function icon(id, colour) {
+  const c = colour || D.res_colours[id] || "#e6ebf5";
+  const p = D.icons[id] || D.icons.generic;
+  return `<svg class="ic" viewBox="0 0 24 24" stroke="${c}" aria-hidden="true">${p.replace(/'/g, '"')}</svg>`;
+}
+const LOCK = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`;
+const sorted = cost => Object.entries(cost || {}).sort((a, b) => b[1] - a[1]);
+function costChips(cost, stock, opts = {}) {
+  return `<span class="cost">${sorted(cost).map(([r, n]) => {
+    const short = stock && (stock[r] || 0) < n;
+    const label = opts.long ? `${whole(n)} ${esc(resName(r))}` : `${whole(n)} ${shortName(r)}`;
+    const have = opts.have && stock ? `<span class="have">(${whole(stock[r] || 0)})</span>` : "";
+    return `<span class="c${short ? " short" : ""}" title="${esc(resName(r))}${short ? ": not enough" : ""}">${icon(r)}${label}${have}</span>`;
+  }).join("")}</span>`;
+}
+const img = (id, k) => `${id}-${k}.jpg`;
+const thumb = id => `${id}-thumb.jpg`;
+const locked = id => !!(B[id].requires_tech && !KNOWN.has(B[id].requires_tech));
+const affordable = (cost, stock) => Object.entries(cost || {}).every(([r, n]) => (stock[r] || 0) >= n);
+
+// ------------------------------------------------ stock bar
+document.getElementById("stock").innerHTML = ["duranium_ore", "tritanium_ore", "duranium", "tritanium", "parasteel", "deuterium", "dilithium", "crew"]
+  .map(r => `<span class="s">${icon(r)}${whole(STOCK[r] || 0)} <small>${barName(r)}</small></span>`).join("") +
+  `<span class="s">${icon("energy")}14 / 30 <small>POWER</small></span><span class="s">${icon("storage")}587 / 1,500 <small>STORAGE</small></span>`;
+
+// ------------------------------------------------ tiles
+function tileState(id, active, hover) {
+  const cls = ["tile"];
+  if (locked(id)) cls.push("is-locked");
+  if (active) cls.push("is-active");
+  if (hover) cls.push("is-hover");
+  return cls.join(" ");
+}
+function tile(id, opts = {}) {
+  const b = B[id];
+  const lk = locked(id);
+  const lockBadge = lk ? `<span class="lock">${LOCK}RESEARCH</span>` : "";
+  const label = `${b.name}, hotkey ${KEYS[id]}${lk ? ", needs " + D.techs[b.requires_tech].name : ""}`;
+  const stat = opts.stat ? `<span class="stat">${statLine(id)}</span>` : "";
+  return `<button type="button" class="${tileState(id, opts.active, opts.hover)}" data-id="${id}" aria-label="${esc(label)}"${opts.active ? ' aria-pressed="true"' : ""}>
+    <span class="pic"><img src="${thumb(id)}" alt="" loading="lazy"><span class="k">${KEYS[id]}</span>${lockBadge}${opts.overlay ? `<span class="nm ov">${esc(b.name)}</span>` : ""}</span>
+    <span class="txt">${opts.overlay ? "" : `<span class="nm">${esc(b.name)}</span>`}${lk ? `<span class="cost"><span class="c" style="color:var(--hud-sky)">${esc(D.techs[b.requires_tech].name)}</span></span>` : costChips(b.cost, STOCK)}${stat}</span>
+  </button>`;
+}
+function statLine(id) {
+  const b = B[id], bits = [];
+  if (b.power_supply) bits.push(`+${b.power_supply} power`);
+  if (b.power_use) bits.push(`−${b.power_use} power`);
+  bits.push(`${b.build_seconds} s`);
+  return bits.join(" · ");
+}
+const ACTIVE = "science_lab", HOVER = "refinery";
+document.getElementById("grid-a").innerHTML = MENU.map(id => tile(id, { active: id === ACTIVE, hover: id === HOVER, overlay: true })).join("");
+document.getElementById("tip-a").innerHTML = tooltip(HOVER);
+function tooltip(id) {
+  const b = B[id];
+  return `<b>${esc(b.name)} [${KEYS[id]}]</b>${costChips(b.cost, STOCK, { long: true })}<span>${esc(b.effect)}</span><span class="hint">${statLine(id)} · click for the full card</span>`;
+}
+
+// option B
+let cat = "industry";
+function drawB() {
+  document.getElementById("cats").innerHTML = CATS.map(c =>
+    `<button type="button" role="tab" aria-selected="${c.id === cat}" data-cat="${c.id}">${c.name}<span>${c.ids.length}</span></button>`).join("");
+  const c = CATS.find(x => x.id === cat);
+  document.getElementById("b-title").textContent = `Build at Tarsis Colony · ${c.name}`;
+  document.getElementById("grid-b").innerHTML = c.ids.map(id => tile(id, { active: id === ACTIVE, hover: id === HOVER, stat: true })).join("");
+}
+document.getElementById("cats").addEventListener("click", e => {
+  const t = e.target.closest("[data-cat]");
+  if (t) { cat = t.dataset.cat; drawB(); }
+});
+drawB();
+
+// option C
+document.getElementById("drawer-groups").innerHTML = CATS.map(c =>
+  `<div class="dg"><span class="hud-label">${c.name}</span><div class="tiles">${c.ids.map(id => tile(id, { active: id === ACTIVE, hover: id === HOVER })).join("")}</div></div>`).join("");
+document.getElementById("recent").innerHTML = ["storage_container", "refinery", "fusion_reactor"].map(id => tile(id, { overlay: true })).join("");
+document.getElementById("buildbtn").addEventListener("click", e => {
+  const d = document.getElementById("drawer");
+  const open = d.dataset.open !== "true";
+  d.dataset.open = String(open);
+  e.currentTarget.setAttribute("aria-expanded", String(open));
+});
+
+// ------------------------------------------------ card content
+function levelRows(b) {
+  const base = { speed: 0, wear: 0, yield: 0, auto: false };
+  const rows = [{ name: "Mk I", cost: b.cost, secs: b.build_seconds, mods: [], needs: "", m: base }];
+  for (const l of b.levels || []) {
+    const m = { speed: 0, wear: 0, yield: 0, auto: false };
+    for (const x of l.modifiers) { if (x.stat === "auto_maintain") m.auto = true; else m[x.stat] += x.add; }
+    const needs = l.requires_level > 1 ? "Mk II first; base at Colonial Administration" : "Mk I";
+    rows.push({ name: l.name, cost: l.cost, secs: l.build_seconds, mods: l.modifiers, needs, m });
+  }
+  return rows;
+}
+function rateAt(b, m) {
+  const sp = 1 + (m.speed || 0), y = 1 + (m.yield || 0);
+  if (b.recipes) return `${whole(Math.round(b.cycles_per_min * sp * 10) / 10)} cycles/min`;
+  if (b.extract_per_min) return `${whole(Math.round(b.extract_per_min * sp * y * 10) / 10)}/min`;
+  return "";
+}
+function modText(m) {
+  if (m.stat === "auto_maintain") return "maintenance drones";
+  if (m.stat === "breakdown") return `breakdowns ${pct(m.add)}`;
+  return `${m.stat} ${pct(m.add)}`;
+}
+function techsFor(id) {
+  return Object.values(D.techs).filter(t => t.modifiers.some(m => !m.units && (!m.buildings || m.buildings.includes(id))) && (B[id].wear_per_min || t.modifiers.some(m => m.stat !== "wear" && m.stat !== "auto_maintain")));
+}
+function produce(b) {
+  const out = [];
+  if (b.recipes) {
+    for (const r of b.recipes) {
+      const side = o => sorted(o).map(([k, n]) => `<span class="amt">${icon(k)}${n} ${esc(resName(k))}</span>`).join(" + ");
+      out.push(`<div class="recipe">${side(r.in)}<span class="arrow">→</span>${side(r.out)}</div>`);
+    }
+    const ins = b.recipes.map(r => Object.values(r.in).reduce((a, c) => a + c, 0));
+    const outs = b.recipes.map(r => Object.values(r.out).reduce((a, c) => a + c, 0));
+    const shared = b.recipes.length > 1 ? ", shared between the recipes that have input" : "";
+    out.push(`<p>${b.cycles_per_min} cycles a minute${shared}: up to ${b.cycles_per_min * ins[0]} in → ${b.cycles_per_min * outs[0]} out a minute at Mk I. No input → idle, no power.</p>`);
+  }
+  if (b.extract_per_min) out.push(`<div class="recipe">${icon("mine", "#f5a624")}<span class="amt">${b.extract_per_min} a minute from ${b.requires_depleted ? `a used-up deposit, reopened once at ${Math.round(b.reopen_share * 100)}% of its first size` : "the deposit under it"}</span></div>`);
+  if (b.output_per_min) out.push(`<div class="recipe">${sorted(b.output_per_min).map(([k, n]) => `<span class="amt">${icon(k)}+${n} ${esc(resName(k))}/min</span>`).join(" ")}</div>`);
+  if (b.upkeep_per_min) out.push(`<div class="recipe">Burns ${sorted(b.upkeep_per_min).map(([k, n]) => `<span class="amt">${icon(k)}${n} ${esc(resName(k))} a minute</span>`).join(" ")}<span>(without it, it stops)</span></div>`);
+  if (b.power_supply) out.push(`<p>Supplies ${b.power_supply} power to its base (${BASE.name}: ${BASE.powerSupply} → ${BASE.powerSupply + b.power_supply}). A worn reactor supplies less.</p>`);
+  if (b.storage) out.push(`<div class="recipe">${icon("storage")}<span class="amt">+${whole(b.storage)} storage for ore, metals, fuel and strategics</span></div>`);
+  if (b.research_per_min) out.push(`<div class="recipe">${icon("research")}<span class="amt">${b.research_per_min} research points a minute toward the tech you pick</span></div>
+    <p class="muted" style="color:var(--hud-dim)">${Object.values(D.techs).map(t => `${esc(t.name)} ${t.cost} RP`).join(" · ")}</p>`);
+  if (b.produces) {
+    out.push(`<table class="lv"><thead><tr><th>Vehicle</th><th>Cost</th><th>Time</th></tr></thead><tbody>${b.produces.map(u => {
+      const d = D.units[u];
+      return `<tr><td>${esc(UNIT_NAMES[u] || u)}</td><td>${costChips(d.cost, null, { long: false })}</td><td class="num">${d.build_seconds} s</td></tr>`;
+    }).join("")}</tbody></table><p>Up to ${b.production_queue} orders queued, built one at a time; paid when ordered.</p>`);
+  }
+  return out.join("");
+}
+function wearText(b) {
+  const m = D.maintenance;
+  if (!b.wear_per_min) return `<p>Never wears.</p>`;
+  const toHalf = Math.round((100 - m.decline_below) / b.wear_per_min);
+  return `<p>Loses ${b.wear_per_min} condition a minute while working (about ${toHalf} min from new to ${m.decline_below}%). Below ${m.decline_below}% it slows, down to ${Math.round(m.slowest_output * 100)}% output at 0, where it can break (${Math.round(m.break_chance_per_min_at_zero * 100)}% a minute).</p>
+    <p>Press <kbd>M</kbd> and a crew walks out from the hub: ${m.repair_per_second} points a second, ${m.cost_per_point.duranium} Duranium a point (${whole(Math.round(100 * m.cost_per_point.duranium))} for a full repair). Drones keep it above ${m.auto_below}% ${(b.levels || []).some(l => l.modifiers.some(x => x.stat === "auto_maintain")) ? "at Mk III or " : ""}with Automated Maintenance.</p>`;
+}
+function placeText(b) {
+  const terr = D.terrain.map(t => `<span class="${t.buildable ? "" : "no"}"><i style="background:${t.color}"></i>${esc(t.name)}</span>`).join("");
+  const where = [];
+  if (b.requires_deposit) where.push("on a surveyed deposit");
+  if (b.requires_depleted) where.push("on a used-up deposit that hasn't been reopened");
+  where.unshift(`a surveyed tile within ${BASE.radius} tiles of a finished Colony Hub (its build radius)`);
+  where.push("nothing on it: no building, deployed crawler or native land");
+  return `<div class="terr">${terr}</div><p>Needs ${where.join(" · ")}.</p><p> <kbd>R</kbd> turns it 60°; <kbd>Shift</kbd>+click places another. Salvage (<kbd>X</kbd>) refunds ${Math.round(D.salvage_refund * 100)}%.</p>`;
+}
+function levelsTable(b) {
+  if (!b.levels) return `<p>No upgrades.</p>`;
+  const rows = levelRows(b);
+  return `<div class="scroll"><table class="lv"><thead><tr><th>Level</th><th>Cost</th><th>Build</th><th>Effect</th><th>Rate · wear</th></tr></thead><tbody>${rows.map(r => {
+    const wear = b.wear_per_min ? `${whole(Math.round(b.wear_per_min * (1 + r.m.wear) * 100) / 100)}/min` : "";
+    return `<tr><td>${r.name}</td><td>${costChips(r.cost, null)}</td><td class="num">${r.secs} s</td><td>${r.mods.length ? r.mods.map(modText).join(", ") : "base"}${r.needs && r.name !== "Mk II" ? `<br><span style="color:var(--hud-dim)">${esc(r.needs)}</span>` : ""}</td><td class="num">${rateAt(b, r.m)}${wear ? " · " + wear : ""}</td></tr>`;
+  }).join("")}</tbody></table></div><p style="color:var(--hud-dim)">Modifiers are totals for that level, not added to the one before. Upgrade a finished building with <kbd>U</kbd>.</p>`;
+}
+function researchText(id) {
+  const ts = techsFor(id);
+  if (!ts.length) return "";
+  return `<div class="links">${ts.map(t => `<div><b>${t.cost} RP</b><span><b style="width:auto;display:inline;color:var(--hud-ink);letter-spacing:.03em;text-transform:none;font-size:14px">${esc(t.name)}</b> · ${esc(t.effect)}</span></div>`).join("")}</div>`;
+}
+function stats(id) {
+  const b = B[id], s = [["Build", `${b.build_seconds} s`, ""]];
+  s.push(b.power_supply ? ["Power", `+${b.power_supply}`, "good"] : b.power_use ? ["Power", `−${b.power_use}`, ""] : ["Power", "none", ""]);
+  if (b.recipes) s.push(["Cycles", `${b.cycles_per_min}/min`, ""]);
+  else if (b.extract_per_min) s.push(["Digs", `${b.extract_per_min}/min`, ""]);
+  else if (b.output_per_min) s.push(["Makes", sorted(b.output_per_min).map(([k, n]) => `+${n} ${shortName(k)}`).join(" ") + "/min", "good"]);
+  else if (b.research_per_min) s.push(["Research", `${b.research_per_min}/min`, "good"]);
+  else if (b.produces) s.push(["Queue", `${b.production_queue} orders`, ""]);
+  if (b.upkeep_per_min) s.push(["Upkeep", sorted(b.upkeep_per_min).map(([k, n]) => `${n} ${shortName(k)}`).join(" ") + "/min", "warn"]);
+  if (b.storage) s.push(["Storage", `+${whole(b.storage)}`, b.recipes ? "" : "good"]);
+  s.push(["Wear", b.wear_per_min ? `${b.wear_per_min}/min` : "none", ""]);
+  return `<div class="stats">${s.slice(0, 4).map(([k, v, c]) => `<div class="stat-t"><span>${k}</span><b class="${c}">${v}</b></div>`).join("")}</div>`;
+}
+function heroHtml(id, uid) {
+  const src = SOURCES[id] === "real" ? `<span class="src real">Real model</span>` : `<span class="src stand">Stand-in</span>`;
+  return `<div class="hero" data-hero="${uid}" data-k="0">${[0, 1, 2, 3].map(k => `<img src="${img(id, k)}" alt="${k === 0 ? esc(B[id].name) + ", " + ANGLE_NAMES[k].toLowerCase() + " view" : ""}" class="${k === 0 ? "on" : ""}">`).join("")}
+    <span class="badge">${src}</span><span class="drag">Drag to turn</span>
+    <span class="angles">${[0, 1, 2, 3].map(k => `<button type="button" data-k="${k}" aria-pressed="${k === 0}" aria-label="${ANGLE_NAMES[k]}">${["FR", "BR", "BL", "FL"][k]}</button>`).join("")}</span></div>`;
+}
+function stockFor(id, state) {
+  if (state !== "short") return RICH;
+  const s = { ...STOCK };
+  if (affordable(B[id].cost, s)) { const [r, n] = sorted(B[id].cost)[0]; s[r] = Math.floor(n * 0.6); }
+  return s;
+}
+function shortBy(id, stock) {
+  return sorted(B[id].cost).filter(([r, n]) => (stock[r] || 0) < n).map(([r, n]) => `${whole(n - (stock[r] || 0))} more ${resName(r)}`).join(" and ");
+}
+function headHtml(id, big) {
+  const b = B[id];
+  const lv = (b.levels || []).length;
+  const pips = lv ? `<span class="pips" aria-label="Mk I of Mk ${["I", "II", "III"][lv]}">${[0, 1, 2].slice(0, lv + 1).map(i => `<i class="${i === 0 ? "on" : ""}"></i>`).join("")}</span>` : "";
+  const line = lv ? `Mk I → ${b.levels.map(l => l.name).join(" → ")}` : "Mk I · no upgrades";
+  return `<div class="card-head">
+    <div class="names"><span class="card-title">${esc(b.name)}</span>
+      <span class="card-sub">${pips}<span>${line}</span><span style="color:var(--hud-dim)">· ${CAT_LABEL[b.category] || b.category} · key ${KEYS[id]}</span></span></div>
+    <button class="x" type="button" aria-label="Close (Esc)" title="Close (Esc)">×</button></div>`;
+}
+function actionHtml(id, state, stock, compact) {
+  const b = B[id];
+  if (state === "locked") {
+    const t = D.techs[b.requires_tech];
+    return `<div class="lockline">${LOCK.replace("<svg", '<svg width="16" height="16" stroke="currentColor"')}<span>Needs <b>${esc(t.name)}</b> research (${t.cost} RP at a Research Lab, nothing needed before it). ${esc(t.effect)}</span></div>
+      <div class="actions"><button class="act sky" type="button">Research at a lab</button><button class="act ghost" type="button">Close [Esc]</button></div>`;
+  }
+  if (state === "short") {
+    return `<div class="shortline">You need ${shortBy(id, stock)}. The button lights up as soon as the stock is there.</div>
+      <div class="actions"><button class="act" type="button" disabled>Place [Enter]</button><button class="act ghost" type="button">Close [Esc]</button></div>`;
+  }
+  return `<div class="actions"><button class="act" type="button">Place [Enter]</button><button class="act ghost" type="button">Close [Esc]</button></div>
+    ${compact ? "" : `<p class="foot">Click a tile in the blue area once placing · <kbd>R</kbd> rotate · <kbd>Shift</kbd>+click place more</p>`}`;
+}
+
+const CTABS = [["make", "Makes"], ["levels", "Levels"], ["place", "Placement"], ["links", "Links"], ["wear", "Wear"]];
+function ctab(id, k) {
+  const b = B[id], L = LINKS[id];
+  if (k === "make") return produce(b);
+  if (k === "levels") return levelsTable(b) + researchText(id);
+  if (k === "place") return placeText(b);
+  if (k === "links") return `<div class="links"><div><b>Takes</b><span>${esc(L.from)}</span></div><div><b>Gives</b><span>${esc(L.to)}</span></div></div><ul class="tips">${TIPS[id].map(t => `<li>${esc(t)}</li>`).join("")}</ul>`;
+  return wearText(b);
+}
+function compactCard(id, state, uid, tab = "make") {
+  if (state === "placing") return placingStrip(id);
+  const b = B[id], stock = stockFor(id, state);
+  return `<article class="card compact" aria-label="${esc(b.name)} card" data-id="${id}">
+    ${headHtml(id, false)}
+    <div class="c-top">${heroHtml(id, uid)}<div class="c-side"><div class="costline">${costChips(b.cost, stock, { long: true, have: true })}</div>${stats(id)}</div></div>
+    <p class="desc">${esc(b.description)}</p>
+    ${actionHtml(id, state, stock, true)}
+    <div class="ctabs" role="tablist" aria-label="Details">${CTABS.map(([k, n]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === tab}">${n}</button>`).join("")}</div>
+    <div class="cpanel" role="tabpanel" tabindex="0">${ctab(id, tab)}</div>
+  </article>`;
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest(".ctabs [data-tab]");
+  if (!t) return;
+  const card = t.closest(".card");
+  card.querySelectorAll(".ctabs button").forEach(b => b.setAttribute("aria-selected", String(b === t)));
+  card.querySelector(".cpanel").innerHTML = ctab(card.dataset.id, t.dataset.tab);
+});
+function placingStrip(id) {
+  const b = B[id];
+  return `<article class="card placing" aria-label="Placing ${esc(b.name)}">
+    <img src="${thumb(id)}" alt="">
+    <div class="t"><span class="card-title" style="font-size:20px">Placing ${esc(b.name)}</span>
+      ${costChips(b.cost, RICH)}
+      <span class="foot warn">Can't build on this tile: terrain isn't buildable (forest)</span>
+      <span class="foot">Click a tile in the blue area · <kbd>R</kbd> rotate · <kbd>Shift</kbd>+click more · <kbd>Tab</kbd> card · <kbd>Esc</kbd> back</span></div>
+    <button class="x" type="button" aria-label="Cancel placing (Esc)">×</button>
+  </article>`;
+}
+function largeCard(id, state, uid) {
+  if (state === "placing") return placingStrip(id);
+  const b = B[id], stock = stockFor(id, state === "placing" ? "available" : state);
+  const L = LINKS[id];
+  const research = researchText(id);
+  return `<article class="card large" aria-label="${esc(b.name)} card, large">
+    <div class="left">
+      ${headHtml(id, true)}
+      ${heroHtml(id, uid)}
+      <div class="costline">${costChips(b.cost, stock, { long: true, have: true })}<span style="color:var(--hud-dim);font:500 14px var(--label)">· ${b.build_seconds} s to build</span></div>
+      ${stats(id)}
+      <p class="desc">${esc(b.description)}</p>
+      ${actionHtml(id, state === "placing" ? "available" : state, stock)}
+    </div>
+    <div class="right">
+      <div class="sec"><h4>What it makes</h4>${produce(b)}</div>
+      <div class="sec"><h4>Levels</h4>${levelsTable(b)}</div>
+      ${research ? `<div class="sec"><h4>Research that changes it</h4>${research}</div>` : ""}
+      <div class="sec"><h4>Where it goes</h4>${placeText(b)}</div>
+      <div class="sec"><h4>Feeds and fed by</h4><div class="links"><div><b>Takes</b><span>${esc(L.from)}</span></div><div><b>Gives</b><span>${esc(L.to)}</span></div></div></div>
+      <div class="sec"><h4>Wear and upkeep</h4>${wearText(b)}</div>
+      <div class="sec"><h4>Tips</h4><ul class="tips">${TIPS[id].map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>
+    </div>
+  </article>`;
+}
+
+// ------------------------------------------------ card toolbars
+const STATES = [["available", "Available"], ["short", "Short of resources"], ["locked", "Needs research"], ["placing", "Placing"]];
+function toolbar(el, model, redraw, idx) {
+  const st = model[idx];
+  el.innerHTML = `<label for="${el.id}-b">Building <select id="${el.id}-b">${MENU.map(id => `<option value="${id}"${id === st.id ? " selected" : ""}>${esc(B[id].name)}</option>`).join("")}</select></label>
+    <span class="seg" role="group" aria-label="Card state">${STATES.map(([k, n]) => `<button type="button" data-s="${k}" aria-pressed="${k === st.state}"${k === "locked" && !B[st.id].requires_tech ? ' disabled title="Only the Deep-Core Mine needs research today"' : ""}>${n}</button>`).join("")}</span>`;
+  el.querySelector("select").onchange = e => { st.id = e.target.value; if (st.state === "locked" && !B[st.id].requires_tech) st.state = "available"; redraw(); };
+  el.querySelectorAll("[data-s]").forEach(btn => btn.onclick = () => { st.state = btn.dataset.s; redraw(); });
+}
+// Compact row: an editable first card, plus two fixed examples (short of resources, needs research).
+const compact = [{ id: "refinery", state: "available" }];
+const compactFixed = [{ id: "fusion_reactor", state: "short", cap: "Fusion Reactor · short of Deuterium" }, { id: "deep_core_mine", state: "locked", cap: "Deep-Core Mine · needs research" }, { id: "refinery", state: "placing", cap: "Placing strip (after Enter)" }];
+function drawCompact() {
+  toolbar(document.getElementById("tb-compact"), compact, drawCompact, 0);
+  const c = compact[0];
+  document.getElementById("compact-row").innerHTML =
+    `<div class="card-col"><span class="card-cap">${esc(B[c.id].name)} · ${STATES.find(s => s[0] === c.state)[1]} (pick above)</span>${compactCard(c.id, c.state, "c0")}</div>` +
+    compactFixed.map((f, i) => `<div class="card-col"><span class="card-cap">${esc(f.cap)}</span>${compactCard(f.id, f.state, "c" + (i + 1))}</div>`).join("");
+  wireHeroes(document.getElementById("compact-row"));
+}
+const large = [{ id: "refinery", state: "available" }];
+function drawLarge() {
+  toolbar(document.getElementById("tb-large"), large, drawLarge, 0);
+  document.getElementById("large-slot").innerHTML = largeCard(large[0].id, large[0].state, "L0");
+  wireHeroes(document.getElementById("large-slot"));
+}
+
+// ------------------------------------------------ turntable: four angles, slow crossfade, drag or buttons
+const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const heroes = new Set();
+function setAngle(h, k) {
+  k = (k + 4) % 4;
+  h.dataset.k = k;
+  h.querySelectorAll("img").forEach((im, i) => im.classList.toggle("on", i === k));
+  h.querySelectorAll(".angles button").forEach((b, i) => b.setAttribute("aria-pressed", String(i === k)));
+}
+function wireHeroes(root) {
+  root.querySelectorAll(".hero").forEach(h => {
+    heroes.add(h);
+    h.querySelectorAll(".angles button").forEach(b => b.onclick = e => { e.stopPropagation(); h.dataset.paused = "1"; setAngle(h, +b.dataset.k); });
+    let x0 = null;
+    h.addEventListener("pointerdown", e => { if (e.target.closest("button")) return; x0 = e.clientX; h.dataset.paused = "1"; });
+    h.addEventListener("pointermove", e => {
+      if (x0 === null) return;
+      const dx = e.clientX - x0;
+      if (Math.abs(dx) > 40) { setAngle(h, +h.dataset.k + (dx < 0 ? 1 : -1)); x0 = e.clientX; }
+    });
+    ["pointerup", "pointerleave", "pointercancel"].forEach(t => h.addEventListener(t, () => { x0 = null; }));
+    h.addEventListener("mouseenter", () => { h.dataset.hover = "1"; });
+    h.addEventListener("mouseleave", () => { h.dataset.hover = ""; });
+  });
+}
+if (!reduce) setInterval(() => {
+  heroes.forEach(h => { if (!h.isConnected) { heroes.delete(h); return; } if (!h.dataset.paused && !h.dataset.hover) setAngle(h, +h.dataset.k + 1); });
+}, 2600);
+
+drawCompact();
+drawLarge();
+
+// ------------------------------------------------ image table
+document.querySelector("#img-table tbody").innerHTML = MENU.concat(["colony_hub"]).map(id => {
+  const real = id === "refinery" || id === "colony_hub";
+  const model = id === "colony_hub" ? "game/models/buildings/outpost_l1.glb (Level 1 outpost, for the base panel)" : real ? MODEL[id] : `BuildingModels.${PRIM[id]}() primitives`;
+  return `<tr><td><img src="${thumb(id)}" alt="" loading="lazy"></td><td>${esc(B[id].name)}</td><td>${real ? '<span class="src real">Real model</span>' : '<span class="src stand">Stand-in</span>'}</td><td><code>${esc(model)}</code></td></tr>`;
+}).join("");
+</script>
