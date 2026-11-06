@@ -228,7 +228,8 @@ public static class DataPatcher
     /// two layers that can be active in the same game changing the same value (or one inside the other).
     /// Two era layers or two scenario layers never meet; anything else can.
     /// </summary>
-    public static List<string> CheckLayers(IReadOnlyDictionary<string, string> files, DataManifest manifest)
+    /// <param name="documents">Only patches on these documents count (the game passes the ones it reads); null = all.</param>
+    public static List<string> CheckLayers(IReadOnlyDictionary<string, string> files, DataManifest manifest, IReadOnlyCollection<string>? documents = null)
     {
         var problems = new List<string>();
         var layers = new List<DataLayer>();
@@ -238,6 +239,7 @@ public static class DataPatcher
             try
             {
                 layer = DataLayer.Parse(path, files[path]);
+                if (documents != null) layer = layer with { Patches = layer.Patches.Where(p => documents.Contains(p.Doc) || !manifest.HasDocument(p.Doc)).ToList() };
             }
             catch (JsonException e)
             {

@@ -227,11 +227,21 @@ public sealed partial class GameData
             throw new InvalidDataException("The data has no manifest.json.");
         var manifest = DataManifest.Parse(manifestText);
         var texts = new Dictionary<string, string>(files, StringComparer.Ordinal);
-        problems.AddRange(DataPatcher.CheckLayers(files, manifest));
+        // Layer patches on documents the game doesn't read (tech_tree, hazards, …) are the pages' business.
+        problems.AddRange(DataPatcher.CheckLayers(files, manifest, Documents.ToList()));
         foreach (var layerPath in setup.LayerPaths(files, problems))
         {
             var layerProblems = new List<string>();
-            DataPatcher.Apply(texts, manifest, DataLayer.Parse(layerPath, files[layerPath]), layerProblems);
+            DataLayer layer;
+            try
+            {
+                layer = DataLayer.Parse(layerPath, files[layerPath]);
+            }
+            catch (JsonException)
+            {
+                continue; // reported by CheckLayers
+            }
+            DataPatcher.Apply(texts, manifest, layer with { Patches = layer.Patches.Where(p => Documents.Contains(p.Doc) || !manifest.HasDocument(p.Doc)).ToList() }, layerProblems);
             foreach (var p in layerProblems.Where(p => !problems.Contains(p))) problems.Add(p);
         }
         var roots = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
