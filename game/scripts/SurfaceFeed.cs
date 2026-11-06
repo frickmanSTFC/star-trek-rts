@@ -299,11 +299,17 @@ public partial class SurfaceFeed : Control
         {
             var light = vi as Light3D;
             _shifted.Add((vi, vi.Layers, light?.LightCullMask ?? 0u));
-            vi.Layers = FeedLayer;
+            // Game overlays (floating status words like "Building 40%", selection rings) are not scenery: no camera
+            // draws them while the feed shows (the surface camera is off in orbit anyway). Painted decals stay.
+            vi.Layers = IsOverlay(vi) ? 0u : FeedLayer;
             if (light != null) light.LightCullMask = FeedLayer;
         }
         foreach (var child in node.GetChildren()) Shift(child);
     }
+
+    private static bool IsOverlay(VisualInstance3D node) =>
+        node is Label3D label && (label.Billboard != BaseMaterial3D.BillboardModeEnum.Disabled || label.NoDepthTest)
+        || node.Name == "Selected";
 
     /// <summary>Anything added under PlanetView while the feed shows (a rover rolling out, a drop ship, dust) joins the feed
     /// layer at once; a light added to the orbit view never lights it.</summary>
