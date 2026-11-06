@@ -32,7 +32,7 @@ public static partial class BuildingModels
             MaterialOverride = Glow(new Color(1f, 0.95f, 0.5f), 2f),
             Visible = false,
         });
-        n.AddChild(new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 2f, SpotRange = 16f, SpotAngle = 32f, Position = new Vector3(0, 1.5f, -3.7f), RotationDegrees = new Vector3(-12, 0, 0) });
+        // Headlights: VehicleLights adds them to live units in PlanetView (not to the build-menu renders or the founder prop).
         return n;
     }
 

@@ -6,8 +6,9 @@ namespace FinalFrontier;
 // Day/night and weather for the surface's own materials and lights (PlanetDriver.Sky drives it; render-only).
 // SetSky hands sky.gdshaderinc's uniforms to every fog material (terrain, water, foliage, rock); SetWind sets the
 // foliage sway. Night lights: every Light3D under the view and every lit emissive material (windows, lamps, glow
-// strips, headlights, beacons…) is brightened at night. Other code animates many of them (beacons blink, refinery lamps
-// dim), so each frame the value found there is taken as the new base when it isn't the one written here last.
+// strips, beacons…) is brightened at night; vehicle headlights and their lenses (VehicleLights.NoBoostMeta) are not,
+// they set their own energy. Other code animates many of them (beacons blink, refinery lamps dim), so each frame the
+// value found there is taken as the new base when it isn't the one written here last.
 public partial class PlanetView
 {
     /// <summary>The test panel's SKY overrides (render-only; PlanetDriver.Sky reads them).</summary>
@@ -118,6 +119,7 @@ public partial class PlanetView
     {
         if (node is Light3D light and not DirectionalLight3D)
         {
+            if (light.HasMeta(VehicleLights.NoBoostMeta)) return; // vehicle lamps set their own (night) energy every frame
             if (_lampLightIds.Add(light.GetInstanceId())) _lampLights.Add(new LampLight { Light = light, Id = light.GetInstanceId(), Base = light.LightEnergy });
             return;
         }
@@ -131,6 +133,7 @@ public partial class PlanetView
     private void RegisterMaterial(BaseMaterial3D m, Node owner)
     {
         if (!m.EmissionEnabled || m.ShadingMode == BaseMaterial3D.ShadingModeEnum.Unshaded) return;
+        if (m.HasMeta(VehicleLights.NoBoostMeta)) return; // headlight lenses: VehicleLights drives them
         var id = m.GetInstanceId();
         if (!_lampMaterials.TryGetValue(id, out var lamp))
         {

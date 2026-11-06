@@ -166,6 +166,7 @@ public partial class PlanetDriver
         if (Surface.Map.Toxic[u.Tile]) dangers.Add($"toxic ground: −{d.ToxicPerMinute.ToFloat():0.#}/min");
         if (Surface.Map.WildlifeAt[u.Tile] == Wildlife.Predators) dangers.Add($"predators: ~{Mathf.RoundToInt(d.WildlifeChancePerMinute.ToFloat() * 100)}% a minute of an attack");
         if (dangers.Count > 0) rows.Add(("Danger", string.Join(" · ", dangers)));
+        if (rows.Count < 5) rows.Add(("Lights", _view.HeadlightText(u.Id) + "  [L]"));
         var cost = Surface.RepairCost(u);
         rows.Add(("Repair", Surface.NeedsRepair(u) ? $"on a colony core's pad: {(cost.Count == 0 ? "free" : Amounts(cost, false))}" : "not needed"));
 

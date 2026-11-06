@@ -92,11 +92,12 @@ public partial class PlanetDriver
 
         _view.WatchLamps();
         _lampNightAt = p => SkyModel.Night(_skyField.DaylightAt(p, _skySubsolar));
+        _daylightAt = p => _skyField.DaylightAt(p, _skySubsolar);
         _groundAt = _view.GroundAt;
     }
 
     // Cached delegates (no per-frame allocation) and the subsolar column they read.
-    private System.Func<Vector3, float> _lampNightAt = null!, _groundAt = null!;
+    private System.Func<Vector3, float> _lampNightAt = null!, _groundAt = null!, _daylightAt = null!;
     private float _skySubsolar;
 
     /// <summary>Once a frame, after the view's refresh (and before the uplink, which hands the feed its climate).</summary>
@@ -244,6 +245,8 @@ public partial class PlanetDriver
         // Lamps and windows: brighter at night (each light by the night where it stands).
         var nightSite = SkyModel.Night(daySite);
         _view.UpdateLamps(_inOrbit ? nightSite : Mathf.Lerp(nightSite, night, wide), _lampNightAt, delta);
+        // Vehicle headlights: on by the dark / weather at each vehicle, budgeted by distance to the camera that sees them.
+        _view.UpdateHeadlights(_daylightAt, _inOrbit ? _feed.CameraPosition ?? site : _camera.GlobalPosition, delta);
 
         // The globe's sun over the subsolar column, tilted by the season; storm rings where Climate has storms.
         if (_inOrbit)

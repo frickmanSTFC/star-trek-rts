@@ -110,6 +110,7 @@ public partial class DropShipView : Node3D
         public readonly BaseMaterial3D?[] Thrusters = new BaseMaterial3D?[6];
         public BaseMaterial3D? Nacelle, Bay;
         public RoverLook.Lamps? Lamps;
+        public VehicleLights.Rig? Lights; // landing lights + belly flood (VehicleLights, budgeted by PlanetView.Headlights)
         public OmniLight3D Glow = null!, BayLamp = null!;
         public CpuParticles3D Wash = null!, Burst = null!;
         public int UnitId;          // 0 = not down yet, -1 = gave up looking
@@ -176,6 +177,7 @@ public partial class DropShipView : Node3D
             ship.Model.QueueFree();
             ship.Wash.QueueFree();
             ship.Burst.QueueFree();
+            if (ship.Lights != null) _view.RemoveLightRig(ship.Lights);
             if (ship.UnitId > 0) _byUnit.Remove(ship.UnitId);
             _ships.Remove(id);
         }
@@ -373,6 +375,19 @@ public partial class DropShipView : Node3D
         ship.Glow.LightEnergy = 3.5f * lift;
         ship.BayLamp.LightEnergy = 1.6f * open;
         ship.Lamps?.Update(true, false, false, delta); // the beacon flashes the whole time
+        if (ship.Lights is { } lights)
+        {
+            // Landing lights while it comes in, touches down and climbs out; the belly flood while the ramp is down.
+            var landing = ship.Convoy is { FliesAway: true } || t < TouchdownAt + 1.5f || (t > ship.LiftFrom - SpoolSeconds && t < ship.LiftFrom + 3f);
+            for (var k = 0; k < lights.Demand.Length; k++)
+                lights.Demand[k] = lights.RoleOf(k) switch
+                {
+                    VehicleLights.Role.Landing => landing ? 1f : 0f,
+                    VehicleLights.Role.Belly => open,
+                    _ => lights.Demand[k],
+                };
+            lights.Hidden = !ship.Shown;
+        }
 
         // Dust: a downwash while it hovers low, a burst as it touches down and as it lifts off.
         var under = ship.Model.Position;
@@ -475,6 +490,8 @@ public partial class DropShipView : Node3D
         ship.Nacelle = nacelle;
         if (model.FindChild("BayLight", true, false) is MeshInstance3D bay) ship.Bay = OwnGlow(bay, null);
         ship.Lamps = RoverLook.Lamps.Attach(model, key & 0xffff); // convoy keys are negative: the flash phase needs a time >= 0
+        ship.Lights = VehicleLights.Rig.Attach(model, VehicleLights.Kind.DropShip, key & 0xffff);
+        _view.AddLightRig(ship.Lights);
 
         ship.Glow = new OmniLight3D { LightColor = LiftColour, OmniRange = 18f, LightEnergy = 0f, ShadowEnabled = false, Position = new Vector3(0, 0.2f, 0.5f) };
         model.AddChild(ship.Glow);
