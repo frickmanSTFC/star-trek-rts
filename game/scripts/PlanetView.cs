@@ -226,6 +226,7 @@ public partial class PlanetView : Node3D
         _landing.Update(alpha, delta); // the first landing's drop ships and assembly (hides the hub until the uplink)
         UpdateStructures(delta);
         UpdateRefineries(delta); // PlanetView.Refinery.cs: the refinery's machinery, furnace and lamps by status
+        UpdateDetailedBuildings(delta); // PlanetView.Detailed.cs: mine hoist, storage crane + fill gauge, reactor core
         UpdateScatter();
         _time += delta;
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
