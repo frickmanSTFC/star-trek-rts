@@ -227,6 +227,7 @@ public partial class PlanetView : Node3D
         UpdateFounders(delta); // PlanetView.Founding.cs: used-up construction rovers parked at their new hubs (exocomp docks)
         UpdateStructures(delta);
         UpdateRefineries(delta); // PlanetView.Refinery.cs: the refinery's machinery, furnace and lamps by status
+        UpdateDetailedBuildings(delta); // PlanetView.Detailed.cs: mine hoist, storage crane + fill gauge, reactor core
         UpdateScatter();
         _time += delta;
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp

@@ -107,7 +107,7 @@ public static partial class BuildingModels
 
     /// <summary>Mine: a derrick (height ±10% per instance) over a drill ("Spin"), the ore hopper on one side or the
     /// other, a conveyor to the front.</summary>
-    private static Node3D Mine(Color owner, Look v)
+    private static Node3D PrimitiveMine(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour);
@@ -134,7 +134,7 @@ public static partial class BuildingModels
 
     /// <summary>Fusion reactor: core drum with a turning glow ring ("Spin"), two cooling towers (height ±10% per
     /// instance) and a control block in the accent colour, offset to one side.</summary>
-    private static Node3D Reactor(Color owner, Look v)
+    private static Node3D PrimitiveReactor(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour);
@@ -420,7 +420,7 @@ public static partial class BuildingModels
     }
 
     /// <summary>Deep-core mine: a heavier derrick over a lit shaft ring, with a big drill ("Spin") and pressure tanks.</summary>
-    private static Node3D DeepCoreMine(Color owner, Look v)
+    private static Node3D PrimitiveDeepCore(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour);
@@ -446,15 +446,14 @@ public static partial class BuildingModels
         return n;
     }
 
-    /// <summary>Storage container yard: stacked, ribbed cargo containers in a few colours and a small gantry crane.</summary>
     /// <summary>Storage container yard: stacked, ribbed cargo containers and a gantry crane. Per instance: which
     /// slots carry a second container, the container colours (one in the accent colour) and their slight skew, and
     /// where the crane's trolley stands.</summary>
-    private static Node3D StorageContainer(Color owner, Look v)
+    private static Node3D PrimitiveStorage(Color owner, Look v)
     {
         var n = new Node3D();
         Add(n, new BoxMesh { Size = new Vector3(7.4f, 0.4f, 7f) }, new Vector3(0, 0.2f, 0), Metal(Trim, 0.3f, 0.7f));
-        var colours = new[] { new Color(0.72f, 0.36f, 0.22f), new Color(0.3f, 0.45f, 0.62f), new Color(0.78f, 0.7f, 0.42f), new Color(0.42f, 0.55f, 0.4f), new Color(0.62f, 0.62f, 0.64f), new Color(0.55f, 0.24f, 0.2f) };
+        var colours = ContainerColours;
         var ground = new[] { (-1.8f, -1.8f), (1.8f, -1.8f), (-1.8f, 1.2f), (1.8f, 1.2f) };
         // the upper level: the canonical three, or one of a few other layouts (always two or three stacked, so it reads
         // as the same yard)

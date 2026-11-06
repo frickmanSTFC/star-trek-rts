@@ -196,8 +196,8 @@ public partial class PlanetView
 
     // ---------------------------------------------------------------- cargo pods
 
-    /// <summary>Where a cargo pod heading for this tile sets down: the PodPad of a finished refinery there, else null
-    /// (it flies to the tile centre as before).</summary>
+    /// <summary>Where a cargo pod heading for this tile sets down: the PodPad of a finished refinery or storage yard
+    /// there, else null (it flies to the tile centre as before).</summary>
     private Vector3? PodPadAt(int tile)
     {
         foreach (var s in _surface.Structures)
@@ -206,7 +206,7 @@ public partial class PlanetView
             if (_refineries.TryGetValue(s.Id, out var r) && r.Pad != null && r.Pad.IsInsideTree() && _structures.TryGetValue(s.Id, out var v) && r.Model == v.Model)
                 return r.Pad.GlobalPosition;
         }
-        return null;
+        return YardPadAt(tile); // PlanetView.Detailed.cs: a storage yard's pod pad
     }
 
     /// <summary>A cargo pod's position and heading at the current frame: a high arc from the crawler; for a refinery
