@@ -24,6 +24,7 @@ PAGES = [
     ("tech-tree.html", "tech-tree.html", "Research Tech Tree", "All 7 branches and 6 tiers with prerequisite tracing, faction access and starting eras.", "#8fd3b0"),
     ("hazards.html", "hazards.html", "Galactic Hazards", "Anomalies, world conditions, raiders, crises and wild cards, with counters by faction.", "#e2787a"),
     ("planet-classes.html", "planet-classes.html", "Planet Classes", "Every world and body: habitability, resources, terraforming, and who wants what.", "#7fc4e8"),
+    ("climate.html", "climate.html", "Planetary Climate", "Day and night, seasons and weather for every body of the system map, with gameplay effects.", "#7fc4e8"),
     ("vehicles.html", "vehicles.html", "Craft and Ground Forces", "Shuttles, probes, the civilian fleet, ground troops and surface vehicles.", "#9aa3ff"),
     ("resources.html", "resources.html", "Resources and Materials", "Resource tiers, production chains and what each faction's economy consumes.", "#f3cb5b"),
     ("federation-build-tree.html", "federation-build-tree.html", "Federation Build Tree", "The Federation's buildings as a tech-gated tree with prerequisite links.", "#ffc999"),

@@ -179,7 +179,7 @@ public sealed partial class GameData
     /// <summary>The data files the sim reads, in a fixed order.</summary>
     public static readonly IReadOnlyList<string> FileNames = new[]
     {
-        "factions.json", "ships.json", "resources.json", "planet_classes.json", "buildings.json", "maps.json", "surfaces.json", "vehicles.json",
+        "factions.json", "ships.json", "resources.json", "planet_classes.json", "buildings.json", "maps.json", "surfaces.json", "vehicles.json", "climate.json",
     };
 
     /// <summary>
@@ -213,6 +213,7 @@ public sealed partial class GameData
         var mapsRoot = Read("maps.json");
         var surfacesRoot = Read("surfaces.json");
         var vehiclesRoot = Read("vehicles.json");
+        var climateRoot = Read("climate.json");
 
         var factions = factionsRoot.GetProperty("factions").EnumerateArray()
             .Select(f => new FactionDef(Str(f, "id"), Str(f, "name"), f.GetProperty("playable").ValueKind == JsonValueKind.True))
@@ -438,6 +439,7 @@ public sealed partial class GameData
             UnitNames = unitNames,
             Environments = ReadEnvironments(surfacesRoot),
             Telemetry = ReadTelemetry(surfacesRoot),
+            Climate = ReadClimate(climateRoot, problems),
             Sources = FileNames.ToDictionary(f => f, f => files[f], StringComparer.Ordinal),
         };
     }
@@ -501,6 +503,7 @@ public sealed partial class GameData
         ValidateUnitNames(problems);
         ValidateEnvironments(problems);
         ValidateRoverDamage(problems);
+        ValidateClimate(problems);
         ValidateFounding(problems);
         return problems;
     }

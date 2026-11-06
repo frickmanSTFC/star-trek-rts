@@ -290,8 +290,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private string? OrbitProblem(string action, int tile)
     {
         if (tile < 0) return "pick a spot on the planet";
-        if (action == "land") return Me.Phase != LandingPhase.InOrbit ? "the colony has landed" : Surface.CanLand(LocalPlayer, tile) ? null
-            : Surface.Map.NearNatives(tile) ? "that's the natives' land" : "not a safe landing site";
+        if (action == "land") return Surface.LandProblem(_sim, LocalPlayer, tile); // incl. "a storm over the site …" (climate)
         if (action == "outpost") return Surface.OutpostProblem(_sim, LocalPlayer, tile);
         if (action == "satellite") return Surface.SatelliteProblem(_sim, LocalPlayer, Surface.Map.Grid.Row(tile));
         if (action.StartsWith("shuttle:")) return Surface.ShuttleProblem(_sim, LocalPlayer, tile, action[8..]);

@@ -80,11 +80,13 @@ public sealed class Simulation
     }
 
     /// <summary>Generates the surface of a planet class from the seed. Call once, before adding players.</summary>
-    public void LoadSurface(string planetClassId, ulong seed)
+    /// <param name="climateBody">The map body it is, for its climate (climate.json bodies); null = the class's default
+    /// body (<see cref="GameData.DefaultClimateBody"/>: the home body of the lowest player slot, Tarsis on mvp_duel).</param>
+    public void LoadSurface(string planetClassId, ulong seed, string? climateBody = null)
     {
         if (Surface != null) throw new InvalidOperationException("A surface is already loaded.");
         if (_players.Count > 0) throw new InvalidOperationException("Load the surface before adding players.");
-        Surface = new PlanetSurface(Data, SurfaceMap.Generate(Data, Data.Surface(planetClassId), seed));
+        Surface = new PlanetSurface(Data, SurfaceMap.Generate(Data, Data.Surface(planetClassId), seed, climateBody));
     }
 
     /// <summary>
