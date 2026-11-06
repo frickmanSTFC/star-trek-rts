@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Headless balance runner: plays the surface economy with scripted build orders, as fast as the sim goes, and
+       writes metrics + an HTML report (balance/README.md). References the deterministic sim only (no Godot). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>FinalFrontier.Balance</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../game/sim/FinalFrontier.Sim.csproj" />
+  </ItemGroup>
+</Project>
