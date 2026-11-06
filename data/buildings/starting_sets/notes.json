@@ -1,0 +1,6 @@
+{
+  "_notes_starting_sets": "starting_sets: buildings each faction can place in the opening minutes of a Class M colony, one per role (core, housing, extraction, power, research, defense, signature). Federation is the baseline; other factions trade cost or capability. Costs are placeholders.",
+  "starting_sets": {
+    "planet_class": "class_m"
+  }
+}

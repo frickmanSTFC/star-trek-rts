@@ -1,0 +1,76 @@
+{
+  "starting_sets": {
+    "factions": {
+      "klingon": {
+        "identity": "Cheap and aggressive; weak economy and research.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "kli_house_encampment",
+            "name": "House Encampment",
+            "cost": {
+              "duranium": 90,
+              "crew": 60
+            },
+            "effect": "Trains Klingon Warriors immediately."
+          },
+          {
+            "role": "housing",
+            "id": "kli_clan_longhouse",
+            "name": "Clan Longhouse",
+            "cost": {
+              "duranium": 70
+            },
+            "effect": "+1 population, +1 militia, +1 Bloodwine per cycle."
+          },
+          {
+            "role": "extraction",
+            "id": "kli_strip_mine",
+            "name": "Strip Mine",
+            "cost": {
+              "duranium": 60
+            },
+            "effect": "+25% yield; deposit depletes 25% faster."
+          },
+          {
+            "role": "power",
+            "id": "kli_battle_reactor",
+            "name": "Battle Reactor",
+            "cost": {
+              "duranium": 60,
+              "deuterium": 20
+            },
+            "effect": "+10 energy; explodes and damages neighbours if destroyed."
+          },
+          {
+            "role": "research",
+            "id": "kli_weapons_forge",
+            "name": "Weapons Forge",
+            "cost": {
+              "duranium": 80
+            },
+            "effect": "Weapons-tree research only, at -25%."
+          },
+          {
+            "role": "defense",
+            "id": "kli_disruptor_battery",
+            "name": "Disruptor Battery",
+            "cost": {
+              "tritanium": 110
+            },
+            "effect": "Surface-to-orbit gun from turn one."
+          },
+          {
+            "role": "signature",
+            "id": "kli_warriors_arena",
+            "name": "Warrior's Arena",
+            "cost": {
+              "duranium": 80
+            },
+            "effect": "+1 Honor per cycle; ground troop XP."
+          }
+        ]
+      }
+    }
+  }
+}

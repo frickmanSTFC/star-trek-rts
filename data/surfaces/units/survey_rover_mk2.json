@@ -1,0 +1,18 @@
+{
+  "units": [
+    { "id": "survey_rover_mk2", "mark": 2, "description": "The Mk II Surveyor: a six-wheeled rover with a spinning sensor dish. A little faster than the Scout, and it surveys a wider ring of ground around it, so it maps new land quicker. Like every rover it wears on rough ground, can hit hazards and get flat tyres (one spare on board, T to change it), and is repaired on a colony core's pad (R).", "speed": 2.2, "survey_radius": 3, "cost": { "duranium": 90, "tritanium": 20 }, "build_seconds": 30,
+      "damage": {
+        "terrain": { "plains": { "wear": 0.35, "hazard": 0.03, "flat": 0.03 }, "desert": { "wear": 0.55, "hazard": 0.05, "flat": 0.04 },
+          "forest": { "wear": 1.1, "hazard": 0.08, "flat": 0.06 }, "hills": { "wear": 1.4, "hazard": 0.1, "flat": 0.08 }, "ice": { "wear": 1.4, "hazard": 0.1, "flat": 0.06 } },
+        "hazards": [
+          { "id": "rock", "name": "Rock strike", "weight": 50, "damage": [4, 12], "terrain": ["plains", "desert", "hills", "ice"] },
+          { "id": "sinkhole", "name": "Sinkhole", "weight": 20, "damage": [10, 25], "terrain": ["plains", "desert", "forest"] },
+          { "id": "tree", "name": "Fallen tree", "weight": 30, "damage": [5, 14], "terrain": ["forest"] },
+          { "id": "rockslide", "name": "Rockslide", "weight": 20, "damage": [12, 28], "terrain": ["hills"] },
+          { "id": "ice", "name": "Sharp ice", "weight": 40, "damage": [6, 16], "terrain": ["ice"], "flat": true } ],
+        "toxic_per_min": 4, "wildlife": { "chance_per_min": 0.4, "damage": [8, 20] },
+        "slow_below": 50, "slowest_drive": 0.5, "sensors_below": 35, "sensor_loss": 1, "crawl": 0.15 },
+      "tyres": { "wheels": 6, "spares": 1, "low_integrity": 2, "flat_speed": 0.6, "two_flat_speed": 0.2, "flat_wear": 0.5, "change_seconds": 35, "pad_cost": { "duranium": 5 } },
+      "repair": { "per_second": 5, "crew_seconds": 3, "cost_per_point": { "duranium": 0.4 } } }
+  ]
+}

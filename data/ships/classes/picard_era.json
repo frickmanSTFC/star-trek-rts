@@ -1,0 +1,6 @@
+{
+  "classes": [
+    { "faction": "romulan_free_state", "name": "Free State Warbird", "hull": "battleship", "era": "picard", "source": "canon", "special": "cloak" },
+    { "faction": "ni_var", "name": "Ni'Var Cruiser", "hull": "cruiser", "era": "far_future", "source": "original", "special": "cloak, science_lab" }
+  ]
+}

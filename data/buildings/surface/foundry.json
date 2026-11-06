@@ -1,0 +1,10 @@
+{
+  "buildings": [
+    { "id": "foundry", "name": "Alloy Foundry", "layer": "surface", "category": "industry", "source": "original",
+      "cost": { "duranium": 150, "tritanium": 50 }, "effect": "Produces Parasteel (2 duranium + 1 tritanium → 1); later Transparent Aluminum, Plasma Conduits.", "description": "An alloy works that fuses duranium and tritanium into parasteel, the structural alloy behind hull sections, Mk III upgrades and the Planetary Capital. It draws its metals straight from storage, so keep an eye on your duranium and tritanium while it runs.",
+      "build_seconds": 35, "power_use": 10, "cycles_per_min": 6, "footprint_radius": 7,
+      "recipes": [ { "in": { "duranium": 2, "tritanium": 1 }, "out": { "parasteel": 1 } } ], "wear_per_min": 3,
+      "levels": [ { "name": "Mk II", "cost": { "duranium": 150, "tritanium": 60 }, "build_seconds": 30, "modifiers": [ { "stat": "speed", "add": 0.3 }, { "stat": "wear", "add": -0.25 } ] },
+                  { "name": "Mk III", "cost": { "tritanium": 60, "parasteel": 30 }, "build_seconds": 40, "requires_level": 2, "modifiers": [ { "stat": "speed", "add": 0.6 }, { "stat": "yield", "add": 0.1 }, { "stat": "wear", "add": -0.4 }, { "stat": "auto_maintain" } ] } ] }
+  ]
+}

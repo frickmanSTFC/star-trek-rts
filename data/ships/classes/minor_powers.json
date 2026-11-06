@@ -1,0 +1,11 @@
+{
+  "classes": [
+    { "faction": "breen",       "name": "Breen Warship",  "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon", "special": "energy_dampener" },
+    { "faction": "kazon",       "name": "Kazon Raider",   "hull": "escort",        "era": "voy", "source": "canon" },
+    { "faction": "kazon",       "name": "Kazon Carrier",  "hull": "carrier",       "era": "voy", "source": "canon" },
+    { "faction": "hirogen",     "name": "Hirogen Hunter", "hull": "cruiser",       "era": "voy", "source": "canon", "special": "tetryon, hunt_tracking" },
+    { "faction": "species_8472","name": "Bioship",        "hull": "heavy_cruiser", "era": "voy", "source": "canon", "special": "planet_killer_formation, immune_non_nanoprobe" },
+    { "faction": "orion",       "name": "Orion Interceptor", "hull": "escort",     "era": "tos", "source": "beta" },
+    { "faction": "nausicaan",   "name": "Nausicaan Raider",  "hull": "escort",     "era": "tng", "source": "original" }
+  ]
+}

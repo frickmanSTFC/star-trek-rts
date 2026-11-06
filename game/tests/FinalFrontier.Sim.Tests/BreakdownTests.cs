@@ -16,11 +16,8 @@ public class BreakdownTests
     /// </summary>
     private static GameData Patched(string chance, string? onlySeverity = null)
     {
-        var source = GameData.FindDataDirectory(AppContext.BaseDirectory);
-        var dir = Path.Combine(Path.GetTempPath(), "ff-breakdown-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        foreach (var f in Directory.GetFiles(source, "*.json")) File.Copy(f, Path.Combine(dir, Path.GetFileName(f)));
-        var path = Path.Combine(dir, "surfaces.json");
+        var dir = TestData.CopyData("ff-breakdown-");
+        var path = Path.Combine(dir, "surfaces/units/mining_crawler.json");
         var text = File.ReadAllText(path);
         Assert.Contains("\"chance_per_min\": 0.05", text);
         text = text.Replace("\"chance_per_min\": 0.05", $"\"chance_per_min\": {chance}");

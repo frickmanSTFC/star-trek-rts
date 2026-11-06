@@ -1,10 +1,14 @@
 """Data Lab mockups: builds docs/mockups/data-editor/index.html from tools/data_lab_mockup.html + a snapshot of
-data/*.json (replaces /*DATA*/null). Mockup only; nothing in the game reads it. Usage: python3 tools/gen_data_lab_mockup.py"""
+data/*.json (replaces /*DATA*/null). Mockup only; nothing in the game reads it. Usage: python3 tools/gen_data_lab_mockup.py [repo]
+It reads the flat data/<doc>.json files the data had before the split (2026-11-06), so point it at a checkout of a
+commit from before then (the mockup describes those files: line numbers, layouts)."""
 import json, os, subprocess, sys
 
 here = os.path.dirname(os.path.abspath(__file__))
 repo = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(here)
 tpl = sys.argv[2] if len(sys.argv) > 2 else os.path.join(here, 'data_lab_mockup.html')
+if not os.path.exists(os.path.join(repo, 'data', 'buildings.json')):
+    sys.exit("gen_data_lab_mockup: data/ is split into folders now; run this on a checkout from before the split (see the docstring).")
 D = lambda f: json.load(open(os.path.join(repo, 'data', f)))
 texts = {f: open(os.path.join(repo, 'data', f)).read() for f in sorted(os.listdir(os.path.join(repo, 'data'))) if f.endswith('.json')}
 

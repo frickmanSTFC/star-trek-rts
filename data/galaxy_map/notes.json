@@ -1,0 +1,3 @@
+{
+  "_notes": "Light-years in a Sol-centred frame: +x toward the Beta Quadrant, +y toward the galactic core, which sits 26,000 ly away at (0, 26000). The Alpha/Beta border runs through Sol to the core; the far side of the core holds Gamma (x < 0) and Delta (x > 0). Positions follow on-screen hints and Star Trek reference maps where they exist and are otherwise approximate. Lanes are the master warp network that match sector maps (6-24 systems, see GDD) are cut from; lane distances are computed from positions. kind: warp | wormhole | unstable_wormhole | transwarp | deep. also = other factions that hold the system in some era (for example Ni'Var at Vulcan in the 32nd century)."
+}

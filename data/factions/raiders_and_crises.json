@@ -1,0 +1,16 @@
+{
+  "factions": [
+    { "id": "maquis", "name": "Maquis", "playable": "insurgent", "eras": ["tng", "dominion_war"],
+      "signature": { "id": "spawned_by_unrest", "desc": "Rises from unhappy or ceded colonies; guerrilla raids from plasma storms." } },
+    { "id": "orion", "name": "Orion Syndicate", "playable": "pirate", "eras": ["ent", "tos", "tng", "dominion_war", "picard"],
+      "signature": { "id": "smuggling_networks", "desc": "Raids trade lanes, sells contraband, kidnaps colonists." } },
+    { "id": "nausicaan", "name": "Nausicaan Raiders", "playable": "pirate", "eras": ["ent", "tos", "tng", "dominion_war", "picard"],
+      "signature": { "id": "freighter_raids", "desc": "Hit-and-run attacks on freighters and civilian transports." } },
+    { "id": "kazon", "name": "Kazon Sects", "playable": "pirate", "eras": ["voy"],
+      "signature": { "id": "sect_swarm", "desc": "Many feuding sects; swarm tactics; covet replicator tech." } },
+    { "id": "hirogen", "name": "Hirogen Hunters", "playable": "pirate", "eras": ["voy"],
+      "signature": { "id": "the_hunt", "desc": "Target your highest-XP ships/captains; tetryon weapons." } },
+    { "id": "species_8472", "name": "Species 8472", "playable": "crisis", "eras": ["voy"],
+      "signature": { "id": "fluidic_space", "desc": "Bio-ships immune to most weapons; only nanoprobe-based weapons work well." } }
+  ]
+}

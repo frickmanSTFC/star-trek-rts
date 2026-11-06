@@ -1,0 +1,26 @@
+{
+  "buildings": [
+    { "id": "orbital_drydock", "name": "Orbital Drydock", "layer": "orbital", "category": "shipyard", "source": "canon",
+      "cost": { "duranium": 200, "tritanium": 100 }, "effect": "Builds hulls ≤ size 3; repairs ships." },
+    { "id": "orbital_shipyard", "name": "Orbital Shipyard", "layer": "orbital", "category": "shipyard", "source": "canon",
+      "cost": { "parasteel": 300, "plasma_conduits": 40 }, "effect": "Builds hulls ≤ size 5." },
+    { "id": "deuterium_refinery", "name": "Orbital Deuterium Refinery", "layer": "orbital", "category": "resource", "source": "original",
+      "cost": { "duranium": 150 }, "valid_on": ["class_j", "class_t", "class_n"], "effect": "+Deuterium from gas giants/oceans." },
+    { "id": "antimatter_plant", "name": "Antimatter Generation Facility", "layer": "orbital", "category": "industry", "source": "original",
+      "cost": { "parasteel": 200, "energy": 60 }, "effect": "Deuterium + Energy → Antimatter. Orbital only — catastrophic if destroyed (damages ring)." },
+    { "id": "orbital_habitat", "name": "Orbital Habitat Ring", "layer": "orbital", "category": "habitation", "source": "original",
+      "cost": { "parasteel": 180 }, "effect": "+Pop around any body, even gas giants." },
+    { "id": "defense_platform", "name": "Orbital Weapons Platform", "layer": "orbital", "category": "military", "source": "canon",
+      "cost": { "tritanium": 200, "antimatter": 20 }, "requires": "platform_power_generator",
+      "effect": "Heavy automated weapons. Chin'toka-style: all platforms in system go dark if their generator is destroyed." },
+    { "id": "platform_power_generator", "name": "Platform Power Generator", "layer": "surface", "category": "military", "source": "canon",
+      "cost": { "parasteel": 150 }, "effect": "Powers every Orbital Weapons Platform in the system. Usually on a moon — a juicy commando target." },
+    { "id": "orbital_sensor_array", "name": "Sensor Array", "layer": "orbital", "category": "military", "source": "canon",
+      "cost": { "duranium": 80, "isolinear_chips": 10 }, "effect": "+Vision radius; anomaly early warning." },
+    { "id": "cargo_depot", "name": "Orbital Cargo Depot", "layer": "orbital", "category": "logistics", "source": "original",
+      "cost": { "duranium": 100 }, "effect": "+Storage; freighter trade-route endpoint." },
+    { "id": "genesis_launcher", "name": "Genesis Launch Platform", "layer": "orbital", "category": "terraforming", "source": "canon",
+      "cost": { "parasteel": 300, "protomatter": 10 }, "requires_tech": "genesis", "forbidden": true,
+      "effect": "Instantly converts a Class D body / nebula to Class M. 40% later destabilization. Can be fired at an inhabited world." }
+  ]
+}

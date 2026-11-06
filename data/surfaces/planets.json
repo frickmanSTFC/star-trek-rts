@@ -1,0 +1,28 @@
+{
+  "planets": [
+    {
+      "class": "class_m",
+      "width": 128,
+      "height": 88,
+      "feature_size": 14,
+      "elevation": { "ocean": 0.30, "shallows": 0.36, "hills": 0.80, "mountains": 0.91 },
+      "lowland": [ { "below": 0.30, "terrain": "desert" }, { "below": 0.70, "terrain": "plains" }, { "below": 1.01, "terrain": "forest" } ],
+      "polar_rows": 2,
+      "polar_terrain": "ice",
+      "regions": [8, 5],
+      "life": { "natives_chance": 0.6, "native_radius": 4,
+        "wildlife": { "herds": 14, "radius": [2, 4], "predator_share": 0.35, "terrain": ["plains", "forest", "hills"] },
+        "toxic": { "patches": 7, "radius": [1, 2], "terrain": ["forest", "plains", "desert"] },
+        "biomass": { "forest": 1.0, "plains": 0.65, "hills": 0.4, "desert": 0.12, "ice": 0.03, "shallows": 0.5, "ocean": 0.25 } },
+      "deposits": [
+        { "resource": "duranium_ore",  "terrain": ["hills"],                "chance": 0.22, "amount": [600, 1800] },
+        { "resource": "tritanium_ore", "terrain": ["hills", "plains"],      "chance": 0.07, "amount": [400, 1200] },
+        { "resource": "deuterium", "terrain": ["plains", "desert"], "coastal": true, "chance": 0.12, "amount": [200, 500] },
+        { "resource": "dilithium", "terrain": ["desert"],                   "chance": 0.06, "amount": [80, 240] },
+        { "resource": "topaline",  "terrain": ["hills"],                    "chance": 0.03, "amount": [50, 150] },
+        { "resource": "cormaline", "terrain": ["forest"],                   "chance": 0.03, "amount": [50, 150] }
+      ]
+    }
+  ],
+  "hints": { "likely": 400, "rich": 1500 }
+}

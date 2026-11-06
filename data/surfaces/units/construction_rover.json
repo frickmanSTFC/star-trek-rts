@@ -1,0 +1,19 @@
+{
+  "units": [
+    { "id": "construction_rover", "description": "A heavy six-wheeler that carries a folded Colony Hub on its back: prefab wall panels, a crane to set them and an exocomp dock on the roof. Drive it to an open, surveyed site well away from your other bases (at least 8 tiles), press FOUND OUTPOST and pick the tile: it parks, unfolds its crane and lowers the panels (paying the founding cost), then its exocomps build the new Colony Hub around it. The rover is used up; cancelling the hub before it is finished refunds the cost and gives the rover back. It is slower than a Scout, barely surveys, and wears like any rover on rough ground (one spare tyre, T; repair on a colony core's pad, R).", "speed": 1.7, "survey_radius": 1, "cost": { "duranium": 120, "tritanium": 40 }, "build_seconds": 50, "deploy_seconds": 6, "footprint_radius": 9.5,
+      "found": { "building": "colony_hub", "cost": { "duranium": 120, "tritanium": 40, "crew": 30 }, "min_distance": 8 },
+      "damage": {
+        "terrain": { "plains": { "wear": 0.45, "hazard": 0.03, "flat": 0.03 }, "desert": { "wear": 0.65, "hazard": 0.05, "flat": 0.04 },
+          "forest": { "wear": 1.3, "hazard": 0.08, "flat": 0.06 }, "hills": { "wear": 1.7, "hazard": 0.1, "flat": 0.08 }, "ice": { "wear": 1.6, "hazard": 0.1, "flat": 0.06 } },
+        "hazards": [
+          { "id": "rock", "name": "Rock strike", "weight": 50, "damage": [4, 12], "terrain": ["plains", "desert", "hills", "ice"] },
+          { "id": "sinkhole", "name": "Sinkhole", "weight": 20, "damage": [10, 25], "terrain": ["plains", "desert", "forest"] },
+          { "id": "tree", "name": "Fallen tree", "weight": 30, "damage": [5, 14], "terrain": ["forest"] },
+          { "id": "rockslide", "name": "Rockslide", "weight": 20, "damage": [12, 28], "terrain": ["hills"] },
+          { "id": "ice", "name": "Sharp ice", "weight": 40, "damage": [6, 16], "terrain": ["ice"], "flat": true } ],
+        "toxic_per_min": 4, "wildlife": { "chance_per_min": 0.4, "damage": [8, 20] },
+        "slow_below": 50, "slowest_drive": 0.5, "sensors_below": 35, "sensor_loss": 1, "crawl": 0.15 },
+      "tyres": { "wheels": 6, "spares": 1, "low_integrity": 2, "flat_speed": 0.6, "two_flat_speed": 0.2, "flat_wear": 0.5, "change_seconds": 40, "pad_cost": { "duranium": 6 } },
+      "repair": { "per_second": 5, "crew_seconds": 3, "cost_per_point": { "duranium": 0.4 } } }
+  ]
+}

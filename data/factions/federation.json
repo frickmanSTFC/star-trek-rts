@@ -1,0 +1,13 @@
+{
+  "factions": [
+    { "id": "federation", "name": "United Federation of Planets", "playable": true,
+      "eras": ["tos", "tng", "dominion_war", "picard", "kelvin"],
+      "playstyle": "Explorer / generalist / diplomacy",
+      "signature": { "id": "member_worlds", "desc": "Integrate other species via diplomacy; each member grants a unique bonus (Vulcan: research, Andorian: military, Tellarite: engineering, Bajoran: faith/morale)." },
+      "secondary": ["prime_directive_choices", "starfleet_academy_captain_training", "first_contact_bonus"],
+      "weakness": "Ships expensive; slow to declare war (council vote).",
+      "home": "Sol (Earth, Luna, Mars/Utopia Planitia)",
+      "weapons": ["phaser", "photon_torpedo", "quantum_torpedo"],
+      "flavor_units": { "hero": "Starfleet Captain", "ground": "Security Teams", "special": "Hospital Ship" } }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "faction_buildings": [
+    { "faction": "borg", "id": "unicomplex", "name": "Unicomplex", "source": "canon", "effect": "Capital; Queen spawn point; collective-wide adaptation memory." },
+    { "faction": "borg", "id": "vinculum", "name": "Vinculum Node", "source": "canon", "effect": "Links ships/colonies; destroying it disconnects drones in range." },
+    { "faction": "borg", "id": "transwarp_hub", "name": "Transwarp Hub", "source": "canon", "effect": "Opens conduits to any other hub instantly." },
+    { "faction": "borg", "id": "assimilation_complex", "name": "Assimilation Complex", "source": "original", "effect": "Converts captured population into drones; disassembles captured ships into tech." }
+  ]
+}

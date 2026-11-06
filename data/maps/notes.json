@@ -1,0 +1,3 @@
+{
+  "_notes": "Skirmish maps for the game prototype (game/). One star system per map for the MVP. Positions are map units on the system plane, star at (0, 0); bodies are static for now (orbits later). parent = the body a moon circles. deposits = resource amounts that can be mined (each must be in the body class's yields in planet_classes.json). starts: player slot -> home body (must be a full-colony class); every player begins with start_stock and a Colony Hub there. The MVP duel is point-symmetric (east side = west side rotated 180 degrees) so both players start equal. All numbers are placeholders."
+}

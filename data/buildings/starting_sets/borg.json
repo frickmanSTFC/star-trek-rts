@@ -1,0 +1,78 @@
+{
+  "starting_sets": {
+    "factions": {
+      "borg": {
+        "identity": "Can only take worlds that are already inhabited; no research.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "borg_assimilation_spire",
+            "name": "Assimilation Spire",
+            "cost": {
+              "duranium": 100,
+              "nanoprobes": 20
+            },
+            "effect": "Converts natives or captured population into drones; +5 nanoprobes per cycle; combines assimilated tech into new tech.",
+            "requires": "populated_world"
+          },
+          {
+            "role": "housing",
+            "id": "borg_alcove_block",
+            "name": "Alcove Block",
+            "cost": {
+              "duranium": 80,
+              "nanoprobes": 10
+            },
+            "effect": "Stores drones, not population."
+          },
+          {
+            "role": "extraction",
+            "id": "borg_strip_harvester",
+            "name": "Strip Harvester",
+            "cost": {
+              "duranium": 100
+            },
+            "effect": "+60% yield; planet class degrades over time."
+          },
+          {
+            "role": "power",
+            "id": "borg_power_node",
+            "name": "Collective Power Node",
+            "cost": {
+              "duranium": 80,
+              "nanoprobes": 5
+            },
+            "effect": "Energy shared across every Borg colony."
+          },
+          {
+            "role": "research",
+            "id": null,
+            "name": "None",
+            "cost": {},
+            "effect": "No research: assimilates tech from others and combines what the Collective holds into new tech."
+          },
+          {
+            "role": "defense",
+            "id": "borg_adaptive_shield_node",
+            "name": "Adaptive Shield Node",
+            "cost": {
+              "duranium": 120
+            },
+            "effect": "Adapts to whatever weapon hits the colony."
+          },
+          {
+            "role": "signature",
+            "id": "borg_nanoprobe_beacon",
+            "name": "Nanoprobe Beacon",
+            "cost": {
+              "duranium": 60,
+              "nanoprobes": 10
+            },
+            "effect": "Speeds up turning natives into drones.",
+            "requires": "natives_present"
+          }
+        ]
+      }
+    }
+  }
+}

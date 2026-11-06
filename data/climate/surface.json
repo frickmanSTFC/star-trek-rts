@@ -1,0 +1,4 @@
+{
+  "surface": { "latitude_span_deg": 64, "start_day_fraction": 0.35, "twilight_deg": 6, "thermal_lag_day": 0.1, "season_lag_year": 0.06, "equator_share": 0.27, "snow_below_c": 0,
+               "cell_tiles": 12, "ramp_share": 0.2, "ramp_max_seconds": 40, "epoch_seconds": 1800, "calm_start_seconds": 120, "drop_ship_max_gust_ms": 24, "au_per_map_unit": 0.002066 }
+}

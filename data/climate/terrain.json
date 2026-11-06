@@ -1,0 +1,8 @@
+{
+  "terrain": [
+    { "id": "mud",    "name": "Mud",          "weather": ["rain", "storm"],          "terrain": ["plains", "forest"],       "rover_speed": 0.85, "rover_damage": 1.1 },
+    { "id": "drifts", "name": "Snow drifts",  "weather": ["snow", "blizzard"],       "terrain": ["hills", "ice", "plains"], "rover_speed": 0.85, "rover_damage": 1.05 },
+    { "id": "sand",   "name": "Sand in the air", "weather": ["dust", "dust_storm"],  "terrain": ["desert"],                 "rover_speed": 0.9,  "rover_damage": 1.2 },
+    { "id": "hidden_ice", "name": "Hidden ice", "weather": ["snow", "blizzard"],     "terrain": ["ice"],                    "rover_speed": 1,    "rover_damage": 1.15 }
+  ]
+}

@@ -34,11 +34,11 @@ public sealed record DataFile(string File, string Text);
 /// </summary>
 public static class DataTuning
 {
-    /// <summary>Every number in every data file the sim reads, file by file in load order.</summary>
+    /// <summary>Every number in every data file the sim reads (paths like "surfaces/units/mining_crawler.json"), file by file in load order.</summary>
     public static IReadOnlyList<DataNumber> Numbers(GameData data)
     {
         var list = new List<DataNumber>();
-        foreach (var f in GameData.FileNames)
+        foreach (var f in data.Files)
             if (data.Sources.TryGetValue(f, out var text)) list.AddRange(Numbers(f, text));
         return list;
     }
@@ -111,8 +111,7 @@ public static class DataTuning
     {
         result = null;
         if (edits.Count == 0 && files.Count == 0) return "nothing to change";
-        var sources = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var f in GameData.FileNames) sources[f] = data.Sources.TryGetValue(f, out var t) ? t : "";
+        var sources = new Dictionary<string, string>(data.Sources, StringComparer.Ordinal);
         foreach (var f in files)
         {
             if (!sources.ContainsKey(f.File)) return $"{f.File} isn't a data file the game reads";
@@ -128,9 +127,9 @@ public static class DataTuning
         GameData next;
         try
         {
-            next = GameData.Load(sources);
+            next = GameData.Load(sources, data.Setup);
         }
-        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or KeyNotFoundException or OverflowException or IndexOutOfRangeException or ArgumentException)
+        catch (Exception ex) when (ex is JsonException or System.IO.InvalidDataException or InvalidOperationException or FormatException or KeyNotFoundException or OverflowException or IndexOutOfRangeException or ArgumentException)
         {
             return $"the data no longer loads ({ex.GetType().Name})";
         }

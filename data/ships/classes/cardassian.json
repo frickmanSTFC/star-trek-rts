@@ -1,0 +1,8 @@
+{
+  "classes": [
+    { "faction": "cardassian", "name": "Hideki",        "hull": "fighter",       "era": "tng",  "source": "canon" },
+    { "faction": "cardassian", "name": "Groumall",      "hull": "civilian",      "era": "tng",  "source": "canon", "role": "freighter" },
+    { "faction": "cardassian", "name": "Galor",         "hull": "cruiser",       "era": "tng",  "source": "canon" },
+    { "faction": "cardassian", "name": "Keldon",        "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon" }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "resources": [
+    { "id": "tritanium", "name": "Tritanium", "tier": "flow", "source": "canon",
+      "found_on": ["asteroid", "class_d", "class_k"], "uses": ["hulls", "structures"],
+      "lore": "Principal hull material of TOS-era starships; far harder than titanium." },
+    { "id": "duranium", "name": "Duranium", "tier": "flow", "source": "canon",
+      "found_on": ["asteroid", "class_d", "class_h"], "uses": ["hulls", "armor", "shuttles"],
+      "lore": "Common Federation hull and shuttle alloy." },
+    { "id": "deuterium", "name": "Deuterium", "tier": "flow", "source": "canon",
+      "found_on": ["class_j", "class_t", "class_n", "comet", "ice_moon"], "uses": ["impulse_fuel", "antimatter_feedstock"],
+      "lore": "Heavy hydrogen; matter half of the warp reaction and impulse fuel." },
+    { "id": "dilithium", "name": "Dilithium", "tier": "flow", "source": "canon",
+      "found_on": ["class_d", "class_l", "class_h", "class_y", "asteroid_rare"], "uses": ["warp_cores", "warp_travel"],
+      "lore": "Regulates matter/antimatter reaction. Scarce in TOS; recrystallization later; nearly gone after the Burn.",
+      "mechanics": { "degrades": true, "replicable": false } },
+    { "id": "latinum", "name": "Latinum", "tier": "flow", "source": "canon",
+      "found_on": ["trade"], "uses": ["currency", "bribes", "mercenaries"],
+      "lore": "Liquid at room temperature, cannot be replicated; suspended in gold (slips, strips, bars, bricks).",
+      "mechanics": { "replicable": false, "denominations": ["slip", "strip", "bar", "brick"] } },
+    { "id": "energy", "name": "Energy", "tier": "flow", "source": "original",
+      "found_on": ["generated"], "uses": ["upkeep", "replication", "shields", "antimatter_production"] },
+    { "id": "crew", "name": "Crew", "tier": "flow", "source": "original",
+      "found_on": ["class_m", "class_n", "colonies"], "uses": ["ship_crewing", "boarding", "colonists"],
+      "lore": "Inspired by Star Trek: Armada's crew resource." }
+  ]
+}

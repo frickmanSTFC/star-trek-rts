@@ -1,0 +1,8 @@
+{
+  "buildings": [
+    { "id": "dilithium_mine", "name": "Dilithium Mine", "layer": "surface", "category": "resource", "source": "canon",
+      "cost": { "tritanium": 150 }, "effect": "Raw dilithium. Prime target for raids. (Rura Penthe / Remus style labor variants are faction options.)" },
+    { "id": "recrystallizer", "name": "Dilithium Recrystallization Plant", "layer": "surface", "category": "resource", "source": "canon",
+      "cost": { "parasteel": 100 }, "requires_tech": "dilithium_recrystallization", "effect": "Restores spent dilithium; +refined dilithium." }
+  ]
+}

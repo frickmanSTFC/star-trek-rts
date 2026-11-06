@@ -1,0 +1,14 @@
+{
+  "climates": {
+    "thin_cold": { "name": "Thin, cold air (Mars-like)", "air": true, "wind_scale": 1.1, "drift_tiles_per_min": 2.5, "swing_c": 37, "polar_drop_c": 45,
+      "seasons": [
+        { "name": "Clear season", "share": 0.4,  "temp_c": 3,  "humidity_pct": 0, "wind": 0.9, "spell_s": [150, 420], "weights": { "clear": 70, "cloudy": 6,  "dust": 18, "high_wind": 6 } },
+        { "name": "Dust season",  "share": 0.35, "temp_c": 5,  "humidity_pct": 0, "wind": 1.4, "spell_s": [150, 480], "weights": { "clear": 30, "dust": 32, "dust_storm": 26, "high_wind": 12 } },
+        { "name": "Frost season", "share": 0.25, "temp_c": -12, "humidity_pct": 1, "wind": 1,  "spell_s": [120, 360], "weights": { "clear": 52, "cloudy": 10, "fog": 12, "snow": 14, "dust": 8, "high_wind": 4 } }
+      ],
+      "bands": [
+        { "name": "Low latitudes", "to_deg": 35, "season_scale": 0.5, "wind_toward_deg": 270, "weights": { "dust_storm": 1.3, "snow": 0.3 } },
+        { "name": "Polar caps",    "to_deg": 90, "season_scale": 1.3, "wind_toward_deg": 90,  "weights": { "snow": 2, "fog": 1.5, "dust_storm": 0.6 } }
+      ] }
+  }
+}

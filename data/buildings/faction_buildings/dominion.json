@@ -1,0 +1,8 @@
+{
+  "faction_buildings": [
+    { "faction": "dominion", "id": "ketracel_facility", "name": "Ketracel-white Facility", "source": "canon", "effect": "Produces White; destroying it cripples nearby Jem'Hadar." },
+    { "faction": "dominion", "id": "cloning_facility", "name": "Jem'Hadar Birthing/Cloning Facility", "source": "canon", "effect": "Fast troop and crew production — no population needed." },
+    { "faction": "dominion", "id": "internment_camp", "name": "Internment Camp", "source": "canon", "effect": "Holds captured captains; enables Changeling replacement ops." },
+    { "faction": "dominion", "id": "great_link_pool", "name": "Great Link", "source": "canon", "effect": "Capital wonder: Changeling infiltrator production; Founder morale aura." }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "heroes": [
+    { "id": "starfleet_captain", "name": "Starfleet Captain", "faction": "federation", "source": "canon", "role": "hero", "traits": ["diplomat", "tactician", "unorthodox"], "notes": "Gains XP; picks one trait per rank. Unorthodox captains can bluff with the Corbomite Maneuver." },
+    { "id": "dahar_master", "name": "Dahar Master", "faction": "klingon", "source": "canon", "role": "hero", "traits": ["inspire_warriors", "duelist", "honor_bonus"] },
+    { "id": "gul", "name": "Gul", "faction": "cardassian", "source": "canon", "role": "hero", "traits": ["occupation_governor", "interrogator"] },
+    { "id": "romulan_commander", "name": "Romulan Commander", "faction": "romulan", "source": "canon", "role": "hero", "traits": ["cloak_ambush", "cunning"] },
+    { "id": "vorta_supervisor", "name": "Vorta Field Supervisor", "faction": "dominion", "source": "canon", "role": "hero", "traits": ["command_jemhadar", "clone_backup"], "notes": "A killed Vorta returns as a clone after a delay." },
+    { "id": "daimon", "name": "DaiMon", "faction": "ferengi", "source": "canon", "role": "hero", "traits": ["negotiator", "bribe", "salvage_rights"] },
+    { "id": "borg_queen", "name": "Borg Queen", "faction": "borg", "source": "canon", "role": "hero", "limit": 1, "traits": ["unicomplex_link", "command_aura", "assimilation_speed"] },
+    { "id": "earth_captain", "name": "Earth Starship Captain", "faction": "earth_uec", "era": "ent", "source": "original", "role": "hero", "traits": ["explorer", "first_contact"] },
+    { "id": "vulcan_ambassador", "name": "Vulcan Ambassador", "faction": "vulcan", "era": "ent", "source": "original", "role": "hero", "traits": ["logic", "mediator"] },
+    { "id": "guard_commander", "name": "Imperial Guard Commander", "faction": "andorian", "era": "ent", "source": "original", "role": "hero", "traits": ["fleet_tactics", "ushaan_duelist"] },
+    { "id": "tellarite_ambassador", "name": "Tellarite Ambassador", "faction": "tellarite", "era": "ent", "source": "original", "role": "hero", "traits": ["hard_bargainer", "argue_down_prices"] },
+    { "id": "chain_matriarch", "name": "Emerald Chain Matriarch", "faction": "emerald_chain", "era": "far_future", "source": "original", "role": "hero", "traits": ["dilithium_leverage", "ruthless"] },
+    { "id": "ni_var_president", "name": "Ni'Var President", "faction": "ni_var", "era": "far_future", "source": "original", "role": "hero", "traits": ["consensus_builder", "science_patron"] }
+  ]
+}

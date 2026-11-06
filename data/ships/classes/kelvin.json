@@ -1,0 +1,9 @@
+{
+  "classes": [
+    { "faction": "federation", "name": "Kelvin",              "hull": "cruiser",       "era": "kelvin", "source": "canon" },
+    { "faction": "federation", "name": "Constitution (Kelvin)", "hull": "heavy_cruiser", "era": "kelvin", "source": "canon", "special": "saucer_separation" },
+    { "faction": "federation", "name": "Dreadnought (Vengeance)", "hull": "battleship", "era": "kelvin", "source": "canon", "special": "heavy_armament" },
+    { "faction": "klingon",    "name": "D4 Bird-of-Prey",     "hull": "escort",        "era": "kelvin", "source": "canon", "special": "cloak" },
+    { "faction": "romulan",    "name": "Narada",              "hull": "battleship",    "era": "kelvin", "source": "canon", "special": "red_matter, mining_drill" }
+  ]
+}

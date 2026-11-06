@@ -1,0 +1,7 @@
+{
+  "faction_buildings": [
+    { "faction": "ferengi", "id": "tower_of_commerce", "name": "Tower of Commerce", "source": "canon", "effect": "Capital; unlocks Rules of Acquisition perks." },
+    { "faction": "ferengi", "id": "latinum_exchange", "name": "Latinum Exchange", "source": "original", "effect": "Convert any resource ↔ Latinum at market rates (player-driven prices)." },
+    { "faction": "ferengi", "id": "mercenary_guild", "name": "Mercenary Contract Office", "source": "original", "effect": "Hire pirate/minor-faction ships for Latinum." }
+  ]
+}

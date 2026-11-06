@@ -1,0 +1,6 @@
+{
+  "starting_modules": ["impulse", "cargo_bay", "construction_rig", "mining_laser", "medical_bay", "science_lab", "troop_bay"],
+  "assimilated_modules": ["cutting_beam", "borg_torpedo"],
+  "faction_rules": {"borg": {"research": false, "assimilate": "Gains any tech, including other factions' faction-only techs, by assimilating a ship, station or colony that has it.", "combine": "Once the Collective holds every prerequisite of a tech, any Borg command structure combines them into that tech, paid in nanoprobes instead of research: 20 per tier of the tech.", "combine_cost": {"resource": "nanoprobes", "per_tier": 20}}},
+  "trees": ["propulsion", "weapons", "defense", "sensors_stealth", "engineering", "computing", "biology_colonization"]
+}

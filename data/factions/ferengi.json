@@ -1,0 +1,13 @@
+{
+  "factions": [
+    { "id": "ferengi", "name": "Ferengi Alliance", "playable": true,
+      "eras": ["tng", "dominion_war", "picard"],
+      "playstyle": "Economy / mercenary / trade",
+      "signature": { "id": "rules_of_acquisition", "desc": "Unlockable Rules grant economic perks; can buy foreign ships, modules and mercenaries with Latinum." },
+      "secondary": ["trade_monopolies", "bribery", "energy_whip"],
+      "weakness": "Weak native military; Latinum loss cripples them.",
+      "home": "Ferenginar",
+      "weapons": ["plasma_energy_burst", "photon_torpedo"],
+      "flavor_units": { "hero": "DaiMon", "ground": "Ferengi Mercenaries", "special": "Marauder" } }
+  ]
+}

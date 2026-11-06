@@ -8,3 +8,8 @@ game/.godot/
 **/bin/
 **/obj/
 *.user
+
+# Game data: unpromoted edits, backups and the last good copy (see CLAUDE.md "Data files"); the release pack is built
+data/_draft/
+data/_backups/
+game/gamedata.pack

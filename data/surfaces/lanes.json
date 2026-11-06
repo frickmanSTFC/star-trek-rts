@@ -1,0 +1,3 @@
+{
+  "lanes": { "lane_offset": 2.5, "clearance": 2, "default_footprint": 7.5, "park_radius": 8, "avoid_radius": 4.5, "gap_ahead": 6, "gap_side": 3, "wait_seconds": 2, "push_seconds": 3 }
+}

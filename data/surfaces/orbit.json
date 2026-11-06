@@ -1,0 +1,23 @@
+{
+  "orbit": {
+    "era": "tng",
+    "ships": {
+      "federation": { "name": "U.S.S. Endeavour", "class": "Galaxy" },
+      "klingon": { "name": "I.K.S. Gorkon", "class": "Vor'cha" },
+      "romulan": { "name": "I.R.W. Khazara", "class": "D'deridex Warbird" },
+      "cardassian": { "name": "Trager", "class": "Galor" },
+      "ferengi": { "name": "Kreechta", "class": "D'Kora Marauder" },
+      "dominion": { "name": "Vorta Command Ship", "class": "Vorta Command Ship" },
+      "borg": { "name": "Cube 630", "class": "Cube" } },
+    "hold": { "duranium": 400, "tritanium": 200, "deuterium": 100 },
+    "outpost_drop": { "building": "colony_hub", "cost": { "duranium": 250, "tritanium": 100, "crew": 40 }, "descent_seconds": 8, "min_distance": 10 },
+    "shuttle": { "flight_seconds": 12, "payloads": ["survey_rover", "mining_crawler", "survey_team"] },
+    "satellite": { "cost": { "duranium": 80, "tritanium": 40 }, "max": 3, "band_rows": 9, "sweep_seconds": 60 },
+    "transporter": {
+      "levels": [
+        { "name": "Early transporter", "payloads": ["survey_team"], "range": 6, "cargo": 0, "cooldown_seconds": 30 },
+        { "name": "Transporter", "payloads": ["survey_team", "supplies"], "range": 12, "cargo": 100, "cooldown_seconds": 20 },
+        { "name": "Advanced transporter", "payloads": ["survey_team", "supplies"], "range": 0, "cargo": 250, "cooldown_seconds": 10 } ],
+      "by_era": { "ent": 1, "tos": 2, "kelvin": 2, "tng": 3, "dominion_war": 3, "voy": 3, "picard": 3, "far_future": 3 },
+      "factions": { "borg": 3, "ferengi": 2 } } }
+}

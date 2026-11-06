@@ -1,0 +1,19 @@
+{
+  "hazards": [
+    { "id": "orion_syndicate", "name": "Orion Syndicate", "category": "raider", "source": "canon",
+      "behavior": "Smuggling, contraband, kidnapping colonists, bribing your governors.",
+      "counter": "Security patrols; buy them off; hire them against rivals." },
+    { "id": "nausicaan_raiders", "name": "Nausicaan Raiders", "category": "raider", "source": "canon",
+      "behavior": "Hit-and-run on freighters and civilian transports.",
+      "counter": "Convoy escorts." },
+    { "id": "kazon_sects", "name": "Kazon Sects", "category": "raider", "source": "canon", "eras": ["voy"],
+      "behavior": "Swarm attacks; try to steal replicator/transporter tech.",
+      "counter": "Play sects against each other." },
+    { "id": "hirogen_hunt", "name": "Hirogen Hunters", "category": "raider", "source": "canon", "counter_techs": ["holotechnology"], "eras": ["voy"],
+      "behavior": "Track and target your highest-XP ship/captain.",
+      "counter": "Decoys, holographic prey (with risks)." },
+    { "id": "breen_privateers", "name": "Breen Privateers", "category": "raider", "source": "original", "counter_techs": ["dampener_resistant_routing"],
+      "behavior": "Raid with energy dampeners; strand fleets.",
+      "counter": "Dampener-resistant power routing tech." }
+  ]
+}

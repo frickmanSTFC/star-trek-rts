@@ -1,0 +1,12 @@
+{
+  "layers": {
+    "surface":    "Built on planets/moons. Slot count = body size × habitability modifier. Airless bodies need a Pressure Dome first.",
+    "orbital":    "Ring slots around any body (3–8). Shipyards, refineries, defense platforms.",
+    "deep_space": "Free placement. Needs a construction ship and must be inside your supply range (except Outposts, which extend it).",
+    "asteroid":   "Hollowed asteroid slots (2–4). Cheap, hard to see, vulnerable to tractor-beam theft."
+  },
+  "shipyard_tiers": {
+    "_notes": "Max hull size a facility can build (see ships.json hull.size).",
+    "orbital_drydock": 3, "orbital_shipyard": 5, "spacedock": 6, "fleet_yards": 8
+  }
+}

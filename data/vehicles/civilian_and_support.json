@@ -1,0 +1,28 @@
+{
+  "civilian_and_support": [
+    { "id": "construction_ship", "name": "Construction Ship", "hull": "civilian", "source": "original",
+      "abilities": ["build_outpost", "build_station", "build_orbital"] },
+    { "id": "colony_transport", "name": "Colony Transport", "hull": "civilian", "source": "canon",
+      "abilities": ["found_colony"], "notes": "Carries colonists + prefab habitat kit." },
+    { "id": "survey_ship", "name": "Survey Ship", "hull": "scout", "source": "canon",
+      "abilities": ["deep_survey", "anomaly_study"], "notes": "Oberth/Nova-style; reveals deposits and hidden hazards." },
+    { "id": "mining_barge", "name": "Mining Barge", "hull": "civilian", "source": "original",
+      "abilities": ["mine_asteroid", "mine_comet"] },
+    { "id": "deuterium_tanker", "name": "Deuterium Tanker", "hull": "civilian", "source": "original",
+      "abilities": ["skim_gas_giant", "refuel_fleet"] },
+    { "id": "freighter", "name": "Freighter", "hull": "civilian", "source": "canon",
+      "abilities": ["trade_route", "haul_cargo"], "notes": "Generates Latinum on routes; pirate magnet." },
+    { "id": "tug", "name": "Space Tug", "hull": "civilian", "source": "canon",
+      "abilities": ["tow_disabled_ship", "move_station_module", "tow_asteroid"] },
+    { "id": "hospital_ship", "name": "Olympic-class Hospital Ship", "hull": "frigate", "source": "canon",
+      "abilities": ["heal_crew_aura", "plague_response", "evacuate_colony"] },
+    { "id": "troop_transport", "name": "Troop Transport", "hull": "frigate", "source": "canon",
+      "abilities": ["carry_troops_large", "planetary_invasion"] },
+    { "id": "diplomatic_courier", "name": "Diplomatic Courier", "hull": "scout", "source": "original",
+      "abilities": ["open_relations", "deliver_treaty"] },
+    { "id": "evac_transport", "name": "Evacuation Transport", "hull": "civilian", "source": "canon",
+      "abilities": ["mass_evacuation"], "eras": ["picard"], "notes": "Romulan supernova evacuation fleets." },
+    { "id": "salvage_vessel", "name": "Salvage Vessel", "hull": "civilian", "source": "original",
+      "abilities": ["salvage_wreck", "recover_tech_fragment"] }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "classes": [
+    { "faction": "romulan", "name": "Bird-of-Prey (22nd c.)", "hull": "frigate", "era": "ent",  "source": "canon", "special": "telecapture" },
+    { "faction": "romulan", "name": "Bird-of-Prey (23rd c.)", "hull": "cruiser", "era": "tos",  "source": "canon", "special": "cloak, plasma_torpedo" },
+    { "faction": "romulan", "name": "D'deridex Warbird", "hull": "battleship",   "era": "tng",  "source": "canon", "special": "cloak, singularity_core" },
+    { "faction": "romulan", "name": "Valdore",          "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon" },
+    { "faction": "romulan", "name": "Scimitar",         "hull": "titan",         "era": "dominion_war", "source": "canon", "special": "thalaron, perfect_cloak" }
+  ]
+}

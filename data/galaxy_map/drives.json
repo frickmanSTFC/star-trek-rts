@@ -1,0 +1,110 @@
+{
+  "core": {
+    "x": 0,
+    "y": 26000,
+    "galaxy_radius": 50000
+  },
+  "warp_scale": {
+    "_notes": "TNG-era warp factors as multiples of light speed (Technical Manual scale). ENT-era 'warp 5' engines used an older, slower scale.",
+    "factors": [
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        10
+      ],
+      [
+        3,
+        39
+      ],
+      [
+        4,
+        102
+      ],
+      [
+        5,
+        214
+      ],
+      [
+        6,
+        392
+      ],
+      [
+        7,
+        656
+      ],
+      [
+        8,
+        1024
+      ],
+      [
+        9,
+        1516
+      ],
+      [
+        9.6,
+        1909
+      ],
+      [
+        9.9,
+        3053
+      ],
+      [
+        9.975,
+        7912
+      ]
+    ]
+  },
+  "drives": [
+    {
+      "id": "warp_5",
+      "name": "Warp 5 Engine",
+      "tech": "warp_5",
+      "lore_warp": 5,
+      "game_ly_per_min": 30,
+      "rule": "Lane travel only."
+    },
+    {
+      "id": "warp_8",
+      "name": "Warp 8 Drive",
+      "tech": "warp_8",
+      "lore_warp": 8,
+      "game_ly_per_min": 60,
+      "rule": "Lane travel only."
+    },
+    {
+      "id": "warp_9_9",
+      "name": "Warp 9.9 Envelope",
+      "tech": "warp_9_9",
+      "lore_warp": 9.9,
+      "game_ly_per_min": 110,
+      "rule": "Lane travel only."
+    },
+    {
+      "id": "slipstream",
+      "name": "Quantum Slipstream",
+      "tech": "quantum_slipstream",
+      "lore_c": 4000000,
+      "game_ly_per_min": 300,
+      "rule": "Skips one lane node per jump; needs benamite."
+    },
+    {
+      "id": "transwarp",
+      "name": "Transwarp Conduit",
+      "tech": "transwarp_conduits",
+      "lore_c": 50000000,
+      "game_ly_per_min": null,
+      "rule": "Instant between transwarp hubs and exits; Borg only."
+    },
+    {
+      "id": "spore",
+      "name": "Spore Drive",
+      "tech": "spore_drive",
+      "lore_c": null,
+      "game_ly_per_min": null,
+      "rule": "Instant jump anywhere; needs a navigator captain."
+    }
+  ]
+}

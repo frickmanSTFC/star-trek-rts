@@ -1,0 +1,8 @@
+{
+  "faction_buildings": [
+    { "faction": "federation", "id": "starfleet_academy", "name": "Starfleet Academy", "source": "canon", "effect": "Recruit/train Captains; crew XP bonus." },
+    { "faction": "federation", "id": "daystrom_institute", "name": "Daystrom Institute", "source": "canon", "effect": "Large research bonus; unlocks positronic research early." },
+    { "faction": "federation", "id": "memory_alpha_archive", "name": "Memory Alpha Archive", "source": "canon", "effect": "Shared research with allies; tech-loss protection." },
+    { "faction": "federation", "id": "federation_council", "name": "Federation Council Chamber", "source": "canon", "effect": "Member Worlds votes; diplomatic victory progress." }
+  ]
+}

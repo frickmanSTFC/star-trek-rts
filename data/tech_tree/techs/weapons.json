@@ -1,0 +1,23 @@
+{
+  "techs": [
+    { "id": "phase_cannon", "name": "Phase Cannons", "tree": "weapons", "tier": 1, "prereqs": [], "unlocks": ["mod_phase_cannon"] },
+    { "id": "spatial_torpedo", "name": "Spatial Torpedoes", "tree": "weapons", "tier": 1, "prereqs": [], "unlocks": ["mod_spatial_torpedo"] },
+    { "id": "photon_torpedo", "name": "Photon Torpedoes", "tree": "weapons", "tier": 1, "prereqs": ["spatial_torpedo"], "requires_resource": "antimatter", "unlocks": ["mod_photon_torpedo"] },
+    { "id": "phaser", "name": "Phasers", "tree": "weapons", "tier": 2, "prereqs": ["phase_cannon"], "unlocks": ["mod_phaser_array"] },
+    { "id": "disruptor", "name": "Disruptors", "tree": "weapons", "tier": 1, "prereqs": [], "faction_only": ["klingon", "romulan", "cardassian"], "effect": "+hull damage, -shield damage vs phasers.", "unlocks": ["mod_disruptor", "mod_spiral_wave_disruptor"] },
+    { "id": "plasma_torpedo", "name": "Plasma Torpedoes", "tree": "weapons", "tier": 2, "prereqs": ["photon_torpedo"], "faction_only": ["romulan"], "unlocks": ["mod_plasma_torpedo"] },
+    { "id": "pulse_phaser", "name": "Pulse Phaser Cannons", "tree": "weapons", "tier": 4, "prereqs": ["phaser"], "unlocks": ["mod_pulse_phaser"] },
+    { "id": "quantum_torpedo", "name": "Quantum Torpedoes", "tree": "weapons", "tier": 4, "prereqs": ["photon_torpedo"], "unlocks": ["mod_quantum_torpedo"] },
+    { "id": "polaron", "name": "Phased Polaron Beams", "tree": "weapons", "tier": 4, "prereqs": ["phaser"], "faction_only": ["dominion"], "effect": "Partially bypasses shields.", "unlocks": ["mod_phased_polaron", "mod_polaron_torpedo"] },
+    { "id": "plasma_energy_burst", "name": "Plasma Energy Burst", "tree": "weapons", "tier": 3, "prereqs": ["phase_cannon"], "faction_only": ["ferengi"], "unlocks": ["mod_plasma_energy_burst"], "effect": "Short-range burst that drains shields; pairs with the Marauder energy whip." },
+    { "id": "energy_dampener", "name": "Energy Dampening Weapon", "tree": "weapons", "tier": 4, "prereqs": ["phaser"], "faction_only": ["breen"], "unlocks": ["mod_energy_dampener"], "effect": "Knocks out a target's power entirely." },
+    { "id": "self_replicating_mines", "name": "Self-Replicating Minefield", "tree": "weapons", "tier": 4, "prereqs": ["photon_torpedo"], "unlocks": ["self_replicating_minefield"], "effect": "Cloaked mines that rebuild themselves; seals a wormhole mouth or a lane." },
+    { "id": "nanoprobe_weapons", "name": "Nanoprobe Warheads", "tree": "weapons", "tier": 4, "prereqs": ["photon_torpedo"], "faction_only": ["borg"], "unlocks": ["mod_nanoprobe_warhead"], "effect": "The one weapon Species 8472 can't ignore. Other factions get it only through a Borg alliance or by studying a captured Borg wreck." },
+    { "id": "tetryon_weapons", "name": "Tetryon Cannons", "tree": "weapons", "tier": 4, "prereqs": ["phaser"], "faction_only": ["hirogen"], "unlocks": ["mod_tetryon_cannon"] },
+    { "id": "transphasic_torpedo", "name": "Transphasic Torpedoes", "tree": "weapons", "tier": 5, "prereqs": ["quantum_torpedo"], "effect": "Ignores Borg adaptation.", "unlocks": ["mod_transphasic_torpedo"] },
+    { "id": "metreon_cascade", "name": "Metreon Cascade", "tree": "weapons", "tier": 4, "prereqs": ["quantum_torpedo"], "requires_resource": "metreon_gas", "forbidden": true, "effect": "Planet-scale weapon; massive diplomatic penalty." },
+    { "id": "trilithium_weapon", "name": "Trilithium Stellar Inhibitor", "tree": "weapons", "tier": 4, "prereqs": ["quantum_torpedo"], "requires_resource": "trilithium", "forbidden": true, "effect": "Collapses a star; destroys a system." },
+    { "id": "thalaron", "name": "Thalaron Radiation", "tree": "weapons", "tier": 4, "prereqs": ["plasma_torpedo"], "faction_only": ["romulan"], "forbidden": true, "effect": "Kills all organic life on a target; leaves infrastructure intact.", "unlocks": ["mod_thalaron_generator"] },
+    { "id": "red_matter_weapons", "name": "Red Matter Singularity", "tree": "weapons", "tier": 2, "prereqs": ["photon_torpedo"], "requires_resource": "red_matter", "forbidden": true, "effect": "Kelvin timeline only: a red-matter drop collapses a planet into a black hole, or contains a supernova." }
+  ]
+}

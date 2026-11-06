@@ -1,0 +1,15 @@
+{
+  "hazards": [
+    { "id": "q_event", "name": "Q Intervention", "category": "wildcard", "source": "canon",
+      "effect": "Random: trial (pass a challenge for a buff), swap a fleet's location, remove a player's ships temporarily, fling a ship to Borg space.",
+      "counter": "None. Q does what Q wants." },
+    { "id": "mirror_incursion", "name": "Mirror Universe Incursion", "category": "wildcard", "source": "canon",
+      "effect": "Terran Empire duplicates of your own ships appear via a quantum rift.",
+      "counter": "Seal the rift with a tachyon pulse, or fight your duplicates: they share your own ships' weaknesses.",
+      "counter_techs": ["deflector_improvisation"],
+      "choices": { "seal": "Close the rift: incursion ends, no reward", "ally_rebels": "Back the Terran rebels: a temporary rebel fleet, the Terran Empire turns hostile", "swap_captains": "Trade a captain with their mirror double: steal one tech, risk a traitor in your fleet" } },
+    { "id": "changeling_sabotage", "name": "Changeling Infiltration", "category": "wildcard", "source": "canon",
+      "effect": "Hidden saboteur in a colony or fleet; random sabotage until found.",
+      "counter": "Blood screenings (morale cost), phaser sweeps." }
+  ]
+}

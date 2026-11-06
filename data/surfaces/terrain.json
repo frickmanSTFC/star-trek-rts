@@ -1,0 +1,12 @@
+{
+  "terrain": [
+    { "id": "ocean",     "name": "Ocean",     "color": "#1d4e89", "passable": false, "buildable": false, "move_cost": 0, "height": 0 },
+    { "id": "shallows",  "name": "Shallows",  "color": "#3a7fb8", "passable": false, "buildable": false, "move_cost": 0, "height": 0 },
+    { "id": "plains",    "name": "Plains",    "color": "#8fae5a", "passable": true,  "buildable": true,  "move_cost": 2, "height": 1 },
+    { "id": "forest",    "name": "Forest",    "color": "#3f6e35", "passable": true,  "buildable": false, "move_cost": 3, "height": 1 },
+    { "id": "desert",    "name": "Desert",    "color": "#d2b77a", "passable": true,  "buildable": true,  "move_cost": 2, "height": 1 },
+    { "id": "hills",     "name": "Hills",     "color": "#8a7a5a", "passable": true,  "buildable": true,  "move_cost": 4, "height": 2 },
+    { "id": "mountains", "name": "Mountains", "color": "#6e6a66", "passable": false, "buildable": false, "move_cost": 0, "height": 4 },
+    { "id": "ice",       "name": "Polar ice", "color": "#e8f0f5", "passable": true,  "buildable": false, "move_cost": 4, "height": 1 }
+  ]
+}

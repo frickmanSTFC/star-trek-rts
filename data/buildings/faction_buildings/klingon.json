@@ -1,0 +1,8 @@
+{
+  "faction_buildings": [
+    { "faction": "klingon", "id": "great_hall", "name": "Great Hall", "source": "canon", "effect": "Spend Honor to summon Great House fleets; High Council politics." },
+    { "faction": "klingon", "id": "warrior_training_ground", "name": "Warrior Training Ground", "source": "original", "effect": "Elite boarding parties." },
+    { "faction": "klingon", "id": "penal_colony", "name": "Penal Colony", "source": "canon", "effect": "Prisoner labor dilithium mine (Rura Penthe). Huge output, escape/rebellion events." },
+    { "faction": "klingon", "id": "asteroid_fortress", "name": "Asteroid Fortress", "source": "canon", "effect": "Hollowed asteroid base with heavy disruptors (Ty'Gokor)." }
+  ]
+}

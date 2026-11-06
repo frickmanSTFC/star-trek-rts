@@ -1,0 +1,13 @@
+{
+  "relics": {
+    "_notes": "Map-placed, unbuildable. Capture/study for unique bonuses. Great late-game objectives in multiplayer.",
+    "list": [
+      { "id": "guardian_of_forever", "name": "Guardian of Forever", "source": "canon", "effect": "One-time temporal action: undo a lost battle or rewind a colony." },
+      { "id": "iconian_gateway", "name": "Iconian Gateway", "source": "canon", "effect": "Teleports ships/troops to any visible system; dangerous if left open." },
+      { "id": "dyson_sphere", "name": "Dyson Sphere", "source": "canon", "effect": "Enormous habitable interior and energy; very hard to enter." },
+      { "id": "caretaker_array", "name": "Caretaker-type Array", "source": "canon", "effect": "Pulls a random fleet across the galaxy; can be controlled or destroyed." },
+      { "id": "celestial_temple", "name": "Celestial Temple (Wormhole)", "source": "canon", "effect": "Stable wormhole; Bajoran-faith morale; Prophets/Pah-wraith events." },
+      { "id": "genesis_planet", "name": "Genesis Planet", "source": "canon", "effect": "Rich, unstable world — rapid regeneration effects, then collapse." }
+    ]
+  }
+}

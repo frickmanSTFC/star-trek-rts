@@ -1,0 +1,79 @@
+{
+  "starting_sets": {
+    "factions": {
+      "cardassian": {
+        "identity": "Industry and control; slow research.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "car_garrison_post",
+            "name": "Garrison Post",
+            "cost": {
+              "duranium": 110,
+              "crew": 40
+            },
+            "effect": "Includes a garrison; no separate defense building needed."
+          },
+          {
+            "role": "housing",
+            "id": "car_labor_barracks",
+            "name": "Labor Barracks",
+            "cost": {
+              "duranium": 60
+            },
+            "effect": "+1 population."
+          },
+          {
+            "role": "extraction",
+            "id": "car_ore_extraction_site",
+            "name": "Ore Extraction Site",
+            "cost": {
+              "duranium": 100
+            },
+            "effect": "+50% yield; uridium bonus on Class M."
+          },
+          {
+            "role": "power",
+            "id": "fusion_reactor",
+            "name": "Fusion Reactor",
+            "cost": {
+              "duranium": 80,
+              "deuterium": 20
+            },
+            "effect": "+10 energy.",
+            "building_ref": "fusion_reactor"
+          },
+          {
+            "role": "research",
+            "id": "car_state_archive",
+            "name": "State Archive",
+            "cost": {
+              "duranium": 120
+            },
+            "effect": "-25% research."
+          },
+          {
+            "role": "defense",
+            "id": "car_surveillance_grid",
+            "name": "Surveillance Grid",
+            "cost": {
+              "duranium": 60,
+              "isolinear_chips": 10
+            },
+            "effect": "Reveals spies; -1 Resistance."
+          },
+          {
+            "role": "signature",
+            "id": "car_occupation_office",
+            "name": "Occupation Office",
+            "cost": {
+              "duranium": 80
+            },
+            "effect": "Natives put to work: +output, rising Resistance.",
+            "requires": "natives_present"
+          }
+        ]
+      }
+    }
+  }
+}

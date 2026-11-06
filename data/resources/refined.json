@@ -1,0 +1,22 @@
+{
+  "resources": [
+    { "id": "antimatter", "name": "Antimatter (Antideuterium)", "tier": "refined", "source": "canon",
+      "inputs": { "deuterium": 2, "energy": 5 }, "uses": ["warp_cores", "photon_torpedoes"] },
+    { "id": "parasteel", "name": "Parasteel", "tier": "refined", "source": "original",
+      "inputs": { "tritanium": 1, "duranium": 1, "energy": 1 }, "uses": ["hull_sections", "station_frames"],
+      "lore": "Original alloy for this game (name not from Trek canon)." },
+    { "id": "transparent_aluminum", "name": "Transparent Aluminum", "tier": "refined", "source": "canon",
+      "inputs": { "duranium": 1, "energy": 2 }, "uses": ["domes", "viewports", "habitats"],
+      "lore": "Formula 'given' to 20th-century Earth in The Voyage Home." },
+    { "id": "isolinear_chips", "name": "Isolinear Chips", "tier": "refined", "source": "canon",
+      "inputs": { "dilithium": 0.1, "energy": 2 }, "uses": ["computers", "sensors"], "eras_from": "tng" },
+    { "id": "bioneural_gel", "name": "Bio-neural Gel Packs", "tier": "refined", "source": "canon",
+      "inputs": { "energy": 3, "zenite": 0.2 }, "uses": ["advanced_computers"], "eras_from": "voy",
+      "mechanics": { "vulnerable_to": "biological_infection_events" } },
+    { "id": "warp_coils", "name": "Warp Coils", "tier": "refined", "source": "canon",
+      "inputs": { "verterium_cortenide": 1, "parasteel": 1 }, "uses": ["warp_nacelles"] },
+    { "id": "plasma_conduits", "name": "Plasma Conduits", "tier": "refined", "source": "canon",
+      "inputs": { "duranium": 1, "energy": 1 }, "uses": ["ship_power", "station_power"] },
+    { "id": "photon_warheads", "name": "Photon Warheads", "tier": "refined", "source": "canon", "inputs": {"antimatter": 1, "sirillium": 0.5}, "uses": ["photon_torpedoes", "station_defense"], "lore": "Antimatter warhead casings; sirillium boosts the yield." }
+  ]
+}

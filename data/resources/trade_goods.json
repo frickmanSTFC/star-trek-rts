@@ -1,0 +1,8 @@
+{
+  "resources": [
+    { "id": "self_sealing_stem_bolts", "name": "Self-Sealing Stem Bolts", "tier": "trade_good", "source": "canon", "found_on": ["trade"],
+      "uses": ["trade"], "lore": "Nobody knows what they're for. Ferengi will sell them anyway." },
+    { "id": "romulan_ale", "name": "Romulan Ale", "tier": "trade_good", "source": "canon", "found_on": ["trade"],
+      "uses": ["morale", "smuggling"], "mechanics": { "contraband_in": ["federation"] } }
+  ]
+}

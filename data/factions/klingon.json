@@ -1,0 +1,13 @@
+{
+  "factions": [
+    { "id": "klingon", "name": "Klingon Empire", "playable": true,
+      "eras": ["ent", "tos", "tng", "dominion_war", "picard", "far_future", "kelvin"],
+      "playstyle": "Aggressive raider / boarding",
+      "signature": { "id": "honor", "desc": "Earn Honor from combat and victories; spend it to call on Great Houses for ships, or lose it and risk civil war." },
+      "secondary": ["cloaked_birds_of_prey", "boarding_parties", "bloodwine_feasts"],
+      "weakness": "Weak economy and research; dishonorable acts (fleeing, sneak attacks on allies) cost Honor.",
+      "home": "Qo'noS (Praxis moon — can explode in TOS era)",
+      "weapons": ["disruptor", "photon_torpedo"],
+      "flavor_units": { "hero": "Dahar Master", "ground": "Klingon Warriors", "special": "Bird-of-Prey (cloak + fire)" } }
+  ]
+}

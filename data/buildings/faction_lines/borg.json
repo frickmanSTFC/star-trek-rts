@@ -1,0 +1,173 @@
+{
+  "faction_lines": {
+    "borg": {
+      "deep_space": [
+        {
+          "id": "borg_probe_node",
+          "name": "Probe Node",
+          "cost": {
+            "duranium": 120,
+            "nanoprobes": 10
+          },
+          "effect": "Full system vision; records enemy weapons.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "borg_interlink_node",
+          "name": "Interlink Node",
+          "cost": {
+            "parasteel": 300,
+            "nanoprobes": 30
+          },
+          "effect": "Adaptations shared with all Borg units in range.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "vinculum",
+          "name": "Vinculum Station",
+          "cost": {
+            "parasteel": 650,
+            "nanoprobes": 60
+          },
+          "effect": "Fast regeneration; destroyed = drones in range offline.",
+          "stats": {
+            "supply_range": 3
+          },
+          "tag": "faction_only",
+          "building_ref": "vinculum"
+        },
+        {
+          "id": "transwarp_hub",
+          "name": "Transwarp Hub",
+          "cost": {
+            "parasteel": 1400,
+            "nanoprobes": 120
+          },
+          "effect": "Instant hub-to-hub travel; capturable.",
+          "stats": {
+            "apertures": 3
+          },
+          "tag": "faction_only",
+          "building_ref": "transwarp_hub"
+        }
+      ],
+      "command": [
+        {
+          "id": "borg_assimilation_spire",
+          "name": "Assimilation Spire",
+          "cost": {
+            "duranium": 100,
+            "nanoprobes": 20
+          },
+          "effect": "Only on populated worlds; converts pop to drones; +5 nanoprobes per cycle; combines assimilated tech into new tech.",
+          "stats": {
+            "requires": "populated_world"
+          }
+        },
+        {
+          "id": "borg_planetary_hive",
+          "name": "Planetary Hive",
+          "cost": {
+            "parasteel": 320,
+            "nanoprobes": 40
+          },
+          "effect": "No morale/unrest; self-repairing.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "unicomplex",
+          "name": "Unicomplex",
+          "cost": {
+            "parasteel": 2000,
+            "nanoprobes": 200
+          },
+          "effect": "Match-long adaptation memory; Borg Queen; loss wipes adaptations.",
+          "tag": "faction_only",
+          "building_ref": "unicomplex"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "borg_assembly_matrix",
+          "name": "Assembly Matrix",
+          "cost": {
+            "duranium": 180,
+            "nanoprobes": 20
+          },
+          "effect": "Probes; wrecks in system return resources.",
+          "stats": {
+            "hull_cap": 2
+          }
+        },
+        {
+          "id": "borg_sphere_matrix",
+          "name": "Sphere Matrix",
+          "cost": {
+            "parasteel": 360,
+            "nanoprobes": 40
+          },
+          "effect": "Spheres; can mount any assimilated tech.",
+          "stats": {
+            "hull_cap": 5
+          }
+        },
+        {
+          "id": "borg_cube_matrix",
+          "name": "Cube Matrix",
+          "cost": {
+            "parasteel": 3000,
+            "nanoprobes": 250
+          },
+          "effect": "Cube, Tactical Cube, Queen's Diamond (with Unicomplex).",
+          "stats": {
+            "hull_cap": "titan"
+          },
+          "tag": "wonder"
+        }
+      ],
+      "drones": [
+        {
+          "id": "borg_alcove_block",
+          "name": "Alcove Block",
+          "cost": {
+            "duranium": 80,
+            "nanoprobes": 10
+          },
+          "effect": "Stores and regenerates 10 drones.",
+          "stats": {
+            "drone_storage": 10
+          }
+        },
+        {
+          "id": "borg_maturation_chamber",
+          "name": "Maturation Chamber",
+          "cost": {
+            "parasteel": 240,
+            "nanoprobes": 40
+          },
+          "effect": "+3 drones/cycle, +25% adaptation speed.",
+          "stats": {
+            "drones_per_cycle": 3
+          }
+        },
+        {
+          "id": "assimilation_complex",
+          "name": "Assimilation Complex",
+          "cost": {
+            "parasteel": 700,
+            "nanoprobes": 80
+          },
+          "effect": "Captured crews -> drones; each new hull type -> tech.",
+          "tag": "faction_only",
+          "building_ref": "assimilation_complex"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "climates": {
+    "airless": { "name": "Airless (no weather)", "air": false, "wind_scale": 0, "drift_tiles_per_min": 0, "swing_c": 130, "polar_drop_c": 50,
+      "seasons": [
+        { "name": "Year-round", "share": 1, "temp_c": 0, "humidity_pct": 0, "wind": 1, "spell_s": [600, 600], "weights": { "clear": 1 } }
+      ],
+      "bands": [
+        { "name": "All latitudes", "to_deg": 90, "season_scale": 1, "wind_toward_deg": 0, "weights": {} }
+      ] }
+  }
+}

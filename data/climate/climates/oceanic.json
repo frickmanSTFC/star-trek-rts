@@ -1,0 +1,14 @@
+{
+  "climates": {
+    "oceanic": { "name": "Oceanic (pelagic)", "air": true, "wind_scale": 1.3, "drift_tiles_per_min": 2, "swing_c": 3, "polar_drop_c": 26,
+      "seasons": [
+        { "name": "Calm",    "share": 0.4,  "temp_c": 1,  "humidity_pct": 0, "wind": 0.8, "spell_s": [90, 300], "weights": { "clear": 34, "cloudy": 28, "overcast": 12, "fog": 12, "rain": 12, "storm": 2 } },
+        { "name": "Monsoon", "share": 0.35, "temp_c": 2,  "humidity_pct": 6, "wind": 1.2, "spell_s": [90, 300], "weights": { "clear": 10, "cloudy": 16, "overcast": 22, "fog": 6, "rain": 32, "storm": 14 } },
+        { "name": "Squalls", "share": 0.25, "temp_c": -3, "humidity_pct": 2, "wind": 1.5, "spell_s": [60, 240], "weights": { "clear": 18, "cloudy": 20, "overcast": 16, "rain": 20, "storm": 16, "high_wind": 10 } }
+      ],
+      "bands": [
+        { "name": "Warm seas", "to_deg": 30, "season_scale": 0.4, "wind_toward_deg": 270, "weights": { "storm": 1.4 } },
+        { "name": "Cold seas", "to_deg": 90, "season_scale": 1.2, "wind_toward_deg": 90,  "weights": { "fog": 1.5, "snow": 1, "blizzard": 1 } }
+      ] }
+  }
+}

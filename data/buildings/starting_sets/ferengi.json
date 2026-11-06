@@ -1,0 +1,78 @@
+{
+  "starting_sets": {
+    "factions": {
+      "ferengi": {
+        "identity": "Everything costs latinum; everything earns it.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "fer_trade_office",
+            "name": "Trade Office",
+            "cost": {
+              "duranium": 90,
+              "latinum": 30
+            },
+            "effect": "+2 Latinum per cycle; no garrison."
+          },
+          {
+            "role": "housing",
+            "id": "fer_rental_habitat",
+            "name": "Rental Habitat",
+            "cost": {
+              "duranium": 60
+            },
+            "effect": "+1 population; adjustable rent."
+          },
+          {
+            "role": "extraction",
+            "id": "fer_mining_concession",
+            "name": "Mining Concession",
+            "cost": {},
+            "effect": "Leased, no upfront cost; rights can be sold to another player.",
+            "upkeep": {
+              "latinum": 2
+            }
+          },
+          {
+            "role": "power",
+            "id": "fer_leased_reactor",
+            "name": "Leased Reactor",
+            "cost": {
+              "latinum": 30
+            },
+            "effect": "+10 energy; paid in latinum."
+          },
+          {
+            "role": "research",
+            "id": "fer_patent_exchange",
+            "name": "Patent Exchange",
+            "cost": {
+              "duranium": 80,
+              "latinum": 40
+            },
+            "effect": "No own research; buy techs other players already have."
+          },
+          {
+            "role": "defense",
+            "id": "fer_mercenary_board",
+            "name": "Mercenary Contract Board",
+            "cost": {
+              "latinum": 50
+            },
+            "effect": "Defenders hired on demand, paid per use."
+          },
+          {
+            "role": "signature",
+            "id": "fer_bar_holosuites",
+            "name": "Bar & Holosuites",
+            "cost": {
+              "duranium": 80,
+              "latinum": 20
+            },
+            "effect": "+morale, +Latinum; gossip reveals nearby enemy plans."
+          }
+        ]
+      }
+    }
+  }
+}

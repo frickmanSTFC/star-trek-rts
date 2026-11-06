@@ -1,0 +1,3 @@
+{
+  "_notes": "Small craft (carried by ships/stations or built at drydocks), probes/drones, civilian/support vessels, and ground forces. Ground combat is abstracted in v1: troops land via shuttle or transporter; combat resolves by strength × modifiers (terrain, shields, kelbonite, fortifications). source: canon | beta | original."
+}

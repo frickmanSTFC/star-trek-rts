@@ -1,0 +1,22 @@
+{
+  "probes_and_drones": [
+    { "id": "class8_probe", "name": "Class-8 Probe", "faction": "federation", "source": "canon",
+      "role": "recon", "abilities": ["high_warp_scout", "reveal_system"], "consumed": true },
+    { "id": "sensor_buoy", "name": "Sensor Buoy", "faction": "any", "source": "canon",
+      "role": "persistent_vision", "abilities": ["vision", "anomaly_warning"] },
+    { "id": "warning_beacon", "name": "Warning Beacon", "faction": "any", "source": "canon",
+      "role": "marker", "abilities": ["mark_hazard_for_allies", "claim_system"] },
+    { "id": "mining_drone", "name": "Mining Drone", "faction": "any", "source": "original",
+      "role": "automation", "abilities": ["mine_asteroid"], "notes": "Low output, no crew. Vulnerable to tractor theft." },
+    { "id": "decoy_drone", "name": "Decoy (Holographic) Drone", "faction": "federation", "source": "original",
+      "role": "deception", "abilities": ["fake_warp_signature"], "notes": "Counters Hirogen hunts and AI targeting." },
+    { "id": "cloaked_mine_layer", "name": "Mine-Laying Drone", "faction": "any", "source": "original",
+      "role": "area_denial", "abilities": ["lay_minefield"] },
+    { "id": "klingon_raider_probe", "name": "Klingon Raider Probe", "faction": "klingon", "source": "original", "role": "recon", "abilities": ["reveal_system", "self_destruct_on_capture"] },
+    { "id": "cardassian_surveillance_drone", "name": "Cardassian Surveillance Drone", "faction": "cardassian", "source": "original", "role": "surveillance", "abilities": ["watch_colony", "detect_spies"], "notes": "Obsidian Order eyes over occupied worlds." },
+    { "id": "romulan_listening_probe", "name": "Cloaked Listening Probe", "faction": "romulan", "source": "original", "role": "espionage", "abilities": ["cloak", "eavesdrop_comms"] },
+    { "id": "dominion_monitor_drone", "name": "Dominion Monitoring Drone", "faction": "dominion", "source": "original", "role": "early_warning", "abilities": ["vision", "wormhole_watch"] },
+    { "id": "ferengi_market_probe", "name": "Ferengi Market Probe", "faction": "ferengi", "source": "original", "role": "economic_scout", "abilities": ["price_scan", "spot_trade_route"] },
+    { "id": "borg_scout_node", "name": "Borg Scout Node", "faction": "borg", "source": "original", "role": "recon", "abilities": ["vision", "relay_adaptations"], "notes": "Shares what it sees with every Borg unit in range." }
+  ]
+}

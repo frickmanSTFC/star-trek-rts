@@ -1,0 +1,20 @@
+{
+  "_notes": "Hashes of the 13 flat data/*.json documents before the split (canonical compact JSON, top-level tables sorted) and of a scripted game (GoldenData.ScriptedGameHash). split_fingerprint = the document files right after the split; once they change the snapshot no longer applies.",
+  "split_fingerprint": "910f28075180c7821493fb82203a95ce9775af8da5367b005b3b42ffb7e1ed49",
+  "documents": {
+    "buildings": "102af13b7aa9fd185c7d928831f16a7bb86e2447651c7bfcf71632cfc6e19ce2",
+    "climate": "c76186c07506069672b388894356b8fa4256199342ff860619cb16036f576c13",
+    "eras": "298f8dc5560366f202a0d2cbc0531e785897f336933b169aeeb096d6a9684569",
+    "factions": "5a8c225c797643ff8084b82b1497bf040284db159089e798f65c777094c9b014",
+    "galaxy_map": "c1bad69d489f0b92ede803e266f29a65113790f172708a6f31ef4d3e192a1b8e",
+    "hazards": "64eb54f055496124943ef17a55703de6c59769b60d48c9cd48c0205d44fb22d3",
+    "maps": "9140a2edb0c5cc9eda021398d1b57b60c18c392c23f5e728b7a8a0ff542fa78b",
+    "planet_classes": "eb85a5e13002c3f8aac609ef7ded6f739377239c7f6083c534b06b409f505764",
+    "resources": "71f7b0b8f61362168a3176729f106c631cd836c0a875788ae0cab172f9ee10ee",
+    "ships": "ee77b29ff55fe5b726fbb8769b9ca74def59882a2981c86e5c166e9bddb70414",
+    "surfaces": "b819aece694df019b62316ebc9859bac7d8a487612907008d18b35330673b1a6",
+    "tech_tree": "e0e24b736de3ac7baa5dc7291ace27a575866dc7ab1b8a1d6ab67cc1e233eafc",
+    "vehicles": "12c6e203bf07e3b2799109c41d0d0a16297586961abb897f05f748800eb9f3e1"
+  },
+  "scripted_game": "3704030030069202550"
+}

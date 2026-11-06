@@ -1,0 +1,9 @@
+{
+  "buildings": [
+    { "id": "mine", "name": "Mining Complex", "layer": "surface", "category": "resource", "source": "canon",
+      "cost": { "duranium": 80 }, "effect": "Extracts the deposit under it into storage (ore goes to a refinery).", "description": "A drilling derrick that sits on a surveyed deposit and digs it into storage until it runs dry. Ore still needs a refinery; deuterium, dilithium and strategic deposits come out ready to use. Salvage a used-up mine to free the tile, and a Deep-Core Mine can reopen the deposit later.",
+      "build_seconds": 20, "requires_deposit": true, "extract_per_min": 40, "power_use": 6, "wear_per_min": 3, "footprint_radius": 7.5,
+      "levels": [ { "name": "Mk II", "cost": { "duranium": 80, "tritanium": 30 }, "build_seconds": 20, "modifiers": [ { "stat": "speed", "add": 0.25 }, { "stat": "wear", "add": -0.25 } ] },
+                  { "name": "Mk III", "cost": { "duranium": 100, "parasteel": 15 }, "build_seconds": 30, "requires_level": 2, "modifiers": [ { "stat": "speed", "add": 0.5 }, { "stat": "wear", "add": -0.4 }, { "stat": "auto_maintain" } ] } ] }
+  ]
+}

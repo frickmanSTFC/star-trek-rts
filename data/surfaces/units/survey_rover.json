@@ -1,0 +1,18 @@
+{
+  "units": [
+    { "id": "survey_rover", "mark": 1, "description": "The Mk I Scout: a light four-wheeled rover with a sensor puck on a whip antenna. It reveals the exact deposits around wherever it drives, and it's the cheapest way to find ground worth mining. Two land with the colony. Rough ground (hills, ice, forest) wears it down and throws up rock strikes, sinkholes and flat tyres: below half integrity it drives slower, badly damaged its sensors reach less far, and at 0 it is disabled until it limps to a repair pad (R). A flat slows it (two flats: a crawl); the crew change one in the field with its spare (T), or a colony core's pad fixes everything.", "speed": 2, "survey_radius": 2, "cost": { "duranium": 60 }, "build_seconds": 20,
+      "damage": {
+        "terrain": { "plains": { "wear": 0.4, "hazard": 0.03, "flat": 0.03 }, "desert": { "wear": 0.6, "hazard": 0.05, "flat": 0.04 },
+          "forest": { "wear": 1.2, "hazard": 0.08, "flat": 0.06 }, "hills": { "wear": 1.6, "hazard": 0.1, "flat": 0.08 }, "ice": { "wear": 1.6, "hazard": 0.1, "flat": 0.06 } },
+        "hazards": [
+          { "id": "rock", "name": "Rock strike", "weight": 50, "damage": [4, 12], "terrain": ["plains", "desert", "hills", "ice"] },
+          { "id": "sinkhole", "name": "Sinkhole", "weight": 20, "damage": [10, 25], "terrain": ["plains", "desert", "forest"] },
+          { "id": "tree", "name": "Fallen tree", "weight": 30, "damage": [5, 14], "terrain": ["forest"] },
+          { "id": "rockslide", "name": "Rockslide", "weight": 20, "damage": [12, 28], "terrain": ["hills"] },
+          { "id": "ice", "name": "Sharp ice", "weight": 40, "damage": [6, 16], "terrain": ["ice"], "flat": true } ],
+        "toxic_per_min": 4, "wildlife": { "chance_per_min": 0.4, "damage": [8, 20] },
+        "slow_below": 50, "slowest_drive": 0.5, "sensors_below": 35, "sensor_loss": 1, "crawl": 0.15 },
+      "tyres": { "wheels": 4, "spares": 1, "low_integrity": 2, "flat_speed": 0.6, "two_flat_speed": 0.2, "flat_wear": 0.5, "change_seconds": 30, "pad_cost": { "duranium": 5 } },
+      "repair": { "per_second": 5, "crew_seconds": 3, "cost_per_point": { "duranium": 0.3 } } }
+  ]
+}

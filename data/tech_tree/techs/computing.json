@@ -1,0 +1,9 @@
+{
+  "techs": [
+    { "id": "duotronic", "name": "Duotronic Computers", "tree": "computing", "tier": 2, "prereqs": [] },
+    { "id": "isolinear", "name": "Isolinear Computing", "tree": "computing", "tier": 3, "prereqs": ["duotronic"], "unlocks": ["isolinear_chips"] },
+    { "id": "bioneural", "name": "Bio-neural Circuitry", "tree": "computing", "tier": 4, "prereqs": ["isolinear"], "unlocks": ["bioneural_gel"] },
+    { "id": "emh", "name": "Emergency Medical Hologram", "tree": "computing", "tier": 4, "prereqs": ["holotechnology"], "requires_resource": "bioneural_gel", "effect": "Crew losses reduced 25%." },
+    { "id": "positronic", "name": "Positronic Brain", "tree": "computing", "tier": 5, "prereqs": ["bioneural"], "unlocks": ["synth_workers"], "effect": "Synth labor; risk of synth-ban political event." }
+  ]
+}

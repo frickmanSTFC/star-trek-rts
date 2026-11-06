@@ -1,0 +1,9 @@
+{
+  "classes": [
+    { "faction": "vulcan", "name": "Suurok", "hull": "cruiser", "era": "ent", "source": "canon" },
+    { "faction": "vulcan", "name": "D'Kyr", "hull": "heavy_cruiser", "era": "ent", "source": "canon", "special": "advanced_sensors" },
+    { "faction": "andorian", "name": "Charal", "hull": "escort", "era": "ent", "source": "canon" },
+    { "faction": "andorian", "name": "Kumari", "hull": "cruiser", "era": "ent", "source": "canon", "special": "ice_world_bonus" },
+    { "faction": "tellarite", "name": "Tellarite Cruiser", "hull": "cruiser", "era": "ent", "source": "canon" }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "factions": [
+    { "id": "borg", "name": "Borg Collective", "playable": true,
+      "eras": ["tng", "dominion_war", "voy"],
+      "playstyle": "Assimilation / adaptation",
+      "signature": { "id": "adaptation", "desc": "Shields adapt to weapon types used repeatedly against the Collective; assimilate ships, tech and population." },
+      "secondary": ["transwarp_conduits", "regeneration", "no_diplomacy"],
+      "weakness": "Can't trade or ally; frequency-rotation and multi-weapon strategies counter adaptation.",
+      "home": "Unimatrix (Delta Quadrant)",
+      "weapons": ["cutting_beam", "tractor_beam", "borg_torpedo"],
+      "flavor_units": { "hero": "Borg Queen", "ground": "Drones", "special": "Cube" } }
+  ]
+}
