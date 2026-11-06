@@ -447,6 +447,7 @@ public sealed partial class PlanetSurface
     public string? OutpostProblem(Simulation sim, int player, int tile)
     {
         var orbit = _data.Orbit;
+        if (!IsPlayer(player)) return "no such player";
         if (orbit == null) return "no ship in orbit";
         if (_players[player].Phase != LandingPhase.Landed) return "land the colony first";
         if (!OnMap(tile)) return "off the map";
@@ -469,6 +470,7 @@ public sealed partial class PlanetSurface
     public string? ShuttleProblem(Simulation sim, int player, int tile, string unitId)
     {
         var orbit = _data.Orbit;
+        if (!IsPlayer(player)) return "no such player";
         if (orbit == null) return "no ship in orbit";
         if (!orbit.ShuttlePayloads.Contains(unitId)) return "the drop ship can't carry that";
         if (_players[player].Phase != LandingPhase.Landed) return "land the colony first";
@@ -494,6 +496,7 @@ public sealed partial class PlanetSurface
     /// <summary>Why the transporter can't beam this payload to this tile (null = it can).</summary>
     public string? BeamProblem(Simulation sim, int player, int tile, string payload)
     {
+        if (!IsPlayer(player)) return "no such player";
         var p = _players[player];
         var level = _data.Orbit?.Transporter(p.TransporterLevel);
         if (level == null) return "no transporters in this era";
@@ -519,6 +522,7 @@ public sealed partial class PlanetSurface
     public string? SatelliteProblem(Simulation sim, int player, int row)
     {
         var orbit = _data.Orbit;
+        if (!IsPlayer(player)) return "no such player";
         if (orbit == null) return "no ship in orbit";
         if (row < 0 || row >= Map.Grid.Height) return "off the map";
         if (_satellites.Count(x => x.Owner == player) >= orbit.SatelliteMax) return $"all {orbit.SatelliteMax} satellites are up";
@@ -875,6 +879,7 @@ public sealed partial class PlanetSurface
     /// <summary>Why the player can't start this tech (null = they can).</summary>
     public string? ResearchProblem(int player, string techId)
     {
+        if (!IsPlayer(player)) return "no such player";
         if (!_data.HasTech(techId)) return "unknown tech";
         var t = _data.Tech(techId);
         var p = _players[player];
@@ -1116,13 +1121,15 @@ public sealed partial class PlanetSurface
 
     // ---------------------------------------------------------------- commands
 
-    /// <summary>Applies a surface command; returns false if the command isn't a surface command.</summary>
+    /// <summary>Applies a surface command; returns false if the command isn't a surface command. A command that can't run
+    /// (bad ids, tiles or values, or not allowed now) changes nothing and is counted by <see cref="Simulation.Refuse"/>;
+    /// one that names several vehicles skips the ones that can't and is refused only when none can.</summary>
     internal bool Apply(Simulation sim, Command command)
     {
         switch (command)
         {
             case LandColonyCommand land:
-                if (LandProblem(sim, land.Player, land.Tile) != null) return true;
+                if (LandProblem(sim, land.Player, land.Tile) is { } landProblem) return sim.Refuse(land, landProblem);
                 var p = _players[land.Player];
                 p.Phase = LandingPhase.Descending;
                 p.LandingTile = land.Tile;
@@ -1131,25 +1138,29 @@ public sealed partial class PlanetSurface
                 return true;
 
             case MoveUnitsCommand move:
-                if (move.Tile < 0 || move.Tile >= Map.Grid.Count) return true;
-                var goals = GroupGoals(move.UnitIds.Select(FindUnit).Where(u => u != null && u.Owner == move.Player && DriveProblem(u) == null).ToList()!, move.Tile);
-                foreach (var id in move.UnitIds)
+            {
+                if (!OnMap(move.Tile)) return sim.Refuse(move, "off the map");
+                var goals = GroupGoals(move.UnitIds.Distinct().Select(FindUnit).Where(u => u != null && u.Owner == move.Player && DriveProblem(u) == null).ToList()!, move.Tile);
+                var moved = 0;
+                foreach (var id in move.UnitIds.Distinct())
                 {
                     var unit = FindUnit(id);
                     if (unit == null || unit.Owner != move.Player || DriveProblem(unit) != null) continue;
                     var path = FindPath(unit.Tile, goals.GetValueOrDefault(id, move.Tile)) ?? FindPath(unit.Tile, move.Tile);
                     if (path == null) continue;
+                    moved++;
                     AbortFounding(sim, unit); // a construction rover's founding trip (or unfolding, refunded) is off
                     SetPath(unit, path);
                     unit.DeployOnArrival = false;
                     StartPacking(unit); // a deployed crawler folds up, then drives off
                     unit.MiningStatus = MiningStatus.None;
                 }
-                return true;
+                return moved > 0 || sim.Refuse(move, "none of these vehicles can drive there");
+            }
 
             case MineCommand mine:
             {
-                if (MineProblem(mine.Player, mine.UnitId, mine.Tile) != null) return true;
+                if (MineProblem(mine.Player, mine.UnitId, mine.Tile) is { } mineProblem) return sim.Refuse(mine, mineProblem);
                 var unit = FindUnit(mine.UnitId)!;
                 if (unit.Tile == mine.Tile && (unit.Mode != UnitMode.Mobile || AtCentre(unit)))
                 {
@@ -1159,7 +1170,7 @@ public sealed partial class PlanetSurface
                     return true;
                 }
                 var path = FindPath(unit.Tile, mine.Tile); // same tile: an empty path, so it drives to the centre first
-                if (path == null) return true;
+                if (path == null) return sim.Refuse(mine, "no way there");
                 SetPath(unit, path);
                 StartPacking(unit);
                 unit.DeployOnArrival = true;
@@ -1173,7 +1184,7 @@ public sealed partial class PlanetSurface
 
             case OutpostDropCommand drop:
             {
-                if (OutpostProblem(sim, drop.Player, drop.Tile) != null) return true;
+                if (OutpostProblem(sim, drop.Player, drop.Tile) is { } dropProblem) return sim.Refuse(drop, dropProblem);
                 var orbit = _data.Orbit!;
                 sim.Players[drop.Player].Stock.TrySpend(orbit.OutpostCost);
                 Deliver(drop.Player, DeliveryKind.Outpost, drop.Tile, orbit.OutpostBuilding, System.Array.Empty<ResourceAmount>(), sim.Tick,
@@ -1183,7 +1194,7 @@ public sealed partial class PlanetSurface
 
             case ShuttleCommand shuttle:
             {
-                if (ShuttleProblem(sim, shuttle.Player, shuttle.Tile, shuttle.UnitId) != null) return true;
+                if (ShuttleProblem(sim, shuttle.Player, shuttle.Tile, shuttle.UnitId) is { } shuttleProblem) return sim.Refuse(shuttle, shuttleProblem);
                 var flight = (long)_data.Orbit!.ShuttleSeconds * Simulation.TickRate;
                 sim.Players[shuttle.Player].Stock.TrySpend(_data.SurfaceUnit(shuttle.UnitId).Cost);
                 Deliver(shuttle.Player, DeliveryKind.Shuttle, shuttle.Tile, shuttle.UnitId, System.Array.Empty<ResourceAmount>(), sim.Tick, sim.Tick + flight);
@@ -1193,7 +1204,7 @@ public sealed partial class PlanetSurface
 
             case BeamCommand beam:
             {
-                if (BeamProblem(sim, beam.Player, beam.Tile, beam.Payload) != null) return true;
+                if (BeamProblem(sim, beam.Player, beam.Tile, beam.Payload) is { } beamProblem) return sim.Refuse(beam, beamProblem);
                 var beamer = _players[beam.Player];
                 var beamLevel = _data.Orbit!.Transporter(beamer.TransporterLevel)!;
                 IReadOnlyList<ResourceAmount> cargo = System.Array.Empty<ResourceAmount>();
@@ -1209,28 +1220,29 @@ public sealed partial class PlanetSurface
             }
 
             case SatelliteCommand satellite:
-                if (SatelliteProblem(sim, satellite.Player, satellite.Row) != null) return true;
+                if (SatelliteProblem(sim, satellite.Player, satellite.Row) is { } satelliteProblem) return sim.Refuse(satellite, satelliteProblem);
                 sim.Players[satellite.Player].Stock.TrySpend(_data.Orbit!.SatelliteCost);
                 _satellites.Add(new Satellite(_nextSatelliteId++, satellite.Player, satellite.Row, sim.Tick));
                 return true;
 
             case ResearchCommand research:
-                if (ResearchProblem(research.Player, research.TechId) != null) return true;
+                if (ResearchProblem(research.Player, research.TechId) is { } researchProblem) return sim.Refuse(research, researchProblem);
                 _players[research.Player].ActiveTech = _data.Tech(research.TechId).Index;
                 return true;
 
             case MaintainCommand maintain:
             {
                 var job = FindStructure(maintain.StructureId);
-                if (job == null || job.Owner != maintain.Player) return true;
+                if (job == null || job.Owner != maintain.Player) return sim.Refuse(maintain, "not yours");
                 var crewCore = CrewBase(job);
                 if (job.MaintenanceOrdered)
                 {
                     // Cancel, unless the crew are already on it.
-                    if (crewCore == null || crewCore.CrewJob != job.Id) job.MaintenanceOrdered = false;
+                    if (crewCore != null && crewCore.CrewJob == job.Id) return sim.Refuse(maintain, "the crew are already on it");
+                    job.MaintenanceOrdered = false;
                     return true;
                 }
-                if (MaintenanceProblem(maintain.Player, maintain.StructureId) != null) return true;
+                if (MaintenanceProblem(maintain.Player, maintain.StructureId) is { } maintainProblem) return sim.Refuse(maintain, maintainProblem);
                 job.MaintenanceOrdered = true;
                 job.MaintenanceOrderTick = sim.Tick;
                 return true;
@@ -1238,7 +1250,7 @@ public sealed partial class PlanetSurface
 
             case BuildUnitCommand order:
             {
-                if (ProductionProblem(sim, order.Player, order.StructureId, order.UnitId) != null) return true;
+                if (ProductionProblem(sim, order.Player, order.StructureId, order.UnitId) is { } orderProblem) return sim.Refuse(order, orderProblem);
                 var bay = FindStructure(order.StructureId)!;
                 sim.Players[order.Player].Stock.TrySpend(_data.SurfaceUnit(order.UnitId).Cost);
                 bay._production.Add(order.UnitId);
@@ -1248,7 +1260,8 @@ public sealed partial class PlanetSurface
             case CancelUnitCommand cancelUnit:
             {
                 var bay = FindStructure(cancelUnit.StructureId);
-                if (bay == null || bay.Owner != cancelUnit.Player || bay._production.Count == 0) return true;
+                if (bay == null || bay.Owner != cancelUnit.Player) return sim.Refuse(cancelUnit, "not yours");
+                if (bay._production.Count == 0) return sim.Refuse(cancelUnit, "no orders");
                 var last = bay._production.Count - 1;
                 foreach (var c in _data.SurfaceUnit(bay._production[last]).Cost) sim.Players[bay.Owner].Stock.Add(c.Resource, c.Amount);
                 bay._production.RemoveAt(last);
@@ -1257,45 +1270,61 @@ public sealed partial class PlanetSurface
             }
 
             case RepairCommand repair:
-                foreach (var id in repair.UnitIds)
+            {
+                var sent = 0;
+                foreach (var id in repair.UnitIds.Distinct())
                 {
                     var unit = FindUnit(id);
                     if (unit == null || unit.Owner != repair.Player || !NeedsRepair(unit)) continue;
                     var pad = NearestRepairPad(repair.Player, unit.Tile);
                     if (pad == null) continue;
-                    AbortFounding(sim, unit);
-                    unit.DeployOnArrival = false;
                     var path = FindPath(unit.Tile, pad.Tile); // on the pad's tile already: an empty path, so it parks on the pad
                     if (path == null) continue;
+                    sent++;
+                    AbortFounding(sim, unit);
+                    unit.DeployOnArrival = false;
                     SetPath(unit, path);
                     StartPacking(unit);
                     unit.MiningStatus = MiningStatus.None;
                 }
-                return true;
+                return sent > 0 || sim.Refuse(repair, "none of these vehicles can go for repair");
+            }
 
             case ChangeTyreCommand change:
-                foreach (var id in change.UnitIds)
-                    if (ChangeTyreProblem(change.Player, id) == null) StartTyreChange(FindUnit(id)!);
-                return true;
+            {
+                var changing = 0;
+                foreach (var id in change.UnitIds.Distinct())
+                    if (ChangeTyreProblem(change.Player, id) == null)
+                    {
+                        StartTyreChange(FindUnit(id)!);
+                        changing++;
+                    }
+                return changing > 0 || sim.Refuse(change, "none of these vehicles can change a tyre");
+            }
 
             case PackUpCommand pack:
-                foreach (var id in pack.UnitIds)
+            {
+                var packed = 0;
+                foreach (var id in pack.UnitIds.Distinct())
                 {
                     var unit = FindUnit(id);
                     if (unit == null || unit.Owner != pack.Player) continue;
+                    packed++;
                     AbortFounding(sim, unit);
                     StartPacking(unit);
                     unit.DeployOnArrival = false;
                     unit.MiningStatus = MiningStatus.None;
                 }
-                return true;
+                return packed > 0 || sim.Refuse(pack, "none of these vehicles are yours");
+            }
 
             case SalvageCommand salvage:
             {
                 var salvaged = FindStructure(salvage.StructureId);
-                if (salvaged == null || salvaged.Owner != salvage.Player || salvaged.State != StructureState.Complete) return true;
+                if (salvaged == null || salvaged.Owner != salvage.Player) return sim.Refuse(salvage, "not yours");
+                if (NotReadyProblem(salvaged) is { } notReady) return sim.Refuse(salvage, notReady);
                 var def = _data.Building(salvaged.DefId);
-                if (def.IsCore) return true;
+                if (def.IsCore) return sim.Refuse(salvage, "a colony core can't be salvaged");
                 var bag = sim.Players[salvaged.Owner].Stock;
                 if (!salvaged.Free) // placed free by the test panel: nothing back for the building itself
                     foreach (var c in def.Cost) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
@@ -1312,7 +1341,8 @@ public sealed partial class PlanetSurface
 
             case PlaceBuildingCommand place:
             {
-                if (CheckPlacement(sim, place.Player, place.BuildingId, place.Tile) != PlacementProblem.None) return true;
+                if (CheckPlacement(sim, place.Player, place.BuildingId, place.Tile) is var placement and not PlacementProblem.None)
+                    return sim.Refuse(place, placement.ToString());
                 var free = _players[place.Player].FreeBuilding;
                 if (!free) sim.Players[place.Player].Stock.TrySpend(_data.Building(place.BuildingId).Cost);
                 PlaceStructure(place.Player, place.BuildingId, place.Tile, ((place.Facing % 6) + 6) % 6,
@@ -1321,7 +1351,7 @@ public sealed partial class PlanetSurface
             }
 
             case UpgradeCommand upgrade:
-                if (UpgradeProblem(sim, upgrade.Player, upgrade.StructureId) != null) return true;
+                if (UpgradeProblem(sim, upgrade.Player, upgrade.StructureId) is { } upgradeProblem) return sim.Refuse(upgrade, upgradeProblem);
                 var core = FindStructure(upgrade.StructureId)!;
                 if (NextLevel(core) is { } level)
                 {
@@ -1338,7 +1368,8 @@ public sealed partial class PlanetSurface
 
             case CancelBuildingCommand cancel:
                 var s = FindStructure(cancel.StructureId);
-                if (s == null || s.Owner != cancel.Player || s.Assembling) return true; // a core from orbit can't be cancelled
+                if (s == null || s.Owner != cancel.Player) return sim.Refuse(cancel, "not yours");
+                if (s.Assembling) return sim.Refuse(cancel, AssemblingProblem); // a core from orbit can't be cancelled
                 if (s.Founded && s.State != StructureState.Complete)
                 {
                     CancelFounded(sim, s); // founded on the ground: refund, and the construction rover rolls back out
@@ -1355,7 +1386,7 @@ public sealed partial class PlanetSurface
                         s.UpgradeTicks = 0;
                         return true;
                     }
-                    if (s.UpgradingTo == null) return true;
+                    if (s.UpgradingTo == null) return sim.Refuse(cancel, "already built, and not upgrading");
                     foreach (var c in _data.Building(s.UpgradingTo).Cost) stock.Add(c.Resource, c.Amount);
                     s.UpgradingTo = null;
                     s.UpgradeTicks = 0;
@@ -1786,5 +1817,13 @@ public sealed partial class PlanetSurface
         foreach (var d in _deliveries) d.AddToHash(ref h);
         h.Add(_satellites.Count);
         foreach (var s in _satellites) s.AddToHash(ref h);
+        h.Add(_nextUnitId);
+        h.Add(_nextStructureId);
+        h.Add(_nextPodId);
+        h.Add(_nextDeliveryId);
+        h.Add(_nextSatelliteId);
+        // Not hashed because they follow from what is hashed: _structureAt (each structure's Tile; the fuzz test checks
+        // they agree), _weatherTick (sim.Tick at the top of Step), _data (Simulation hashes each change of data), and
+        // each unit's SpeedPerTick / SurveyRadius (its def in that data).
     }
 }

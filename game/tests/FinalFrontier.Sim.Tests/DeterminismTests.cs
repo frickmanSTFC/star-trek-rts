@@ -34,8 +34,18 @@ public class DeterminismTests
     {
         var baseline = RunScript(99, 300);
         var changed = RunScript(99, 300, sim => sim.Schedule(10, new MoveCommand(1, new[] { 5 }, FixVec2.FromInts(0, 0))));
-        Assert.Equal(baseline[..10], changed[..10]);
+        // The order is in the state hash while it waits in the queue, so a peer that never got it differs at once.
+        Assert.All(Enumerable.Range(0, 10), i => Assert.NotEqual(baseline[i], changed[i]));
         Assert.NotEqual(baseline[^1], changed[^1]);
+    }
+
+    [Fact]
+    public void AnOrderThatChangesNothingLeavesNoTraceOnceItHasRun()
+    {
+        var baseline = RunScript(99, 300);
+        var ignored = RunScript(99, 300, sim => sim.Schedule(10, new MoveCommand(0, new[] { 5 }, FixVec2.FromInts(0, 0)))); // an enemy ship
+        Assert.NotEqual(baseline[5], ignored[5]); // waiting in the queue
+        Assert.Equal(baseline[10..], ignored[10..]); // ran at tick 10 (hash after that step) and did nothing
     }
 
     [Fact]

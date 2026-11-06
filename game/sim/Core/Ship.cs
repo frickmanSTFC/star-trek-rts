@@ -40,7 +40,10 @@ public sealed class Ship
         h.Add(Id);
         h.Add(Owner);
         h.Add(ClassKey);
+        h.Add(HullSize);
+        h.Add(MaxHp);
         h.Add(Hp);
+        h.Add(SpeedPerTick);
         h.Add(Position);
         h.Add(Heading);
         h.Add(HasMoveTarget);

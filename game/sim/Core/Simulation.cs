@@ -32,6 +32,19 @@ public sealed class Simulation
 
     /// <summary>A hash of each data change made by the test panel, in order (in the state hash).</summary>
     private readonly List<ulong> _dataChanges = new();
+
+    /// <summary>
+    /// How many commands were refused. A command that is malformed, names a player, id, tile or value that doesn't exist
+    /// or doesn't fit, or isn't allowed right now is refused: it changes nothing and never throws (multiplayer safety: a
+    /// peer can send anything). Commands that act on a list of vehicles skip the ones that can't and count as refused only
+    /// when none can. Debugging info, deliberately not in the state hash, so a refused command leaves the hash exactly as
+    /// it was (while it waits in the queue it is hashed like any other).
+    /// </summary>
+    public int RefusedCommands { get; private set; }
+
+    /// <summary>Why the last command was refused ("tick 120: PlaceBuildingCommand from player 0: ..."), for debugging
+    /// (not in the state hash, but deterministic like the rest).</summary>
+    public string? LastRefusal { get; private set; }
     public DeterministicRng Rng { get; }
     public long Tick { get; private set; }
 
@@ -177,6 +190,7 @@ public sealed class Simulation
     /// </summary>
     public void Schedule(long tick, Command command)
     {
+        ArgumentNullException.ThrowIfNull(command);
         if (tick < Tick) throw new ArgumentOutOfRangeException(nameof(tick), $"Tick {tick} already ran (now {Tick}).");
         if (!_scheduled.TryGetValue(tick, out var list)) _scheduled[tick] = list = new List<Command>();
         list.Add(command);
@@ -199,7 +213,16 @@ public sealed class Simulation
 
     private void Apply(Command command)
     {
-        if (command.Player < 0 || command.Player >= _players.Count) return;
+        if (command.Player < 0 || command.Player >= _players.Count)
+        {
+            Refuse(command, "no such player");
+            return;
+        }
+        if (CommandChecks.Malformed(command) is { } malformed)
+        {
+            Refuse(command, malformed);
+            return;
+        }
         if (command is DebugCommand debug)
         {
             ApplyDebug(debug);
@@ -236,10 +259,21 @@ public sealed class Simulation
             case BeamCommand:
             case SatelliteCommand:
             case FoundOutpostCommand:
-                break; // surface commands with no surface loaded: ignore
+                Refuse(command, "no planet surface"); // surface commands with no surface loaded
+                break;
             default:
-                throw new NotSupportedException($"Unhandled command {command.GetType().Name}.");
+                Refuse(command, "unknown command");
+                break;
         }
+    }
+
+    /// <summary>Counts a refused command and notes why (see <see cref="RefusedCommands"/>). Returns true, so a surface
+    /// handler can `return sim.Refuse(...)`.</summary>
+    internal bool Refuse(Command command, string reason)
+    {
+        RefusedCommands++;
+        LastRefusal = $"tick {Tick}: {command.GetType().Name} from player {command.Player}: {reason}";
+        return true;
     }
 
     // ---------------------------------------------------------------- test panel
@@ -250,6 +284,7 @@ public sealed class Simulation
     /// <summary>Why a test-panel command would be refused right now (null = it would run). The sim checks again when it runs.</summary>
     public string? DebugProblem(DebugCommand command)
     {
+        if (CommandChecks.Malformed(command) is { } malformed) return malformed;
         switch (command)
         {
             case DebugStockCommand stock:
@@ -280,7 +315,11 @@ public sealed class Simulation
         {
             var edits = command is DebugDataCommand d ? d.Edits : Array.Empty<DataEdit>();
             var files = command is DebugReloadDataCommand r ? r.Files : Array.Empty<DataFile>();
-            if (DataTuning.Rebuild(Data, edits, files, out var next) != null) return;
+            if (DataTuning.Rebuild(Data, edits, files, out var next) is { } refused)
+            {
+                Refuse(command, refused);
+                return;
+            }
             var h = StateHasher.Create();
             foreach (var e in edits)
             {
@@ -299,7 +338,11 @@ public sealed class Simulation
             DebugEdits++;
             return;
         }
-        if (DebugProblem(command) != null) return;
+        if (DebugProblem(command) is { } problem)
+        {
+            Refuse(command, problem);
+            return;
+        }
         switch (command)
         {
             case DebugStockCommand stock:
@@ -363,6 +406,19 @@ public sealed class Simulation
         h.Add(DebugEdits);
         h.Add(_dataChanges.Count);
         foreach (var c in _dataChanges) h.Add(c);
+        // Ids handed out next: two games that agree on everything else would still split on the next ship or colony.
+        h.Add(_nextShipId);
+        h.Add(_nextColonyId);
+        h.Add(_nextBuildingId);
+        // Commands scheduled for later ticks (a peer that received a command the other didn't shows at once). The
+        // SortedDictionary iterates by tick; within a tick, in the order they were scheduled (the order Step uses).
+        h.Add(_scheduled.Count);
+        foreach (var (tick, commands) in _scheduled)
+        {
+            h.Add(tick);
+            h.Add(commands.Count);
+            foreach (var c in commands) CommandHash.Add(ref h, c);
+        }
         return h.Value;
     }
 }

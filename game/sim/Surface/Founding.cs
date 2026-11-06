@@ -145,7 +145,11 @@ public sealed partial class PlanetSurface
 
     private void FoundOutpost(Simulation sim, FoundOutpostCommand c)
     {
-        if (FoundOutpostProblem(sim, c.Player, c.UnitId, c.Tile) != FoundProblem.None) return;
+        if (FoundOutpostProblem(sim, c.Player, c.UnitId, c.Tile) is var problem and not FoundProblem.None)
+        {
+            sim.Refuse(c, FoundText(problem));
+            return;
+        }
         var unit = FindUnit(c.UnitId)!;
         if (unit.Tile == c.Tile && (unit.Mode != UnitMode.Mobile || AtCentre(unit)))
         {
@@ -157,7 +161,11 @@ public sealed partial class PlanetSurface
             return;
         }
         var path = FindPath(unit.Tile, c.Tile); // same tile, off its centre: an empty path, so it drives to the centre
-        if (path == null) return;
+        if (path == null)
+        {
+            sim.Refuse(c, "no way there");
+            return;
+        }
         AbortFounding(sim, unit); // a new site replaces the one it was unfolding on (refunded)
         SetPath(unit, path);
         StartPacking(unit);
