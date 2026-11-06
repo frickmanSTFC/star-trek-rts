@@ -89,6 +89,31 @@ public sealed class SurfaceUnit
     /// <summary>On the pad but the player can't pay for the next repair step.</summary>
     public bool RepairWaiting { get; internal set; }
 
+    // Rover damage and flat tyres (RoverDamage.cs). For a rover, Broken means disabled (0 integrity).
+
+    /// <summary>Flat tyres, one bit per wheel (see <see cref="Wheels"/> for the order; 0 = none).</summary>
+    public int FlatTyres { get; internal set; }
+
+    /// <summary>Spare tyres on board (the data's tyres.spares when new; a repair pad restocks them).</summary>
+    public int Spares { get; internal set; }
+
+    /// <summary>Ticks of a field tyre change done so far (0 = not changing one).</summary>
+    public int TyreChangeTicks { get; internal set; }
+
+    /// <summary>Tick of the last flat (-1 = never) and the wheel that went (for the event feed and the view).</summary>
+    public long FlatAtTick { get; internal set; } = -1;
+
+    public int LastFlat { get; internal set; } = -1;
+
+    /// <summary>Tick of the last hazard hit (-1 = never) and what it was: a hazard id from the data, or
+    /// <see cref="PlanetSurface.WildlifeHazard"/>.</summary>
+    public long HazardAtTick { get; internal set; } = -1;
+
+    public string LastHazard { get; internal set; } = "";
+
+    /// <summary>Integrity the last hazard knocked off.</summary>
+    public int LastHazardDamage { get; internal set; }
+
     /// <summary>Tick it rolled out of a Vehicle Bay (-1 = came with the landing), and that bay's tile.</summary>
     public long BuiltAtTick { get; internal set; } = -1;
 
@@ -137,6 +162,14 @@ public sealed class SurfaceUnit
         h.Add(BrokeAtTick);
         h.Add(RepairTicks);
         h.Add(RepairWaiting);
+        h.Add(FlatTyres);
+        h.Add(Spares);
+        h.Add(TyreChangeTicks);
+        h.Add(FlatAtTick);
+        h.Add(LastFlat);
+        h.Add(HazardAtTick);
+        h.Add(LastHazard);
+        h.Add(LastHazardDamage);
         h.Add(BuiltAtTick);
         h.Add(BuiltAtTile);
         h.Add(DeliveryId);

@@ -72,8 +72,8 @@ public class UnitNameTests
     }
 
     private static GameData FastRovers() => TestData.Patched(("surfaces.json",
-        "\"speed\": 2, \"survey_radius\": 2, \"cost\": { \"duranium\": 60 }, \"build_seconds\": 20 }",
-        "\"speed\": 2, \"survey_radius\": 2, \"cost\": { \"duranium\": 1 }, \"build_seconds\": 1 }"));
+        "\"speed\": 2, \"survey_radius\": 2, \"cost\": { \"duranium\": 60 }, \"build_seconds\": 20,",
+        "\"speed\": 2, \"survey_radius\": 2, \"cost\": { \"duranium\": 1 }, \"build_seconds\": 1,"));
 
     private static void AssertNamedAndUnique(IEnumerable<SurfaceUnit> units)
     {

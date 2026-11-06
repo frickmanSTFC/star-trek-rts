@@ -395,7 +395,8 @@ public sealed partial class GameData
                 Amounts(u, "cost", $"Surface unit {Str(u, "id")}"),
                 u.TryGetProperty("build_seconds", out var bs) ? bs.GetInt32() : 0,
                 u.TryGetProperty("description", out var ud) ? ud.GetString() ?? "" : "",
-                u.TryGetProperty("mark", out var mk) ? mk.GetInt32() : null))
+                u.TryGetProperty("mark", out var mk) ? mk.GetInt32() : null,
+                ReadDamage(u), ReadTyres(u, Amounts)))
             .ToList();
 
         var unitNames = new UnitNameRules(new List<string>(), 10, 99);
@@ -499,6 +500,7 @@ public sealed partial class GameData
         ValidateSurfaces(problems);
         ValidateUnitNames(problems);
         ValidateEnvironments(problems);
+        ValidateRoverDamage(problems);
         return problems;
     }
 
