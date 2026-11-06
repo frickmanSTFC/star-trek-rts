@@ -41,7 +41,7 @@ def door(name, cx, y, w, h, parent, skin):
     for i in range(int(h / 0.5)):
         bx(f"{name}Slat{i}", (w + 0.02, 0.17, 0.05), P(0, 0, -0.35 - i * 0.5), MT["trim"], piv)
     bx(f"{name}Bottom", (w + 0.02, 0.2, 0.12), P(0, 0, -h + 0.06), MT["hazard"], piv)
-    piv.scale.z = 1 - DOOR_OPEN
+    piv.scale.z = 1.0 if K.CFG.get("game") else 1 - DOOR_OPEN     # the game export rests shut
     return piv
 
 

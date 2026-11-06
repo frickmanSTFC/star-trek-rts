@@ -283,7 +283,9 @@ def run(building_id, build, hero, close, lineup_target_z=3.0, ground_z=0.3):
         M = Mark(building_id, cfg["mark"], (0, 0, 0))
         build(cfg["mark"], M)
         bpy.context.view_layer.update()
-        keep = set(M.info["keep"]) | {o.name for o in M.root.children if o.name.startswith("Build")}
+        markers = ("AddOnSpot", "RoofSpot", "SignFront", "SparkPoint")
+        keep = set(M.info["keep"]) | {o.name for o in M.root.children if o.name.startswith("Build")} | \
+            {o.name for o in M.root.children_recursive if o.type == "EMPTY" and o.name.startswith(markers)}
         K.join_pieces(M.root, keep, set())
         K.bake_grime(M.root, set(), f"{building_id.title()}Mk{cfg['mark']}Grime", ground_z)
         K.export(M.root, cfg["out"])
