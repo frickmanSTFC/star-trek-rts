@@ -16,6 +16,7 @@ public static partial class BuildingModels
     public const string MinePath = "res://models/buildings/mine.glb";
     public const string StoragePath = "res://models/buildings/storage_container.glb";
     public const string ReactorPath = "res://models/buildings/fusion_reactor.glb";
+    public const string DeepCorePath = "res://models/buildings/deep_core_mine.glb";
 
     private static string[] Pieces(int count)
     {
@@ -108,6 +109,22 @@ public static partial class BuildingModels
         return n;
     }
 
+    /// <summary>Deep-Core Mine: tall derrick over a glowing shaft ("CoreHeat"), top drive + drill string ("Drill",
+    /// strokes to "DrillLow"), seismic stabilisers, pressure tanks (scale pivots Tanks0/1), coolant pump ("Pump"),
+    /// substation ("Fan0", glowing "Coil"s), spoil belt ("Belt"), steam at "Vent0", driller's cabin (SignFront).</summary>
+    private static Node3D DeepCoreMine(Color owner, Look v)
+    {
+        if (ImportedFile(DeepCorePath, "deep_core_mine", owner, Pieces(14)) is not { } n) return PrimitiveDeepCore(owner, v);
+        OwnMaterials(n);
+        ScaleY(n, "Tanks0", v.Height);
+        ScaleY(n, "Tanks1", v.Height2);
+        ScaleY(n, "Masts", v.Height3);
+        Optional(n, "OptRack", v.IsPlain || v.Chance(0.7f));
+        n.AddChild(new OmniLight3D { Name = "HeatOmni", LightColor = new Color(1f, 0.5f, 0.2f), LightEnergy = 1.4f, OmniRange = 9f, ShadowEnabled = false, Position = new Vector3(0.6f, 1.6f, 0.4f) });
+        n.AddChild(new OmniLight3D { Name = "MineOmni", LightColor = new Color(1f, 0.9f, 0.75f), LightEnergy = 0.8f, OmniRange = 13f, ShadowEnabled = false, Position = new Vector3(0f, 7f, 1.5f) });
+        return n;
+    }
+
     /// <summary>The signs on a detailed glb's markers (Dress calls this when the model has a "SignFront").</summary>
     private static void PaintDetailedSigns(Node3D n, string defId, int serial)
     {
@@ -123,6 +140,11 @@ public static partial class BuildingModels
                 PaintMarker(n, "SignFront", $"STORAGE {number}", SignInk);
                 PaintMarker(n, "LabelPad", $"PAD {number}", new Color(0.9f, 0.7f, 0.15f));
                 PaintMarker(n, "LabelHex", "VOLATILES", PlateInk);
+                break;
+            case "deep_core_mine":
+                PaintMarker(n, "SignFront", $"DEEP CORE {number}", SignInk);
+                PaintMarker(n, "LabelTank", "COOLANT", PlateInk);
+                PaintMarker(n, "LabelSub", "DANGER", PlateInk);
                 break;
             case "fusion_reactor":
                 PaintMarker(n, "SignFront", $"REACTOR {number}", SignInk);

@@ -420,7 +420,7 @@ public static partial class BuildingModels
     }
 
     /// <summary>Deep-core mine: a heavier derrick over a lit shaft ring, with a big drill ("Spin") and pressure tanks.</summary>
-    private static Node3D DeepCoreMine(Color owner, Look v)
+    private static Node3D PrimitiveDeepCore(Color owner, Look v)
     {
         var n = new Node3D();
         var hull = Metal(HullColour);

@@ -6,7 +6,8 @@ using Godot;
 namespace FinalFrontier;
 
 /// <summary>
-/// Render-only: the working animation of the detailed Mining Complex, Storage Container yard and Fusion Reactor models
+/// Render-only: the working animation of the detailed Mining Complex, Deep-Core Mine, Storage Container yard and Fusion
+/// Reactor models
 /// (BuildingModels.Detailed.cs), driven by each structure's sim status, like PlanetView.Refinery.cs does for the
 /// refinery. Parts are looked up by name once per model (a fresh model after completion or an upgrade gets a fresh
 /// lookup); primitive stand-ins have none of them, so nothing moves on those except their old "Spin".
@@ -28,6 +29,11 @@ public partial class PlanetView
                     if (!_mines.TryGetValue(s.Id, out var m) || m.Model != v.Model) _mines[s.Id] = m = MineParts(v.Model);
                     AnimateMine(s, m, delta);
                     break;
+                case "deep_core_mine":
+                    alive.Add(s.Id);
+                    if (!_deepCores.TryGetValue(s.Id, out var d) || d.Model != v.Model) _deepCores[s.Id] = d = DeepCoreParts(v.Model);
+                    AnimateDeepCore(s, d, delta);
+                    break;
                 case "storage_container":
                     alive.Add(s.Id);
                     if (!_yards.TryGetValue(s.Id, out var y) || y.Model != v.Model) _yards[s.Id] = y = YardParts(v.Model, s.Id);
@@ -43,6 +49,7 @@ public partial class PlanetView
         Prune(_mines, alive);
         Prune(_yards, alive);
         Prune(_reactors, alive);
+        Prune(_deepCores, alive);
     }
 
     private static void Prune<T>(Dictionary<int, T> visuals, HashSet<int> alive)
@@ -272,6 +279,88 @@ public partial class PlanetView
     }
 
     private static float Ease(float t) => t * t * (3f - 2f * t);
+
+    // ---------------------------------------------------------------- deep-core mine
+
+    private sealed class DeepCoreVisual
+    {
+        public required Node3D Model;
+        public Node3D? Drill, Pump, Fan;
+        public Vector3 DrillTop, DrillLow;
+        public required Glows Glow;
+        public OmniLight3D? Heat, Light;
+        public CpuParticles3D? Vent, Sparks;
+        public float Run, HeatLevel, Flow, Stroke;
+        public Vector3 Rest;
+        public bool RestSet;
+    }
+
+    private readonly Dictionary<int, DeepCoreVisual> _deepCores = new();
+
+    private static DeepCoreVisual DeepCoreParts(Node3D model)
+    {
+        var d = new DeepCoreVisual
+        {
+            Model = model,
+            Drill = Part(model, "Drill"),
+            Pump = Part(model, "Pump"),
+            Fan = Part(model, "Fan0"),
+            Glow = new Glows(model, "Belt", "CoreHeat", "Coil"),
+            Heat = model.FindChild("HeatOmni", true, false) as OmniLight3D,
+            Light = model.FindChild("MineOmni", true, false) as OmniLight3D,
+        };
+        if (d.Drill != null) { d.DrillTop = d.Drill.Position; d.DrillLow = Sibling(d.Drill, "DrillLow")?.Position ?? d.DrillTop; }
+        d.Vent = PuffsAt(model, "Vent0", "ShaftSteam", new Color(0.6f, 0.55f, 0.5f), 18, 3f, 0.8f, 2f, 0.3f);
+        if (Part(model, "SparkPoint") is { } sp) d.Sparks = Sparks(sp);
+        return d;
+    }
+
+    /// <summary>Working: the top drive turns the string and strokes it down slowly (a quick pull up for the next
+    /// pipe), the shaft glows hot and steams, the pump and the substation fan spin, the capacitor coils glow with the
+    /// draw, the spoil belt runs; every few seconds the rig shudders (deep drilling). Low power: half speed, the coils
+    /// flicker. Idle (used up, storage full, no upkeep): everything spins down, the heat fades to a dull glow, lamps
+    /// dim. Broken: stopped, heat dark, lamps flicker, sparks at the substation.</summary>
+    private void AnimateDeepCore(SurfaceStructure s, DeepCoreVisual d, float delta)
+    {
+        var broken = s.Broken;
+        var lowPower = s.Status == StructureStatus.LowPower;
+        var working = !broken && (s.Status == StructureStatus.Working || lowPower);
+        d.Run = Mathf.MoveToward(d.Run, working ? (lowPower ? 0.5f : 1f) : 0f, delta / 2f);
+        d.HeatLevel = Mathf.MoveToward(d.HeatLevel, working ? 1f : broken ? 0f : 0.2f, delta / (working ? 4f : 8f));
+        if (d.Drill != null)
+        {
+            d.Drill.RotateObjectLocal(Vector3.Up, delta * 2.4f * d.Run);
+            if (d.Run > 0.01f) d.Stroke = Mathf.PosMod(d.Stroke + delta * d.Run / 20f, 1f);
+            var k = d.Stroke < 0.9f ? d.Stroke / 0.9f : 1f - Ease((d.Stroke - 0.9f) / 0.1f);
+            d.Drill.Position = d.DrillTop.Lerp(d.DrillLow, k);
+        }
+        d.Pump?.RotateObjectLocal(Vector3.Up, delta * 6f * d.Run);
+        d.Fan?.RotateObjectLocal(Vector3.Up, delta * 10f * (broken ? 0f : Mathf.Max(d.Run, 0.2f)));
+        d.Flow += delta * 0.8f * d.Run;
+        foreach (var belt in d.Glow["Belt"]) belt.Uv1Offset = new Vector3(0f, Mathf.PosMod(d.Flow / 0.6f, 1f), 0f);
+
+        var pulse = 1f + 0.15f * Mathf.Sin(_time * 1.7f + s.Id) + 0.07f * Mathf.Sin(_time * 6.3f);
+        foreach (var m in d.Glow["CoreHeat"])
+        {
+            m.EmissionEnabled = true;
+            m.EmissionEnergyMultiplier = Mathf.Lerp(0.05f, 6f, d.HeatLevel) * pulse;
+        }
+        if (d.Heat != null) d.Heat.LightEnergy = 1.6f * d.HeatLevel * pulse;
+        var draw = broken ? 0f : lowPower ? (Mathf.Sin(_time * 19f) > 0.3f ? 3f : 0.6f) : 0.3f + 2.7f * d.Run;
+        foreach (var m in d.Glow["Coil"]) m.EmissionEnergyMultiplier = draw;
+        var lamps = LampLevel(broken, working, lowPower, s.Id);
+        if (s.Status == StructureStatus.Depleted && !broken) lamps = 0.25f;
+        d.Glow.Set(lamps, _time + s.Id * 0.37f);
+        if (d.Light != null) d.Light.LightEnergy = 0.8f * lamps;
+
+        // a short shudder every ~7 s while it drills (the "seismic" part); applied to the model's offset from rest
+        if (!d.RestSet) { d.Rest = d.Model.Position; d.RestSet = true; }
+        var t = Mathf.PosMod(_time + s.Id * 1.3f, 7f);
+        var shake = d.Run > 0.5f && t < 0.6f ? (1f - t / 0.6f) * 0.02f * d.Run : 0f;
+        d.Model.Position = d.Rest + new Vector3(Mathf.Sin(_time * 61f) * shake, 0f, Mathf.Sin(_time * 47f + 1f) * shake);
+        Emit(d.Vent, d.HeatLevel > 0.5f);
+        Emit(d.Sparks, broken);
+    }
 
     // ---------------------------------------------------------------- storage yard
 
