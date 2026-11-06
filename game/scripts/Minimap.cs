@@ -116,7 +116,7 @@ public partial class Minimap : Control
             DrawRect(new Rect2(p - new Vector2(5, 5), new Vector2(10, 10)), Colors.White, false, 1.5f);
         }
         foreach (var u in surface.Units)
-            if (u.Owner == _localPlayer) DrawCircle(ToMap(_view.TileCentre(u.Tile)), 2.5f, Colors.White);
+            if (u.Owner == _localPlayer) DrawCircle(ToMap(_view.UnitPos(u)), 2.5f, Colors.White);
 
         if (_frame.Length == 4)
         {

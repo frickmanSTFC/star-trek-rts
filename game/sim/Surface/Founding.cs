@@ -147,17 +147,16 @@ public sealed partial class PlanetSurface
     {
         if (FoundOutpostProblem(sim, c.Player, c.UnitId, c.Tile) != FoundProblem.None) return;
         var unit = FindUnit(c.UnitId)!;
-        if (unit.Tile == c.Tile)
+        if (unit.Tile == c.Tile && (unit.Mode != UnitMode.Mobile || AtCentre(unit)))
         {
             AbortFounding(sim, unit);
-            unit._path.Clear();
-            unit.Progress = Fix64.Zero;
+            Halt(unit);
             unit.DeployOnArrival = false;
             unit.FoundTile = c.Tile;
             BeginFounding(sim, unit);
             return;
         }
-        var path = Pathfinder.Find(Map, unit.Tile, c.Tile);
+        var path = FindPath(unit.Tile, c.Tile); // same tile, off its centre: an empty path, so it drives to the centre
         if (path == null) return;
         AbortFounding(sim, unit); // a new site replaces the one it was unfolding on (refunded)
         SetPath(unit, path);
@@ -244,8 +243,7 @@ public sealed partial class PlanetSurface
             return;
         }
         _units.Remove(unit);
-        unit._path.Clear();
-        unit.Progress = Fix64.Zero;
+        Halt(unit);
         unit.Mode = UnitMode.Mobile;
         unit.ModeTicks = 0;
         unit.MiningStatus = MiningStatus.None;
@@ -268,7 +266,7 @@ public sealed partial class PlanetSurface
             foreach (var c in rules.Cost) sim.Players[s.Owner].Stock.Add(c.Resource, c.Amount);
         _structures.Remove(s);
         _structureAt[s.Tile] = 0;
-        unit.Tile = s.Tile;
+        PlaceUnit(unit, s.Tile, CentreOf(s.Tile));
         unit.Mode = UnitMode.Packing;
         unit.ModeTicks = 0;
         _units.Add(unit);

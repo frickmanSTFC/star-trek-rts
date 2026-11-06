@@ -66,7 +66,7 @@ public class RoverDamageTests
         Do(sim, new DebugMoveUnitCommand(0, u.Id, from));
         Do(sim, new MoveUnitsCommand(0, new[] { u.Id }, to));
         var ticks = 1;
-        for (; u.Tile != to && ticks < Sec(120); ticks++) sim.Step();
+        for (; (u.Tile != to || u.Path.Count > 0) && ticks < Sec(120); ticks++) sim.Step(); // into the tile and parked
         Assert.Equal(to, u.Tile);
         return ticks;
     }
@@ -291,8 +291,9 @@ public class RoverDamageTests
         Assert.Equal(expected, cost.Single(c => c.Resource == duranium).Amount);
 
         Do(sim, new RepairCommand(0, new[] { rover.Id }));
-        for (var i = 0; i < Sec(300) && rover.Tile != hub; i++) sim.Step();
+        for (var i = 0; i < Sec(300) && (rover.Tile != hub || rover.Path.Count > 0); i++) sim.Step(); // parked on the pad
         Assert.Equal(hub, rover.Tile);
+        Assert.Equal(s.AccessPoint(hub), rover.Pos);
         Assert.True(s.IsRepairing(rover));
         var stock = sim.Players[0].Stock[duranium];
         for (var i = 0; i < Sec(60) && s.NeedsRepair(rover); i++) sim.Step();

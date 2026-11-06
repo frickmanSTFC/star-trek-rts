@@ -1470,7 +1470,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             return;
         }
 
-        var unit = Surface.Units.FirstOrDefault(u => u.Owner == LocalPlayer && u.Tile == _hoverTile);
+        var unit = _view.UnitOnTile(_hoverTile, LocalPlayer); // the one nearest the mouse: several park on a tile
         if (unit != null)
         {
             if (!shift) ClearSelection();

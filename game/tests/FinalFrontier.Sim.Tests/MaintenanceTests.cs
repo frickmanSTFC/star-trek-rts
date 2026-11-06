@@ -366,7 +366,7 @@ public class MaintenanceTests
     public void WornReactorsSupplyLessPower()
     {
         var data = TestData.Patched(
-            ("buildings.json", "\"upkeep_per_min\": { \"deuterium\": 3 }, \"wear_per_min\": 2 },", "\"upkeep_per_min\": { \"deuterium\": 3 }, \"wear_per_min\": 200 },"),
+            ("buildings.json", "\"upkeep_per_min\": { \"deuterium\": 3 }, \"wear_per_min\": 2,", "\"upkeep_per_min\": { \"deuterium\": 3 }, \"wear_per_min\": 200,"),
             ("surfaces.json", "\"break_chance_per_min_at_zero\": 0.6", "\"break_chance_per_min_at_zero\": 0"));
         var sim = Landed(data, out var hub);
         var s = sim.Surface!;

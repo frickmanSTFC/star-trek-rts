@@ -121,8 +121,7 @@ public sealed partial class PlanetSurface
 
     private void StartTyreChange(SurfaceUnit u)
     {
-        u._path.Clear();
-        u.Progress = Fix64.Zero;
+        Halt(u);
         u.DeployOnArrival = false;
         u.TyreChangeTicks = 1;
     }
@@ -156,8 +155,7 @@ public sealed partial class PlanetSurface
     {
         u.Broken = true;
         u.BrokeAtTick = sim.Tick;
-        u._path.Clear();
-        u.Progress = Fix64.Zero;
+        Halt(u);
         u.DeployOnArrival = false;
         u.TyreChangeTicks = 0;
         u.RepairTicks = 0;

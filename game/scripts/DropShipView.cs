@@ -235,7 +235,7 @@ public partial class DropShipView : Node3D
             {
                 ship.UnitId = id;
                 _byUnit[id] = ship;
-                ship.Path = PathFor(ship, _view.TileCentre(carried.Tile));
+                ship.Path = PathFor(ship, _view.UnitPos(carried)); // its parking spot on the tile (sim lanes)
             }
             else if (id < 0 || ship.Time >= DriveFrom) ship.UnitId = -1;
             return;
@@ -245,7 +245,7 @@ public partial class DropShipView : Node3D
             {
                 ship.UnitId = u.Id;
                 _byUnit[u.Id] = ship;
-                ship.Path = PathFor(ship, _view.TileCentre(u.Tile)); // fixes DriveSeconds, so the rest of the timeline
+                ship.Path = PathFor(ship, _view.UnitPos(u)); // its parking spot; fixes DriveSeconds, so the rest of the timeline
                 return;
             }
         if (ship.Time >= DriveFrom) ship.UnitId = -1; // nothing came down: just close up and leave
