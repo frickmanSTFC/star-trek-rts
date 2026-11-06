@@ -311,8 +311,9 @@ public sealed partial class PlanetSurface
 
     private static readonly Fix64 Hundred = Fix64.FromInt(100);
 
-    /// <summary>How fast a unit drives now: full speed, or slower while broken (worse damage, slower).</summary>
-    public Fix64 SpeedPerTick(SurfaceUnit unit)
+    /// <summary>How fast a unit drives before the weather (<see cref="SpeedPerTick"/>): full speed, or slower while
+    /// broken (worse damage, slower).</summary>
+    private Fix64 DriveSpeedPerTick(SurfaceUnit unit)
     {
         if (_data.SurfaceUnit(unit.DefId).Damage != null) return unit.SpeedPerTick * DriveShare(unit); // a rover (RoverDamage.cs)
         var rules = _data.SurfaceUnit(unit.DefId).Breakdown;
@@ -455,6 +456,7 @@ public sealed partial class PlanetSurface
             if (_structureAt[t] != 0) return "too close to a building";
         foreach (var core in Bases(player))
             if (Map.Grid.Distance(core.Tile, tile) < orbit.OutpostMinDistance) return $"too close to a base (at least {orbit.OutpostMinDistance} tiles)";
+        if (DropWeatherProblem(sim.Tick, tile) is { } weather) return weather;
         if (!sim.Players[player].Stock.CanAfford(orbit.OutpostCost)) return "not enough resources";
         return null;
     }
@@ -469,6 +471,7 @@ public sealed partial class PlanetSurface
         if (_players[player].ShuttleBackTick > sim.Tick) return "the drop ship is still away";
         if (!OnMap(tile)) return "off the map";
         if (!SafeGround(tile)) return Map.NearNatives(tile) ? "that's the natives' land" : "nowhere safe to land there";
+        if (DropWeatherProblem(sim.Tick, tile) is { } weather) return weather;
         if (!sim.Players[player].Stock.CanAfford(_data.SurfaceUnit(unitId).Cost)) return "not enough resources";
         return null;
     }
@@ -1111,7 +1114,7 @@ public sealed partial class PlanetSurface
         switch (command)
         {
             case LandColonyCommand land:
-                if (!CanLand(land.Player, land.Tile)) return true;
+                if (LandProblem(sim, land.Player, land.Tile) != null) return true;
                 var p = _players[land.Player];
                 p.Phase = LandingPhase.Descending;
                 p.LandingTile = land.Tile;
@@ -1385,6 +1388,7 @@ public sealed partial class PlanetSurface
 
     internal void Step(Simulation sim)
     {
+        _weatherTick = sim.Tick; // PlanetSurface.Climate.cs
         for (var i = 0; i < _players.Count; i++)
         {
             var p = _players[i];

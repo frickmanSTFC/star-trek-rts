@@ -56,7 +56,10 @@ public sealed record GasReading(string Gas, Fix64 Value, bool Percent, Fix64 Ppm
 /// <summary>
 /// The outpost sensors' readings at one tile and tick. Temperatures in °C, humidity in %, wind in m/s (WindFromDeg = the
 /// compass bearing it blows from, 0 = north = the map's top), pressure in kPa, radiation in µSv/h, altitude in km,
-/// latitude as a share of the map's half-height (+1 = the top row, -1 = the bottom). Sun = height of the sun (-1..1).
+/// latitude as a share of the map's half-height (+1 = the top row, -1 = the bottom). Sun = height of the sun (-1..1, the
+/// sine of its elevation). Weather / PrecipitationMmH / Visibility / WeatherIntensity / Season / Night come from
+/// <see cref="Climate"/> (the weather kind over the tile, rain or snow in mm/h, visibility 0..1, the hemisphere's season,
+/// the sun below the horizon).
 /// </summary>
 public sealed record SurfaceReadings(
     int Tile,
@@ -78,17 +81,23 @@ public sealed record SurfaceReadings(
     Fix64 CloudCover,
     SkyCondition Sky,
     IReadOnlyList<GasReading> Gases,
-    IReadOnlyList<TelemetryHazard> Hazards)
+    IReadOnlyList<TelemetryHazard> Hazards,
+    WeatherKind Weather = WeatherKind.Clear,
+    Fix64 PrecipitationMmH = default,
+    Fix64 Visibility = default,
+    string Season = "",
+    bool Night = false,
+    Fix64 WeatherIntensity = default)
 {
     public bool Daylight => Sun > Fix64.Zero;
 }
 
 /// <summary>
 /// The outpost's environmental telemetry: pure, deterministic functions of the data (surfaces.json environments +
-/// telemetry), the map, a tile and a tick. Nothing is stored and nothing is rolled on the sim's RNG; the "weather" is
-/// value noise along time, seeded from the map. Shape: a day/night cycle by the tile's longitude (DaySeconds per day),
-/// colder toward the poles and with altitude, wetter by water and plants, windier on high ground, slowly drifting
-/// weather and gusts, toxic patches fouling the air nearby.
+/// telemetry, climate.json), the map, a tile and a tick. Nothing is stored and nothing is rolled on the sim's RNG.
+/// Day and night, the season, temperature, humidity, wind and the sky are <see cref="Climate"/>'s (the body's spin,
+/// orbit and weather cells); pressure, gases, radiation and UV come from the class environment: thinner air with
+/// altitude, a dip in storms, more radiation by day, at altitude and toward the poles, toxic patches fouling the air nearby.
 /// </summary>
 public static class Telemetry
 {
@@ -97,19 +106,24 @@ public static class Telemetry
     private static readonly Fix64 SeaLevelKpa = Fix64.Parse("101.325");
     private static readonly Fix64 Hundred = Fix64.FromInt(100);
 
-    /// <summary>The readings at a tile, or null when the planet class has no environment (or the data no telemetry rules).</summary>
+    /// <summary>The readings at a tile, or null when the planet class has no environment (or the data no telemetry rules).
+    /// Day and night, seasons, temperature, humidity, wind and the sky come from <see cref="Climate"/> (climate.json), so
+    /// the helm's telemetry, the feed and the gameplay effects agree.</summary>
     public static SurfaceReadings? Read(GameData data, SurfaceMap map, int tile, long tick)
     {
         var env = data.EnvironmentOf(map.Def.ClassId);
         var rules = data.Telemetry;
         if (env == null || rules == null || tile < 0 || tile >= map.Grid.Count) return null;
-        return Read(env, rules, map, tile, tick);
+        return Read(env, rules, map, tile, tick, Climate.ContextOf(data, map));
     }
 
-    public static SurfaceReadings Read(EnvironmentDef env, TelemetryRules rules, SurfaceMap map, int tile, long tick)
+    /// <summary>The readings for a bare environment (no climate data: the environment's own day, no seasons, clear
+    /// skies with its mean wind). Used to preview other planet classes on a map.</summary>
+    public static SurfaceReadings Read(EnvironmentDef env, TelemetryRules rules, SurfaceMap map, int tile, long tick) =>
+        Read(env, rules, map, tile, tick, Climate.ForEnvironment(env));
+
+    private static SurfaceReadings Read(EnvironmentDef env, TelemetryRules rules, SurfaceMap map, int tile, long tick, Climate.Context climate)
     {
-        var terrain = map.Terrain(tile);
-        var weather = rules.WeatherOf(terrain.Id);
         var noise = new ValueNoise(map.Seed ^ 0x7E1E3E7A5UL);
         Fix64 N(int channel, int periodSeconds) =>
             noise.Sample(TimeIn(tick, periodSeconds * Simulation.TickRate), Fix64.FromInt(channel * 1000 + tile % 997));
@@ -119,59 +133,32 @@ public static class Telemetry
         var latitude = Latitude(map, tile);
         var latSq = latitude * latitude;
 
-        // Day and night: local solar time from the tile's longitude. Phase 0 = midnight, 0.5 = noon; the warmest hour
-        // lags noon (0.6, about 14:24 on a 24-hour clock).
-        var phase = DayPhase(env, map, tile, tick);
-        var sun = CosTurns(phase - Fix64.Half) * (Fix64.One - Fix64.Ratio(2, 5) * latSq);
+        var (geo, here, weatherCore) = Climate.Evaluate(climate, map, tile, tick);
+        var weather = weatherCore.State;
+        var phase = geo.LocalTime;
+        var sun = geo.SinElevation;
         var sunlight = Fix64.Max(Fix64.Zero, sun);
-        var thermal = CosTurns(phase - Fix64.Ratio(3, 5));
+        var temperature = here.TemperatureC;
+        var humidity = atmosphere ? Fix64.Clamp(here.HumidityPct, env.HumidityMin, env.HumidityMax) : Fix64.Clamp(Fix64.Zero, env.HumidityMin, env.HumidityMax);
+        var wind = atmosphere ? weather.WindMs : Fix64.Zero;
+        var gust = atmosphere ? Fix64.Max(wind, weather.GustMs) : Fix64.Zero;
+        var windFrom = (Wrap(weather.WindDirDeg + Fix64.FromInt(180)).FloorToInt()) % 360;
+        var stormy = weather.Kind is WeatherKind.Storm or WeatherKind.Blizzard or WeatherKind.DustStorm ? weather.Intensity : Fix64.Zero;
 
-        var mean = (env.DayC + env.NightC) / 2;
-        // Terrain sets the swing through moisture and air; with no atmosphere it barely matters.
-        var terrainSwing = Fix64.One + (weather.Swing - Fix64.One) * (atmosphere ? Fix64.One : Quarter);
-        var swing = (env.DayC - env.NightC) / 2 * terrainSwing;
-        var jitter = atmosphere ? Fix64.Parse("1.5") : Fix64.Half;
-        var temperature = mean + swing * thermal - env.PolarDropC * latSq - env.LapsePerKm * altitude + weather.OffsetC
-                          + (N(1, 60) - Fix64.Half) * 2 * jitter;
-        temperature = Fix64.Max(temperature, Fix64.FromInt(-270)); // nothing reads colder than a few kelvin
-
-        // Humidity: the ground's wetness picks within the class's range; drier in the afternoon, damper at night.
-        var wet = map.IsWater(tile) ? Fix64.One
-            : (Fix64.Ratio(35, 100) + Fix64.Ratio(2, 5) * map.Biomass[tile] + (map.TouchesWater(tile) ? Quarter : Fix64.Zero)) * weather.Humidity;
-        wet = Fix64.Clamp(wet, Fix64.Zero, Fix64.One);
-        var humidity = env.HumidityMin + (env.HumidityMax - env.HumidityMin) * wet;
-        humidity = humidity * (Fix64.One - Fix64.Ratio(18, 100) * thermal) + (N(2, 45) - Fix64.Half) * 8;
-        humidity = Fix64.Clamp(humidity, env.HumidityMin, env.HumidityMax);
-
-        // Wind: stronger on high ground, slowly rising and falling, with gusts on top.
-        var high = env.ReliefKm > Fix64.Zero ? altitude / env.ReliefKm : Fix64.Zero;
-        var wind = env.WindMean * weather.Wind * (Fix64.One + Fix64.Ratio(3, 5) * high) * (Fix64.Half + N(3, 90));
-        var gust = wind + (env.WindGust - env.WindMean) * weather.Wind * N(4, 3);
-        var windFrom = (N(5, 400) * 720).FloorToInt() % 360;
-
-        // Pressure: falls with altitude, drifts a little with the weather.
+        // Pressure: falls with altitude, drifts a little, dips in storms.
         var weatherNoise = N(6, 240);
         var pressure = atmosphere
-            ? env.PressureKpa * Exp(-(altitude / env.ScaleHeightKm)) * (Fix64.One + (weatherNoise - Fix64.Half) * Fix64.Ratio(24, 1000))
+            ? env.PressureKpa * Exp(-(altitude / env.ScaleHeightKm)) * (Fix64.One + (weatherNoise - Fix64.Half) * Fix64.Ratio(24, 1000) - Fix64.Ratio(15, 1000) * stormy)
             : Fix64.Zero;
         var o2 = pressure * env.Percent("O2") / Hundred;
-
-        var cloud = atmosphere
-            ? Fix64.Clamp((humidity - Fix64.FromInt(40)) / 55 * (Fix64.Ratio(3, 5) + Fix64.Ratio(4, 5) * weatherNoise), Fix64.Zero, Fix64.One)
-            : Fix64.Zero;
+        var cloud = atmosphere ? Fix64.Clamp(weather.CloudCover, Fix64.Zero, Fix64.One) : Fix64.Zero;
 
         var radiation = (env.RadiationNight + (env.RadiationDay - env.RadiationNight) * sunlight)
                         * (Fix64.One + Fix64.Ratio(12, 100) * altitude) * (Fix64.One + Quarter * latSq)
                         * (Fix64.Ratio(95, 100) + Fix64.Ratio(1, 10) * N(7, 10));
         var uv = env.UvIndex * sunlight * (Fix64.One + Fix64.Ratio(6, 100) * altitude) * (Fix64.One - Fix64.Ratio(3, 5) * cloud);
 
-        var sky = !atmosphere ? SkyCondition.Vacuum
-            : weather.Humidity < Fix64.Half && gust >= Fix64.FromInt(15) && humidity < Fix64.FromInt(40) ? SkyCondition.DustStorm
-            : humidity >= Fix64.FromInt(90) && cloud >= Fix64.Ratio(3, 4) ? (temperature <= Fix64.One ? SkyCondition.Snow : SkyCondition.Rain)
-            : humidity >= Fix64.FromInt(95) && wind < Fix64.FromInt(3) ? SkyCondition.Fog
-            : cloud >= Fix64.Ratio(7, 10) ? SkyCondition.Overcast
-            : cloud >= Fix64.Ratio(3, 10) ? SkyCondition.PartlyCloudy
-            : SkyCondition.Clear;
+        var sky = !atmosphere ? SkyCondition.Vacuum : SkyOf(weather);
 
         // The air: main gases as measured, trace gases with a little drift, plus whatever a nearby toxic patch gives off.
         var gases = new List<GasReading>();
@@ -211,11 +198,30 @@ public static class Telemetry
         if (temperature >= rules.HeatWarnC) hazards.Add(new TelemetryHazard(HazardKind.Heat, "", temperature, rules.HeatWarnC, temperature >= rules.HeatWarnC * 2));
         if (temperature <= rules.ColdWarnC) hazards.Add(new TelemetryHazard(HazardKind.Cold, "", temperature, rules.ColdWarnC, temperature <= rules.ColdWarnC * 2));
         if (gust >= rules.GustWarn) hazards.Add(new TelemetryHazard(HazardKind.HighWinds, "", gust, rules.GustWarn, gust >= rules.GustWarn * 2));
-        if (sky == SkyCondition.DustStorm) hazards.Add(new TelemetryHazard(HazardKind.DustStorm, "", gust, Fix64.FromInt(15), false));
+        if (sky == SkyCondition.DustStorm) hazards.Add(new TelemetryHazard(HazardKind.DustStorm, "", gust, Fix64.FromInt(15), weather.Intensity >= Fix64.Ratio(7, 10)));
 
-        return new SurfaceReadings(tile, tick, phase * env.DayHours, sun, altitude, latitude, temperature, humidity, wind, gust, windFrom,
-            pressure, o2, radiation, uv, env.GravityG, cloud, sky, gases, hazards);
+        var dayHours = climate.Body?.DayHours ?? env.DayHours;
+        return new SurfaceReadings(tile, tick, phase * dayHours, sun, altitude, latitude, temperature, humidity, wind, gust, windFrom,
+            pressure, o2, radiation, uv, env.GravityG, cloud, sky, gases, hazards,
+            atmosphere ? weather.Kind : WeatherKind.Clear, atmosphere ? weather.PrecipitationMmH : Fix64.Zero, atmosphere ? weather.Visibility : Fix64.One,
+            here.SeasonName, here.Night, weather.Intensity);
     }
+
+    /// <summary>The sky condition for a weather kind (the exact kind is in <see cref="SurfaceReadings.Weather"/>).</summary>
+    public static SkyCondition SkyOf(WeatherState w) => w.Kind switch
+    {
+        WeatherKind.Clear => w.CloudCover >= Fix64.Ratio(3, 10) ? SkyCondition.PartlyCloudy : SkyCondition.Clear,
+        WeatherKind.Cloudy => SkyCondition.PartlyCloudy,
+        WeatherKind.Overcast => SkyCondition.Overcast,
+        WeatherKind.Fog => SkyCondition.Fog,
+        WeatherKind.Rain or WeatherKind.Storm => SkyCondition.Rain,
+        WeatherKind.Snow or WeatherKind.Blizzard => SkyCondition.Snow,
+        WeatherKind.Dust => SkyCondition.PartlyCloudy,
+        WeatherKind.DustStorm => SkyCondition.DustStorm,
+        _ => SkyCondition.Clear,
+    };
+
+    private static Fix64 Wrap(Fix64 deg) => deg - Fix64.FromInt((deg / 360).FloorToInt() * 360);
 
     /// <summary>Where the tile is in its local day: 0 = midnight, 0.5 = noon. Longitude shifts it (the map wraps east–west).</summary>
     public static Fix64 DayPhase(EnvironmentDef env, SurfaceMap map, int tile, long tick) =>

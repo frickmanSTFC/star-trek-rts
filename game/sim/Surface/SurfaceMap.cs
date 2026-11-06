@@ -51,6 +51,16 @@ public sealed class SurfaceMap
     /// <summary>The seed this surface was generated from (other seeded streams, like unit names, derive from it).</summary>
     public ulong Seed { get; private set; }
 
+    /// <summary>
+    /// The climate.json body this surface is (its day, seasons and weather: <see cref="Climate"/>), or null for the
+    /// planet class's climate template on a stand-in orbit. Set at generation: the body passed to <see cref="Generate"/>,
+    /// else <see cref="GameData.DefaultClimateBody"/> (the lowest player slot's home body of this class: mvp_duel's Tarsis).
+    /// </summary>
+    public string? ClimateBodyId { get; private set; }
+
+    /// <summary>Climate's resolved numbers for this map and data (rebuilt when the test panel swaps the data).</summary>
+    internal object? ClimateCache;
+
     /// <summary>Wildlife per tile (lifeform scan).</summary>
     public Wildlife[] WildlifeAt { get; }
 
@@ -111,6 +121,7 @@ public sealed class SurfaceMap
     internal void ReplaceData(GameData data)
     {
         _data = data;
+        ClimateCache = null;
         MinMoveCost = data.Terrain.Where(t => t.Passable).Select(t => t.MoveCost).DefaultIfEmpty(1).Min();
     }
 
@@ -186,9 +197,10 @@ public sealed class SurfaceMap
 
     // ------------------------------------------------------------------ generation
 
-    public static SurfaceMap Generate(GameData data, PlanetSurfaceDef def, ulong seed)
+    /// <param name="climateBody">The climate.json body this surface is (null = <see cref="GameData.DefaultClimateBody"/>).</param>
+    public static SurfaceMap Generate(GameData data, PlanetSurfaceDef def, ulong seed, string? climateBody = null)
     {
-        var map = new SurfaceMap(data, def) { Seed = seed };
+        var map = new SurfaceMap(data, def) { Seed = seed, ClimateBodyId = climateBody ?? data.DefaultClimateBody(def.ClassId) };
         var grid = map.Grid;
         var elevationNoise = new ValueNoise(seed ^ 0xE1E7A7E5UL);
         var moistureNoise = new ValueNoise(seed ^ 0x3015E0DEUL);
@@ -312,6 +324,7 @@ public sealed class SurfaceMap
     {
         h.Add(Grid.Count);
         h.Add(Seed);
+        h.Add(ClimateBodyId ?? "");
         h.Add(NativeTile);
         for (var t = 0; t < Grid.Count; t++)
         {

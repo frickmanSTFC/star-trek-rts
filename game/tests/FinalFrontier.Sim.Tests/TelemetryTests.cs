@@ -79,7 +79,7 @@ public class TelemetryTests
             Assert.InRange(r.HumidityPct.ToDouble(), 25, 95);
             Assert.InRange(r.PressureKpa.ToDouble(), 70, 103);
             Assert.InRange(r.O2PartialKpa.ToDouble(), 14, 22);
-            Assert.InRange(r.WindMs.ToDouble(), 0, 20);
+            Assert.InRange(r.WindMs.ToDouble(), 0, 45); // storms and high winds blow 14-30 m/s (climate.json weather), more on high ground
             Assert.True(r.GustMs >= r.WindMs);
             Assert.InRange(r.WindFromDeg, 0, 359);
             Assert.InRange(r.RadiationUsvH.ToDouble(), 0.05, 2);

@@ -1,0 +1,159 @@
+{
+  "_notes": "Planetary climate for the game prototype (game/sim/Surface/Climate.cs): day and night, seasons and weather for every body of the system map, as pure deterministic functions of this data, the map and the tick (no dice rolls, no stored state). All numbers are placeholders for balancing. stars: per spectral class, luminosity (Sol = 1; sunlight at a body = luminosity / distance in AU squared, Earth at 1 AU = 1), colour_k (colour temperature) and colour (for the view). bodies: one per maps.json body id (every map body must be listed). orbit: au = semi-major axis in AU, eccentricity (the distance swings between au*(1-e) and au*(1+e) over the year, closest at perihelion = a year fraction), or parent = a moon, which shares its planet's orbit around the star. The system map is a schematic, not to scale: au started from each body's map distance to the star (au_per_map_unit below: Tarsis's 484 units = 1 AU) and was hand-tuned (gas giants and their ice moons pushed out beyond the frost line, Veyra pushed out to make it cold). spin: day_seconds = play seconds per local day (the subsolar point crosses the whole map width once per day; the map wraps east-west), day_hours = the same day on the local clock, direction prograde (the sun rises in the east and the subsolar point moves west) or retrograde (rises in the west), locked = none, parent (a moon that always shows its planet the same face: its day is one orbit around the planet, so day_seconds is that orbit) or star (permanent light and dark sides: the star stands still over facing = a share of the map width, and the year is one day, so year_days must be 1). axial_tilt_deg: the star's overhead latitude swings between +tilt and -tilt over the year (declination = tilt * sin(year)), so tilt makes seasons and polar day and night. year_days: local days per year, compressed for play (Tarsis: 8 days = 96 minutes); planets roughly follow Kepler (year in seconds ~ Tarsis's year * au^1.5) and a moon's year in seconds equals its planet's. year_start: the year fraction at tick 0 (0 = the northern spring equinox, 0.25 = northern midsummer). albedo (share of sunlight reflected) and greenhouse_c set the body's mean temperature: 278.6 K * ((1 - albedo) * sunlight)^(1/4) - 273.15 + greenhouse_c (Earth: albedo 0.3, greenhouse 33 = 15 C). climate = a template below; seasons (optional) replaces the template's seasons for this body. landable = a surface can be played there now. notes = text for the climate page. classes: the climate template per planet class, used for a surface that has no body (and checked against the bodies). surface: how a body's numbers become a map: latitude_span_deg = latitude of the top row (the bottom row is minus that; matches the orbit globe, whose tiles cover v 0.14-0.86 = +-64.8 deg), start_day_fraction = local time at column 0 on tick 0 (0 = midnight, 0.5 = noon), twilight_deg = how far below the horizon the light fades out, thermal_lag_day = the warmest hour trails noon by this share of a day, season_lag_year = the warmest season trails the solstice by this share of a year, equator_share = how much warmer than the body's mean the equator is, as a share of the class environment's polar_drop (the poles are polar_drop colder than the equator, rising with the square of the latitude), snow_below_c = rain falls as snow (and storms as blizzards) where the local temperature is below this, and snow as rain above it, cell_tiles = weather cells are about this many hex widths across (they drift east or west with the template's drift and their edges are warped by noise), ramp_share and ramp_max_seconds = a spell fades in and out over this share of its length (at most this long), epoch_seconds = spells restart at every season change and at least this often, calm_start_seconds = the whole map is calm and clear from tick 0 until then (so the first landing can't be weathered out), drop_ship_max_gust_ms = drop ships and outpost drops can't land where gusts reach this (as well as in the weather kinds with drop_ships_grounded), au_per_map_unit = the starting scale for au. climates: weather templates. air = false means no weather at all (always clear, no wind); wind_scale scales every weather kind's wind; drift_tiles_per_min = how fast the weather cells move (+ east, - west); swing_c and polar_drop_c are used only for bodies whose planet class has no surfaces.json environment (otherwise the environment's day/night swing and polar_drop are used). seasons: in year order from year fraction 0 (the north's season; the south runs half a year behind): share of the year (summing to 1), temp_c, humidity_pct and wind (a multiplier) blend smoothly from one season's middle to the next, spell_s = how long one weather spell lasts (min and max seconds), weights = how often each weather kind is picked for a spell (relative; missing = 0; at least one must be positive). bands: latitude bands from the equator (to_deg = the band's poleward edge in degrees, the last must reach 90): season_scale scales the seasons' temp_c there (tropics barely have seasons), wind_toward_deg = the prevailing wind's direction (0 = north, 90 = east), weights = multipliers on the season weights there. weather: one entry per kind (clear, cloudy, overcast, fog, rain, storm, snow, blizzard, dust, dust_storm, high_wind): cloud cover and visibility (0-1) at full strength, precip_mm_h and wind_ms ranges (picked by the spell's peak intensity), gust = gust / wind, humidity_min_pct = the air is at least this humid during it, effects: rover_speed (multiplier on every ground vehicle's speed), survey_radius_delta (added to survey radii, never below 1), rover_damage (multiplier on rover wear, hazard and flat-tyre chances), drop_ships_grounded (drop ships, outpost drops and the first landing are refused on the tile), solar (multiplier for future solar power, times daylight). Effects ramp in and out with the spell. terrain: extra effects of a weather kind on a terrain (mud on wet plains and forest, drifts on snowy ground, sand in the air over deserts), multiplied on top.",
+
+  "stars": [
+    { "class": "O", "name": "Blue giant",     "luminosity": 50000, "colour_k": 35000, "colour": "#9bb0ff" },
+    { "class": "B", "name": "Blue-white",     "luminosity": 800,   "colour_k": 18000, "colour": "#aabfff" },
+    { "class": "A", "name": "White",          "luminosity": 20,    "colour_k": 8500,  "colour": "#cad7ff" },
+    { "class": "F", "name": "Yellow-white",   "luminosity": 2.5,   "colour_k": 6500,  "colour": "#f8f7ff" },
+    { "class": "G", "name": "Yellow dwarf",   "luminosity": 1,     "colour_k": 5700,  "colour": "#fff4ea" },
+    { "class": "K", "name": "Orange dwarf",   "luminosity": 0.3,   "colour_k": 4500,  "colour": "#ffd2a1" },
+    { "class": "M", "name": "Red dwarf",      "luminosity": 0.04,  "colour_k": 3200,  "colour": "#ffb56c" }
+  ],
+
+  "bodies": {
+    "tarsis":     { "orbit": { "au": 1.0, "eccentricity": 0.017, "perihelion": 0.79 },  "spin": { "day_seconds": 720,  "day_hours": 26,  "direction": "prograde",   "locked": "none" },   "axial_tilt_deg": 23.5, "year_days": 8,    "year_start": 0.04, "albedo": 0.3,  "greenhouse_c": 30, "climate": "temperate", "landable": true,
+                    "notes": "Home world: Earth-like, four seasons over an 8-day year; snow in the north's winter and on the poles, summer thunderstorms in the tropics." },
+    "tarsis_a":   { "orbit": { "parent": "tarsis" },                                      "spin": { "day_seconds": 1440, "day_hours": 708, "direction": "prograde",   "locked": "parent" }, "axial_tilt_deg": 1.5,  "year_days": 4,    "year_start": 0.04, "albedo": 0.12, "greenhouse_c": 0,  "climate": "airless",   "landable": false,
+                    "notes": "Airless moon locked to Tarsis: one face always sees the planet; a 24-minute day of scorching light and deep cold, no weather." },
+    "west_giant": { "orbit": { "au": 2.6, "eccentricity": 0.048, "perihelion": 0.3 },   "spin": { "day_seconds": 400,  "day_hours": 10,  "direction": "prograde",   "locked": "none" },   "axial_tilt_deg": 3.1,  "year_days": 60,   "year_start": 0.6,  "albedo": 0.5,  "greenhouse_c": 45, "climate": "gas_giant", "landable": false,
+                    "notes": "Gas giant beyond the frost line: fast spin, banded cloud decks, jet streams and long-lived storms. No surface to land on." },
+    "hesper_ice": { "orbit": { "parent": "west_giant" },                                  "spin": { "day_seconds": 2400, "day_hours": 85,  "direction": "prograde",   "locked": "parent" }, "axial_tilt_deg": 3,    "year_days": 10,   "year_start": 0.6,  "albedo": 0.62, "greenhouse_c": 3,  "climate": "ice_moon",  "landable": false,
+                    "notes": "Frozen moon of Hesper, locked to it: a 40-minute day, thin nitrogen haze, nitrogen-methane frost falling as snow." },
+    "west_belt":  { "orbit": { "au": 0.64, "eccentricity": 0.08, "perihelion": 0.5 },   "spin": { "day_seconds": 90,   "day_hours": 5.2, "direction": "prograde",   "locked": "none" },   "axial_tilt_deg": 35,   "year_days": 33,   "year_start": 0.2,  "albedo": 0.1,  "greenhouse_c": 0,  "climate": "airless",   "landable": false,
+                    "notes": "Rocks of the inner belt (a typical one): tumbling every 90 seconds, flickering between glare and shadow; hot, airless." },
+    "west_rich":  { "orbit": { "au": 0.58, "eccentricity": 0.14, "perihelion": 0.1 },   "spin": { "day_seconds": 60,   "day_hours": 3.1, "direction": "retrograde", "locked": "none" },   "axial_tilt_deg": 12,   "year_days": 42,   "year_start": 0.7,  "albedo": 0.07, "greenhouse_c": 0,  "climate": "airless",   "landable": false,
+                    "notes": "Dark metal-rich rocks closest to Kalandra: the hottest bodies in the system, spinning once a minute, retrograde." },
+    "west_l":     { "orbit": { "au": 1.2, "eccentricity": 0.09, "perihelion": 0.25 },   "spin": { "day_seconds": 660,  "day_hours": 22,  "direction": "retrograde", "locked": "none" },   "axial_tilt_deg": 31,   "year_days": 11.5, "year_start": 0.5,  "albedo": 0.32, "greenhouse_c": 34, "climate": "marginal",  "landable": false,
+                    "notes": "Cold, dusty marginal world: retrograde spin (the sun rises in the west), a steep tilt and an eccentric orbit, so the north's summer is short and fierce; dust storms in the thaw." },
+    "morrow":     { "orbit": { "au": 1.0, "eccentricity": 0.017, "perihelion": 0.79 },  "spin": { "day_seconds": 720,  "day_hours": 26,  "direction": "prograde",   "locked": "none" },   "axial_tilt_deg": 23.5, "year_days": 8,    "year_start": 0.04, "albedo": 0.3,  "greenhouse_c": 30, "climate": "temperate", "landable": true,
+                    "notes": "The rival's home world: Tarsis's twin (the duel map is point-symmetric, so its climate matches Tarsis's exactly)." },
+    "morrow_a":   { "orbit": { "parent": "morrow" },                                      "spin": { "day_seconds": 1440, "day_hours": 708, "direction": "prograde",   "locked": "parent" }, "axial_tilt_deg": 1.5,  "year_days": 4,    "year_start": 0.04, "albedo": 0.12, "greenhouse_c": 0,  "climate": "airless",   "landable": false,
+                    "notes": "Twin of Tarsis A." },
+    "east_giant": { "orbit": { "au": 2.6, "eccentricity": 0.048, "perihelion": 0.3 },   "spin": { "day_seconds": 400,  "day_hours": 10,  "direction": "prograde",   "locked": "none" },   "axial_tilt_deg": 3.1,  "year_days": 60,   "year_start": 0.6,  "albedo": 0.5,  "greenhouse_c": 45, "climate": "gas_giant", "landable": false,
+                    "notes": "Ilium: twin of Hesper." },
+    "ilium_ice":  { "orbit": { "parent": "east_giant" },                                  "spin": { "day_seconds": 2400, "day_hours": 85,  "direction": "prograde",   "locked": "parent" }, "axial_tilt_deg": 3,    "year_days": 10,   "year_start": 0.6,  "albedo": 0.62, "greenhouse_c": 3,  "climate": "ice_moon",  "landable": false,
+                    "notes": "Twin of Hesper Ice." },
+    "east_belt":  { "orbit": { "au": 0.64, "eccentricity": 0.08, "perihelion": 0.5 },   "spin": { "day_seconds": 90,   "day_hours": 5.2, "direction": "prograde",   "locked": "none" },   "axial_tilt_deg": 35,   "year_days": 33,   "year_start": 0.2,  "albedo": 0.1,  "greenhouse_c": 0,  "climate": "airless",   "landable": false,
+                    "notes": "Twin of the Western Belt." },
+    "east_rich":  { "orbit": { "au": 0.58, "eccentricity": 0.14, "perihelion": 0.1 },   "spin": { "day_seconds": 60,   "day_hours": 3.1, "direction": "retrograde", "locked": "none" },   "axial_tilt_deg": 12,   "year_days": 42,   "year_start": 0.7,  "albedo": 0.07, "greenhouse_c": 0,  "climate": "airless",   "landable": false,
+                    "notes": "Teral Cluster: twin of the Corsa Cluster." },
+    "east_l":     { "orbit": { "au": 1.2, "eccentricity": 0.09, "perihelion": 0.25 },   "spin": { "day_seconds": 660,  "day_hours": 22,  "direction": "retrograde", "locked": "none" },   "axial_tilt_deg": 31,   "year_days": 11.5, "year_start": 0.5,  "albedo": 0.32, "greenhouse_c": 34, "climate": "marginal",  "landable": false,
+                    "notes": "Oscen: twin of Veyra." }
+  },
+
+  "classes": { "class_m": "temperate", "class_h": "arid", "class_k": "thin_cold", "class_l": "marginal", "class_n": "oceanic", "class_d": "airless", "class_y": "inferno", "ice_moon": "ice_moon", "class_j": "gas_giant", "class_t": "gas_giant", "asteroid": "airless", "asteroid_rare": "airless" },
+
+  "surface": { "latitude_span_deg": 65, "start_day_fraction": 0.35, "twilight_deg": 6, "thermal_lag_day": 0.1, "season_lag_year": 0.06, "equator_share": 0.27, "snow_below_c": 0,
+               "cell_tiles": 12, "ramp_share": 0.2, "ramp_max_seconds": 40, "epoch_seconds": 1800, "calm_start_seconds": 120, "drop_ship_max_gust_ms": 24, "au_per_map_unit": 0.002066 },
+
+  "climates": {
+    "temperate": { "name": "Temperate (four seasons)", "air": true, "wind_scale": 1, "drift_tiles_per_min": 1.5, "swing_c": 7, "polar_drop_c": 38,
+      "seasons": [
+        { "name": "Spring", "share": 0.25, "temp_c": 0,  "humidity_pct": 5,  "wind": 1.1, "spell_s": [90, 300], "weights": { "clear": 28, "cloudy": 24, "overcast": 14, "fog": 6,  "rain": 18, "storm": 5,  "snow": 3,  "high_wind": 2 } },
+        { "name": "Summer", "share": 0.25, "temp_c": 7,  "humidity_pct": -5, "wind": 0.9, "spell_s": [90, 300], "weights": { "clear": 40, "cloudy": 22, "overcast": 8,  "fog": 3,  "rain": 12, "storm": 10, "dust": 2,  "high_wind": 3 } },
+        { "name": "Autumn", "share": 0.25, "temp_c": 0,  "humidity_pct": 8,  "wind": 1.2, "spell_s": [90, 300], "weights": { "clear": 22, "cloudy": 22, "overcast": 18, "fog": 12, "rain": 18, "storm": 4,  "snow": 2,  "high_wind": 2 } },
+        { "name": "Winter", "share": 0.25, "temp_c": -9, "humidity_pct": 3,  "wind": 1.3, "spell_s": [90, 300], "weights": { "clear": 26, "cloudy": 18, "overcast": 20, "fog": 8,  "rain": 6,  "storm": 2,  "snow": 14, "blizzard": 4, "high_wind": 2 } }
+      ],
+      "bands": [
+        { "name": "Tropics",   "to_deg": 20, "season_scale": 0.3, "wind_toward_deg": 270, "weights": { "storm": 1.6, "rain": 1.3, "fog": 0.7, "snow": 0.2, "blizzard": 0.1 } },
+        { "name": "Temperate", "to_deg": 45, "season_scale": 1,   "wind_toward_deg": 80,  "weights": {} },
+        { "name": "Polar",     "to_deg": 90, "season_scale": 1.4, "wind_toward_deg": 250, "weights": { "clear": 0.8, "fog": 1.3, "rain": 0.5, "storm": 0.4, "snow": 2, "blizzard": 2.5 } }
+      ] },
+    "arid": { "name": "Arid (desert)", "air": true, "wind_scale": 1.2, "drift_tiles_per_min": 2, "swing_c": 19, "polar_drop_c": 30,
+      "seasons": [
+        { "name": "Hot season",  "share": 0.4, "temp_c": 6,  "humidity_pct": -3, "wind": 1,   "spell_s": [120, 360], "weights": { "clear": 62, "cloudy": 8,  "dust": 18, "dust_storm": 4, "high_wind": 8 } },
+        { "name": "Wind season", "share": 0.3, "temp_c": 0,  "humidity_pct": 0,  "wind": 1.5, "spell_s": [90, 300],  "weights": { "clear": 34, "cloudy": 8,  "dust": 26, "dust_storm": 14, "high_wind": 18 } },
+        { "name": "Cool season", "share": 0.3, "temp_c": -7, "humidity_pct": 6,  "wind": 0.9, "spell_s": [120, 360], "weights": { "clear": 50, "cloudy": 20, "overcast": 6, "rain": 5, "storm": 3, "dust": 12, "high_wind": 4 } }
+      ],
+      "bands": [
+        { "name": "Low desert",  "to_deg": 40, "season_scale": 0.6, "wind_toward_deg": 260, "weights": {} },
+        { "name": "High desert", "to_deg": 90, "season_scale": 1.2, "wind_toward_deg": 70,  "weights": { "dust_storm": 0.6, "snow": 1, "rain": 0.7 } }
+      ] },
+    "thin_cold": { "name": "Thin, cold air (Mars-like)", "air": true, "wind_scale": 1.1, "drift_tiles_per_min": 2.5, "swing_c": 37, "polar_drop_c": 45,
+      "seasons": [
+        { "name": "Clear season", "share": 0.4,  "temp_c": 3,  "humidity_pct": 0, "wind": 0.9, "spell_s": [150, 420], "weights": { "clear": 70, "cloudy": 6,  "dust": 18, "high_wind": 6 } },
+        { "name": "Dust season",  "share": 0.35, "temp_c": 5,  "humidity_pct": 0, "wind": 1.4, "spell_s": [150, 480], "weights": { "clear": 30, "dust": 32, "dust_storm": 26, "high_wind": 12 } },
+        { "name": "Frost season", "share": 0.25, "temp_c": -12, "humidity_pct": 1, "wind": 1,  "spell_s": [120, 360], "weights": { "clear": 52, "cloudy": 10, "fog": 12, "snow": 14, "dust": 8, "high_wind": 4 } }
+      ],
+      "bands": [
+        { "name": "Low latitudes", "to_deg": 35, "season_scale": 0.5, "wind_toward_deg": 270, "weights": { "dust_storm": 1.3, "snow": 0.3 } },
+        { "name": "Polar caps",    "to_deg": 90, "season_scale": 1.3, "wind_toward_deg": 90,  "weights": { "snow": 2, "fog": 1.5, "dust_storm": 0.6 } }
+      ] },
+    "marginal": { "name": "Marginal (cold, dusty)", "air": true, "wind_scale": 1.2, "drift_tiles_per_min": -2, "swing_c": 12, "polar_drop_c": 42,
+      "seasons": [
+        { "name": "Thaw",        "share": 0.2,  "temp_c": 4,   "humidity_pct": 8,  "wind": 1.3, "spell_s": [90, 300],  "weights": { "clear": 22, "cloudy": 16, "overcast": 10, "fog": 10, "rain": 12, "dust": 16, "dust_storm": 8, "high_wind": 6 } },
+        { "name": "Dust season", "share": 0.3,  "temp_c": 6,   "humidity_pct": -8, "wind": 1.4, "spell_s": [120, 360], "weights": { "clear": 30, "cloudy": 10, "dust": 30, "dust_storm": 16, "high_wind": 14 } },
+        { "name": "Long cold",   "share": 0.35, "temp_c": -6,  "humidity_pct": 0,  "wind": 1,   "spell_s": [120, 360], "weights": { "clear": 36, "cloudy": 18, "overcast": 14, "fog": 6, "snow": 14, "dust": 8, "high_wind": 4 } },
+        { "name": "Deep cold",   "share": 0.15, "temp_c": -14, "humidity_pct": 2,  "wind": 1.2, "spell_s": [120, 360], "weights": { "clear": 40, "overcast": 14, "snow": 20, "blizzard": 12, "high_wind": 14 } }
+      ],
+      "bands": [
+        { "name": "Dust belt",  "to_deg": 30, "season_scale": 0.6, "wind_toward_deg": 90,  "weights": { "dust": 1.4, "dust_storm": 1.5, "snow": 0.4 } },
+        { "name": "Steppe",     "to_deg": 50, "season_scale": 1,   "wind_toward_deg": 270, "weights": {} },
+        { "name": "Ice fields", "to_deg": 90, "season_scale": 1.3, "wind_toward_deg": 300, "weights": { "dust": 0.3, "dust_storm": 0.2, "snow": 1.8, "blizzard": 2 } }
+      ] },
+    "oceanic": { "name": "Oceanic (pelagic)", "air": true, "wind_scale": 1.3, "drift_tiles_per_min": 2, "swing_c": 3, "polar_drop_c": 26,
+      "seasons": [
+        { "name": "Calm",    "share": 0.4,  "temp_c": 1,  "humidity_pct": 0, "wind": 0.8, "spell_s": [90, 300], "weights": { "clear": 34, "cloudy": 28, "overcast": 12, "fog": 12, "rain": 12, "storm": 2 } },
+        { "name": "Monsoon", "share": 0.35, "temp_c": 2,  "humidity_pct": 6, "wind": 1.2, "spell_s": [90, 300], "weights": { "clear": 10, "cloudy": 16, "overcast": 22, "fog": 6, "rain": 32, "storm": 14 } },
+        { "name": "Squalls", "share": 0.25, "temp_c": -3, "humidity_pct": 2, "wind": 1.5, "spell_s": [60, 240], "weights": { "clear": 18, "cloudy": 20, "overcast": 16, "rain": 20, "storm": 16, "high_wind": 10 } }
+      ],
+      "bands": [
+        { "name": "Warm seas", "to_deg": 30, "season_scale": 0.4, "wind_toward_deg": 270, "weights": { "storm": 1.4 } },
+        { "name": "Cold seas", "to_deg": 90, "season_scale": 1.2, "wind_toward_deg": 90,  "weights": { "fog": 1.5, "snow": 1, "blizzard": 1 } }
+      ] },
+    "airless": { "name": "Airless (no weather)", "air": false, "wind_scale": 0, "drift_tiles_per_min": 0, "swing_c": 130, "polar_drop_c": 50,
+      "seasons": [
+        { "name": "Year-round", "share": 1, "temp_c": 0, "humidity_pct": 0, "wind": 1, "spell_s": [600, 600], "weights": { "clear": 1 } }
+      ],
+      "bands": [
+        { "name": "All latitudes", "to_deg": 90, "season_scale": 1, "wind_toward_deg": 0, "weights": {} }
+      ] },
+    "inferno": { "name": "Inferno (crushing, acid)", "air": true, "wind_scale": 1.6, "drift_tiles_per_min": -3, "swing_c": 45, "polar_drop_c": 25,
+      "seasons": [
+        { "name": "Year-round", "share": 1, "temp_c": 0, "humidity_pct": 0, "wind": 1, "spell_s": [90, 300], "weights": { "overcast": 52, "fog": 10, "rain": 10, "storm": 16, "high_wind": 12 } }
+      ],
+      "bands": [
+        { "name": "All latitudes", "to_deg": 90, "season_scale": 1, "wind_toward_deg": 270, "weights": {} }
+      ] },
+    "ice_moon": { "name": "Ice moon (thin haze)", "air": true, "wind_scale": 0.4, "drift_tiles_per_min": 0.8, "swing_c": 16, "polar_drop_c": 20,
+      "seasons": [
+        { "name": "Haze season",  "share": 0.5, "temp_c": 2,  "humidity_pct": 0, "wind": 1,   "spell_s": [180, 540], "weights": { "clear": 40, "cloudy": 20, "fog": 30, "snow": 8, "high_wind": 2 } },
+        { "name": "Frost season", "share": 0.5, "temp_c": -3, "humidity_pct": 0, "wind": 1.2, "spell_s": [180, 540], "weights": { "clear": 50, "fog": 15, "snow": 25, "blizzard": 5, "high_wind": 5 } }
+      ],
+      "bands": [
+        { "name": "All latitudes", "to_deg": 90, "season_scale": 1, "wind_toward_deg": 90, "weights": {} }
+      ] },
+    "gas_giant": { "name": "Gas giant (banded storms)", "air": true, "wind_scale": 5, "drift_tiles_per_min": 6, "swing_c": 2, "polar_drop_c": 15,
+      "seasons": [
+        { "name": "Calm bands",   "share": 0.6, "temp_c": 0, "humidity_pct": 0, "wind": 1,   "spell_s": [120, 480], "weights": { "cloudy": 30, "overcast": 40, "storm": 15, "high_wind": 15 } },
+        { "name": "Storm season", "share": 0.4, "temp_c": 1, "humidity_pct": 0, "wind": 1.3, "spell_s": [120, 480], "weights": { "overcast": 25, "storm": 40, "high_wind": 35 } }
+      ],
+      "bands": [
+        { "name": "Equatorial jet", "to_deg": 15, "season_scale": 1, "wind_toward_deg": 90,  "weights": { "high_wind": 2, "storm": 0.7 } },
+        { "name": "Belts and zones", "to_deg": 55, "season_scale": 1, "wind_toward_deg": 270, "weights": { "storm": 1.5 } },
+        { "name": "Polar vortex",   "to_deg": 90, "season_scale": 1, "wind_toward_deg": 90,  "weights": { "storm": 1.3, "cloudy": 1.5 } }
+      ] }
+  },
+
+  "weather": [
+    { "id": "clear",      "name": "Clear",      "cloud": 0.08, "visibility": 1,    "precip_mm_h": [0, 0],    "wind_ms": [1, 6],   "gust": 1.6, "humidity_min_pct": 0,  "effects": { "rover_speed": 1,    "survey_radius_delta": 0,  "rover_damage": 1,    "drop_ships_grounded": false, "solar": 1 } },
+    { "id": "cloudy",     "name": "Cloudy",     "cloud": 0.45, "visibility": 0.95, "precip_mm_h": [0, 0],    "wind_ms": [2, 8],   "gust": 1.6, "humidity_min_pct": 0,  "effects": { "rover_speed": 1,    "survey_radius_delta": 0,  "rover_damage": 1,    "drop_ships_grounded": false, "solar": 0.8 } },
+    { "id": "overcast",   "name": "Overcast",   "cloud": 0.9,  "visibility": 0.85, "precip_mm_h": [0, 0.2],  "wind_ms": [3, 9],   "gust": 1.5, "humidity_min_pct": 60, "effects": { "rover_speed": 1,    "survey_radius_delta": 0,  "rover_damage": 1,    "drop_ships_grounded": false, "solar": 0.45 } },
+    { "id": "fog",        "name": "Fog",        "cloud": 0.7,  "visibility": 0.25, "precip_mm_h": [0, 0.1],  "wind_ms": [0, 3],   "gust": 1.4, "humidity_min_pct": 96, "effects": { "rover_speed": 0.9,  "survey_radius_delta": -2, "rover_damage": 1.1,  "drop_ships_grounded": false, "solar": 0.4 } },
+    { "id": "rain",       "name": "Rain",       "cloud": 0.85, "visibility": 0.65, "precip_mm_h": [0.5, 12], "wind_ms": [3, 12],  "gust": 1.6, "humidity_min_pct": 88, "effects": { "rover_speed": 0.9,  "survey_radius_delta": -1, "rover_damage": 1.1,  "drop_ships_grounded": false, "solar": 0.35 } },
+    { "id": "storm",      "name": "Storm",      "cloud": 1,    "visibility": 0.4,  "precip_mm_h": [10, 45], "wind_ms": [14, 26], "gust": 1.5, "humidity_min_pct": 92, "effects": { "rover_speed": 0.7,  "survey_radius_delta": -2, "rover_damage": 1.4,  "drop_ships_grounded": true,  "solar": 0.15 } },
+    { "id": "snow",       "name": "Snow",       "cloud": 0.9,  "visibility": 0.5,  "precip_mm_h": [0.3, 5],  "wind_ms": [2, 9],   "gust": 1.5, "humidity_min_pct": 85, "effects": { "rover_speed": 0.85, "survey_radius_delta": -1, "rover_damage": 1.15, "drop_ships_grounded": false, "solar": 0.3 } },
+    { "id": "blizzard",   "name": "Blizzard",   "cloud": 1,    "visibility": 0.15, "precip_mm_h": [3, 12],  "wind_ms": [15, 28], "gust": 1.5, "humidity_min_pct": 88, "effects": { "rover_speed": 0.6,  "survey_radius_delta": -3, "rover_damage": 1.5,  "drop_ships_grounded": true,  "solar": 0.1 } },
+    { "id": "dust",       "name": "Blowing dust", "cloud": 0.3, "visibility": 0.6, "precip_mm_h": [0, 0],    "wind_ms": [6, 14],  "gust": 1.6, "humidity_min_pct": 0,  "effects": { "rover_speed": 0.9,  "survey_radius_delta": -1, "rover_damage": 1.15, "drop_ships_grounded": false, "solar": 0.6 } },
+    { "id": "dust_storm", "name": "Dust storm", "cloud": 0.75, "visibility": 0.15, "precip_mm_h": [0, 0],    "wind_ms": [16, 30], "gust": 1.5, "humidity_min_pct": 0,  "effects": { "rover_speed": 0.65, "survey_radius_delta": -3, "rover_damage": 1.5,  "drop_ships_grounded": true,  "solar": 0.25 } },
+    { "id": "high_wind",  "name": "High winds", "cloud": 0.2,  "visibility": 0.9,  "precip_mm_h": [0, 0],    "wind_ms": [13, 24], "gust": 1.6, "humidity_min_pct": 0,  "effects": { "rover_speed": 0.9,  "survey_radius_delta": 0,  "rover_damage": 1.2,  "drop_ships_grounded": false, "solar": 0.95 } }
+  ],
+
+  "terrain": [
+    { "id": "mud",    "name": "Mud",          "weather": ["rain", "storm"],          "terrain": ["plains", "forest"],       "rover_speed": 0.85, "rover_damage": 1.1 },
+    { "id": "drifts", "name": "Snow drifts",  "weather": ["snow", "blizzard"],       "terrain": ["hills", "ice", "plains"], "rover_speed": 0.85, "rover_damage": 1.05 },
+    { "id": "sand",   "name": "Sand in the air", "weather": ["dust", "dust_storm"],  "terrain": ["desert"],                 "rover_speed": 0.9,  "rover_damage": 1.2 },
+    { "id": "hidden_ice", "name": "Hidden ice", "weather": ["snow", "blizzard"],     "terrain": ["ice"],                    "rover_speed": 1,    "rover_damage": 1.15 }
+  ]
+}

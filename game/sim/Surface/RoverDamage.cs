@@ -84,8 +84,9 @@ public sealed partial class PlanetSurface
         return Fix64.Max(d.Crawl, share);
     }
 
-    /// <summary>How far it surveys now: its radius, less when its sensors are damaged, nothing while disabled.</summary>
-    public int SurveyRadiusOf(SurfaceUnit u)
+    /// <summary>How far it surveys before the weather (<see cref="SurveyRadiusOf"/>): its radius, less when its sensors
+    /// are damaged, nothing while disabled.</summary>
+    private int SensorRadiusOf(SurfaceUnit u)
     {
         if (_data.SurfaceUnit(u.DefId).Damage is not { } d) return u.SurveyRadius;
         if (u.Broken) return 0;
@@ -207,13 +208,14 @@ public sealed partial class PlanetSurface
                 }
             }
 
-            var chances = Fix64.Max(Fix64.Zero, Fix64.One + UnitResearchBonus(u.Owner, u.DefId, Modifier.Breakdown));
+            var weather = WeatherDamage(u); // storms, mud, blowing sand (PlanetSurface.Climate.cs)
+            var chances = Fix64.Max(Fix64.Zero, Fix64.One + UnitResearchBonus(u.Owner, u.DefId, Modifier.Breakdown)) * weather;
             var driving = u.Mode == UnitMode.Mobile && u._path.Count > 0 && u.TyreChangeTicks == 0;
             var terrain = Map.Terrain(u.Tile);
             if (driving && d.On(terrain.Id) is { } ground)
             {
                 var flats = t == null ? 0 : Wheels.Count(u.FlatTyres, t.Wheels);
-                var wear = ground.Wear * (Fix64.One + (t?.FlatWear ?? Fix64.Zero) * flats);
+                var wear = ground.Wear * (Fix64.One + (t?.FlatWear ?? Fix64.Zero) * flats) * weather;
                 u.Integrity = Fix64.Max(Fix64.Zero, u.Integrity - wear / Simulation.TicksPerMinute);
 
                 if (ground.Hazard > Fix64.Zero && sim.Rng.NextFix() < ground.Hazard * chances / Simulation.TicksPerMinute)
