@@ -1,5 +1,5 @@
 {
-  "_notes": "Hashes of the 13 flat data/*.json documents before the split (canonical compact JSON, top-level tables sorted) and of a scripted game (GoldenData.ScriptedGameHash). split_fingerprint = the document files right after the split; once they change the snapshot no longer applies.",
+  "_notes": "Hashes of the 13 flat data/*.json documents before the split (canonical compact JSON, top-level tables sorted) and of a scripted game (GoldenData.ScriptedGameHash). split_fingerprint = the document files right after the split; once they change the snapshot no longer applies. scripted_game was re-recorded when the state hash gained the next-id counters, the command queue, the map's elevation/deposit_start and ship stats (same game: the old hash composition still gave 3704030030069202550).",
   "split_fingerprint": "910f28075180c7821493fb82203a95ce9775af8da5367b005b3b42ffb7e1ed49",
   "documents": {
     "buildings": "102af13b7aa9fd185c7d928831f16a7bb86e2447651c7bfcf71632cfc6e19ce2",
@@ -16,5 +16,5 @@
     "tech_tree": "e0e24b736de3ac7baa5dc7291ace27a575866dc7ab1b8a1d6ab67cc1e233eafc",
     "vehicles": "12c6e203bf07e3b2799109c41d0d0a16297586961abb897f05f748800eb9f3e1"
   },
-  "scripted_game": "3704030030069202550"
+  "scripted_game": "7168500547248029607"
 }

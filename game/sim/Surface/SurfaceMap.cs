@@ -326,11 +326,15 @@ public sealed class SurfaceMap
         h.Add(Seed);
         h.Add(ClimateBodyId ?? "");
         h.Add(NativeTile);
+        h.Add(NativeRadius);
+        // Not hashed because they follow from the data: MinMoveCost, ClimateCache (Climate's numbers for this map + data).
         for (var t = 0; t < Grid.Count; t++)
         {
             h.Add(TerrainOf[t]);
+            h.Add(Elevation[t]);
             h.Add(DepositResource[t]);
             h.Add(DepositAmount[t]);
+            h.Add(DepositStart[t]);
             h.Add(DepositReopened[t]);
             h.Add((int)WildlifeAt[t]);
             h.Add(Toxic[t]);

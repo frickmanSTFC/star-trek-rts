@@ -50,7 +50,8 @@ public sealed partial class PlanetSurface
         if (!OnMap(tile)) return "off the map";
         if (!CanLand(player, tile))
             return Map.NearNatives(tile) ? "that's the natives' land"
-                : Map.Safety(tile) == LandingSafety.Unsafe ? "not a safe landing site" : "too close to a building";
+                : Map.Safety(tile) == LandingSafety.Unsafe ? "not a safe landing site"
+                : PodLandingNear(tile) ? "another colony is landing there" : "too close to a building";
         return Climate.LandingProblem(_data, Map, tile, sim.Tick, stormsOnly: true);
     }
 }

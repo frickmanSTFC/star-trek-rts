@@ -51,6 +51,8 @@ public readonly struct FixVec2 : IEquatable<FixVec2>
 
     public bool Equals(FixVec2 other) => this == other;
     public override bool Equals(object? obj) => obj is FixVec2 v && this == v;
-    public override int GetHashCode() => HashCode.Combine(X, Y);
+    /// <summary>The same on every machine and run (HashCode.Combine is seeded per process). Still never put hash codes in
+    /// the state hash or iterate a hashed collection in the sim (game/README.md).</summary>
+    public override int GetHashCode() => unchecked((int)(((ulong)X.Raw * 0x9E3779B97F4A7C15UL) ^ (ulong)Y.Raw ^ ((ulong)Y.Raw >> 32)));
     public override string ToString() => $"({X}, {Y})";
 }

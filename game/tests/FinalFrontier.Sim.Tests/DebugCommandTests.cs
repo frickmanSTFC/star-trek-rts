@@ -479,5 +479,15 @@ public class DebugCommandTests
     }
 
     [Fact]
-    public void RefusedEditsChangeNothing() => Assert.Equal(Script(false), Script(true, refusedOnly: true));
+    public void RefusedEditsChangeNothing()
+    {
+        var clean = Script(false);
+        var refused = Script(true, refusedOnly: true);
+        // The refused edits are in the hash only for the one tick they wait in the command queue.
+        var queued = Data.Landing.DescentSeconds * Simulation.TickRate + 2;
+        Assert.NotEqual(clean[queued], refused[queued]);
+        clean.RemoveAt(queued);
+        refused.RemoveAt(queued);
+        Assert.Equal(clean, refused);
+    }
 }
