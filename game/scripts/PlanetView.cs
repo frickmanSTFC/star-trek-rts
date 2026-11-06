@@ -73,7 +73,7 @@ public partial class PlanetView : Node3D
     private Node3D? _ghost;
     private string? _ghostId;
     private StandardMaterial3D _ghostMaterial = null!;
-    private StandardMaterial3D _hologram = null!;
+    private ConstructionView _construction = null!;
     private MeshInstance3D _rangeRing = null!;
     private int _surveyedCount = -1;
     private int _spentCount = -1;
@@ -104,8 +104,6 @@ public partial class PlanetView : Node3D
         AddChild(_hover);
 
         _ghostMaterial = Overlay(new Color(0.3f, 1f, 0.4f, 0.45f));
-        _hologram = Overlay(new Color(0.45f, 0.8f, 1f, 0.35f));
-        _hologram.NoDepthTest = false;
         _rangeRing = new MeshInstance3D { Visible = false };
         AddChild(_rangeRing);
 
@@ -113,6 +111,8 @@ public partial class PlanetView : Node3D
         AddChild(_dropShips);
         _landing = new LandingView(this, sim, localPlayer, _dropShips) { Name = "Landing" };
         AddChild(_landing);
+        _construction = new ConstructionView(this, sim) { Name = "Construction" };
+        AddChild(_construction);
         Refresh(0f);
     }
 
@@ -720,8 +720,8 @@ public partial class PlanetView : Node3D
     // ---------------------------------------------------------------- dynamic objects
 
     /// <summary>
-    /// Keeps one model per structure: a blue hologram that rises with construction progress, swapped for
-    /// the solid model on completion. Labels show queue/progress or why a building is idle.
+    /// Keeps one model per structure: while unfinished, <see cref="ConstructionView"/> builds it up piece by piece with
+    /// exocomps and beams; on completion it is swapped for a fresh solid model. Labels show queue/progress or why a building is idle.
     /// </summary>
     private void UpdateStructures(float delta)
     {
@@ -742,10 +742,10 @@ public partial class PlanetView : Node3D
                     v.Label.QueueFree();
                 }
                 var model = BuildingModels.Build(s.DefId, PlanetDriver.PlayerColors[s.Owner % PlanetDriver.PlayerColors.Length], VisualSeed(s), VisualSerial(s));
-                if (!complete) BuildingModels.Override(model, _hologram);
                 model.Position = TileCentre(s.Tile);
                 model.RotationDegrees = new Vector3(0, -60f * s.Facing, 0);
                 AddChild(model);
+                _construction.Attach(s, model); // build pieces + exocomps while unfinished, the completion beat after
                 var label = new Label3D
                 {
                     Position = TileCentre(s.Tile) + new Vector3(0, 12f, 0),
@@ -765,8 +765,7 @@ public partial class PlanetView : Node3D
 
             if (!complete)
             {
-                var f = Mathf.Max(0.08f, _surface.BuildFraction(s).ToFloat());
-                v.Model.Scale = new Vector3(1, f, 1);
+                var f = _surface.BuildFraction(s).ToFloat(); // ConstructionView builds the model up piece by piece
                 v.Label.Text = s.State == StructureState.Queued ? "Queued" : $"Building {Mathf.RoundToInt(f * 100)}%";
                 v.Label.Modulate = new Color(0.6f, 0.85f, 1f);
                 continue;
@@ -810,7 +809,9 @@ public partial class PlanetView : Node3D
             _structures[id].Model.QueueFree();
             _structures[id].Label.QueueFree();
             _structures.Remove(id);
+            _construction.Forget(id);
         }
+        _construction.Update(delta);
         UpdateDrones(delta);
         UpdateBuildingCrews(delta);
     }
