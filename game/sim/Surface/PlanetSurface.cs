@@ -1219,6 +1219,10 @@ public sealed partial class PlanetSurface
                 _players[research.Player].ActiveTech = _data.Tech(research.TechId).Index;
                 return true;
 
+            case PauseCommand pause:
+                ApplyPause(pause); // Pause.cs
+                return true;
+
             case MaintainCommand maintain:
             {
                 var job = FindStructure(maintain.StructureId);
@@ -1529,6 +1533,11 @@ public sealed partial class PlanetSurface
             if (s.Broken)
             {
                 s.Status = StructureStatus.Broken;
+                continue;
+            }
+            if (s.Paused) // switched off by the player (Pause.cs)
+            {
+                s.Status = StructureStatus.Paused;
                 continue;
             }
             if (def.IsLab && _players[s.Owner].ActiveTech < 0)

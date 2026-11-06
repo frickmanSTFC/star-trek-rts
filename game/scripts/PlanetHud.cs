@@ -550,7 +550,7 @@ public partial class PlanetHud : CanvasLayer
                 ("1–9", "a building's card (again or Enter: place it; Shift+key: place at once); a bay's / lab's card when one is selected"),
                 ("Enter", "the card's button: place the building, order the vehicle, start the research"),
                 ("I", "while placing: the building's card again"), ("R / Shift+R", "rotate while placing"),
-                ("U", "upgrade the selected building or base"), ("M", "maintain the selected building"), ("X", "cancel a build or upgrade / salvage (an unfinished founded hub: the rover comes back)"),
+                ("U", "upgrade the selected building or base"), ("M", "maintain the selected building"), ("P", "pause / resume the selected building (no input, no power)"), ("X", "cancel a build or upgrade / salvage (an unfinished founded hub: the rover comes back)"),
                 ("Backspace", "cancel the bay's last order"), ("WASD, middle-drag", "pan"), ("Q / E", "turn the view"), ("Wheel", "zoom"), ("H", "fly home"), ("F1", "this list"),
                 ("F9", "test panel (dev builds): edit anything for testing"), ("Ctrl+Z", "undo the last test-panel edit"), ("Space", "pause / resume while the test panel is open"),
                 ("F9 › SKY", "force time of day, season, weather and wind (look only)"),
@@ -992,9 +992,9 @@ public partial class PlanetHud : CanvasLayer
         _structStatus.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _structStatus.CustomMinimumSize = new Vector2(220, 0);
         id.AddChild(_structStatus);
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < 4; i++) // upgrade, maintain, pause, salvage
         {
-            var b = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30), Alignment = HorizontalAlignment.Left, ClipText = true };
+            var b = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 26), Alignment = HorizontalAlignment.Left, ClipText = true };
             b.AddThemeFontSizeOverride("font_size", 13);
             StyleButton(b, Line, new Color(0.06f, 0.1f, 0.19f));
             var index = i;

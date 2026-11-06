@@ -231,6 +231,7 @@ public sealed class Simulation
             case CancelUnitCommand:
             case ResearchCommand:
             case MaintainCommand:
+            case PauseCommand:
             case OutpostDropCommand:
             case ShuttleCommand:
             case BeamCommand:

@@ -788,6 +788,7 @@ public partial class PlanetView : Node3D
                 : s.Broken ? (s.AutoRepairing ? "Drones repairing" : "Broken down")
                 : s.Status switch
                 {
+                    StructureStatus.Paused => "Paused",
                     StructureStatus.NoUpkeep => "Idle: can't pay upkeep",
                     StructureStatus.Depleted => "Deposit used up",
                     StructureStatus.LowPower => "Low power",

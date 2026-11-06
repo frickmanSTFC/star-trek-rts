@@ -383,6 +383,10 @@ public enum StructureStatus
 
     /// <summary>Worn out and broken down: does nothing until maintained.</summary>
     Broken,
+
+    /// <summary>Switched off by the player (PauseCommand): no input, no output, no upkeep, no wear, no power. Last in the
+    /// enum so the hashed values of the others stay put.</summary>
+    Paused,
 }
 
 /// <summary>What a base's maintenance crew is doing.</summary>
@@ -480,6 +484,9 @@ public sealed class SurfaceStructure
     /// <summary>Test panel: it doesn't wear.</summary>
     public bool NoWear { get; internal set; }
 
+    /// <summary>Switched off by the player (<see cref="PauseCommand"/>): idle with status Paused until switched back on.</summary>
+    public bool Paused { get; internal set; }
+
     /// <summary>Test panel: multiplies its work speed (1 = normal).</summary>
     public Fix64 WorkSpeed { get; internal set; } = Fix64.One;
 
@@ -536,6 +543,7 @@ public sealed class SurfaceStructure
         h.Add(NoWear);
         h.Add(WorkSpeed);
         h.Add(Free);
+        h.Add(Paused);
         h.Add(Founder != null);
         Founder?.AddToHash(ref h);
     }
