@@ -390,7 +390,7 @@ public partial class TestPanel : PanelContainer
         _refreshers.Add(() =>
         {
             if (Live() is not { } x) return;
-            var doing = x.Broken ? "broken down" : x.Mode switch
+            var doing = x.Broken ? (Surface.Disabled(x) ? "disabled" : "broken down") : x.Mode switch
             {
                 UnitMode.Deployed => "mining",
                 UnitMode.Deploying => "unfurling",
@@ -446,13 +446,7 @@ public partial class TestPanel : PanelContainer
         {
             if (Live() is { } x) broken.SetPressedNoSignal(x.Broken);
         });
-        var tyre = MakeCheck("Flat tyre, front left", _ => { });
-        tyre.Disabled = true;
-        tyre.TooltipText = "Comes with rover damage (not built yet)";
-        var tyreRow = Row();
-        tyreRow.AddChild(tyre);
-        tyreRow.AddChild(Text("(after rover damage)", 12, Off));
-        _content.AddChild(tyreRow);
+        BuildTyres(id); // per-wheel flats and spares for rovers (TestPanel.Tyres.cs)
 
         // Look (render only).
         _content.AddChild(Section("LOOK  ·  render only"));
