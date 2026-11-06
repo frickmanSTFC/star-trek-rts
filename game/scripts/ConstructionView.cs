@@ -33,6 +33,9 @@ public partial class ConstructionView : Node3D
     /// <summary>A building is split into at most this many pieces when it has no Build0.. groups.</summary>
     public const int MaxPieces = 12;
 
+    /// <summary>The exocomp is drawn a bit bigger than life (1.9 long next to a 7-wide building) so it reads from the RTS camera.</summary>
+    private const float DroneScale = 1.25f;
+
     private const float CruiseSpeed = 24f;
     private const float MinFlight = 1.3f;
     private const float MaxFlight = 3.4f;
@@ -636,7 +639,7 @@ public partial class ConstructionView : Node3D
             Node = node,
             Body = node.FindChild("Body", true, false) as Node3D,
             BodyRest = (node.FindChild("Body", true, false) as Node3D)?.Position ?? Vector3.Zero,
-            BodyScale = (node.FindChild("Body", true, false) as Node3D)?.Scale ?? Vector3.One,
+            BodyScale = ((node.FindChild("Body", true, false) as Node3D)?.Scale ?? Vector3.One) * DroneScale,
             Emitter = node.FindChild("Emitter", true, false) as Node3D,
             Site = site,
             Slot = NextSlot(site),
