@@ -29,6 +29,7 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
 | `scripts/BuildingModels.cs`, `BuildingModels.Outpost.cs` | Primitive-built models (hub levels 2–3, mine, reactor, habitat, …) and the imported glb models: the Level 1 outpost (`models/buildings/outpost_l1.glb`), rovers, crawler, drop ship |
 | `scripts/PlanetHud.cs`, `Minimap.cs`, `Icons.cs` | Planet HUD: icon resource bar, event feed, tooltip, bottom panel (minimap, selected base or object, command card); icons are SVG paths drawn at runtime |
+| `scripts/BuildDrawer.cs`, `BuildingCard.cs`, `PlanetHud.BuildStrip.cs`, `PlanetDriver.BuildMenu.cs`, `ModelThumbnails.cs`, `HudKit.cs` | The build menu: BUILD [B] and the recent builds on the command card, the slide-up drawer with every building as a picture tile, the large centre card (live turning model and everything from the data) for buildings and Vehicle Bay orders, the placing strip; pictures rendered in the game from the real models in their own little studio (SubViewport with its own world) |
 | `scripts/Hud.cs` | The star-system view's simpler HUD |
 | `FinalFrontier.sln` | One solution for everything (Godot opens it too) |
 
@@ -52,7 +53,12 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    Each full hopper flies home as a cargo pod to the nearest storage building. **F** unfurls it where it stands or
    packs it up; a move order packs it up first. Storage (top bar) is small: the hub's vault fills fast, so build a
    **Storage Container** and an **Ore Refinery** early (the refinery turns 2 ore into 1 metal and frees space).
-5. **Build:** pick a building from the bar at the bottom (or keys **1–7**). A see-through ghost follows the mouse:
+5. **Build:** press **B** (or the **BUILD** button on the command card) for the build drawer: every building you can build,
+   with a picture rendered from its model, its cost (red when you're short) and its number key. Pick one (tile, number key,
+   or one of the three recent builds on the command card) and its **large card** opens over the map: a turning model,
+   cost, build time, power, output, recipes, levels, research that changes it, where it can go, what feeds it and what it
+   feeds, wear and tips. **PLACE** (or **Enter**, or the same pick again) arms placement and the card shrinks to a strip
+   at the bottom right (**I** brings the card back); **Shift**+pick skips the card. A see-through ghost follows the mouse:
    green = OK, red = not (the info panel says why). **R** turns it 60° (Shift+R back), left-click places it
    (Shift+click to keep placing), right-click or Esc stops. The blue area is your build range. Exocomps fly out from
    the base and build each building piece by piece with their beams (a queued building is a faint ghost); one
@@ -70,7 +76,7 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    Day and night sweep across the map (a Tarsis day is 12 minutes, its year 8 days with four seasons), and weather
    drifts over it with the seasons: rain, snow, fog and storms slow vehicles, shorten their surveys and wear rovers
    faster, and storms keep drop ships and outpost drops (and the first landing) from coming down under them.
-   Build a **Vehicle Bay** (key 8) for more vehicles: select it and the command card shows its orders
+   Build a **Vehicle Bay** for more vehicles: select it and the command card shows its orders, each with a picture
    (survey rover Mk I Scout, mining crawler, Mk II Surveyor, Mk III Explorer, construction rover; keys 1–5). Orders are paid up front and queue up to 5; **Backspace** cancels
    the last one. Each vehicle rolls out of the bay's door when it's done.
    **A second base on the ground:** select a **construction rover** and press **FOUND OUTPOST** (the card, **F** or **1**),
@@ -79,10 +85,11 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    cost, unfolds its crane and sets the folded hub down; its exocomps then build the new Colony Hub (90 s), which
    becomes a base of its own in the base tabs (**Tab**). **X** on the unfinished hub refunds it and gives the rover back;
    a move order while it unfolds folds it up again (refunded).
-   Clicking a card on the build card opens a bigger **info card** above it: description, cost, stats, upgrades
-   and requirements. A building card also starts placing it. A research or vehicle card only opens its info:
-   start or order from the card's button, with **Enter**, or by picking the same card (or number key) again. **Esc** closes it.
-7. **Research and upkeep:** build a **Research Lab** (key 9), select it and pick a tech (keys 1–7). Buildings wear
+   A vehicle order opens the same large card for the vehicle (speed, survey radius, damage and tyres, mining or founding);
+   a research tech opens a smaller card. Order or start research from the card's button, with **Enter**, or by picking
+   the same card (or number key) again. **Esc** closes it. Research-gated buildings (the Deep-Core Mine) stay out of the
+   drawer until their tech is done, and the number keys follow what the drawer shows.
+7. **Research and upkeep:** build a **Research Lab**, select it and pick a tech (keys 1–7). Buildings wear
    while they work: below 50% they slow down and may break. Select one and press **M** to send the base's crew,
    or **U** to upgrade it (Mk II, Mk III: faster, wears less; Mk III and the Automated Maintenance tech add
    drones that keep it running). The building panel shows what it's doing, its stats and where bonuses come from.
@@ -102,7 +109,7 @@ selected base or object in the middle, and the build card bottom-right. Fog: bri
 near-black = unexplored (set `FogDarkness` on the root node).
 
 Controls: left-click selects a vehicle, building, base or tile (Shift adds vehicles), **A** selects all vehicles, right-click
-drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair; a construction rover: found an outpost), **R** send damaged vehicles to the repair pad, **T** change a rover's flat tyre, **1–8** build (or order vehicles when a Vehicle Bay is selected), **Backspace** cancel the bay's last order, **R** rotate,
+drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair; a construction rover: found an outpost), **R** send damaged vehicles to the repair pad, **T** change a rover's flat tyre, **B** build drawer, **1–8** a building's card (again or **Enter** to place, **Shift** places at once; or order vehicles when a Vehicle Bay is selected), **I** the card again while placing, **Backspace** cancel the bay's last order, **R** rotate,
 **U** upgrade the selected building (or the base), **M** maintain the selected building, **F1** all controls, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
 WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
 

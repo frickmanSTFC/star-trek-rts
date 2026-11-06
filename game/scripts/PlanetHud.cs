@@ -252,7 +252,8 @@ public partial class PlanetHud : CanvasLayer
             var box = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
             box.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.Minsize, 7);
             var top = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-            top.AddChild(Icon(id, 18));
+            var icon = Icon(id, 18);
+            top.AddChild(icon);
             var keyLabel = MakeLabel(key, 12, Dim);
             keyLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             keyLabel.HorizontalAlignment = HorizontalAlignment.Right;
@@ -273,6 +274,12 @@ public partial class PlanetHud : CanvasLayer
             button.Pressed += () => _onBuild?.Invoke(captured);
             _commandGrid.AddChild(button);
             _commands[id] = (button, tag, cost);
+            _commandParts[id] = (box, top, icon, nameLabel, keyLabel); // picture tiles (PlanetHud.BuildStrip.cs)
+            button.MouseEntered += () => HoveredCommand = captured;
+            button.MouseExited += () =>
+            {
+                if (HoveredCommand == captured) HoveredCommand = null;
+            };
         }
     }
 
@@ -533,13 +540,16 @@ public partial class PlanetHud : CanvasLayer
                 ("Right-click", "drive there (a crawler on a deposit mines it)"), ("F", "crawler: unfurl / pack up / send for repair (in orbit: outpost video feed)"), ("V", "rovers: wipers auto / on / off"),
                 ("R", "send damaged vehicles to the repair pad"), ("T", "rovers: change a flat tyre (uses a spare)"),
                 ("F / 1", "construction rover: found an outpost (pick a site 8+ tiles from your bases)"),
-                ("Tab", "next base (in orbit: next scan)"), ("Esc", "back to the base / stop placing"),
+                ("Tab", "next base (in orbit: next scan)"), ("Esc", "stop placing / close the card / close the drawer / back to the base"),
                 ("O", "orbit view and back"), ("Orbit", "drag or WASD turn the planet, wheel zoom, 1–9 deploy, click to send"),
                 ("Sky (top bar)", "day, season, local time and weather at the view's centre; hover for wind and ground"),
             },
             new[]
             {
-                ("1–9", "build (or order / research when a bay or lab is selected)"), ("R / Shift+R", "rotate while placing"),
+                ("B", "build drawer: every building with its picture, cost and key"),
+                ("1–9", "a building's card (again or Enter: place it; Shift+key: place at once); a bay's / lab's card when one is selected"),
+                ("Enter", "the card's button: place the building, order the vehicle, start the research"),
+                ("I", "while placing: the building's card again"), ("R / Shift+R", "rotate while placing"),
                 ("U", "upgrade the selected building or base"), ("M", "maintain the selected building"), ("X", "cancel a build or upgrade / salvage (an unfinished founded hub: the rover comes back)"),
                 ("Backspace", "cancel the bay's last order"), ("WASD, middle-drag", "pan"), ("Q / E", "turn the view"), ("Wheel", "zoom"), ("H", "fly home"), ("F1", "this list"),
                 ("F9", "test panel (dev builds): edit anything for testing"), ("Ctrl+Z", "undo the last test-panel edit"), ("Space", "pause / resume while the test panel is open"),
@@ -745,6 +755,7 @@ public partial class PlanetHud : CanvasLayer
 
     public void ShowCommands(string title, IReadOnlyList<CommandView> items, bool enabled)
     {
+        HideBuildStrip(); // the build menu is the strip + drawer now (PlanetHud.BuildStrip.cs)
         _commandTitle.Text = title;
         foreach (var c in items)
         {
