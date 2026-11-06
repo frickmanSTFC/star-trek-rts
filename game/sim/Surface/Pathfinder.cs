@@ -9,7 +9,10 @@ namespace FinalFrontier.Sim.Surface;
 public static class Pathfinder
 {
     /// <summary>Path from start to goal, excluding start. Null if unreachable.</summary>
-    public static List<int>? Find(SurfaceMap map, int start, int goal)
+    public static List<int>? Find(SurfaceMap map, int start, int goal) => Find(map, start, goal, null);
+
+    /// <summary>As <see cref="Find(SurfaceMap, int, int)"/>, with an extra (non-negative) cost for entering some tiles.</summary>
+    public static List<int>? Find(SurfaceMap map, int start, int goal, System.Func<int, int>? extraCost)
     {
         if (start == goal) return new List<int>();
         if (!map.Terrain(goal).Passable) return null;
@@ -41,7 +44,7 @@ public static class Pathfinder
                 if (closed[n]) continue;
                 var terrain = map.Terrain(n);
                 if (!terrain.Passable) continue;
-                var cost = g[current] + terrain.MoveCost;
+                var cost = g[current] + terrain.MoveCost + (extraCost?.Invoke(n) ?? 0);
                 if (cost >= g[n]) continue;
                 g[n] = cost;
                 came[n] = current;

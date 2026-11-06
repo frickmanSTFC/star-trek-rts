@@ -211,10 +211,8 @@ public sealed partial class PlanetSurface
             {
                 var u = FindUnit(c.UnitId)!;
                 AbortFounding(sim, u);
-                u.Tile = c.Tile;
-                u._path.Clear();
-                u.Progress = Fix64.Zero;
                 u.Mode = UnitMode.Mobile;
+                PlaceUnit(u, c.Tile);
                 u.ModeTicks = 0;
                 u.DeployOnArrival = false;
                 u.MiningStatus = MiningStatus.None;

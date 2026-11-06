@@ -440,6 +440,9 @@ public sealed partial class GameData
             Environments = ReadEnvironments(surfacesRoot),
             Telemetry = ReadTelemetry(surfacesRoot),
             Climate = ReadClimate(climateRoot, problems),
+            Lanes = ReadLanes(surfacesRoot),
+            BuildingFootprints = ReadBuildingFootprints(buildingsRoot, problems),
+            UnitFootprints = ReadUnitFootprints(surfacesRoot),
             Sources = FileNames.ToDictionary(f => f, f => files[f], StringComparer.Ordinal),
         };
     }
@@ -505,6 +508,7 @@ public sealed partial class GameData
         ValidateRoverDamage(problems);
         ValidateClimate(problems);
         ValidateFounding(problems);
+        ValidateLanes(problems);
         return problems;
     }
 

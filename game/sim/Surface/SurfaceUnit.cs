@@ -51,10 +51,34 @@ public sealed class SurfaceUnit
     /// <summary>Tiles still to enter, next first. Empty when idle.</summary>
     public IReadOnlyList<int> Path => _path;
 
-    /// <summary>Effort spent toward entering the next tile (compare with its move_cost).</summary>
-    public Fix64 Progress { get; internal set; }
-
     internal readonly List<int> _path = new();
+
+    // Driving inside the hexes (Lanes.cs). Path[0] == Tile means it is in its last tile, driving to its parking spot.
+
+    /// <summary>Where it is on the map plane in world units (X east, Y = the view's Z, south), the same coordinates as
+    /// PlanetView (tile centre = HexGrid.Centre × <see cref="PlanetSurface.TileSize"/>). Always inside <see cref="Tile"/>.</summary>
+    public FixVec2 Pos { get; internal set; }
+
+    /// <summary>Pos at the start of the last tick: the view draws Lerp(PrevPos, Pos, alpha).</summary>
+    public FixVec2 PrevPos { get; internal set; }
+
+    /// <summary>The points it still drives through on its current tile: to the edge it leaves by (or its parking spot), bending
+    /// round a building or a parked vehicle. Empty = it plans the next stretch on the next tick.</summary>
+    public IReadOnlyList<FixVec2> Route => _route;
+
+    internal readonly List<FixVec2> _route = new();
+
+    /// <summary>Ticks it has waited for a vehicle in front of it; at lanes.wait_seconds it drives on regardless.</summary>
+    public int WaitTicks { get; internal set; }
+
+    /// <summary>Ticks left of driving on regardless of the vehicles in front (after waiting too long).</summary>
+    public int PushTicks { get; internal set; }
+
+    /// <summary>The vehicle it is waiting for (0 = none).</summary>
+    public int BlockedBy { get; internal set; }
+
+    /// <summary>Driving (or about to): it has somewhere to go.</summary>
+    public bool Driving => _path.Count > 0;
 
     public UnitMode Mode { get; internal set; }
 
@@ -158,9 +182,15 @@ public sealed class SurfaceUnit
         h.Add(Owner);
         h.Add(DefId);
         h.Add(Tile);
-        h.Add(Progress);
         h.Add(_path.Count);
         foreach (var t in _path) h.Add(t);
+        h.Add(Pos);
+        h.Add(PrevPos);
+        h.Add(_route.Count);
+        foreach (var p in _route) h.Add(p);
+        h.Add(WaitTicks);
+        h.Add(PushTicks);
+        h.Add(BlockedBy);
         h.Add((int)Mode);
         h.Add(ModeTicks);
         h.Add(DeployOnArrival);

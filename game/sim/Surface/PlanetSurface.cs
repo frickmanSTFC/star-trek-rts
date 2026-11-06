@@ -290,6 +290,7 @@ public sealed partial class PlanetSurface
         {
             unit.ModeTicks = 0;
             unit.Mode = UnitMode.Deploying;
+            MakeRoom(unit.Tile, unit, _data.DeployedFootprintOf(unit.DefId) + Lanes.Clearance + Fix64.Half);
         }
         unit.MiningStatus = MiningStatus.None;
     }
@@ -577,6 +578,7 @@ public sealed partial class PlanetSurface
         };
         p._usedUnitNames.Add(unit.Name);
         p._usedUnitNumbers.Add(unit.Number);
+        unit.Pos = unit.PrevPos = FreeSpot(tile, unit);
         _units.Add(unit);
         Reveal(owner, tile, def.SurveyRadius);
         return unit;
@@ -1134,7 +1136,7 @@ public sealed partial class PlanetSurface
                 {
                     var unit = FindUnit(id);
                     if (unit == null || unit.Owner != move.Player || DriveProblem(unit) != null) continue;
-                    var path = Pathfinder.Find(Map, unit.Tile, move.Tile);
+                    var path = FindPath(unit.Tile, move.Tile);
                     if (path == null) continue;
                     AbortFounding(sim, unit); // a construction rover's founding trip (or unfolding, refunded) is off
                     SetPath(unit, path);
@@ -1148,15 +1150,14 @@ public sealed partial class PlanetSurface
             {
                 if (MineProblem(mine.Player, mine.UnitId, mine.Tile) != null) return true;
                 var unit = FindUnit(mine.UnitId)!;
-                if (unit.Tile == mine.Tile)
+                if (unit.Tile == mine.Tile && (unit.Mode != UnitMode.Mobile || AtCentre(unit)))
                 {
-                    unit._path.Clear();
-                    unit.Progress = Fix64.Zero;
+                    Halt(unit);
                     unit.DeployOnArrival = false;
                     StartDeploying(unit);
                     return true;
                 }
-                var path = Pathfinder.Find(Map, unit.Tile, mine.Tile);
+                var path = FindPath(unit.Tile, mine.Tile); // same tile: an empty path, so it drives to the centre first
                 if (path == null) return true;
                 SetPath(unit, path);
                 StartPacking(unit);
@@ -1263,13 +1264,7 @@ public sealed partial class PlanetSurface
                     if (pad == null) continue;
                     AbortFounding(sim, unit);
                     unit.DeployOnArrival = false;
-                    if (pad.Tile == unit.Tile)
-                    {
-                        unit._path.Clear();
-                        unit.Progress = Fix64.Zero;
-                        continue;
-                    }
-                    var path = Pathfinder.Find(Map, unit.Tile, pad.Tile);
+                    var path = FindPath(unit.Tile, pad.Tile); // on the pad's tile already: an empty path, so it parks on the pad
                     if (path == null) continue;
                     SetPath(unit, path);
                     StartPacking(unit);
@@ -1376,13 +1371,16 @@ public sealed partial class PlanetSurface
         }
     }
 
+    /// <summary>A new tile path (Lanes.cs): it re-plans its stretch from where it is. An empty path (already on the goal
+    /// tile) means: drive to a parking spot on this tile.</summary>
     private static void SetPath(SurfaceUnit unit, List<int> path)
     {
-        // Keep the effort already spent toward the next tile when that tile stays the same.
-        var keep = unit._path.Count > 0 && path.Count > 0 && unit._path[0] == path[0];
         unit._path.Clear();
         unit._path.AddRange(path);
-        if (!keep) unit.Progress = Fix64.Zero;
+        if (unit._path.Count == 0) unit._path.Add(unit.Tile);
+        unit._route.Clear();
+        unit.WaitTicks = 0;
+        unit.BlockedBy = 0;
     }
 
     /// <summary>Salvage value of a finished building (its cost × salvage_refund).</summary>
@@ -1739,33 +1737,6 @@ public sealed partial class PlanetSurface
         return true;
     }
 
-    private void MoveUnits(Simulation sim)
-    {
-        foreach (var unit in _units)
-        {
-            if (unit._path.Count == 0 || unit.Mode != UnitMode.Mobile) continue;
-            unit.Progress += SpeedPerTick(unit);
-            var next = unit._path[0];
-            var cost = Fix64.FromInt(Map.Terrain(next).MoveCost);
-            if (unit.Progress < cost) continue;
-            unit.Progress -= cost;
-            unit.Tile = next;
-            unit._path.RemoveAt(0);
-            Reveal(unit.Owner, unit.Tile, SurveyRadiusOf(unit));
-            if (unit._path.Count > 0) continue;
-            unit.Progress = Fix64.Zero;
-            if (!unit.DeployOnArrival) continue;
-            unit.DeployOnArrival = false;
-            if (unit.FoundTile >= 0) // a construction rover at its site (Founding.cs)
-            {
-                if (unit.FoundTile == unit.Tile) BeginFounding(sim, unit);
-                else unit.FoundTile = -1;
-                continue;
-            }
-            if (DeployProblem(unit, unit.Tile) == null) StartDeploying(unit);
-        }
-    }
-
     /// <summary>The landing convoy is down: the hub stands on the landing tile (assembling until UplinkTick), the units roll out.</summary>
     private void Touchdown(Simulation sim, int player, SurfacePlayer p)
     {
@@ -1788,6 +1759,7 @@ public sealed partial class PlanetSurface
         var s = new SurfaceStructure(_nextStructureId++, owner, defId, tile, facing, state, baseId);
         _structures.Add(s);
         _structureAt[tile] = s.Id;
+        MakeRoom(tile, null, _data.FootprintOf(defId).Radius + Lanes.Clearance + Fix64.Half); // parked vehicles drive out of its way
         return s;
     }
 
