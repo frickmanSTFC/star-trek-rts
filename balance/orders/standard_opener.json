@@ -1,6 +1,6 @@
 {
   "name": "standard_opener",
-  "description": "The opener the Data Lab mockup assumed, played for real: storage and a refinery first, a tritanium mine (else duranium), a lab, more storage, refinery Mk II, a Vehicle Bay and a second crawler, then the Fusion Reactor once the foundry needs the power, the foundry (paused while metal is short or parasteel piles up), Colonial Administration (Mk III needs a level 2 base), then refinery Mk III once there is parasteel. The newest crawler fetches deuterium when the reactor runs low. No beams from the ship.",
+  "description": "The opener the Data Lab mockup assumed, played for real: storage and a refinery first, a duranium mine (else tritanium), a lab, a second refinery once ore piles up, more storage, refinery Mk II, a Vehicle Bay and a second crawler, then the Fusion Reactor once the foundry needs the power, the foundry (paused while metal is short or parasteel piles up), Colonial Administration (Mk III needs a level 2 base), then refinery Mk III once there is parasteel. The newest crawler fetches deuterium when the reactor runs low. No beams from the ship.",
   "faction": "federation",
   "planet": "class_m",
   "landing": { "prefer": ["duranium_ore", "tritanium_ore"] },
@@ -9,13 +9,14 @@
   "upkeep": { "maintain_below": 55, "repair_below": 45 },
   "research": ["improved_smelting", "ore_conveyors", "preventive_maintenance", "alloy_metallurgy", "reinforced_drills", "automated_maintenance", "deep_core_mining"],
   "pause": [
-    { "building": "foundry", "when": "duranium < 100 or tritanium < 60 or parasteel >= 40", "resume": "duranium >= 180 and tritanium >= 100 and parasteel < 20" }
+    { "building": "foundry", "when": "parasteel >= 40 or duranium < 50 or tritanium < 30", "resume": "parasteel < 20 and duranium >= 100 and tritanium >= 60" }
   ],
   "steps": [
     { "build": "storage_container" },
     { "build": "refinery" },
-    { "build": "mine", "deposit": ["tritanium_ore", "duranium_ore"], "timeout": 300 },
+    { "build": "mine", "deposit": ["duranium_ore", "tritanium_ore"], "timeout": 90 },
     { "build": "science_lab" },
+    { "build": "refinery", "when": "duranium_ore >= 100 or tritanium_ore >= 100", "timeout": 240 },
     { "build": "storage_container" },
     { "upgrade": "refinery" },
     { "build": "vehicle_bay" },

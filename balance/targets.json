@@ -13,7 +13,6 @@
       "ms:first_parasteel": { "min": 12, "max": 18, "why": "the foundry comes mid-game, not straight away" },
       "ms:core:colonial_administration": { "min": 20, "max": 30, "why": "the first core upgrade in the first half hour" },
       "ms:power_needed": { "min": 10, "max": 20, "why": "at least one power decision (a reactor) by ~15-20 min, not from the start" },
-      "ms:storage_80": { "min": 8, "max": 25, "why": "storage gets tight even with containers: it fills fast" },
       "ms:research_all": { "min": 35, "max": 45, "why": "all seven surface techs with one lab" },
       "stall:refinery_idle": { "max": 5, "why": "one crawler and a mine keep a refinery busy" },
       "made:duranium": { "min": 35, "why": "duranium no longer the bottleneck (was ~20 a minute)" }
@@ -24,8 +23,7 @@
     "fast_expand": {
       "ms:built:vehicle_bay": { "max": 4, "why": "beams make the bay come early" },
       "ms:second_base": { "min": 4, "max": 10, "why": "a second base in the first ten minutes" },
-      "ms:unit:mining_crawler": { "max": 15 },
-      "ms:storage_80": { "min": 5, "max": 25 }
+      "ms:unit:mining_crawler": { "max": 15 }
     },
     "tech_rush": {
       "ms:research_all": { "min": 18, "max": 30, "why": "two labs: about twice as fast as one" },

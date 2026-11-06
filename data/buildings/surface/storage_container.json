@@ -1,7 +1,7 @@
 {
   "buildings": [
     { "id": "storage_container", "name": "Storage Container", "layer": "surface", "category": "logistics", "source": "original",
-      "cost": { "duranium": 60 }, "effect": "Stacked cargo containers: +2000 storage for ore, metals, fuel and strategics.", "description": "Stacked duranium cargo containers on a reinforced pad. Everything you mine or refine needs somewhere to sit: ores, metals, deuterium, dilithium and strategic materials all share one storage space, and when it's full your mines and crawlers stop. Each container adds 2,000 space; crew and latinum need none.",
-      "build_seconds": 15, "storage": 2000, "footprint_radius": 7.5, "access": [0, 10] }
+      "cost": { "duranium": 60 }, "effect": "Stacked cargo containers: +1000 storage for ore, metals, fuel and strategics.", "description": "Stacked duranium cargo containers on a reinforced pad. Everything you mine or refine needs somewhere to sit: ores, metals, deuterium, dilithium and strategic materials all share one storage space, and when it's full your mines and crawlers stop. Each container adds 1,000 space; crew and latinum need none.",
+      "build_seconds": 15, "storage": 1000, "footprint_radius": 7.5, "access": [0, 10] }
   ]
 }

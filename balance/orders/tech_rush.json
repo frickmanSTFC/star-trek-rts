@@ -9,7 +9,7 @@
   "upkeep": { "maintain_below": 55, "repair_below": 45 },
   "research": ["improved_smelting", "preventive_maintenance", "ore_conveyors", "alloy_metallurgy", "automated_maintenance", "reinforced_drills", "deep_core_mining"],
   "pause": [
-    { "building": "foundry", "when": "duranium < 100 or tritanium < 60 or parasteel >= 40", "resume": "duranium >= 180 and tritanium >= 100 and parasteel < 20" }
+    { "building": "foundry", "when": "parasteel >= 40 or duranium < 50 or tritanium < 30", "resume": "parasteel < 20 and duranium >= 100 and tritanium >= 60" }
   ],
   "steps": [
     { "beam_supplies": true, "after": "hub_ready", "timeout": 120 },

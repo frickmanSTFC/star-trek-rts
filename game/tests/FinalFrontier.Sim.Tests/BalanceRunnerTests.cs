@@ -106,7 +106,7 @@ public class BalanceRunnerTests
     [Fact]
     public void ABRunsPickUpASlowerRefinery()
     {
-        var slow = TestData.Patched(("buildings.json", "\"cycles_per_min\": 20", "\"cycles_per_min\": 5"));
+        var slow = TestData.Patched(("buildings/surface/refinery.json", "\"cycles_per_min\": 25", "\"cycles_per_min\": 5"));
         var order = Order("standard_opener");
         var a = new Variant { Label = "A", Runs = { Runner.Run(TestData.Real, order, 1701, 10) } };
         var b = new Variant { Label = "B", Runs = { Runner.Run(slow, order, 1701, 10) } };
@@ -114,7 +114,7 @@ public class BalanceRunnerTests
         Aggregate.Measure(a, keys);
         Aggregate.Measure(b, keys);
         double Median(Variant v, string key) => v.Measures.Single(m => m.Key == key).Spread.Median ?? 0;
-        // A quarter of the refining: less duranium made, and ore piles up waiting for the refinery.
+        // A fifth of the refining: less duranium made, and ore piles up waiting for the refinery.
         Assert.True(Median(b, "made:duranium") < Median(a, "made:duranium"), $"duranium income A {Median(a, "made:duranium")} B {Median(b, "made:duranium")}");
         Assert.True(Median(b, "end:duranium_ore") > Median(a, "end:duranium_ore") + 50, $"ore left A {Median(a, "end:duranium_ore")} B {Median(b, "end:duranium_ore")}");
         Assert.NotEqual(a.Runs[0].StateHash, b.Runs[0].StateHash);

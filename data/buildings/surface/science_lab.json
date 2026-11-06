@@ -2,6 +2,6 @@
   "buildings": [
     { "id": "science_lab", "name": "Research Lab", "layer": "surface", "category": "research", "source": "original",
       "cost": { "duranium": 120, "tritanium": 40 }, "effect": "+Research: works on the tech you pick (surface research list in surfaces.json).", "description": "A research facility with a sensor mast and a containment experiment. It produces research points toward the tech you choose; more labs research faster. Select the lab to see the techs and pick one.",
-      "build_seconds": 30, "power_use": 8, "research_per_min": 10, "wear_per_min": 2, "footprint_radius": 7 }
+      "build_seconds": 30, "power_use": 8, "research_per_min": 16, "wear_per_min": 2, "footprint_radius": 7 }
   ]
 }

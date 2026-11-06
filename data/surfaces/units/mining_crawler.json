@@ -1,6 +1,6 @@
 {
   "units": [
-    { "id": "mining_crawler", "description": "A tracked mining rig that drives to a deposit anywhere on the map, unfurls and mines it. Each full hopper flies home as a cargo pod to your nearest storage. It can break down while mining and is repaired on the Colony Hub's pad.", "speed": 1, "survey_radius": 1, "extract_per_min": 30, "hopper": 10, "deploy_seconds": 4, "pod_speed": 3, "footprint_radius": 6,
+    { "id": "mining_crawler", "description": "A tracked mining rig that drives to a deposit anywhere on the map, unfurls and mines it. Each full hopper flies home as a cargo pod to your nearest storage. It can break down while mining and is repaired on the Colony Hub's pad.", "speed": 1, "survey_radius": 1, "extract_per_min": 60, "hopper": 20, "deploy_seconds": 4, "pod_speed": 3, "footprint_radius": 6,
       "cost": { "duranium": 150, "tritanium": 50 }, "build_seconds": 45,
       "breakdown": { "chance_per_min": 0.05, "slowest_drive": 0.4, "severities": [
         { "id": "minor", "name": "Minor fault", "weight": 70, "damage": [10, 25] },

@@ -302,7 +302,8 @@ public class MaintenanceTests
         Assert.Equal(StructureStatus.Working, lab.Status);
         Assert.Equal(data.Building("science_lab").ResearchPerMinute, s.ResearchPerMinute(0));
         for (var i = 0; i < Simulation.TicksPerMinute; i++) sim.Step();
-        Assert.InRange(s.Players[0].ResearchProgress[tech.Index].ToDouble(), 9.5, 10.5);
+        var perMinute = data.Building("science_lab").ResearchPerMinute.ToDouble(); // one minute of one lab
+        Assert.InRange(s.Players[0].ResearchProgress[tech.Index].ToDouble(), perMinute - 0.5, perMinute + 0.5);
 
         StepUntil(sim, () => s.Players[0].Known[tech.Index], Simulation.TicksPerMinute * 10);
         Assert.Equal(-1, s.Players[0].ActiveTech);
