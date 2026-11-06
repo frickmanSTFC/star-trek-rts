@@ -91,7 +91,7 @@ def extra_materials():
     K.mat("ownerglow", "OwnerGlow", (0.9, 0.12, 0.08), 0.0, 0.4, emission=(0.9, 0.1, 0.06), strength=2.5)
     K.mat("tank", "Tank", (0.84, 0.85, 0.86), 0.2, 0.35, textured=True)
     K.mat("ingot", "Ingot", (0.62, 0.66, 0.74), 0.9, 0.25)
-    K.mat("talu", "TransparentAluminum", (0.55, 0.85, 0.95), 0.1, 0.05, emission=(0.4, 0.8, 1.0), strength=1.2)
+    K.mat("talu", "TransparentAluminum", (0.1, 0.6, 1.0), 0.1, 0.05, emission=(0.1, 0.65, 1.0), strength=6.0)
 
 
 def live_grime(ground_z=0.3):
