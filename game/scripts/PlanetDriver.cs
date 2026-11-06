@@ -168,6 +168,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _helm.DisplayPicked += SetOrbitDisplay;
         _helm.SetInfoHandlers(InfoAction, () => _info = null);
         SetupUplink(helmLayer); // the outpost's surface feed window, over the helm
+        SetupSky(); // day/night, seasons and weather from Climate (PlanetDriver.Sky.cs); before EnterOrbit changes the environment
 
         // The test panel exists only in debug builds (editor runs); release exports never get it.
         if (OS.IsDebugBuild())
@@ -889,6 +890,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             UpdateHover();
         }
         _view.Refresh(alpha);
+        UpdateSky((float)delta); // PlanetDriver.Sky.cs: before the uplink, which hands the feed the outpost's sky
         UpdateUplink((float)delta);
         if (!_inOrbit) _hud.Minimap.Refresh(_camera);
         UpdateHud();
