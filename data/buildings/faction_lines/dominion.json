@@ -1,0 +1,180 @@
+{
+  "faction_lines": {
+    "dominion": {
+      "deep_space": [
+        {
+          "id": "dom_jemhadar_outpost",
+          "name": "Jem'Hadar Outpost",
+          "cost": {
+            "duranium": 130
+          },
+          "effect": "No crew upkeep; costs 1 White per cycle.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "ketracel_facility",
+          "name": "Ketracel-white Facility",
+          "cost": {
+            "parasteel": 300,
+            "zenite": 30
+          },
+          "effect": "+6 White/cycle; losing it makes nearby Jem'Hadar feral.",
+          "stats": {
+            "supply_range": 2
+          },
+          "tag": "faction_only",
+          "building_ref": "ketracel_facility"
+        },
+        {
+          "id": "dom_vorta_command_station",
+          "name": "Vorta Command Station",
+          "cost": {
+            "parasteel": 600,
+            "isolinear_chips": 50
+          },
+          "effect": "Fleet aura; Vorta diplomacy with neighbours.",
+          "stats": {
+            "supply_range": 3,
+            "docking": 8
+          }
+        },
+        {
+          "id": "dom_wormhole_citadel",
+          "name": "Wormhole Citadel",
+          "cost": {
+            "parasteel": 1400,
+            "isolinear_chips": 100
+          },
+          "effect": "On a stable wormhole; free reinforcement wave every 10 min.",
+          "stats": {
+            "requires": "stable_wormhole"
+          },
+          "tag": "faction_only"
+        }
+      ],
+      "command": [
+        {
+          "id": "dom_vorta_field_post",
+          "name": "Vorta Field Post",
+          "cost": {
+            "duranium": 110,
+            "ketracel_white": 2
+          },
+          "effect": "Vorta supervisor + Jem'Hadar squad; clone replaces a killed Vorta.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "dom_vorta_administration",
+          "name": "Vorta Administration",
+          "cost": {
+            "duranium": 300,
+            "tritanium": 140
+          },
+          "effect": "Client-world pacts with minor factions.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "great_link_pool",
+          "name": "Founders' Sanctuary",
+          "cost": {
+            "parasteel": 500,
+            "isolinear_chips": 60
+          },
+          "effect": "The Great Link; trains Changeling infiltrators, loyalty aura.",
+          "stats": {
+            "supply_range": 3
+          },
+          "tag": "faction_only",
+          "building_ref": "great_link_pool"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "dom_attack_ship_cradle",
+          "name": "Attack Ship Cradle",
+          "cost": {
+            "duranium": 200,
+            "tritanium": 100
+          },
+          "effect": "Attack ships built in pairs, crewed from vats.",
+          "stats": {
+            "hull_cap": 3,
+            "build_slots": 2
+          }
+        },
+        {
+          "id": "dom_shipyard",
+          "name": "Dominion Shipyard",
+          "cost": {
+            "parasteel": 500,
+            "plasma_conduits": 60
+          },
+          "effect": "Skips cruisers; Jem'Hadar battle cruiser.",
+          "stats": {
+            "hull_cap": 6,
+            "build_slots": 1
+          }
+        },
+        {
+          "id": "dom_stellar_forge",
+          "name": "Stellar Forge",
+          "cost": {
+            "parasteel": 2800,
+            "warp_coils": 200
+          },
+          "effect": "Star-powered; Jem'Hadar battleship; no energy upkeep.",
+          "stats": {
+            "hull_cap": "titan"
+          },
+          "tag": "wonder"
+        }
+      ],
+      "clones": [
+        {
+          "id": "dom_birthing_chamber",
+          "name": "Birthing Chamber",
+          "cost": {
+            "duranium": 90,
+            "zenite": 20
+          },
+          "effect": "1 Jem'Hadar squad/cycle, no population needed.",
+          "stats": {
+            "squads_per_cycle": 1
+          }
+        },
+        {
+          "id": "cloning_facility",
+          "name": "Cloning Facility",
+          "cost": {
+            "parasteel": 260,
+            "zenite": 40
+          },
+          "effect": "3 squads/cycle; Vorta revival.",
+          "stats": {
+            "squads_per_cycle": 3
+          },
+          "building_ref": "cloning_facility"
+        },
+        {
+          "id": "dom_cloning_complex",
+          "name": "Cloning Complex",
+          "cost": {
+            "parasteel": 600,
+            "zenite": 80
+          },
+          "effect": "8 squads/cycle, instant crews in system; huge White demand.",
+          "stats": {
+            "squads_per_cycle": 8
+          },
+          "tag": "faction_only"
+        }
+      ]
+    }
+  }
+}

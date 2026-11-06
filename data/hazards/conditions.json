@@ -1,0 +1,12 @@
+{
+  "hazards": [
+    { "id": "sandstorms", "name": "Sandstorms", "category": "condition", "source": "original", "counter_techs": ["atmospheric_processors"], "spawn": "Class H worlds", "effect": "Surface units and mines slowed; surface sensors -25%.", "counter": "Buried or domed structures; Atmospheric Processors calm the weather." },
+    { "id": "hyperonic_radiation", "name": "Hyperonic Radiation", "category": "condition", "source": "canon", "counter_techs": ["kelbonite_shielding"], "spawn": "Class H worlds", "effect": "Phasers and transporters fail on the surface; new colonists sicken until adapted.", "counter": "Kelbonite-shielded structures; colonists adapt over time (Tau Cygna V)." },
+    { "id": "extreme_gravity", "name": "Extreme Gravity", "category": "condition", "source": "original", "counter_techs": ["rodinium_armor"], "spawn": "Class T giants", "effect": "No landings; ships in close orbit burn extra fuel; refineries take hull stress.", "counter": "Reinforced rodinium refinery frames." },
+    { "id": "toxic_atmosphere", "name": "Toxic Atmosphere", "category": "condition", "source": "canon", "counter_techs": ["pressure_domes"], "spawn": "Class Y worlds", "effect": "Unsealed outposts lose workers every cycle.", "counter": "Sealed outposts and environment suits." },
+    { "id": "thermionic_radiation", "name": "Thermionic Radiation", "category": "condition", "source": "canon", "counter_techs": ["regenerative_shields"], "spawn": "Class Y worlds", "effect": "Shields and sensors of ships in orbit degrade; shuttles can't land.", "counter": "Hardened, regenerative shielding." },
+    { "id": "extreme_heat", "name": "Extreme Heat", "category": "condition", "source": "canon", "counter_techs": ["kelbonite_shielding"], "spawn": "Class Y worlds (surface above 500 K)", "effect": "Unprotected structures and units take heat damage every cycle.", "counter": "Shielded outposts only; kelbonite heat shielding." },
+    { "id": "tidal_shear", "name": "Tidal Shear", "category": "condition", "source": "original", "counter_techs": ["neutronium_harvesting"], "spawn": "Neutron stars", "effect": "Ships and platforms that stray too close are torn apart.", "counter": "Keep collector platforms at a safe range." },
+    { "id": "stellar_radiation", "name": "Stellar Radiation", "category": "condition", "source": "original", "counter_techs": ["kelbonite_shielding"], "spawn": "Neutron stars", "effect": "Constant radiation damages crews and stations in the system.", "counter": "Kelbonite shielding." }
+  ]
+}

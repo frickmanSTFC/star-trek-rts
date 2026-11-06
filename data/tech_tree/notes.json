@@ -1,0 +1,3 @@
+{
+  "_notes": "tier ≈ era cap (1=ENT, 2=TOS, 3=TNG, 4=DS9/VOY, 5=Picard, 6=32nd c.). Era start grants every tech two or more tiers below the era's cap tier; the cap tier and the tier below it are left to research; higher tiers stay locked until a later era. unlocks = buildings/modules (mod_<module id>)/abilities ids. Modules in starting_modules need no tech; assimilated_modules are Borg-only and come from assimilation, not research. faction_rules: factions that get tech without research (the Borg assimilate and combine; they never research)."
+}

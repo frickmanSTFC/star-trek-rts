@@ -1,0 +1,11 @@
+{
+  "climates": {
+    "inferno": { "name": "Inferno (crushing, acid)", "air": true, "wind_scale": 1.6, "drift_tiles_per_min": -3, "swing_c": 45, "polar_drop_c": 25,
+      "seasons": [
+        { "name": "Year-round", "share": 1, "temp_c": 0, "humidity_pct": 0, "wind": 1, "spell_s": [90, 300], "weights": { "overcast": 52, "fog": 10, "rain": 10, "storm": 16, "high_wind": 12 } }
+      ],
+      "bands": [
+        { "name": "All latitudes", "to_deg": 90, "season_scale": 1, "wind_toward_deg": 270, "weights": {} }
+      ] }
+  }
+}

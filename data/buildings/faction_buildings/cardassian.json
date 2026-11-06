@@ -1,0 +1,7 @@
+{
+  "faction_buildings": [
+    { "faction": "cardassian", "id": "nor_station", "name": "Nor-type Ore Processing Station", "source": "canon", "effect": "Doubles refined output in system; forced labor variant. (Terok Nor / Empok Nor)" },
+    { "faction": "cardassian", "id": "obsidian_order_office", "name": "Obsidian Order Office", "source": "canon", "effect": "Surveillance: suppresses Resistance, reveals spies." },
+    { "faction": "cardassian", "id": "labor_camp", "name": "Labor Camp", "source": "canon", "effect": "Occupied-world output boost; Resistance generation." }
+  ]
+}

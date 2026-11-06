@@ -1,0 +1,12 @@
+{
+  "factions": [
+    { "id": "breen", "name": "Breen Confederacy", "playable": "dlc_or_minor", "eras": ["tng", "dominion_war", "picard"],
+      "signature": { "id": "energy_dampener", "desc": "Weapon that knocks out a target's power entirely." } },
+    { "id": "tholian", "name": "Tholian Assembly", "playable": "minor", "eras": ["ent", "tos", "tng"],
+      "signature": { "id": "tholian_web", "desc": "Ships cooperate to spin an energy web that traps enemies." } },
+    { "id": "gorn", "name": "Gorn Hegemony", "playable": "minor", "eras": ["ent", "tos", "picard"],
+      "signature": { "id": "brute_force", "desc": "Durable, slow, heavy-hitting ships." } },
+    { "id": "bajoran", "name": "Bajor", "playable": "minor", "eras": ["tng", "dominion_war"],
+      "signature": { "id": "prophets", "desc": "Wormhole aliens may intervene; resistance cells fight occupiers." } }
+  ]
+}

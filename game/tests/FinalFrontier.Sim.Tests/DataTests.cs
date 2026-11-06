@@ -1,4 +1,5 @@
 using FinalFrontier.Sim.Core;
+using FinalFrontier.Sim.Data;
 
 namespace FinalFrontier.Sim.Tests;
 
@@ -15,6 +16,10 @@ public class DataTests
 
     [Fact]
     public void RealDataPassesChecks() => Assert.Empty(TestData.Real.Validate());
+
+    /// <summary>The checks Promote and the release packer run: Validate plus playable planets, map symmetry and twin climates.</summary>
+    [Fact]
+    public void RealDataPassesTheSharedChecks() => Assert.Empty(DataChecks.All(TestData.Real));
 
     [Fact]
     public void MvpFactionsArePlayableWithValidStarterFleets()

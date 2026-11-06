@@ -10,6 +10,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import data_loader  # noqa: E402
 from faction_meta import FACTIONS, NAMES, WORLD_STANCE  # noqa: E402
 from tech_access import reachable  # noqa: E402
 
@@ -19,7 +20,7 @@ OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "planet-classes.h
 
 
 def load(name):
-    return json.load(open(os.path.join(ROOT, "data", name)))
+    return data_loader.load(name)
 
 
 P = load("planet_classes.json")["classes"]

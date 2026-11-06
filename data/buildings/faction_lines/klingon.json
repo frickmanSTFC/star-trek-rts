@@ -1,0 +1,181 @@
+{
+  "faction_lines": {
+    "klingon": {
+      "deep_space": [
+        {
+          "id": "kli_border_outpost",
+          "name": "Border Outpost",
+          "cost": {
+            "duranium": 140,
+            "rodinium": 10
+          },
+          "effect": "Spear tower armed with 2 disruptors from day one.",
+          "stats": {
+            "supply_range": 1,
+            "weapons": 2
+          }
+        },
+        {
+          "id": "kli_battle_station",
+          "name": "Battle Station",
+          "cost": {
+            "parasteel": 320
+          },
+          "effect": "Armored hub with wing arms; cloaked ships rearm without decloaking.",
+          "stats": {
+            "supply_range": 2,
+            "docking": 3
+          }
+        },
+        {
+          "id": "kli_starbase",
+          "name": "Klingon Starbase",
+          "cost": {
+            "parasteel": 600,
+            "isolinear_chips": 40,
+            "photon_warheads": 30
+          },
+          "effect": "War platform with spires; fleet aura, Honor for kills nearby.",
+          "stats": {
+            "supply_range": 3,
+            "docking": 6
+          }
+        },
+        {
+          "id": "asteroid_fortress",
+          "name": "Asteroid Fortress",
+          "cost": {
+            "parasteel": 1000,
+            "kelbonite": 80
+          },
+          "effect": "Ty'Gokor style hollowed asteroid; kelbonite hides hangars from scans.",
+          "stats": {
+            "hidden_hangars": 8,
+            "requires": "asteroid_in_system"
+          },
+          "tag": "faction_only",
+          "building_ref": "asteroid_fortress"
+        }
+      ],
+      "command": [
+        {
+          "id": "kli_house_encampment",
+          "name": "House Encampment",
+          "cost": {
+            "duranium": 90,
+            "crew": 60
+          },
+          "effect": "Shelters, brazier, House banner; trains warriors.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "kli_governors_keep",
+          "name": "Governor's Keep",
+          "cost": {
+            "duranium": 280,
+            "tritanium": 160
+          },
+          "effect": "Walled keep; +50% garrison defense, 2nd build queue.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "great_hall",
+          "name": "Great Hall",
+          "cost": {
+            "parasteel": 450,
+            "honor": 100,
+            "bloodwine": 50
+          },
+          "effect": "High Council seat; spend Honor for Great House fleets.",
+          "stats": {
+            "supply_range": 3
+          },
+          "tag": "faction_only",
+          "building_ref": "great_hall"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "kli_cradle",
+          "name": "Cradle",
+          "cost": {
+            "duranium": 180,
+            "tritanium": 100
+          },
+          "effect": "Claw cradle; -15% build time on escorts.",
+          "stats": {
+            "hull_cap": 3,
+            "build_slots": 1
+          }
+        },
+        {
+          "id": "kli_imperial_shipyard",
+          "name": "Imperial Shipyard",
+          "cost": {
+            "parasteel": 300,
+            "plasma_conduits": 40
+          },
+          "effect": "Three claw pairs; battlecruisers.",
+          "stats": {
+            "hull_cap": 5,
+            "build_slots": 2
+          }
+        },
+        {
+          "id": "kli_imperial_fleet_yards",
+          "name": "Imperial Fleet Yards",
+          "cost": {
+            "parasteel": 2800,
+            "warp_coils": 200
+          },
+          "effect": "Titan berth (Negh'Var); Great House sponsorship cuts cost 30%.",
+          "stats": {
+            "hull_cap": "titan"
+          },
+          "tag": "wonder"
+        }
+      ],
+      "habitation": [
+        {
+          "id": "kli_clan_longhouse",
+          "name": "Clan Longhouse",
+          "cost": {
+            "duranium": 70
+          },
+          "effect": "Stone hall; +1 militia strength; +1 Bloodwine per cycle.",
+          "stats": {
+            "pop_cap": 1
+          }
+        },
+        {
+          "id": "kli_fortified_settlement",
+          "name": "Fortified Settlement",
+          "cost": {
+            "duranium": 160,
+            "tritanium": 60
+          },
+          "effect": "Walled compound; +2 vs invasion.",
+          "stats": {
+            "pop_cap": 3
+          }
+        },
+        {
+          "id": "kli_warrior_citadel",
+          "name": "Warrior Citadel",
+          "cost": {
+            "parasteel": 320,
+            "rodinium": 60
+          },
+          "effect": "Crag city; trains elite warriors, hardest to invade.",
+          "stats": {
+            "pop_cap": 7
+          }
+        }
+      ]
+    }
+  }
+}

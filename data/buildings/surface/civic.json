@@ -1,0 +1,13 @@
+{
+  "buildings": [
+    { "id": "hospital", "name": "Medical Center", "layer": "surface", "category": "civic", "source": "canon",
+      "cost": { "duranium": 80 }, "effect": "+Pop growth; crew recovery; plague resistance." },
+    { "id": "replicator_center", "name": "Food Replicator Center", "layer": "surface", "category": "civic", "source": "canon",
+      "cost": { "duranium": 60, "energy": 20 }, "requires_tech": "replicators", "effect": "Removes food upkeep." },
+    { "id": "holosuite_bar", "name": "Holosuite Bar", "layer": "surface", "category": "civic", "source": "canon",
+      "cost": { "duranium": 80, "latinum": 20 }, "requires_tech": "holotechnology",
+      "effect": "+Morale, +Latinum; crew XP trickle. (Quark's)" },
+    { "id": "embassy", "name": "Embassy", "layer": "surface", "category": "civic", "source": "canon",
+      "cost": { "parasteel": 100, "latinum": 50 }, "effect": "Opens diplomacy with a faction; espionage defense." }
+  ]
+}

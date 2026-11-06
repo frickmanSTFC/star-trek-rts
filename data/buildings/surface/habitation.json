@@ -1,0 +1,14 @@
+{
+  "buildings": [
+    { "id": "prefab_habitat", "name": "Prefab Habitat", "layer": "surface", "category": "habitation", "source": "canon",
+      "cost": { "duranium": 60 }, "effect": "+Pop cap (small). Shown in many TOS/TNG colonies.", "description": "Prefabricated living domes shipped down from orbit, the first homes of most Federation colonies. Colonists living here join your crew pool over time, for a little power.",
+      "build_seconds": 12, "output_per_min": { "crew": 10 }, "power_use": 2, "wear_per_min": 1, "footprint_radius": 7 },
+    { "id": "pressure_dome", "name": "Pressure Dome", "layer": "surface", "category": "habitation", "source": "canon",
+      "cost": { "transparent_aluminum": 40, "topaline": 10 }, "requires_tech": "pressure_domes",
+      "effect": "Enables surface building on airless/hostile bodies; +Pop cap. Breach risk under bombardment." },
+    { "id": "arcology", "name": "Arcology", "layer": "surface", "category": "habitation", "source": "original",
+      "cost": { "parasteel": 300 }, "requires_tech": "industrial_replicators", "effect": "+Pop cap (large); uses 1 slot for 4 habitats' worth." },
+    { "id": "underground_shelter", "name": "Kelbonite Shelter", "layer": "surface", "category": "habitation", "source": "original",
+      "cost": { "kelbonite": 30, "duranium": 50 }, "effect": "Population immune to scans, transporter raids, Crystalline Entity, thalaron sweeps." }
+  ]
+}

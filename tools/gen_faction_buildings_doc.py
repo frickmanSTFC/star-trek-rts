@@ -8,10 +8,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import data_loader  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "docs", "faction-buildings.md")
-B = json.load(open(os.path.join(ROOT, "data", "buildings.json")))
+B = data_loader.load("buildings")
 
 from faction_meta import FACTIONS, LINE_NAMES, NAMES, PLAYSTYLE, RES, ROLES  # noqa: E402
 

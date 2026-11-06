@@ -113,8 +113,8 @@ public partial class PlanetDriver : Node3D, ITestHost
 
     public override void _Ready()
     {
-        _dataDirectory = GameData.FindDataDirectory(ProjectSettings.GlobalizePath("res://"));
-        var data = GameData.Load(_dataDirectory);
+        // JSON folders + draft in debug builds, res://gamedata.pack in release exports (GameDataLoader).
+        var data = GameDataLoader.Load(new DataSetup(Factions: new[] { "federation" }), out _dataDirectory, out var dataMessages);
         foreach (var problem in data.Validate()) GD.PushWarning($"Data check: {problem}");
 
         _sim = MatchSetup.CreatePlanetLanding(data, Seed);
@@ -184,6 +184,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         EnterOrbit();
         _orbitAction = "land";
         _info = "orbit:land";
+        foreach (var m in dataMessages) _hud.PushEvent($"Data refused: {m}", new Color(1f, 0.45f, 0.4f));
     }
 
     // ---------------------------------------------------------------- orbit

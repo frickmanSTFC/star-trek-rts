@@ -1,0 +1,30 @@
+{
+  "ground_vehicles": [
+    { "id": "argo_buggy", "name": "Argo Ground Vehicle", "faction": "federation", "era": "picard", "source": "canon",
+      "role": "recon", "abilities": ["surface_survey", "fast_ground_move"], "notes": "Beamed down from a ship (Nemesis)." },
+    { "id": "hover_transport", "name": "Hover APC", "faction": "any", "source": "original",
+      "role": "troop_carrier", "abilities": ["ground_mobility", "evacuation"] },
+    { "id": "mobile_phaser_artillery", "name": "Mobile Phaser Artillery", "faction": "federation", "source": "original",
+      "role": "artillery", "abilities": ["surface_to_orbit_harassment", "counter_landing"] },
+    { "id": "klingon_assault_tank", "name": "Klingon Assault Tank", "faction": "klingon", "source": "original",
+      "role": "assault", "abilities": ["breach_fortification"] },
+    { "id": "cardassian_patrol_skimmer", "name": "Cardassian Patrol Skimmer", "faction": "cardassian", "source": "original",
+      "role": "occupation_patrol", "abilities": ["suppress_resistance"] },
+    { "id": "mining_crawler", "name": "Mining Crawler", "faction": "any", "source": "original",
+      "role": "economy", "abilities": ["mobile_mining", "prospect_deposit"], "notes": "One lands with the colony pod. Drives to a deposit, unfurls and mines it anywhere on the map, sending each full hopper home by cargo pod. Can break down while mining (minor fault to explosion) and must be repaired on the Colony Hub's repair pad. Surface stats in surfaces.json." },
+    { "id": "terraforming_rover", "name": "Terraforming Rover", "faction": "any", "source": "original",
+      "role": "economy", "abilities": ["speed_terraform_progress"] },
+    { "id": "survey_rover", "name": "Mk I Scout", "faction": "any", "source": "original",
+      "role": "recon", "abilities": ["surface_survey"], "notes": "Mk I Scout. Two land with the colony pod; maps the deposits around it. Surface stats in surfaces.json." },
+    { "id": "survey_rover_mk2", "name": "Mk II Surveyor", "faction": "any", "source": "original",
+      "role": "recon", "abilities": ["surface_survey"], "notes": "Survey rover Mk II: faster, surveys a wider area. Built at the Vehicle Bay. Surface stats in surfaces.json." },
+    { "id": "survey_rover_mk3", "name": "Mk III Explorer", "faction": "any", "source": "original",
+      "role": "recon", "abilities": ["surface_survey"], "notes": "Survey rover Mk III: the fastest, widest survey. Built at the Vehicle Bay. Surface stats in surfaces.json." },
+    { "id": "construction_rover", "name": "Construction Rover", "faction": "any", "source": "original",
+      "role": "construction", "abilities": ["found_outpost", "surface_survey"], "notes": "Built at the Vehicle Bay. Carries a folded Colony Hub and an exocomp dock: drives to a site at least 8 tiles from your other bases, unfolds and is used up as the new hub, which its exocomps then build. The ground route to a second base (the orbital one is the outpost drop). Surface stats in surfaces.json." },
+    { "id": "romulan_assault_skiff", "name": "Romulan Cloaked Skiff", "faction": "romulan", "source": "original", "role": "raider", "abilities": ["cloak", "raid_supply"] },
+    { "id": "jem_hadar_walker", "name": "Jem'Hadar Assault Walker", "faction": "dominion", "source": "original", "role": "assault", "abilities": ["shroud_stealth", "breach_fortification"] },
+    { "id": "ferengi_cargo_crawler", "name": "Ferengi Cargo Crawler", "faction": "ferengi", "source": "original", "role": "economy", "abilities": ["mobile_trade_post", "smuggle"] },
+    { "id": "borg_nanite_crawler", "name": "Borg Nanite Crawler", "faction": "borg", "source": "original", "role": "conversion", "abilities": ["assimilate_structures", "self_repair"] }
+  ]
+}

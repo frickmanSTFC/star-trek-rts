@@ -1,0 +1,11 @@
+{
+  "stars": [
+    { "class": "O", "name": "Blue giant",     "luminosity": 50000, "colour_k": 35000, "colour": "#9bb0ff" },
+    { "class": "B", "name": "Blue-white",     "luminosity": 800,   "colour_k": 18000, "colour": "#aabfff" },
+    { "class": "A", "name": "White",          "luminosity": 20,    "colour_k": 8500,  "colour": "#cad7ff" },
+    { "class": "F", "name": "Yellow-white",   "luminosity": 2.5,   "colour_k": 6500,  "colour": "#f8f7ff" },
+    { "class": "G", "name": "Yellow dwarf",   "luminosity": 1,     "colour_k": 5700,  "colour": "#fff4ea" },
+    { "class": "K", "name": "Orange dwarf",   "luminosity": 0.3,   "colour_k": 4500,  "colour": "#ffd2a1" },
+    { "class": "M", "name": "Red dwarf",      "luminosity": 0.04,  "colour_k": 3200,  "colour": "#ffb56c" }
+  ]
+}

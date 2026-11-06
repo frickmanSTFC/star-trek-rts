@@ -1,0 +1,8 @@
+{
+  "buildings": [
+    { "id": "geothermal_tap", "name": "Geothermal Tap", "layer": "surface", "category": "power", "source": "original",
+      "cost": { "duranium": 100 }, "effect": "+Energy on volcanic/Class H/Y bodies; no fuel." },
+    { "id": "pergium_reactor", "name": "Pergium Reactor", "layer": "surface", "category": "power", "source": "original",
+      "cost": { "parasteel": 100, "pergium": 20 }, "effect": "+Large energy. Janus VI–style; Horta events possible nearby." }
+  ]
+}

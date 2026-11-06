@@ -1,0 +1,9 @@
+{
+  "classes": [
+    { "faction": "ferengi", "name": "Ferengi Shuttle",  "hull": "shuttle",       "era": "tng",  "source": "canon" },
+    { "faction": "ferengi", "name": "Latinum Hauler",   "hull": "civilian",      "era": "tng",  "source": "original", "role": "freighter", "special": "cargo_bay, trade_route_bonus" },
+    { "faction": "ferengi", "name": "Acquired Bird-of-Prey", "hull": "escort",   "era": "tng",  "source": "canon", "special": "bought_hull, cloak" },
+    { "faction": "ferengi", "name": "Mercenary Frigate", "hull": "frigate",      "era": "dominion_war", "source": "original", "special": "hired_crew" },
+    { "faction": "ferengi", "name": "D'Kora Marauder",  "hull": "cruiser",       "era": "tng",  "source": "canon", "special": "energy_whip, cargo_bay" }
+  ]
+}

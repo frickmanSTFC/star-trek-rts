@@ -1,0 +1,10 @@
+{
+  "buildings": [
+    { "id": "refinery", "name": "Ore Refinery", "layer": "surface", "category": "industry", "source": "original",
+      "cost": { "duranium": 120 }, "effect": "Raw ore → Duranium/Tritanium (2 ore → 1 metal), from storage.", "description": "A compact smelter that turns raw ore from storage into usable metal: 2 Duranium Ore into 1 Duranium, 2 Tritanium Ore into 1 Tritanium. With both ores in stock it splits its time between them. Refining frees storage, since the metal takes half the room of the ore. Upgrade it for speed, and research Improved Smelting for more metal per load.",
+      "build_seconds": 30, "power_use": 8, "storage": 300, "cycles_per_min": 20, "footprint_radius": 8.5, "access": [9.4, 5.4],
+      "recipes": [ { "in": { "duranium_ore": 2 }, "out": { "duranium": 1 } }, { "in": { "tritanium_ore": 2 }, "out": { "tritanium": 1 } } ], "wear_per_min": 3,
+      "levels": [ { "name": "Mk II", "cost": { "duranium": 120, "tritanium": 40 }, "build_seconds": 25, "modifiers": [ { "stat": "speed", "add": 0.3 }, { "stat": "wear", "add": -0.25 } ] },
+                  { "name": "Mk III", "cost": { "duranium": 150, "parasteel": 20 }, "build_seconds": 35, "requires_level": 2, "modifiers": [ { "stat": "speed", "add": 0.6 }, { "stat": "yield", "add": 0.1 }, { "stat": "wear", "add": -0.4 }, { "stat": "auto_maintain" } ] } ] }
+  ]
+}

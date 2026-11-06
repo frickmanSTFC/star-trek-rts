@@ -1,0 +1,14 @@
+{
+  "climates": {
+    "arid": { "name": "Arid (desert)", "air": true, "wind_scale": 1.2, "drift_tiles_per_min": 2, "swing_c": 19, "polar_drop_c": 30,
+      "seasons": [
+        { "name": "Hot season",  "share": 0.4, "temp_c": 6,  "humidity_pct": -3, "wind": 1,   "spell_s": [120, 360], "weights": { "clear": 62, "cloudy": 8,  "dust": 18, "dust_storm": 4, "high_wind": 8 } },
+        { "name": "Wind season", "share": 0.3, "temp_c": 0,  "humidity_pct": 0,  "wind": 1.5, "spell_s": [90, 300],  "weights": { "clear": 34, "cloudy": 8,  "dust": 26, "dust_storm": 14, "high_wind": 18 } },
+        { "name": "Cool season", "share": 0.3, "temp_c": -7, "humidity_pct": 6,  "wind": 0.9, "spell_s": [120, 360], "weights": { "clear": 50, "cloudy": 20, "overcast": 6, "rain": 5, "storm": 3, "dust": 12, "high_wind": 4 } }
+      ],
+      "bands": [
+        { "name": "Low desert",  "to_deg": 40, "season_scale": 0.6, "wind_toward_deg": 260, "weights": {} },
+        { "name": "High desert", "to_deg": 90, "season_scale": 1.2, "wind_toward_deg": 70,  "weights": { "dust_storm": 0.6, "snow": 1, "rain": 0.7 } }
+      ] }
+  }
+}

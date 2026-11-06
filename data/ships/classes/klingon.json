@@ -1,0 +1,13 @@
+{
+  "classes": [
+    { "faction": "klingon", "name": "D5",               "hull": "cruiser",       "era": "ent",  "source": "canon" },
+    { "faction": "klingon", "name": "Raptor",           "hull": "scout",         "era": "ent",  "source": "canon" },
+    { "faction": "klingon", "name": "Sarcophagus",      "hull": "titan",         "era": "tos",  "source": "canon" },
+    { "faction": "klingon", "name": "D7",               "hull": "heavy_cruiser", "era": "tos",  "source": "canon" },
+    { "faction": "klingon", "name": "B'rel Bird-of-Prey", "hull": "escort",      "era": "tos",  "source": "canon", "special": "cloak" },
+    { "faction": "klingon", "name": "K't'inga",         "hull": "heavy_cruiser", "era": "tos",  "source": "canon" },
+    { "faction": "klingon", "name": "K'Vort",           "hull": "frigate",       "era": "tng",  "source": "canon", "special": "cloak" },
+    { "faction": "klingon", "name": "Vor'cha",          "hull": "battleship",    "era": "tng",  "source": "canon" },
+    { "faction": "klingon", "name": "Negh'Var",         "hull": "titan",         "era": "dominion_war", "source": "canon" }
+  ]
+}

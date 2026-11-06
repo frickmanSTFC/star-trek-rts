@@ -176,44 +176,101 @@ public sealed partial class GameData
     private static T Get<T>(Dictionary<string, T> d, string id, string what) =>
         d.TryGetValue(id, out var v) ? v : throw new KeyNotFoundException($"Unknown {what} '{id}'.");
 
-    /// <summary>The data files the sim reads, in a fixed order.</summary>
-    public static readonly IReadOnlyList<string> FileNames = new[]
+    /// <summary>The data documents the sim reads (data/manifest.json "documents"), in a fixed order.</summary>
+    public static readonly IReadOnlyList<string> Documents = new[]
     {
-        "factions.json", "ships.json", "resources.json", "planet_classes.json", "buildings.json", "maps.json", "surfaces.json", "vehicles.json", "climate.json",
+        "factions", "ships", "resources", "planet_classes", "buildings", "maps", "surfaces", "vehicles", "climate",
     };
 
     /// <summary>
-    /// The text of every data file this was loaded from (by file name, e.g. "surfaces.json"). The test panel's data
-    /// tuning patches these and loads a new GameData from them (<see cref="DataTuning"/>).
+    /// The text of every file this was loaded from, by path under data/ ("manifest.json", "surfaces/orbit.json",
+    /// "layers/eras/ent.json"), before layers were applied (a draft, if any, is already in). The test panel's data
+    /// tuning patches these and loads a new GameData from them (<see cref="DataTuning"/>); the pack holds the same.
     /// </summary>
     public IReadOnlyDictionary<string, string> Sources { get; private init; } = new Dictionary<string, string>();
 
-    public static GameData Load(string dataDirectory)
+    /// <summary>The files of the sim's documents in load order (what the test panel's DATA tab lists).</summary>
+    public IReadOnlyList<string> Files { get; private init; } = Array.Empty<string>();
+
+    /// <summary>The layers this was loaded with.</summary>
+    public DataSetup Setup { get; private init; } = DataSetup.Base;
+
+    /// <summary>
+    /// SHA-256 of the data set (<see cref="DataFingerprint"/>): the same for the JSON folders and the release pack made
+    /// from them. Meant for the multiplayer lobby: every player must show the same fingerprint (and setup).
+    /// </summary>
+    public string Fingerprint { get; private init; } = "";
+
+    /// <summary>
+    /// Loads the base data from a data/ folder (manifest + the sim's documents + layers; no draft). This is the simple
+    /// entry point for tools (tests, balance runs). Unlisted .json files are reported by <see cref="Validate"/>.
+    /// </summary>
+    public static GameData Load(string dataDirectory) => Load(dataDirectory, DataSetup.Base);
+
+    /// <summary>Loads from a data/ folder with the era / faction / scenario layers of <paramref name="setup"/> applied.</summary>
+    public static GameData Load(string dataDirectory, DataSetup setup)
     {
-        var files = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var f in FileNames) files[f] = File.ReadAllText(Path.Combine(dataDirectory, f));
-        return Load(files);
+        var problems = new List<string>();
+        var files = DataStore.ReadBase(dataDirectory, problems);
+        return Load(files, setup, problems);
     }
 
-    /// <summary>Loads from file texts already in memory (every name in <see cref="FileNames"/>).</summary>
-    public static GameData Load(IReadOnlyDictionary<string, string> files)
-    {
-        JsonElement Read(string file)
-        {
-            using var doc = JsonDocument.Parse(files[file]);
-            return doc.RootElement.Clone();
-        }
+    /// <summary>Loads a release pack (see <see cref="DataPack"/>); throws <see cref="InvalidDataException"/> if it is damaged or was changed.</summary>
+    public static GameData LoadPack(byte[] pack, DataSetup? setup = null) => Load(DataPack.Read(pack, out _), setup ?? DataSetup.Base);
 
-        var problems = new List<string>();
-        var factionsRoot = Read("factions.json");
-        var shipsRoot = Read("ships.json");
-        var resourcesRoot = Read("resources.json");
-        var planetsRoot = Read("planet_classes.json");
-        var buildingsRoot = Read("buildings.json");
-        var mapsRoot = Read("maps.json");
-        var surfacesRoot = Read("surfaces.json");
-        var vehiclesRoot = Read("vehicles.json");
-        var climateRoot = Read("climate.json");
+    /// <summary>Loads from file texts already in memory, by path under data/ (see <see cref="Sources"/>).</summary>
+    public static GameData Load(IReadOnlyDictionary<string, string> files, DataSetup? setup = null) => Load(files, setup ?? DataSetup.Base, new List<string>());
+
+    private static GameData Load(IReadOnlyDictionary<string, string> files, DataSetup setup, List<string> problems)
+    {
+        if (!files.TryGetValue(DataManifest.FileName, out var manifestText))
+            throw new InvalidDataException("The data has no manifest.json.");
+        var manifest = DataManifest.Parse(manifestText);
+        var texts = new Dictionary<string, string>(files, StringComparer.Ordinal);
+        // Layer patches on documents the game doesn't read (tech_tree, hazards, …) are the pages' business.
+        problems.AddRange(DataPatcher.CheckLayers(files, manifest, Documents.ToList()));
+        foreach (var layerPath in setup.LayerPaths(files, problems))
+        {
+            var layerProblems = new List<string>();
+            DataLayer layer;
+            try
+            {
+                layer = DataLayer.Parse(layerPath, files[layerPath]);
+            }
+            catch (JsonException)
+            {
+                continue; // reported by CheckLayers
+            }
+            DataPatcher.Apply(texts, manifest, layer with { Patches = layer.Patches.Where(p => Documents.Contains(p.Doc) || !manifest.HasDocument(p.Doc)).ToList() }, layerProblems);
+            foreach (var p in layerProblems.Where(p => !problems.Contains(p))) problems.Add(p);
+        }
+        var roots = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var doc in Documents)
+        {
+            if (!manifest.HasDocument(doc)) throw new InvalidDataException($"data/manifest.json has no document '{doc}'.");
+            roots[doc] = manifest.Assemble(texts, doc, problems);
+        }
+        var sources = new Dictionary<string, string>(StringComparer.Ordinal) { [DataManifest.FileName] = manifestText };
+        var parts = Documents.SelectMany(manifest.PartsOf).ToList();
+        foreach (var path in parts.Concat(files.Keys.Where(k => DataPatcher.Kind(k) != null).OrderBy(k => k, StringComparer.Ordinal)))
+            if (files.TryGetValue(path, out var text)) sources[path] = text;
+        return FromDocuments(roots, problems, sources, parts, setup);
+    }
+
+    private static GameData FromDocuments(IReadOnlyDictionary<string, JsonElement> roots, List<string> problems,
+        Dictionary<string, string> sources, List<string> parts, DataSetup setup)
+    {
+        JsonElement Read(string doc) => roots[doc];
+
+        var factionsRoot = Read("factions");
+        var shipsRoot = Read("ships");
+        var resourcesRoot = Read("resources");
+        var planetsRoot = Read("planet_classes");
+        var buildingsRoot = Read("buildings");
+        var mapsRoot = Read("maps");
+        var surfacesRoot = Read("surfaces");
+        var vehiclesRoot = Read("vehicles");
+        var climateRoot = Read("climate");
 
         var factions = factionsRoot.GetProperty("factions").EnumerateArray()
             .Select(f => new FactionDef(Str(f, "id"), Str(f, "name"), f.GetProperty("playable").ValueKind == JsonValueKind.True))
@@ -443,7 +500,10 @@ public sealed partial class GameData
             Lanes = ReadLanes(surfacesRoot),
             BuildingFootprints = ReadBuildingFootprints(buildingsRoot, problems),
             UnitFootprints = ReadUnitFootprints(surfacesRoot),
-            Sources = FileNames.ToDictionary(f => f, f => files[f], StringComparer.Ordinal),
+            Sources = sources,
+            Files = parts,
+            Setup = setup,
+            Fingerprint = DataFingerprint.Of(sources),
         };
     }
 
@@ -744,8 +804,8 @@ public sealed partial class GameData
         for (var dir = new DirectoryInfo(startDirectory); dir != null; dir = dir.Parent)
         {
             var candidate = Path.Combine(dir.FullName, "data");
-            if (File.Exists(Path.Combine(candidate, "ships.json"))) return candidate;
+            if (File.Exists(Path.Combine(candidate, DataManifest.FileName))) return candidate;
         }
-        throw new DirectoryNotFoundException($"No data/ships.json found above '{startDirectory}'.");
+        throw new DirectoryNotFoundException($"No data/{DataManifest.FileName} found above '{startDirectory}'.");
     }
 }

@@ -1,0 +1,18 @@
+{
+  "units": [
+    { "id": "survey_rover_mk3", "mark": 3, "description": "The Mk III Explorer: a long six-wheeler on big tyres with a sensor turret. The fastest rover, and it surveys the widest area, for long trips far from your bases. It needs a little dilithium to build. The toughest rover: it wears slower, hazards hurt it less, its big tyres puncture less often and it carries two spares (T to change one); repair it on a colony core's pad (R).", "speed": 2.6, "survey_radius": 4, "cost": { "duranium": 120, "tritanium": 60, "dilithium": 5 }, "build_seconds": 45,
+      "damage": {
+        "terrain": { "plains": { "wear": 0.25, "hazard": 0.03, "flat": 0.02 }, "desert": { "wear": 0.35, "hazard": 0.05, "flat": 0.025 },
+          "forest": { "wear": 0.7, "hazard": 0.08, "flat": 0.035 }, "hills": { "wear": 0.9, "hazard": 0.1, "flat": 0.05 }, "ice": { "wear": 0.9, "hazard": 0.1, "flat": 0.035 } },
+        "hazards": [
+          { "id": "rock", "name": "Rock strike", "weight": 50, "damage": [3, 8], "terrain": ["plains", "desert", "hills", "ice"] },
+          { "id": "sinkhole", "name": "Sinkhole", "weight": 20, "damage": [6, 16], "terrain": ["plains", "desert", "forest"] },
+          { "id": "tree", "name": "Fallen tree", "weight": 30, "damage": [3, 9], "terrain": ["forest"] },
+          { "id": "rockslide", "name": "Rockslide", "weight": 20, "damage": [8, 18], "terrain": ["hills"] },
+          { "id": "ice", "name": "Sharp ice", "weight": 40, "damage": [4, 10], "terrain": ["ice"], "flat": true } ],
+        "toxic_per_min": 3, "wildlife": { "chance_per_min": 0.4, "damage": [5, 14] },
+        "slow_below": 40, "slowest_drive": 0.55, "sensors_below": 25, "sensor_loss": 1, "crawl": 0.15 },
+      "tyres": { "wheels": 6, "spares": 2, "low_integrity": 2, "flat_speed": 0.7, "two_flat_speed": 0.3, "flat_wear": 0.5, "change_seconds": 40, "pad_cost": { "duranium": 8 } },
+      "repair": { "per_second": 5, "crew_seconds": 3, "cost_per_point": { "duranium": 0.5 } } }
+  ]
+}

@@ -1,7 +1,8 @@
 # Final Frontier: game prototype
 
 Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game reads the same
-`../data/*.json` files the design pages use, so balancing happens in one place.
+`../data/` files the design pages use (small files per topic, listed in `../data/manifest.json`), so balancing
+happens in one place. Release exports read one packed copy instead (`gamedata.pack`, see "Data" below).
 
 ## Layout
 
@@ -9,7 +10,8 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 |---|---|
 | `sim/` | **FinalFrontier.Sim**: all game rules. Pure C#, no Godot types, fixed-point math. |
 | `sim/Math/` | `Fix64` (Q32.32 fixed point), `FixVec2`, `DeterministicRng` (xoshiro256**), `StateHasher` |
-| `sim/Data/` | `GameData`: loads factions, hulls, ship classes, resources, planet classes, buildings and maps from `../data/`, and checks them (`Validate()`) |
+| `sim/Data/` | `GameData`: loads factions, hulls, ship classes, resources, planet classes, buildings and maps from `../data/` (or the pack), and checks them (`Validate()`); `DataManifest` (joins a document's files), `DataDocument` (value positions in a file's text, for edits that keep the layout), `DataLayers` (era / faction / scenario patches), `DataStore` (draft, promote, backups, last-good fallback), `DataPack` (the release pack), `DataChecks` (every check Promote and the packer run), `DataTuning` (Test panel DATA tab) |
+| `scripts/GameDataLoader.cs` | Debug builds: `../data/` + draft (refused data falls back to the last good copy); release exports: `res://gamedata.pack` |
 | `sim/Core/` | `Simulation` (fixed 15 Hz tick, command queue, economy, state hash), `Player`, `ResourceBag`, `Body`, `Colony`, `Ship`, `Commands`, `MatchSetup` |
 | `sim/Surface/` | Planet surface: `HexGrid`, `SurfaceMap` (seeded terrain and deposit generation, orbital hints, landing sites), `Pathfinder` (A*), `Lanes` (vehicles drive inside the hexes: round buildings, to access points and parking spots, keeping their distance), `PlanetSurface` (landing, rovers, surveying, placing and constructing buildings, upkeep, storage, mining, refining, mining crawlers and cargo pods, salvage) |
 | `sim/Ai/` | `ChaseAi`: placeholder opponent that only issues commands |
@@ -24,7 +26,7 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `scripts/SurfaceFeed.cs`, `SurfaceTelemetry.cs`, `PlanetDriver.Uplink.cs`, `sim/Surface/Telemetry.cs` | Once the outpost's uplink is online: the helm's live video feed from the surface (its own camera and SubViewport; the surface moves to render layer 20 while it shows) and the environmental telemetry (temperature, humidity, wind, pressure, gases, radiation, hazards) computed from `surfaces.json` environments |
 | `scripts/PlanetDriver.Sky.cs`, `SkyField.cs`, `SkyModel.cs`, `WeatherView.cs`, `PlanetView.Sky.cs`, `OrbitView.Sky.cs`, `shaders/sky.gdshaderinc`, `sky_dome` | Day/night, seasons and weather drawn from the sim's `Climate`: per-tile daylight and lying snow / wet ground / puddles in two textures the terrain, water, foliage and rock shaders read; the sun, moon, ambient, haze and sky dome (stars at night) for the view's centre; rain, snow, dust and lightning around the camera; lamps brighter at night; the orbit globe's sun over the same subsolar column; the top bar's time/season/weather readout |
 | `scripts/VehicleLights.cs`, `PlanetView.Headlights.cs` | Vehicle headlights that light the world: spot lights at each live vehicle's lamps (drop ships: landing lights and a belly flood), glowing lenses, a faint beam cone in murky air and a ground glow far off; on by the dark and the weather at each vehicle (L: auto / on / off), off when disabled, flickering when damaged; at most 24 lit and 4 with shadows, nearest the camera first |
-| `sim/Surface/Climate.cs`, `PlanetSurface.Climate.cs`, `sim/Data/ClimateDefs.cs`, `GameData.Climate.cs` | Planetary climate from `data/climate.json`: the sun (day/night by spin, seasons by tilt, sunlight by orbit), temperature and humidity per tile, drifting weather cells with seasonal odds, and their mild gameplay effects (rover speed, survey radius, rover damage, grounded drop ships). Pure functions of data, map and tick |
+| `sim/Surface/Climate.cs`, `PlanetSurface.Climate.cs`, `sim/Data/ClimateDefs.cs`, `GameData.Climate.cs` | Planetary climate from `data/climate/`: the sun (day/night by spin, seasons by tilt, sunlight by orbit), temperature and humidity per tile, drifting weather cells with seasonal odds, and their mild gameplay effects (rover speed, survey radius, rover damage, grounded drop ships). Pure functions of data, map and tick |
 | `scripts/SystemPlot.cs`, `OrbitLines.cs` | The helm's top-down star-system plot from the map's bodies; thin line meshes for tracks, rings and the grid |
 | `textures/planet/` | Tileable ground photos for the orbit globe, cut from NASA's Blue Marble Next Generation (public domain; credit: NASA Earth Observatory). Read at runtime, not imported (`.gdignore`) |
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
@@ -119,11 +121,11 @@ breakdown, flat tyres and spares, dirt, position (teleport), clone or remove it;
 construction / upgrade / order progress ("finish now"), whole-base repairs; every resource, limits (no storage cap,
 unlimited power, free and instant building), game speed ¼–8×, pause (**Space**), step a tick, skip a minute; research;
 fog off, survey everything, deposit amounts, place any vehicle or building for any player; any number in the data
-files (search, apply to this game, reload, save back to JSON); and (SKY tab, look only) the time of day, season,
+files (search, apply to this game, reload, save to the draft, promote the draft into the data files); and (SKY tab, look only) the time of day, season,
 weather and wind. Every change is a sim command (in replays and the state
 hash); the top bar shows TEST MODE once one is made. **Ctrl+Z** undoes the last edit.
 
-Map size is `width` / `height` in `data/surfaces.json` (Class M: 128×88 tiles); the camera adapts to it.
+Map size is `width` / `height` in `data/surfaces/planets.json` (Class M: 128×88 tiles); the camera adapts to it.
 
 The older star-system view is `scenes/System.tscn` (open it and press F6).
 
@@ -134,6 +136,19 @@ cd game
 dotnet build FinalFrontier.sln
 dotnet test
 ```
+
+## Data
+
+- Edit the files under `../data/` by hand (keep their layout), or from the Test panel's DATA tab: **Save to draft**
+  writes `../data/_draft/draft.json` (git-ignored), which debug runs load on top of the data; **Promote draft** runs every
+  data check (`DataChecks`: `Validate()`, playable planets on three seeds, map symmetry, twin climates) and only then
+  writes the edits into the data files, backing up the old ones in `../data/_backups/`. The same from a terminal:
+  `dotnet run --project tools/DataPacker -- check [--draft]` and `-- promote` (from the repo root).
+- Data that fails `Validate()` is refused at start: base + draft → base alone → the last good copy
+  (`../data/_backups/last_good.pack`); the reasons show in the event feed and the Output panel.
+- **Release export:** run `dotnet run --project tools/DataPacker -- --out game/gamedata.pack` first (it refuses data that
+  fails a check), and in Project → Export → your preset → Resources set "Filters to export non-resource files/folders"
+  to `gamedata.pack`. The JSON folders live outside `game/`, so they are never exported; release builds read only the pack.
 
 ## Rules for sim code (lockstep determinism, GDD §11)
 
@@ -148,4 +163,4 @@ dotnet test
 ## Not done yet
 
 On the surface: shields and integrity, more buildings (research lab, garrison, refineries), population, the Cardassian rival landing. Later: the star system above, shipyards, combat, orbits, the sector (lane) map, the network layer, exported builds
-(the data folder is read from `../data` next to the project, which works in the editor only).
+(the data now ships as `gamedata.pack`; the orbit globe's photo textures are still read from the project folder).

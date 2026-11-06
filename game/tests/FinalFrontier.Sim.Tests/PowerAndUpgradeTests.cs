@@ -79,12 +79,10 @@ public class PowerAndUpgradeTests
     public void OverloadedBasesSlowEveryPowerUser()
     {
         // Make one mine draw more power than the hub supplies, in a copy of the data.
-        var src = GameData.FindDataDirectory(AppContext.BaseDirectory);
-        var dir = Directory.CreateTempSubdirectory("ff-power-").FullName;
+        var dir = TestData.CopyData("ff-power-");
         try
         {
-            foreach (var f in Directory.GetFiles(src, "*.json")) File.Copy(f, Path.Combine(dir, Path.GetFileName(f)));
-            var path = Path.Combine(dir, "buildings.json");
+            var path = Path.Combine(dir, "buildings/surface/mine.json");
             var text = File.ReadAllText(path);
             Assert.Contains("\"extract_per_min\": 40, \"power_use\": 6", text);
             File.WriteAllText(path, text.Replace("\"extract_per_min\": 40, \"power_use\": 6", "\"extract_per_min\": 40, \"power_use\": 50"));

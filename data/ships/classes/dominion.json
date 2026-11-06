@@ -1,0 +1,10 @@
+{
+  "classes": [
+    { "faction": "dominion", "name": "Jem'Hadar Attack Ship",  "hull": "escort",     "era": "dominion_war", "source": "canon", "special": "kamikaze_ram" },
+    { "faction": "dominion", "name": "Jem'Hadar Battle Cruiser","hull": "battleship","era": "dominion_war", "source": "canon" },
+    { "faction": "dominion", "name": "Jem'Hadar Battleship",   "hull": "titan",      "era": "dominion_war", "source": "canon" },
+    { "faction": "dominion", "name": "Dominion Scout",         "hull": "scout",      "era": "dominion_war", "source": "original", "special": "wormhole_survey" },
+    { "faction": "dominion", "name": "Ketracel-white Courier", "hull": "civilian",   "era": "dominion_war", "source": "original", "role": "freighter", "special": "white_resupply" },
+    { "faction": "dominion", "name": "Vorta Command Ship",     "hull": "explorer",   "era": "dominion_war", "source": "original", "special": "command_aura, vorta_diplomacy" }
+  ]
+}

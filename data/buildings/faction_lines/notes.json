@@ -1,0 +1,3 @@
+{
+  "_notes_faction_lines": "faction_lines: per-faction upgrade chains shown on the structure-concept canvas. Each line is ordered level 1 -> max; a level replaces the previous one in place. building_ref points at a fuller entry in buildings[] or faction_buildings[] where one exists. All costs are placeholders."
+}

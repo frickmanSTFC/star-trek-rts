@@ -1,0 +1,13 @@
+{
+  "factions": [
+    { "id": "cardassian", "name": "Cardassian Union", "playable": true,
+      "eras": ["tng", "dominion_war", "picard"],
+      "playstyle": "Industrial / occupation / defensive",
+      "signature": { "id": "occupation", "desc": "Conquered colonies produce +50% but generate Resistance; ore-processing stations double refined output." },
+      "secondary": ["obsidian_order", "uridium_processing", "heavy_defense_platforms"],
+      "weakness": "Resistance cells; ships individually weaker than Federation equivalents.",
+      "home": "Cardassia Prime",
+      "weapons": ["spiral_wave_disruptor", "photon_torpedo"],
+      "flavor_units": { "hero": "Gul", "ground": "Cardassian Soldiers", "special": "Ore Processing Station" } }
+  ]
+}

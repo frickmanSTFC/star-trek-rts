@@ -1,0 +1,243 @@
+{
+  "faction_lines": {
+    "federation": {
+      "deep_space": [
+        {
+          "id": "outpost",
+          "name": "Outpost",
+          "cost": {
+            "duranium": 120,
+            "rodinium": 10
+          },
+          "effect": "Claims the system.",
+          "stats": {
+            "supply_range": 1,
+            "docking": 0
+          },
+          "building_ref": "outpost"
+        },
+        {
+          "id": "deep_space_station",
+          "name": "Deep Space Station",
+          "cost": {
+            "parasteel": 300
+          },
+          "effect": "K-7 style trade hub.",
+          "stats": {
+            "supply_range": 2,
+            "docking": 4
+          },
+          "building_ref": "deep_space_station"
+        },
+        {
+          "id": "starbase",
+          "name": "Starbase",
+          "cost": {
+            "parasteel": 600,
+            "isolinear_chips": 50,
+            "photon_warheads": 40
+          },
+          "effect": "Saucer command deck, fleet aura.",
+          "stats": {
+            "supply_range": 3,
+            "docking": 8
+          },
+          "building_ref": "starbase"
+        },
+        {
+          "id": "spacedock",
+          "name": "Spacedock",
+          "cost": {
+            "parasteel": 1200,
+            "plasma_conduits": 150
+          },
+          "effect": "Interior bay; builds size-6 hulls.",
+          "stats": {
+            "hull_cap": 6,
+            "docking": 16
+          },
+          "building_ref": "spacedock"
+        },
+        {
+          "id": "yorktown_station",
+          "name": "Yorktown",
+          "cost": {
+            "parasteel": 4000,
+            "isolinear_chips": 300,
+            "dilithium": 200
+          },
+          "effect": "Habitable rings inside a transparent shell.",
+          "stats": {
+            "docking": 24
+          },
+          "tag": "wonder",
+          "building_ref": "yorktown_station"
+        }
+      ],
+      "command": [
+        {
+          "id": "colony_hub",
+          "name": "Colony Hub",
+          "cost": {
+            "duranium": 100,
+            "crew": 50
+          },
+          "effect": "Colony pod set down by a drop ship: landing legs, boarding ramp, solar petals, drop capsules.",
+          "stats": {
+            "supply_range": 1,
+            "build_queues": 1,
+            "pop_cap": 2
+          },
+          "building_ref": "colony_hub",
+          "art": "art/federation-colony-hub/colony-hub-L1.svg"
+        },
+        {
+          "id": "fed_settlement_hub",
+          "name": "Settlement Hub",
+          "cost": {
+            "duranium": 160,
+            "tritanium": 60
+          },
+          "effect": "Pod settles on a foundation; four capsule modules plug in on tubes; hydroponics dome; +25% storage, +10% build speed.",
+          "stats": {
+            "supply_range": 1,
+            "build_queues": 1,
+            "pop_cap": 3
+          },
+          "art": "art/federation-colony-hub/colony-hub-L2.svg"
+        },
+        {
+          "id": "colonial_administration",
+          "name": "Colonial Administration",
+          "cost": {
+            "duranium": 300,
+            "tritanium": 150
+          },
+          "effect": "Pod raised on a central column above a ring corridor of six modules; domed rotunda; comm tower.",
+          "stats": {
+            "supply_range": 2,
+            "build_queues": 2,
+            "pop_cap": 4
+          },
+          "building_ref": "colonial_administration",
+          "art": "art/federation-colony-hub/colony-hub-L3.svg"
+        },
+        {
+          "id": "fed_governors_complex",
+          "name": "Governor's Complex",
+          "cost": {
+            "parasteel": 280,
+            "isolinear_chips": 30
+          },
+          "effect": "Column carries a starbase-style saucer deck; three-storey ring modules; second saucer building; +1 morale in system.",
+          "stats": {
+            "supply_range": 2,
+            "build_queues": 3,
+            "pop_cap": 6
+          },
+          "art": "art/federation-colony-hub/colony-hub-L4.svg"
+        },
+        {
+          "id": "planetary_capital",
+          "name": "Planetary Capital",
+          "cost": {
+            "parasteel": 400,
+            "isolinear_chips": 50
+          },
+          "effect": "Spire of three saucer decks, ring of saucer-topped towers, Academy-style arches, pod monument; +2 morale in system.",
+          "stats": {
+            "supply_range": 3,
+            "build_queues": 3,
+            "pop_cap": 10,
+            "limit": "1_per_system"
+          },
+          "building_ref": "planetary_capital",
+          "art": "art/federation-colony-hub/colony-hub-L5.svg"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "orbital_drydock",
+          "name": "Orbital Drydock",
+          "cost": {
+            "duranium": 200,
+            "tritanium": 100
+          },
+          "effect": "Open frame; escorts and frigates.",
+          "stats": {
+            "hull_cap": 3,
+            "build_slots": 1
+          },
+          "building_ref": "orbital_drydock"
+        },
+        {
+          "id": "orbital_shipyard",
+          "name": "Orbital Shipyard",
+          "cost": {
+            "parasteel": 300,
+            "plasma_conduits": 40
+          },
+          "effect": "Double frame with cranes; cruisers.",
+          "stats": {
+            "hull_cap": 5,
+            "build_slots": 2
+          },
+          "building_ref": "orbital_shipyard"
+        },
+        {
+          "id": "fleet_yards",
+          "name": "Fleet Yards",
+          "cost": {
+            "parasteel": 3000,
+            "warp_coils": 200
+          },
+          "effect": "Utopia Planitia; titan berth, -20% build time.",
+          "stats": {
+            "hull_cap": "titan"
+          },
+          "tag": "wonder",
+          "building_ref": "fleet_yards"
+        }
+      ],
+      "habitation": [
+        {
+          "id": "prefab_habitat",
+          "name": "Prefab Habitat",
+          "cost": {
+            "duranium": 60
+          },
+          "effect": "Sealed modules on Class K/M/L/H.",
+          "stats": {
+            "pop_cap": 1
+          },
+          "building_ref": "prefab_habitat"
+        },
+        {
+          "id": "pressure_dome",
+          "name": "Pressure Domes",
+          "cost": {
+            "transparent_aluminum": 40,
+            "topaline": 10
+          },
+          "effect": "Domes on any solid body; breach risk.",
+          "stats": {
+            "pop_cap": 2
+          },
+          "building_ref": "pressure_dome"
+        },
+        {
+          "id": "arcology",
+          "name": "Arcology",
+          "cost": {
+            "parasteel": 300
+          },
+          "effect": "Terraced megastructure; needs industrial replicators.",
+          "stats": {
+            "pop_cap": 8
+          },
+          "building_ref": "arcology"
+        }
+      ]
+    }
+  }
+}

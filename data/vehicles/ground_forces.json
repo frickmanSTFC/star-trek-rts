@@ -1,0 +1,30 @@
+{
+  "ground_forces": [
+    { "id": "survey_team", "name": "Survey Team", "faction": "any", "source": "original", "strength": 1, "traits": ["surface_survey", "beam_down"] },
+    { "id": "security_team", "name": "Starfleet Security Team", "faction": "federation", "source": "canon", "strength": 3, "traits": ["disciplined"] },
+    { "id": "maco", "name": "MACO Squad", "faction": "earth_uec", "era": "ent", "source": "canon", "strength": 4, "traits": ["elite", "heavy_weapons"] },
+    { "id": "hazard_team", "name": "Hazard Team", "faction": "federation_lost_ship", "era": "voy", "source": "beta", "strength": 4, "traits": ["hazardous_environment_bonus"] },
+    { "id": "klingon_warriors", "name": "Klingon Warriors", "faction": "klingon", "source": "canon", "strength": 5, "traits": ["melee_bonus", "never_retreat"] },
+    { "id": "reman_shock_troops", "name": "Reman Shock Troops", "faction": "romulan", "source": "canon", "strength": 5, "traits": ["night_fighters", "uprising_risk"] },
+    { "id": "romulan_commandos", "name": "Romulan Commandos", "faction": "romulan", "source": "original", "strength": 3, "traits": ["sabotage", "stealth"] },
+    { "id": "cardassian_soldiers", "name": "Cardassian Soldiers", "faction": "cardassian", "source": "canon", "strength": 3, "traits": ["garrison_bonus", "occupation_control"] },
+    { "id": "jem_hadar", "name": "Jem'Hadar Squad", "faction": "dominion", "source": "canon", "strength": 6, "traits": ["shroud_stealth", "requires_ketracel_white", "no_morale_loss"] },
+    { "id": "changeling", "name": "Changeling Infiltrator", "faction": "dominion", "source": "canon", "strength": 1, "traits": ["disguise", "sabotage", "replace_officer"] },
+    { "id": "ferengi_mercs", "name": "Ferengi Mercenaries", "faction": "ferengi", "source": "original", "strength": 2, "traits": ["hired", "may_defect_if_outbid"] },
+    { "id": "borg_drones", "name": "Borg Drones", "faction": "borg", "source": "canon", "strength": 4, "traits": ["personal_shield_adapts", "assimilate_defenders"] },
+    { "id": "hirogen_hunters", "name": "Hirogen Hunting Party", "faction": "hirogen", "source": "canon", "strength": 5, "traits": ["targets_officers"] },
+    { "id": "colonial_militia", "name": "Colonial Militia", "faction": "any", "source": "original", "strength": 1, "traits": ["free_from_population", "home_defense_only"] },
+    { "id": "maquis_cell", "name": "Maquis Cell", "faction": "maquis", "source": "canon", "strength": 2, "traits": ["guerrilla", "spawned_by_unrest"] },
+    { "id": "klingon_honor_guard", "name": "Klingon Honor Guard", "faction": "klingon", "source": "canon", "strength": 5, "traits": ["elite", "guards_hero"] },
+    { "id": "obsidian_order_agent", "name": "Obsidian Order Agent", "faction": "cardassian", "source": "canon", "strength": 2, "traits": ["interrogation", "sabotage", "detect_spies"] },
+    { "id": "tal_shiar_agent", "name": "Tal Shiar Agent", "faction": "romulan", "source": "canon", "strength": 2, "traits": ["steal_tech", "interrogation", "stealth"] },
+    { "id": "nausicaan_bodyguards", "name": "Hired Nausicaan Bodyguards", "faction": "ferengi", "source": "original", "strength": 4, "traits": ["hired", "guards_hero"] },
+    { "id": "borg_tactical_drones", "name": "Borg Tactical Drones", "faction": "borg", "source": "original", "strength": 5, "traits": ["heavy_weapons", "personal_shield_adapts"] },
+    { "id": "vulcan_security", "name": "Vulcan Security Force", "faction": "vulcan", "era": "ent", "source": "original", "strength": 3, "traits": ["disciplined", "mind_meld_intel"] },
+    { "id": "andorian_guard", "name": "Andorian Imperial Guard", "faction": "andorian", "era": "ent", "source": "canon", "strength": 5, "traits": ["ice_world_bonus", "ushaan_duelists"] },
+    { "id": "tellarite_engineers", "name": "Tellarite Engineers", "faction": "tellarite", "era": "ent", "source": "original", "strength": 2, "traits": ["fortify_fast", "repair_structures"] },
+    { "id": "zhat_vash", "name": "Zhat Vash Agents", "faction": "romulan_free_state", "era": "picard", "source": "canon", "strength": 3, "traits": ["sabotage", "synth_hunters"] },
+    { "id": "qowat_milat", "name": "Qowat Milat", "faction": "ni_var", "era": "far_future", "source": "canon", "strength": 4, "traits": ["absolute_candor", "bodyguard"] },
+    { "id": "chain_enforcers", "name": "Chain Enforcers", "faction": "emerald_chain", "era": "far_future", "source": "original", "strength": 3, "traits": ["intimidation", "slave_guards"] }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "factions": [
+    { "id": "earth_uec", "name": "United Earth (pre-Federation)", "playable": true, "eras": ["ent"],
+      "playstyle": "Pioneer / coalition builder", "secondary": ["first_warp_five_ships", "maco_troops", "coalition_diplomacy"], "weakness": "Small, under-gunned fleet; no reliable transporters or deflector shields early.", "home": "Earth (Sol)", "weapons": ["phase_cannon", "spatial_torpedo", "photon_torpedo"], "flavor_units": {"hero": "Earth Starship Captain", "ground": "MACO Squad", "special": "NX"},
+      "signature": { "id": "coalition_builder", "desc": "Found the Coalition of Planets with Vulcans/Andorians/Tellarites — becomes the Federation in an Ages campaign." } },
+    { "id": "vulcan", "name": "Vulcan High Command", "playable": true, "eras": ["ent"],
+      "playstyle": "Science / sensors / cautious diplomacy", "secondary": ["mind_meld_intel", "high_command_oversight", "kir_shara_schism"], "weakness": "Slow to fight and slow to share tech; bound by High Command caution.", "home": "Vulcan (40 Eridani)", "weapons": ["phase_cannon", "spatial_torpedo"], "flavor_units": {"hero": "Vulcan Ambassador", "ground": "Vulcan Security Force", "special": "D'Kyr"},
+      "signature": { "id": "logic", "desc": "Research and sensor bonuses; mind-meld intel; reluctant to fight." } },
+    { "id": "andorian", "name": "Andorian Empire", "playable": true, "eras": ["ent"],
+      "playstyle": "Early military / ice-world colonies", "secondary": ["imperial_guard", "ushaan_duels", "ice_world_bonus"], "weakness": "Hot-tempered diplomacy; feuds with Vulcans and Tellarites waste effort.", "home": "Andoria", "weapons": ["phase_cannon", "spatial_torpedo"], "flavor_units": {"hero": "Imperial Guard Commander", "ground": "Andorian Imperial Guard", "special": "Kumari"},
+      "signature": { "id": "imperial_guard", "desc": "Strong early military; ice-world colonization bonus." } },
+    { "id": "tellarite", "name": "Tellarite", "playable": true, "eras": ["ent"],
+      "playstyle": "Engineering / trade / argument", "secondary": ["cheap_construction", "hard_bargains", "debate_as_sport"], "weakness": "Argumentative diplomacy; weak navy.", "home": "Tellar Prime", "weapons": ["phase_cannon", "spatial_torpedo"], "flavor_units": {"hero": "Tellarite Ambassador", "ground": "Tellarite Engineers", "special": "Tellarite Cruiser"},
+      "signature": { "id": "engineers_and_hagglers", "desc": "Cheaper construction; trade bonuses; argumentative diplomacy." } }
+  ]
+}

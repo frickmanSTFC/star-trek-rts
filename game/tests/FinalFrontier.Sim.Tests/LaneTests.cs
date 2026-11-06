@@ -90,7 +90,7 @@ public class LaneTests
     public void BadFootprintDataIsReported()
     {
         var data = TestData.Patched(
-            ("buildings.json", "\"storage\": 2000, \"footprint_radius\": 7.5, \"access\": [0, 10] },", "\"storage\": 2000, \"footprint_radius\": 11, \"access\": [0, 3] },"),
+            ("buildings.json", "\"storage\": 2000, \"footprint_radius\": 7.5, \"access\": [0, 10] }", "\"storage\": 2000, \"footprint_radius\": 11, \"access\": [0, 3] }"),
             ("surfaces.json", "\"lane_offset\": 2.5,", "\"lane_offset\": 9,"));
         var problems = data.Validate();
         Assert.Contains(problems, p => p.Contains("storage_container: footprint_radius must be positive"));

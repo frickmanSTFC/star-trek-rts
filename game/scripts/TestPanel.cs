@@ -1202,7 +1202,7 @@ public partial class TestPanel : PanelContainer
             var words = _search.ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length == 0)
             {
-                results.AddChild(Wrapped($"{Numbers().Count} numbers in {GameData.FileNames.Count} files. Type words from a path to find one.", 12, Dim));
+                results.AddChild(Wrapped($"{Numbers().Count} numbers in {Data.Files.Count} files. Type words from a path to find one.", 12, Dim));
                 return;
             }
             var hits = Numbers().Where(n => words.All(w => (n.File + " " + n.Label).ToLowerInvariant().Contains(w))).ToList();
@@ -1221,9 +1221,9 @@ public partial class TestPanel : PanelContainer
         {
             if (_pending.Count == 0)
             {
-                status.Text = DiffersFromDisk()
-                    ? "This game's data differs from the files on disk (Save to JSON writes it)."
-                    : "No changes waiting.";
+                status.Text = (DiffersFromDisk()
+                    ? "This game's data differs from data/ + draft on disk (Save to draft keeps it)."
+                    : "No changes waiting.") + (_draftPatches > 0 ? $"  Draft: {_draftPatches} edit(s) not promoted yet." : "");
                 return;
             }
             var first = _pending.Values.First();
@@ -1235,10 +1235,14 @@ public partial class TestPanel : PanelContainer
         var buttons = Grid(3);
         buttons.AddChild(MakeButton("Apply to this game", Plain, ApplyPending, 0, 36, 12));
         buttons.AddChild(MakeButton("Reload data files", Plain, ReloadFromDisk, 0, 36, 12));
-        buttons.AddChild(MakeButton("Save to JSON", Plain, SaveToDisk, 0, 36, 12));
+        buttons.AddChild(MakeButton("Save to draft", Plain, SaveToDisk, 0, 36, 12));
+        buttons.AddChild(MakeButton("Promote draft", Plain, PromoteDraft, 0, 36, 12));
+        buttons.AddChild(MakeButton("Discard draft", Red, DiscardDraft, 0, 36, 12));
         _content.AddChild(buttons);
         _content.AddChild(Wrapped("Applies to the running game. Map generation, landing and other set-up numbers only show in a new game. " +
-                                  "Only numbers can change here; ids and lists need a restart.", 12, Dim));
+                                  "Only numbers can change here; ids and lists need a restart. Saving writes data/_draft/draft.json, never the data files: " +
+                                  "Promote runs every data check (and the planet and map checks) and only then writes the edits into data/, " +
+                                  "with a copy of the old files in data/_backups/.", 12, Dim));
     }
 
     private Control DataRow(DataNumber n)
@@ -1298,46 +1302,74 @@ public partial class TestPanel : PanelContainer
         if (Apply(text, new DebugDataCommand(Me, edits), new DebugDataCommand(Me, inverse))) _pending.Clear();
     }
 
-    private string? DiskText(string file)
+    private bool HasDataFolder => !string.IsNullOrEmpty(_host.DataDirectory);
+
+    /// <summary>data/ + the draft as a debug game would load it (texts by path), or null when there's no data folder (a packed build).</summary>
+    private Dictionary<string, string>? DiskTexts()
     {
-        var path = Path.Combine(_host.DataDirectory, file);
+        if (!HasDataFolder) return null;
         try
         {
-            return File.Exists(path) ? File.ReadAllText(path) : null;
+            var problems = new List<string>();
+            var files = DataStore.ReadEffective(_host.DataDirectory, problems);
+            _draftPatches = DraftCount();
+            return files;
         }
-        catch (IOException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
             return null;
         }
     }
 
+    private int DraftCount()
+    {
+        try
+        {
+            return DataStore.ReadDraft(_host.DataDirectory) is { } t ? DataLayer.Parse(DataLayer.DraftPath, t).Patches.Count : 0;
+        }
+        catch (Exception e) when (e is IOException or System.Text.Json.JsonException)
+        {
+            return 0;
+        }
+    }
+
     private ulong _diskCheckedAt;
     private bool _differs;
+    private int _draftPatches;
 
-    /// <summary>Whether this game's data differs from the files on disk (checked every two seconds, not every frame).</summary>
+    /// <summary>Whether this game's data differs from data/ + draft on disk (checked every two seconds, not every frame).</summary>
     private bool DiffersFromDisk()
     {
         var now = Time.GetTicksMsec();
         if (_diskCheckedAt != 0 && now - _diskCheckedAt < 2000) return _differs;
         _diskCheckedAt = now;
-        _differs = GameData.FileNames.Any(f => Data.Sources.TryGetValue(f, out var text) && DiskText(f) is { } disk && disk != text);
+        var disk = DiskTexts();
+        _differs = disk != null && Data.Files.Any(f => Data.Sources.TryGetValue(f, out var text) && disk.TryGetValue(f, out var d) && d != text);
         return _differs;
+    }
+
+    private bool NeedsDataFolder()
+    {
+        if (HasDataFolder) return true;
+        _host.Notify("Test panel: this build reads the data pack; the data files aren't here", true);
+        return false;
     }
 
     private void ReloadFromDisk()
     {
+        if (!NeedsDataFolder()) return;
+        var disk = DiskTexts();
         var changed = new List<DataFile>();
         var before = new List<DataFile>();
-        foreach (var f in GameData.FileNames)
+        foreach (var f in Data.Files)
         {
-            var disk = DiskText(f);
-            if (disk == null || !Data.Sources.TryGetValue(f, out var now) || disk == now) continue;
-            changed.Add(new DataFile(f, disk));
+            if (disk == null || !disk.TryGetValue(f, out var text) || !Data.Sources.TryGetValue(f, out var now) || text == now) continue;
+            changed.Add(new DataFile(f, text));
             before.Add(new DataFile(f, now));
         }
         if (changed.Count == 0)
         {
-            _host.Notify("Test panel: the data files on disk match this game");
+            _host.Notify("Test panel: data/ + draft on disk match this game");
             return;
         }
         if (Apply($"reloaded {string.Join(", ", changed.Select(c => c.File))}", new DebugReloadDataCommand(Me, changed), new DebugReloadDataCommand(Me, before)))
@@ -1346,28 +1378,67 @@ public partial class TestPanel : PanelContainer
 
     private void SaveToDisk()
     {
+        if (!NeedsDataFolder()) return;
         if (_pending.Count > 0)
         {
             _host.Notify("Test panel: apply the changed values first, then save", true);
             return;
         }
-        var saved = new List<string>();
-        foreach (var f in GameData.FileNames)
+        try
         {
-            if (!Data.Sources.TryGetValue(f, out var text) || DiskText(f) == text) continue;
-            try
-            {
-                File.WriteAllText(Path.Combine(_host.DataDirectory, f), text);
-                saved.Add(f);
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-            {
-                _host.Notify($"Test panel: couldn't write {f}: {e.Message}", true);
-            }
+            var count = DataStore.SaveDraft(_host.DataDirectory, Data.Sources);
+            _host.Notify(count == 0
+                ? "Test panel: this game matches data/; no draft"
+                : $"Saved {count} edit(s) to data/_draft/draft.json. Promote checks them and writes them into data/.");
+            if (count > 0) _lastEdit = $"saved {count} edit(s) to the draft";
         }
-        _host.Notify(saved.Count == 0 ? "Test panel: nothing to save, the files already match" : $"Saved data/{string.Join(", data/", saved)}");
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or FormatException)
+        {
+            _host.Notify($"Test panel: couldn't save the draft: {e.Message}", true);
+        }
         _diskCheckedAt = 0;
-        if (saved.Count > 0) _lastEdit = $"saved {string.Join(", ", saved)}  (files on disk)";
+    }
+
+    private static string Stamp() => DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+
+    private void PromoteDraft()
+    {
+        if (!NeedsDataFolder()) return;
+        _diskCheckedAt = 0;
+        if (_pending.Count > 0 || DiffersFromDisk())
+        {
+            _host.Notify("Test panel: this game has edits that aren't in the draft: Apply and Save to draft first", true);
+            return;
+        }
+        PromoteResult result;
+        try
+        {
+            result = DataStore.Promote(_host.DataDirectory, Stamp());
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            _host.Notify($"Test panel: promote failed: {e.Message}", true);
+            return;
+        }
+        foreach (var p in result.Problems) GD.PushWarning($"Promote: {p}");
+        _host.Notify(result.Problems.Count == 0
+            ? result.Message
+            : $"{result.Message} {result.Problems[0]}{(result.Problems.Count > 1 ? $" (+{result.Problems.Count - 1} more in the Output panel)" : "")}", !result.Promoted);
+        if (result.Promoted) _lastEdit = $"promoted the draft ({result.ChangedFiles.Count} file(s))";
+        _diskCheckedAt = 0;
+    }
+
+    private void DiscardDraft()
+    {
+        if (!NeedsDataFolder()) return;
+        if (DataStore.ReadDraft(_host.DataDirectory) == null)
+        {
+            _host.Notify("Test panel: there is no draft");
+            return;
+        }
+        DataStore.DiscardDraft(_host.DataDirectory, Stamp());
+        _host.Notify("Discarded the draft (a copy is in data/_backups/). Reload data files to drop its edits from this game.");
+        _diskCheckedAt = 0;
     }
 
     // ---------------------------------------------------------------- widgets

@@ -1,0 +1,179 @@
+{
+  "faction_lines": {
+    "cardassian": {
+      "deep_space": [
+        {
+          "id": "car_outpost",
+          "name": "Outpost",
+          "cost": {
+            "duranium": 120,
+            "rodinium": 10
+          },
+          "effect": "Ribbed spindle; +1 system sensor range.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "car_monitoring_station",
+          "name": "Monitoring Station",
+          "cost": {
+            "parasteel": 280,
+            "isolinear_chips": 20
+          },
+          "effect": "Oval hub; reveals fleet movement in neighbouring systems.",
+          "stats": {
+            "supply_range": 2,
+            "docking": 2
+          }
+        },
+        {
+          "id": "nor_station",
+          "name": "Nor-type Station",
+          "cost": {
+            "parasteel": 700,
+            "uridium": 60
+          },
+          "effect": "Terok Nor layout; x2 refined output in system.",
+          "stats": {
+            "docking": 12
+          },
+          "tag": "faction_only",
+          "building_ref": "nor_station"
+        },
+        {
+          "id": "car_nor_bastion",
+          "name": "Nor-type Bastion",
+          "cost": {
+            "parasteel": 1100,
+            "antimatter": 80,
+            "photon_warheads": 40
+          },
+          "effect": "War refit: 6 arrays + 4 weapons platforms; keeps refining bonus.",
+          "stats": {
+            "weapons": 10
+          },
+          "tag": "faction_only"
+        }
+      ],
+      "command": [
+        {
+          "id": "car_garrison_post",
+          "name": "Garrison Post",
+          "cost": {
+            "duranium": 110,
+            "crew": 40
+          },
+          "effect": "Ribbed bunker; trains Cardassian soldiers.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "car_prefecture",
+          "name": "Prefecture",
+          "cost": {
+            "duranium": 300,
+            "tritanium": 140
+          },
+          "effect": "Governs occupied worlds; -1 Resistance.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "car_central_command",
+          "name": "Central Command",
+          "cost": {
+            "parasteel": 450,
+            "isolinear_chips": 60
+          },
+          "effect": "Unlocks Obsidian Order and Union occupation policies.",
+          "stats": {
+            "supply_range": 3
+          },
+          "tag": "faction_only"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "car_rib_dock",
+          "name": "Rib Dock",
+          "cost": {
+            "duranium": 200,
+            "tritanium": 100
+          },
+          "effect": "Hideki, Groumall; cheaper with a Nor-type in system.",
+          "stats": {
+            "hull_cap": 3,
+            "build_slots": 1
+          }
+        },
+        {
+          "id": "car_fleet_shipyard",
+          "name": "Fleet Shipyard",
+          "cost": {
+            "parasteel": 300,
+            "plasma_conduits": 40
+          },
+          "effect": "Galor and Keldon.",
+          "stats": {
+            "hull_cap": 5,
+            "build_slots": 2
+          }
+        },
+        {
+          "id": "car_assembly_yards",
+          "name": "Assembly Yards",
+          "cost": {
+            "parasteel": 2400,
+            "uridium": 120
+          },
+          "effect": "3 parallel lines, cruisers -25%; no titan berth.",
+          "stats": {
+            "hull_cap": 5,
+            "build_slots": 3
+          },
+          "tag": "wonder"
+        }
+      ],
+      "habitation": [
+        {
+          "id": "car_labor_barracks",
+          "name": "Labor Barracks",
+          "cost": {
+            "duranium": 60
+          },
+          "effect": "On occupied worlds: +50% output, rising Resistance.",
+          "stats": {
+            "pop_cap": 1
+          }
+        },
+        {
+          "id": "car_civic_arcade",
+          "name": "Civic Arcade",
+          "cost": {
+            "duranium": 150,
+            "transparent_aluminum": 40
+          },
+          "effect": "Broadcast screens; spies found faster.",
+          "stats": {
+            "pop_cap": 3
+          }
+        },
+        {
+          "id": "car_capital_district",
+          "name": "Capital District",
+          "cost": {
+            "parasteel": 320,
+            "uridium": 40
+          },
+          "effect": "Monument city; -1 Resistance in system.",
+          "stats": {
+            "pop_cap": 7
+          }
+        }
+      ]
+    }
+  }
+}

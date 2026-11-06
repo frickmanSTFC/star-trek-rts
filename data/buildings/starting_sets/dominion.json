@@ -1,0 +1,82 @@
+{
+  "starting_sets": {
+    "factions": {
+      "dominion": {
+        "identity": "Clones and Ketracel-white; no native population growth.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "dom_vorta_field_post",
+            "name": "Vorta Field Post",
+            "cost": {
+              "duranium": 110,
+              "ketracel_white": 2
+            },
+            "effect": "Comes with a Jem'Hadar squad."
+          },
+          {
+            "role": "housing",
+            "id": "dom_birthing_chamber",
+            "name": "Birthing Chamber",
+            "cost": {
+              "duranium": 90,
+              "zenite": 20
+            },
+            "effect": "Grows Jem'Hadar squads instead of population."
+          },
+          {
+            "role": "extraction",
+            "id": "dom_jemhadar_work_site",
+            "name": "Jem'Hadar Work Site",
+            "cost": {
+              "duranium": 80
+            },
+            "effect": "No crew needed.",
+            "upkeep": {
+              "ketracel_white": 1
+            }
+          },
+          {
+            "role": "power",
+            "id": "fusion_reactor",
+            "name": "Fusion Reactor",
+            "cost": {
+              "duranium": 80,
+              "deuterium": 20
+            },
+            "effect": "+10 energy.",
+            "building_ref": "fusion_reactor"
+          },
+          {
+            "role": "research",
+            "id": "dom_vorta_analysis_lab",
+            "name": "Vorta Analysis Lab",
+            "cost": {
+              "duranium": 120
+            },
+            "effect": "-30% research; double research from captured wrecks."
+          },
+          {
+            "role": "defense",
+            "id": "dom_polaron_battery",
+            "name": "Polaron Battery",
+            "cost": {
+              "tritanium": 110
+            },
+            "effect": "Partly bypasses shields."
+          },
+          {
+            "role": "signature",
+            "id": "dom_white_depot",
+            "name": "White Depot",
+            "cost": {
+              "duranium": 60,
+              "zenite": 20
+            },
+            "effect": "Keeps troops supplied 2 cycles if White supply is cut."
+          }
+        ]
+      }
+    }
+  }
+}

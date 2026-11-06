@@ -1,0 +1,78 @@
+{
+  "starting_sets": {
+    "factions": {
+      "romulan": {
+        "identity": "Hidden and paranoid; pricier.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "rom_colonial_garrison",
+            "name": "Colonial Garrison",
+            "cost": {
+              "duranium": 110,
+              "crew": 40
+            },
+            "effect": "Enemy scans see no colony details."
+          },
+          {
+            "role": "housing",
+            "id": "rom_colonial_villa",
+            "name": "Colonial Villa",
+            "cost": {
+              "duranium": 70
+            },
+            "effect": "+1 population, +1 morale."
+          },
+          {
+            "role": "extraction",
+            "id": "rom_shrouded_mine",
+            "name": "Shrouded Mine",
+            "cost": {
+              "duranium": 100
+            },
+            "effect": "-20% yield; invisible to scans and raids."
+          },
+          {
+            "role": "power",
+            "id": "rom_plasma_reactor",
+            "name": "Plasma Reactor",
+            "cost": {
+              "duranium": 90,
+              "isolinear_chips": 10
+            },
+            "effect": "+12 energy; no deuterium."
+          },
+          {
+            "role": "research",
+            "id": "rom_science_ministry_lab",
+            "name": "Science Ministry Lab",
+            "cost": {
+              "duranium": 110,
+              "isolinear_chips": 10
+            },
+            "effect": "Normal research; +50% on stealth techs."
+          },
+          {
+            "role": "defense",
+            "id": "rom_cloaked_emplacement",
+            "name": "Cloaked Disruptor Emplacement",
+            "cost": {
+              "tritanium": 120
+            },
+            "effect": "Invisible until it fires."
+          },
+          {
+            "role": "signature",
+            "id": "rom_tal_shiar_field_office",
+            "name": "Tal Shiar Field Office",
+            "cost": {
+              "duranium": 80,
+              "isolinear_chips": 20
+            },
+            "effect": "1 spy operation slot from the start."
+          }
+        ]
+      }
+    }
+  }
+}

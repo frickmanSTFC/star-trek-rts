@@ -1,0 +1,13 @@
+{
+  "factions": [
+    { "id": "romulan", "name": "Romulan Star Empire", "playable": true,
+      "eras": ["ent", "tos", "tng", "dominion_war", "kelvin"],
+      "playstyle": "Stealth / espionage / ambush",
+      "signature": { "id": "tal_shiar", "desc": "Espionage ops: steal tech, incite unrest, assassinate captains. Cloaks on almost every hull." },
+      "secondary": ["singularity_cores", "plasma_torpedoes", "neutral_zone_treaty", "thalaron_weapons_banned"],
+      "weakness": "Singularity-core ships leave gravity wells when destroyed; paranoid internal politics.",
+      "home": "Romulus & Remus",
+      "weapons": ["disruptor", "plasma_torpedo", "thalaron"],
+      "flavor_units": { "hero": "Tal Shiar Agent", "ground": "Reman Shock Troops", "special": "Warbird" } }
+  ]
+}

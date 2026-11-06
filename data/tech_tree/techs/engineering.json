@@ -1,0 +1,15 @@
+{
+  "techs": [
+    { "id": "transporter", "name": "Transporters", "tree": "engineering", "tier": 1, "prereqs": [], "unlocks": ["boarding", "evacuation", "mod_transporter"] },
+    { "id": "tractor_beam", "name": "Tractor Beams", "tree": "engineering", "tier": 2, "prereqs": [], "unlocks": ["mod_tractor_beam"] },
+    { "id": "graviton_resonance", "name": "Graviton Resonance Pulse", "tree": "engineering", "tier": 3, "prereqs": ["tractor_beam"], "effect": "A tuned graviton beam shatters the Crystalline Entity; also breaks up asteroid hazards." },
+    { "id": "deep_core_mining", "name": "Deep-Core Mining", "tree": "engineering", "tier": 2, "prereqs": [], "effect": "Reopen depleted deposits at 50% yield." },
+    { "id": "replicators", "name": "Food Replicators", "tree": "engineering", "tier": 2, "prereqs": ["transporter"], "effect": "Colonies no longer need food imports." },
+    { "id": "industrial_replicators", "name": "Industrial Replicators", "tree": "engineering", "tier": 3, "prereqs": ["replicators"], "effect": "Energy → Tritanium/Duranium at 5:1. Cannot make dilithium or latinum." },
+    { "id": "dampener_resistant_routing", "name": "Dampener-Resistant Power Routing", "tree": "engineering", "tier": 4, "prereqs": ["industrial_replicators"], "effect": "Ships keep power under Breen energy dampeners." },
+    { "id": "holotechnology", "name": "Holotechnology", "tree": "engineering", "tier": 3, "prereqs": ["replicators"], "unlocks": ["holodeck"], "effect": "Train crew XP; morale." },
+    { "id": "saucer_separation", "name": "Saucer Separation", "tree": "engineering", "tier": 3, "prereqs": ["transporter"], "unlocks": ["mod_saucer_separation"], "effect": "Explorer hulls split into a saucer and a battle section." },
+    { "id": "multi_vector_assault", "name": "Multi-Vector Assault Mode", "tree": "engineering", "tier": 4, "prereqs": ["saucer_separation"], "unlocks": ["mod_mvam"], "effect": "A ship splits into three independent attack sections." },
+    { "id": "programmable_matter", "name": "Programmable Matter", "tree": "engineering", "tier": 6, "prereqs": ["industrial_replicators"], "effect": "Ships reconfigure module loadout in the field." }
+  ]
+}

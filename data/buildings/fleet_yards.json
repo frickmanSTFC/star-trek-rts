@@ -1,0 +1,7 @@
+{
+  "buildings": [
+    { "id": "fleet_yards", "name": "Fleet Yards", "layer": "orbital", "category": "wonder", "source": "canon",
+      "cost": { "parasteel": 3000, "warp_coils": 200 }, "limit": "1 per player",
+      "effect": "Builds Titans; -20% build time all ships. (Utopia Planitia)" }
+  ]
+}

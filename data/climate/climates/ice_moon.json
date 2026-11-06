@@ -1,0 +1,12 @@
+{
+  "climates": {
+    "ice_moon": { "name": "Ice moon (thin haze)", "air": true, "wind_scale": 0.4, "drift_tiles_per_min": 0.8, "swing_c": 16, "polar_drop_c": 20,
+      "seasons": [
+        { "name": "Haze season",  "share": 0.5, "temp_c": 2,  "humidity_pct": 0, "wind": 1,   "spell_s": [180, 540], "weights": { "clear": 40, "cloudy": 20, "fog": 30, "snow": 8, "high_wind": 2 } },
+        { "name": "Frost season", "share": 0.5, "temp_c": -3, "humidity_pct": 0, "wind": 1.2, "spell_s": [180, 540], "weights": { "clear": 50, "fog": 15, "snow": 25, "blizzard": 5, "high_wind": 5 } }
+      ],
+      "bands": [
+        { "name": "All latitudes", "to_deg": 90, "season_scale": 1, "wind_toward_deg": 90, "weights": {} }
+      ] }
+  }
+}

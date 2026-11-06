@@ -1,0 +1,8 @@
+{
+  "faction_buildings": [
+    { "faction": "romulan", "id": "tal_shiar_hq", "name": "Tal Shiar Headquarters", "source": "canon", "effect": "Espionage operations; internal security." },
+    { "faction": "romulan", "id": "singularity_forge", "name": "Singularity Forge", "source": "original", "effect": "Produces Artificial Singularity cores." },
+    { "faction": "romulan", "id": "reman_mines", "name": "Reman Dilithium Mines", "source": "canon", "effect": "Forced-labor dilithium; Reman uprising risk; Reman shock troops." },
+    { "faction": "romulan", "id": "cloaked_outpost", "name": "Cloaked Outpost", "source": "original", "effect": "Invisible station; reveals itself when firing." }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "classes": [
+    { "faction": "earth_uec",  "name": "NX",            "hull": "explorer",      "era": "ent",  "source": "canon" },
+    { "faction": "federation", "name": "Crossfield",    "hull": "explorer",      "era": "tos",  "source": "canon", "special": "spore_drive_prototype" },
+    { "faction": "federation", "name": "Constitution",  "hull": "heavy_cruiser", "era": "tos",  "source": "canon" },
+    { "faction": "federation", "name": "Miranda",       "hull": "frigate",       "era": "tos",  "source": "canon" },
+    { "faction": "federation", "name": "Oberth",        "hull": "scout",         "era": "tos",  "source": "canon", "role": "science" },
+    { "faction": "federation", "name": "Excelsior",     "hull": "explorer",      "era": "tos",  "source": "canon" },
+    { "faction": "federation", "name": "Ambassador",    "hull": "heavy_cruiser", "era": "tng",  "source": "canon" },
+    { "faction": "federation", "name": "Galaxy",        "hull": "explorer",      "era": "tng",  "source": "canon", "special": "saucer_separation" },
+    { "faction": "federation", "name": "Nebula",        "hull": "cruiser",       "era": "tng",  "source": "canon" },
+    { "faction": "federation", "name": "New Orleans",   "hull": "frigate",       "era": "tng",  "source": "canon" },
+    { "faction": "federation", "name": "Sovereign",     "hull": "battleship",    "era": "dominion_war", "source": "canon" },
+    { "faction": "federation", "name": "Defiant",       "hull": "escort",        "era": "dominion_war", "source": "canon", "special": "cloak_by_treaty" },
+    { "faction": "federation", "name": "Akira",         "hull": "carrier",       "era": "dominion_war", "source": "canon" },
+    { "faction": "federation", "name": "Steamrunner",   "hull": "frigate",       "era": "dominion_war", "source": "canon" },
+    { "faction": "federation", "name": "Saber",         "hull": "escort",        "era": "dominion_war", "source": "canon" },
+    { "faction": "federation", "name": "Intrepid",      "hull": "cruiser",       "era": "tng",  "source": "canon", "special": "bioneural_landing_capable" },
+    { "faction": "federation", "name": "Prometheus",    "hull": "heavy_cruiser", "era": "dominion_war",  "source": "canon", "special": "mvam" },
+    { "faction": "federation", "name": "Odyssey",       "hull": "titan",         "era": "picard", "source": "canon" },
+    { "faction": "federation", "name": "Constitution III", "hull": "battleship", "era": "picard", "source": "canon" }
+  ]
+}

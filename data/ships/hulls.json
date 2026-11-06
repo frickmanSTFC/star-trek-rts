@@ -1,0 +1,22 @@
+{
+  "hulls": [
+    { "id": "shuttle",       "size": 1, "hp": 50,   "speed": 6, "crew": 2,    "slots": { "weapon": 0, "defense": 1, "engine": 1, "utility": 1 } },
+    { "id": "fighter",       "size": 1, "hp": 80,   "speed": 7, "crew": 3,    "slots": { "weapon": 1, "defense": 1, "engine": 1, "utility": 0 } },
+    { "id": "scout",         "size": 2, "hp": 150,  "speed": 7, "crew": 20,   "slots": { "weapon": 1, "defense": 1, "engine": 1, "utility": 2 } },
+    { "id": "civilian",      "size": 2, "hp": 200,  "speed": 4, "crew": 30,   "slots": { "weapon": 0, "defense": 1, "engine": 1, "utility": 3 }, "roles": ["construction", "mining", "freighter", "colony"] },
+    { "id": "escort",        "size": 3, "hp": 400,  "speed": 6, "crew": 50,   "slots": { "weapon": 3, "defense": 2, "engine": 1, "utility": 1 } },
+    { "id": "frigate",       "size": 3, "hp": 500,  "speed": 5, "crew": 200,  "slots": { "weapon": 2, "defense": 2, "engine": 1, "utility": 2 } },
+    { "id": "cruiser",       "size": 4, "hp": 900,  "speed": 5, "crew": 400,  "slots": { "weapon": 3, "defense": 3, "engine": 2, "utility": 2 } },
+    { "id": "heavy_cruiser", "size": 5, "hp": 1300, "speed": 4, "crew": 600,  "slots": { "weapon": 4, "defense": 3, "engine": 2, "utility": 3 } },
+    { "id": "explorer",      "size": 6, "hp": 1600, "speed": 4, "crew": 1000, "slots": { "weapon": 4, "defense": 4, "engine": 2, "utility": 5 } },
+    { "id": "carrier",       "size": 5, "hp": 1200, "speed": 4, "crew": 500,  "slots": { "weapon": 2, "defense": 3, "engine": 2, "utility": 4 }, "hangar": 6 },
+    { "id": "battleship",    "size": 6, "hp": 2200, "speed": 3, "crew": 1200, "slots": { "weapon": 6, "defense": 5, "engine": 2, "utility": 2 } },
+    { "id": "titan",         "size": 8, "hp": 5000, "speed": 2, "crew": 3000, "slots": { "weapon": 8, "defense": 6, "engine": 3, "utility": 4 }, "limit_per_player": 1 }
+  ],
+  "modules": {
+    "weapon":  ["phase_cannon", "phaser_array", "pulse_phaser", "disruptor", "spiral_wave_disruptor", "phased_polaron", "tetryon_cannon", "cutting_beam", "spatial_torpedo", "photon_torpedo", "quantum_torpedo", "plasma_torpedo", "transphasic_torpedo", "energy_dampener", "polaron_torpedo", "plasma_energy_burst", "borg_torpedo", "thalaron_generator", "nanoprobe_warhead"],
+    "defense": ["polarized_hull", "shield_generator", "regenerative_shield", "ablative_armor", "rodinium_plating", "neutronium_plating", "trellium_lining"],
+    "engine":  ["impulse", "warp_core", "singularity_core", "slipstream_drive", "transwarp_coil"],
+    "utility": ["sensor_suite", "cloak", "tractor_beam", "transporter", "cargo_bay", "troop_bay", "science_lab", "mining_laser", "construction_rig", "medical_bay", "deflector_dish_tricks", "saucer_separation", "mvam"]
+  }
+}

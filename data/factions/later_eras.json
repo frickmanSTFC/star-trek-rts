@@ -1,0 +1,23 @@
+{
+  "factions": [
+    { "id": "federation_lost_ship", "name": "Starfleet (Stranded Ship)", "playable": true, "eras": ["voy"],
+      "playstyle": "Survival / scavenging / long voyage", "secondary": ["one_ship_start", "salvage_and_trade", "recruit_locals"], "weakness": "No homeworld, no supply range and no reinforcements from home.", "home": "None: a single starship far from home", "weapons": ["phaser", "photon_torpedo"], "flavor_units": {"hero": "Starfleet Captain", "ground": "Hazard Team", "special": "Delta Flyer"},
+      "signature": { "id": "long_way_home", "desc": "Start with one ship, no homeworld; trade, scavenge and recruit to build a fleet." } },
+    { "id": "vidiian", "name": "Vidiian Sodality", "playable": "minor", "eras": ["voy"],
+      "signature": { "id": "organ_harvest", "desc": "Raids crews for organs to fight the Phage; medicine-tech leaders." } },
+    { "id": "romulan_free_state", "name": "Romulan Free State", "playable": true, "eras": ["picard"],
+      "playstyle": "Refugee empire / intrigue", "secondary": ["refugee_manpower", "zhat_vash", "scattered_colonies"], "weakness": "No homeworld after the supernova; split loyalties and synth paranoia.", "home": "Scattered colonies after Romulus", "weapons": ["disruptor", "plasma_torpedo"], "flavor_units": {"hero": "Romulan Commander", "ground": "Zhat Vash Agents", "special": "Free State Warbird"},
+      "signature": { "id": "refugee_diaspora", "desc": "Post-supernova; scattered colonies, refugee manpower, Zhat Vash intrigue." } },
+    { "id": "fenris_rangers", "name": "Fenris Rangers", "playable": "minor", "eras": ["picard"],
+      "signature": { "id": "frontier_justice", "desc": "Anti-pirate vigilantes; bounty-hunting bonuses." } },
+    { "id": "federation_remnant", "name": "Federation (Post-Burn)", "playable": true, "eras": ["far_future"],
+      "playstyle": "Rebuilder / reconnect lost worlds", "secondary": ["programmable_matter_ships", "reconnect_members", "dilithium_starved"], "weakness": "Almost no dilithium; a shrunken fleet stretched across a scattered union.", "home": "Federation Headquarters (hidden)", "weapons": ["phaser", "photon_torpedo"], "flavor_units": {"hero": "Starfleet Captain", "ground": "Starfleet Security Team", "special": "Voyager-J"},
+      "signature": { "id": "rebuild", "desc": "Reconnect lost member worlds; programmable-matter ships; dilithium-starved." } },
+    { "id": "emerald_chain", "name": "Emerald Chain", "playable": true, "eras": ["far_future"],
+      "playstyle": "Crime syndicate / dilithium monopoly", "secondary": ["dilithium_control", "slave_labor", "orion_andorian_alliance"], "weakness": "Rule by fear: subjects revolt and rivals betray when the Chain looks weak.", "home": "The Viridian (flagship)", "weapons": ["disruptor", "photon_torpedo"], "flavor_units": {"hero": "Emerald Chain Matriarch", "ground": "Chain Enforcers", "special": "Viridian"},
+      "signature": { "id": "syndicate_empire", "desc": "Orion-Andorian crime syndicate controlling dilithium supply." } },
+    { "id": "ni_var", "name": "Ni'Var", "playable": true, "eras": ["far_future"],
+      "playstyle": "Science / stealth / reunification", "secondary": ["vulcan_romulan_union", "qowat_milat", "cloaked_science"], "weakness": "Slow consensus politics; small fleet.", "home": "Ni'Var (formerly Vulcan)", "weapons": ["disruptor", "phaser"], "flavor_units": {"hero": "Ni'Var President", "ground": "Qowat Milat", "special": "Ni'Var Cruiser"},
+      "signature": { "id": "reunification", "desc": "Unified Vulcan-Romulan world; cloaks plus research bonuses." } }
+  ]
+}

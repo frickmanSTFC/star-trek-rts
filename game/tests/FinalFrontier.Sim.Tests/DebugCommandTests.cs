@@ -453,7 +453,7 @@ public class DebugCommandTests
                     sim.Schedule(sim.Tick + 2, new DebugPlaceBuildingCommand(0, 0, "refinery", tile, 2));
                     sim.Schedule(sim.Tick + 3, new DebugStockCommand(0, 0, new[] { new ResourceAmount(R("duranium_ore"), F(400)) }));
                     sim.Schedule(sim.Tick + 4, new DebugSpawnUnitCommand(0, 0, "survey_rover", site));
-                    sim.Schedule(sim.Tick + 5, new DebugDataCommand(0, new[] { new DataEdit("buildings.json", WearPath(), "30") }));
+                    sim.Schedule(sim.Tick + 5, new DebugDataCommand(0, new[] { new DataEdit("buildings/surface/refinery.json", WearPath(), "30") }));
                     sim.Schedule(sim.Tick + 6, new DebugTechCommand(0, 0, Data.Techs[0].Id, true, Data.Techs[0].Cost));
                 }
             }
@@ -463,7 +463,7 @@ public class DebugCommandTests
         return hashes;
     }
 
-    private static string WearPath() => DataTuning.Numbers(Data).First(n => n.File == "buildings.json" && n.Label == "buildings › refinery › wear_per_min").Path;
+    private static string WearPath() => DataTuning.Numbers(Data).First(n => n.File == "buildings/surface/refinery.json" && n.Label == "buildings › refinery › wear_per_min").Path;
 
     [Fact]
     public void DebugEditsAreDeterministic() => Assert.Equal(Script(true), Script(true));

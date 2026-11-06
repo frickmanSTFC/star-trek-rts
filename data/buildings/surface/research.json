@@ -1,0 +1,8 @@
+{
+  "buildings": [
+    { "id": "observatory", "name": "Stellar Observatory", "layer": "surface", "category": "research", "source": "original",
+      "cost": { "duranium": 80, "transparent_aluminum": 20 }, "effect": "+Research; reveals anomalies in adjacent systems." },
+    { "id": "xenobiology_center", "name": "Xenobiology Center", "layer": "surface", "category": "research", "source": "original",
+      "cost": { "parasteel": 80 }, "effect": "+Biology research; reduces plague severity; enables native-life negotiation." }
+  ]
+}

@@ -1,0 +1,175 @@
+{
+  "faction_lines": {
+    "ferengi": {
+      "deep_space": [
+        {
+          "id": "fer_trading_post",
+          "name": "Trading Post",
+          "cost": {
+            "duranium": 100,
+            "latinum": 20
+          },
+          "effect": "+1 Latinum per passing freighter, any faction.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "fer_bazaar_station",
+          "name": "Bazaar Station",
+          "cost": {
+            "parasteel": 280,
+            "latinum": 60
+          },
+          "effect": "10% cut of all trades docked here; sells repairs.",
+          "stats": {
+            "docking": 6
+          }
+        },
+        {
+          "id": "fer_marauder_station",
+          "name": "Marauder Station",
+          "cost": {
+            "parasteel": 560,
+            "latinum": 150
+          },
+          "effect": "Horseshoe starbase; mercenary contracts.",
+          "stats": {
+            "supply_range": 3
+          },
+          "building_ref": "mercenary_guild"
+        },
+        {
+          "id": "fer_grand_exchange",
+          "name": "Grand Exchange",
+          "cost": {
+            "parasteel": 2000,
+            "latinum": 1000
+          },
+          "effect": "Sets market prices for all players; attack = market crash.",
+          "tag": "wonder",
+          "building_ref": "latinum_exchange"
+        }
+      ],
+      "command": [
+        {
+          "id": "fer_trade_office",
+          "name": "Trade Office",
+          "cost": {
+            "duranium": 90,
+            "latinum": 30
+          },
+          "effect": "+2 Latinum; no garrison.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "fer_commerce_authority_office",
+          "name": "Commerce Authority Office",
+          "cost": {
+            "duranium": 260,
+            "latinum": 120
+          },
+          "effect": "Sells trade licences; 1 Rule of Acquisition perk.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "tower_of_commerce",
+          "name": "Tower of Commerce",
+          "cost": {
+            "parasteel": 400,
+            "latinum": 500
+          },
+          "effect": "All Rules perks; bribe AI factions and rival governors.",
+          "stats": {
+            "supply_range": 3
+          },
+          "tag": "faction_only",
+          "building_ref": "tower_of_commerce"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "fer_shuttle_dock",
+          "name": "Shuttle Dock",
+          "cost": {
+            "duranium": 180,
+            "latinum": 40
+          },
+          "effect": "Shuttles, freighters (+25% cargo), small raiders.",
+          "stats": {
+            "hull_cap": 3
+          }
+        },
+        {
+          "id": "fer_marauder_yard",
+          "name": "Marauder Yard",
+          "cost": {
+            "parasteel": 280,
+            "latinum": 100
+          },
+          "effect": "D'Kora Marauder.",
+          "stats": {
+            "hull_cap": 4,
+            "build_slots": 2
+          }
+        },
+        {
+          "id": "fer_acquisition_yards",
+          "name": "Acquisition Yards",
+          "cost": {
+            "parasteel": 1800,
+            "latinum": 800
+          },
+          "effect": "Refit any acquired foreign hull; no cap.",
+          "stats": {
+            "hull_cap": "any_acquired",
+            "build_slots": 3
+          },
+          "tag": "wonder"
+        }
+      ],
+      "habitation": [
+        {
+          "id": "fer_rental_habitat",
+          "name": "Rental Habitat",
+          "cost": {
+            "duranium": 60
+          },
+          "effect": "Adjustable rent: latinum vs morale.",
+          "stats": {
+            "pop_cap": 1
+          }
+        },
+        {
+          "id": "fer_market_quarter",
+          "name": "Market Quarter",
+          "cost": {
+            "duranium": 150,
+            "latinum": 60,
+            "cormaline": 20
+          },
+          "effect": "Rent + 10% of sales; luxury goods.",
+          "stats": {
+            "pop_cap": 3
+          }
+        },
+        {
+          "id": "fer_resort_spire",
+          "name": "Resort Spire",
+          "cost": {
+            "parasteel": 300,
+            "latinum": 150
+          },
+          "effect": "Holosuites + dabo; +3 Latinum per trade partner.",
+          "stats": {
+            "pop_cap": 6
+          }
+        }
+      ]
+    }
+  }
+}

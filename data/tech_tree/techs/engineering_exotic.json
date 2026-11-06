@@ -1,0 +1,6 @@
+{
+  "techs": [
+    { "id": "omega_stabilization", "name": "Omega Molecule Stabilization", "tree": "engineering", "tier": 5, "prereqs": ["industrial_replicators"], "requires_resource": "omega_molecule", "victory_project": true, "effect": "Science victory. Failure = permanent no-warp zone around your capital." },
+    { "id": "neutronium_harvesting", "name": "Neutronium Harvesting", "tree": "engineering", "tier": 5, "prereqs": ["deep_core_mining", "industrial_replicators"], "unlocks": ["neutronium_collector"], "effect": "Shielded collector platforms skim neutronium from a neutron star." }
+  ]
+}

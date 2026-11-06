@@ -1,0 +1,84 @@
+{
+  "starting_sets": {
+    "factions": {
+      "federation": {
+        "identity": "Balanced baseline; fastest research.",
+        "buildings": [
+          {
+            "role": "core",
+            "id": "colony_hub",
+            "name": "Colony Hub",
+            "cost": {
+              "duranium": 100,
+              "crew": 50
+            },
+            "effect": "Supply range 1, 1 build queue.",
+            "building_ref": "colony_hub"
+          },
+          {
+            "role": "housing",
+            "id": "prefab_habitat",
+            "name": "Prefab Habitat",
+            "cost": {
+              "duranium": 60
+            },
+            "effect": "+1 population.",
+            "building_ref": "prefab_habitat"
+          },
+          {
+            "role": "extraction",
+            "id": "mine",
+            "name": "Mining Complex",
+            "cost": {
+              "duranium": 80
+            },
+            "effect": "Normal yield.",
+            "building_ref": "mine"
+          },
+          {
+            "role": "power",
+            "id": "fusion_reactor",
+            "name": "Fusion Reactor",
+            "cost": {
+              "duranium": 80,
+              "deuterium": 20
+            },
+            "effect": "+10 energy.",
+            "building_ref": "fusion_reactor"
+          },
+          {
+            "role": "research",
+            "id": "science_lab",
+            "name": "Research Lab",
+            "cost": {
+              "duranium": 100
+            },
+            "effect": "+25% research (best in game).",
+            "building_ref": "science_lab"
+          },
+          {
+            "role": "defense",
+            "id": "garrison",
+            "name": "Security Garrison",
+            "cost": {
+              "duranium": 100,
+              "crew": 50
+            },
+            "effect": "1 security team.",
+            "building_ref": "garrison"
+          },
+          {
+            "role": "signature",
+            "id": "fed_xenology_post",
+            "name": "Xenology Observation Post",
+            "cost": {
+              "duranium": 60
+            },
+            "effect": "Hidden study of natives: research bonus; Prime Directive penalty if discovered.",
+            "requires": "natives_present"
+          }
+        ]
+      }
+    }
+  }
+}

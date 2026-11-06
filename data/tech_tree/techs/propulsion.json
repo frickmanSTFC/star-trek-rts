@@ -1,0 +1,13 @@
+{
+  "techs": [
+    { "id": "warp_5", "name": "Warp 5 Engine", "tree": "propulsion", "tier": 1, "prereqs": [], "unlocks": ["warp_lane_travel", "mod_warp_core"] },
+    { "id": "dilithium_recrystallization", "name": "Dilithium Recrystallization", "tree": "propulsion", "tier": 2, "prereqs": ["warp_5"], "unlocks": ["recrystallizer"], "effect": "Dilithium degrades 50% slower." },
+    { "id": "warp_8", "name": "Warp 8 Drive", "tree": "propulsion", "tier": 2, "prereqs": ["warp_5"], "unlocks": ["lane_speed_2"] },
+    { "id": "transwarp_experimental", "name": "Experimental Transwarp", "tree": "propulsion", "tier": 3, "prereqs": ["warp_8"], "effect": "Excelsior-style project; 30% failure on first use.", "risky": true },
+    { "id": "warp_9_9", "name": "Warp 9.9 Envelope", "tree": "propulsion", "tier": 3, "prereqs": ["warp_8"], "unlocks": ["lane_speed_3"] },
+    { "id": "artificial_singularity", "name": "Artificial Quantum Singularity", "tree": "propulsion", "tier": 3, "prereqs": ["warp_8"], "faction_only": ["romulan"], "unlocks": ["mod_singularity_core"], "effect": "No antimatter upkeep; a destroyed ship leaves a gravity well." },
+    { "id": "quantum_slipstream", "name": "Quantum Slipstream", "tree": "propulsion", "tier": 4, "prereqs": ["warp_9_9"], "requires_resource": "benamite", "effect": "Skip one lane node per jump.", "unlocks": ["mod_slipstream_drive"] },
+    { "id": "transwarp_conduits", "name": "Transwarp Conduits", "tree": "propulsion", "tier": 4, "prereqs": ["warp_9_9"], "faction_only": ["borg"], "unlocks": ["transwarp_hub", "mod_transwarp_coil"] },
+    { "id": "spore_drive", "name": "Displacement-Activated Spore Hub Drive", "tree": "propulsion", "tier": 6, "prereqs": ["quantum_slipstream"], "effect": "Instant jump anywhere; requires a 'navigator' captain." }
+  ]
+}

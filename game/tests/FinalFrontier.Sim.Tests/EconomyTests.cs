@@ -91,15 +91,11 @@ public class MapValidationTests
     [Fact]
     public void BrokenMapsAreReported()
     {
-        var src = GameData.FindDataDirectory(AppContext.BaseDirectory);
-        var dir = Directory.CreateTempSubdirectory("ff-data-").FullName;
+        var dir = TestData.CopyData();
         try
         {
-            foreach (var f in Directory.GetFiles(src, "*.json")) File.Copy(f, Path.Combine(dir, Path.GetFileName(f)));
-            var maps = File.ReadAllText(Path.Combine(dir, "maps.json"))
-                .Replace("\"deposits\": { \"tritanium\": 2000, \"duranium\": 3000 }", "\"deposits\": { \"deuterium\": 5, \"unobtainium\": 1 }")
-                .Replace("{ \"slot\": 1, \"home\": \"morrow\" }", "{ \"slot\": 1, \"home\": \"west_belt\" }");
-            File.WriteAllText(Path.Combine(dir, "maps.json"), maps);
+            TestData.Replace(dir, "maps.json", "\"deposits\": { \"tritanium\": 2000, \"duranium\": 3000 }", "\"deposits\": { \"deuterium\": 5, \"unobtainium\": 1 }");
+            TestData.Replace(dir, "maps.json", "{ \"slot\": 1, \"home\": \"morrow\" }", "{ \"slot\": 1, \"home\": \"west_belt\" }");
 
             var problems = GameData.Load(dir).Validate();
             Assert.Contains(problems, p => p.Contains("unknown resource 'unobtainium'"));

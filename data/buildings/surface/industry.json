@@ -1,0 +1,11 @@
+{
+  "buildings": [
+    { "id": "component_fab", "name": "Component Fabrication Plant", "layer": "surface", "category": "industry", "source": "original",
+      "cost": { "parasteel": 150 }, "requires_tech": "isolinear", "effect": "Isolinear chips, bio-neural gel packs, warp coils." },
+    { "id": "verterium_synth", "name": "Verterium Synthesis Lab", "layer": "surface", "category": "industry", "source": "original",
+      "cost": { "parasteel": 120, "energy": 50 }, "effect": "Synthesizes Verterium Cortenide for warp coils." },
+    { "id": "industrial_replicator", "name": "Industrial Replicator Center", "layer": "surface", "category": "industry", "source": "canon",
+      "cost": { "isolinear_chips": 60, "parasteel": 100 }, "requires_tech": "industrial_replicators",
+      "effect": "Energy → basic materials (5:1). Cannot make dilithium/latinum/strategics. Bajor's post-occupation gift is canon." }
+  ]
+}

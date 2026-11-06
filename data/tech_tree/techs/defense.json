@@ -1,0 +1,13 @@
+{
+  "techs": [
+    { "id": "polarized_hull", "name": "Polarized Hull Plating", "tree": "defense", "tier": 1, "prereqs": [], "unlocks": ["mod_polarized_hull"] },
+    { "id": "deflector_shields", "name": "Deflector Shields", "tree": "defense", "tier": 1, "prereqs": ["polarized_hull"], "unlocks": ["mod_shield_generator"] },
+    { "id": "rodinium_armor", "name": "Cast Rodinium Armor", "tree": "defense", "tier": 2, "prereqs": ["polarized_hull"], "requires_resource": "rodinium", "unlocks": ["station_armor_1", "mod_rodinium_plating"] },
+    { "id": "kelbonite_shielding", "name": "Kelbonite Shielding", "tree": "defense", "tier": 2, "prereqs": ["rodinium_armor"], "requires_resource": "kelbonite", "unlocks": ["kelbonite_shelter"], "effect": "Shelters and bunkers block radiation, scans and the Crystalline Entity." },
+    { "id": "regenerative_shields", "name": "Regenerative Shielding", "tree": "defense", "tier": 3, "prereqs": ["deflector_shields"], "unlocks": ["mod_regenerative_shield"] },
+    { "id": "chroniton_shielding", "name": "Chroniton Shielding", "tree": "defense", "tier": 4, "prereqs": ["regenerative_shields"], "effect": "Ships and stations stay in normal time through temporal anomalies and chroniton weapons." },
+    { "id": "ablative_armor", "name": "Ablative Armor", "tree": "defense", "tier": 4, "prereqs": ["rodinium_armor"], "unlocks": ["mod_ablative_armor"] },
+    { "id": "trellium_lining", "name": "Trellium-D Hull Lining", "tree": "defense", "tier": 1, "prereqs": ["polarized_hull"], "requires_resource": "trellium_d", "effect": "Immunity to spatial-anomaly damage; Vulcan crew penalty.", "unlocks": ["mod_trellium_lining"] },
+    { "id": "neutronium_armor", "name": "Neutronium Plating", "tree": "defense", "tier": 6, "prereqs": ["ablative_armor", "neutronium_harvesting"], "requires_resource": "neutronium", "unlocks": ["titan_hull", "mod_neutronium_plating"] }
+  ]
+}

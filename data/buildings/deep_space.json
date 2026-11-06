@@ -1,0 +1,28 @@
+{
+  "buildings": [
+    { "id": "outpost", "name": "Outpost", "layer": "deep_space", "category": "station", "source": "canon",
+      "cost": { "duranium": 120, "rodinium": 10 }, "effect": "Claims territory; +supply range; small garrison. (Neutral Zone outposts, cast rodinium)", "upgrades_to": "deep_space_station" },
+    { "id": "deep_space_station", "name": "Deep Space Station", "layer": "deep_space", "category": "station", "source": "canon",
+      "cost": { "parasteel": 300 }, "effect": "Trade hub (+Latinum), repairs, docking for 4 ships. (K-7)", "upgrades_to": "starbase" },
+    { "id": "starbase", "name": "Starbase", "layer": "deep_space", "category": "station", "source": "canon",
+      "cost": { "parasteel": 600, "isolinear_chips": 50, "photon_warheads": 40 }, "effect": "Heavy defense, fleet command aura, research, supply range 3.", "upgrades_to": "spacedock" },
+    { "id": "spacedock", "name": "Spacedock", "layer": "deep_space", "category": "shipyard", "source": "canon",
+      "cost": { "parasteel": 1200, "plasma_conduits": 150 }, "limit": "2 per player",
+      "effect": "Builds hulls ≤ size 6 inside its bay; full repairs; Earth Spacedock 'mushroom'.", "upgrades_to": "yorktown_station" },
+    { "id": "yorktown_station", "name": "Yorktown-type Megastation", "layer": "deep_space", "category": "wonder", "source": "canon",
+      "cost": { "parasteel": 4000, "isolinear_chips": 300, "dilithium": 200 }, "limit": "1 per player",
+      "effect": "Massive population, research and trade; a world in a snow globe." },
+    { "id": "research_station", "name": "Research Station", "layer": "deep_space", "category": "research", "source": "canon",
+      "cost": { "parasteel": 200 }, "effect": "Placed next to an anomaly: studies it for research/eureka techs. (Regula I)" },
+    { "id": "listening_post", "name": "Listening Post", "layer": "deep_space", "category": "intel", "source": "canon",
+      "cost": { "duranium": 120, "isolinear_chips": 20 }, "effect": "Long-range intel across a border; detects fleet movements in neighboring systems." },
+    { "id": "subspace_relay", "name": "Subspace Relay", "layer": "deep_space", "category": "logistics", "source": "canon",
+      "cost": { "duranium": 60 }, "requires_tech": "subspace_relays", "effect": "+Supply range, +comms (faster AI/ally coordination); hackable." },
+    { "id": "tachyon_node", "name": "Tachyon Detection Node", "layer": "deep_space", "category": "intel", "source": "canon",
+      "cost": { "duranium": 80, "energy": 20 }, "requires_tech": "tachyon_grid", "effect": "Pairs of nodes form a beam line that reveals cloaked ships crossing it." },
+    { "id": "minefield", "name": "Self-Replicating Minefield", "layer": "deep_space", "category": "military", "source": "canon",
+      "cost": { "antimatter": 60, "parasteel": 100 }, "effect": "Cloaked mines that rebuild themselves; seals a lane/wormhole." },
+    { "id": "salvage_yard", "name": "Salvage Station", "layer": "deep_space", "category": "resource", "source": "original",
+      "cost": { "duranium": 100 }, "effect": "Placed at battle sites/derelicts: slow resource + tech-fragment income." }
+  ]
+}

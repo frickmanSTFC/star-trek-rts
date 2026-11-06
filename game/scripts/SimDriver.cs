@@ -41,8 +41,7 @@ public partial class SimDriver : Node3D
 
     public override void _Ready()
     {
-        var dataDir = GameData.FindDataDirectory(ProjectSettings.GlobalizePath("res://"));
-        var data = GameData.Load(dataDir);
+        var data = GameDataLoader.Load(new DataSetup(Factions: MatchSetup.MvpFactions), out _, out _);
         foreach (var problem in data.Validate()) GD.PushWarning($"Data check: {problem}");
 
         _sim = MatchSetup.CreateMvpSkirmish(data, Seed);

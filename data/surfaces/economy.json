@@ -1,0 +1,9 @@
+{
+  "build_menu": ["storage_container", "refinery", "mine", "fusion_reactor", "prefab_habitat", "foundry", "deep_core_mine", "vehicle_bay", "science_lab"],
+  "power_resource": "energy",
+  "hud_resources": ["duranium_ore", "tritanium_ore", "duranium", "tritanium", "parasteel", "deuterium", "dilithium", "crew"],
+  "storage_exempt": ["crew", "latinum"],
+  "salvage_refund": 0.5,
+  "maintenance": { "decline_below": 50, "slowest_output": 0.5, "break_chance_per_min_at_zero": 0.6, "auto_below": 70,
+    "crew_walk_seconds": 2, "crew_seconds_per_tile": 0.6, "repair_per_second": 10, "cost_per_point": { "duranium": 0.3 } }
+}

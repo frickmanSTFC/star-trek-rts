@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Checks, promotes and packs the game data (data/ → game/gamedata.pack). See CLAUDE.md "Data files". -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>FinalFrontier.DataPacker</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../game/sim/FinalFrontier.Sim.csproj" />
+  </ItemGroup>
+</Project>

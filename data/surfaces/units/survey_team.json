@@ -1,0 +1,5 @@
+{
+  "units": [
+    { "id": "survey_team", "description": "Three officers with tricorders and a field kit, beamed or flown down from the ship. Slow on foot, but they survey the ground around them like a rover.", "speed": 1.2, "survey_radius": 2, "cost": { "crew": 10 } }
+  ]
+}

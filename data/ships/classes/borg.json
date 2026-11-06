@@ -1,0 +1,9 @@
+{
+  "classes": [
+    { "faction": "borg", "name": "Probe",               "hull": "scout",         "era": "tng",  "source": "canon" },
+    { "faction": "borg", "name": "Sphere",              "hull": "heavy_cruiser", "era": "tng",  "source": "canon" },
+    { "faction": "borg", "name": "Cube",                "hull": "titan",         "era": "tng",  "source": "canon", "special": "adaptation, regeneration" },
+    { "faction": "borg", "name": "Tactical Cube",       "hull": "titan",         "era": "voy",  "source": "canon" },
+    { "faction": "borg", "name": "Queen's Diamond",     "hull": "titan",         "era": "voy",  "source": "canon", "special": "command_aura" }
+  ]
+}

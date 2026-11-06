@@ -1,0 +1,10 @@
+{
+  "techs": [
+    { "id": "pressure_domes", "name": "Pressure Domes", "tree": "biology_colonization", "tier": 1, "prereqs": [], "requires_resource": "topaline", "effect": "Colonize Class D/K bodies." },
+    { "id": "atmospheric_processors", "name": "Atmospheric Processors", "tree": "biology_colonization", "tier": 2, "prereqs": ["pressure_domes"], "effect": "Slow terraform: L→M, K→L." },
+    { "id": "zenite_medicine", "name": "Zenite Medicine", "tree": "biology_colonization", "tier": 2, "prereqs": [], "requires_resource": "zenite", "effect": "Cures botanical plague / colony disease events." },
+    { "id": "filter_masks", "name": "Zenite Filter Masks", "tree": "biology_colonization", "tier": 2, "prereqs": [], "effect": "Removes zenite gas impairment at mines; ends the unrest it causes." },
+    { "id": "genesis", "name": "Genesis Device", "tree": "biology_colonization", "tier": 2, "prereqs": ["atmospheric_processors"], "requires_resource": "protomatter", "forbidden": true, "effect": "Instant Class M from Class D/nebula; 40% chance planet destabilizes later; can be weaponized." },
+    { "id": "subspace_terraforming", "name": "Subspace Terraforming", "tree": "biology_colonization", "tier": 4, "prereqs": ["atmospheric_processors"] }
+  ]
+}

@@ -9,6 +9,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import data_loader  # noqa: E402
 from faction_meta import (FACTIONS, HAZARD_STANCE, NAMES, PLAYSTYLE, RESEARCH_MODEL, SHIP_DOCTRINE,  # noqa: E402
                           VEHICLE_STANCE, WORLD_STANCE)
 from tech_access import reachable  # noqa: E402
@@ -19,7 +20,7 @@ OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "factions.html")
 
 
 def load(name):
-    return json.load(open(os.path.join(ROOT, "data", name)))
+    return data_loader.load(name)
 
 
 FAC = load("factions.json")["factions"]

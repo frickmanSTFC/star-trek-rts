@@ -1,0 +1,310 @@
+{
+  "lanes": [
+    {
+      "a": "sol",
+      "b": "alpha_centauri",
+      "kind": "warp"
+    },
+    {
+      "a": "sol",
+      "b": "wolf_359",
+      "kind": "warp"
+    },
+    {
+      "a": "sol",
+      "b": "andoria",
+      "kind": "warp"
+    },
+    {
+      "a": "alpha_centauri",
+      "b": "vulcan",
+      "kind": "warp"
+    },
+    {
+      "a": "alpha_centauri",
+      "b": "orion",
+      "kind": "warp"
+    },
+    {
+      "a": "wolf_359",
+      "b": "tellar",
+      "kind": "warp"
+    },
+    {
+      "a": "vulcan",
+      "b": "betazed",
+      "kind": "warp"
+    },
+    {
+      "a": "andoria",
+      "b": "tholia",
+      "kind": "warp"
+    },
+    {
+      "a": "tellar",
+      "b": "risa",
+      "kind": "warp"
+    },
+    {
+      "a": "tellar",
+      "b": "deneva",
+      "kind": "warp"
+    },
+    {
+      "a": "betazed",
+      "b": "starbase_375",
+      "kind": "warp"
+    },
+    {
+      "a": "betazed",
+      "b": "outpost_4",
+      "kind": "warp"
+    },
+    {
+      "a": "betazed",
+      "b": "badlands",
+      "kind": "warp"
+    },
+    {
+      "a": "risa",
+      "b": "nausicaa",
+      "kind": "warp"
+    },
+    {
+      "a": "starbase_375",
+      "b": "bajor",
+      "kind": "warp"
+    },
+    {
+      "a": "deneva",
+      "b": "gornar",
+      "kind": "warp"
+    },
+    {
+      "a": "deneva",
+      "b": "orion",
+      "kind": "warp"
+    },
+    {
+      "a": "outpost_4",
+      "b": "narendra",
+      "kind": "warp"
+    },
+    {
+      "a": "outpost_4",
+      "b": "galorndon",
+      "kind": "warp"
+    },
+    {
+      "a": "outpost_4",
+      "b": "tholia",
+      "kind": "warp"
+    },
+    {
+      "a": "qonos",
+      "b": "narendra",
+      "kind": "warp"
+    },
+    {
+      "a": "qonos",
+      "b": "boreth",
+      "kind": "warp"
+    },
+    {
+      "a": "qonos",
+      "b": "tygokor",
+      "kind": "warp"
+    },
+    {
+      "a": "khitomer",
+      "b": "narendra",
+      "kind": "warp"
+    },
+    {
+      "a": "khitomer",
+      "b": "tholia",
+      "kind": "warp"
+    },
+    {
+      "a": "narendra",
+      "b": "achernar",
+      "kind": "warp"
+    },
+    {
+      "a": "boreth",
+      "b": "achernar",
+      "kind": "warp"
+    },
+    {
+      "a": "boreth",
+      "b": "free_state_colony",
+      "kind": "warp"
+    },
+    {
+      "a": "romulus",
+      "b": "achernar",
+      "kind": "warp"
+    },
+    {
+      "a": "romulus",
+      "b": "free_state_colony",
+      "kind": "warp"
+    },
+    {
+      "a": "achernar",
+      "b": "galorndon",
+      "kind": "warp"
+    },
+    {
+      "a": "cardassia",
+      "b": "chintoka",
+      "kind": "warp"
+    },
+    {
+      "a": "cardassia",
+      "b": "septimus",
+      "kind": "warp"
+    },
+    {
+      "a": "cardassia",
+      "b": "barzan",
+      "kind": "warp"
+    },
+    {
+      "a": "chintoka",
+      "b": "bajor",
+      "kind": "warp"
+    },
+    {
+      "a": "septimus",
+      "b": "breen",
+      "kind": "warp"
+    },
+    {
+      "a": "bajor",
+      "b": "badlands",
+      "kind": "warp"
+    },
+    {
+      "a": "badlands",
+      "b": "fenris",
+      "kind": "warp"
+    },
+    {
+      "a": "ferenginar",
+      "b": "barzan",
+      "kind": "warp"
+    },
+    {
+      "a": "orion",
+      "b": "fenris",
+      "kind": "warp"
+    },
+    {
+      "a": "idran",
+      "b": "omarion",
+      "kind": "warp"
+    },
+    {
+      "a": "idran",
+      "b": "white_facility",
+      "kind": "warp"
+    },
+    {
+      "a": "omarion",
+      "b": "kurill",
+      "kind": "warp"
+    },
+    {
+      "a": "karemma",
+      "b": "white_facility",
+      "kind": "warp"
+    },
+    {
+      "a": "unicomplex",
+      "b": "fluidic_rift",
+      "kind": "warp"
+    },
+    {
+      "a": "unicomplex",
+      "b": "vidiia",
+      "kind": "warp"
+    },
+    {
+      "a": "unicomplex",
+      "b": "barzan_delta",
+      "kind": "warp"
+    },
+    {
+      "a": "borg_hub",
+      "b": "barzan_delta",
+      "kind": "warp"
+    },
+    {
+      "a": "borg_space",
+      "b": "fluidic_rift",
+      "kind": "warp"
+    },
+    {
+      "a": "borg_space",
+      "b": "kazon_space",
+      "kind": "warp"
+    },
+    {
+      "a": "ocampa",
+      "b": "kazon_space",
+      "kind": "warp"
+    },
+    {
+      "a": "kazon_space",
+      "b": "vidiia",
+      "kind": "warp"
+    },
+    {
+      "a": "bajor",
+      "b": "idran",
+      "kind": "wormhole",
+      "note": "Bajoran (Celestial Temple) wormhole: stable, near-instant."
+    },
+    {
+      "a": "barzan",
+      "b": "barzan_delta",
+      "kind": "unstable_wormhole",
+      "note": "Barzan wormhole: one end shifts; usable rarely and unpredictably."
+    },
+    {
+      "a": "borg_hub",
+      "b": "borg_exit",
+      "kind": "transwarp",
+      "note": "Borg transwarp conduit; Borg (or a captured hub) only."
+    },
+    {
+      "a": "unicomplex",
+      "b": "borg_hub",
+      "kind": "transwarp",
+      "note": "Borg transwarp conduit."
+    },
+    {
+      "a": "vidiia",
+      "b": "hirogen_relay",
+      "kind": "deep",
+      "note": "Voyager's long route home: thousands of light-years per leg."
+    },
+    {
+      "a": "hirogen_relay",
+      "b": "beta_frontier",
+      "kind": "deep"
+    },
+    {
+      "a": "beta_frontier",
+      "b": "qonos",
+      "kind": "deep"
+    },
+    {
+      "a": "fed_hq",
+      "b": "sol",
+      "kind": "deep",
+      "note": "Long haul from Earth's old neighbourhood to the hidden HQ."
+    }
+  ]
+}

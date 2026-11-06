@@ -1,0 +1,173 @@
+{
+  "faction_lines": {
+    "romulan": {
+      "deep_space": [
+        {
+          "id": "rom_cloaked_outpost",
+          "name": "Cloaked Outpost",
+          "cost": {
+            "duranium": 130,
+            "isolinear_chips": 20
+          },
+          "effect": "Hidden from enemy maps until it fires.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "rom_listening_post",
+          "name": "Listening Post",
+          "cost": {
+            "parasteel": 260,
+            "isolinear_chips": 40
+          },
+          "effect": "Neutral Zone sensor wings; intel 2 systems out.",
+          "stats": {
+            "supply_range": 2
+          }
+        },
+        {
+          "id": "rom_warbird_aerie",
+          "name": "Warbird Aerie",
+          "cost": {
+            "parasteel": 620,
+            "isolinear_chips": 60
+          },
+          "effect": "Hawk-shaped starbase; ships launch cloaked.",
+          "stats": {
+            "supply_range": 3,
+            "docking": 6
+          }
+        },
+        {
+          "id": "rom_singularity_bastion",
+          "name": "Singularity Bastion",
+          "cost": {
+            "parasteel": 1200,
+            "singularity_core": 2
+          },
+          "effect": "No antimatter upkeep in range; gravity well if destroyed.",
+          "tag": "faction_only"
+        }
+      ],
+      "command": [
+        {
+          "id": "rom_colonial_garrison",
+          "name": "Colonial Garrison",
+          "cost": {
+            "duranium": 110,
+            "crew": 40
+          },
+          "effect": "Enemy scans see no colony details.",
+          "stats": {
+            "supply_range": 1
+          }
+        },
+        {
+          "id": "rom_proconsulate",
+          "name": "Proconsulate",
+          "cost": {
+            "duranium": 300,
+            "tritanium": 140
+          },
+          "effect": "2nd build queue, 1 Tal Shiar op slot.",
+          "stats": {
+            "supply_range": 2,
+            "tal_shiar_slots": 1
+          }
+        },
+        {
+          "id": "rom_imperial_senate",
+          "name": "Imperial Senate",
+          "cost": {
+            "parasteel": 450,
+            "isolinear_chips": 80
+          },
+          "effect": "Unlocks Tal Shiar HQ and Senate politics (bribable senators).",
+          "stats": {
+            "supply_range": 3,
+            "tal_shiar_slots": 3
+          },
+          "tag": "faction_only"
+        }
+      ],
+      "shipyards": [
+        {
+          "id": "rom_aerie_dock",
+          "name": "Aerie Dock",
+          "cost": {
+            "duranium": 200,
+            "isolinear_chips": 30
+          },
+          "effect": "Half-cloaked arches; hidden build queue.",
+          "stats": {
+            "hull_cap": 3
+          }
+        },
+        {
+          "id": "rom_imperial_shipyard",
+          "name": "Imperial Shipyard",
+          "cost": {
+            "parasteel": 320,
+            "plasma_conduits": 40
+          },
+          "effect": "Valdore-class cruisers.",
+          "stats": {
+            "hull_cap": 5,
+            "build_slots": 2
+          }
+        },
+        {
+          "id": "rom_singularity_yards",
+          "name": "Singularity Yards",
+          "cost": {
+            "parasteel": 3000,
+            "singularity_core": 4
+          },
+          "effect": "D'deridex and (late Dominion War era) Scimitar; all hulls launch cloaked.",
+          "stats": {
+            "hull_cap": "titan"
+          },
+          "tag": "wonder"
+        }
+      ],
+      "habitation": [
+        {
+          "id": "rom_colonial_villa",
+          "name": "Colonial Villa",
+          "cost": {
+            "duranium": 70
+          },
+          "effect": "Courtyard homes; +1 morale.",
+          "stats": {
+            "pop_cap": 1
+          }
+        },
+        {
+          "id": "rom_terraced_quarter",
+          "name": "Terraced Quarter",
+          "cost": {
+            "duranium": 170,
+            "tritanium": 40
+          },
+          "effect": "Informant network; spies and Changelings found faster.",
+          "stats": {
+            "pop_cap": 3
+          }
+        },
+        {
+          "id": "rom_spire_city",
+          "name": "Spire City",
+          "cost": {
+            "parasteel": 320,
+            "isolinear_chips": 50
+          },
+          "effect": "Ki Baratan style; +2 research, system-wide informants.",
+          "stats": {
+            "pop_cap": 7
+          }
+        }
+      ]
+    }
+  }
+}

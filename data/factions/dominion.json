@@ -1,0 +1,13 @@
+{
+  "factions": [
+    { "id": "dominion", "name": "The Dominion", "playable": true,
+      "eras": ["dominion_war"],
+      "playstyle": "Clone army / infiltration",
+      "signature": { "id": "ketracel_white", "desc": "Jem'Hadar are cheap and fearless but need White; supply cut-off makes them go feral." },
+      "secondary": ["changeling_infiltrators", "vorta_diplomats", "cloning_facilities"],
+      "weakness": "Dependent on White and on a wormhole/supply link to the Gamma Quadrant.",
+      "home": "Founders' Homeworld (Gamma Quadrant)",
+      "weapons": ["phased_polaron", "polaron_torpedo"],
+      "flavor_units": { "hero": "Vorta Field Supervisor", "ground": "Jem'Hadar", "special": "Changeling (shapeshift spy)" } }
+  ]
+}

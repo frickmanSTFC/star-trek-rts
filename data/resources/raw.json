@@ -1,0 +1,10 @@
+{
+  "resources": [
+    { "id": "duranium_ore", "name": "Duranium Ore", "tier": "raw", "source": "original",
+      "found_on": ["asteroid", "class_d", "class_h", "class_m"], "refine": "duranium", "uses": ["refining"],
+      "lore": "Unprocessed duranium-bearing rock; an Ore Refinery turns 2 ore into 1 duranium." },
+    { "id": "tritanium_ore", "name": "Tritanium Ore", "tier": "raw", "source": "original",
+      "found_on": ["asteroid", "class_d", "class_k", "class_m"], "refine": "tritanium", "uses": ["refining"],
+      "lore": "Unprocessed tritanium-bearing rock; an Ore Refinery turns 2 ore into 1 tritanium." }
+  ]
+}

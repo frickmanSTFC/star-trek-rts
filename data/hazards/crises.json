@@ -1,0 +1,19 @@
+{
+  "hazards": [
+    { "id": "borg_incursion", "name": "Borg Incursion", "category": "crisis", "source": "canon", "counter_techs": ["transphasic_torpedo"],
+      "trigger": "mid/late game or high-tech threshold", "effect": "Cube enters map; assimilates colonies and adapts.",
+      "counter": "Rotate weapon types; transphasic torpedoes; coalition fleets." },
+    { "id": "species_8472_invasion", "name": "Species 8472 Invasion", "category": "crisis", "source": "canon", "counter_techs": ["nanoprobe_weapons"],
+      "trigger": "fluidic-space rift opens", "effect": "Bioships destroy planets in formation.",
+      "counter": "Nanoprobe-enhanced weapons (requires Borg tech or alliance)." },
+    { "id": "crystalline_entity", "name": "Crystalline Entity", "category": "crisis", "source": "canon", "counter_techs": ["graviton_resonance", "kelbonite_shielding"],
+      "trigger": "roams; drawn to populated worlds", "effect": "Strips all organic life from a planet.",
+      "counter": "Graviton beam resonance (shatter it) — or hide populations in kelbonite shelters." },
+    { "id": "doomsday_machine", "name": "Planet Killer", "category": "crisis", "source": "canon",
+      "trigger": "enters from map edge", "effect": "Neutronium hull; consumes planets for fuel.",
+      "counter": "Sacrifice a ship with an overloaded warp core into its maw." },
+    { "id": "the_burn", "name": "The Burn", "category": "crisis", "source": "canon", "eras": ["far_future"],
+      "effect": "Most active dilithium/warp cores explode; warp travel nearly ceases.",
+      "counter": "Era-wide scenario: find the source." }
+  ]
+}

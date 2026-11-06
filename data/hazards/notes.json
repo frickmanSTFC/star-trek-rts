@@ -1,0 +1,3 @@
+{
+  "_notes": "category: anomaly | habitat | condition | raider | crisis | wildcard. condition = a permanent danger of a planet class (planet_classes.json hazards). research_reward = studying/surviving it grants research progress or a specific tech (anomalies double as research sites). counter_techs = tech ids (data/tech_tree.json) that counter the hazard."
+}

@@ -1,0 +1,9 @@
+{
+  "buildings": [
+    { "id": "weather_control", "name": "Weather Control Network", "layer": "surface", "category": "terraforming", "source": "canon",
+      "cost": { "parasteel": 200, "isolinear_chips": 30 }, "effect": "+Habitability, +morale, resists stellar flare damage. (Risa)" },
+    { "id": "terraforming_station", "name": "Terraforming Station", "layer": "surface", "category": "terraforming", "source": "canon",
+      "cost": { "parasteel": 150, "energy": 50 }, "requires_tech": "atmospheric_processors",
+      "effect": "Advances class over time (L→M, K→L). Velara III–style: may discover native life and have to stop." }
+  ]
+}

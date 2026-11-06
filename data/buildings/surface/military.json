@@ -1,0 +1,15 @@
+{
+  "buildings": [
+    { "id": "garrison", "name": "Security Garrison", "layer": "surface", "category": "military", "source": "original",
+      "cost": { "duranium": 100, "crew": 50 }, "effect": "Trains ground troops; defends against invasion/boarding." },
+    { "id": "phaser_bank", "name": "Planetary Phaser Bank", "layer": "surface", "category": "military", "source": "canon",
+      "cost": { "tritanium": 120, "energy": 30 }, "requires_tech": "phaser", "effect": "Surface-to-orbit beam; hits ships in orbit." },
+    { "id": "torpedo_silo", "name": "Torpedo Launcher Silo", "layer": "surface", "category": "military", "source": "canon",
+      "cost": { "tritanium": 100, "antimatter": 20 }, "effect": "Long-range surface-to-orbit torpedoes (DS9-style launchers)." },
+    { "id": "planetary_shield", "name": "Planetary Shield Generator", "layer": "surface", "category": "military", "source": "canon",
+      "cost": { "parasteel": 250, "energy": 80 }, "requires_tech": "regenerative_shields", "limit": "1 per body",
+      "effect": "Blocks bombardment and transporters until depleted." },
+    { "id": "sensor_grid_ground", "name": "Planetary Sensor Grid", "layer": "surface", "category": "military", "source": "original",
+      "cost": { "duranium": 60, "isolinear_chips": 10 }, "effect": "+Vision; detects Changeling/infiltrator events." }
+  ]
+}
