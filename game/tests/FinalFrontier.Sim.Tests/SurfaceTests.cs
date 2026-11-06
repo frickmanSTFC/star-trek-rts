@@ -183,7 +183,7 @@ public class LandingTests
         for (var i = 1; i < path.Count; i++) Assert.Equal(1, map.Grid.Distance(path[i - 1], path[i]));
 
         sim.Schedule(sim.Tick, new MoveUnitsCommand(0, new[] { rover.Id }, goal));
-        for (var i = 0; i < Simulation.TickRate * 120 && rover.Tile != goal; i++) sim.Step();
+        for (var i = 0; i < Simulation.TickRate * 120 && (rover.Tile != goal || rover.Path.Count > 0); i++) sim.Step();
 
         Assert.Equal(goal, rover.Tile);
         Assert.Empty(rover.Path);
