@@ -113,7 +113,7 @@ near-black = unexplored (set `FogDarkness` on the root node).
 
 Controls: left-click selects a vehicle, building, base or tile (Shift adds vehicles), **A** selects all vehicles, right-click
 drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair; a construction rover: found an outpost), **R** send damaged vehicles to the repair pad, **T** change a rover's flat tyre, **B** build drawer, **1–8** a building's card (again or **Enter** to place, **Shift** places at once; or order vehicles when a Vehicle Bay is selected), **I** the card again while placing, **Backspace** cancel the bay's last order, **R** rotate,
-**U** upgrade the selected building (or the base), **M** maintain the selected building, **F1** all controls, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
+**U** upgrade the selected building (or the base), **M** maintain the selected building, **P** pause / resume the selected building (a paused building uses no input and no power: e.g. stop the Alloy Foundry eating your duranium), **F1** all controls, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
 WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
 
 **Test panel (dev builds only, F9 on the surface):** change anything for testing — the selected vehicle's integrity,
