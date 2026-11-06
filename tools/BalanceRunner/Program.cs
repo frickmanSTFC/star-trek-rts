@@ -102,16 +102,15 @@ internal static class Cli
                         Edits = edits,
                     });
                     var v = variants[^1];
+                    if (variants.Count <= labels.Count) v.Label = labels[variants.Count - 1];
                     foreach (var seed in seeds)
                     {
                         var r = Runner.Run(data, order, seed, minutes, sample, v.Label);
                         v.Runs.Add(r);
                         if (!quiet)
-                            Console.WriteLine($"{v.Label,-28} seed {seed,-6} {r.Ticks} ticks in {r.WallMs / 1000:0.00} s = {r.TicksPerSecond:0} ticks/s (×{r.Speedup:0} real time)  steps {r.StepsDone}/{r.StepsTotal}  hash {r.StateHash}" + (r.StuckOn.Length > 0 ? $"\n{"",30}stopped at {r.StuckOn}" : ""));
+                            Console.WriteLine($"{v.Label,-28} seed {seed,-6} {r.Ticks} ticks in {r.WallMs / 1000:0.00} s = {r.TicksPerSecond:0} ticks/s (×{r.Speedup:0} real time)  steps {r.StepsDone}/{r.StepsTotal}  hash {r.StateHash}" + (r.StuckOn.Length > 0 ? $"\n{"",30}stopped at {r.StuckOn}" : "") + (r.Crash.Length > 0 ? $"\n{"",30}CRASHED: {r.Crash}" : ""));
                     }
                 }
-        if (labels.Count == variants.Count)
-            for (var i = 0; i < labels.Count; i++) variants[i].Label = labels[i];
         if (variants.Count > 4) Console.Error.WriteLine("note: more than 4 variants; the report's chart colours repeat after 4.");
 
         title ??= variants.Count == 1 ? $"Balance run: {variants[0].Order}" : "Balance comparison: " + string.Join(" vs ", variants.Select(v => v.Label));

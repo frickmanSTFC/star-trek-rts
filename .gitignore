@@ -8,3 +8,6 @@ game/.godot/
 **/bin/
 **/obj/
 *.user
+
+# Balance runner scratch reports (commit named ones with --lean instead)
+balance/reports/latest/

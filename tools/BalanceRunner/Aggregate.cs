@@ -112,6 +112,7 @@ public static class Aggregate
         Add("steps", "Build-order steps done", "Base", "", true, r => r.StepsDone);
         Add("idle_share", "Building time idle (no input, full, no upkeep, depleted, broken)", "Base", "%", false, IdleShare);
         Add("speed", "Simulation speed (× real time)", "Run", "×", null, r => r.Speedup);
+        Add("crashed", "Run stopped by an exception (1 = yes; see Runs)", "Run", "", false, r => r.Crash.Length > 0 ? 1 : 0);
         v.Measures = list;
     }
 

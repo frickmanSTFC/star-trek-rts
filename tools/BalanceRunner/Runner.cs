@@ -25,11 +25,20 @@ public static class Runner
         var ticks = (long)System.Math.Round(minutes * Simulation.TicksPerMinute);
         var clock = Stopwatch.StartNew();
         recorder.Sample();
-        while (sim.Tick < ticks)
+        try
         {
-            bot.Think();
-            sim.Step();
-            recorder.AfterStep();
+            while (sim.Tick < ticks)
+            {
+                bot.Think();
+                sim.Step();
+                recorder.AfterStep();
+            }
+        }
+        catch (Exception e) when (e is ArithmeticException or InvalidOperationException or ArgumentException or IndexOutOfRangeException or NullReferenceException or KeyNotFoundException)
+        {
+            // A sim (or bot) bug: keep what was measured and say where it broke, so a batch still finishes.
+            var frame = e.StackTrace?.Split('\n').FirstOrDefault(l => l.Contains("FinalFrontier"))?.Trim() ?? "";
+            result.Crash = $"{e.GetType().Name} at tick {sim.Tick} ({sim.Tick / (double)Simulation.TicksPerMinute:0.0} min): {e.Message} {frame}";
         }
         clock.Stop();
         recorder.Finish();

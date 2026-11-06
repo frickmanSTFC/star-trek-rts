@@ -134,6 +134,9 @@ dotnet build FinalFrontier.sln
 dotnet test
 ```
 
+The test project also builds and tests the headless balance runner (`../tools/BalanceRunner/`, see `../balance/README.md`),
+which plays the sim with scripted build orders ~2,000× faster than real time and reports what a data change does.
+
 ## Rules for sim code (lockstep determinism, GDD §11)
 
 - **No `float`/`double`** in `sim/`. Use `Fix64`/`FixVec2`. Convert floats only at the input boundary

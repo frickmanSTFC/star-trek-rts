@@ -57,6 +57,9 @@ public sealed class RunResult
     public int StepsDone { get; set; }
     public int StepsTotal { get; set; }
 
+    /// <summary>"" normally; otherwise the exception that stopped the run early (a sim bug), with the tick.</summary>
+    public string Crash { get; set; } = "";
+
     /// <summary>Where the build order was at the end and why it waited ("" = finished).</summary>
     public string StuckOn { get; set; } = "";
     public List<BotEvent> Log { get; set; } = new();

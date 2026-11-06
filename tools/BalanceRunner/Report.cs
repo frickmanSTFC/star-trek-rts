@@ -83,6 +83,7 @@ public static class Report
                     r.StepsDone,
                     r.StepsTotal,
                     r.StuckOn,
+                    r.Crash,
                     times = r.Times,
                     series = ChartSeries.Where(r.Series.ContainsKey).ToDictionary(k => k, k => r.Series[k].Select(x => System.Math.Round(x, 1))),
                     r.Milestones,
@@ -318,7 +319,7 @@ function delta(m0, m, i) {
 $("#runs").innerHTML = V.map((v, i) => v.runs.map((r) => {
   const stalls = r.stalls.filter((s) => s.end - s.start >= 10).map((s) => `${mmss(s.start)}–${mmss(s.end)} ${esc(s.kind)}`).join(" · ") || "none of 10 s or more";
   return `<details><summary><b style="color:${COLORS[i]}">${esc(v.label)}</b> seed ${r.seed} · ${num(r.ticks_per_second, 0)} ticks/s (×${num(r.speedup, 0)} real time, ${num(r.wall_ms / 1000, 1)} s) · steps ${r.steps_done}/${r.steps_total} · hash <code>${esc(r.state_hash)}</code></summary>
-  <p class="note">Landing tile ${r.landing_tile}. End: ${Object.entries(r.end_buildings).map(([k, n]) => `${n}× ${esc(k)}`).join(", ")}; units ${Object.entries(r.end_units).map(([k, n]) => `${n}× ${esc(k)}`).join(", ")}; techs ${r.end_techs.map(esc).join(", ") || "none"}.<br>Stalls: ${stalls}${r.stuck_on ? "<br>Build order stopped at " + esc(r.stuck_on) : "<br>Build order finished."}</p>
+  <p class="note">Landing tile ${r.landing_tile}. End: ${Object.entries(r.end_buildings).map(([k, n]) => `${n}× ${esc(k)}`).join(", ")}; units ${Object.entries(r.end_units).map(([k, n]) => `${n}× ${esc(k)}`).join(", ")}; techs ${r.end_techs.map(esc).join(", ") || "none"}.${r.crash ? `<br><b class="down">The run stopped early: ${esc(r.crash)}</b>` : ""}<br>Stalls: ${stalls}${r.stuck_on ? "<br>Build order stopped at " + esc(r.stuck_on) : "<br>Build order finished."}</p>
   <div class="log">${r.log.map(([t, s]) => `${mmss(t)}  ${esc(s)}`).join("<br>")}</div></details>`;
 }).join("")).join("");
 </script>
