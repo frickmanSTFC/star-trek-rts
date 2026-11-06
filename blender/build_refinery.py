@@ -151,12 +151,13 @@ def mat(key, name, colour, metallic=0.1, roughness=0.5, emission=None, strength=
 
 
 def materials():
-    mat("hull", "Hull", (0.80, 0.81, 0.83), 0.15, 0.42, coat=0.2, textured=True)
-    mat("panel", "Panel", (0.6, 0.62, 0.65), 0.2, 0.5, textured=True)
+    mat("hull", "Hull", (0.76, 0.77, 0.79), 0.15, 0.42, coat=0.2, textured=True)
+    mat("panel", "Panel", (0.56, 0.58, 0.62), 0.2, 0.5, textured=True)
+    mat("accent", "Accent", (0.14, 0.3, 0.55), 0.3, 0.45, textured=True)
     mat("trim", "Trim", (0.26, 0.27, 0.3), 0.4, 0.5, textured=True)
     mat("dark", "Dark", (0.08, 0.085, 0.095), 0.4, 0.6, textured=True)
     mat("steel", "Steel", (0.55, 0.57, 0.6), 0.85, 0.32, textured=True)
-    mat("concrete", "Concrete", (0.46, 0.44, 0.41), 0.0, 0.85, textured=True)
+    mat("concrete", "Concrete", (0.4, 0.39, 0.37), 0.0, 0.85, textured=True)
     mat("copper", "Copper", (0.78, 0.45, 0.26), 0.9, 0.3, textured=True)
     mat("silo_dur", "SiloDur", (0.36, 0.48, 0.64), 0.3, 0.45, textured=True)
     mat("silo_tri", "SiloTri", (0.66, 0.5, 0.32), 0.4, 0.42, textured=True)
@@ -269,6 +270,18 @@ def stripes(name, a, b, width, z, parent, pitch=0.36):
 def ring_mesh(name, r0, r1, z0, z1, material, parent, xy=(0, 0), segs=32):
     """An annulus (washer) between radii r0 < r1, z0..z1: catwalk decks, pad rings."""
     o = lathe(name, [(r0, z0), (r1, z0), (r1, z1), (r0, z1), (r0, z0)], material, parent, (xy[0], xy[1], 0), segs, smooth=False)
+    return o
+
+
+def band(name, r, z0, z1, material, parent, xy=(0, 0), segs=32):
+    """An open painted band round a cylinder (no caps, so it can sit on hollow things like the cooling towers)."""
+    bm = bmesh.new()
+    lo = [bm.verts.new((xy[0] + r * math.cos(2 * math.pi * k / segs), xy[1] + r * math.sin(2 * math.pi * k / segs), z0)) for k in range(segs)]
+    hi = [bm.verts.new((xy[0] + r * math.cos(2 * math.pi * k / segs), xy[1] + r * math.sin(2 * math.pi * k / segs), z1)) for k in range(segs)]
+    for k in range(segs):
+        j = (k + 1) % segs
+        bm.faces.new((lo[k], lo[j], hi[j], hi[k]))
+    o = mesh_object(name, bm, material, parent, smooth=True)
     return o
 
 
@@ -393,9 +406,20 @@ def furnace(g):
     zcyl("FurnaceFootBand", FR + 0.12, 0.75, 1.0, MT["trim"], g, xy=c, segs=32)
     zcyl("FurnaceOwnerBand", FR + 0.02, 3.85, 4.1, MT["owner"], g, xy=c, segs=32)
     zcyl("FurnaceRim", FR + 0.12, F_TOP - 0.02, F_TOP + 0.17, MT["trim"], g, xy=c, segs=32)
+    for k in range(10):
+        a = math.radians(18 + 36 * k)
+        d = Vector((math.cos(a), math.sin(a), 0))
+        p0 = c.to_3d() + d * (FR + 0.05) + P(0, 0, F_TOP + 0.19)
+        p1 = c.to_3d() + d * 1.08 + P(0, 0, F_APEX - 0.06)
+        obox(f"ConeRib{k}", (0.1, (p1 - p0).length, 0.07), (p0 + p1) / 2, p1 - p0, MT["trim"], g)
+    hatch = c.to_3d() + P(-0.95, -1.1, 0)
+    bx("RoofHatch", (0.6, 0.5, 0.2), hatch + P(0, 0, 5.05), MT["panel"], g, 0.02, rot=(math.radians(-24), 0, math.radians(40)))
     # induction coils round the waist
     for k, z in enumerate((2.25, 2.62, 2.99)):
         hoop(f"Coil{k}", FR - 0.06, z, 0.17, MT["copper"], g, xy=c, segs=32)
+    # the melt glowing through the gaps between the coils (seen from every side)
+    for k, z in enumerate((2.435, 2.805)):
+        band(f"CoilGlow{k}", FR - 0.145, z - 0.07, z + 0.07, MT["glow"], g, xy=c, segs=32).visible_shadow = False
     # ribs on the upper drum, and on the lower drum except round the ports at the front
     for k in range(12):
         a = math.radians(15 + 30 * k)
@@ -445,7 +469,7 @@ def furnace(g):
 
 def crusher(g):
     c = CR.to_3d()
-    bx("CrusherHousing", (2.2, 1.8, 1.25), c + P(0, 0, SLAB + 0.625), MT["panel"], g, 0.05)
+    bx("CrusherHousing", (2.2, 1.8, 1.25), c + P(0, 0, SLAB + 0.625), MT["accent"], g, 0.05)
     bx("CrusherBase", (2.4, 2.0, 0.2), c + P(0, 0, SLAB + 0.1), MT["trim"], g, 0.02)
     for k, z in enumerate((0.55, 1.15)):
         bx(f"CrusherFlange{k}", (2.24, 1.84, 0.07), c + P(0, 0, SLAB + z), MT["trim"], g)
@@ -598,7 +622,7 @@ def conveyor(g):
         axis = A + u * (cen - A).dot(u) + n * 0.08
         if f.normal.dot(cen - axis) < 0:
             f.normal_flip()
-    o = mesh_object("Canopy", bm, MT["panel"], g)
+    o = mesh_object("Canopy", bm, MT["accent"], g)
     m = o.modifiers.new("Thick", "SOLIDIFY")
     m.thickness = 0.03
     for i in range(5):
@@ -642,7 +666,8 @@ def casting_hall(g):
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     w, d = x1 - x0, y1 - y0
     bx("HallPlinth", (w + 0.1, d + 0.1, 0.32), P(cx, cy, SLAB + 0.16), MT["trim"], g, 0.02)
-    bx("HallWalls", (w, d, HALL_Z - 0.3 - SLAB), P(cx, cy, (HALL_Z - 0.3 + SLAB) / 2 + 0.15), MT["hull"], g, 0.04)
+    bx("HallWalls", (w, d, HALL_Z - 0.3 - SLAB), P(cx, cy, (HALL_Z - 0.3 + SLAB) / 2 + 0.15), MT["panel"], g, 0.04)
+    bx("HallAccent", (w + 0.02, d + 0.02, 0.5), P(cx, cy, SLAB + 0.6), MT["accent"], g)
     bx("HallRoof", (w + 0.3, d + 0.3, 0.16), P(cx, cy, HALL_Z), MT["panel"], g, 0.03)
     bx("HallFascia", (w + 0.32, 0.06, 0.34), P(cx, y0 - 0.15, HALL_Z - 0.1), MT["dark"], g)
     bx("HallOwnerBand", (w + 0.02, 0.04, 0.14), P(cx, y0 - 0.005, HALL_Z - 0.48), MT["owner"], g)
@@ -697,7 +722,7 @@ def ingots(g):
                 for k in range(6):
                     bx(f"{name}Bar{layer}{k}", (0.13, 0.58, 0.1), P(x - 0.38 + k * 0.152, y, z), material, g, 0.012)
         bx(f"{name}Strap", (0.03, 0.64, layers * 0.11 + 0.02), P(x, y, SLAB + 0.1 + layers * 0.055), MT["steel"], g)
-    stack("IngotA", -5.4, -4.78, MT["ingot_dur"], 4)
+    stack("IngotA", -5.2, -4.78, MT["ingot_dur"], 4)
     stack("IngotB", -2.45, -4.78, MT["ingot_tri"], 3)
     stack("IngotC", -5.55, -0.95, MT["ingot_dur"], 2)
     stack("IngotD", -4.35, -1.0, MT["ingot_tri"], 5)
@@ -749,7 +774,7 @@ def cooling_towers(g):
             strut(f"Tower{k}Col{j}a", pa, pb, 0.05, MT["panel"], piv, 6)
             strut(f"Tower{k}Col{j}b", c.to_3d() + P(1.02 * math.cos(a + math.radians(45)), 1.02 * math.sin(a + math.radians(45)), 0.3), pb, 0.05, MT["panel"], piv, 6)
         hoop(f"Tower{k}Lip", 0.96, 3.9, 0.08, MT["trim"], piv, xy=c, segs=28)
-        zcyl(f"Tower{k}Band", r_at(3.35) + 0.012, 3.25, 3.45, MT["owner"], piv, xy=c, segs=28)
+        band(f"Tower{k}Band", r_at(3.35) + 0.012, 3.25, 3.45, MT["owner"], piv, xy=c, segs=28)
         for j in range(2):
             obox(f"Tower{k}Guard{j}", (0.04, 1.85, 0.04), c.to_3d() + P(0, 0, 3.92), P(math.cos(math.radians(90 * j)), math.sin(math.radians(90 * j)), 0), MT["steel"], piv)
         sphere(f"Tower{k}Beacon", 0.07, c.to_3d() + P(0.92, 0, 3.98), MT["beacon"], piv, 8)
@@ -874,6 +899,7 @@ def control_booth(g):
     w, d = 2.4, 1.6
     bx("BoothBase", (w + 0.1, d + 0.1, 0.25), c + P(0, 0, SLAB + 0.125), MT["trim"], g, 0.02)
     bx("BoothBody", (w, d, 1.15), c + P(0, 0, SLAB + 0.25 + 0.575), MT["hull"], g, 0.04)
+    bx("BoothAccent", (w + 0.02, d + 0.02, 0.35), c + P(0, 0, SLAB + 0.5), MT["accent"], g)
     bx("BoothGlassBand", (w - 0.06, d - 0.06, 0.7), c + P(0, 0, SLAB + 1.75), MT["glass"], g, 0.02)
     for k in range(4):
         bx(f"BoothMullion{k}", (0.07, 0.07, 0.72), c + P((k - 1.5) * 0.78, -d / 2 + 0.03, SLAB + 1.75), MT["trim"], g)
@@ -916,7 +942,7 @@ def roof_gear(g):
 
 
 def lights(g):
-    for k, (x, y, yaw) in enumerate(((-6.0, 5.1, -40), (6.05, -4.85, 135))):
+    for k, (x, y, yaw) in enumerate(((-6.0, 5.1, -40), (-6.05, -4.95, 40))):
         zcyl(f"LightMast{k}", 0.12, SLAB, SLAB + 6.4, MT["hull"], g, xy=(x, y), segs=10, radius2=0.08)
         zcyl(f"LightMastFoot{k}", 0.2, SLAB, SLAB + 0.5, MT["hazard"], g, xy=(x, y), segs=10)
         zcyl(f"LightMastBand{k}", 0.205, SLAB + 0.2, SLAB + 0.32, MT["dark"], g, xy=(x, y), segs=10)
@@ -1067,16 +1093,16 @@ def grime_material(image):
     streak = mrange(noise(stretch.outputs["Vector"], 2.2, 3.0), 0.56, 0.76, 0.0, 1.0)
     mott = mrange(noise(pos, 0.45, 4.0), 0.35, 0.65, 0.0, 1.0)
     soot = mrange(sep.outputs["Z"], 8.0, 11.3, 0.0, 1.0)
-    amount = math_("ADD", math_("MULTIPLY", dirt, 0.55), math_("MULTIPLY", occ, 0.5))
-    amount = math_("ADD", amount, math_("MULTIPLY", streak, 0.2))
-    amount = math_("ADD", amount, math_("MULTIPLY", mott, 0.1))
+    amount = math_("ADD", math_("MULTIPLY", dirt, 0.85), math_("MULTIPLY", occ, 0.65))
+    amount = math_("ADD", amount, math_("MULTIPLY", streak, 0.35))
+    amount = math_("ADD", amount, math_("MULTIPLY", mott, 0.16))
     amount = math_("ADD", amount, math_("MULTIPLY", soot, 0.7))
-    amount = math_("MINIMUM", amount, 0.78)
+    amount = math_("MINIMUM", amount, 0.85)
     mix = N("ShaderNodeMix")
     mix.data_type = "RGBA"
     L(amount, mix.inputs["Factor"])
     mix.inputs[6].default_value = (1.0, 1.0, 1.0, 1.0)
-    mix.inputs[7].default_value = (0.5, 0.43, 0.34, 1.0)
+    mix.inputs[7].default_value = (0.4, 0.33, 0.25, 1.0)
     emit = N("ShaderNodeEmission")
     L(mix.outputs[2], emit.inputs["Color"])
     L(emit.outputs[0], nt.nodes["Material Output"].inputs["Surface"])
@@ -1191,8 +1217,8 @@ def preview(root, folder):
     preview_decals()
     pod = cargo_pod()
     rover = BV["rover_mk1"](BV["palette"]())
-    rover.location = (2.6, -7.9, 0.0)
-    rover.rotation_euler.z = math.radians(160)
+    rover.location = (9.2, -5.2, 0.0)
+    rover.rotation_euler.z = math.radians(205)
     scene.render.engine = "CYCLES"
     scene.cycles.samples = SAMPLES
     scene.cycles.use_denoising = True
@@ -1238,13 +1264,13 @@ def preview(root, folder):
 
     def night(on):
         sun.hide_render = on
-        bg.inputs["Strength"].default_value = 0.012 if on else 0.12
-        scene.view_settings.exposure = 0.4 if on else -0.6
+        bg.inputs["Strength"].default_value = 0.004 if on else 0.12
+        scene.view_settings.exposure = 0.0 if on else -0.6
         if on and not night_lights:
             for name, colour, energy, loc in (("NFurnace", (1.0, 0.5, 0.2), 900, bpy.data.objects["FurnaceLight"].matrix_world.translation),
                                               ("NPad", (0.4, 0.6, 1.0), 120, D.to_3d() + P(0, 0, DZ + 1.5)),
-                                              ("NMast0", (1.0, 0.95, 0.85), 900, P(-5.3, 4.3, 6.4)),
-                                              ("NMast1", (1.0, 0.95, 0.85), 900, P(5.4, -4.2, 6.4)),
+                                              ("NMast0", (1.0, 0.95, 0.85), 260, P(-5.3, 4.3, 6.4)),
+                                              ("NMast1", (1.0, 0.95, 0.85), 260, P(-5.4, -4.3, 6.4)),
                                               ("NHall", (1.0, 0.7, 0.4), 150, P(-3.95, HALL[2] - 1.0, 1.2))):
                 lt = bpy.data.objects.new(name, bpy.data.lights.new(name, "POINT"))
                 lt.data.energy = energy
@@ -1264,9 +1290,10 @@ def preview(root, folder):
             pos, target = game_cam(50.0)
             shoot(name, pos, target, angle_y=45)
         elif name == "close":
-            shoot(name, (8.5, -9.0, 5.2), (1.6, -0.2, 2.2), lens=30, w=RES, h=int(RES * 2 / 3))
+            shoot(name, (10.5, 2.0, 6.5), (2.4, 0.2, 2.0), lens=30, w=RES, h=int(RES * 2 / 3))
+            shoot("close2", (-4.0, -11.0, 4.6), (-2.2, -0.8, 1.8), lens=30, w=RES, h=int(RES * 2 / 3))
         elif name == "night":
-            shoot(name, (17.0, -21.0, 12.5), (0.6, 0.4, 3.0), lens=32, w=RES, h=int(RES * 2 / 3))
+            shoot(name, (-9.0, -22.0, 11.5), (-0.5, 0.0, 3.0), lens=32, w=RES, h=int(RES * 2 / 3))
         elif name == "top":
             shoot(name, (0, -0.01, 80), (0, 0, 0), ortho=30, w=RES, h=RES)
         elif name == "back":

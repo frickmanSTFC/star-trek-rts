@@ -225,6 +225,7 @@ public partial class PlanetView : Node3D
         var delta = (float)GetProcessDeltaTime();
         _landing.Update(alpha, delta); // the first landing's drop ships and assembly (hides the hub until the uplink)
         UpdateStructures(delta);
+        UpdateRefineries(delta); // PlanetView.Refinery.cs: the refinery's machinery, furnace and lamps by status
         UpdateScatter();
         _time += delta;
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
@@ -740,7 +741,7 @@ public partial class PlanetView : Node3D
                     v.Model.QueueFree();
                     v.Label.QueueFree();
                 }
-                var model = BuildingModels.Build(s.DefId, PlanetDriver.PlayerColors[s.Owner % PlanetDriver.PlayerColors.Length]);
+                var model = BuildingModels.Build(s.DefId, PlanetDriver.PlayerColors[s.Owner % PlanetDriver.PlayerColors.Length], VisualSeed(s), VisualSerial(s));
                 if (!complete) BuildingModels.Override(model, _hologram);
                 model.Position = TileCentre(s.Tile);
                 model.RotationDegrees = new Vector3(0, -60f * s.Facing, 0);
@@ -1408,7 +1409,7 @@ public partial class PlanetView : Node3D
         }
     }
 
-    /// <summary>Cargo pods fly a high arc from the crawler to the storage building they're headed for.</summary>
+    /// <summary>Cargo pods fly a high arc from the crawler to the storage building they're headed for (a refinery: onto its pad).</summary>
     private void UpdatePods(float alpha)
     {
         var alive = new HashSet<int>();
@@ -1421,17 +1422,10 @@ public partial class PlanetView : Node3D
                 AddChild(model);
                 _pods[p.Id] = model;
             }
-            var span = Mathf.Max(1f, p.ArriveTick - p.LaunchTick);
-            var t = Mathf.Clamp((_sim.Tick - p.LaunchTick + alpha) / span, 0f, 1f);
-            var a = TileCentre(p.FromTile) + new Vector3(0, 4f, 0);
-            var b = TileCentre(p.ToTile) + new Vector3(0, 3f, 0);
-            var height = 18f + a.DistanceTo(b) * 0.12f;
-            Vector3 At(float k) => a.Lerp(b, k) + new Vector3(0, Mathf.Sin(k * Mathf.Pi) * height, 0);
-            var here = At(t);
-            var ahead = At(Mathf.Min(1f, t + 0.02f)) - here;
+            // a high arc; onto a refinery's pad it ends by settling straight down (PlanetView.Refinery.cs)
+            var (here, basis) = PodPose(p, alpha);
             model.Position = here;
-            if (ahead.LengthSquared() > 0.0001f)
-                model.Basis = Basis.LookingAt(ahead.Normalized(), Mathf.Abs(ahead.Normalized().Y) > 0.98f ? Vector3.Forward : Vector3.Up);
+            if (basis is { } heading) model.Basis = heading;
         }
         foreach (var id in new List<int>(_pods.Keys))
         {
