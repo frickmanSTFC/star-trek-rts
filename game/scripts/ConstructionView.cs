@@ -255,7 +255,7 @@ public partial class ConstructionView : Node3D
     private Site NewSite(SurfaceStructure s, Node3D model, bool upgrade)
     {
         var pieces = upgrade ? System.Array.Empty<Piece>() : CollectPieces(model);
-        var bounds = upgrade ? BoundsOf(model) : Union(pieces);
+        var bounds = pieces.Length == 0 ? BoundsOf(model) : Union(pieces);
         var centre = _view.TileCentre(s.Tile);
         var radius = Mathf.Max(Mathf.Max(bounds.End.X - centre.X, centre.X - bounds.Position.X), Mathf.Max(bounds.End.Z - centre.Z, centre.Z - bounds.Position.Z));
         radius = Mathf.Clamp(radius, 2f, 10f);
@@ -515,10 +515,10 @@ public partial class ConstructionView : Node3D
                 var ba = Mathf.FloorToInt((a.Box.Position.Y - origin.Y) / 0.6f);
                 var bb = Mathf.FloorToInt((b.Box.Position.Y - origin.Y) / 0.6f);
                 if (ba != bb) return ba.CompareTo(bb);
-                var da = Flat(a.Box.GetCenter() - origin).Length();
-                var db = Flat(b.Box.GetCenter() - origin).Length();
-                if (!Mathf.IsEqualApprox(da, db)) return da.CompareTo(db);
-                return a.Box.End.Y.CompareTo(b.Box.End.Y);
+                var da = Mathf.RoundToInt(Flat(a.Box.GetCenter() - origin).Length() * 10f); // whole tenths: a consistent order
+                var db = Mathf.RoundToInt(Flat(b.Box.GetCenter() - origin).Length() * 10f);
+                if (da != db) return da.CompareTo(db);
+                return Mathf.RoundToInt(a.Box.End.Y * 10f).CompareTo(Mathf.RoundToInt(b.Box.End.Y * 10f));
             });
             var n = Mathf.Min(MaxPieces, parts.Count);
             for (var i = 0; i < n; i++)

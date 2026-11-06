@@ -17,6 +17,7 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (one continuous terrain mesh over the hex grid, animated water, trees, deposit crystals, scan hints, landing, buildings, rovers) |
 | `scripts/DropShipView.cs`, `LandingView.cs` | Drop ships for orbit deliveries, and the first landing: three drop ships set the Level 1 outpost down in three modules, unload the rovers and the crawler, and the modules crawl together, lock and unfurl until the uplink comes online |
 | `shaders/` | `terrain`, `water`, `foliage`, `rock` (all read the fog-of-war texture: one texel per tile) and `crystal` (glowing deposits) |
+| `scripts/ConstructionView.cs`, `BuildingModels.Exocomp.cs`, `models/drones/exocomp.glb`, `shaders/build_*` | Construction: exocomp drones fly out, circle the site and beam each piece of the building into place (`build_print`, `build_beam`, `build_flare`, `build_shimmer`) |
 | `scripts/Scatter.cs`, `PlanetView.Scatter.cs`, `models/scatter/scatter.glb` | Landscape scatter: trees, bushes, grass, ferns, rocks, sandstone and ice per terrain (built by `blender/build_scatter.py`), chunked MultiMeshes with near/far LOD, wind and clearings under buildings |
 | `scripts/OrbitView.cs`, `OrbitPainter.cs`, `shaders/planet`, `atmosphere`, `clouds` (+ `air`/`clouds` includes) | Orbit view (the helm viewscreen): the painted globe with satellite-photo ground, animated oceans, two lit cloud layers with ground shadows and a ray-marched (Rayleigh + Mie) atmosphere; displays Planet (optional lat/long grid), Orbit (tracks of the ship, satellites and moon), Atmosphere (full clouds, storm cells) and System |
 | `scripts/SurfaceFeed.cs`, `SurfaceTelemetry.cs`, `PlanetDriver.Uplink.cs`, `sim/Surface/Telemetry.cs` | Once the outpost's uplink is online: the helm's live video feed from the surface (its own camera and SubViewport; the surface moves to render layer 20 while it shows) and the environmental telemetry (temperature, humidity, wind, pressure, gases, radiation, hazards) computed from `surfaces.json` environments |
@@ -50,8 +51,9 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    **Storage Container** and an **Ore Refinery** early (the refinery turns 2 ore into 1 metal and frees space).
 5. **Build:** pick a building from the bar at the bottom (or keys **1–7**). A see-through ghost follows the mouse:
    green = OK, red = not (the info panel says why). **R** turns it 60° (Shift+R back), left-click places it
-   (Shift+click to keep placing), right-click or Esc stops. The blue area is your build range. Buildings rise as a
-   hologram while under construction; one builds at a time and the rest queue. Click your building for its status;
+   (Shift+click to keep placing), right-click or Esc stops. The blue area is your build range. Exocomps fly out from
+   the base and build each building piece by piece with their beams (a queued building is a faint ghost); one
+   builds at a time and the rest queue. Click your building for its status;
    **X** cancels an unfinished one for a full refund, or salvages a finished one for half its cost. Put mines on
    deposits, and keep power and deuterium positive. A used-up deposit can be reopened once by a Deep-Core Mine
    (needs the Deep-Core Mining tech).
