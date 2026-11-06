@@ -641,7 +641,7 @@ public partial class PlanetView : Node3D
         foreach (var s in _surface.Structures)
             if (s.Owner == _localPlayer) See(s.Tile, StructureSight);
         foreach (var u in _surface.Units)
-            if (u.Owner == _localPlayer) See(u.Tile, u.SurveyRadius + 1);
+            if (u.Owner == _localPlayer) See(u.Tile, _surface.SurveyRadiusOf(u) + 1); // damaged sensors see less
         if (me.Phase == LandingPhase.Descending) See(me.LandingTile, 2);
     }
 
@@ -997,6 +997,8 @@ public partial class PlanetView : Node3D
                 _unitLabels[u.Id] = label;
             }
 
+            UntiltRover(u.Id, model); // a flat tyre's lean comes off before the heading code turns it (RoverDamage)
+
             // Every vehicle on its own colony core's tile stands on the repair pad (and gets washed there).
             var from = UnitSpot(u, u.Tile, true);
             var pos = from;
@@ -1040,6 +1042,7 @@ public partial class PlanetView : Node3D
                 aboard = carried.Basis != null && !driving; // still in the bay (maybe flying): no selection ring
             }
             model.Position = pos + new Vector3(0, 0.1f, 0);
+            UpdateRoverDamage(u, def, model, moving || rolling, delta); // flat wheels, lean, damage looks (rovers only)
             var ground = SprayRig.KindFor(_surface.Map, TileAt(pos));
             if (model.GetNodeOrNull<SprayRig>("SprayRig") is { } spray) spray.Spray(ground, moving || rolling);
             var dirty = false;
@@ -1072,6 +1075,7 @@ public partial class PlanetView : Node3D
                     _ => "",
                 };
             }
+            else text = RoverText(u, def, model, alpha, delta);
             var lbl = _unitLabels[u.Id];
             lbl.Text = text;
             lbl.Position = model.Position + new Vector3(0, 9f, 0);
@@ -1083,6 +1087,7 @@ public partial class PlanetView : Node3D
             _rovers.Remove(id);
             _grime.Remove(id);
             _lamps.Remove(id);
+            ForgetRover(id);
             _unitLabels[id].QueueFree();
             _unitLabels.Remove(id);
         }

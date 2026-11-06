@@ -34,4 +34,23 @@ internal static class TestData
         }
         return GameData.Load(dir);
     }
+
+    /// <summary>A copy of the real data with regular-expression replacements in one file (every match), loaded fresh.
+    /// Each pattern must match at least once.</summary>
+    public static GameData Regexed(string file, params (string Pattern, string To)[] patches)
+    {
+        var source = GameData.FindDataDirectory(AppContext.BaseDirectory);
+        var dir = Path.Combine(Path.GetTempPath(), "ff-data-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        foreach (var f in Directory.GetFiles(source, "*.json")) File.Copy(f, Path.Combine(dir, Path.GetFileName(f)));
+        var path = Path.Combine(dir, file);
+        var text = File.ReadAllText(path);
+        foreach (var (pattern, to) in patches)
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(text, pattern)) throw new InvalidOperationException($"Test patch: /{pattern}/ not found in {file}.");
+            text = System.Text.RegularExpressions.Regex.Replace(text, pattern, to);
+        }
+        File.WriteAllText(path, text);
+        return GameData.Load(dir);
+    }
 }

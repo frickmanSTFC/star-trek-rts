@@ -988,6 +988,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             }
             _seenCondition[u.Id] = condition;
         }
+        RoverEvents(); // hazards, flat tyres, disabled, repaired (PlanetDriver.RoverDamage.cs)
 
         foreach (var u in Surface.Units.Where(u => u.Owner == LocalPlayer))
         {
@@ -1148,6 +1149,12 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case Key.R when _placing != null:
                 _facing = (_facing + (key.ShiftPressed ? 5 : 1)) % 6;
+                break;
+            case Key.R when landed && _view.SelectedUnits.Count > 0:
+                RepairSelected();
+                break;
+            case Key.T when landed && _view.SelectedUnits.Count > 0:
+                ChangeTyres();
                 break;
             case Key.Escape:
                 if (_placing != null) StopPlacing();
@@ -1328,6 +1335,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     /// <summary>A building-panel button (or its key): upgrade, cancel, maintain, salvage the selected building.</summary>
     private void OnAction(string id)
     {
+        if (RoverAction(id)) return; // the rover panel's REPAIR / CHANGE TYRE
         var s = Surface.FindStructure(_selectedStructure != 0 ? _selectedStructure : _selectedBase);
         if (s == null) return;
         var warn = new Color(1f, 0.7f, 0.42f);
@@ -1482,6 +1490,11 @@ public partial class PlanetDriver : Node3D, ITestHost
                     continue;
                 }
                 _hud.PushEvent($"{UnitName(u)} can't mine there: {problem}", new Color(1f, 0.7f, 0.42f));
+            }
+            if (Surface.DriveProblem(u) is { } stuck)
+            {
+                _hud.PushEvent($"{UnitName(u)} can't drive: {stuck}", new Color(1f, 0.7f, 0.42f));
+                continue;
             }
             drivers.Add(id);
         }
@@ -1810,7 +1823,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (SelectedBay() != null) return "1–2 vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (_selectedStructure != 0) return "U upgrade  ·  M maintain  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
-        if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  V wipers  ·  Esc back  ·  F1 controls";
+        if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  V wipers  ·  Esc back  ·  F1 controls";
         return $"1–{_data.BuildMenu.Count} build  ·  U upgrade base  ·  Tab next base  ·  H home  ·  F1 controls";
     }
 
@@ -1834,6 +1847,11 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (units.Count == 1 && _data.SurfaceUnit(units[0].DefId).CanMine)
         {
             ShowCrawler(units[0]);
+            return;
+        }
+        if (units.Count == 1 && units[0].Owner == LocalPlayer && IsRover(units[0]))
+        {
+            ShowRover(units[0]);
             return;
         }
         var rovers = units.Count(u => !_data.SurfaceUnit(u.DefId).CanMine);
@@ -2139,6 +2157,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             if (crawler != null) sb.Append('\n').Append(UnitName(crawler)).Append(" working here");
         }
         else sb.Append("\nNot surveyed: send a rover nearby");
+        if (Me.Phase == LandingPhase.Landed) sb.Append(RoverTooltip(tile));
         return sb.ToString();
     }
 

@@ -54,11 +54,16 @@ public sealed partial class PlanetSurface
         {
             case DebugUnitCommand c:
             {
-                if (FindUnit(c.UnitId) == null) return "no such vehicle";
+                if (FindUnit(c.UnitId) is not { } unit) return "no such vehicle";
+                var tyres = _data.SurfaceUnit(unit.DefId).Tyres;
+                var whole = c.Value == Fix64.FromInt(c.Value.FloorToInt());
                 return c.Field switch
                 {
                     DebugUnitField.Integrity => IsPercent(c.Value) ? null : "integrity is 0 to 100",
                     DebugUnitField.Broken => null,
+                    DebugUnitField.FlatTyres or DebugUnitField.Spares when tyres == null => "this vehicle has no tyres",
+                    DebugUnitField.FlatTyres => whole && c.Value >= Fix64.Zero && c.Value.FloorToInt() < 1 << tyres!.Wheels ? null : $"flat tyres are a mask of its {tyres!.Wheels} wheels",
+                    DebugUnitField.Spares => whole && c.Value >= Fix64.Zero && c.Value <= Fix64.FromInt(20) ? null : "spares are 0 to 20",
                     _ => "unknown field",
                 };
             }
@@ -169,6 +174,19 @@ public sealed partial class PlanetSurface
             {
                 var u = FindUnit(c.UnitId)!;
                 if (c.Field == DebugUnitField.Integrity) u.Integrity = c.Value;
+                else if (c.Field == DebugUnitField.FlatTyres)
+                {
+                    var mask = c.Value.FloorToInt();
+                    var added = mask & ~u.FlatTyres;
+                    u.FlatTyres = mask;
+                    if (added != 0)
+                    {
+                        u.LastFlat = Wheels.First(added, 32);
+                        u.FlatAtTick = sim.Tick;
+                    }
+                    if (mask == 0) u.TyreChangeTicks = 0;
+                }
+                else if (c.Field == DebugUnitField.Spares) u.Spares = c.Value.FloorToInt();
                 else if (c.Value != Fix64.Zero)
                 {
                     if (u.Broken) break;
@@ -178,6 +196,7 @@ public sealed partial class PlanetSurface
                     StartPacking(u);
                     u.DeployOnArrival = false;
                     u.MiningStatus = MiningStatus.None;
+                    if (_data.SurfaceUnit(u.DefId).Damage != null) Disable(sim, u); // a rover stops where it is
                 }
                 else
                 {

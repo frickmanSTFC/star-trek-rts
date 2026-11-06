@@ -21,6 +21,9 @@ uniform vec3 wiper_y = vec3(0.0, 1.0, 0.0);
 uniform float wiper_len = 0.0;
 uniform float wiper_sweep = 1.75;
 uniform float wiped : hint_range(0.0, 1.0) = 0.0;
+// Rover damage (RoverLook.Grime.Damage, from integrity: 0 at 75 and above, 1 at 0): scratches through the paint first,
+// then sooty scorch marks spreading over the hull. Drawn under the dirt.
+uniform float damage : hint_range(0.0, 1.0) = 0.0;
 
 varying vec3 m_pos;
 varying vec3 m_normal;
@@ -103,9 +106,22 @@ void fragment() {
 	float up = clamp(m_normal.y, 0.0, 1.0);
 	float snow_a = max(spread(0.72 * up + 0.28 * broad, snow, 0.06), spread(0.55 * low * low + 0.45 * fine, snow * 0.6, 0.05) * 0.8);
 
+	// Damage under the dirt: bright scratches (thin streaks along the body, in patches), then dark scorch.
+	vec3 col = vec3(0.0);
+	float a = 0.0;
+	if (damage > 0.0) {
+		float streak = smoothstep(0.86, 0.95, value_noise(vec3(m_pos.x * 1.3, m_pos.y * 34.0, m_pos.z * 1.3) + vec3(3.0)));
+		float scratch_a = streak * spread(fbm(m_pos * 1.1 + vec3(17.0, 3.0, 9.0)), min(1.0, damage * 1.6), 0.08) * 0.85;
+		float scorch_a = spread(0.7 * fbm(m_pos * 1.9 + vec3(41.0, 7.0, 23.0)) + 0.3 * h, max(0.0, damage * 1.25 - 0.3), 0.07) * 0.9;
+		col = vec3(0.62, 0.61, 0.58) * scratch_a;
+		a = scratch_a;
+		col = col * (1.0 - scorch_a) + vec3(0.05, 0.045, 0.04) * (0.7 + 0.6 * fine) * scorch_a;
+		a = a + scorch_a * (1.0 - a);
+	}
+
 	// Composite the layers (premultiplied "over"): dust, then mud on top, then snow on top.
-	vec3 col = dust_colour * (0.85 + 0.3 * fine) * dust_a;
-	float a = dust_a;
+	col = col * (1.0 - dust_a) + dust_colour * (0.85 + 0.3 * fine) * dust_a;
+	a = a + dust_a * (1.0 - a);
 	col = col * (1.0 - mud_a) + mud_colour * (0.8 + 0.4 * fine) * mud_a;
 	a = a + mud_a * (1.0 - a);
 	col = col * (1.0 - snow_a) + snow_colour * snow_a;

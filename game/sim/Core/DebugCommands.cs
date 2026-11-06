@@ -16,8 +16,14 @@ public enum DebugUnitField
     /// <summary>0..100.</summary>
     Integrity,
 
-    /// <summary>Value 1 = broken down (a crawler folds up), 0 = fixed.</summary>
+    /// <summary>Value 1 = broken down (a crawler folds up; a rover is disabled), 0 = fixed.</summary>
     Broken,
+
+    /// <summary>Rovers: which tyres are flat, one bit per wheel (see Surface.Wheels), 0 = none.</summary>
+    FlatTyres,
+
+    /// <summary>Rovers: spare tyres on board, 0..20.</summary>
+    Spares,
 }
 
 /// <summary>Set one value on a vehicle (any owner's).</summary>

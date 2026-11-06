@@ -224,6 +224,7 @@ public sealed class Simulation
             case PackUpCommand:
             case SalvageCommand:
             case RepairCommand:
+            case ChangeTyreCommand:
             case BuildUnitCommand:
             case CancelUnitCommand:
             case ResearchCommand:

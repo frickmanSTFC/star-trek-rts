@@ -60,5 +60,8 @@ public sealed record MaintainCommand(int Player, int StructureId) : Command(Play
 /// <summary>Send damaged units to the nearest colony core's repair pad; repair starts when they get there.</summary>
 public sealed record RepairCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
 
+/// <summary>The crews of these rovers change a flat tyre where they stand (parked for the tyres' change_seconds, uses a spare).</summary>
+public sealed record ChangeTyreCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
+
 /// <summary>Take down a finished building (not a colony core) for part of its cost back; frees the tile.</summary>
 public sealed record SalvageCommand(int Player, int StructureId) : Command(Player);

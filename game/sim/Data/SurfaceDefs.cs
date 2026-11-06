@@ -109,7 +109,8 @@ public sealed record LandingRules(
 /// survey_rover is the Mk I Scout), or null for a unit with no marks.
 /// </summary>
 public sealed record SurfaceUnitDef(string Id, Fix64 Speed, int SurveyRadius, Fix64 ExtractPerMinute, Fix64 Hopper, int DeploySeconds, Fix64 PodSpeed,
-    BreakdownRules? Breakdown, RepairRules? Repair, IReadOnlyList<ResourceAmount> Cost, int BuildSeconds, string Description, int? Mark = null)
+    BreakdownRules? Breakdown, RepairRules? Repair, IReadOnlyList<ResourceAmount> Cost, int BuildSeconds, string Description, int? Mark = null,
+    DamageRules? Damage = null, TyreRules? Tyres = null)
 {
     public bool CanMine => ExtractPerMinute > Fix64.Zero;
 }
@@ -144,3 +145,38 @@ public sealed record BreakdownRules(Fix64 ChancePerMinute, Fix64 SlowestDrive, I
 
 /// <summary>Repair at a colony core: crew walk out for CrewSeconds, then PerSecond integrity a second, paying CostPerPoint for each point.</summary>
 public sealed record RepairRules(Fix64 PerSecond, int CrewSeconds, IReadOnlyList<ResourceAmount> CostPerPoint);
+
+
+/// <summary>How a terrain wears a driving rover: Wear integrity a minute, and the chances a minute of a hazard and of a flat tyre.</summary>
+public sealed record TerrainWear(string Terrain, Fix64 Wear, Fix64 Hazard, Fix64 Flat);
+
+/// <summary>A driving hazard (rock strike, sinkhole, ...): picked by Weight among those listed for the terrain; knocks
+/// DamageMin..DamageMax off integrity, and Flat also punctures a tyre.</summary>
+public sealed record RoverHazard(string Id, string Name, int Weight, int DamageMin, int DamageMax, IReadOnlyList<string> Terrain, bool Flat);
+
+/// <summary>
+/// Rover damage (surfaces.json units' damage): driving wears integrity by terrain and rolls hazards; a toxic tile
+/// corrodes ToxicPerMinute; predators attack (WildlifeChancePerMinute, WildlifeMin..Max damage). Below SlowBelow it
+/// drives slower, down to SlowestDrive at 0; below SensorsBelow its survey radius drops by SensorLoss (at least 1). At
+/// 0 integrity it is disabled (no survey, only a repair order moves it, at Crawl share of its speed). Crawl is also the
+/// slowest it ever drives.
+/// </summary>
+public sealed record DamageRules(IReadOnlyList<TerrainWear> Terrain, IReadOnlyList<RoverHazard> Hazards, Fix64 ToxicPerMinute,
+    Fix64 WildlifeChancePerMinute, int WildlifeMin, int WildlifeMax, Fix64 SlowBelow, Fix64 SlowestDrive, Fix64 SensorsBelow, int SensorLoss, Fix64 Crawl)
+{
+    public TerrainWear? On(string terrainId)
+    {
+        foreach (var t in Terrain)
+            if (t.Terrain == terrainId) return t;
+        return null;
+    }
+}
+
+/// <summary>
+/// Flat tyres (surfaces.json units' tyres): Wheels on the rover (4 or 6), Spares carried. The flat chance from the
+/// terrain is raised by LowIntegrity × the share of integrity lost. One flat drives at FlatSpeed, two or more at
+/// TwoFlatSpeed, and each flat adds FlatWear (a share) to the terrain wear. The crew change a tyre in ChangeSeconds
+/// parked (uses a spare); a repair pad fixes every flat and restocks the spares for PadCost a tyre.
+/// </summary>
+public sealed record TyreRules(int Wheels, int Spares, Fix64 LowIntegrity, Fix64 FlatSpeed, Fix64 TwoFlatSpeed, Fix64 FlatWear, int ChangeSeconds,
+    IReadOnlyList<ResourceAmount> PadCost);

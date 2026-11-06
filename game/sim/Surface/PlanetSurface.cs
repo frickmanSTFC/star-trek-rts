@@ -314,6 +314,7 @@ public sealed partial class PlanetSurface
     /// <summary>How fast a unit drives now: full speed, or slower while broken (worse damage, slower).</summary>
     public Fix64 SpeedPerTick(SurfaceUnit unit)
     {
+        if (_data.SurfaceUnit(unit.DefId).Damage != null) return unit.SpeedPerTick * DriveShare(unit); // a rover (RoverDamage.cs)
         var rules = _data.SurfaceUnit(unit.DefId).Breakdown;
         if (!unit.Broken || rules == null) return unit.SpeedPerTick;
         var share = rules.SlowestDrive + (Fix64.One - rules.SlowestDrive) * unit.Integrity / Hundred;
@@ -327,9 +328,10 @@ public sealed partial class PlanetSurface
         return s != null && s.Owner == player && s.State == StructureState.Complete && _data.Building(s.DefId).IsCore ? s : null;
     }
 
-    /// <summary>Parked on a repair pad and being worked on (crew walking out, repairing, or waiting for resources).</summary>
+    /// <summary>Parked on a repair pad and being worked on (crew walking out, repairing, or waiting for resources): broken,
+    /// below 100 integrity, or (rovers) a flat tyre or spares to restock.</summary>
     public bool IsRepairing(SurfaceUnit unit) =>
-        unit.Broken && unit.Mode == UnitMode.Mobile && unit._path.Count == 0 && RepairPadAt(unit.Owner, unit.Tile) != null;
+        NeedsRepair(unit) && unit.Mode == UnitMode.Mobile && unit._path.Count == 0 && RepairPadAt(unit.Owner, unit.Tile) != null;
 
     /// <summary>How far the repair crew has walked out, 0..1 (1 = at work).</summary>
     public Fix64 CrewOut(SurfaceUnit unit)
@@ -341,10 +343,20 @@ public sealed partial class PlanetSurface
     /// <summary>What it would cost to repair the unit back to 100 from here.</summary>
     public IReadOnlyList<ResourceAmount> RepairCost(SurfaceUnit unit)
     {
-        var repair = _data.SurfaceUnit(unit.DefId).Repair;
-        if (repair == null) return System.Array.Empty<ResourceAmount>();
+        var def = _data.SurfaceUnit(unit.DefId);
+        if (def.Repair is not { } repair) return System.Array.Empty<ResourceAmount>();
         var missing = Hundred - unit.Integrity;
-        return repair.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * missing)).ToList();
+        var cost = repair.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * missing)).ToList();
+        var tyres = PadTyreCount(unit);
+        if (tyres > 0 && def.Tyres is { } t)
+            foreach (var c in t.PadCost)
+            {
+                var i = cost.FindIndex(x => x.Resource == c.Resource);
+                if (i >= 0) cost[i] = new ResourceAmount(c.Resource, cost[i].Amount + c.Amount * tyres);
+                else cost.Add(new ResourceAmount(c.Resource, c.Amount * tyres));
+            }
+        cost.Sort((a, b) => a.Resource.CompareTo(b.Resource));
+        return cost;
     }
 
     /// <summary>The player's nearest finished colony core a unit can drive to (for repair), or null.</summary>
@@ -400,6 +412,11 @@ public sealed partial class PlanetSurface
     {
         unit.RepairTicks++;
         if (unit.RepairTicks <= repair.CrewSeconds * Simulation.TickRate) return;
+        if (!PadTyres(sim, unit)) // rovers: new tyres on every flat and the spares restocked first
+        {
+            unit.RepairWaiting = true;
+            return;
+        }
         var heal = Fix64.Min(repair.PerSecond / Simulation.TickRate, Hundred - unit.Integrity);
         var cost = repair.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * heal)).ToList();
         var stock = sim.Players[unit.Owner].Stock;
@@ -550,6 +567,7 @@ public sealed partial class PlanetSurface
             BuiltAtTick = builtAtTick,
             BuiltAtTile = builtAtTile,
             DeliveryId = deliveryId,
+            Spares = def.Tyres?.Spares ?? 0,
         };
         p._usedUnitNames.Add(unit.Name);
         p._usedUnitNumbers.Add(unit.Number);
@@ -1106,7 +1124,7 @@ public sealed partial class PlanetSurface
                 foreach (var id in move.UnitIds)
                 {
                     var unit = FindUnit(id);
-                    if (unit == null || unit.Owner != move.Player) continue;
+                    if (unit == null || unit.Owner != move.Player || DriveProblem(unit) != null) continue;
                     var path = Pathfinder.Find(Map, unit.Tile, move.Tile);
                     if (path == null) continue;
                     SetPath(unit, path);
@@ -1226,7 +1244,7 @@ public sealed partial class PlanetSurface
                 foreach (var id in repair.UnitIds)
                 {
                     var unit = FindUnit(id);
-                    if (unit == null || unit.Owner != repair.Player || unit.Integrity >= Hundred) continue;
+                    if (unit == null || unit.Owner != repair.Player || !NeedsRepair(unit)) continue;
                     var pad = NearestRepairPad(repair.Player, unit.Tile);
                     if (pad == null) continue;
                     unit.DeployOnArrival = false;
@@ -1242,6 +1260,11 @@ public sealed partial class PlanetSurface
                     StartPacking(unit);
                     unit.MiningStatus = MiningStatus.None;
                 }
+                return true;
+
+            case ChangeTyreCommand change:
+                foreach (var id in change.UnitIds)
+                    if (ChangeTyreProblem(change.Player, id) == null) StartTyreChange(FindUnit(id)!);
                 return true;
 
             case PackUpCommand pack:
@@ -1376,6 +1399,7 @@ public sealed partial class PlanetSurface
         Economy(sim);
         Maintenance(sim);
         Crawlers(sim);
+        RoverWear(sim);
         MoveUnits();
         FinishAssembly(sim.Tick + 1);
     }
@@ -1702,7 +1726,7 @@ public sealed partial class PlanetSurface
             unit.Progress -= cost;
             unit.Tile = next;
             unit._path.RemoveAt(0);
-            Reveal(unit.Owner, unit.Tile, unit.SurveyRadius);
+            Reveal(unit.Owner, unit.Tile, SurveyRadiusOf(unit));
             if (unit._path.Count > 0) continue;
             unit.Progress = Fix64.Zero;
             if (!unit.DeployOnArrival) continue;
