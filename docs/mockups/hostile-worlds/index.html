@@ -33,6 +33,7 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+table { color: inherit; }
 body { background: var(--page); color: var(--ink); font: 400 16px/1.55 var(--body); }
 a { color: var(--link); }
 .wrap { max-width: 1320px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -120,7 +121,7 @@ svg.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor
 .mapview svg.ov { position: absolute; inset: 0; width: 100%; height: 100%; }
 .mapview svg.ov polygon { vector-effect: non-scaling-stroke; }
 .mapside { border-left: 1px solid var(--hud-line); display: flex; flex-direction: column; gap: 10px; padding: 12px; min-width: 0; }
-.mini { width: 100%; aspect-ratio: 1.25; background: #03050a; border: 1px solid var(--hud-line); border-radius: 6px; }
+.mini { width: 100%; aspect-ratio: 1.55; background: #03050a; border: 1px solid var(--hud-line); border-radius: 6px; }
 .legend { display: flex; flex-direction: column; gap: 4px; font: 500 13px var(--label); letter-spacing: .04em; }
 .legend span { display: inline-flex; align-items: center; gap: 7px; }
 .legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
@@ -171,10 +172,10 @@ svg.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor
 .helm .rail span.on { background: var(--helm-peach); }
 .helm .rail span.alt { background: var(--helm-sky); }
 .helm .body { padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; min-width: 0; }
-.helm .elbow-b { grid-column: 1 / 3; display: flex; gap: 4px; height: 26px; }
+.helm .elbow-b { grid-column: 1 / 3; display: flex; gap: 4px; min-height: 26px; }
 .helm .elbow-b .cap { background: var(--helm-lav); border-radius: 0 0 0 18px; width: 96px; }
-.helm .elbow-b .bar { flex: 1; background: var(--helm-grey); display: flex; align-items: center; gap: 10px; padding: 0 10px; font: 600 12px var(--label); letter-spacing: .12em; color: #000; }
-.helm .elbow-b .pill { background: var(--helm-peach); padding: 2px 10px; border-radius: 10px; }
+.helm .elbow-b .bar { flex: 1; background: var(--helm-grey); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 3px 10px; font: 600 12px var(--label); letter-spacing: .12em; color: #000; }
+.helm .elbow-b .pill { background: var(--helm-peach); padding: 2px 10px; border-radius: 10px; white-space: nowrap; }
 .helm .elbow-b .pill.dis { background: var(--helm-greytext); }
 .helm h4 { margin: 0; font: 700 24px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--helm-peach); }
 .helm .kv { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 4px 10px; font-size: 14px; }
@@ -292,13 +293,13 @@ ol.q b { font-weight: 600; }
   .helm .frame { grid-template-columns: 28px minmax(0, 1fr); }
   .helm .elbow-t .cap, .helm .elbow-b .cap { width: 28px; }
   .helm .rail span { font-size: 0; padding: 14px 0 0; }
-  .helm .elbow-t .bar.b2 { display: none; }
+  .helm .elbow-t .bar.b2, .helm .alert { display: none; }
   .helm .kv { grid-template-columns: 96px minmax(0, 1fr); }
   .checks div { grid-template-columns: 76px 64px minmax(0, 1fr); }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .vrow { grid-template-columns: minmax(0, 1fr); }
   .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .feedover { position: static; width: auto; padding: 8px; }
+  .feedover { display: none; }
   .hrow { grid-template-columns: 90px minmax(0, 1fr) 58px; }
   .lsdrop { margin: 8px; }
 }
@@ -429,7 +430,7 @@ ol.q b { font-weight: 600; }
       </div>
       <div class="mapside">
         <div class="hud-label">Minimap</div>
-        <svg class="mini" id="mini" viewBox="-20 -20 500 380" role="img" aria-label="Minimap of the hazards"></svg>
+        <svg class="mini" id="mini" viewBox="-18 -18 496 320" role="img" aria-label="Minimap of the hazards"></svg>
         <div class="legend" id="legend"></div>
         <div class="hud-label" style="margin-top:4px">What the player reads</div>
         <p style="font-size:13.5px;color:var(--hud-dim)" id="mapnote"></p>
