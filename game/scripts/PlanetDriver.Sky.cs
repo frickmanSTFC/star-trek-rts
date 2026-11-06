@@ -232,7 +232,8 @@ public partial class PlanetDriver
         }
         var windLength = _windEased.Length();
         var windDir = windLength > 0.05f ? new Vector2(_windEased.X, _windEased.Z) / windLength : _lastWindDir;
-        var strength = Mathf.Clamp(0.35f + 0.65f * windLength / 4f, 0.25f, 3f) * (1f + 0.15f * Mathf.Clamp((gust - windMs) / 6f, 0f, 1f));
+        // 1 at 4 m/s (the look the foliage was tuned for), calmer below, up to 3× in a gale.
+        var strength = Mathf.Clamp(0.35f + 0.65f * windLength / 4f, 0.25f, 3f);
         if (Mathf.Abs(strength - _lastWindStrength) > 0.01f || windDir.DistanceTo(_lastWindDir) > 0.01f)
         {
             _lastWindStrength = strength;
@@ -244,8 +245,17 @@ public partial class PlanetDriver
         var nightSite = SkyModel.Night(daySite);
         _view.UpdateLamps(_inOrbit ? nightSite : Mathf.Lerp(nightSite, night, wide), _lampNightAt, delta);
 
-        // The globe's sun over the subsolar column, tilted by the season.
-        if (_inOrbit) _orbit.SetSun(_orbit.SunLocal(subsolar, declination));
+        // The globe's sun over the subsolar column, tilted by the season; storm rings where Climate has storms.
+        if (_inOrbit)
+        {
+            _orbit.SetSun(_orbit.SunLocal(subsolar, declination));
+            if (_clock - _stormsSampledAt >= 5.0)
+            {
+                _stormsSampledAt = _clock;
+                SampleStorms(tick);
+            }
+            _orbit.SetClimateStorms(_stormTiles, _stormVersion);
+        }
 
         // The helm's surface feed: the outpost's sky from the same numbers.
         _feed.Climate = landed
@@ -257,6 +267,39 @@ public partial class PlanetDriver
             _skyHudAt = _clock;
             ShowSkyReadout(sky, sun, col, subsolar, latitude, elevation, azimuth, daySite, kind, intensity, visibility, cloud, windMs, windDeg, gust, daySeconds);
         }
+    }
+
+    private readonly System.Collections.Generic.List<int> _stormTiles = new();
+    private readonly System.Collections.Generic.List<int> _stormScratch = new();
+    private int _stormVersion;
+    private double _stormsSampledAt = -10;
+
+    /// <summary>Up to four stormy places (storm, blizzard, dust storm) from Climate on a coarse grid, at least 12 tiles
+    /// apart, for the globe's Atmosphere display (the sim's weather, not the test panel's).</summary>
+    private void SampleStorms(long tick)
+    {
+        var map = Surface.Map;
+        var g = map.Grid;
+        _stormScratch.Clear();
+        for (var row = 2; row < g.Height && _stormScratch.Count < 4; row += 4)
+            for (var col = 2; col < g.Width && _stormScratch.Count < 4; col += 4)
+            {
+                var tile = g.Index(col, row);
+                var kind = Climate.Weather(_data, map, tile, tick).Kind;
+                if (kind is not (WeatherKind.Storm or WeatherKind.Blizzard or WeatherKind.DustStorm)) continue;
+                var apart = true;
+                foreach (var other in _stormScratch)
+                {
+                    var dc = Mathf.Abs(g.Column(other) - col);
+                    dc = Mathf.Min(dc, g.Width - dc);
+                    if (dc < 12 && Mathf.Abs(g.Row(other) - row) < 12) apart = false;
+                }
+                if (apart) _stormScratch.Add(tile);
+            }
+        if (_stormScratch.Count == _stormTiles.Count && _stormScratch.TrueForAll(_stormTiles.Contains)) return;
+        _stormTiles.Clear();
+        _stormTiles.AddRange(_stormScratch);
+        _stormVersion++;
     }
 
     /// <summary>The weather at the site: the test panel's, or Climate's.</summary>

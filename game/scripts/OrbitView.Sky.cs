@@ -36,4 +36,38 @@ public partial class OrbitView
         (_highClouds.MaterialOverride as ShaderMaterial)?.SetShaderParameter("sun_dir", world);
         (_atmosphere.MaterialOverride as ShaderMaterial)?.SetShaderParameter("sun_dir", world);
     }
+
+    private Node3D? _climateStorms;
+    private int _climateStormVersion = -1;
+
+    /// <summary>
+    /// Storm rings on the Atmosphere display where Climate has stormy weather (the driver samples it every few seconds):
+    /// they replace the cloud-noise rings while there are any, and the noise rings come back when there are none.
+    /// Every frame in orbit (so a display change shows the right set); the rings are rebuilt when <paramref name="version"/> changes.
+    /// </summary>
+    public void SetClimateStorms(System.Collections.Generic.IReadOnlyList<int> tiles, int version)
+    {
+        if (version != _climateStormVersion)
+        {
+            _climateStormVersion = version;
+            if (_climateStorms == null)
+            {
+                _climateStorms = new Node3D { Name = "ClimateStorms" };
+                _globe.AddChild(_climateStorms);
+            }
+            foreach (var child in _climateStorms.GetChildren()) child.QueueFree();
+            var height = Radius + LowClouds.Height + 0.5f;
+            foreach (var tile in tiles)
+            {
+                var dir = TileDirection(tile);
+                var cell = new Node3D { Transform = new Transform3D(new Basis(new Quaternion(Vector3.Up, dir)), dir * height) };
+                cell.AddChild(OrbitLines.Instance(OrbitLines.Circle(height * 0.2f, 72), Peach with { A = 0.9f }, 3));
+                cell.AddChild(OrbitLines.Instance(OrbitLines.Circle(height * 0.11f, 36, dashed: true), Peach with { A = 0.6f }, 3));
+                _climateStorms.AddChild(cell);
+            }
+        }
+        var atmosphere = Display == OrbitDisplay.Atmosphere;
+        if (_climateStorms != null) _climateStorms.Visible = atmosphere && tiles.Count > 0;
+        _weather.Visible = atmosphere && tiles.Count == 0;
+    }
 }
