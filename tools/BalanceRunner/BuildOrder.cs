@@ -27,6 +27,10 @@ public sealed class BuildOrder
     /// <summary>Deposits further than this from every finished base are left alone.</summary>
     public int CrawlerMaxDistance { get; init; } = 12;
 
+    /// <summary>crawlers.refuel: when this resource's stock drops below Below, the newest crawler mines a deposit of it
+    /// (most wanted, before its ores) until the stock reaches Until. Null = never (e.g. deuterium for the reactors).</summary>
+    public Refuel? CrawlerRefuel { get; init; }
+
     /// <summary>Order the base crew to maintain a building below this condition (0 = never).</summary>
     public int MaintainBelow { get; init; } = 55;
 
@@ -37,6 +41,10 @@ public sealed class BuildOrder
     public IReadOnlyList<string> Research { get; init; } = Array.Empty<string>();
 
     public IReadOnlyList<OrderStep> Steps { get; init; } = Array.Empty<OrderStep>();
+
+    /// <summary>Standing pause rules: every building of that type is paused while "when" holds and switched back on when
+    /// "resume" holds (or, without one, as soon as "when" no longer does).</summary>
+    public IReadOnlyList<PauseRule> Pauses { get; init; } = Array.Empty<PauseRule>();
 
     public static BuildOrder Load(string path)
     {
@@ -61,6 +69,12 @@ public sealed class BuildOrder
         var survey = r.TryGetProperty("survey", out var sv) ? sv : default;
         var crawlers = r.TryGetProperty("crawlers", out var c) ? c : default;
         var upkeep = r.TryGetProperty("upkeep", out var u) ? u : default;
+        var pauses = new List<PauseRule>();
+        if (r.TryGetProperty("pause", out var pl))
+            foreach (var p in pl.EnumerateArray())
+                pauses.Add(new PauseRule(Str(p, "building") ?? throw new FormatException("pause: each rule needs a \"building\""),
+                    Condition.Parse(Str(p, "when") ?? throw new FormatException("pause: each rule needs a \"when\"")),
+                    Str(p, "resume") is { } resume ? Condition.Parse(resume) : null));
         return new BuildOrder
         {
             Name = Str(r, "name") ?? fallbackName,
@@ -71,10 +85,13 @@ public sealed class BuildOrder
             SurveyMaxDistance = Int(survey, "max_distance") ?? 14,
             CrawlerPrefer = Strings(crawlers, "prefer") ?? new[] { "duranium_ore", "tritanium_ore" },
             CrawlerMaxDistance = Int(crawlers, "max_distance") ?? 12,
+            CrawlerRefuel = crawlers.ValueKind == JsonValueKind.Object && crawlers.TryGetProperty("refuel", out var rf)
+                ? new Refuel(Str(rf, "resource") ?? "deuterium", Int(rf, "below") ?? 60, Int(rf, "until") ?? 200) : null,
             MaintainBelow = Int(upkeep, "maintain_below") ?? 55,
             RepairBelow = Int(upkeep, "repair_below") ?? 45,
             Research = Strings(r, "research") ?? Array.Empty<string>(),
             Steps = steps,
+            Pauses = pauses,
         };
     }
 
@@ -92,6 +109,12 @@ public sealed class BuildOrder
     }
 }
 
+/// <summary>crawlers.refuel: mine Resource with the newest crawler while its stock is below Below, until it reaches Until.</summary>
+public sealed record Refuel(string Resource, int Below, int Until);
+
+/// <summary>Pause every building of this type while When holds; resume when Resume holds (null: when When no longer does).</summary>
+public sealed record PauseRule(string Building, Condition When, Condition? Resume);
+
 public enum StepKind { Build, Upgrade, Unit, Research, FoundOutpost, DropOutpost, BeamSupplies, Wait }
 
 /// <summary>One line of a build order. Target = the building / unit / tech id it is about.</summary>
@@ -107,8 +130,9 @@ public sealed class OrderStep
     /// <summary>Which base a building goes to: "main" (the first), "newest", "any", or a base number (1 = first).</summary>
     public string Base { get; init; } = "main";
 
-    /// <summary>Mines: the ore to prefer ("" = any); another ore is used when none of it is in range.</summary>
-    public string Deposit { get; init; } = "";
+    /// <summary>Mines: the deposits to use, most wanted first (empty = any). One entry: that one, else any raw ore in range;
+    /// several: only those, in that order.</summary>
+    public IReadOnlyList<string> Deposit { get; init; } = Array.Empty<string>();
 
     /// <summary>Builds: place even when the base's build queues are all busy (pays up front and waits in line).</summary>
     public bool Queue { get; init; }
@@ -152,7 +176,7 @@ public sealed class OrderStep
             Target = target,
             Count = System.Math.Max(1, count),
             Base = baseText,
-            Deposit = BuildOrder.Str(e, "deposit") ?? "",
+            Deposit = BuildOrder.Strings(e, "deposit") ?? Array.Empty<string>(),
             Queue = e.TryGetProperty("queue", out var q) && q.ValueKind == JsonValueKind.True,
             Seconds = kind == StepKind.Wait ? BuildOrder.Int(e, "wait") ?? 0 : BuildOrder.Int(e, "timeout") ?? 0,
             When = when,
@@ -176,43 +200,58 @@ public sealed class OrderStep
 }
 
 /// <summary>
-/// "duranium >= 200 and minute >= 5": terms joined by "and"; each is a name, an operator (&gt;= &lt;= &gt; &lt; ==) and a
-/// number. Names: a resource id (stock), "minute", "storage_free", "storage_pct", "power_free" (the main base),
+/// "duranium >= 200 and minute >= 5": terms joined by "and" (and groups of those joined by "or", which binds looser);
+/// each is a name, an operator (&gt;= &lt;= &gt; &lt; ==) and a number. Names: a resource id (stock), "minute", "storage_free", "storage_pct", "power_free" (the main base),
 /// "income:&lt;resource&gt;" (per minute), "count:&lt;building or unit id&gt;" (finished buildings / units).
 /// </summary>
 public sealed class Condition
 {
-    public IReadOnlyList<(string Name, string Op, double Value)> Terms { get; }
+    /// <summary>The "and" terms of the first "or" group (the whole condition when it has no "or").</summary>
+    public IReadOnlyList<(string Name, string Op, double Value)> Terms => Groups[0];
+
+    /// <summary>Alternatives ("or"), each a list of terms that must all hold ("and").</summary>
+    public IReadOnlyList<IReadOnlyList<(string Name, string Op, double Value)>> Groups { get; }
     private readonly string _text;
 
-    private Condition(List<(string, string, double)> terms, string text)
+    private Condition(List<IReadOnlyList<(string, string, double)>> groups, string text)
     {
-        Terms = terms;
+        Groups = groups;
         _text = text;
     }
 
     public static Condition Parse(string text)
     {
-        var terms = new List<(string, string, double)>();
-        foreach (var part in text.Split(" and ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        var groups = new List<IReadOnlyList<(string, string, double)>>();
+        foreach (var alternative in text.Split(" or ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            var bits = part.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (bits.Length != 3 || bits[1] is not (">=" or "<=" or ">" or "<" or "=="))
-                throw new FormatException($"condition '{part}': write it as <name> <op> <number>, e.g. duranium >= 200");
-            terms.Add((bits[0], bits[1], double.Parse(bits[2], CultureInfo.InvariantCulture)));
+            var terms = new List<(string, string, double)>();
+            foreach (var part in alternative.Split(" and ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var bits = part.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (bits.Length != 3 || bits[1] is not (">=" or "<=" or ">" or "<" or "=="))
+                    throw new FormatException($"condition '{part}': write it as <name> <op> <number>, e.g. duranium >= 200");
+                terms.Add((bits[0], bits[1], double.Parse(bits[2], CultureInfo.InvariantCulture)));
+            }
+            groups.Add(terms);
         }
-        return new Condition(terms, text);
+        if (groups.Count == 0) throw new FormatException($"condition '{text}' is empty");
+        return new Condition(groups, text);
     }
 
     public bool Holds(Func<string, double?> value)
     {
-        foreach (var (name, op, v) in Terms)
+        foreach (var group in Groups)
         {
-            if (value(name) is not { } x) throw new FormatException($"condition: unknown name '{name}'");
-            var ok = op switch { ">=" => x >= v, "<=" => x <= v, ">" => x > v, "<" => x < v, _ => System.Math.Abs(x - v) < 1e-9 };
-            if (!ok) return false;
+            var all = true;
+            foreach (var (name, op, v) in group)
+            {
+                if (value(name) is not { } x) throw new FormatException($"condition: unknown name '{name}'");
+                var ok = op switch { ">=" => x >= v, "<=" => x <= v, ">" => x > v, "<" => x < v, _ => System.Math.Abs(x - v) < 1e-9 };
+                if (!ok) all = false;
+            }
+            if (all) return true;
         }
-        return true;
+        return false;
     }
 
     public override string ToString() => _text;

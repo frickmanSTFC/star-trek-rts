@@ -138,6 +138,7 @@ public class CommandFuzzTests
         {
             5, 5, 60, 80, 8, 20, 30, 10, 40, 10, 10, 10, 10, 5, 15, 15, 15, 10, 6, 15, 5, 5, // 0..21 player commands
             40, 15, 4, 20, 50, 4, 50, 15, 25, 15, 15, 3, 10, 2, 1, 1, // 22..37 test panel
+            15, // 38 pause / resume a building
         };
 
         private static readonly int TotalWeight = Weights.Sum();
@@ -191,7 +192,8 @@ public class CommandFuzzTests
                 case 34: return new DebugDepositCommand(p, Tile(), Value());
                 case 35: return new DebugAddPlayerCommand(p, Text(Data.Factions.Select(f => f.Id).ToList())!);
                 case 36: return new DebugDataCommand(p, Chance(10) ? null! : new[] { DataEdit() }); // slow (reloads the data): rare
-                default: return new DebugReloadDataCommand(p, Chance(30) ? null! : new[] { new DataFile(Pick(_numbers).File, Chance(50) ? "{ nonsense" : null!) });
+                case 37: return new DebugReloadDataCommand(p, Chance(30) ? null! : new[] { new DataFile(Pick(_numbers).File, Chance(50) ? "{ nonsense" : null!) });
+                default: return new PauseCommand(p, StructureId(), Chance(50));
             }
         }
 

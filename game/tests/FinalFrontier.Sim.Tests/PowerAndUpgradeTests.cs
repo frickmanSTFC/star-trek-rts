@@ -84,23 +84,27 @@ public class PowerAndUpgradeTests
         {
             var path = Path.Combine(dir, "buildings/surface/mine.json");
             var text = File.ReadAllText(path);
-            Assert.Contains("\"extract_per_min\": 40, \"power_use\": 6", text);
-            File.WriteAllText(path, text.Replace("\"extract_per_min\": 40, \"power_use\": 6", "\"extract_per_min\": 40, \"power_use\": 50"));
+            Assert.Contains("\"power_use\": 6,", text);
+            File.WriteAllText(path, text.Replace("\"power_use\": 6,", "\"power_use\": 50,"));
             var data = GameData.Load(dir);
+            var supply = data.Building("colony_hub").PowerSupply; // the hub alone, less than the mine's 50
+            var extract = data.Building("mine").ExtractPerMinute.ToDouble();
+            Assert.True(supply < Fix64.FromInt(50));
 
             var sim = Landed(data, out var hub, out var deposit);
             BuildAndFinish(sim, "mine", deposit);
             var mine = sim.Surface!.StructureAt(deposit)!;
             var power = sim.Surface.PowerOf(mine.BaseId);
-            Assert.Equal(Fix64.FromInt(30), power.Supply);
+            Assert.Equal(supply, power.Supply);
             Assert.Equal(Fix64.FromInt(50), power.Use);
             Assert.Equal(StructureStatus.LowPower, mine.Status);
 
-            // Extraction runs at 30/50 of full speed.
+            // Extraction runs at supply/use (36/50) of full speed.
+            var share = supply.ToDouble() / 50;
             var before = sim.Surface.Map.DepositAmount[deposit];
             for (var i = 0; i < Simulation.TicksPerMinute; i++) sim.Step();
             var mined = (before - sim.Surface.Map.DepositAmount[deposit]).ToDouble();
-            Assert.InRange(mined, 40 * 0.6 - 0.05, 40 * 0.6 + 0.05);
+            Assert.InRange(mined, extract * share - 0.05, extract * share + 0.05);
         }
         finally
         {

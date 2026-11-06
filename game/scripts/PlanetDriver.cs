@@ -953,6 +953,8 @@ public partial class PlanetDriver : Node3D, ITestHost
                 if (was.DefId != s.DefId) _hud.PushEvent($"{BaseName(s.BaseId)} upgraded: {name} (Level {_data.Building(s.DefId).Level})", PlanetHud.Accent);
                 if (was.Status != StructureStatus.NoUpkeep && s.Status == StructureStatus.NoUpkeep) _hud.PushEvent($"{name} idle: can't pay upkeep", new Color(1f, 0.7f, 0.42f));
                 if (was.Status != StructureStatus.Depleted && s.Status == StructureStatus.Depleted) _hud.PushEvent($"{name}: deposit used up", new Color(1f, 0.7f, 0.42f));
+                if (was.Status != StructureStatus.Paused && s.Status == StructureStatus.Paused) _hud.PushEvent($"{name} paused (P to resume)", new Color(0.6f, 0.65f, 0.75f));
+                if (was.Status == StructureStatus.Paused && s.Status != StructureStatus.Paused && s.State == StructureState.Complete) _hud.PushEvent($"{name} back to work", new Color(0.62f, 0.82f, 1f));
             }
             _seen[s.Id] = now;
         }
@@ -1189,6 +1191,9 @@ public partial class PlanetDriver : Node3D, ITestHost
             case Key.M when landed && _selectedStructure != 0:
                 OnAction("maintain");
                 break;
+            case Key.P when landed && _selectedStructure != 0:
+                OnAction("pause");
+                break;
             case Key.F1:
                 _hud.ToggleHelp();
                 break;
@@ -1393,6 +1398,11 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case "salvage":
                 _sim.Schedule(_sim.Tick + InputDelayTicks, new SalvageCommand(LocalPlayer, s.Id));
+                break;
+            case "pause":
+                var pauseWhy = Surface.PauseProblem(LocalPlayer, s.Id, !s.Paused);
+                if (pauseWhy == null) _sim.Schedule(_sim.Tick + InputDelayTicks, new PauseCommand(LocalPlayer, s.Id, !s.Paused));
+                else _hud.PushEvent($"{name}: {pauseWhy}", warn);
                 break;
         }
     }
@@ -1810,9 +1820,9 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (_drawer.IsOpen) return $"1–{Mathf.Min(9, MenuBuildings().Count)} building card  ·  Shift+pick place at once  ·  B / Esc close  ·  F1 controls";
         if (_founding != 0) return "Click a site  ·  Shift+click keep picking  ·  right-click / Esc stop  ·  F1 controls";
         if (SelectedFounder() != null) return "F / 1 found outpost (pick a site)  ·  right-click drive  ·  R repair  ·  T change tyre  ·  V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
-        if (SelectedBay() != null) return $"1–{_data.Building(SelectedBay()!.DefId).Produces.Count} vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
-        if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
-        if (_selectedStructure != 0) return "U upgrade  ·  M maintain  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
+        if (SelectedBay() != null) return $"1–{_data.Building(SelectedBay()!.DefId).Produces.Count} vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
+        if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
+        if (_selectedStructure != 0) return "U upgrade  ·  M maintain  ·  P pause  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
         if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
         return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  Tab next base  ·  H home  ·  F1 controls";
     }
@@ -1942,6 +1952,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             _ => s.Status switch
             {
                 StructureStatus.Broken => (s.AutoRepairing ? "Broken down: drones repairing" : "Broken down: press M to send the crew", red),
+                StructureStatus.Paused => ("Paused: no input, no power (P resumes)", new Color(0.6f, 0.65f, 0.75f)),
                 StructureStatus.NoUpkeep => ("Idle: can't pay upkeep", new Color(1f, 0.7f, 0.42f)),
                 StructureStatus.Depleted => ("Idle: deposit used up", new Color(1f, 0.7f, 0.42f)),
                 StructureStatus.LowPower => ($"Low power: running at {Mathf.RoundToInt(power.Efficiency.ToFloat() * 100)}%", PlanetHud.Accent),
@@ -2107,6 +2118,8 @@ public partial class PlanetDriver : Node3D, ITestHost
                     ? new ActionView("maintain", "CANCEL MAINTENANCE [M]", "", true)
                     : new ActionView("maintain", "MAINTAIN [M]", why ?? $"~{Amounts(Surface.MaintenanceCost(s), false, shortNames: true)}", why == null && !s.MaintenanceOrdered));
             }
+            if (Surface.CanPause(s.DefId))
+                actions.Add(s.Paused ? new ActionView("pause", "RESUME [P]", "back to work", true) : new ActionView("pause", "PAUSE [P]", "stop: no input, no power", true));
             if (!def.IsCore && s.UpgradingLevel == 0) actions.Add(new ActionView("salvage", "SALVAGE [X]", $"+{Amounts(Surface.SalvageValue(s), false, shortNames: true)}", true));
         }
 

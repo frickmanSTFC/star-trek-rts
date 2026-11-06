@@ -27,7 +27,7 @@ public class BalanceRunnerTests
     public void EveryShippedOrderParsesAndNamesRealThings()
     {
         var data = TestData.Real;
-        foreach (var name in new[] { "standard_opener", "fast_expand", "tech_rush" })
+        foreach (var name in new[] { "standard_opener", "fast_expand", "tech_rush", "storage_skip" })
         {
             var o = Order(name);
             Assert.Equal(name, o.Name);
@@ -41,7 +41,126 @@ public class BalanceRunnerTests
                     case StepKind.Upgrade: Assert.Contains(data.Buildings, b => b.Id == s.Target); break;
                     case StepKind.Unit: Assert.Contains(data.SurfaceUnits, u => u.Id == s.Target); break;
                 }
+            foreach (var s in o.Steps)
+                foreach (var d in s.Deposit) Assert.True(data.Resources.Any(r => r.Id == d), $"{name}: unknown deposit {d}");
+            foreach (var p in o.Pauses) Assert.Contains(data.Buildings, b => b.Id == p.Building);
+            if (o.CrawlerRefuel is { } fuel) Assert.Contains(data.Resources, r => r.Id == fuel.Resource);
         }
+    }
+
+    [Fact]
+    public void OrdersReadPauseRulesRefuelDepositListsAndOrConditions()
+    {
+        var o = BuildOrder.Parse("""
+            { "crawlers": { "refuel": { "resource": "deuterium", "below": 50, "until": 150 } },
+              "pause": [ { "building": "foundry", "when": "duranium < 50 or parasteel >= 40", "resume": "duranium >= 100" } ],
+              "steps": [ { "build": "mine", "deposit": ["duranium_ore", "tritanium_ore"] }, { "build": "mine", "deposit": "tritanium_ore" } ] }
+            """);
+        Assert.Equal(new Refuel("deuterium", 50, 150), o.CrawlerRefuel);
+        var rule = Assert.Single(o.Pauses);
+        Assert.Equal("foundry", rule.Building);
+        Assert.True(rule.When.Holds(n => n == "duranium" ? 20 : 0));
+        Assert.True(rule.When.Holds(n => n == "duranium" ? 500 : 45));
+        Assert.False(rule.When.Holds(n => n == "duranium" ? 500 : 10));
+        Assert.True(rule.Resume!.Holds(_ => 120));
+        Assert.Equal(new[] { "duranium_ore", "tritanium_ore" }, o.Steps[0].Deposit);
+        Assert.Equal(new[] { "tritanium_ore" }, o.Steps[1].Deposit);
+        Assert.Throws<FormatException>(() => BuildOrder.Parse("""{ "pause": [ { "when": "duranium < 5" } ] }"""));
+    }
+
+    [Fact]
+    public void ThePauseRuleSwitchesTheFoundryOffAndOnThroughCommands()
+    {
+        // Stock the colony so the foundry comes early; the rule pauses it once parasteel piles up and resumes it after.
+        var order = BuildOrder.Parse("""
+            { "pause": [ { "building": "foundry", "when": "parasteel >= 3", "resume": "parasteel < 1" } ],
+              "steps": [ { "build": "storage_container" }, { "build": "fusion_reactor" }, { "build": "foundry" } ] }
+            """, "pause_test");
+        var data = TestData.Real;
+        var sim = MatchSetup.CreatePlanetLanding(data, 1701);
+        var bot = new Bot(sim, 0, order);
+        var paused = false;
+        for (var t = 0; t < Simulation.TicksPerMinute * 6 && !paused; t++)
+        {
+            bot.Think();
+            sim.Step();
+            paused = sim.Surface!.Structures.Any(s => s.DefId == "foundry" && s.Paused && s.Status == StructureStatus.Paused);
+        }
+        Assert.True(paused, string.Join("\n", bot.Log.Select(e => e.Text)));
+        Assert.Contains(bot.Log, e => e.Text.StartsWith("pause foundry", StringComparison.Ordinal));
+        Assert.Equal(0, sim.DebugEdits);
+        // Spend the parasteel: the rule switches it back on.
+        sim.Players[0].Stock.Add(data.Resource("parasteel").Index, -sim.Players[0].Stock[data.Resource("parasteel").Index]);
+        for (var t = 0; t < 3 * Bot.ThinkTicks; t++)
+        {
+            bot.Think();
+            sim.Step();
+        }
+        Assert.Contains(sim.Surface!.Structures, s => s.DefId == "foundry" && !s.Paused);
+        Assert.Contains(bot.Log, e => e.Text.StartsWith("resume foundry", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ACrawlerFetchesDeuteriumWhenTheReactorRunsLow()
+    {
+        // A thirsty reactor (60 deuterium a minute) runs the start stock down in a few minutes.
+        var data = TestData.Patched(("buildings/surface/fusion_reactor.json", "\"upkeep_per_min\": { \"deuterium\": 3 }", "\"upkeep_per_min\": { \"deuterium\": 60 }"));
+        var order = BuildOrder.Parse("""
+            { "crawlers": { "refuel": { "resource": "deuterium", "below": 60, "until": 200 } }, "survey": { "max_distance": 14 },
+              "steps": [ { "build": "storage_container" }, { "build": "refinery" }, { "build": "fusion_reactor" } ] }
+            """, "refuel_test");
+        var r = Runner.Run(data, order, 1, 12);
+        Assert.Contains(r.Log, e => e.Text.StartsWith("deuterium low", StringComparison.Ordinal));
+        Assert.Contains(r.Log, e => e.Text.Contains(" deuterium at ", StringComparison.Ordinal)); // drove to a deuterium deposit
+        Assert.Equal("", r.Crash);
+    }
+
+    [Fact]
+    public void TargetsJudgeMedianWindowsAndListMissedMilestones()
+    {
+        var targets = Targets.Load(TargetsFile());
+        Assert.Contains("ms:built:refinery", targets.For("standard_opener").Keys);
+        Assert.Contains("crashed", targets.For("standard_opener").Keys); // from "*"
+        var w = new TargetWindow(1, 2, "");
+        Measure M(double? median) => new("ms:x", "x", "Milestones", "time", false, new Spread(median, median, median, median == null ? 0 : 1, 1));
+        Assert.Equal("in", Targets.Judge(w, M(90), new double?[] { 90 })!.Verdict); // seconds vs minutes
+        Assert.Equal("early", Targets.Judge(w, M(30), new double?[] { 30 })!.Verdict);
+        Assert.Equal("late", Targets.Judge(w, M(200), new double?[] { 200 })!.Verdict);
+        Assert.Equal("missed", Targets.Judge(w, M(null), new double?[] { null })!.Verdict);
+        Assert.Equal("after run", Targets.Judge(new TargetWindow(40, 45, ""), M(null), new double?[] { null }, 30)!.Verdict);
+        var level = new Measure("made:duranium", "d", "Income", "", true, new Spread(20, 20, 20, 1, 1));
+        Assert.Equal("low", Targets.Judge(new TargetWindow(35, null, ""), level, new double?[] { 20 })!.Verdict);
+
+        // A milestone a target names shows up even when no run reached it: missed, or not judged when its window starts
+        // after the run's end.
+        var v = new Variant { Label = "A", Order = "standard_opener", Runs = { Runner.Run(TestData.Real, Order("standard_opener"), 1701, 3) } };
+        var file = Path.Combine(Path.GetTempPath(), "ff-targets-" + Guid.NewGuid().ToString("N") + ".json");
+        File.WriteAllText(file, """
+            { "orders": { "*": { "crashed": { "max": 0 } }, "standard_opener": { "ms:built:refinery": { "min": 1, "max": 2 },
+              "ms:core:colonial_administration": { "min": 20, "max": 30 }, "ms:second_base": { "max": 3 } } } }
+            """);
+        var mine = Targets.Load(file);
+        File.Delete(file);
+        var keys = Aggregate.MilestoneKeys(new[] { v }, mine);
+        Assert.Contains("core:colonial_administration", keys);
+        Assert.Contains("second_base", keys);
+        Aggregate.Measure(v, keys, mine);
+        string Verdict(string key) => v.Measures.Single(m => m.Key == key).Target!.Verdict;
+        Assert.Equal("in", Verdict("ms:built:refinery"));
+        Assert.Equal("after run", Verdict("ms:core:colonial_administration"));
+        Assert.Equal("missed", Verdict("ms:second_base"));
+        Assert.Equal("in", Verdict("crashed"));
+        Assert.Null(v.Measures.Single(m => m.Key == "end:duranium").Target);
+    }
+
+    private static string TargetsFile()
+    {
+        for (var d = new DirectoryInfo(AppContext.BaseDirectory); d != null; d = d.Parent)
+        {
+            var f = Path.Combine(d.FullName, "balance", "targets.json");
+            if (File.Exists(f)) return f;
+        }
+        throw new FileNotFoundException("balance/targets.json");
     }
 
     [Fact]
@@ -106,7 +225,7 @@ public class BalanceRunnerTests
     [Fact]
     public void ABRunsPickUpASlowerRefinery()
     {
-        var slow = TestData.Patched(("buildings.json", "\"cycles_per_min\": 20", "\"cycles_per_min\": 5"));
+        var slow = TestData.Patched(("buildings/surface/refinery.json", "\"cycles_per_min\": 25", "\"cycles_per_min\": 5"));
         var order = Order("standard_opener");
         var a = new Variant { Label = "A", Runs = { Runner.Run(TestData.Real, order, 1701, 10) } };
         var b = new Variant { Label = "B", Runs = { Runner.Run(slow, order, 1701, 10) } };
@@ -114,7 +233,7 @@ public class BalanceRunnerTests
         Aggregate.Measure(a, keys);
         Aggregate.Measure(b, keys);
         double Median(Variant v, string key) => v.Measures.Single(m => m.Key == key).Spread.Median ?? 0;
-        // A quarter of the refining: less duranium made, and ore piles up waiting for the refinery.
+        // A fifth of the refining: less duranium made, and ore piles up waiting for the refinery.
         Assert.True(Median(b, "made:duranium") < Median(a, "made:duranium"), $"duranium income A {Median(a, "made:duranium")} B {Median(b, "made:duranium")}");
         Assert.True(Median(b, "end:duranium_ore") > Median(a, "end:duranium_ore") + 50, $"ore left A {Median(a, "end:duranium_ore")} B {Median(b, "end:duranium_ore")}");
         Assert.NotEqual(a.Runs[0].StateHash, b.Runs[0].StateHash);

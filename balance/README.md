@@ -9,6 +9,7 @@ change does.
 - Code: `tools/BalanceRunner/` (a .NET 8 console project that references only the sim, `game/sim/`; not part of the
   Godot build). Tests: `game/tests/FinalFrontier.Sim.Tests/BalanceRunnerTests.cs` (run with the other tests).
 - Build orders: `balance/orders/*.json`.
+- Target windows: `balance/targets.json` (see "Targets" below): the report marks each milestone in or out of its window.
 - Reports for the current data: `balance/reports/` (see "What the current data does" below).
 
 ## Run it
@@ -50,6 +51,7 @@ dotnet run -c Release --project tools/BalanceRunner -- --orders balance/orders/f
 | `--labels A,B` | names for the variants (in order) |
 | `--title <text>` | report title |
 | `--lean` | no `runs/` folder and a compact summary (for reports you commit) |
+| `--targets <file\|none>` | target windows per order (default `balance/targets.json`); `none` = no targets |
 | `--quiet` | only print the report path |
 
 The console prints one line per run (ticks, wall time, ticks/s, × real time, build-order steps done, the final state
@@ -73,13 +75,16 @@ order; a step waits until it can be done (and its conditions hold), then the bot
   "planet": "class_m",
   "landing":  { "prefer": ["duranium_ore", "tritanium_ore"] },
   "survey":   { "max_distance": 22 },
-  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 12 },
+  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 12,
+                "refuel": { "resource": "deuterium", "below": 60, "until": 200 } },
   "upkeep":   { "maintain_below": 55, "repair_below": 45 },
   "research": ["improved_smelting", "ore_conveyors", "preventive_maintenance"],
+  "pause": [ { "building": "foundry", "when": "parasteel >= 40 or duranium < 50", "resume": "parasteel < 20 and duranium >= 100" } ],
   "steps": [
     { "build": "storage_container" },
     { "build": "refinery" },
-    { "build": "mine", "deposit": "tritanium_ore", "timeout": 300 },
+    { "build": "mine", "deposit": ["duranium_ore", "tritanium_ore"], "timeout": 90 },
+    { "build": "refinery", "when": "duranium_ore >= 100 or tritanium_ore >= 100", "timeout": 240 },
     { "upgrade": "refinery" },
     { "unit": "mining_crawler" },
     { "build": "foundry", "when": "duranium >= 200 and tritanium >= 80" },
@@ -98,6 +103,13 @@ order; a step waits until it can be done (and its conditions hold), then the bot
 - `crawlers.prefer` / `max_distance`: an idle crawler drives to the nearest surveyed deposit of its preferred ore near a
   finished base (crawler n starts at entry n of the list, so two crawlers split between the ores); once a minute a
   crawler on a less wanted ore moves if a more wanted deposit is now known. Used-up deposits: it finds the next one.
+- `crawlers.refuel` (optional): while a building burns that resource (a Fusion Reactor: deuterium) and the stock is
+  below `below`, the newest crawler puts it first and mines the nearest surveyed deposit of it, until the stock reaches
+  `until`; then it goes back to its ores. (Deuterium deposits lie on coastal plains and desert: this is the surface's
+  deuterium source.)
+- `pause` (optional): standing pause rules. Every building of that type is switched off (`PauseCommand`) while `when`
+  holds and back on when `resume` holds (without `resume`: as soon as `when` no longer does). E.g. keep the Alloy
+  Foundry from eating the metal you are saving, or stop it once there is parasteel enough.
 - `upkeep.maintain_below`: send the base crew (`MaintainCommand`) to any building below this condition or broken.
   `upkeep.repair_below`: send rovers below this integrity to the repair pad; a flat tyre is changed with the spare
   (`ChangeTyreCommand`), or the rover goes to the pad when there is none; broken crawlers and disabled rovers go to the pad.
@@ -108,7 +120,7 @@ order; a step waits until it can be done (and its conditions hold), then the bot
 
 | Step | Does |
 |---|---|
-| `{ "build": "<building>", "count": 1, "base": "main", "deposit": "<ore>", "queue": false }` | Places the building on the best tile of the base: the sim's `CheckPlacement` must say it's fine; nearest the core first, ordinary buildings keep off deposits and off tiles crawlers are heading for; mines go on the `deposit` ore if one is in range (else any ore), biggest deposit first. Waits for a free build queue unless `"queue": true` (then it pays up front and waits in line). `base`: `"main"` (first base), `"newest"`, `"any"` (oldest with a free queue and a spot) or a number (1 = first). |
+| `{ "build": "<building>", "count": 1, "base": "main", "deposit": "<ore>", "queue": false }` | Places the building on the best tile of the base: the sim's `CheckPlacement` must say it's fine; nearest the core first, ordinary buildings keep off deposits and off tiles crawlers are heading for; mines go on the `deposit` ore if one is in range, biggest deposit first. `deposit` can be a list (`["duranium_ore", "tritanium_ore"]`: only those, in that order); a single ore falls back to any other raw ore (never dilithium or other strategics); none = any deposit. Waits for a free build queue unless `"queue": true` (then it pays up front and waits in line). `base`: `"main"` (first base), `"newest"`, `"any"` (oldest with a free queue and a spot) or a number (1 = first). |
 | `{ "upgrade": "<building>" }` | Next level (Mk II, Mk III) of the first one of that type that can take it, or the core's next building (`colony_hub` → Colonial Administration). Skipped when all are at the top level. |
 | `{ "unit": "<unit>", "count": 1 }` | Orders it at a finished Vehicle Bay with room in its queue. |
 | `{ "research": "<tech>" }` | Puts the tech at the front of the research list (done at once). |
@@ -119,7 +131,8 @@ order; a step waits until it can be done (and its conditions hold), then the bot
 
 Every step can also have:
 
-- `"when": "<condition>"`: terms joined by `and`, each `<name> <op> <number>` with `>= <= > < ==`. Names: a resource id
+- `"when": "<condition>"`: terms joined by `and` (and groups of those joined by `or`, which binds looser), each
+  `<name> <op> <number>` with `>= <= > < ==`. Names: a resource id
   (stock, e.g. `duranium`, `duranium_ore`, `parasteel`), `minute`, `storage_free`, `storage_pct`, `power_free` (main
   base supply − use), `income:<resource>` (per minute, the HUD's number), `count:<building or unit id>`.
 - `"after": "<id>"` (or a list): a finished building of that type, a known tech, a unit of that type, or `second_base`,
@@ -128,11 +141,43 @@ Every step can also have:
   stuck order shows in the report as "stopped at step N (…): <why>" (can't afford it, no valid tile in range, build queue
   busy, not enough resources, needs a level 2 base, …).
 
-The orders shipped: `standard_opener` (the Data Lab mockup's opener played for real: storage, refinery, a tritanium
-mine, lab, reactor, storage, refinery Mk II, Vehicle Bay + second crawler, foundry, Colonial Administration, refinery Mk
-III; no beams), `fast_expand` (beams the hold down, refinery + duranium mine, Vehicle Bay at 2 min, construction rover →
-second base, mine and storage there, second crawler, second refinery, lab, reactor, an outpost drop), `tech_rush`
-(beams, two labs early, refinery Mk II, foundry, mine Mk II; every tech).
+The orders shipped: `standard_opener` (storage, refinery, a duranium mine (else tritanium), lab, a second refinery
+once ore piles up, storage, refinery Mk II, Vehicle Bay + second crawler, the reactor when the foundry needs the power,
+foundry (paused while metal is short or parasteel piles up), Colonial Administration, refinery Mk III; the newest crawler
+fetches deuterium when the reactor runs low; no beams), `storage_skip` (a naive opener: no Storage Container and one
+refinery, otherwise like the standard one; it checks that storage fills fast), `fast_expand` (beams the hold down,
+refinery + duranium mine, Vehicle Bay at 2 min, construction rover → second base, mine and storage there, second crawler,
+second refinery, lab, reactor, an outpost drop), `tech_rush` (beams, two labs early, refinery Mk II, reactor, foundry,
+mine Mk II; every tech). Before the 2026-11-07 retune the standard opener built the reactor at 2:30 (not needed until
+the foundry) and put its mine on dilithium when no ore was in range.
+
+## Targets
+
+`balance/targets.json` holds target windows per build order (placeholders, like every number in the data): which
+milestone should come when, and ranges for other measures. Keys are the measure keys of `summary.json` / the Key numbers
+table; `ms:<milestone>` takes minutes, other measures their own unit; `min` and `max` are both optional; `"*"` applies to
+every order (an order's own entry wins).
+
+```json
+{ "orders": {
+    "*": { "end:deuterium": { "min": 20, "why": "the surface can fuel a reactor" } },
+    "standard_opener": {
+      "ms:built:refinery": { "min": 1, "max": 2 },
+      "ms:built:vehicle_bay": { "min": 6, "max": 9 },
+      "made:duranium": { "min": 35 } } } }
+```
+
+The console prints "N of M targets in their window" per variant with the ones that are out; the report has a Targets card
+and a badge on every targeted row of Key numbers: `in`, `early` / `late` (times), `low` / `high` (other measures),
+`missed` (no seed reached it), or `after run` (not reached, and the window starts after the run's end: not judged — run
+longer); `2/3` = seeds whose own value is inside. The median of the seeds is what counts (a milestone only some seeds
+reach: the median of those that did). Milestones a target names are listed even when no run reached them.
+
+The windows set for the economy retune (2026-11-07), standard opener: refinery 1–2 min, Vehicle Bay 6–9, second crawler
+9–12, first parasteel 12–18, Colonial Administration 20–30, power needed beyond the core (a reactor decision) 10–20, all
+seven surface techs 35–45 with one lab, refinery idle ≤ 5 min, duranium income ≥ 35 a minute; storage_skip: storage first
+full 10–15 min; fast_expand: bay ≤ 4, second base 4–10, second crawler ≤ 15; tech_rush: all techs 18–30 with two labs,
+first parasteel ≤ 15; every order: no power shortage over a minute, deuterium ≥ 20 at the end, no crash.
 
 **Factions.** Today the surface economy is Federation-first: every faction has the same build menu, buildings, units,
 costs and techs. What does differ in the sim is the ship in orbit (name only) and the **transporter level** (surfaces.json
@@ -147,7 +192,7 @@ and compare them with `--orders a.json,b.json`.
 ## What the bot can and can't do
 
 Can: pick a landing site with the UI's rules, land, survey with every survey rover, put every crawler to work and move it
-when its deposit runs out or a better one turns up, place buildings at valid tiles near a chosen base, wait for queues and
+when its deposit runs out or a better one turns up, send a crawler for deuterium, pause and resume buildings by rule, place buildings at valid tiles near a chosen base, wait for queues and
 resources, upgrade buildings and cores, order vehicles, research a list, keep buildings maintained, repair crawlers and
 rovers and change flat tyres, found outposts with construction rovers, drop outposts from orbit, beam supplies. It acts
 only through commands scheduled for the current tick (no test-panel commands: `DebugEdits` stays 0) and decides once a
@@ -170,8 +215,9 @@ or decide what to build by itself — it is a build-order player, not an AI. Sur
   milestone. With variants, the change against the first is green when better for the player, red when worse, and
   "same" under 2%; changed cells are highlighted.
   - *Milestones*: first time something happened (a building type finished, first refined metal, first parasteel,
-    first Mk II / Mk III, a core upgrade, second base up, each tech, each vehicle rolled out of a bay, storage first full,
-    build order finished).
+    first Mk II / Mk III, a core upgrade, second base up, each tech, every surface tech known, each vehicle rolled out of
+    a bay, storage first 80% full and first full, power needed beyond the core (a base using more than its own core
+    supplies: the reactor decision), build order finished).
   - *Stalls*: minutes with storage full (no room for 1 more unit), mining blocked (a crawler waiting on full storage or
     nowhere to send pods, or a mine stopped by full storage), every refinery idle for lack of ore, a base short of power,
     a building broken down.
@@ -188,41 +234,83 @@ fixed-point; the bot only reads state). Speeds differ, nothing else. If a run th
 keeps what it measured, and the report says where (`CRASHED: …`); that is how the converter crash fixed in this branch
 was found.
 
-## What the current data does (2026-11-06, 3 seeds × 30 min)
+## What the current data does (economy retune 2026-11-07, 3 seeds × 30 and 60 min)
 
-Reports: `reports/standard_opener/`, `reports/orders/` (the three orders), `reports/ab_mockup_draft/` (the Data Lab
-mockup's draft: refinery 16 cycles/min and Storage Container 1500), `reports/factions/` (Federation vs Ferengi).
+Reports: `reports/economy_retune/<order>/` (A/B: **before** = the data as it was (commit 3f59eb1), **after** = now; both
+with the same new orders and bot, 3 seeds × 30 min; `standard_opener_60/` = 60 min), `reports/standard_opener/`,
+`reports/orders/` (all four orders), `reports/factions/` (Federation vs Ferengi on fast_expand) for the current data.
+`reports/ab_mockup_draft/` is from before the retune (the Data Lab mockup's draft on the old data).
 
-- **Duranium is the bottleneck.** Standard opener: duranium income averages ~20 a minute (one crawler's 30 ore/min
-  refined at 2 : 1, plus the hub's 4); its stock stays under ~150 all game. The Vehicle Bay (180 duranium) only comes at
-  13–23 min, the second crawler at 17–28 min (one seed never), the foundry in one seed of three, and no seed affords
-  Colonial Administration (300 duranium + 150 tritanium) in 30 min — or in 75. Beaming the ship's hold down (700 metal
-  and deuterium) changes the opening completely: fast_expand has its Vehicle Bay at 2:05 and a second base at 4:46.
-- **Storage never fills.** Peak fill is 63% (standard) to 79% (beams), and it is reached in the first minute (landing
-  stock in the 1,500 hub vault); after the first two minutes the fill stays at 17–52% for the rest of the 30 minutes
-  (up to 72% by 75 min in fast_expand, where unrefined ore piles up). 0 minutes of full storage or blocked mining in
-  every run, even over 75 minutes. Making containers 1,500 instead of 2,000 (mockup draft) changes nothing. This
-  refutes the mockup stand-in's "storage fills fast" — it would only fill once ore outruns refining for an hour.
-- **One crawler can't keep one refinery busy.** 30 ore/min vs the refinery's 40 (Mk II 52): the refinery is idle with
-  no ore 11.5 min of 30 in the standard opener. A slower refinery (16 cycles, mockup draft) barely matters (duranium
-  income −2 a minute). With several ore sources it flips: fast_expand (2 crawlers, 2 mines) ends with ~1,250 duranium ore
-  waiting even after a second refinery. Mines dig ore, not metal, so every mine needs refining capacity.
-- **Mines run dry fast.** The deposit in the hub's build radius lasts about 5 min under a mine (standard, seed 1701: 4.8
-  min working, 69 min depleted); the bot doesn't salvage or move mines, a player would.
-- **Tritanium only trickles** unless something mines tritanium ore (hub 2/min); the foundry (2 duranium + 1 tritanium →
-  parasteel) then drains both: tech_rush makes 6 parasteel a minute but its duranium income falls to ~7.5/min. The
-  Alloy Foundry pause toggle (open item) would matter.
-- **Power:** the hub's 30 covers refinery + mine + lab + Vehicle Bay (28); no base was ever short of power, so the
-  first Fusion Reactor is not needed until the foundry. The reactor eats 3 deuterium a minute and nothing on the surface
-  makes deuterium: in 75 minutes the standard opener runs out (reactor NoUpkeep for the last ~30 min).
-- **Research is slow:** one lab (10 points a minute) takes 63 minutes for all seven techs (630 points); tech_rush with two
-  labs knows six techs by 30 min. Refinery Mk III needs a level 2 base (Colonial Administration), which no duranium-starved
-  order reaches.
-- **Rover damage barely shows in 30 minutes:** survey within 22 tiles is done in ~5 min; no flats, ≤ 2 hazard hits,
-  lowest integrity ~92 (worst seed 74). Crawlers break down 1–4 times and spend 0.5–3 min broken or in repair.
-- **Weather:** ~0.5 vehicle-minutes of driving lost per run, drop ships grounded over the hub ~4 min of 30.
-- **Factions:** Federation and Klingon play identically (same data); Ferengi (transporter level 2) get the second base
-  2.5 min later and end with 49 duranium instead of 334 on fast_expand. That is the only faction difference in the sim.
+**The changes** (data; every one a placeholder):
+
+| What | Before → after | Why |
+|---|---|---|
+| Mining Crawler `extract_per_min` / `hopper` | 30 / 10 → 60 / 20 | one crawler keeps a refinery busy (a pod every 20 s, as before) |
+| Mining Complex `extract_per_min` | 40 → 80 | a mine on top of the crawler piles ore up: storage fills fast unless you refine |
+| Deep-Core Mine `extract_per_min` | 24 → 48 | keeps its 0.6 of a mine |
+| Ore Refinery `cycles_per_min` / `storage` | 20 / 300 → 25 / 200 | 50 ore a minute: refining is the limit, so ore piles; its bins are a buffer, not a warehouse |
+| Storage Container `storage` | 2000 → 1000 | storage is limited and fills fast (owner's rule); the hub vault stays 1500 |
+| Duranium ore deposits | hills, 0.22, 600–1800 → hills + plains, 0.15, 1200–3000 | plains are landing ground, so a mine near the hub usually finds duranium; deposits last 15–40 min under a mine |
+| Tritanium ore deposits | hills + plains, 0.07, 400–1200 → hills, 0.12, 800–2400 | tritanium (needed about a third as much) is a crawler drive away instead of filling the hub's radius |
+| Research Lab `research_per_min` | 10 → 16 | all seven techs (630 points) in ~40 min with one lab |
+| Colony Hub `power_supply` | 30 → 36 | two refineries, a mine, a lab and the bay run on the hub; the reactor becomes needed with the foundry (~15 min) |
+
+Not changed: costs (Vehicle Bay, Colonial Administration, foundry, everything), the hub vault (1500) and its small
+trickle (4 duranium, 2 tritanium), reactor upkeep, deuterium deposits, landing stock, one crawler at landing.
+
+**Sim:** any building that works can be paused (`PauseCommand`, P / the building panel; status Paused: no input, no
+output, no upkeep, no wear, no power). **Orders/bot:** pause rules, `crawlers.refuel`, deposit lists, `or` in conditions;
+the standard opener now builds its reactor when the foundry needs it, a second refinery once ore piles up, and pauses the
+foundry when metal is short or parasteel piles up; new order `storage_skip`.
+
+**Standard opener, median of seeds 1, 1701, 99999** (original = old data, old orders and bot; before = old data with the
+new orders and bot; after = now):
+
+| Milestone | Target | Original | Before | After (30 min) | After (60 min) |
+|---|---|---|---|---|---|
+| Refinery done | 1–2 min | 1:13 | 1:13 | 1:13 | 1:13 |
+| Vehicle Bay done | 6–9 | 19:52 | 10:45 | 8:19 | 8:19 |
+| Second crawler rolled out | 9–12 | 22:46 (2/3) | 25:17 | 10:37 | 10:37 |
+| Power needed beyond the core | 10–20 | (reactor at 2:28) | 13:11 (1/3) | 16:09 (2/3) | 16:09 (2/3) |
+| First parasteel | 12–18 | 23:32 (1/3) | 20:43 (1/3) | 16:27 | 16:27 |
+| Colonial Administration | 20–30 | never (75 min) | 28:42 (1/3); 43:38 in 60 min | 23:07 (2/3) | 23:30 |
+| All seven techs, one lab | 35–45 | 63 min | not in 60 | – | 41:32 |
+| Duranium income a minute | ≥ 35 | 20 | 19 | 52 | 54 |
+| Every refinery idle (no ore) | ≤ 5 min | 12 | 0.3 (12 in 60 min) | 0 | 0 |
+| Deuterium at the end | ≥ 20 | 47 | 128 | 74 | 402 (refuelled) |
+| Targets in window | | | 7 of 11 (5 of 12 at 60) | 11 of 11 | 12 of 12 |
+
+Other orders (30 min, after): storage_skip storage first full 14:43 (target 10–15; before: never) and then 9.6 min full;
+fast_expand 6 of 6 (bay 2:05, second base 4:47, second crawler 5:54); tech_rush 5 of 5 (first parasteel 4:52, all techs
+21:56). Seven seeds × 45 min (1, 1701, 99999, 42, 2024, 7, 314) keep the standard opener at 12 of 12.
+
+- **Duranium is no longer the bottleneck:** ~50 a minute instead of ~20; Vehicle Bay at ~8 min, second crawler ~10:40,
+  Colonial Administration ~23 min, Mk III refinery by ~25 min. The refinery is now the limit: with a crawler and a mine
+  on duranium ore it can't keep up, ore piles up (1,600 duranium ore by 30 min on seeds 1 and 99999) — a second
+  refinery or a Mk II is the answer, and a reason to build storage.
+- **Storage fills fast now:** without containers (storage_skip) the vault fills at ~14:40 and mining stalls ~10 of 30
+  min; tech_rush (one refinery, one container, beams) is full 11 min and its crawler digs only 57% of the time;
+  fast_expand 4 min full. The standard opener (two containers, two refineries) stays below 80% for 40 min and reaches
+  ~88% by 60.
+- **Deuterium:** deuterium deposits (coastal plains and desert) were the surface source all along; the bot just never
+  mined them. With `crawlers.refuel` a crawler fetches ~150 in 3–4 min when the reactor runs it down (around 35–45 min);
+  402 at 60 min. The reactor also comes later now (~11 min, when needed), not at 2:30.
+- **Mines last:** a mine on a 1200–3000 duranium deposit works 17–32 min (the old "5 minutes" was the bot putting its
+  mine on a dilithium deposit of ~200). The bot still doesn't salvage used-up mines.
+- **Pause:** the foundry spends most of its time paused once it has 40 parasteel (it only feeds Mk III upgrades so
+  far); the rule pauses it below 50 duranium too. Generic: any converter, mine, bay, lab or reactor.
+- **Seed variance is big:** on seed 1701 there is no duranium ore in the hub's radius, so the mine digs tritanium
+  (1,200+ tritanium piles up) and Colonial Administration comes at ~37 min; one seed in three misses it in 30 min.
+- **Tritanium** now mostly comes from the second crawler (hills); it piles up mid-game (500–1,400) because only
+  Colonial Administration and the foundry need much of it.
+- **Rovers, weather, breakdowns:** as before (little rover damage in 30 min, ~0.5 vehicle-min lost to weather).
+- **Factions** still differ only by the transporter (Ferengi get their second crawler ~16 min instead of ~6 on
+  fast_expand); the per-faction bonuses are text only — left for later.
+
+Before the retune (2026-11-06, kept for the record): duranium ~20 a minute and under ~150 all game, no seed reached
+Colonial Administration in 75 min, storage never filled (peak 63% in the first minute), one crawler (30/min) left a
+refinery (40/min) idle 11.5 of 30 min, tritanium trickled, the foundry drained duranium with no way to stop it, the
+reactor ran dry at ~45–50 min, one lab needed 63 min for seven techs.
 
 ## Writing new measures
 

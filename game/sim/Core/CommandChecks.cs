@@ -117,6 +117,7 @@ public static class CommandHash
         ChangeTyreCommand => 18,
         SalvageCommand => 19,
         FoundOutpostCommand => 20,
+        PauseCommand => 21,
         // Test panel.
         DebugUnitCommand => 101,
         DebugMoveUnitCommand => 102,
@@ -164,6 +165,7 @@ public static class CommandHash
             case ChangeTyreCommand c: Ids(ref h, c.UnitIds); break;
             case SalvageCommand c: h.Add(c.StructureId); break;
             case FoundOutpostCommand c: h.Add(c.UnitId); h.Add(c.Tile); break;
+            case PauseCommand c: h.Add(c.StructureId); h.Add(c.Pause); break;
             case DebugUnitCommand c: h.Add(c.UnitId); h.Add((int)c.Field); h.Add(c.Value); break;
             case DebugMoveUnitCommand c: h.Add(c.UnitId); h.Add(c.Tile); break;
             case DebugRemoveUnitCommand c: h.Add(c.UnitId); break;

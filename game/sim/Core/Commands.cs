@@ -63,6 +63,10 @@ public sealed record RepairCommand(int Player, IReadOnlyList<int> UnitIds) : Com
 /// <summary>The crews of these rovers change a flat tyre where they stand (parked for the tyres' change_seconds, uses a spare).</summary>
 public sealed record ChangeTyreCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
 
+/// <summary>Switch a building off (Pause = true) or back on (false): a paused building uses no input, makes nothing, pays no
+/// upkeep, doesn't wear and neither uses nor supplies power. Any building that does work except a colony core.</summary>
+public sealed record PauseCommand(int Player, int StructureId, bool Pause) : Command(Player);
+
 /// <summary>Take down a finished building (not a colony core) for part of its cost back; frees the tile.</summary>
 public sealed record SalvageCommand(int Player, int StructureId) : Command(Player);
 
