@@ -252,12 +252,11 @@ public partial class ModelThumbnails : Node
     private void ClearJob()
     {
         _studio.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
-        if (_jobModel != null)
+        foreach (var child in _studioStage.GetChildren()) // the model's holder and the ground disc
         {
-            _studioStage.RemoveChild(_jobModel);
-            _jobModel.QueueFree();
+            _studioStage.RemoveChild(child);
+            child.QueueFree();
         }
-        foreach (var child in _studioStage.GetChildren()) child.QueueFree(); // the ground disc
         _jobModel = null;
         _job = null;
         _drawn = 0;
