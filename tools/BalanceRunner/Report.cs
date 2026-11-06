@@ -163,6 +163,7 @@ td.chg { background: var(--chg); }
 details { margin: 6px 0; } summary { cursor: pointer; color: var(--text2); }
 .log { font: 12px/1.5 ui-monospace, Consolas, monospace; max-height: 320px; overflow: auto; background: var(--bg); padding: 8px; border-radius: 6px; }
 .note { color: var(--text2); font-size: 13px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
 code { font: 12px ui-monospace, Consolas, monospace; }
 @media (max-width: 600px) { .tile .v { font-size: 17px; } th, td { padding: 4px 5px; } }
 </style>
@@ -194,6 +195,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const COLORS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)"];
 const DASH = ["", "6 4", "2 3", "8 3 2 3"];
 const V = R.variants;
+const SW = (i) => `<i class="sw" style="background:${COLORS[i]}"></i>`;
 const mmss = (s) => s == null ? "–" : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 const num = (v, d = 1) => v == null ? "–" : (Math.abs(v) >= 100 ? Math.round(v).toLocaleString("en-GB") : (+v.toFixed(d)).toLocaleString("en-GB"));
 const fmt = (v, unit) => unit === "time" ? mmss(v) : unit === "%" ? `${num(v, 0)}%` : unit === "min" ? `${num(v, 1)} min` : unit === "×" ? `×${num(v, 0)}` : num(v, 1);
@@ -201,14 +203,14 @@ const fmt = (v, unit) => unit === "time" ? mmss(v) : unit === "%" ? `${num(v, 0)
 $("#title").textContent = R.title;
 const seeds = V[0].runs.map((r) => r.seed);
 $("#sub").innerHTML = `${V.length > 1 ? V.length + " variants · " : ""}${seeds.length} seed${seeds.length > 1 ? "s" : ""} (${seeds.join(", ")}) · ${R.minutes} min of game time each · sampled every ${R.sample} s · `
-  + V.map((v, i) => `<b style="color:${COLORS[i]}">${esc(v.label)}</b>: order <code>${esc(v.order)}</code>, ${esc(v.faction)}, data <code>${esc(v.data)}</code>${v.edits.length ? ", edits <code>" + v.edits.map(esc).join("</code>, <code>") + "</code>" : ""}`).join(" · ");
+  + V.map((v, i) => `${SW(i)}<b>${esc(v.label)}</b>: order <code>${esc(v.order)}</code>, ${esc(v.faction)}, data <code>${esc(v.data)}</code>${v.edits.length ? ", edits <code>" + v.edits.map(esc).join("</code>, <code>") + "</code>" : ""}`).join(" · ");
 
 // ---- tiles: the headline numbers of the first variant (and the change in the others)
 const M = (v, key) => v.measures.find((m) => m.key === key);
 const TILES = ["ms:first_metal", "ms:built:refinery", "ms:first_parasteel", "ms:second_base", "end:duranium", "end:tritanium", "peak_storage", "stall:storage_full", "crawler_uptime", "idle_share", "speed"];
 $("#tiles").innerHTML = TILES.map((k) => {
   const m = M(V[0], k); if (!m) return "";
-  const others = V.slice(1).map((v, i) => { const o = M(v, k); return `<span style="color:${COLORS[i + 1]}">${esc(v.label)} ${fmt(o.spread.median, o.unit)}</span>`; }).join(" · ");
+  const others = V.slice(1).map((v, i) => { const o = M(v, k); return `<span>${SW(i + 1)}${esc(v.label)} ${fmt(o.spread.median, o.unit)}</span>`; }).join(" · ");
   const reach = m.spread.reached < m.spread.runs ? ` · reached in ${m.spread.reached}/${m.spread.runs}` : "";
   return `<div class="card tile"><div class="k">${esc(m.label)}</div><div class="v">${fmt(m.spread.median, m.unit)}</div><div class="d">${V.length > 1 ? esc(V[0].label) + " · " : ""}seeds ${fmt(m.spread.min, m.unit)} – ${fmt(m.spread.max, m.unit)}${reach}${others ? "<br>" + others : ""}</div></div>`;
 }).join("");
@@ -265,7 +267,7 @@ function draw() {
   hit.addEventListener("pointermove", (e) => {
     const r = svgEl.getBoundingClientRect(); const sx = (e.clientX - r.left) / r.width * W; const t = Math.max(0, Math.min(xMax, (sx - ml) / (W - ml - mr) * xMax));
     cross.setAttribute("x1", X(t)); cross.setAttribute("x2", X(t)); cross.setAttribute("visibility", "visible");
-    const rows = med.map((l) => { let best = l.pts[0]; for (const p of l.pts) if (Math.abs(p[0] - t) < Math.abs(best[0] - t)) best = p; return `<div><span style="color:${COLORS[l.vi]}">■</span> ${esc(V[l.vi].label)}${l.tag ? " " + l.tag : ""}${l.seed !== null && V[l.vi].runs.length === 1 ? "" : " (median)"}: <b>${num(best[1], 1)}</b></div>`; });
+    const rows = med.map((l) => { let best = l.pts[0]; for (const p of l.pts) if (Math.abs(p[0] - t) < Math.abs(best[0] - t)) best = p; return `<div>${SW(l.vi)}${esc(V[l.vi].label)}${l.tag ? " " + l.tag : ""}${l.seed !== null && V[l.vi].runs.length === 1 ? "" : " (median)"}: <b>${num(best[1], 1)}</b></div>`; });
     tip.innerHTML = `<div><b>${mmss(t * 60)}</b></div>${rows.join("")}`; tip.style.display = "block";
     const left = (e.clientX - r.left) + 14; tip.style.left = Math.min(left, r.width - tip.offsetWidth - 4) + "px"; tip.style.top = "8px";
   });
@@ -286,7 +288,7 @@ function delta(m0, m, i) {
   return `<span class="${cls}">${txt}</span>`;
 }
 (function () {
-  const cols = V.map((v, i) => `<th style="color:${COLORS[i]}">${esc(v.label)}<br><span class="rng">median (min–max)</span></th>` + (i ? `<th>change vs ${esc(V[0].label)}</th>` : "")).join("");
+  const cols = V.map((v, i) => `<th>${SW(i)}${esc(v.label)}<br><span class="rng">median (min–max)</span></th>` + (i ? `<th>change vs ${esc(V[0].label)}</th>` : "")).join("");
   let html = `<thead><tr><th>Measure</th>${cols}</tr></thead><tbody>`;
   let group = "";
   V[0].measures.forEach((m0, k) => {
@@ -311,14 +313,14 @@ function delta(m0, m, i) {
     const rows = types.map((t) => `<tr><td>${esc(t)}</td>` + statuses.map((s) => { const x = median(v.runs.map((r) => (r.status_seconds[t] || {})[s] || 0)) / 60; return `<td>${x ? num(x, 1) : ""}</td>`; }).join("") + "</tr>").join("");
     const crawler = ["mining", "storage_full", "no_destination", "unfolding", "driving", "broken", "repairing", "idle"];
     const crow = `<tr><td>crawlers (crawler-minutes)</td><td colspan="${statuses.length}" style="text-align:left">` + crawler.map((s) => { const x = median(v.runs.map((r) => r.crawler_seconds[s] || 0)) / 60; return x ? `${s} ${num(x, 1)}` : ""; }).filter(Boolean).join(" · ") + "</td></tr>";
-    return `${V.length > 1 ? `<h3 style="color:${COLORS[i]};font-size:14px">${esc(v.label)}</h3>` : ""}<table><thead><tr><th>Building</th>${statuses.map((s) => `<th>${s}</th>`).join("")}</tr></thead><tbody>${rows}${crow}</tbody></table>`;
+    return `${V.length > 1 ? `<h3 style="font-size:14px">${SW(i)}${esc(v.label)}</h3>` : ""}<table><thead><tr><th>Building</th>${statuses.map((s) => `<th>${s}</th>`).join("")}</tr></thead><tbody>${rows}${crow}</tbody></table>`;
   }).join("");
 })();
 
 // ---- runs: speed, hash, stalls, bot log
 $("#runs").innerHTML = V.map((v, i) => v.runs.map((r) => {
   const stalls = r.stalls.filter((s) => s.end - s.start >= 10).map((s) => `${mmss(s.start)}–${mmss(s.end)} ${esc(s.kind)}`).join(" · ") || "none of 10 s or more";
-  return `<details><summary><b style="color:${COLORS[i]}">${esc(v.label)}</b> seed ${r.seed} · ${num(r.ticks_per_second, 0)} ticks/s (×${num(r.speedup, 0)} real time, ${num(r.wall_ms / 1000, 1)} s) · steps ${r.steps_done}/${r.steps_total} · hash <code>${esc(r.state_hash)}</code></summary>
+  return `<details><summary>${SW(i)}<b>${esc(v.label)}</b> seed ${r.seed} · ${num(r.ticks_per_second, 0)} ticks/s (×${num(r.speedup, 0)} real time, ${num(r.wall_ms / 1000, 1)} s) · steps ${r.steps_done}/${r.steps_total} · hash <code>${esc(r.state_hash)}</code></summary>
   <p class="note">Landing tile ${r.landing_tile}. End: ${Object.entries(r.end_buildings).map(([k, n]) => `${n}× ${esc(k)}`).join(", ")}; units ${Object.entries(r.end_units).map(([k, n]) => `${n}× ${esc(k)}`).join(", ")}; techs ${r.end_techs.map(esc).join(", ") || "none"}.${r.crash ? `<br><b class="down">The run stopped early: ${esc(r.crash)}</b>` : ""}<br>Stalls: ${stalls}${r.stuck_on ? "<br>Build order stopped at " + esc(r.stuck_on) : "<br>Build order finished."}</p>
   <div class="log">${r.log.map(([t, s]) => `${mmss(t)}  ${esc(s)}`).join("<br>")}</div></details>`;
 }).join("")).join("");
