@@ -45,6 +45,9 @@ Run (bpy 5.x module venv):
   /home/user/.bpyvenv/bin/python blender/build_refinery.py --game --preview blender/previews/refinery
 Flags: --out <glb>, --no-join, --no-bake, --bake-res 1024, --res 960, --samples 24, --threads N,
        --shots hero,game,close,night,top,back,pieces
+Previews land in blender/previews/refinery/refinery-<shot>.png ("close" also writes close2; "pieces" writes the build
+order at pieces 3/7/11/15 as refinery-pieces03..15.png, kept in the repo as the 2 x 2 sheet refinery-pieces.png).
+A full --game export plus every preview takes ~3 min.
 """
 import math
 import os

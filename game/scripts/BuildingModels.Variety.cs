@@ -154,8 +154,15 @@ public static partial class BuildingModels
             var kind = v.Pick(GroundAddOns);
             AddGround(addOns, kind, at, yaw + v.Range(-15f, 15f), v);
         }
-        if (d.Roof.Length > 0 && v.Chance(0.55f))
-            AddRoof(addOns, v.Pick(RoofAddOns), v.Pick(d.Roof), v.Range(0f, 180f), v);
+        // the derricks' caps move with their height
+        var roof = defId switch
+        {
+            "mine" => new[] { new Vector3(0f, 0.95f + 7f * v.Height, 0f) },
+            "deep_core_mine" => new[] { new Vector3(0f, 1f + 10f * v.Height3, 0f) },
+            _ => d.Roof,
+        };
+        if (roof.Length > 0 && v.Chance(0.55f))
+            AddRoof(addOns, v.Pick(RoofAddOns), v.Pick(roof), v.Range(0f, 180f), v);
         if (serial > 0 && d.PlateHeight > 0f)
         {
             var text = $"{d.Name} {serial:00}";

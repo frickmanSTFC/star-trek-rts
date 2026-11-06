@@ -320,8 +320,8 @@ public static partial class BuildingModels
         var mh = 6.5f * v.Height;
         var tilt = v.IsPlain ? 35f : v.Range(25f, 50f);
         Add(n, new CylinderMesh { TopRadius = 0.18f, BottomRadius = 0.3f, Height = mh, RadialSegments = 8 }, new Vector3(2.6f, 0.35f + mh / 2f, -2f), hull);
-        Add(n, new CylinderMesh { TopRadius = 1.4f, BottomRadius = 0.2f, Height = 0.6f, RadialSegments = 14 }, new Vector3(2.6f, 0.05f + mh, -2f), hull, new Vector3(tilt, 0, 0));
-        Add(n, new SphereMesh { Radius = 0.2f, Height = 0.4f }, new Vector3(2.6f, 0.65f + mh, -1.6f), Glow(new Color(1f, 0.6f, 0.15f), 3f));
+        Add(n, new CylinderMesh { TopRadius = 1.4f, BottomRadius = 0.2f, Height = 0.6f, RadialSegments = 14 }, new Vector3(2.6f, 0.3f + mh, -2f), hull, new Vector3(tilt, 0, 0));
+        Add(n, new SphereMesh { Radius = 0.2f, Height = 0.4f }, new Vector3(2.6f, 0.9f + mh, -1.6f), Glow(new Color(1f, 0.6f, 0.15f), 3f));
         // Containment ring on a plinth in the accent colour: the "experiment".
         Add(n, new CylinderMesh { TopRadius = 0.9f, BottomRadius = 1.1f, Height = 0.8f, RadialSegments = 12 }, new Vector3(2.4f, 0.8f, 1.8f), Metal(v.Accent, 0.4f, 0.45f));
         var spin = new Node3D { Name = "Spin", Position = new Vector3(2.4f, 2.1f, 1.8f) };
@@ -427,7 +427,7 @@ public static partial class BuildingModels
         var dark = Metal(Trim, 0.3f, 0.6f);
         Add(n, new CylinderMesh { TopRadius = 3.6f, BottomRadius = 4.1f, Height = 0.8f, RadialSegments = 8 }, new Vector3(0, 0.4f, 0), dark);
         Add(n, new TorusMesh { InnerRadius = 1.5f, OuterRadius = 1.9f, Rings = 24 }, new Vector3(0, 0.85f, 0), Glow(new Color(1f, 0.5f, 0.2f), 2.6f));
-        var h = v.IsPlain ? 1f : v.Range(0.92f, 1.08f);
+        var h = v.Height3;
         foreach (var (x, z) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
         {
             var leg = Add(n, new BoxMesh { Size = new Vector3(0.35f, 10f * h, 0.35f) }, new Vector3(x * 1.6f, 0.4f + 5f * h, z * 1.6f), hull);
