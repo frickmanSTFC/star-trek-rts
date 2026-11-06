@@ -300,8 +300,14 @@ public sealed partial class PlanetSurface
 
     /// <summary>A path for a unit: tiles with a building or a deployed vehicle cost 1 more to drive through (not the goal),
     /// so traffic goes round bases when that is about as quick.</summary>
-    private List<int>? FindPath(int from, int to) =>
-        Pathfinder.Find(Map, from, to, t => t != to && BlockRadius(t) > Fix64.Zero ? 1 : 0);
+    private List<int>? FindPath(int from, int to)
+    {
+        var busy = new bool[Map.Grid.Count];
+        foreach (var s in _structures) busy[s.Tile] = true;
+        foreach (var u in _units)
+            if (u.Mode != UnitMode.Mobile) busy[u.Tile] = true;
+        return Pathfinder.Find(Map, from, to, t => t != to && busy[t] ? 1 : 0);
+    }
 
     /// <summary>
     /// Where each unit of a group order goes: the goal tile while it has parking spots left (counting vehicles already

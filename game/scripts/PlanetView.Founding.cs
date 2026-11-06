@@ -111,7 +111,7 @@ public partial class PlanetView
         PoseConstructor(model, f, false);
         if (u.Mode is not (UnitMode.Deploying or UnitMode.Packing)) return;
         var roll = Seg(f, 0f, 0.2f);
-        model.Position = TileCentre(u.Tile).Lerp(FoundSpot(u.Tile), roll) + new Vector3(0, 0.1f, 0);
+        model.Position = SimPoint(u.Pos).Lerp(FoundSpot(u.Tile), roll) + new Vector3(0, 0.1f, 0); // the sim parks it on the centre
         if (roll > 0.02f) model.Basis = model.Basis.Orthonormalized().Slerp(new Basis(Vector3.Up, Mathf.DegToRad(BuildingModels.RepairPadYaw)), Mathf.Min(1f, delta * 4f));
     }
 

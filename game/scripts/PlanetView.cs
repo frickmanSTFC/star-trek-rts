@@ -107,6 +107,7 @@ public partial class PlanetView : Node3D
         _rangeRing = new MeshInstance3D { Visible = false };
         AddChild(_rangeRing);
 
+        CheckTileSize(); // PlanetView.Lanes.cs
         _dropShips = new DropShipView(this, sim, localPlayer) { Name = "DropShips" };
         AddChild(_dropShips);
         _landing = new LandingView(this, sim, localPlayer, _dropShips) { Name = "Landing" };
@@ -186,6 +187,7 @@ public partial class PlanetView : Node3D
             var t = (height - origin.Y) / dir.Y;
             if (t < 0) return -1;
             var next = TileAt(origin + dir * t);
+            _lastPickPoint = origin + dir * t; // PlanetView.Lanes.cs: which vehicle on the tile is under the mouse
             if (next < 0 || next == tile) return next < 0 ? tile : next;
             tile = next;
             height = TopY(tile);
@@ -1002,29 +1004,23 @@ public partial class PlanetView : Node3D
 
             UntiltRover(u.Id, model); // a flat tyre's lean comes off before the heading code turns it (RoverDamage)
 
-            // Every vehicle on its own colony core's tile stands on the repair pad (and gets washed there).
-            var from = UnitSpot(u, u.Tile, true);
-            var pos = from;
-            var moving = u.Path.Count > 0 && u.Mode == UnitMode.Mobile;
-            var onPad = !moving && PadCore(u, u.Tile) != null;
-            if (!moving && PadCore(u, u.Tile) is { } padCore)
+            // Where the sim's lanes put it (PlanetView.Lanes.cs): round buildings, parked at access points. The one on its
+            // own colony core's pad lines up with it and gets washed there.
+            var pos = UnitPos(u, alpha);
+            var moving = Rolling(u);
+            var padCore = u.Path.Count == 0 && u.Mode == UnitMode.Mobile ? PadCore(u, u.Tile) : null;
+            var onPad = padCore != null && OnPad(u, padCore);
+            if (onPad)
             {
                 // Parked on the repair pad: line up with it.
-                var target = new Basis(Vector3.Up, Mathf.DegToRad(-60f * padCore.Facing + BuildingModels.RepairPadYaw));
+                var target = new Basis(Vector3.Up, Mathf.DegToRad(-60f * padCore!.Facing + BuildingModels.RepairPadYaw));
                 model.Basis = model.Basis.Orthonormalized().Slerp(target, Mathf.Min(1f, delta * 4f));
             }
-            if (moving)
+            if (moving && Heading(u) is var facing && facing != Vector3.Zero)
             {
-                var to = UnitSpot(u, u.Path[0], true);
-                var cost = _surface.Map.Terrain(u.Path[0]).MoveCost;
-                var f = Mathf.Clamp((u.Progress.ToFloat() + _surface.SpeedPerTick(u).ToFloat() * alpha) / cost, 0f, 1f);
-                pos = from.Lerp(to, f);
-                var facing = (to - from) with { Y = 0 };
-                if (facing.LengthSquared() > 0.001f)
-                {
-                    var target = Basis.LookingAt(facing.Normalized(), Vector3.Up);
-                    model.Basis = model.Basis.Orthonormalized().Slerp(target, Mathf.Min(1f, delta * 8f));
-                }
+                // Heading from its motion; the slerp rounds off the bends of the route.
+                var target = Basis.LookingAt(facing, Vector3.Up);
+                model.Basis = model.Basis.Orthonormalized().Slerp(target, Mathf.Min(1f, delta * 8f));
             }
             var rolled = RollOutFrom(u, pos, alpha, out var rolling);
             if (rolling)
@@ -1161,10 +1157,6 @@ public partial class PlanetView : Node3D
 
     private Vector3 CoreLocal(SurfaceStructure core, Vector3 local) =>
         TileCentre(core.Tile) + new Basis(Vector3.Up, Mathf.DegToRad(-60f * core.Facing)) * local;
-
-    /// <summary>Where a unit stands on a tile: crawlers on their own colony core's tile park on its repair pad.</summary>
-    private Vector3 UnitSpot(SurfaceUnit u, int tile, bool miner) =>
-        miner && PadCore(u, tile) is { } core ? CoreLocal(core, BuildingModels.RepairPadOffset) : TileCentre(tile);
 
     private string RepairLabel(SurfaceUnit u)
     {
