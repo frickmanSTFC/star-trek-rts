@@ -271,7 +271,7 @@ public static class Climate
         var rules = data.Climate;
         var body = map.ClimateBodyId != null ? rules?.Body(map.ClimateBodyId) : null;
         var context = rules != null && body != null
-            ? ForBody(data, rules, body, map.Def.ClassId)
+            ? ForBody(data, rules, body, ClassOf(data, body.Id) ?? map.Def.ClassId) // the body's own class environment
             : Standin(data, rules, map.Def.ClassId, data.EnvironmentOf(map.Def.ClassId));
         map.ClimateCache = new Cached { Data = data, Context = context };
         return context;
