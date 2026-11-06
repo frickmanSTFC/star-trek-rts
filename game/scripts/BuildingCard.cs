@@ -369,11 +369,12 @@ public partial class BuildingCard : Control
                 var grid = new GridContainer { Columns = 2, MouseFilter = MouseFilterEnum.Ignore };
                 grid.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(10 * s));
                 grid.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(5 * s));
-                var labelW = 62 * s;
+                var labelW = 84 * s;
                 foreach (var (label, text) in pr.Pairs)
                 {
                     var l = HudKit.Label(label.ToUpperInvariant(), 10 * s, HudKit.Dim, condensed: true);
                     l.CustomMinimumSize = new Vector2(labelW, 0);
+                    l.AutowrapMode = TextServer.AutowrapMode.WordSmart; // a long label wraps instead of widening the column
                     l.SizeFlagsVertical = SizeFlags.ShrinkBegin;
                     grid.AddChild(l);
                     grid.AddChild(Wrapped(text.Replace("\r", ""), 12 * s, HudKit.Ink, width - labelW - 10 * s));
