@@ -61,7 +61,7 @@ colonization layer live inside each system.
 Decided 2026-11-02: the game opens on **one planet's surface**, not in space. The star system (§3) becomes the
 layer above it once the surface game is fun.
 
-- **Map:** a hex grid on 3D terrain, generated from a seed per planet class (`data/surfaces.json`). Terrain:
+- **Map:** a hex grid on 3D terrain, generated from a seed per planet class (`data/surfaces/`). Terrain:
   ocean, shallows, plains, forest, desert, hills, mountains, polar ice; each has a move cost and is or isn't buildable.
 - **Orbit view** (decided 2026-11-04): the game opens aboard the player's ship (per faction: U.S.S. Endeavour, Galaxy
   class for the Federation; Borg cube, Klingon, Romulan shapes) over the planet as a globe you turn (drag, WASD) and
@@ -169,7 +169,7 @@ layer above it once the surface game is fun.
   Transparent Aluminum, Warp Coils, Plasma Conduits, Photon Warheads
 - **Faction-specific:** Ketracel-white (Dominion), Nanoprobes (Borg), Bloodwine (Klingon morale), Singularity Cores (Romulan)
 
-Full table → `data/resources.json`.
+Full table → `data/resources/`.
 
 ### 4.2 Production chain (example)
 
@@ -220,7 +220,7 @@ tribble outbreak (food drain), indigenous pre-warp civilization (Prime Directive
 | **Picard era** | 2380s–2402 | 5-digit (78xxx) | Transwarp research, synths | Fed, Klingon, Romulan Free State, Fenris Rangers, Borg remnants | Romulan supernova refugees; synth ban politics |
 | **32nd century** | 3189+ | 6-digit (865xxx) | Programmable matter, spore drive | Federation remnant, Emerald Chain, Klingon, Ni'Var | **The Burn** — dilithium nearly gone |
 
-Era data → `data/eras.json`.
+Era data → `data/eras/`.
 
 ## 7. Factions (summary)
 
@@ -235,7 +235,7 @@ Era data → `data/eras.json`.
 | Borg Collective | Assimilation | **Adaptation** — shields adapt to repeated weapon types; assimilate tech & population |
 | *Minor / AI* | — | Breen, Tholian, Gorn, Bajoran, Orion Syndicate, Nausicaan, Kazon, Hirogen, Species 8472, Son'a |
 
-Full data → `data/factions.json`.
+Full data → `data/factions/`.
 
 ## 8. Research
 
@@ -251,7 +251,7 @@ Seven trees, each with era-gated tiers, plus a faction-unique tree:
   factions' faction-only techs) and **combine** techs they already hold into the next one, paid in nanoprobes
   (20 × the tech's tier: a tier-3 tech costs 60, about 12 cycles of one Assimilation Spire's output).
 
-Tree → `data/tech_tree.json`.
+Tree → `data/tech_tree/`.
 
 ## 9. Ships
 
@@ -266,7 +266,7 @@ Tree → `data/tech_tree.json`.
 Roles: Scout · Construction · Mining · Freighter · Colony · Science · Escort · Frigate · Destroyer · Cruiser ·
 Heavy Cruiser · Explorer · Carrier · Battleship · Dreadnought · Titan (faction super-unit).
 
-Templates → `data/ships.json`.
+Templates → `data/ships/`.
 
 **Captains (hero units):** limited count, gain XP, have traits (e.g. *Unorthodox* — chance to bluff with the
 **Corbomite Maneuver*; *Diplomat* — first contact bonus; *Tactician* — flank bonus). Can be captured, ransomed, killed.
@@ -282,11 +282,11 @@ Templates → `data/ships.json`.
   (strips a planet's biosphere), Doomsday Machine (planet killer — needs a sacrificial "jam the maw" tactic).
 - **Wild cards:** Q (trickster event: tests, swaps, "you are on trial"), Mirror Universe incursion, Changeling sabotage.
 
-Hazard data → `data/hazards.json`.
+Hazard data → `data/hazards/`.
 
 ## 10b. Buildings, Stations & Vehicles
 
-Data → `data/buildings.json`, `data/vehicles.json`.
+Data → `data/buildings/`, `data/vehicles/`.
 
 **Three build layers per system:**
 
