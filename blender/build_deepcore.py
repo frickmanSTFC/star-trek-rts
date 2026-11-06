@@ -66,7 +66,7 @@ def materials():
     K.mat("rods", "Rods", (0.5, 0.52, 0.56), 0.85, 0.35, textured=True)
     K.mat("insulator", "Insulator", (0.55, 0.32, 0.2), 0.1, 0.35, textured=True)
     K.mat("label", "Label", (0.9, 0.9, 0.88), 0.0, 0.6, textured=True)
-    K.mat("oreheap", "OreHeap", (0.32, 0.28, 0.25), 0.05, 0.95, textured=True)
+    K.mat("oreheap", "OreHeap", (0.24, 0.21, 0.19), 0.05, 0.95, textured=True)
 
 
 def hw(z):

@@ -86,7 +86,7 @@ def materials():
     K.mat("void", "Void", (0.01, 0.01, 0.012), 0.0, 0.9)
     K.mat("shaftglow", "ShaftGlow", (1.0, 0.75, 0.4), 0.0, 0.4, emission=(1.0, 0.7, 0.35), strength=2.5)
     K.mat("skip", "Skip", (0.62, 0.42, 0.16), 0.5, 0.45, textured=True)
-    K.mat("oreheap", "OreHeap", (0.36, 0.31, 0.27), 0.05, 0.95, textured=True)
+    K.mat("oreheap", "OreHeap", (0.24, 0.21, 0.19), 0.05, 0.95, textured=True)
     K.mat("rods", "Rods", (0.5, 0.52, 0.56), 0.85, 0.35, textured=True)
 
 
