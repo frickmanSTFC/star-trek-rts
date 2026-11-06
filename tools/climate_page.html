@@ -1,0 +1,258 @@
+<title>Planetary Climate</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame shared with the other design pages; sections stack (system table, one card per body with its
+   light/dark notes and season weather odds, weather kinds and effects, templates, data checks). Single dark look by design.
+   Weather-group colours are the validated dark categorical palette, in fixed slot order (stack order = slot order). */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --sky: #7fc4e8;
+  --gold: #f3cb5b;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --w-rain: #3987e5;
+  --w-dust: #d95926;
+  --w-fog: #199e70;
+  --w-clear: #c98500;
+  --w-wind: #d55181;
+  --w-cloud: #008300;
+  --w-snow: #9085e9;
+  --w-storm: #e66767;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--sky); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--sky); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--sky); }
+.bars .b2 { flex: 1.2; background: var(--gold); }
+.bars .b3 { flex: 2; background: var(--periwinkle); }
+.bars .b4 { flex: .8; background: var(--lilac); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--sky); font-weight: 600; }
+.intro { max-width: 72ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--void); background: var(--sky); padding: 4px 14px; border-radius: 14px; }
+nav.jump a:nth-child(2) { background: var(--gold); }
+nav.jump a:nth-child(3) { background: var(--periwinkle); }
+nav.jump a:nth-child(4) { background: var(--orange); }
+nav.jump a:nth-child(5) { background: var(--lilac); }
+nav.jump a:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 76ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; max-width: 90ch; }
+.tag { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); border: 1px solid var(--rule); border-radius: 8px; padding: 0 6px; white-space: nowrap; }
+.tag.land { color: var(--good); border-color: var(--good); }
+
+/* ---------- tables ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); white-space: nowrap; }
+tbody th { background: var(--panel-2); font-weight: 600; white-space: nowrap; }
+tbody th .sub, td .sub { display: block; color: var(--ink-faint); font-size: 12px; font-weight: 400; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child > * { border-bottom: 0; }
+tr.moon th { padding-left: 26px; }
+
+/* ---------- body cards ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 560px), 1fr)); gap: 14px; }
+.body { background: var(--panel); border-radius: 10px; border-top: 4px solid var(--sky); padding: 14px 16px 16px; display: grid; gap: 10px; align-content: start; }
+.body > * { min-width: 0; }
+.body .top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; }
+.body h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 22px; line-height: 1.1; letter-spacing: .03em; text-transform: uppercase; color: var(--ink); }
+.body h3 small { font-family: var(--label); font-size: 13px; letter-spacing: .08em; color: var(--ink-faint); margin-left: 6px; }
+.body .kind { font-family: var(--label); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--sky); }
+.body p { margin: 0; font-size: 14px; }
+.body ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; color: var(--ink-dim); }
+.body h4 { margin: 4px 0 0; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.season { display: grid; gap: 4px; }
+.season .head { display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; font-size: 13px; color: var(--ink-dim); }
+.season .head b { font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink); }
+.stack { display: flex; gap: 2px; height: 14px; }
+.stack span { display: block; height: 100%; min-width: 0; background: var(--g); }
+.stack span:first-child { border-radius: 4px 0 0 4px; }
+.stack span:last-child { border-radius: 0 4px 4px 0; }
+.season .odds { font-size: 12px; color: var(--ink-faint); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--g); }
+.bands { display: grid; gap: 2px; font-size: 13px; color: var(--ink-dim); }
+.yes { color: var(--bad); font-weight: 600; }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; }
+dl.rules { margin: 0; display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 6px 16px; background: var(--panel); border-radius: 10px; padding: 14px 16px; font-size: 14px; }
+dl.rules dt { font-family: var(--label); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); padding-top: 2px; }
+dl.rules dd { margin: 0; }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+  dl.rules { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Planetary Climate</h1>
+      <div class="readout" id="readout"></div>
+    </div>
+    <div>
+      <p class="intro">Day and night, seasons and weather for every body in the system map. Each body has an orbit, a spin, a tilt and a short game year in <code>data/climate.json</code>; the game turns them into a moving line between day and night, seasons that take turns between the hemispheres, and weather cells that drift across the map. Weather is part of the simulation and has mild effects: slower, more fragile rovers, shorter surveys, and storms that keep drop ships on the ground. All numbers are placeholders for balancing.</p>
+      <nav class="jump" aria-label="Sections">
+        <a href="#system">System</a><a href="#bodies">Bodies</a><a href="#weather">Weather</a><a href="#rules">Rules</a><a href="#checks">Data checks</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="system" style="--sec: var(--sky)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>The system at a glance</h2><p id="systemIntro"></p></div></div>
+    <div class="scroll"><table id="systemTable"></table></div>
+    <p class="note">Sunlight: 1 = Earth at 1 AU, at the mean distance (the range is perihelion to aphelion). Temperatures: the body's mean from its sunlight, albedo and greenhouse; the equator's typical afternoon high and pre-dawn low; the poles of the play map (±<span id="span"></span>°). Day and year are in minutes of play. The system map is a schematic: "map AU" is the body's map distance at the starting scale, "AU" the tuned orbit.</p>
+  </section>
+
+  <section id="bodies" style="--sec: var(--gold)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Light, dark and seasons by body</h2><p>One card per body (the duel map is point-symmetric, so each twin shares its card). Seasons run in year order from the northern spring equinox; the south is half a year behind. The bars show how often each kind of weather is picked for a spell in that season; rain falls as snow (and storms as blizzards) where it is below freezing.</p></div></div>
+    <div class="legend" id="legend"></div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="weather" style="--sec: var(--periwinkle)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Weather kinds and their effects</h2><p>Each kind at full strength; a spell ramps its effects in and out. Rover speed applies to every ground vehicle; survey radius never drops below 1; rover damage scales wear, hazard and flat-tyre chances.</p></div></div>
+    <div class="scroll"><table id="weatherTable"></table></div>
+    <div class="scroll"><table id="terrainTable"></table></div>
+    <div class="scroll"><table id="templateTable"></table></div>
+  </section>
+
+  <section id="rules" style="--sec: var(--orange)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 4</span><h2>How it maps onto the surface</h2><p>The shared rules that turn a body's numbers into a hex map (climate.json <code>surface</code>).</p></div></div>
+    <dl class="rules" id="rulesList"></dl>
+  </section>
+
+  <section id="checks" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 5</span><h2>Data checks</h2><p>Gaps between the climate table and the rest of the design data. The game runs the same and more checks (GameData.Validate).</p></div></div>
+    <ul class="plain" id="checklist"></ul>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/climate.json</code>, <code>maps.json</code>, <code>planet_classes.json</code> and <code>surfaces.json</code> in the star-trek-rts design repo (<code>tools/gen_climate_page.py</code>). The simulation is <code>game/sim/Surface/Climate.cs</code>. Companion pages: Planet Classes and Galactic Hazards.</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>
+
+<script>
+const D = /*DATA*/;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const sign = (v) => (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v);
+const deg = (v) => `${v < 0 ? "−" : ""}${Math.abs(v)} °C`;
+const S = D.surface;
+
+const landable = D.bodies.filter((b) => b.landable).length;
+$("readout").innerHTML = `<span><b>${D.bodies.length}</b> bodies</span><span><b>${D.templates.length}</b> climates</span><span><b>${D.weather.length}</b> weather kinds</span><span>${esc(D.home)} day <b>${Math.round(D.bodies.find((b) => b.name === D.home).day / 60)} min</b></span>`;
+$("systemIntro").textContent = `${D.map}: the ${D.star.cls}-class star ${D.star.name} (luminosity ${D.star.lum} × Sol, about ${D.star.k} K) and its bodies, nearest first. ${landable} can be landed on now; every body has climate data for later.`;
+$("span").textContent = S.latitude_span_deg;
+
+// ---- system table
+const lockText = { none: "", parent: "locked to its planet", star: "locked to the star" };
+$("systemTable").innerHTML = `<thead><tr><th scope="col">Body</th><th scope="col">Class</th><th scope="col">Orbit</th><th scope="col">Sunlight</th><th scope="col">Mean</th><th scope="col">Equator day / night</th><th scope="col">Poles</th><th scope="col">Day</th><th scope="col">Tilt</th><th scope="col">Year</th><th scope="col">Climate</th></tr></thead><tbody>` +
+  D.bodies.map((b) => `<tr class="${b.parent ? "moon" : ""}"><th scope="row">${esc(b.name)}${b.landable ? ` <span class="tag land">landable</span>` : ""}<span class="sub">${b.parent ? `moon of ${esc(b.parent)}` : ""}${b.twin ? `${b.parent ? " · " : ""}twin of ${esc(D.bodies.find((x) => x.id === b.twin)?.name || b.twin)}` : ""}</span></th>
+    <td>${esc(b.cls.split(" — ")[1] || b.cls)}${b.cls.includes(" — ") ? `<span class="sub">${esc(b.cls.split(" — ")[0])}</span>` : ""}</td>
+    <td class="num">${b.parent ? "with its planet" : `${b.au} AU`}<span class="sub">${b.parent ? "" : `e ${b.ecc} · map ${b.derivedAu} AU`}</span></td>
+    <td class="num">${b.sun}<span class="sub">${b.sunMin}–${b.sunMax}</span></td>
+    <td class="num">${deg(b.tMean)}</td>
+    <td class="num">${deg(b.tEqDay)} / ${deg(b.tEqNight)}</td>
+    <td class="num">${deg(b.tPole)}</td>
+    <td class="num">${esc(b.dayText)}<span class="sub">${b.dayHours} h · ${b.dir}${b.lock !== "none" ? " · " + lockText[b.lock] : ""}</span></td>
+    <td class="num">${b.tilt}°</td>
+    <td class="num">${b.yearDays} days<span class="sub">${esc(b.yearText)}</span></td>
+    <td>${esc(b.climate)}</td></tr>`).join("") + `</tbody>`;
+
+// ---- legend + cards
+const gname = Object.fromEntries(D.groups.map((g) => [g.id, g.name]));
+$("legend").innerHTML = D.groups.map((g) => `<span title="${esc(g.kinds.join(", "))}"><i style="--g: var(--w-${g.id})"></i>${esc(g.name)}</span>`).join("");
+function seasonBlock(s) {
+  const segs = s.groups.filter((g) => g.pct > 0).map((g) =>
+    `<span style="--g: var(--w-${g.id}); flex: ${g.pct.toFixed(2)}" title="${esc(gname[g.id])} ${g.pct.toFixed(0)}% (${esc(g.kinds.join(", "))})"></span>`).join("");
+  return `<div class="season"><div class="head"><b>${esc(s.name)}</b><span>${Math.round(s.share * 100)}% of the year</span><span>${sign(s.temp)} °C</span><span>humidity ${sign(s.hum)}%</span><span>wind ×${s.wind}</span><span>spells ${s.spell[0]}–${s.spell[1]} s</span></div>
+    <div class="stack" role="img" aria-label="${esc(s.name)} weather odds: ${esc(s.top)}">${segs}</div><div class="odds">${esc(s.top)}</div></div>`;
+}
+$("cards").innerHTML = D.cards.map((c) => `<article class="body"><div class="top"><h3>${esc(c.name)}${c.twin ? `<small>· twin ${esc(c.twin)}</small>` : ""}</h3><span class="kind">${esc(c.climate)}</span></div>
+  ${c.notes ? `<p>${esc(c.notes)}</p>` : ""}
+  <h4>Light and dark</h4><ul>${c.light.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>
+  <h4>Seasons and weather odds</h4>${c.air ? c.seasons.map(seasonBlock).join("") : `<p class="note">No air, so no weather: always clear, no wind. Only the day and night cycle and the sunlight change.</p>`}
+  ${c.air ? `<h4>Latitude bands</h4><div class="bands">${c.bands.map((b) => `<span><b>${esc(b.name)}</b> to ${b.to}°: seasons ×${b.scale}, prevailing wind toward ${b.toward}°${b.mult ? `, ${esc(b.mult)}` : ""}</span>`).join("")}<span>Weather cells drift ${c.drift > 0 ? "east" : c.drift < 0 ? "west" : "nowhere"}${c.drift ? ` ${Math.abs(c.drift)} tiles a minute` : ""}; winds ×${c.windScale}.</span></div>` : ""}
+</article>`).join("");
+
+// ---- weather tables
+const yes = (v) => v ? `<span class="yes">grounded</span>` : "—";
+$("weatherTable").innerHTML = `<thead><tr><th scope="col">Weather</th><th scope="col">Cloud</th><th scope="col">Visibility</th><th scope="col">Rain / snow</th><th scope="col">Wind</th><th scope="col">Rover speed</th><th scope="col">Survey radius</th><th scope="col">Rover damage</th><th scope="col">Drop ships</th><th scope="col">Solar</th></tr></thead><tbody>` +
+  D.weather.map((w) => `<tr><th scope="row">${esc(w.name)}</th><td class="num">${Math.round(w.cloud * 100)}%</td><td class="num">${Math.round(w.vis * 100)}%</td>
+    <td class="num">${w.precip[1] > 0 ? `${w.precip[0]}–${w.precip[1]} mm/h` : "—"}</td><td class="num">${w.wind[0]}–${w.wind[1]} m/s</td>
+    <td class="num">×${w.fx.rover_speed}</td><td class="num">${w.fx.survey_radius_delta ? sign(w.fx.survey_radius_delta) : "—"}</td><td class="num">×${w.fx.rover_damage}</td>
+    <td>${yes(w.fx.drop_ships_grounded)}</td><td class="num">×${w.fx.solar}</td></tr>`).join("") + `</tbody>`;
+$("terrainTable").innerHTML = `<thead><tr><th scope="col">On the ground</th><th scope="col">When</th><th scope="col">Where</th><th scope="col">Rover speed</th><th scope="col">Rover damage</th></tr></thead><tbody>` +
+  D.terrain.map((t) => `<tr><th scope="row">${esc(t.name)}</th><td>${esc(t.weather.join(", "))}</td><td>${esc(t.terrain.join(", "))}</td><td class="num">×${t.speed}</td><td class="num">×${t.damage}</td></tr>`).join("") + `</tbody>`;
+$("templateTable").innerHTML = `<thead><tr><th scope="col">Climate</th><th scope="col">Weather</th><th scope="col">Seasons</th><th scope="col">Planet classes</th><th scope="col">Bodies on the map</th></tr></thead><tbody>` +
+  D.templates.map((t) => `<tr><th scope="row">${esc(t.name)}</th><td>${t.air ? "yes" : "none (no air)"}</td><td class="num">${t.seasons}</td><td>${esc(t.classes.join(", ")) || "—"}</td><td>${esc(t.bodies.join(", ")) || "—"}</td></tr>`).join("") + `</tbody>`;
+
+// ---- rules
+const rules = [
+  ["Map latitudes", `The top row is ${S.latitude_span_deg}° N and the bottom row ${S.latitude_span_deg}° S (as on the orbit globe); columns are longitude and the map wraps east–west.`],
+  ["Day and night", `The point under the star crosses the whole map once per local day. At tick 0 column 0 reads ${Math.round(S.start_day_fraction * 24 * 10) / 10} h. Twilight fades over the last ${S.twilight_deg}° below the horizon.`],
+  ["Warmth lags the sun", `The warmest hour trails noon by ${Math.round(S.thermal_lag_day * 100)}% of a day; the warmest season trails the solstice by ${Math.round(S.season_lag_year * 100)}% of a year.`],
+  ["Temperature", `Body mean (278.6 K × ((1 − albedo) × sunlight)^¼ − 273.15 + greenhouse) + ${S.equator_share} × the class's polar drop at the equator, minus polar drop × latitude², plus the day/night swing, the season's offset (scaled by latitude band), altitude and terrain.`],
+  ["Rain or snow", `Below ${S.snow_below_c} °C rain falls as snow and storms become blizzards; above it, the other way round.`],
+  ["Weather cells", `About ${S.cell_tiles} tiles across, drifting with the climate; each cell runs spells whose kind is picked by the season's odds. Spells fade in and out over ${Math.round(S.ramp_share * 100)}% of their length (at most ${S.ramp_max_seconds} s) and restart at every season change and every ${S.epoch_seconds / 60} minutes.`],
+  ["Calm start", `The whole map is clear for the first ${S.calm_start_seconds} s, so the first landing is never weathered out.`],
+  ["Drop ships", `Storms, blizzards and dust storms ground drop ships, outpost drops and the first landing on the tiles under them; drop ships and outpost drops are also refused where gusts reach ${S.drop_ship_max_gust_ms} m/s. Storms are regional and pass in a few minutes.`],
+];
+$("rulesList").innerHTML = rules.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+
+// ---- checks
+$("checklist").innerHTML = D.checks.length ? D.checks.map((c) => `<li>${esc(c)}</li>`).join("") : `<li>No gaps found.</li>`;
+</script>

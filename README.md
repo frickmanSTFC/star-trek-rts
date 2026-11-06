@@ -11,6 +11,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 - `tech-tree.html`: interactive research tree (faction research models, prerequisite tracing, starting-era grants, forbidden techs, resources, data checks). Regenerate with `python3 tools/gen_tech_tree_page.py`.
 - `hazards.html`: interactive hazard catalog (categories, filterable cards, faction exposure, counter techs by faction, data checks). Regenerate with `python3 tools/gen_hazards_page.py`.
 - `planet-classes.html`: interactive guide to planet classes and bodies (habitability, resource map, terraforming, faction world preferences, data checks). Regenerate with `python3 tools/gen_planet_classes_page.py`.
+- `climate.html`: planetary climate for every body of the system map (orbit, sunlight, temperatures, day length and spin, tilt, light and dark sides, seasons with their weather odds, weather kinds and their gameplay effects, data checks). Data in `data/climate.json`. Regenerate with `python3 tools/gen_climate_page.py`.
 - `vehicles.html`: interactive page for small craft, probes, civilian ships, ground forces and vehicles (roster by faction, ground strength, catalog, data checks). Regenerate with `python3 tools/gen_vehicles_page.py`.
 - `resources.html`: interactive resource guide (tiers, production chains, faction demand, catalog, data checks). Regenerate with `python3 tools/gen_resources_page.py`.
 - `factions.html`: every faction: the seven great powers compared side by side with dossiers, an era map and the other powers. Regenerate with `python3 tools/gen_factions_page.py`.
@@ -73,6 +74,7 @@ These links only open for people the owner has shared them with (Share menu on e
 | `galaxy_map.json` | Star systems, territories, warp lanes and wormholes, warp scale and drive speeds |
 | `maps.json` | Skirmish maps for the game prototype: one star system each (bodies, deposits, player starts, starting stock) |
 | `surfaces.json` | Planet surfaces for the game prototype: terrain types, how each planet class's hex map is generated, deposits, orbital hints, landing rules, rover and mining crawler stats, storage and salvage rules, planet environments per class (temperature, humidity, wind, pressure, radiation, atmosphere and trace gases) and the outpost telemetry's hazard limits |
+| `climate.json` | Planetary climate for the game prototype: star types, every map body's orbit, spin, tilt, year, albedo and greenhouse, climate templates (seasons with weather odds, latitude bands), weather kinds with their gameplay effects (rover speed, survey radius, rover damage, grounded drop ships, solar) and terrain modifiers |
 
 Each entry is tagged `canon` (on screen), `beta` (licensed books/games) or `original` (invented for this game). All costs and stats are placeholders.
 
