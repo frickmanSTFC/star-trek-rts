@@ -71,7 +71,7 @@ public partial class PlanetDriver
         var sun = Climate.Sun(_data, map, _sim.Tick);
         _skyField.Step(_data, _sim.Tick, _clock, _view.SkyOverride, sun, 0f, 0f, synchronous: true);
 
-        _weatherView = new WeatherView { Name = "Weather" };
+        _weatherView = new WeatherView { Name = "Weather", Visible = false }; // shown on the surface only
         AddChild(_weatherView);
         _weatherView.Build();
 
@@ -83,6 +83,7 @@ public partial class PlanetDriver
             MaterialOverride = _skyDomeMaterial,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             IgnoreOcclusionCulling = true,
+            Visible = false, // shown on the surface only (the orbit camera would see it around the globe)
         };
         AddChild(_skyDome);
 
@@ -90,7 +91,13 @@ public partial class PlanetDriver
         AddChild(_moonLight);
 
         _view.WatchLamps();
+        _lampNightAt = p => SkyModel.Night(_skyField.DaylightAt(p, _skySubsolar));
+        _groundAt = _view.GroundAt;
     }
+
+    // Cached delegates (no per-frame allocation) and the subsolar column they read.
+    private System.Func<Vector3, float> _lampNightAt = null!, _groundAt = null!;
+    private float _skySubsolar;
 
     /// <summary>Once a frame, after the view's refresh (and before the uplink, which hands the feed its climate).</summary>
     private void UpdateSky(float delta)
@@ -127,6 +134,7 @@ public partial class PlanetDriver
         var declination = sky.SeasonOn ? SkyModel.TestTiltDeg * Mathf.Sin(sky.Season * Mathf.Pi / 2f) : sun.DeclinationDeg.ToFloat();
         _skyField.Step(_data, tick, _clock, sky, sun, subsolar, declination);
         var shift = SkyModel.Wrap(subsolar - _skyField.BakedSubsolar, g.Width);
+        _skySubsolar = subsolar;
 
         // The site's climate and weather, a few times a second.
         if (siteTile != _siteTile || _clock - _siteSampledAt >= 0.25)
@@ -234,7 +242,7 @@ public partial class PlanetDriver
 
         // Lamps and windows: brighter at night (each light by the night where it stands).
         var nightSite = SkyModel.Night(daySite);
-        _view.UpdateLamps(_inOrbit ? nightSite : Mathf.Lerp(nightSite, night, wide), p => SkyModel.Night(_skyField.DaylightAt(p, subsolar)), delta);
+        _view.UpdateLamps(_inOrbit ? nightSite : Mathf.Lerp(nightSite, night, wide), _lampNightAt, delta);
 
         // The globe's sun over the subsolar column, tilted by the season.
         if (_inOrbit) _orbit.SetSun(_orbit.SunLocal(subsolar, declination));
@@ -307,7 +315,8 @@ public partial class PlanetDriver
         var horizon = nightHorizon.Lerp(dayHorizon, light);
         var weatherTint = (_look.Dust > Mathf.Max(_look.Fog, Mathf.Max(_look.Rain, _look.Snow)) ? new Color(0.7f, 0.5f, 0.3f) : grey) * Mathf.Max(light, 0.08f);
         var thick = Mathf.Clamp(Mathf.Max(Mathf.Max(_look.Fog, _look.Rain * 0.5f), Mathf.Max(_look.Snow * 0.6f, _look.Dust)), 0f, 1f) * (1f - 0.5f * wide);
-        var fogColour = _baseFogColour.Lerp(horizon, tilt).Lerp(weatherTint, thick) + new Color(0.5f, 0.55f, 0.7f) * flash * 0.3f;
+        // Close up the haze takes on the sky (darkened: it fills the near air too), so far ground fades into the horizon.
+        var fogColour = _baseFogColour.Lerp(horizon * 0.65f, tilt * 0.75f).Lerp(weatherTint, thick) + new Color(0.5f, 0.55f, 0.7f) * flash * 0.3f;
 
         if (_environment != null)
         {
@@ -327,7 +336,8 @@ public partial class PlanetDriver
         if (!_skyDome.Visible) _skyDome.Visible = true;
         _skyDome.GlobalPosition = _camera.GlobalPosition;
         var zenith = new Color(0.004f, 0.006f, 0.018f).Lerp(_skyColour.Darkened(0.35f), light);
-        _skyDomeMaterial.SetShaderParameter("horizon_colour", fogColour);
+        _skyDomeMaterial.SetShaderParameter("haze_colour", fogColour);
+        _skyDomeMaterial.SetShaderParameter("horizon_colour", horizon.Lerp(weatherTint, thick));
         _skyDomeMaterial.SetShaderParameter("zenith_colour", zenith);
         _skyDomeMaterial.SetShaderParameter("sun_dir", SkyModel.SunDirection(elevation, azimuth));
         _skyDomeMaterial.SetShaderParameter("sun_colour", _sun?.LightColor ?? Colors.White);
@@ -337,7 +347,7 @@ public partial class PlanetDriver
         _skyDomeMaterial.SetShaderParameter("cloud", _cloudEased);
 
         if (!_weatherView.Visible) _weatherView.Visible = true;
-        _weatherView.Update(_look, _focus with { Y = _view.GroundAt(_focus) }, _camera.GlobalPosition, _distance, _view.GroundAt, delta);
+        _weatherView.Update(_look, _focus with { Y = _view.GroundAt(_focus) }, _camera.GlobalPosition, _distance, _groundAt, delta);
     }
 
     /// <summary>In orbit: put back what the orbit view shares with the surface (ambient colour, ground fog) and stop the
