@@ -149,6 +149,8 @@ dotnet test
 - **Release export:** run `dotnet run --project tools/DataPacker -- --out game/gamedata.pack` first (it refuses data that
   fails a check), and in Project → Export → your preset → Resources set "Filters to export non-resource files/folders"
   to `gamedata.pack`. The JSON folders live outside `game/`, so they are never exported; release builds read only the pack.
+The test project also builds and tests the headless balance runner (`../tools/BalanceRunner/`, see `../balance/README.md`),
+which plays the sim with scripted build orders ~2,000× faster than real time and reports what a data change does.
 
 ## Rules for sim code (lockstep determinism, GDD §11)
 

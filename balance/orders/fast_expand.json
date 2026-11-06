@@ -1,0 +1,28 @@
+{
+  "name": "fast_expand",
+  "description": "Expand early: beam the ship's hold down, storage, refinery and a duranium mine, then a Vehicle Bay and a construction rover to found a second outpost; the new base gets its own mine and storage, then a second crawler, a second refinery once ore piles up, a lab and power. An outpost drop from orbit once there is plenty.",
+  "faction": "federation",
+  "planet": "class_m",
+  "landing": { "prefer": ["duranium_ore", "tritanium_ore"] },
+  "survey": { "max_distance": 22 },
+  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 14 },
+  "upkeep": { "maintain_below": 55, "repair_below": 45 },
+  "research": ["ore_conveyors", "improved_smelting", "preventive_maintenance", "reinforced_drills", "alloy_metallurgy", "automated_maintenance", "deep_core_mining"],
+  "steps": [
+    { "beam_supplies": true, "after": "hub_ready", "timeout": 120 },
+    { "build": "storage_container" },
+    { "beam_supplies": true, "timeout": 60 },
+    { "build": "refinery" },
+    { "beam_supplies": true, "timeout": 60 },
+    { "build": "mine", "deposit": "duranium_ore", "timeout": 240 },
+    { "build": "vehicle_bay" },
+    { "found_outpost": true, "timeout": 900 },
+    { "build": "mine", "base": "newest", "deposit": "duranium_ore", "after": "second_base", "timeout": 300 },
+    { "build": "storage_container", "base": "newest", "after": "second_base" },
+    { "unit": "mining_crawler" },
+    { "build": "refinery", "when": "duranium_ore >= 150", "timeout": 600 },
+    { "build": "science_lab" },
+    { "build": "fusion_reactor" },
+    { "drop_outpost": true, "when": "duranium >= 400 and tritanium >= 150", "timeout": 600 }
+  ]
+}

@@ -13,3 +13,5 @@ game/.godot/
 data/_draft/
 data/_backups/
 game/gamedata.pack
+# Balance runner scratch reports (commit named ones with --lean instead)
+balance/reports/latest/

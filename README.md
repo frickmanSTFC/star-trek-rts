@@ -33,6 +33,8 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 
 `game/`: the playable prototype in **Godot 4.7 (.NET / C#)**. Open `game/project.godot` in Godot 4.7 .NET and press Run: you start in orbit over a generated Class M world, pick a landing site, send survey rovers out to find deposits, then drive the mining crawler to a deposit, store and refine what it sends home, and build up the colony. Game rules live in `game/sim/` (deterministic, fixed-point, tested with `cd game && dotnet test`). See `game/README.md`.
 
+**Balance runner** (`tools/BalanceRunner/`, `balance/`): plays the surface economy headless with scripted build orders (`balance/orders/*.json`) about 2,000× faster than real time and writes an HTML report with curves per seed, milestones, stalls and A/B deltas: `dotnet run -c Release --project tools/BalanceRunner -- --set "buildings.json:refinery.cycles_per_min=16"`. See `balance/README.md`; reports for the current data are in `balance/reports/`.
+
 ## Website (GitHub Pages)
 
 `docs/` is a ready-to-serve website: a landing page plus standalone copies of every design page, the Colony Hub art and the rendered video. Once Pages is on (Settings → Pages → Deploy from a branch → `main` / `docs`), it lives at https://frickmanstfc.github.io/star-trek-rts/.
