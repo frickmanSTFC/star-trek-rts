@@ -270,14 +270,9 @@ public class CommandFuzzTests
     }
 
     /// <summary>Plays one fuzzed game: returns the state hashes along the way and the number of commands sent.</summary>
-    internal static Simulation? LastHuntGame;
-
-    internal static (List<ulong> Hashes, int Commands, int Refused) PlayForHunt(ulong seed, int ticks, List<string> problems) => Play(seed, ticks, problems);
-    internal static (List<ulong> Hashes, int Commands, int Refused) PlayWithData(GameData d, ulong seed, int ticks, List<string> problems) => Play(seed, ticks, problems, d);
-
-    private static (List<ulong> Hashes, int Commands, int Refused) Play(ulong seed, int ticks, List<string> problems, GameData? data = null)
+    private static (List<ulong> Hashes, int Commands, int Refused) Play(ulong seed, int ticks, List<string> problems)
     {
-        var sim = TwoPlayersLanded(data);
+        var sim = TwoPlayersLanded();
         var fuzz = new Fuzzer(sim, seed);
         var hashes = new List<ulong>();
         var sent = 0;
@@ -301,7 +296,6 @@ public class CommandFuzzTests
         }
         hashes.Add(sim.StateHash());
         problems.AddRange(Problems(sim));
-        LastHuntGame = sim;
         return (hashes, sent, sim.RefusedCommands);
     }
 
@@ -372,6 +366,19 @@ public class CommandFuzzTests
         Assert.Single(s.Structures);
         Assert.Equal(1, s.StructureAt(site)!.Owner);
         Assert.Empty(Problems(sim));
+    }
+
+    /// <summary>The fuzzer's data edits (test panel DATA tab) set a start stock or the ship's hold to -1 and Validate let
+    /// it through, so players started below zero. Negative stocks, holds and costs are now refused data.</summary>
+    [Fact]
+    public void NegativeStocksHoldsAndCostsAreRefusedData()
+    {
+        foreach (var label in new[] { "landing › start_stock › duranium", "orbit › hold › deuterium" })
+        {
+            var n = DataTuning.Numbers(Data).First(x => x.Label == label);
+            Assert.NotNull(DataTuning.Rebuild(Data, new[] { new DataEdit(n.File, n.Path, "-1") }, Array.Empty<DataFile>(), out _));
+            Assert.Null(DataTuning.Rebuild(Data, new[] { new DataEdit(n.File, n.Path, "0") }, Array.Empty<DataFile>(), out _));
+        }
     }
 
     /// <summary>

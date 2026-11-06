@@ -411,7 +411,7 @@ public sealed class Simulation
         h.Add(_nextColonyId);
         h.Add(_nextBuildingId);
         // Commands scheduled for later ticks (a peer that received a command the other didn't shows at once). The
-        // SortedDictionary iterates by tick; within a tick, in the order they were scheduled (the order Step uses).
+        // SortedDictionary iterates by tick; within a tick, in scheduling order (Step runs them by player, keeping it).
         h.Add(_scheduled.Count);
         foreach (var (tick, commands) in _scheduled)
         {

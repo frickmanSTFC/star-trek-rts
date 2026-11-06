@@ -159,7 +159,14 @@ which plays the sim with scripted build orders ~2,000× faster than real time an
 - **No `System.Random`, clocks, threads or engine calls.** Use `Simulation.Rng`.
 - **No iterating `Dictionary`/`HashSet`** for anything that affects state; keep ordered lists.
 - **State changes only through commands**, scheduled for a future tick. The Godot side never edits ships directly.
-- Every new piece of state goes into `StateHash()`; every new system gets a determinism test.
+- Every new piece of state goes into `StateHash()` (next-id counters and the queued commands included; tests
+  `StateHashTests` find a forgotten `_next…Id`); every new system gets a determinism test.
+- **Bad commands are refused, never thrown** (a peer can send anything): `CommandChecks.Malformed` turns away missing
+  lists/strings, undefined enums and absurd sizes before any handler runs; each handler checks players, ids, tiles and
+  values and, if it can't run, changes nothing and calls `sim.Refuse(command, reason)` (`RefusedCommands`,
+  `LastRefusal`; not in the hash). A new command type needs a case in its handler, a shape check if it has lists or
+  strings, and a tag + its fields in `CommandHash` (test `CommandHashCoversEveryCommandType`). `CommandFuzzTests`
+  throws thousands of random commands at a two-player game; keep it passing.
 - Numbers from JSON are parsed from raw text (`Fix64.Parse`), never through `double`.
 
 ## Not done yet
