@@ -1590,7 +1590,8 @@ public sealed partial class PlanetSurface
             if (def.IsConverter)
             {
                 var runnable = def.Recipes.Where(r => HasInput(stock, r)).ToList();
-                var share = def.CyclesPerMinute * speed / Simulation.TicksPerMinute / Fix64.FromInt(runnable.Count);
+                // Another converter can have used the last of the input since the status pass above (none left to share).
+                var share = runnable.Count == 0 ? Fix64.Zero : def.CyclesPerMinute * speed / Simulation.TicksPerMinute / Fix64.FromInt(runnable.Count);
                 var yield = YieldMultiplier(s);
                 foreach (var r in runnable)
                 {
