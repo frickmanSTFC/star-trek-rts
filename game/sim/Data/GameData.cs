@@ -622,6 +622,31 @@ public sealed partial class GameData
         if (HudResources.Any(r => r.Id == PowerResource)) problems.Add("hud_resources: the power resource is a budget, not a stockpile; leave it out.");
         if (Landing.StartStock.Any(a => power != null && a.Resource == power.Index)) problems.Add("Landing start_stock: the power resource can't be stockpiled.");
 
+        // Stocks, holds and costs are never negative: a negative start stock or hold starts a player below zero, a
+        // negative cost pays out (the command fuzz test's data edits found these accepted).
+        void NotNegative(IEnumerable<ResourceAmount> amounts, string where)
+        {
+            if (amounts.Any(a => a.Amount < Fix64.Zero)) problems.Add($"{where}: amounts can't be negative.");
+        }
+        NotNegative(Landing.StartStock, "Landing start_stock");
+        foreach (var m in Maps) NotNegative(m.StartStock, $"Map {m.Id} start_stock");
+        if (Orbit is { } held)
+        {
+            NotNegative(held.Hold, "Orbit hold");
+            NotNegative(held.OutpostCost, "Orbit outpost_drop cost");
+            NotNegative(held.SatelliteCost, "Orbit satellite cost");
+        }
+        foreach (var b in Buildings)
+        {
+            NotNegative(b.Cost, $"Building {b.Id} cost");
+            foreach (var l in b.Levels) NotNegative(l.Cost, $"Building {b.Id} level {l.Name} cost");
+        }
+        foreach (var u in SurfaceUnits)
+        {
+            NotNegative(u.Cost, $"Surface unit {u.Id} cost");
+            if (u.Found is { } found) NotNegative(found.Cost, $"Surface unit {u.Id} found cost");
+        }
+
         // The core upgrade line from the landing hub: each step exists, is buildable and goes up one level.
         var seen = new HashSet<string>();
         for (var core = hub; core != null && seen.Add(core.Id);)
