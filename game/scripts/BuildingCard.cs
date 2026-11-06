@@ -129,7 +129,9 @@ public partial class BuildingCard : Control
         HudKit.Clear(this);
         _costChips.Clear();
 
-        AddChild(new ColorRect { Color = new Color(0.005f, 0.01f, 0.025f, 0.62f), MouseFilter = MouseFilterEnum.Ignore, AnchorRight = 1, AnchorBottom = 1 });
+        var dim = new ColorRect { Color = new Color(0.005f, 0.01f, 0.025f, 0.62f), MouseFilter = MouseFilterEnum.Ignore };
+        AddChild(dim);
+        dim.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect); // the dimmed world behind the card
 
         var pad = 18 * s;
         var width = Mathf.Min(screen.X - 40 * s, 900 * s);

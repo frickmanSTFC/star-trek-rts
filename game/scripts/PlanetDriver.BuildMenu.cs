@@ -55,8 +55,7 @@ public partial class PlanetDriver
         _bigCard.CloseRequested += () => _info = null;
         _strip.CloseRequested += StopPlacing;
         _strip.CardRequested += ReopenCard;
-        var stock = _sim.Players[LocalPlayer].Stock;
-        _have = (r, amount) => stock[r] >= amount;
+        _have = (r, amount) => _sim.Players[LocalPlayer].Stock[r] >= amount;
     }
 
     // ---------------------------------------------------------------- what is on the menu
@@ -246,7 +245,7 @@ public partial class PlanetDriver
         var cardOpen = _info != null && (IsBuildingCard(_info) || _info.StartsWith("unit:"));
         if (cardOpen)
         {
-            var key = $"{_info}|{Me.Known.Count(k => k)}|{_selectedBase}|{RuntimeHelpers.GetHashCode(_data)}";
+            var key = $"{_info}|{Me.Known.Count(k => k)}|{_selectedBase}|{RuntimeHelpers.GetHashCode(_data)}|{SelectedBay()?.Production.Count}";
             if (key != _cardKey || !_bigCard.IsOpen)
             {
                 _cardKey = key;
@@ -302,7 +301,8 @@ public partial class PlanetDriver
     private string? BuildTooltip()
     {
         if (_inOrbit || _bigCard.IsOpen) return null;
-        var id = _drawer.IsOpen && _drawer.HoveredId != null ? _drawer.HoveredId : _hud.HoveredCommand;
+        var id = _drawer.IsOpen && _drawer.HoveredId != null ? _drawer.HoveredId
+            : _hud.BlocksMouse(GetViewport().GetMousePosition()) ? _hud.HoveredCommand : null; // a recent tile or the BUILD button
         if (id == "build:drawer") return "Build [B]\nEvery building with its picture, cost and key. Pick one for its card; Shift+pick places it at once.";
         if (!IsBuildingCard(id)) return null;
         var def = _data.Building(id!);
