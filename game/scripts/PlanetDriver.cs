@@ -140,6 +140,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         for (var i = 0; i < orbitCards.Count; i++) commands.Add((orbitCards[i].Id, orbitCards[i].Name, $"[{i + 1}]"));
         _hud.Setup(commands, OnCommand, SelectBase, Upgrade, OnAction);
         _hud.SetInfoHandlers(InfoAction, () => _info = null);
+        SetupBuildMenu(); // drawer, large card, placing strip and the model renders (PlanetDriver.BuildMenu.cs)
         _hud.Minimap.Setup(_sim, _view, LocalPlayer);
         _hud.Minimap.OnJump = p => _focusTarget = p;
 
@@ -1164,7 +1165,14 @@ public partial class PlanetDriver : Node3D, ITestHost
                 if (_placing != null) StopPlacing();
                 else if (_founding != 0) StopFounding();
                 else if (_info != null) _info = null; // close the card first, keep the selection
+                else if (_drawer.IsOpen) CloseDrawer();
                 else ClearSelection();
+                break;
+            case Key.B when landed:
+                ToggleDrawer(); // the build drawer (PlanetDriver.BuildMenu.cs)
+                break;
+            case Key.I when _placing != null:
+                ReopenCard();
                 break;
             case Key.Enter or Key.KpEnter when _info != null:
                 InfoAction();
@@ -1219,7 +1227,8 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case >= Key.Key1 and <= Key.Key9 when landed:
                 var index = (int)(key.Keycode - Key.Key1);
-                if (SelectedFounder() != null)
+                if (BuildingKeysActive) PickBuildingByKey(index, key.ShiftPressed); // drawer, building card or placing
+                else if (SelectedFounder() != null)
                 {
                     if (index == 0) OnCommand(FoundCard);
                 }
@@ -1232,7 +1241,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 {
                     if (index < _data.Techs.Count) OnCommand($"tech:{_data.Techs[index].Id}");
                 }
-                else if (index < _data.BuildMenu.Count) StartPlacing(_data.BuildMenu[index]);
+                else PickBuildingByKey(index, key.ShiftPressed);
                 break;
             case Key.Backspace when landed && SelectedBay() != null:
                 _sim.Schedule(_sim.Tick + InputDelayTicks, new CancelUnitCommand(LocalPlayer, SelectedBay()!.Id));
@@ -1306,8 +1315,9 @@ public partial class PlanetDriver : Node3D, ITestHost
     }
 
     /// <summary>
-    /// A command-card button (or its number key). A building starts placing it and opens its card; a tech or vehicle
-    /// opens its card, and picking the same one again (or the card's button, or Enter) starts the research / places the order.
+    /// A command-card button (or its number key). A building, tech or vehicle opens its card, and picking the same one
+    /// again (or the card's button, or Enter) places the building / starts the research / places the order; Shift+pick
+    /// places a building at once (PlanetDriver.BuildMenu.cs).
     /// </summary>
     private void OnCommand(string id)
     {
@@ -1327,16 +1337,16 @@ public partial class PlanetDriver : Node3D, ITestHost
             else _info = id;
             return;
         }
-        StartPlacing(id);
-        if (_placing == id) _info = id;
+        PickBuilding(id, Input.IsKeyPressed(Key.Shift));
     }
 
-    /// <summary>The info card's button: start the tech or order the vehicle it shows.</summary>
+    /// <summary>The info card's button: start the tech, order the vehicle or place the building it shows.</summary>
     private void InfoAction()
     {
         if (_info == null) return;
         if (_info.StartsWith("tech:")) Research(_info[5..]);
         else if (_info.StartsWith("unit:")) OrderUnit(_info[5..]);
+        else if (IsBuildingCard(_info)) ArmPlacement(_info, quiet: false);
     }
 
     private void Research(string techId)
@@ -1454,6 +1464,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             if (Surface.CheckPlacement(_sim, LocalPlayer, _placing, _hoverTile) == PlacementProblem.None)
             {
                 _sim.Schedule(_sim.Tick + InputDelayTicks, new PlaceBuildingCommand(LocalPlayer, _placing, _hoverTile, _facing));
+                NoteRecent(_placing); // the command card's recent tiles
                 if (!shift) StopPlacing(); // Shift keeps placing the same building
             }
             return;
@@ -1525,7 +1536,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void UpdateHover()
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse);
         _hoverTile = -1;
         if (!_mouseOverUi)
         {
@@ -1569,9 +1580,9 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (!_inOrbit)
         {
             if (_info != null && _info.StartsWith("orbit:")) _info = null; // orbit cards belong to the orbit view
-            if (_info != null && (_info == FoundCard ? _founding == 0 : _info.StartsWith("tech:") ? SelectedLab() == null : _info.StartsWith("unit:") ? SelectedBay() == null : _placing != _info)) _info = null;
-            _hud.ShowInfo(_info == null ? null : _info == FoundCard ? FoundInfo() : _info.StartsWith("tech:") ? TechInfo(_data.Tech(_info[5..]))
-                : _info.StartsWith("unit:") ? UnitInfo(_info[5..]) : BuildingInfo(_info));
+            if (_info != null && (_info == FoundCard ? _founding == 0 : _info.StartsWith("tech:") ? SelectedLab() == null : _info.StartsWith("unit:") ? SelectedBay() == null : !IsBuildingCard(_info))) _info = null;
+            // Founding and research keep the compact card; buildings and vehicle orders get the large card (UpdateBuildMenu).
+            _hud.ShowInfo(_info == FoundCard ? FoundInfo() : _info != null && _info.StartsWith("tech:") ? TechInfo(_data.Tech(_info[5..])) : null);
         }
 
         var supply = 0f;
@@ -1592,6 +1603,7 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         var landed = Me.Phase == LandingPhase.Landed;
         _hud.ShowHints(ContextHints());
+        UpdateBuildMenu(); // drawer, large card, placing strip (PlanetDriver.BuildMenu.cs)
         if (_inOrbit)
         {
             _hud.ShowBanner(Me.Phase == LandingPhase.InOrbit && _orbitAction == "land"
@@ -1613,6 +1625,7 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         // Tooltip: what's under the mouse (or why the building can't go there).
         _hud.ShowTooltip(_hoverTile < 0 ? "" : _placing != null ? DescribePlacement(_placing, _hoverTile) : _founding != 0 ? FoundTooltip(_hoverTile) : DescribeTile(_hoverTile), GetViewport().GetMousePosition());
+        if (BuildTooltip() is { } buildTip) _hud.ShowTooltip(buildTip, GetViewport().GetMousePosition()); // a drawer / recent tile under the mouse
 
         // Bottom centre.
         var bases = Surface.Bases(LocalPlayer);
@@ -1655,6 +1668,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                     var problem = Surface.ProductionProblem(_sim, LocalPlayer, bay.Id, u);
                     return new CommandView($"unit:{u}", "", "", Amounts(ud.Cost, false, shortNames: true), problem == null, _info == $"unit:{u}");
                 }).ToList(), true);
+            ShowOrderPictures(bayDef); // vehicle renders on the order tiles
             return;
         }
         // Nothing can be placed until a base has assembled (the first hub, or an outpost dropped from orbit).
@@ -1664,12 +1678,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             : selectedCore is { Assembling: true } ? $"BUILD · {BaseName(_selectedBase).ToUpperInvariant()} ASSEMBLING {PlanetSurface.AssembleSecondsLeft(selectedCore, _sim.Tick)} S"
             : selectedCore is { Founded: true } && selectedCore.State != StructureState.Complete ? $"BUILD · {BaseName(_selectedBase).ToUpperInvariant()} UNDER CONSTRUCTION {Mathf.RoundToInt(Surface.BuildFraction(selectedCore).ToFloat() * 100)}%"
             : $"BUILD AT {BaseName(_selectedBase).ToUpperInvariant()}";
-        _hud.ShowCommands(buildTitle,
-            _data.BuildMenu.Select((id, i) =>
-            {
-                var def = _data.Building(id);
-                return new CommandView(id, $"[{i + 1}]", def.Name, Amounts(def.Cost, false, shortNames: true), stock.CanAfford(def.Cost), _placing == id);
-            }).ToList(), landed && readyBase);
+        ShowBuildCommands(buildTitle, landed && readyBase); // BUILD [B] + the recent builds (PlanetDriver.BuildMenu.cs)
     }
 
     private void ShowBase(SurfaceStructure core)
@@ -1731,49 +1740,6 @@ public partial class PlanetDriver : Node3D, ITestHost
         _ => $"{m.Stat} {Pct(m.Add)}",
     };
 
-    /// <summary>Card for a building on the build menu: what it is, what it costs and does, how it wears and upgrades.</summary>
-    private InfoView BuildingInfo(string id)
-    {
-        var def = _data.Building(id);
-        var stock = _sim.Players[LocalPlayer].Stock;
-        var rows = new List<(string, string)>();
-        if (def.Effect.Length > 0) rows.Add(("Does", def.Effect));
-        var power = new List<string>();
-        if (def.PowerUse > Fix64.Zero) power.Add($"uses {Hud.Whole(def.PowerUse)}");
-        if (def.PowerSupply > Fix64.Zero) power.Add($"supplies {Hud.Whole(def.PowerSupply)}");
-        if (power.Count > 0) rows.Add(("Power", string.Join(" · ", power)));
-        if (def.OutputPerMinute.Count > 0) rows.Add(("Makes", Amounts(def.OutputPerMinute, true)));
-        if (def.UpkeepPerMinute.Count > 0) rows.Add(("Upkeep", Amounts(def.UpkeepPerMinute, true)));
-        if (def.IsMine) rows.Add(("Mines", $"{Hud.Whole(def.ExtractPerMinute)} a minute from " + (def.RequiresDepleted ? $"a used-up deposit (reopens it at {Mathf.RoundToInt(def.ReopenShare.ToFloat() * 100)}%)" : "the deposit under it")));
-        if (def.IsConverter)
-            rows.Add(("Recipes", string.Join("\n", def.Recipes.Select(r => $"{Amounts(r.In, false)} → {Amounts(r.Out, false)}")) + $"\n{Hud.Whole(def.CyclesPerMinute)} cycles a minute"));
-        if (def.Storage > Fix64.Zero) rows.Add(("Storage", $"+{Hud.Whole(def.Storage)} space"));
-        if (def.IsLab) rows.Add(("Research", $"{Hud.Whole(def.ResearchPerMinute)} points a minute toward the tech you pick"));
-        if (def.IsFactory)
-            rows.Add(("Builds", string.Join(" · ", def.Produces.Select(u => _data.GroundVehicleNames.GetValueOrDefault(u, u))) + $" · up to {def.ProductionQueue} orders queued"));
-        rows.Add(("Wear", def.Wears ? $"{Hud.Whole(def.WearPerMinute)} condition a minute while working; below 50% it slows and may break. Maintain with M." : "never wears"));
-        if (def.Levels.Count > 0)
-            rows.Add(("Upgrades", string.Join("\n", def.Levels.Select(l =>
-                $"{l.Name} ({Amounts(l.Cost, false, shortNames: true)}): {string.Join(", ", l.Modifiers.Select(ModifierText))}" +
-                (l.RequiresLevel > 1 ? " · needs Colonial Administration" : "")))));
-        var needs = new List<string>();
-        if (def.RequiresDeposit) needs.Add("a surveyed deposit");
-        if (def.RequiresDepleted) needs.Add("a used-up deposit");
-        if (def.RequiresTech.Length > 0 && _data.HasTech(def.RequiresTech))
-        {
-            var t = _data.Tech(def.RequiresTech);
-            needs.Add($"{t.Name} research" + (Surface.Players[LocalPlayer].Known[t.Index] ? " (done)" : " (not yet)"));
-        }
-        if (needs.Count > 0) rows.Add(("Needs", string.Join(" · ", needs)));
-
-        var problem = _hoverTile >= 0 ? Surface.CheckPlacement(_sim, LocalPlayer, id, _hoverTile) : PlacementProblem.None;
-        var footer = "Click a tile in the blue area to place it  ·  R rotate  ·  Shift+click place more  ·  Esc cancel";
-        if (_hoverTile >= 0 && problem != PlacementProblem.None) footer = $"Can't build on this tile: {Reason(problem)}\n" + footer;
-        return new InfoView(id, def.Name, def.Category.Replace('_', ' ') + (def.Levels.Count > 0 ? $" · upgrades to {def.Levels[^1].Name}" : ""),
-            $"Cost  {Amounts(def.Cost, false)}   ·   {def.BuildSeconds} s to build", stock.CanAfford(def.Cost),
-            def.Description.Length > 0 ? def.Description : def.Effect, rows, -1f, "", "", false, footer);
-    }
-
     /// <summary>Card for a tech: what it does, what it needs and unlocks, how long it takes, and a Start button.</summary>
     private InfoView TechInfo(TechDef t)
     {
@@ -1822,53 +1788,22 @@ public partial class PlanetDriver : Node3D, ITestHost
             $"{Hud.Whole(progress)} / {Hud.Whole(t.Cost)} points", action, enabled, "");
     }
 
-    /// <summary>Card for a vehicle the selected bay can build: what it does, its stats, and an Order button.</summary>
-    private InfoView UnitInfo(string unitId)
-    {
-        var u = _data.SurfaceUnit(unitId);
-        var bay = SelectedBay();
-        var name = _data.GroundVehicleNames.GetValueOrDefault(unitId, unitId);
-        var rows = new List<(string, string)>();
-        var plains = _data.Terrain.FirstOrDefault(t => t.Id == "plains")?.MoveCost ?? 2;
-        rows.Add(("Speed", $"about {(plains / u.Speed.ToFloat()):0.#} s per plains tile (hills and forest are slower)"));
-        rows.Add(("Survey", $"reveals deposits within {u.SurveyRadius} tile{(u.SurveyRadius == 1 ? "" : "s")} as it drives"));
-        if (u.CanMine)
-        {
-            rows.Add(("Mining", $"{Hud.Whole(u.ExtractPerMinute)} a minute · hopper {Hud.Whole(u.Hopper)} · unfurls in {u.DeploySeconds} s"));
-            rows.Add(("Delivery", $"each full hopper flies home by cargo pod at {Hud.Whole(u.PodSpeed)} tiles a second"));
-        }
-        if (u.Breakdown is { } b)
-        {
-            var bonus = Surface.UnitResearchBonus(LocalPlayer, unitId, Modifier.Breakdown);
-            var chance = b.ChancePerMinute * Fix64.Max(Fix64.Zero, Fix64.One + bonus);
-            rows.Add(("Breakdowns", $"~{Mathf.RoundToInt(chance.ToFloat() * 100)}% per minute of mining: " + string.Join(", ", b.Severities.Select(v => v.Name.ToLowerInvariant())) +
-                (bonus != Fix64.Zero ? $" (research {Pct(bonus)})" : "")));
-        }
-        if (u.Found is { } found)
-            rows.Add(("Founds", $"a new {_data.Building(found.Building).Name} at least {found.MinDistance} tiles from your bases: {Amounts(found.Cost, false)} more, unfolds in {u.DeploySeconds} s, exocomps build it in {_data.Building(found.Building).BuildSeconds} s"));
-        if (u.Repair is { } r) rows.Add(("Repair", $"on the Colony Hub's pad: {Hud.Whole(r.PerSecond)} points a second, {Amounts(r.CostPerPoint, false)} a point"));
-        if (bay != null) rows.Add(("Queue", $"{bay.Production.Count} of {_data.Building(bay.DefId).ProductionQueue} orders at this bay"));
-
-        var problem = bay == null ? "select a Vehicle Bay" : Surface.ProductionProblem(_sim, LocalPlayer, bay.Id, unitId);
-        var stock = _sim.Players[LocalPlayer].Stock;
-        return new InfoView($"unit:{unitId}", name, "Ground vehicle", $"Cost  {Amounts(u.Cost, false)}   ·   {u.BuildSeconds} s to assemble", stock.CanAfford(u.Cost),
-            u.Description, rows, -1f, "", problem == null ? $"ORDER A {name.ToUpperInvariant()} [Enter]" : $"CAN'T ORDER: {problem.ToUpperInvariant()}", problem == null,
-            "Paid when ordered · Backspace cancels the last order for a full refund");
-    }
-
     /// <summary>Short hints for what's selected (the full list is on F1).</summary>
     private string ContextHints()
     {
         if (_inOrbit) return (Me.Phase == LandingPhase.Landed ? "O surface  ·  " : "") + "Drag / WASD turn  ·  wheel zoom  ·  Tab scan  ·  1–9 deploy  ·  right-click cancel  ·  F1 controls";
         if (Me.Phase == LandingPhase.Descending) return "F1 controls";
-        if (_placing != null) return "R rotate  ·  Shift+click place more  ·  right-click / Esc stop";
+        if (_placing != null) return "R rotate  ·  Shift+click place more  ·  I card  ·  right-click / Esc stop";
+        if (IsBuildingCard(_info)) return "Enter or pick it again: place  ·  another key: its card  ·  B drawer  ·  Esc close";
+        if (_info != null && _info.StartsWith("unit:")) return "Enter or pick it again: order  ·  Backspace cancel the last order  ·  Esc close";
+        if (_drawer.IsOpen) return $"1–{Mathf.Min(9, MenuBuildings().Count)} building card  ·  Shift+pick place at once  ·  B / Esc close  ·  F1 controls";
         if (_founding != 0) return "Click a site  ·  Shift+click keep picking  ·  right-click / Esc stop  ·  F1 controls";
         if (SelectedFounder() != null) return "F / 1 found outpost (pick a site)  ·  right-click drive  ·  R repair  ·  T change tyre  ·  V wipers  ·  Esc back  ·  F1 controls";
         if (SelectedBay() != null) return $"1–{_data.Building(SelectedBay()!.DefId).Produces.Count} vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (_selectedStructure != 0) return "U upgrade  ·  M maintain  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
         if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  V wipers  ·  Esc back  ·  F1 controls";
-        return $"1–{_data.BuildMenu.Count} build  ·  U upgrade base  ·  Tab next base  ·  H home  ·  F1 controls";
+        return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  Tab next base  ·  H home  ·  F1 controls";
     }
 
     /// <summary>Top-bar research chip: the active tech's progress, or what to do next.</summary>

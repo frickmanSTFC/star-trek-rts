@@ -975,7 +975,7 @@ public partial class PlanetView : Node3D
             if (!_rovers.TryGetValue(u.Id, out var model))
             {
                 var colour = PlanetDriver.PlayerColors[u.Owner % PlanetDriver.PlayerColors.Length];
-                model = def.CanMine ? BuildingModels.Crawler(colour) : def.CanFound ? BuildingModels.Constructor(colour) : BuildingModels.Rover(colour, def.Id);
+                model = BuildingModels.Vehicle(def, colour);
                 RoverLook.Paint(model, u.Name, u.Number);
                 _grime[u.Id] = RoverLook.Grime.Attach(model, def.CanMine || def.CanFound ? 3.2f : 2.4f);
                 _lamps[u.Id] = RoverLook.Lamps.Attach(model, u.Id);
