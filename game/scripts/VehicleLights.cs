@@ -72,36 +72,38 @@ public static class VehicleLights
 
     private static readonly Color Warm = new(1f, 0.93f, 0.8f);
 
-    /// <summary>The one table of placeholder numbers. Positions come from the Blender scripts (Blender (x, y, z) → Godot
+    /// <summary>The one table of placeholder numbers. Ground vehicles (owner 2026-11-07: "light up at least 1 full hexagon and
+    /// bleeding into the next"; a hex is 25 across): main beam 55 range, 46° half-angle, energy 11, nearly level (-4°); roof
+    /// light 60 range, 40°, 7.5; far-zoom pool 26 × 42. Positions come from the Blender scripts (Blender (x, y, z) → Godot
     /// (x, z, -y)); a rover glb's Headlamp±1 and Spot0..n nodes override the Head / Roof positions when present.</summary>
     public static readonly Dictionary<Kind, Spec> Specs = new()
     {
         // build_vehicles.py rover_mk1: round headlamps (±0.78, 1.12, -2.055), two roof spots (±0.8, 2.42, -1.5).
         [Kind.RoverMk1] = new Spec(
-            new[] { new Lamp(Role.Head, new(0, 1.12f, -2.3f), -8f, 28f, 36f, 5f, true), new Lamp(Role.Roof, new(0, 2.42f, -1.75f), -14f, 34f, 26f, 3.5f) },
-            new[] { new Lamp(Role.Head, new(0, 1.05f, -2.15f), -8f, 26f, 36f, 5f, true), new Lamp(Role.Roof, new(0, 2.3f, -1.75f), -14f, 32f, 26f, 3.2f) },
-            new[] { new Vector3(-0.75f, 1.05f, -1.92f), new Vector3(0.75f, 1.05f, -1.92f) }, 0.05f, new(7f, 16f)),
+            new[] { new Lamp(Role.Head, new(0, 1.12f, -2.3f), -4f, 55f, 46f, 11f, true), new Lamp(Role.Roof, new(0, 2.42f, -1.75f), -7f, 60f, 40f, 7.5f) },
+            new[] { new Lamp(Role.Head, new(0, 1.05f, -2.15f), -4f, 55f, 46f, 11f, true), new Lamp(Role.Roof, new(0, 2.3f, -1.75f), -7f, 60f, 40f, 7.5f) },
+            new[] { new Vector3(-0.75f, 1.05f, -1.92f), new Vector3(0.75f, 1.05f, -1.92f) }, 0.05f, new(26f, 42f)),
         // rover_mk2 (Kalty): headlamps (±0.85, 1.2, -2.34), light bar with four spots at (x, 2.46, -1.12).
         [Kind.RoverMk2] = new Spec(
-            new[] { new Lamp(Role.Head, new(0, 1.2f, -2.6f), -8f, 30f, 36f, 5f, true), new Lamp(Role.Roof, new(0, 2.46f, -1.38f), -16f, 36f, 28f, 3.8f) },
-            new[] { new Lamp(Role.Head, new(0, 1.05f, -2.15f), -8f, 26f, 36f, 5f, true), new Lamp(Role.Roof, new(0, 2.3f, -1.75f), -14f, 32f, 26f, 3.2f) },
-            new[] { new Vector3(-0.75f, 1.05f, -1.92f), new Vector3(0.75f, 1.05f, -1.92f) }, 0.05f, new(7.5f, 17f)),
+            new[] { new Lamp(Role.Head, new(0, 1.2f, -2.6f), -4f, 55f, 46f, 11f, true), new Lamp(Role.Roof, new(0, 2.46f, -1.38f), -7f, 60f, 40f, 7.5f) },
+            new[] { new Lamp(Role.Head, new(0, 1.05f, -2.15f), -4f, 55f, 46f, 11f, true), new Lamp(Role.Roof, new(0, 2.3f, -1.75f), -7f, 60f, 40f, 7.5f) },
+            new[] { new Vector3(-0.75f, 1.05f, -1.92f), new Vector3(0.75f, 1.05f, -1.92f) }, 0.05f, new(26f, 42f)),
         // rover_mk3: slim LED headlamps (±0.78, 1.55, -2.63), light bar spots at (x, 2.77, -1.06).
         [Kind.RoverMk3] = new Spec(
-            new[] { new Lamp(Role.Head, new(0, 1.55f, -2.9f), -8f, 32f, 38f, 5.5f, true), new Lamp(Role.Roof, new(0, 2.77f, -1.3f), -16f, 38f, 28f, 4f) },
-            new[] { new Lamp(Role.Head, new(0, 1.05f, -2.15f), -8f, 26f, 36f, 5f, true), new Lamp(Role.Roof, new(0, 2.3f, -1.75f), -14f, 32f, 26f, 3.2f) },
-            new[] { new Vector3(-0.75f, 1.05f, -1.92f), new Vector3(0.75f, 1.05f, -1.92f) }, 0.05f, new(8f, 18f)),
+            new[] { new Lamp(Role.Head, new(0, 1.55f, -2.9f), -4f, 55f, 46f, 11f, true), new Lamp(Role.Roof, new(0, 2.77f, -1.3f), -7f, 60f, 40f, 7.5f) },
+            new[] { new Lamp(Role.Head, new(0, 1.05f, -2.15f), -4f, 55f, 46f, 11f, true), new Lamp(Role.Roof, new(0, 2.3f, -1.75f), -7f, 60f, 40f, 7.5f) },
+            new[] { new Vector3(-0.75f, 1.05f, -1.92f), new Vector3(0.75f, 1.05f, -1.92f) }, 0.05f, new(26f, 42f)),
         // build_miner.py: headlamps (±0.95, 1.5, -2.85), cab roof spots (±0.78, 3.12, -2.37); the boom-tip work lamp is the
         // model's own "WorkLight" (BuildingModels.AddCrawlerEffects). Deployed, the head and roof lamps tip down onto the dig.
         [Kind.Crawler] = new Spec(
-            new[] { new Lamp(Role.Head, new(0, 1.5f, -3.1f), -9f, 30f, 40f, 5.5f, true), new Lamp(Role.Roof, new(0, 3.12f, -2.6f), -20f, 34f, 34f, 4f), new Lamp(Role.Work, default, 0f, 0f, 0f, 3.5f) },
-            new[] { new Lamp(Role.Head, new(0, 1.4f, -2.95f), -9f, 28f, 40f, 5.5f, true), new Lamp(Role.Roof, new(0, 3.2f, -2.3f), -20f, 32f, 34f, 4f), new Lamp(Role.Work, default, 0f, 0f, 0f, 3.5f) },
-            new[] { new Vector3(-0.9f, 1.4f, -2.72f), new Vector3(0.9f, 1.4f, -2.72f) }, 0.05f, new(9f, 18f)),
+            new[] { new Lamp(Role.Head, new(0, 1.5f, -3.1f), -4f, 55f, 46f, 11f, true), new Lamp(Role.Roof, new(0, 3.12f, -2.6f), -10f, 60f, 40f, 7.5f), new Lamp(Role.Work, default, 0f, 0f, 0f, 3.5f) },
+            new[] { new Lamp(Role.Head, new(0, 1.4f, -2.95f), -4f, 55f, 46f, 11f, true), new Lamp(Role.Roof, new(0, 3.2f, -2.3f), -10f, 60f, 40f, 7.5f), new Lamp(Role.Work, default, 0f, 0f, 0f, 3.5f) },
+            new[] { new Vector3(-0.9f, 1.4f, -2.72f), new Vector3(0.9f, 1.4f, -2.72f) }, 0.05f, new(26f, 42f)),
         // build_constructor.py: headlamps (±0.85, 1.24, -3.62), light bar with five spots at (x, 2.81, -2.54).
         [Kind.Constructor] = new Spec(
-            new[] { new Lamp(Role.Head, new(0, 1.24f, -3.9f), -8f, 30f, 38f, 5.5f, true), new Lamp(Role.Roof, new(0, 2.81f, -2.8f), -15f, 38f, 30f, 4f) },
-            new[] { new Lamp(Role.Head, new(0, 1.1f, -3.6f), -8f, 28f, 38f, 5.5f, true), new Lamp(Role.Roof, new(0, 2.9f, -3.2f), -15f, 36f, 30f, 4f) },
-            new[] { new Vector3(-0.85f, 1.1f, -3.42f), new Vector3(0.85f, 1.1f, -3.42f) }, 0.05f, new(8f, 18f)),
+            new[] { new Lamp(Role.Head, new(0, 1.24f, -3.9f), -4f, 55f, 46f, 11f, true), new Lamp(Role.Roof, new(0, 2.81f, -2.8f), -7f, 60f, 40f, 7.5f) },
+            new[] { new Lamp(Role.Head, new(0, 1.1f, -3.6f), -4f, 55f, 46f, 11f, true), new Lamp(Role.Roof, new(0, 2.9f, -3.2f), -7f, 60f, 40f, 7.5f) },
+            new[] { new Vector3(-0.85f, 1.1f, -3.42f), new Vector3(0.85f, 1.1f, -3.42f) }, 0.05f, new(26f, 42f)),
         // build_dropship.py: nose landing lamps (±0.85, 2.25, -6.62); belly (BELLY 0.85) under the bay. The rest of the
         // Lamp material (strobe) keeps a little glow when they are off.
         [Kind.DropShip] = new Spec(
@@ -279,7 +281,7 @@ public static class VehicleLights
                     SpotRange = lamp.Range,
                     SpotAngle = lamp.Angle,
                     SpotAngleAttenuation = 0.9f,
-                    SpotAttenuation = 1f,
+                    SpotAttenuation = 0.6f, // flatter falloff: the beam still lights the far edge of the next hex
                     ShadowEnabled = false,
                     ShadowBias = 0.06f,
                     ShadowNormalBias = 1.2f,
@@ -295,8 +297,9 @@ public static class VehicleLights
                 _pitch[i] = lamp.Pitch;
                 if (lamp.Cone)
                 {
-                    var length = lamp.Range * 0.55f;
-                    var radius = length * Mathf.Tan(Mathf.DegToRad(lamp.Angle)) * 0.8f;
+                    // The visible beam is the bright core, narrower and shorter than the light's own (wide) falloff.
+                    var length = Mathf.Min(lamp.Range * 0.55f, 32f);
+                    var radius = length * Mathf.Tan(Mathf.DegToRad(Mathf.Min(lamp.Angle, 26f))) * 0.8f;
                     var cone = new MeshInstance3D
                     {
                         Name = "LightCone",
