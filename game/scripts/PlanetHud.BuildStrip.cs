@@ -49,8 +49,7 @@ public partial class PlanetHud
         {
             // Picture on top with the number key over its corner; the name over the picture's foot; cost under it.
             rect = HudKit.Picture(new Vector2(80, 46));
-            parts.Icon.Visible = false;
-            parts.Key.Visible = false;
+            parts.Top.Visible = false; // icon, key and tag row: the key moves onto the picture
             parts.Box.AddChild(rect);
             parts.Box.MoveChild(rect, 0);
             parts.Box.AddThemeConstantOverride("separation", 2);
@@ -104,7 +103,7 @@ public partial class PlanetHud
             if (pictures && thumbs!.Thumb(r.Id) is { } tex && tile.Picture.Texture != tex)
             {
                 tile.Picture.Texture = tex;
-                tile.Picture.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
+                tile.Picture.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
             }
             for (var c = 0; c < r.Cost.Count && c < tile.Chips.Count; c++) tile.Chips[c].Set(r.Cost[c].Text, r.Cost[c].Short, Dim);
             tile.Button.Disabled = !v.Enabled;
@@ -131,7 +130,6 @@ public partial class PlanetHud
         inner.AddThemeConstantOverride("separation", 2);
         inner.AddChild(HudKit.Label("BUILD", 34, Ink, bold: true));
         _buildButtonSub = HudKit.Label("", 12, Dim, condensed: true);
-        _buildButtonSub.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         inner.AddChild(_buildButtonSub);
         _buildButton.AddChild(inner);
         _buildButton.Pressed += () => BuildButtonPressed?.Invoke();

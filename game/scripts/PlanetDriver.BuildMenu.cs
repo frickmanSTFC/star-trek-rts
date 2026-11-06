@@ -67,7 +67,25 @@ public partial class PlanetDriver
     private bool Locked(string id) => _data.Building(id).RequiresTech is { Length: > 0 } t && !KnowsTech(t);
 
     /// <summary>The buildings on the menu now, in build_menu order (which is also number-key order).</summary>
-    private List<string> MenuBuildings() => _data.BuildMenu.Where(id => ShowLockedBuildings || !Locked(id)).ToList();
+    private List<string> MenuBuildings()
+    {
+        // Worked out once a frame (keys, tiles and hints all ask for it).
+        var frame = Engine.GetProcessFrames();
+        if (_menuFrame != frame || _menuData != _data)
+        {
+            _menuFrame = frame;
+            _menuData = _data;
+            _menu.Clear();
+            foreach (var id in _data.BuildMenu)
+                if (ShowLockedBuildings || !Locked(id)) _menu.Add(id);
+        }
+        return _menu;
+    }
+
+    private readonly List<string> _menu = new();
+    private ulong _menuFrame = ulong.MaxValue;
+    private GameData? _menuData;
+    private string _drawerSignature = "";
 
     /// <summary>A building's number key ("1".."9"), or "" when it has none (hidden, or past 9).</summary>
     private string BuildKey(string id)
@@ -202,18 +220,26 @@ public partial class PlanetDriver
             return;
         }
 
-        // Drawer.
-        var menu = MenuBuildings();
-        var readyBase = Surface.Bases(LocalPlayer).Any(b => b.State == StructureState.Complete);
-        var signature = string.Join(",", menu.Select(id => Locked(id) ? id + "!" : id));
-        var groups = new List<DrawerGroup>();
-        for (var g = 0; g <= HudKit.Groups.Length; g++)
+        // Drawer: its tiles are rebuilt only when the list changes (research, data tuning).
+        if (_drawer.IsOpen || _drawer.Visible)
         {
-            var tiles = menu.Where(id => HudKit.GroupOf(_data.Building(id).Category) == g).Select(DrawerTileFor).ToList();
-            if (tiles.Count > 0) groups.Add(new DrawerGroup(g < HudKit.Groups.Length ? HudKit.Groups[g].Name : "Other", tiles));
+            var menu = MenuBuildings();
+            var signature = string.Join(",", menu.Select(id => Locked(id) ? id + "!" : id)) + "|" + RuntimeHelpers.GetHashCode(_data);
+            var title = $"BUILD AT {BaseName(_selectedBase).ToUpperInvariant()}  ·  ALL BUILDINGS";
+            var keys = menu.Count == 0 ? "B OR ESC CLOSE" : $"1–{Mathf.Min(9, menu.Count)} CARD  ·  SHIFT PLACES AT ONCE  ·  B OR ESC CLOSE";
+            if (signature != _drawerSignature)
+            {
+                _drawerSignature = signature;
+                var groups = new List<DrawerGroup>();
+                for (var g = 0; g <= HudKit.Groups.Length; g++)
+                {
+                    var tiles = menu.Where(id => HudKit.GroupOf(_data.Building(id).Category) == g).Select(DrawerTileFor).ToList();
+                    if (tiles.Count > 0) groups.Add(new DrawerGroup(g < HudKit.Groups.Length ? HudKit.Groups[g].Name : "Other", tiles));
+                }
+                _drawer.SetContent(signature, title, keys, groups);
+            }
+            else _drawer.SetHead(title, keys);
         }
-        var keys = menu.Count == 0 ? "B OR ESC CLOSE" : $"1–{Mathf.Min(9, menu.Count)} CARD  ·  SHIFT PLACES AT ONCE  ·  B OR ESC CLOSE";
-        _drawer.SetContent(signature, $"BUILD AT {BaseName(_selectedBase).ToUpperInvariant()}  ·  ALL BUILDINGS", keys, groups);
         _drawer.Refresh(delta, _have, _placing ?? (IsBuildingCard(_info) ? _info : null), true, _thumbs);
 
         // Large card: a building's (not while placing it) or a Vehicle Bay order's.

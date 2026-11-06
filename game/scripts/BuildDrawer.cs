@@ -73,6 +73,13 @@ public partial class BuildDrawer : PanelContainer
     /// <summary>True when the mouse is over the drawer (the world shouldn't react).</summary>
     public bool IsOverUi(Vector2 mouse) => Visible && _shown > 0.05f && GetGlobalRect().HasPoint(mouse);
 
+    /// <summary>The header line's two halves (cheap: only stored).</summary>
+    public void SetHead(string title, string keys)
+    {
+        _title = title;
+        _keys = keys;
+    }
+
     /// <summary>The tiles to show. Rebuilt when the signature (the driver's list of ids, keys and lock states) changes.</summary>
     public void SetContent(string signature, string title, string keys, IReadOnlyList<DrawerGroup> groups)
     {
@@ -234,7 +241,7 @@ public partial class BuildDrawer : PanelContainer
             if (refreshPictures && thumbs!.Thumb(t.Data.Id) is { } tex && t.Picture.Texture != tex)
             {
                 t.Picture.Texture = tex;
-                t.Picture.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
+                t.Picture.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
             }
         }
     }

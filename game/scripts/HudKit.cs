@@ -107,7 +107,7 @@ public static class HudKit
         {
             CustomMinimumSize = size,
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
             TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
             MouseFilter = Control.MouseFilterEnum.Ignore,
             ClipContents = true,

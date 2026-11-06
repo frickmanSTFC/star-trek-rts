@@ -179,7 +179,8 @@ public partial class BuildingCard : Control
         var plate = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(0, heroH) };
         plate.AddThemeStyleboxOverride("panel", HudKit.Box(new Color(0.035f, 0.055f, 0.1f), HudKit.Line, 8 * s));
         _hero = HudKit.Picture(new Vector2(0, heroH));
-        _hero.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
+        _hero.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+        _hero.TextureFilter = TextureFilterEnum.Linear; // a ViewportTexture has no mipmaps
         _hero.MouseFilter = MouseFilterEnum.Stop;
         _hero.MouseDefaultCursorShape = CursorShape.Drag;
         _hero.Texture = _thumbs != null ? _thumbs.HeroTexture : Icons.Get(view.IconId, HudKit.Accent);
@@ -484,7 +485,7 @@ public partial class PlacingStrip : PanelContainer
             if (thumbs.Thumb(v.Id) is { } tex)
             {
                 _picture.Texture = tex;
-                _picture.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
+                _picture.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
             }
         }
         var title = v.Title.ToUpperInvariant();

@@ -224,7 +224,7 @@ public partial class ModelThumbnails : Node
         }
         _job = key;
         _jobModel = Stage(_studioStage, model, key);
-        Frame(_studioCamera, _studioStage, 1.0f);
+        Frame(_studioCamera, _studioStage, 0.9f, tight: true);
         _drawn = 0;
         _jobAge = 0;
         _studio.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
@@ -275,7 +275,7 @@ public partial class ModelThumbnails : Node
         if (model == null) return;
         _heroModel = Stage(_heroPivot, model, key);
         _heroPivot.Rotation = Vector3.Zero;
-        Frame(_heroCamera, _heroPivot, 0.92f);
+        Frame(_heroCamera, _heroPivot, 0.94f, tight: false);
         _heroYaw = 0;
         HeroDrag = 0;
         _hero.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
@@ -325,23 +325,52 @@ public partial class ModelThumbnails : Node
         return holder;
     }
 
-    /// <summary>Aims the camera at the stage's bounding sphere from the fixed 3/4 angle; fill = share of the frame.</summary>
-    private static void Frame(Camera3D camera, Node3D stage, float fill)
+    /// <summary>
+    /// Aims the camera from the fixed 3/4 angle. Tight (thumbnails): pulled back just far enough that all eight corners
+    /// of the model's box fit, then by 1/fill. Otherwise (the turntable) far enough for the box's bounding cylinder, so
+    /// the model stays in frame at every angle.
+    /// </summary>
+    private static void Frame(Camera3D camera, Node3D stage, float fill, bool tight)
     {
         var box = Bounds(stage);
         var centre = box.GetCenter();
         var radius = Mathf.Max(0.5f, box.Size.Length() * 0.5f);
         var aspect = 1f;
-        if (camera.GetViewport() is SubViewport vp && vp.Size.Y > 0) aspect = Mathf.Min(1f, (float)vp.Size.X / vp.Size.Y);
-        var half = Mathf.DegToRad(Fov * 0.5f);
-        var distance = radius / Mathf.Sin(half) / fill / Mathf.Max(0.6f, aspect);
+        if (camera.GetViewport() is SubViewport vp && vp.Size.Y > 0) aspect = (float)vp.Size.X / vp.Size.Y;
+        var tanV = Mathf.Tan(Mathf.DegToRad(Fov * 0.5f)); // Camera3D.Fov is the vertical angle (KeepAspect = height)
+        var tanH = tanV * aspect;
         var r = Mathf.DegToRad(Round);
         var d = Mathf.DegToRad(Down);
-        var dir = new Vector3(Mathf.Sin(r) * Mathf.Cos(d), Mathf.Sin(d), Mathf.Cos(r) * Mathf.Cos(d));
-        // Look a little below the centre so tall models (derricks, stacks) don't crowd the top edge.
-        var target = centre with { Y = centre.Y * 0.85f };
-        camera.LookAtFromPosition(target + dir * distance, target, Vector3.Up);
-        camera.Far = distance + radius * 4f;
+        var back = new Vector3(Mathf.Sin(r) * Mathf.Cos(d), Mathf.Sin(d), Mathf.Cos(r) * Mathf.Cos(d)); // from target toward the camera
+        var right = Vector3.Up.Cross(back).Normalized();
+        var up = back.Cross(right);
+        var target = centre;
+        var distance = 0f;
+        if (tight)
+        {
+            for (var i = 0; i < 8; i++)
+            {
+                var p = box.GetEndpoint(i) - target;
+                var z = p.Dot(back); // toward the camera: the corner is that much nearer
+                distance = Mathf.Max(distance, Mathf.Max(Mathf.Abs(p.Dot(right)) / tanH + z, Mathf.Abs(p.Dot(up)) / tanV + z));
+            }
+        }
+        else
+        {
+            // Bounding cylinder about the vertical axis: half width w, half height h.
+            var w = new Vector2(box.Size.X, box.Size.Z).Length() * 0.5f;
+            var h = box.Size.Y * 0.5f;
+            foreach (var (x, y, zz) in new[] { (w, h, w), (w, -h, w), (w, h, -w), (w, -h, -w) })
+            {
+                var p = new Vector3(0, y, 0) + back * zz; // nearest / farthest rim points
+                var z = p.Dot(back);
+                distance = Mathf.Max(distance, Mathf.Max(x / tanH + z, Mathf.Abs(p.Dot(up)) / tanV + z));
+            }
+        }
+        distance = Mathf.Max(distance, radius * 0.6f) / fill;
+        camera.LookAtFromPosition(target + back * distance, target, Vector3.Up);
+        camera.Near = Mathf.Max(0.05f, distance - radius * 1.5f);
+        camera.Far = distance + radius * 3f;
         foreach (var child in stage.GetParent().GetChildren())
             if (child is DirectionalLight3D { ShadowEnabled: true } key) key.DirectionalShadowMaxDistance = distance + radius * 2f;
     }
@@ -354,7 +383,7 @@ public partial class ModelThumbnails : Node
         var box = new Aabb();
         void Walk(Node n)
         {
-            if (n is Node3D { Visible: false }) return;
+            if (n is Node3D { Visible: false } || n.Name == "Ground") return; // the disc may run off the edge
             if (n is MeshInstance3D { Mesh: not null } mi)
             {
                 var b = (inverse * mi.GlobalTransform) * mi.GetAabb();
