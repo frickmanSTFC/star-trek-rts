@@ -1244,8 +1244,7 @@ public sealed partial class PlanetSurface
                 return true;
 
             case PauseCommand pause:
-                ApplyPause(pause); // Pause.cs
-                return true;
+                return ApplyPause(sim, pause); // Pause.cs
 
             case MaintainCommand maintain:
             {

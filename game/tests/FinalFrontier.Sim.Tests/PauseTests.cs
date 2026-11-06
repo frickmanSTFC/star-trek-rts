@@ -118,6 +118,7 @@ public class PauseTests
             var a = Clone(sim, c);
             var b = Clone(sim, null);
             Assert.Equal(b.StateHash(), a.StateHash());
+            Assert.Equal(b.RefusedCommands + 1, a.RefusedCommands); // counted as refused (Simulation.Refuse)
         }
         Assert.Equal(hash, sim.StateHash());
         Assert.False(hub.Paused);

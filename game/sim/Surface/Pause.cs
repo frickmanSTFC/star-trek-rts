@@ -32,9 +32,11 @@ public sealed partial class PlanetSurface
         return null;
     }
 
-    private void ApplyPause(PauseCommand command)
+    /// <summary>Switches the building off or on; a command PauseProblem refuses changes nothing and is counted as refused.</summary>
+    private bool ApplyPause(Simulation sim, PauseCommand command)
     {
-        if (PauseProblem(command.Player, command.StructureId, command.Pause) != null) return;
+        if (PauseProblem(command.Player, command.StructureId, command.Pause) is { } problem) return sim.Refuse(command, problem);
         FindStructure(command.StructureId)!.Paused = command.Pause; // Economy sets the status in the same step
+        return true;
     }
 }
