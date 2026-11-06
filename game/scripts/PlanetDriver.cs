@@ -135,6 +135,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             commands.Add(($"unit:{unit}", _data.GroundVehicleNames.GetValueOrDefault(unit, unit), $"[{key + 1}]"));
         }
         foreach (var t in _data.Techs) commands.Add(($"tech:{t.Id}", t.Name, $"[{t.Index + 1}]"));
+        commands.Add((FoundCard, "Found Outpost", "[F]")); // a selected construction rover's card (PlanetDriver.Founding.cs)
         var orbitCards = OrbitCards();
         for (var i = 0; i < orbitCards.Count; i++) commands.Add((orbitCards[i].Id, orbitCards[i].Name, $"[{i + 1}]"));
         _hud.Setup(commands, OnCommand, SelectBase, Upgrade, OnAction);
@@ -168,6 +169,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _helm.DisplayPicked += SetOrbitDisplay;
         _helm.SetInfoHandlers(InfoAction, () => _info = null);
         SetupUplink(helmLayer); // the outpost's surface feed window, over the helm
+        SetupSky(); // day/night, seasons and weather from Climate (PlanetDriver.Sky.cs); before EnterOrbit changes the environment
 
         // The test panel exists only in debug builds (editor runs); release exports never get it.
         if (OS.IsDebugBuild())
@@ -888,6 +890,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             UpdateHover();
         }
         _view.Refresh(alpha);
+        UpdateSky((float)delta); // PlanetDriver.Sky.cs: before the uplink, which hands the feed the outpost's sky
         UpdateUplink((float)delta);
         if (!_inOrbit) _hud.Minimap.Refresh(_camera);
         UpdateHud();
@@ -943,7 +946,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 var name = _data.Building(s.DefId).Name;
                 // The first landing's hub finishes on the uplink tick; its "assembled" line is folded into the uplink event.
                 var firstHub = was.State == StructureState.Assembling && s.Tile == Me.LandingTile;
-                if (was.State != StructureState.Complete && s.State == StructureState.Complete && !firstHub)
+                if (was.State != StructureState.Complete && s.State == StructureState.Complete && !firstHub && !s.Founded) // founded: FounderEvents
                     _hud.PushEvent(was.State == StructureState.Assembling ? $"{name} assembled: {BaseName(s.BaseId)} is working" : $"{name} completed", new Color(0.62f, 0.82f, 1f));
                 if (was.DefId != s.DefId) _hud.PushEvent($"{BaseName(s.BaseId)} upgraded: {name} (Level {_data.Building(s.DefId).Level})", PlanetHud.Accent);
                 if (was.Status != StructureStatus.NoUpkeep && s.Status == StructureStatus.NoUpkeep) _hud.PushEvent($"{name} idle: can't pay upkeep", new Color(1f, 0.7f, 0.42f));
@@ -988,6 +991,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             _seenCondition[u.Id] = condition;
         }
         RoverEvents(); // hazards, flat tyres, disabled, repaired (PlanetDriver.RoverDamage.cs)
+        FounderEvents(); // construction rovers founding outposts (PlanetDriver.Founding.cs)
 
         foreach (var u in Surface.Units.Where(u => u.Owner == LocalPlayer))
         {
@@ -1113,6 +1117,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
                 if (_placing != null) StopPlacing();
+                else if (_founding != 0) StopFounding();
                 else RightClick();
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
@@ -1157,6 +1162,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case Key.Escape:
                 if (_placing != null) StopPlacing();
+                else if (_founding != 0) StopFounding();
                 else if (_info != null) _info = null; // close the card first, keep the selection
                 else ClearSelection();
                 break;
@@ -1178,7 +1184,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 _hud.ToggleHelp();
                 break;
             case Key.F when landed:
-                ToggleDeploy();
+                if (!FoundKey()) ToggleDeploy(); // a construction rover picks a site; crawlers unfurl / pack up
                 break;
             case Key.V when landed && _view.SelectedUnits.Count > 0:
                 var wipers = _view.CycleWipers(_view.SelectedUnits);
@@ -1213,7 +1219,11 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case >= Key.Key1 and <= Key.Key9 when landed:
                 var index = (int)(key.Keycode - Key.Key1);
-                if (SelectedBay() is { } orderAt)
+                if (SelectedFounder() != null)
+                {
+                    if (index == 0) OnCommand(FoundCard);
+                }
+                else if (SelectedBay() is { } orderAt)
                 {
                     var produces = _data.Building(orderAt.DefId).Produces;
                     if (index < produces.Count) OnCommand($"unit:{produces[index]}");
@@ -1304,6 +1314,11 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (id.StartsWith("orbit:"))
         {
             ArmOrbit(id);
+            return;
+        }
+        if (id == FoundCard)
+        {
+            ArmFounding();
             return;
         }
         if (id.StartsWith("unit:") || id.StartsWith("tech:"))
@@ -1402,6 +1417,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             StopPlacing(); // pressing the same button again turns it off
             return;
         }
+        StopFounding();
         _placing = buildingId;
         _view.SelectedUnits.Clear();
         _selectedStructure = 0;
@@ -1424,6 +1440,12 @@ public partial class PlanetDriver : Node3D, ITestHost
         {
             if (Surface.CanLand(LocalPlayer, _hoverTile))
                 _sim.Schedule(_sim.Tick + InputDelayTicks, new LandColonyCommand(LocalPlayer, _hoverTile));
+            return;
+        }
+
+        if (_founding != 0)
+        {
+            FoundClick(shift);
             return;
         }
 
@@ -1511,6 +1533,11 @@ public partial class PlanetDriver : Node3D, ITestHost
             if (_hoverTile >= 0) _cursorTile = _hoverTile;
         }
 
+        if (_founding != 0)
+        {
+            FoundingHover();
+            if (_founding != 0) return;
+        }
         if (_placing != null)
         {
             var ok = _hoverTile >= 0 && Surface.CheckPlacement(_sim, LocalPlayer, _placing, _hoverTile) == PlacementProblem.None;
@@ -1542,8 +1569,8 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (!_inOrbit)
         {
             if (_info != null && _info.StartsWith("orbit:")) _info = null; // orbit cards belong to the orbit view
-            if (_info != null && (_info.StartsWith("tech:") ? SelectedLab() == null : _info.StartsWith("unit:") ? SelectedBay() == null : _placing != _info)) _info = null;
-            _hud.ShowInfo(_info == null ? null : _info.StartsWith("tech:") ? TechInfo(_data.Tech(_info[5..]))
+            if (_info != null && (_info == FoundCard ? _founding == 0 : _info.StartsWith("tech:") ? SelectedLab() == null : _info.StartsWith("unit:") ? SelectedBay() == null : _placing != _info)) _info = null;
+            _hud.ShowInfo(_info == null ? null : _info == FoundCard ? FoundInfo() : _info.StartsWith("tech:") ? TechInfo(_data.Tech(_info[5..]))
                 : _info.StartsWith("unit:") ? UnitInfo(_info[5..]) : BuildingInfo(_info));
         }
 
@@ -1580,11 +1607,12 @@ public partial class PlanetDriver : Node3D, ITestHost
             LandingPhase.Descending => $"Three drop ships descending… touchdown in {(Me.LandsAtTick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate} s",
             _ when _pick != null => $"{_pickPrompt}  ·  right-click / Esc cancel",
             _ when _placing != null => $"Placing {_data.Building(_placing).Name}  ·  R rotate  ·  Shift+click place more  ·  right-click / Esc stop",
+            _ when _founding != 0 => $"Founding an outpost: click a green site at least {(Surface.FindUnit(_founding) is { } fr ? Surface.FoundRulesOf(fr)!.MinDistance : 0)} tiles from your bases (outside the red ring)  ·  right-click / Esc stop",
             _ => "",
         });
 
         // Tooltip: what's under the mouse (or why the building can't go there).
-        _hud.ShowTooltip(_hoverTile < 0 ? "" : _placing != null ? DescribePlacement(_placing, _hoverTile) : DescribeTile(_hoverTile), GetViewport().GetMousePosition());
+        _hud.ShowTooltip(_hoverTile < 0 ? "" : _placing != null ? DescribePlacement(_placing, _hoverTile) : _founding != 0 ? FoundTooltip(_hoverTile) : DescribeTile(_hoverTile), GetViewport().GetMousePosition());
 
         // Bottom centre.
         var bases = Surface.Bases(LocalPlayer);
@@ -1612,6 +1640,11 @@ public partial class PlanetDriver : Node3D, ITestHost
                 }).ToList(), true);
             return;
         }
+        if (SelectedFounder() is { } founder)
+        {
+            ShowFoundCommands(founder); // PlanetDriver.Founding.cs
+            return;
+        }
         if (SelectedBay() is { } bay)
         {
             var bayDef = _data.Building(bay.DefId);
@@ -1629,6 +1662,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var selectedCore = Surface.FindStructure(_selectedBase);
         var buildTitle = !landed ? "BUILD (after landing)"
             : selectedCore is { Assembling: true } ? $"BUILD · {BaseName(_selectedBase).ToUpperInvariant()} ASSEMBLING {PlanetSurface.AssembleSecondsLeft(selectedCore, _sim.Tick)} S"
+            : selectedCore is { Founded: true } && selectedCore.State != StructureState.Complete ? $"BUILD · {BaseName(_selectedBase).ToUpperInvariant()} UNDER CONSTRUCTION {Mathf.RoundToInt(Surface.BuildFraction(selectedCore).ToFloat() * 100)}%"
             : $"BUILD AT {BaseName(_selectedBase).ToUpperInvariant()}";
         _hud.ShowCommands(buildTitle,
             _data.BuildMenu.Select((id, i) =>
@@ -1671,6 +1705,13 @@ public partial class PlanetDriver : Node3D, ITestHost
             else if (problem != null && problem != "not enough resources") line += $"\n({problem})";
         }
         else line = "Top level";
+        if (FoundedBaseLine(core) is { } founding) // founded on the ground: the exocomps are still building it
+        {
+            line = founding;
+            cost = "";
+            enabled = false;
+            progress = Surface.BuildFraction(core).ToFloat();
+        }
 
         var queue = members.Where(s => s.State != StructureState.Complete)
             .Select(s => (_data.Building(s.DefId).Name, s.State == StructureState.Building ? Surface.BuildFraction(s).ToFloat() : -1f)).ToList();
@@ -1803,6 +1844,8 @@ public partial class PlanetDriver : Node3D, ITestHost
             rows.Add(("Breakdowns", $"~{Mathf.RoundToInt(chance.ToFloat() * 100)}% per minute of mining: " + string.Join(", ", b.Severities.Select(v => v.Name.ToLowerInvariant())) +
                 (bonus != Fix64.Zero ? $" (research {Pct(bonus)})" : "")));
         }
+        if (u.Found is { } found)
+            rows.Add(("Founds", $"a new {_data.Building(found.Building).Name} at least {found.MinDistance} tiles from your bases: {Amounts(found.Cost, false)} more, unfolds in {u.DeploySeconds} s, exocomps build it in {_data.Building(found.Building).BuildSeconds} s"));
         if (u.Repair is { } r) rows.Add(("Repair", $"on the Colony Hub's pad: {Hud.Whole(r.PerSecond)} points a second, {Amounts(r.CostPerPoint, false)} a point"));
         if (bay != null) rows.Add(("Queue", $"{bay.Production.Count} of {_data.Building(bay.DefId).ProductionQueue} orders at this bay"));
 
@@ -1819,7 +1862,9 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (_inOrbit) return (Me.Phase == LandingPhase.Landed ? "O surface  ·  " : "") + "Drag / WASD turn  ·  wheel zoom  ·  Tab scan  ·  1–9 deploy  ·  right-click cancel  ·  F1 controls";
         if (Me.Phase == LandingPhase.Descending) return "F1 controls";
         if (_placing != null) return "R rotate  ·  Shift+click place more  ·  right-click / Esc stop";
-        if (SelectedBay() != null) return "1–2 vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
+        if (_founding != 0) return "Click a site  ·  Shift+click keep picking  ·  right-click / Esc stop  ·  F1 controls";
+        if (SelectedFounder() != null) return "F / 1 found outpost (pick a site)  ·  right-click drive  ·  R repair  ·  T change tyre  ·  V wipers  ·  Esc back  ·  F1 controls";
+        if (SelectedBay() != null) return $"1–{_data.Building(SelectedBay()!.DefId).Produces.Count} vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (_selectedStructure != 0) return "U upgrade  ·  M maintain  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
         if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  V wipers  ·  Esc back  ·  F1 controls";
@@ -2201,6 +2246,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         PlacementProblem.NotLanded => "land first",
         PlacementProblem.OffMap => "off the map",
         PlacementProblem.CoreAssembling => PlanetSurface.AssemblingProblem,
+        PlacementProblem.CoreUnderConstruction => "the new outpost is still being built (exocomps)",
         _ => "not available",
     };
 

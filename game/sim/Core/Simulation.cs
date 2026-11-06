@@ -235,6 +235,7 @@ public sealed class Simulation
             case ShuttleCommand:
             case BeamCommand:
             case SatelliteCommand:
+            case FoundOutpostCommand:
                 break; // surface commands with no surface loaded: ignore
             default:
                 throw new NotSupportedException($"Unhandled command {command.GetType().Name}.");

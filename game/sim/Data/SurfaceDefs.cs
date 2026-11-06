@@ -110,10 +110,20 @@ public sealed record LandingRules(
 /// </summary>
 public sealed record SurfaceUnitDef(string Id, Fix64 Speed, int SurveyRadius, Fix64 ExtractPerMinute, Fix64 Hopper, int DeploySeconds, Fix64 PodSpeed,
     BreakdownRules? Breakdown, RepairRules? Repair, IReadOnlyList<ResourceAmount> Cost, int BuildSeconds, string Description, int? Mark = null,
-    DamageRules? Damage = null, TyreRules? Tyres = null)
+    DamageRules? Damage = null, TyreRules? Tyres = null, FoundRules? Found = null)
 {
     public bool CanMine => ExtractPerMinute > Fix64.Zero;
+
+    /// <summary>A construction rover: it can found a new outpost on the ground (see <see cref="FoundRules"/>).</summary>
+    public bool CanFound => Found != null;
 }
+
+/// <summary>
+/// A construction rover's founding (surfaces.json units' "found"): it unfolds on a site for the unit's DeploySeconds,
+/// paying Cost as it starts, then is used up and Building (a colony core) stands there as a new base under construction.
+/// The site must be at least MinDistance tiles from the player's other colony cores.
+/// </summary>
+public sealed record FoundRules(string Building, IReadOnlyList<ResourceAmount> Cost, int MinDistance);
 
 /// <summary>
 /// Names and hull numbers for new units (surfaces.json unit_names): Pool of names (uppercase letters) and the first

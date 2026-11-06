@@ -415,18 +415,27 @@ public partial class SurfaceFeed : Control
     /// <summary>Sky colour from the planet class, dimmed at night and greyed by cloud; the Sun follows the local time.</summary>
     public void SetSkyColour(Color sky) => _skyColour = sky;
 
+    /// <summary>The outpost's sky from Climate (PlanetDriver.Sky): when set, the feed's light, haze and weather follow
+    /// it (so the feed matches the surface and the test panel's SKY overrides); otherwise the telemetry readings.</summary>
+    public FeedClimate? Climate { get; set; }
+
     private void UpdateLook(SurfaceReadings? r)
     {
-        var sun = r?.Sun.ToFloat() ?? 0.6f;
+        var climate = Climate;
+        var sun = climate?.SunSin ?? r?.Sun.ToFloat() ?? 0.6f;
         var daylight = Mathf.SmoothStep(-0.12f, 0.25f, sun);
-        var cloud = r?.CloudCover.ToFloat() ?? 0f;
+        var cloud = climate?.Cloud ?? r?.CloudCover.ToFloat() ?? 0f;
         _night = Mathf.Clamp((-sun - 0.05f) / 0.25f, 0f, 1f);
         _crt.SetShaderParameter("night", _night);
-        _crt.SetShaderParameter("dust", r?.Sky == SkyCondition.DustStorm ? 1f : 0f);
-        if (_sun != null && _sunSaved is { } saved) _sun.LightEnergy = saved.Energy * Mathf.Lerp(0.18f, 1f, daylight) * (1f - 0.35f * cloud);
+        var dustStorm = climate is { } dc ? dc.Kind == WeatherKind.DustStorm || (dc.Kind == WeatherKind.Dust && dc.Intensity > 0.6f) : r?.Sky == SkyCondition.DustStorm;
+        _crt.SetShaderParameter("dust", dustStorm ? 1f : 0f);
+        if (_sun != null && _sunSaved is { } saved)
+            _sun.LightEnergy = climate is { } lc ? lc.SunEnergy : saved.Energy * Mathf.Lerp(0.18f, 1f, daylight) * (1f - 0.35f * cloud);
         _environment.AmbientLightEnergy = Mathf.Lerp(0.2f, 0.45f, daylight);
         var vacuum = r?.Sky == SkyCondition.Vacuum;
-        _environment.FogDensity = vacuum ? 0.0004f : r?.Sky == SkyCondition.Fog ? 0.012f : r?.Sky == SkyCondition.DustStorm ? 0.009f : 0.0035f;
+        _environment.FogDensity = climate is { } fc
+            ? (vacuum ? 0.0004f : 0.0035f + 0.012f * (1f - fc.Visibility))
+            : vacuum ? 0.0004f : r?.Sky == SkyCondition.Fog ? 0.012f : r?.Sky == SkyCondition.DustStorm ? 0.009f : 0.0035f;
 
         // The sky only re-renders its radiance when its colours change, so step them.
         if (Mathf.Abs(daylight - _skyDaylight) < 0.03f && Mathf.Abs(cloud - _skyCloud) < 0.05f) return;
@@ -449,7 +458,16 @@ public partial class SurfaceFeed : Control
 
     private void UpdateWeather(SurfaceReadings? r)
     {
-        var sky = r?.Sky;
+        var sky = Climate is { } c
+            ? c.Kind switch
+            {
+                WeatherKind.Rain or WeatherKind.Storm => SkyCondition.Rain,
+                WeatherKind.Snow or WeatherKind.Blizzard => SkyCondition.Snow,
+                WeatherKind.DustStorm => SkyCondition.DustStorm,
+                WeatherKind.Dust when c.Intensity > 0.4f => SkyCondition.DustStorm,
+                _ => SkyCondition.Clear,
+            }
+            : r?.Sky;
         var kind = sky is SkyCondition.Rain or SkyCondition.Snow or SkyCondition.DustStorm ? sky : null;
         if (kind != _weatherShown)
         {
@@ -489,12 +507,25 @@ public partial class SurfaceFeed : Control
             }
             _weather.Emitting = kind != null;
         }
-        if (kind == null || r == null) return;
+        if (kind == null || (r == null && Climate == null)) return;
+        if (Climate is { } ci) _weather.AmountRatio = Mathf.Clamp(0.35f + 0.65f * ci.Intensity, 0f, 1f);
 
-        // Blow it downwind: the reading is where the wind comes from (0° = north = -Z).
-        var bearing = Mathf.DegToRad(r.WindFromDeg);
-        var downwind = -new Vector3(Mathf.Sin(bearing), 0f, -Mathf.Cos(bearing));
-        var wind = Mathf.Clamp(r.WindMs.ToFloat() / 12f, 0f, 1.5f);
+        // Blow it downwind: the reading is where the wind comes from (0° = north = -Z); Climate gives where it blows to.
+        Vector3 downwind;
+        float wind;
+        if (Climate is { } cw)
+        {
+            var to = Mathf.DegToRad(cw.WindDirDeg);
+            downwind = new Vector3(Mathf.Sin(to), 0f, -Mathf.Cos(to));
+            wind = Mathf.Clamp(cw.WindMs / 12f, 0f, 1.5f);
+        }
+        else if (r != null)
+        {
+            var bearing = Mathf.DegToRad(r.WindFromDeg);
+            downwind = -new Vector3(Mathf.Sin(bearing), 0f, -Mathf.Cos(bearing));
+            wind = Mathf.Clamp(r.WindMs.ToFloat() / 12f, 0f, 1.5f);
+        }
+        else return;
         _weatherProcess.Direction = kind == SkyCondition.DustStorm
             ? (downwind + new Vector3(0, 0.08f, 0)).Normalized()
             : (new Vector3(0, -1, 0) + downwind * wind * 0.5f).Normalized();

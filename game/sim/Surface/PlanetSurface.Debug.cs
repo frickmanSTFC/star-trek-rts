@@ -190,6 +190,7 @@ public sealed partial class PlanetSurface
                 else if (c.Value != Fix64.Zero)
                 {
                     if (u.Broken) break;
+                    AbortFounding(sim, u); // a construction rover unfolding folds up, refunded
                     u.Broken = true;
                     u.RepairTicks = 0;
                     u.RepairWaiting = false;
@@ -209,6 +210,7 @@ public sealed partial class PlanetSurface
             case DebugMoveUnitCommand c:
             {
                 var u = FindUnit(c.UnitId)!;
+                AbortFounding(sim, u);
                 u.Tile = c.Tile;
                 u._path.Clear();
                 u.Progress = Fix64.Zero;
@@ -220,6 +222,7 @@ public sealed partial class PlanetSurface
                 break;
             }
             case DebugRemoveUnitCommand c:
+                AbortFounding(sim, FindUnit(c.UnitId)!);
                 _units.Remove(FindUnit(c.UnitId)!);
                 break;
             case DebugSpawnUnitCommand c:

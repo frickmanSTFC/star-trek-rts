@@ -454,8 +454,11 @@ public sealed partial class PlanetSurface
         if (Map.Safety(tile) == LandingSafety.Unsafe) return Map.NearNatives(tile) ? "that's the natives' land" : "not a safe landing site";
         foreach (var t in Map.Grid.Within(tile, 1))
             if (_structureAt[t] != 0) return "too close to a building";
-        foreach (var core in Bases(player))
-            if (Map.Grid.Distance(core.Tile, tile) < orbit.OutpostMinDistance) return $"too close to a base (at least {orbit.OutpostMinDistance} tiles)";
+        switch (ClearOfBases(player, tile, orbit.OutpostMinDistance, null)) // the same spacing rule as founding on the ground
+        {
+            case FoundProblem.TooCloseToBase: return $"too close to a base (at least {orbit.OutpostMinDistance} tiles)";
+            case FoundProblem.FounderNearby: return "a construction rover is founding an outpost near there";
+        }
         if (DropWeatherProblem(sim.Tick, tile) is { } weather) return weather;
         if (!sim.Players[player].Stock.CanAfford(orbit.OutpostCost)) return "not enough resources";
         return null;
@@ -971,7 +974,10 @@ public sealed partial class PlanetSurface
         foreach (var u in _units)
             if (u.Tile == tile && u.Mode != UnitMode.Mobile) return PlacementProblem.Occupied;
         var baseId = BaseFor(player, tile);
-        if (baseId == 0) return CoreFor(player, tile, StructureState.Assembling) != 0 ? PlacementProblem.CoreAssembling : PlacementProblem.OutOfRange;
+        if (baseId == 0)
+            return CoreFor(player, tile, StructureState.Assembling) != 0 ? PlacementProblem.CoreAssembling
+                : CoreFor(player, tile, StructureState.Building) != 0 || CoreFor(player, tile, StructureState.Queued) != 0 ? PlacementProblem.CoreUnderConstruction
+                : PlacementProblem.OutOfRange;
         var def = _data.Building(buildingId);
         if (def.RequiresLevel > 0 && _data.Building(FindStructure(baseId)!.DefId).Level < def.RequiresLevel) return PlacementProblem.NeedsLevel;
         if (def.RequiresTech.Length > 0 && (!_data.HasTech(def.RequiresTech) || !_players[player].Known[_data.Tech(def.RequiresTech).Index])) return PlacementProblem.NeedsTech;
@@ -1130,6 +1136,7 @@ public sealed partial class PlanetSurface
                     if (unit == null || unit.Owner != move.Player || DriveProblem(unit) != null) continue;
                     var path = Pathfinder.Find(Map, unit.Tile, move.Tile);
                     if (path == null) continue;
+                    AbortFounding(sim, unit); // a construction rover's founding trip (or unfolding, refunded) is off
                     SetPath(unit, path);
                     unit.DeployOnArrival = false;
                     StartPacking(unit); // a deployed crawler folds up, then drives off
@@ -1157,6 +1164,10 @@ public sealed partial class PlanetSurface
                 unit.MiningStatus = MiningStatus.None;
                 return true;
             }
+
+            case FoundOutpostCommand found:
+                FoundOutpost(sim, found);
+                return true;
 
             case OutpostDropCommand drop:
             {
@@ -1250,6 +1261,7 @@ public sealed partial class PlanetSurface
                     if (unit == null || unit.Owner != repair.Player || !NeedsRepair(unit)) continue;
                     var pad = NearestRepairPad(repair.Player, unit.Tile);
                     if (pad == null) continue;
+                    AbortFounding(sim, unit);
                     unit.DeployOnArrival = false;
                     if (pad.Tile == unit.Tile)
                     {
@@ -1275,6 +1287,7 @@ public sealed partial class PlanetSurface
                 {
                     var unit = FindUnit(id);
                     if (unit == null || unit.Owner != pack.Player) continue;
+                    AbortFounding(sim, unit);
                     StartPacking(unit);
                     unit.DeployOnArrival = false;
                     unit.MiningStatus = MiningStatus.None;
@@ -1330,6 +1343,11 @@ public sealed partial class PlanetSurface
             case CancelBuildingCommand cancel:
                 var s = FindStructure(cancel.StructureId);
                 if (s == null || s.Owner != cancel.Player || s.Assembling) return true; // a core from orbit can't be cancelled
+                if (s.Founded && s.State != StructureState.Complete)
+                {
+                    CancelFounded(sim, s); // founded on the ground: refund, and the construction rover rolls back out
+                    return true;
+                }
                 var stock = sim.Players[s.Owner].Stock;
                 if (s.State == StructureState.Complete)
                 {
@@ -1403,8 +1421,9 @@ public sealed partial class PlanetSurface
         Economy(sim);
         Maintenance(sim);
         Crawlers(sim);
+        Founders(sim);
         RoverWear(sim);
-        MoveUnits();
+        MoveUnits(sim);
         FinishAssembly(sim.Tick + 1);
     }
 
@@ -1414,7 +1433,8 @@ public sealed partial class PlanetSurface
         var finished = new List<SurfaceStructure>();
         foreach (var core in _structures.Where(s => s.Id == s.BaseId).ToList())
         {
-            var free = core.State == StructureState.Complete ? _data.Building(core.DefId).BuildQueues : 0;
+            // A core founded on the ground has one queue for building itself (nothing else can join an unfinished base).
+            var free = core.State == StructureState.Complete ? _data.Building(core.DefId).BuildQueues : core.Founded ? 1 : 0;
             foreach (var s in _structures)
             {
                 if (s.BaseId != core.Id || s.State is StructureState.Complete or StructureState.Assembling) continue;
@@ -1653,6 +1673,7 @@ public sealed partial class PlanetSurface
             switch (unit.Mode)
             {
                 case UnitMode.Deploying:
+                    if (def.CanFound) break; // a construction rover unfolding on its site: Founders (Founding.cs)
                     if (++unit.ModeTicks < DeployTicks(unit)) break;
                     unit.Mode = UnitMode.Deployed;
                     unit.ModeTicks = 0;
@@ -1718,7 +1739,7 @@ public sealed partial class PlanetSurface
         return true;
     }
 
-    private void MoveUnits()
+    private void MoveUnits(Simulation sim)
     {
         foreach (var unit in _units)
         {
@@ -1735,6 +1756,12 @@ public sealed partial class PlanetSurface
             unit.Progress = Fix64.Zero;
             if (!unit.DeployOnArrival) continue;
             unit.DeployOnArrival = false;
+            if (unit.FoundTile >= 0) // a construction rover at its site (Founding.cs)
+            {
+                if (unit.FoundTile == unit.Tile) BeginFounding(sim, unit);
+                else unit.FoundTile = -1;
+                continue;
+            }
             if (DeployProblem(unit, unit.Tile) == null) StartDeploying(unit);
         }
     }

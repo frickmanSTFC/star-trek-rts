@@ -49,7 +49,7 @@ public class VehicleBayTests
     {
         Assert.Contains("vehicle_bay", Data.BuildMenu);
         var def = Data.Building("vehicle_bay");
-        Assert.Equal(new[] { "survey_rover", "mining_crawler", "survey_rover_mk2", "survey_rover_mk3" }, def.Produces);
+        Assert.Equal(new[] { "survey_rover", "mining_crawler", "survey_rover_mk2", "survey_rover_mk3", "construction_rover" }, def.Produces);
         Assert.All(def.Produces, id => Assert.True(Data.SurfaceUnit(id).BuildSeconds > 0));
     }
 

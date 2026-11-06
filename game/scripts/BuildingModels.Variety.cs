@@ -130,10 +130,11 @@ public static partial class BuildingModels
     {
         if (v.IsPlain || !Dressings.TryGetValue(defId, out var d)) return;
         Paint(n, v);
-        var slots = new List<(Vector3 At, float Yaw)>();
+        var slots = GlbSpots(n, "AddOnSpot"); // a detailed glb marks its own spots
+        var glbSpots = slots.Count > 0;
         // Ground spots: beside and behind the footprint (never in front, where the camera and the bay's apron are),
         // within ~8.4 of the centre (the scatter keeps 8.5 round a building clear of trees).
-        foreach (var (x, z, yaw) in new[]
+        foreach (var (x, z, yaw) in glbSpots ? System.Array.Empty<(float, float, float)>() : new[]
                  {
                      (-(d.Hx + 1.5f), -d.Hz * 0.45f, 90f), (-(d.Hx + 1.5f), d.Hz * 0.35f, 90f),
                      (d.Hx + 1.5f, -d.Hz * 0.45f, -90f), (d.Hx + 1.5f, d.Hz * 0.35f, -90f),
@@ -154,8 +155,9 @@ public static partial class BuildingModels
             var kind = v.Pick(GroundAddOns);
             AddGround(addOns, kind, at, yaw + v.Range(-15f, 15f), v);
         }
-        // the derricks' caps move with their height
-        var roof = defId switch
+        // the derricks' caps move with their height; a detailed glb marks its roof spots
+        var glbRoof = GlbSpots(n, "RoofSpot");
+        var roof = glbRoof.Count > 0 ? glbRoof.ConvertAll(r => r.At).ToArray() : defId switch
         {
             "mine" => new[] { new Vector3(0f, 0.95f + 7f * v.Height, 0f) },
             "deep_core_mine" => new[] { new Vector3(0f, 1f + 10f * v.Height3, 0f) },
@@ -163,7 +165,9 @@ public static partial class BuildingModels
         };
         if (roof.Length > 0 && v.Chance(0.55f))
             AddRoof(addOns, v.Pick(RoofAddOns), v.Pick(roof), v.Range(0f, 180f), v);
-        if (serial > 0 && d.PlateHeight > 0f)
+        var glbSigns = defId != "refinery" && n.FindChild("SignFront", true, false) != null;
+        if (glbSigns) PaintDetailedSigns(n, defId, serial);
+        else if (serial > 0 && d.PlateHeight > 0f)
         {
             var text = $"{d.Name} {serial:00}";
             if (d.PlateBoard)

@@ -54,6 +54,8 @@ public static class Icons
         ["vehicle_bay"] = "<path d='M3 20V9l9-5 9 5v11'/><path d='M7 20v-7h10v7M7 16h10'/>",
         ["unit:survey_rover"] = "<rect x='4' y='8' width='16' height='7' rx='2'/><circle cx='8' cy='17.5' r='2'/><circle cx='16' cy='17.5' r='2'/><path d='M14 8V5h3'/>",
         ["unit:mining_crawler"] = "<rect x='3' y='12' width='18' height='5' rx='2.5'/><path d='M6 12V9h6v3M12 9l6-4M18 5v6'/>",
+        ["unit:construction_rover"] = "<rect x='3' y='10' width='15' height='6' rx='1.5'/><circle cx='6' cy='18' r='1.8'/><circle cx='11' cy='18' r='1.8'/><circle cx='16' cy='18' r='1.8'/><path d='M9 10l6-6h4M19 4v4'/>",
+        ["found:outpost"] = "<path d='M3 19h18M6 19a6 6 0 0 1 12 0'/><path d='M12 3v8M8.5 7.5L12 11l3.5-3.5'/>",
         ["crawler"] = "<rect x='3' y='12' width='18' height='5' rx='2.5'/><path d='M6 12V9h6v3M12 9l6-4M18 5v6'/>",
         ["colony_hub"] = "<path d='M3 18h18M6 18a6 6 0 0 1 12 0M12 12V4M12 4l3 1.5'/>",
         ["mine"] = "<path d='M8 20l4-16 4 16M9.4 14h5.2M10.4 9h3.2M4 20h16'/>",

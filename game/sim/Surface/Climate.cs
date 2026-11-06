@@ -20,8 +20,10 @@ namespace FinalFrontier.Sim.Surface;
 // mvp_duel). A surface with no body (or data without climate.json) gets its class's climate template on a stand-in
 // orbit tuned to the class environment.
 //
-// The model: the subsolar column moves one map width per local day (prograde: east to west; retrograde: west to east;
-// locked to the star: it never moves); declination = tilt × sin(2π·year); sunlight = luminosity / r² with r from the
+// The model: the subsolar column moves one map width per local day (prograde: east to west, i.e. SubsolarColumn decreases
+// and local time = DayFraction + column / width, so columns east of it are in the afternoon; retrograde: west to east,
+// local time = DayFraction - column / width; locked to the star: it never moves). Row → latitude: Telemetry.Latitude's
+// share (+1 top row) × climate.json latitude_span_deg (64, the orbit globe's row centres); declination = tilt × sin(2π·year); sunlight = luminosity / r² with r from the
 // eccentric orbit. Temperature = the body's mean (278.6 K·((1-albedo)·sunlight)^¼ − 273.15 + greenhouse) + the equator's
 // share of the polar drop − polar_drop·latitude² + swing·(sun height a little after noon and the solstice) + the season's
 // offset (scaled by latitude band) − lapse·altitude + terrain. Weather: cells about cell_tiles across drift east or west;
@@ -235,7 +237,7 @@ public static class Climate
         public ulong BodyHash;
 
         // Surface rules (defaults = climate.json's when there is none).
-        public Fix64 LatitudeSpanDeg = Fix64.FromInt(65);
+        public Fix64 LatitudeSpanDeg = Fix64.FromInt(64);
         public Fix64 StartDay = Fix64.Parse("0.35");
         public Fix64 SinTwilight = Fix64.Parse("0.1045");
         public Fix64 ThermalLag = Fix64.Ratio(1, 10);

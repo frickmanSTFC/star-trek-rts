@@ -2,6 +2,7 @@
 // Colour = mesh vertex colour (strata, lichen, crevices) x instance colour, broken up by model-space value noise;
 // INSTANCE_CUSTOM.y = snow on up-facing faces (polar ice, high mountains), .z = moss (forest floor).
 // Fog darkens it like the terrain; near / far meshes cross-fade with a dither like foliage.gdshader.
+// Weather (sky.gdshaderinc, off by default): day/night shading, lying snow (at least the instance's own), wet darkening.
 shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx;
 
@@ -16,6 +17,8 @@ uniform vec3 snow_colour : source_color = vec3(0.86, 0.9, 0.96);
 uniform vec3 moss_colour : source_color = vec3(0.24, 0.31, 0.12);
 uniform vec3 eye_position = vec3(0.0, 1.0e6, 0.0);
 uniform vec4 lod_band = vec4(-2.0, -1.0, 1.0e9, 2.0e9);
+
+#include "res://shaders/sky.gdshaderinc"
 
 varying vec3 world_pos;
 varying vec3 model_pos;
@@ -55,11 +58,14 @@ void fragment() {
 	float n = value_noise(model_pos * detail_scale) * 0.65 + value_noise(model_pos * detail_scale * 3.7) * 0.35;
 	vec3 albedo = COLOR.rgb * (0.72 + 0.4 * n);
 	float up = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).y;
-	float snow = cover.x * smoothstep(0.3, 0.62, up + (n - 0.5) * 0.35);
+	vec3 lying = sky_cover(world_pos);
+	albedo *= mix(1.0, 0.7, lying.y);
+	float snow = max(cover.x, lying.x) * smoothstep(0.3, 0.62, up + (n - 0.5) * 0.35);
 	float moss = cover.y * smoothstep(0.15, 0.55, up + (n - 0.5) * 0.6) * (1.0 - snow);
 	albedo = mix(albedo, moss_colour * (0.7 + 0.6 * n), moss);
 	albedo = mix(albedo, snow_colour * (0.92 + 0.1 * n), snow);
-	ALBEDO = albedo * seen;
-	ROUGHNESS = mix(roughness, 0.55, snow);
-	SPECULAR = mix(specular, 0.45, snow) * seen;
+	vec3 lit = sky_light(world_pos);
+	ALBEDO = albedo * seen * lit;
+	ROUGHNESS = mix(mix(roughness, 0.4, lying.y), 0.55, snow);
+	SPECULAR = mix(mix(specular, 0.5, lying.y * 0.6), 0.45, snow) * seen * min(1.0, (lit.r + lit.g + lit.b) / 3.0);
 }
