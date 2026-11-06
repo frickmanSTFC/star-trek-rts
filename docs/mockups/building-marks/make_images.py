@@ -9,7 +9,7 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
-SIZES = {"lineup": 1600, "hero": 900, "game": 900, "close": 900, "night": 900}
+SIZES = {"lineup": 1920, "hero": 960, "game": 960, "close": 960, "night": 960}
 
 
 def main():
@@ -27,7 +27,7 @@ def main():
             if im.width > w:
                 im = im.resize((w, round(im.height * w / im.width)), Image.LANCZOS)
             path = os.path.join(out, f[:-4] + ".jpg")
-            im.save(path, quality=80, optimize=True, progressive=True)
+            im.save(path, quality=86, optimize=True, progressive=True)
             total += os.path.getsize(path)
             print(path, os.path.getsize(path))
     print("total", total)

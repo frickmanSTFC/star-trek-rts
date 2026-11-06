@@ -280,7 +280,7 @@ def build(mark, M):
     if mark >= 4:
         MK.strip_lights("RoofEdge", (-4.1, -2.25), (1.3, -2.25), SLAB + 3.85 if mark == 5 else SLAB + 3.55, 7, g)
 
-    M.info["rover"] = (-5.2, -6.2, 150)
+    M.info["rover"] = (-6.4, 2.6, 100)
     M.lamp((0.5, 0.85, 1.0), 160, P(2.6, -2.2, 3.2))
     M.lamp((1.0, 0.85, 0.6), 120, P(-1.4, -3.2, 2.6))
     M.lamp((1.0, 0.9, 0.75), 220, P(4.0, 1.4, 6.0))
