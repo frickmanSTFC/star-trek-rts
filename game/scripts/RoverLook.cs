@@ -289,6 +289,9 @@ public static class RoverLook
         /// <summary>How clean the wiped fan is (from <see cref="Lamps.Wiped"/>).</summary>
         public float Wiped { get; set; }
 
+        /// <summary>Rover damage, 0..1 (scratches, then scorch; PlanetView.RoverDamage sets it from integrity).</summary>
+        public float Damage { get; set; }
+
         /// <summary>Test panel: set the dirt directly (each 0..1); it then builds up and washes off as usual.</summary>
         public void Set(float dust, float mud, float snow)
         {
@@ -353,6 +356,7 @@ public static class RoverLook
             _material.SetShaderParameter("mud", _mud);
             _material.SetShaderParameter("snow", _snow);
             _material.SetShaderParameter("wiped", Wiped);
+            _material.SetShaderParameter("damage", Damage);
             _material.SetShaderParameter("dust_colour", _dustColour);
             // The painted names sit on the paint, so they get grubby too.
             var dirt = Mathf.Max(_dust * 0.6f, Mathf.Max(_mud * 0.8f, _snow * 0.9f));

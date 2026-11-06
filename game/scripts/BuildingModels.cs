@@ -620,9 +620,14 @@ public static partial class BuildingModels
         Add(n, new BoxMesh { Size = new Vector3(2f, 0.9f, 1.4f) }, new Vector3(0, 1.85f, -0.9f), hull);
         Add(n, new BoxMesh { Size = new Vector3(1.7f, 0.45f, 0.08f) }, new Vector3(0, 1.95f, -1.62f), Glow(Window, 1.5f));
         Add(n, new BoxMesh { Size = new Vector3(2.42f, 0.18f, 3.82f) }, new Vector3(0, 1.2f, 0), Glow(owner, 1.6f));
-        foreach (var z in new[] { -1.3f, 0f, 1.3f })
-            foreach (var x in new[] { -1.35f, 1.35f })
-                Add(n, new CylinderMesh { TopRadius = 0.5f, BottomRadius = 0.5f, Height = 0.4f, RadialSegments = 12 }, new Vector3(x, 0.5f, z), tyre, new Vector3(0, 0, 90));
+        // Wheel pivots named like the glbs' (WheelFL ... WheelRR, see Surface.Wheels) so flat tyres can squash them.
+        foreach (var (z, axle) in new[] { (-1.3f, "F"), (0f, "M"), (1.3f, "R") })
+            foreach (var (x, side) in new[] { (-1.35f, "L"), (1.35f, "R") })
+            {
+                var wheel = new Node3D { Name = $"Wheel{axle}{side}", Position = new Vector3(x, 0.5f, z) };
+                Add(wheel, new CylinderMesh { TopRadius = 0.5f, BottomRadius = 0.5f, Height = 0.4f, RadialSegments = 12 }, Vector3.Zero, tyre, new Vector3(0, 0, 90));
+                n.AddChild(wheel);
+            }
         var dish = new Node3D { Name = "Dish", Position = new Vector3(0, 2.3f, 0.9f) };
         Add(dish, new CylinderMesh { TopRadius = 0.08f, BottomRadius = 0.08f, Height = 1f }, new Vector3(0, 0.4f, 0), hull);
         Add(dish, new CylinderMesh { TopRadius = 0.7f, BottomRadius = 0.1f, Height = 0.35f, RadialSegments = 12 }, new Vector3(0, 1f, 0), hull, new Vector3(25, 0, 0));
