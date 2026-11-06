@@ -403,6 +403,9 @@ public partial class SurfaceFeed : Control
     /// <summary>Next camera: mast → perimeter → each vehicle in turn (skipped when there are none).</summary>
     public void NextCamera() => NextCamera(int.MaxValue);
 
+    /// <summary>Where the feed's camera is while the feed shows (vehicle headlights budget from it in orbit), else null.</summary>
+    public Vector3? CameraPosition => _active && _camera.IsInsideTree() ? _camera.GlobalPosition : null;
+
     private void NextCamera(int vehicles)
     {
         _cutTimer = 0f;

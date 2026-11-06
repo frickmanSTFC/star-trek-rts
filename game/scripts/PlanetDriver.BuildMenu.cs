@@ -794,7 +794,7 @@ public partial class PlanetDriver
         if (u.CanFound) tips.Add("Select it and press F (or FOUND OUTPOST), then click a green site outside the red ring.");
         if (u.CanFound) tips.Add("X on the unfinished hub refunds the founding and gives the rover back.");
         if (!u.CanMine && !u.CanFound) tips.Add("Rovers survey the ground you need before you can build on it.");
-        if (u.Tyres != null) tips.Add("T changes a flat with the spare; R sends it to the repair pad. V cycles the wipers.");
+        if (u.Tyres != null) tips.Add("T changes a flat with the spare; R sends it to the repair pad. V cycles the wipers, L the headlights.");
         sections.Add(new("Tips", new CardBlock[] { new CardBullets(tips) }));
 
         var mark = u.Mark ?? 0;

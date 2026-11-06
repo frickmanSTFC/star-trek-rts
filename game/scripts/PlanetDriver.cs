@@ -1204,6 +1204,16 @@ public partial class PlanetDriver : Node3D, ITestHost
                     _ => "Wipers on automatic: they run on wet, muddy, snowy or dusty ground",
                 }, new Color(0.62f, 0.82f, 1f));
                 break;
+            case Key.L when landed && _view.SelectedUnits.Count > 0:
+                var headlights = _view.CycleHeadlights(_view.SelectedUnits);
+                _hud.PushEvent(headlights switch
+                {
+                    null => "The selected vehicles have no headlights",
+                    VehicleLights.Mode.On => "Headlights on",
+                    VehicleLights.Mode.Off => "Headlights off",
+                    _ => "Headlights on automatic: on at dusk and night, in fog, storms and dust",
+                }, new Color(0.62f, 0.82f, 1f));
+                break;
             case Key.U when landed:
                 Upgrade();
                 break;
@@ -1798,11 +1808,11 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (_info != null && _info.StartsWith("unit:")) return "Enter or pick it again: order  ·  Backspace cancel the last order  ·  Esc close";
         if (_drawer.IsOpen) return $"1–{Mathf.Min(9, MenuBuildings().Count)} building card  ·  Shift+pick place at once  ·  B / Esc close  ·  F1 controls";
         if (_founding != 0) return "Click a site  ·  Shift+click keep picking  ·  right-click / Esc stop  ·  F1 controls";
-        if (SelectedFounder() != null) return "F / 1 found outpost (pick a site)  ·  right-click drive  ·  R repair  ·  T change tyre  ·  V wipers  ·  Esc back  ·  F1 controls";
+        if (SelectedFounder() != null) return "F / 1 found outpost (pick a site)  ·  right-click drive  ·  R repair  ·  T change tyre  ·  V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
         if (SelectedBay() != null) return $"1–{_data.Building(SelectedBay()!.DefId).Produces.Count} vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (_selectedStructure != 0) return "U upgrade  ·  M maintain  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
-        if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  V wipers  ·  Esc back  ·  F1 controls";
+        if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
         return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  Tab next base  ·  H home  ·  F1 controls";
     }
 

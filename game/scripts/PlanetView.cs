@@ -987,6 +987,7 @@ public partial class PlanetView : Node3D
                 // Construction rover: rear wheels at x ±1.35, z 2.2 (radius 0.62).
                 var (sx, sz) = def.CanMine ? (1.13f, 2.4f) : def.CanFound ? (1.35f, 2.95f) : def.Mark switch { 1 => (1.3f, 1.75f), 3 => (1.5f, 2.5f), _ => (1.35f, 2.3f) };
                 model.AddChild(new SprayRig(new[] { new Vector3(-sx, 0.15f, sz), new Vector3(sx, 0.15f, sz) }));
+                AttachHeadlights(u, def, model); // PlanetView.Headlights.cs: real headlights (after the grime, so no dirt on them)
                 AddChild(model);
                 _rovers[u.Id] = model;
                 var label = new Label3D
@@ -1058,6 +1059,7 @@ public partial class PlanetView : Node3D
                 var wipe = ((moving || rolling) && ground is SprayKind.Water or SprayKind.Mud or SprayKind.Snow or SprayKind.Dust) || (onPad && dirty);
                 lamps.Update(moving || rolling, u.Broken || u.Integrity < Fix64.FromInt(50), wipe, delta);
             }
+            UnitHeadlights(u, def); // PlanetView.Headlights.cs: broken / damaged / out of sight / crawler deployed
             if (model.GetNodeOrNull<Node3D>("Selected") is { } ring) ring.Visible = SelectedUnits.Contains(u.Id) && !aboard;
             if (model.GetNodeOrNull<Node3D>("Dish") is { } dish) dish.RotateY(delta * (moving ? 3f : 1f));
 
@@ -1088,6 +1090,7 @@ public partial class PlanetView : Node3D
             _rovers.Remove(id);
             _grime.Remove(id);
             _lamps.Remove(id);
+            ForgetHeadlights(id);
             ForgetRover(id);
             _unitLabels[id].QueueFree();
             _unitLabels.Remove(id);
@@ -1388,7 +1391,7 @@ public partial class PlanetView : Node3D
 
         var digging = u.Mode == UnitMode.Deployed && u.MiningStatus == MiningStatus.Mining;
         if (model.GetNodeOrNull<CpuParticles3D>("Dust") is { } dust && dust.Emitting != digging) dust.Emitting = digging;
-        if (model.GetNodeOrNull<Light3D>("WorkLight") is { } lamp) lamp.Visible = f > 0.5f;
+        // The boom-tip "WorkLight" is switched with the headlights (PlanetView.Headlights.cs: deployed and dark).
         if (model.GetNodeOrNull<Node3D>("Body") is { } body)
         {
             body.Position = digging ? new Vector3(0, Mathf.Sin(_time * 38f) * 0.04f, Mathf.Sin(_time * 23f) * 0.03f) : Vector3.Zero;

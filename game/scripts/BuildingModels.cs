@@ -632,8 +632,7 @@ public static partial class BuildingModels
                 MaterialOverride = Glow(new Color(1f, 0.95f, 0.5f), 2f),
                 Visible = false,
             });
-            made.AddChild(new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 2f, SpotRange = 16f, SpotAngle = 30f, Position = new Vector3(0, 1.3f, -2.6f), RotationDegrees = new Vector3(-12, 0, 0) });
-            return made;
+            return made; // headlights: VehicleLights (live units only, not the build-menu renders)
         }
         var n = new Node3D();
         var hull = Metal(HullColour, 0.45f, 0.4f);
@@ -663,7 +662,6 @@ public static partial class BuildingModels
             Visible = false,
         };
         n.AddChild(ring);
-        n.AddChild(new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 2f, SpotRange = 16f, SpotAngle = 30f, Position = new Vector3(0, 1.6f, -2f), RotationDegrees = new Vector3(-15, 0, 0) });
         return n;
     }
 
@@ -688,10 +686,7 @@ public static partial class BuildingModels
         var sparksAt = glb ? new Vector3(0.78f, 2.25f, -0.2f) : new Vector3(0.9f, 2.4f, -0.6f);
         var fireAt = glb ? new Vector3(0.45f, 2.6f, -0.3f) : new Vector3(0.2f, 2.1f, 0.9f);
         AddCrawlerEffects(n, smokeAt, sparksAt, fireAt);
-        // Headlights in the nose (glb: lamps at 1.5 up on the front face, z -2.85).
-        n.AddChild(glb
-            ? new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 1.8f, SpotRange = 16f, SpotAngle = 32f, Position = new Vector3(0, 1.6f, -3.0f), RotationDegrees = new Vector3(-10, 0, 0) }
-            : new SpotLight3D { LightColor = new Color(1f, 0.95f, 0.85f), LightEnergy = 1.6f, SpotRange = 14f, SpotAngle = 30f, Position = new Vector3(0, 2.4f, -2.6f), RotationDegrees = new Vector3(-15, 0, 0) });
+        // Headlights: VehicleLights adds them to live units in PlanetView (not to the build-menu renders).
         // Selection ring: round the hull, the boom tip (z -4.3 folded) and the braced pads (glb: their outer corners
         // land at x 3.1, z -2.9 / 2.6, up to 4.24 from the centre).
         n.AddChild(new MeshInstance3D
