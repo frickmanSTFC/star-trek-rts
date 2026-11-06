@@ -18,6 +18,7 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `scripts/DropShipView.cs`, `LandingView.cs` | Drop ships for orbit deliveries, and the first landing: three drop ships set the Level 1 outpost down in three modules, unload the rovers and the crawler, and the modules crawl together, lock and unfurl until the uplink comes online |
 | `shaders/` | `terrain`, `water`, `foliage`, `rock` (all read the fog-of-war texture: one texel per tile) and `crystal` (glowing deposits) |
 | `scripts/ConstructionView.cs`, `BuildingModels.Exocomp.cs`, `models/drones/exocomp.glb`, `shaders/build_*` | Construction: exocomp drones fly out, circle the site and beam each piece of the building into place (`build_print`, `build_beam`, `build_flare`, `build_shimmer`) |
+| `sim/Surface/Founding.cs`, `scripts/PlanetDriver.Founding.cs`, `PlanetView.Founding.cs`, `BuildingModels.Constructor.cs`, `models/vehicles/construction_rover.glb` | Founding a second outpost on the ground: the construction rover drives to a site, unfolds its crane and sets down the folded hub, and its exocomps build the new Colony Hub (`blender/build_constructor.py`) |
 | `scripts/Scatter.cs`, `PlanetView.Scatter.cs`, `models/scatter/scatter.glb` | Landscape scatter: trees, bushes, grass, ferns, rocks, sandstone and ice per terrain (built by `blender/build_scatter.py`), chunked MultiMeshes with near/far LOD, wind and clearings under buildings |
 | `scripts/OrbitView.cs`, `OrbitPainter.cs`, `shaders/planet`, `atmosphere`, `clouds` (+ `air`/`clouds` includes) | Orbit view (the helm viewscreen): the painted globe with satellite-photo ground, animated oceans, two lit cloud layers with ground shadows and a ray-marched (Rayleigh + Mie) atmosphere; displays Planet (optional lat/long grid), Orbit (tracks of the ship, satellites and moon), Atmosphere (full clouds, storm cells) and System |
 | `scripts/SurfaceFeed.cs`, `SurfaceTelemetry.cs`, `PlanetDriver.Uplink.cs`, `sim/Surface/Telemetry.cs` | Once the outpost's uplink is online: the helm's live video feed from the surface (its own camera and SubViewport; the surface moves to render layer 20 while it shows) and the environmental telemetry (temperature, humidity, wind, pressure, gases, radiation, hazards) computed from `surfaces.json` environments |
@@ -65,8 +66,14 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    less, and at 0 they are disabled. A flat tyre slows a rover (two flats: a crawl): press **T** to have the crew change
    it with the spare, or **R** to send it to the repair pad, which fixes everything for a little duranium.
    Build a **Vehicle Bay** (key 8) for more vehicles: select it and the command card shows its orders
-   (survey rover Mk I Scout, mining crawler, Mk II Surveyor, Mk III Explorer; keys 1–4). Orders are paid up front and queue up to 5; **Backspace** cancels
+   (survey rover Mk I Scout, mining crawler, Mk II Surveyor, Mk III Explorer, construction rover; keys 1–5). Orders are paid up front and queue up to 5; **Backspace** cancels
    the last one. Each vehicle rolls out of the bay's door when it's done.
+   **A second base on the ground:** select a **construction rover** and press **FOUND OUTPOST** (the card, **F** or **1**),
+   then click a site: surveyed, buildable, safe ground at least 8 tiles from your other bases (a ghost of the outpost
+   shows green or red with the reason; the red ring marks where it's too close). It drives there, pays the founding
+   cost, unfolds its crane and sets the folded hub down; its exocomps then build the new Colony Hub (90 s), which
+   becomes a base of its own in the base tabs (**Tab**). **X** on the unfinished hub refunds it and gives the rover back;
+   a move order while it unfolds folds it up again (refunded).
    Clicking a card on the build card opens a bigger **info card** above it: description, cost, stats, upgrades
    and requirements. A building card also starts placing it. A research or vehicle card only opens its info:
    start or order from the card's button, with **Enter**, or by picking the same card (or number key) again. **Esc** closes it.
@@ -85,7 +92,7 @@ selected base or object in the middle, and the build card bottom-right. Fog: bri
 near-black = unexplored (set `FogDarkness` on the root node).
 
 Controls: left-click selects a vehicle, building, base or tile (Shift adds vehicles), **A** selects all vehicles, right-click
-drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair), **R** send damaged vehicles to the repair pad, **T** change a rover's flat tyre, **1–8** build (or order vehicles when a Vehicle Bay is selected), **Backspace** cancel the bay's last order, **R** rotate,
+drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair; a construction rover: found an outpost), **R** send damaged vehicles to the repair pad, **T** change a rover's flat tyre, **1–8** build (or order vehicles when a Vehicle Bay is selected), **Backspace** cancel the bay's last order, **R** rotate,
 **U** upgrade the selected building (or the base), **M** maintain the selected building, **F1** all controls, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
 WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
 
@@ -121,5 +128,5 @@ dotnet test
 
 ## Not done yet
 
-On the surface: outposts (more bases), shields and integrity, more buildings (research lab, garrison, refineries), population, the Cardassian rival landing. Later: the star system above, shipyards, combat, orbits, the sector (lane) map, the network layer, exported builds
+On the surface: shields and integrity, more buildings (research lab, garrison, refineries), population, the Cardassian rival landing. Later: the star system above, shipyards, combat, orbits, the sector (lane) map, the network layer, exported builds
 (the data folder is read from `../data` next to the project, which works in the editor only).

@@ -69,7 +69,7 @@ public static partial class BuildingModels
             Add(body, new BoxMesh { Size = new Vector3(0.35f, 0.14f, 0.05f) }, new Vector3(x, 1.1f, 3.42f), tail);
         // Outrigger jacks at the deck corners.
         var k = 0;
-        foreach (var z in new[] { -1.2f, 3.0f })
+        foreach (var z in new[] { 0.7f, 3.05f })
             foreach (var x in new[] { -1.45f, 1.45f })
             {
                 var jack = new Node3D { Name = $"Jack{k++}", Position = new Vector3(x, 0.9f, z) };
