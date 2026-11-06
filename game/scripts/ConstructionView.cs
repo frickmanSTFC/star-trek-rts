@@ -123,6 +123,7 @@ public partial class ConstructionView : Node3D
         public required Node3D Node;
         public Node3D? Body;
         public Vector3 BodyRest;
+        public Vector3 BodyScale = Vector3.One;
         public Node3D? Emitter;
         public Site? Site;
         public int Slot;
@@ -375,7 +376,14 @@ public partial class ConstructionView : Node3D
         }
 
         var target = _surface.BuildFraction(s).ToFloat();
-        site.Shown = target < site.Shown - 0.02f ? target : site.Shown + (target - site.Shown) * (1f - Mathf.Exp(-delta * 5f));
+        if (target < site.Shown - 0.02f)
+        {
+            // Progress went back (test panel): pieces past it turn back into holograms.
+            site.Shown = target;
+            foreach (var p in site.Pieces)
+                if (p.State == PieceState.Solid && p.End > target) Unbuild(p);
+        }
+        else site.Shown += (target - site.Shown) * (1f - Mathf.Exp(-delta * 5f));
         var ghost = site.Fresh ? QueuedGhost : BuildGhost;
         var focusSet = false;
         foreach (var p in site.Pieces)
@@ -452,6 +460,14 @@ public partial class ConstructionView : Node3D
                 if (Emissive(mi.GetSurfaceOverrideMaterial(k) ?? mi.Mesh.SurfaceGetMaterial(k)))
                     mi.SetSurfaceOverrideMaterial(k, _unpowered); // this model is thrown away when the building finishes
         }
+    }
+
+    private static void Unbuild(Piece p)
+    {
+        p.State = PieceState.Ghost;
+        p.LastProgress = p.LastGhost = p.LastScan = p.LastFlash = -1f;
+        foreach (var mi in p.Meshes)
+            if (GodotObject.IsInstanceValid(mi)) mi.MaterialOverride = p.Print;
     }
 
     private static bool Emissive(Material? m) =>
@@ -620,6 +636,7 @@ public partial class ConstructionView : Node3D
             Node = node,
             Body = node.FindChild("Body", true, false) as Node3D,
             BodyRest = (node.FindChild("Body", true, false) as Node3D)?.Position ?? Vector3.Zero,
+            BodyScale = (node.FindChild("Body", true, false) as Node3D)?.Scale ?? Vector3.One,
             Emitter = node.FindChild("Emitter", true, false) as Node3D,
             Site = site,
             Slot = NextSlot(site),
@@ -708,6 +725,7 @@ public partial class ConstructionView : Node3D
         var bob = Mathf.Sin(_time * 2.3f + d.Phase) * 0.14f;
         Vector3 face;
         var firing = false;
+        var size = 1f; // shrinks into / grows out of its dock on the home building
 
         switch (d.State)
         {
@@ -721,6 +739,7 @@ public partial class ConstructionView : Node3D
                 var arc = (3f + d.From.DistanceTo(d.Spot) * 0.12f) * Mathf.Sin(Mathf.Pi * t);
                 pos = d.From.Lerp(d.Spot, e) + new Vector3(0, arc, 0);
                 face = d.Spot - pos;
+                size = Mathf.Clamp(d.T / 0.15f, 0.3f, 1f);
                 if (d.T >= 1f) d.State = DroneState.Working;
                 break;
             }
@@ -770,6 +789,7 @@ public partial class ConstructionView : Node3D
                 var e = t * t * (3f - 2f * t);
                 pos = d.From.Lerp(d.To, e) + new Vector3(0, (2.5f + d.From.DistanceTo(d.To) * 0.1f) * Mathf.Sin(Mathf.Pi * t), 0);
                 face = d.To - pos;
+                size = Mathf.Clamp((1f - d.T) / 0.15f, 0.3f, 1f);
                 if (d.T >= 1f) return false; // docked
                 break;
             }
@@ -787,7 +807,11 @@ public partial class ConstructionView : Node3D
             var want = look * new Basis(Vector3.Right, -pitch);
             d.Node.Basis = d.Node.Basis.Orthonormalized().Slerp(want, Mathf.Min(1f, delta * 6f));
         }
-        if (d.Body != null) d.Body.Position = d.BodyRest + new Vector3(0, d.State == DroneState.Working ? bob * 0.5f : 0f, 0);
+        if (d.Body != null)
+        {
+            d.Body.Position = d.BodyRest + new Vector3(0, d.State == DroneState.Working ? bob * 0.5f : 0f, 0);
+            d.Body.Scale = d.BodyScale * size;
+        }
 
         if (firing && beams < MaxBeams)
         {
