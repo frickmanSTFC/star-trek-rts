@@ -131,6 +131,17 @@ public sealed class SurfaceUnit
 
     public string Number { get; internal init; } = "";
 
+    // Founding an outpost (construction rovers, Founding.cs).
+
+    /// <summary>The tile it is going to found an outpost on (driving there, or unfolding on it), -1 = none. While it is
+    /// Deploying with a FoundTile the founding cost has been paid.</summary>
+    public int FoundTile { get; internal set; } = -1;
+
+    /// <summary>Tick it last arrived at a site and couldn't found there (-1 = never), and why (for the event feed).</summary>
+    public long FoundFailedTick { get; internal set; } = -1;
+
+    public FoundProblem FoundFailure { get; internal set; }
+
     internal SurfaceUnit(int id, int owner, string defId, Fix64 speedPerTick, int surveyRadius, int tile)
     {
         Id = id;
@@ -175,6 +186,9 @@ public sealed class SurfaceUnit
         h.Add(DeliveryId);
         h.Add(Name);
         h.Add(Number);
+        h.Add(FoundTile);
+        h.Add(FoundFailedTick);
+        h.Add((int)FoundFailure);
     }
 }
 
@@ -442,6 +456,13 @@ public sealed class SurfaceStructure
     /// <summary>Placed without paying (test panel): cancelling or salvaging it refunds nothing for the building itself.</summary>
     public bool Free { get; internal set; }
 
+    /// <summary>For a colony core founded on the ground: the construction rover that was used up to found it (kept off the
+    /// map; cancelling the core before it is finished puts it back). Null for every other structure.</summary>
+    public SurfaceUnit? Founder { get; internal set; }
+
+    /// <summary>Founded on the ground by a construction rover (built by exocomps instead of assembling from orbit).</summary>
+    public bool Founded => Founder != null;
+
     internal SurfaceStructure(int id, int owner, string defId, int tile, int facing, StructureState state, int baseId)
     {
         BaseId = baseId == 0 ? id : baseId;
@@ -485,6 +506,8 @@ public sealed class SurfaceStructure
         h.Add(NoWear);
         h.Add(WorkSpeed);
         h.Add(Free);
+        h.Add(Founder != null);
+        Founder?.AddToHash(ref h);
     }
 }
 

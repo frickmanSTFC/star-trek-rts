@@ -28,4 +28,7 @@ public enum PlacementProblem
 
     /// <summary>Only in range of a colony core that is still assembling after coming down from orbit.</summary>
     CoreAssembling,
+
+    /// <summary>Only in range of a colony core founded on the ground that the exocomps are still building.</summary>
+    CoreUnderConstruction,
 }

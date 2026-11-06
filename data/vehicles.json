@@ -133,6 +133,8 @@
       "role": "recon", "abilities": ["surface_survey"], "notes": "Survey rover Mk II: faster, surveys a wider area. Built at the Vehicle Bay. Surface stats in surfaces.json." },
     { "id": "survey_rover_mk3", "name": "Mk III Explorer", "faction": "any", "source": "original",
       "role": "recon", "abilities": ["surface_survey"], "notes": "Survey rover Mk III: the fastest, widest survey. Built at the Vehicle Bay. Surface stats in surfaces.json." },
+    { "id": "construction_rover", "name": "Construction Rover", "faction": "any", "source": "original",
+      "role": "construction", "abilities": ["found_outpost", "surface_survey"], "notes": "Built at the Vehicle Bay. Carries a folded Colony Hub and an exocomp dock: drives to a site at least 8 tiles from your other bases, unfolds and is used up as the new hub, which its exocomps then build. The ground route to a second base (the orbital one is the outpost drop). Surface stats in surfaces.json." },
     { "id": "romulan_assault_skiff", "name": "Romulan Cloaked Skiff", "faction": "romulan", "source": "original", "role": "raider", "abilities": ["cloak", "raid_supply"] },
     { "id": "jem_hadar_walker", "name": "Jem'Hadar Assault Walker", "faction": "dominion", "source": "original", "role": "assault", "abilities": ["shroud_stealth", "breach_fortification"] },
     { "id": "ferengi_cargo_crawler", "name": "Ferengi Cargo Crawler", "faction": "ferengi", "source": "original", "role": "economy", "abilities": ["mobile_trade_post", "smuggle"] },
