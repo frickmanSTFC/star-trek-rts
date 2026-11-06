@@ -1,6 +1,6 @@
 {
   "name": "standard_opener",
-  "description": "The opener the Data Lab mockup assumed, played for real: storage and a refinery first, a tritanium mine, a lab, a reactor, more storage, refinery Mk II, a Vehicle Bay and a second crawler, the foundry, refinery Mk III once there is parasteel, then Colonial Administration.",
+  "description": "The opener the Data Lab mockup assumed, played for real: storage and a refinery first, a tritanium mine, a lab, a reactor, more storage, refinery Mk II, a Vehicle Bay and a second crawler, the foundry, Colonial Administration (Mk III needs a level 2 base), then refinery Mk III once there is parasteel. No beams from the ship.",
   "faction": "federation",
   "planet": "class_m",
   "landing": { "prefer": ["duranium_ore", "tritanium_ore"] },
@@ -19,7 +19,7 @@
     { "build": "vehicle_bay" },
     { "unit": "mining_crawler" },
     { "build": "foundry" },
-    { "upgrade": "refinery", "when": "parasteel >= 20" },
-    { "upgrade": "colony_hub", "when": "duranium >= 350 and tritanium >= 150" }
+    { "upgrade": "colony_hub" },
+    { "upgrade": "refinery", "when": "parasteel >= 20" }
   ]
 }

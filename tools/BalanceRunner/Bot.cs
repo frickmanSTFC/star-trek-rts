@@ -361,6 +361,9 @@ public sealed class Bot
 
     private OrderStep? Current => StepIndex < _order.Steps.Count ? _order.Steps[StepIndex] : null;
 
+    /// <summary>The step the bot is on and why it waits ("" once the order is done).</summary>
+    public string StuckOn => Current is { } c ? $"step {c.Number} ({c.Label}): {(Waiting.Length > 0 ? Waiting : "just started")}" : "";
+
     private void Next(string? why = null)
     {
         var step = Current!;
@@ -552,11 +555,10 @@ public sealed class Bot
         {
             if (S.BaseFor(_p, t) != core.Id || heading.Contains(t)) continue;
             var hasDeposit = Map.DepositResource[t] >= 0;
-            if (def.RequiresDeposit && wanted >= 0 && Map.DepositResource[t] != wanted) continue;
             var problem = S.CheckPlacement(_sim, _p, buildingId, t);
             if (problem is not (PlacementProblem.None or PlacementProblem.CannotAfford)) continue;
-            // rank: ordinary buildings off deposits first; mines on the biggest deposit; then nearest the core
-            var pass = def.RequiresDeposit || def.RequiresDepleted ? 0 : hasDeposit ? 1 : 0;
+            // rank: ordinary buildings off deposits first; mines on the wanted ore, then the biggest deposit; then nearest the core
+            var pass = def.RequiresDeposit ? (wanted >= 0 && Map.DepositResource[t] != wanted ? 1 : 0) : def.RequiresDepleted ? 0 : hasDeposit ? 1 : 0;
             var size = def.RequiresDeposit ? -Map.DepositAmount[t].Raw : 0;
             var key = (pass, size, Map.Grid.Distance(core.Tile, t));
             if (best >= 0 && key.CompareTo(bestKey) >= 0) continue;

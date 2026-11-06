@@ -56,6 +56,9 @@ public sealed class RunResult
     public List<string> EndTechs { get; set; } = new();
     public int StepsDone { get; set; }
     public int StepsTotal { get; set; }
+
+    /// <summary>Where the build order was at the end and why it waited ("" = finished).</summary>
+    public string StuckOn { get; set; } = "";
     public List<BotEvent> Log { get; set; } = new();
 }
 
@@ -347,6 +350,7 @@ public sealed class Recorder
             if (S.Map.DepositResource[t] >= 0) mined += S.Map.DepositStart[t] - S.Map.DepositAmount[t];
         Result.Totals["ore_mined"] = System.Math.Round(mined.ToDouble(), 1);
         Result.StepsDone = _bot.StepIndex;
+        Result.StuckOn = _bot.StuckOn;
         Result.Log = _bot.Log.ToList();
     }
 }

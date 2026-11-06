@@ -104,7 +104,7 @@ internal static class Cli
                         var r = Runner.Run(data, order, seed, minutes, sample, v.Label);
                         v.Runs.Add(r);
                         if (!quiet)
-                            Console.WriteLine($"{v.Label,-28} seed {seed,-6} {r.Ticks} ticks in {r.WallMs / 1000:0.00} s = {r.TicksPerSecond:0} ticks/s (×{r.Speedup:0} real time)  steps {r.StepsDone}/{r.StepsTotal}  hash {r.StateHash}");
+                            Console.WriteLine($"{v.Label,-28} seed {seed,-6} {r.Ticks} ticks in {r.WallMs / 1000:0.00} s = {r.TicksPerSecond:0} ticks/s (×{r.Speedup:0} real time)  steps {r.StepsDone}/{r.StepsTotal}  hash {r.StateHash}" + (r.StuckOn.Length > 0 ? $"\n{"",30}stopped at {r.StuckOn}" : ""));
                     }
                 }
         if (labels.Count == variants.Count)

@@ -107,7 +107,7 @@ public sealed class OrderStep
     /// <summary>Which base a building goes to: "main" (the first), "newest", "any", or a base number (1 = first).</summary>
     public string Base { get; init; } = "main";
 
-    /// <summary>Mines: the ore of the deposit to put it on ("" = any).</summary>
+    /// <summary>Mines: the ore to prefer ("" = any); another ore is used when none of it is in range.</summary>
     public string Deposit { get; init; } = "";
 
     /// <summary>Builds: place even when the base's build queues are all busy (pays up front and waits in line).</summary>
@@ -154,7 +154,7 @@ public sealed class OrderStep
             Base = baseText,
             Deposit = BuildOrder.Str(e, "deposit") ?? "",
             Queue = e.TryGetProperty("queue", out var q) && q.ValueKind == JsonValueKind.True,
-            Seconds = kind == StepKind.Wait ? BuildOrder.Int(e, "wait") ?? 0 : BuildOrder.Int(e, "timeout") ?? 600,
+            Seconds = kind == StepKind.Wait ? BuildOrder.Int(e, "wait") ?? 0 : BuildOrder.Int(e, "timeout") ?? 0,
             When = when,
             After = after,
             Label = label,
