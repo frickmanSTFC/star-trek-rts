@@ -161,7 +161,9 @@ public partial class PlanetView
             if (sparks.Emitting != on) sparks.Emitting = on;
         }
 
-        // A fresh hazard hit or flat (not ones from before the model existed).
+        // A fresh hazard hit or flat (not ones from before the model existed; only our own, as others' may be in fog).
+        if (u.Owner != _localPlayer) rig.SeenHazard = u.HazardAtTick;
+        if (u.Owner != _localPlayer) rig.SeenFlat = u.FlatAtTick;
         if (u.HazardAtTick != rig.SeenHazard)
         {
             rig.SeenHazard = u.HazardAtTick;
