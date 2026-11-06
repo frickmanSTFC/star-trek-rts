@@ -13,13 +13,13 @@
   "buildings": [
     { "id": "colony_hub", "name": "Colony Hub", "layer": "surface", "category": "core", "source": "original",
       "cost": { "duranium": 100, "crew": 50 }, "effect": "Founds a colony; supply range 1; 1 build queue; a small storage vault.", "upgrades_to": "colonial_administration",
-      "level": 1, "build_seconds": 90, "output_per_min": { "duranium": 4, "tritanium": 2, "crew": 6 }, "power_supply": 30, "build_radius": 4, "build_queues": 1, "storage": 1500, "footprint_radius": 9, "access": [9.4, 2] },
+      "level": 1, "build_seconds": 90, "output_per_min": { "duranium": 4, "tritanium": 2, "crew": 6 }, "power_supply": 30, "build_radius": 4, "build_queues": 1, "storage": 1500, "footprint_radius": 8, "access": [9.4, 2] },
     { "id": "colonial_administration", "name": "Colonial Administration", "layer": "surface", "category": "core", "source": "original",
       "cost": { "duranium": 300, "tritanium": 150 }, "effect": "Supply range 2; unlocks districts tier 2.", "upgrades_to": "planetary_capital",
-      "level": 2, "build_seconds": 40, "output_per_min": { "duranium": 6, "tritanium": 3, "crew": 10 }, "power_supply": 45, "build_radius": 6, "build_queues": 2, "storage": 2500, "footprint_radius": 9, "access": [9.4, 2] },
+      "level": 2, "build_seconds": 40, "output_per_min": { "duranium": 6, "tritanium": 3, "crew": 10 }, "power_supply": 45, "build_radius": 6, "build_queues": 2, "storage": 2500, "footprint_radius": 8, "access": [9.4, 2] },
     { "id": "planetary_capital", "name": "Planetary Capital", "layer": "surface", "category": "core", "source": "original",
       "cost": { "parasteel": 400, "isolinear_chips": 50 }, "limit": "1 per system", "effect": "Supply range 3; system-wide morale bonus.",
-      "level": 3, "build_seconds": 70, "output_per_min": { "duranium": 9, "tritanium": 5, "crew": 15 }, "power_supply": 60, "build_radius": 8, "build_queues": 3, "storage": 4000, "footprint_radius": 9, "access": [9.4, 2] },
+      "level": 3, "build_seconds": 70, "output_per_min": { "duranium": 9, "tritanium": 5, "crew": 15 }, "power_supply": 60, "build_radius": 8, "build_queues": 3, "storage": 4000, "footprint_radius": 8, "access": [9.4, 2] },
 
     { "id": "prefab_habitat", "name": "Prefab Habitat", "layer": "surface", "category": "habitation", "source": "canon",
       "cost": { "duranium": 60 }, "effect": "+Pop cap (small). Shown in many TOS/TNG colonies.", "description": "Prefabricated living domes shipped down from orbit, the first homes of most Federation colonies. Colonists living here join your crew pool over time, for a little power.",

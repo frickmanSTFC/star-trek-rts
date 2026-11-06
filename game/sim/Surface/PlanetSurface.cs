@@ -1132,11 +1132,12 @@ public sealed partial class PlanetSurface
 
             case MoveUnitsCommand move:
                 if (move.Tile < 0 || move.Tile >= Map.Grid.Count) return true;
+                var goals = GroupGoals(move.UnitIds.Select(FindUnit).Where(u => u != null && u.Owner == move.Player && DriveProblem(u) == null).ToList()!, move.Tile);
                 foreach (var id in move.UnitIds)
                 {
                     var unit = FindUnit(id);
                     if (unit == null || unit.Owner != move.Player || DriveProblem(unit) != null) continue;
-                    var path = FindPath(unit.Tile, move.Tile);
+                    var path = FindPath(unit.Tile, goals.GetValueOrDefault(id, move.Tile)) ?? FindPath(unit.Tile, move.Tile);
                     if (path == null) continue;
                     AbortFounding(sim, unit); // a construction rover's founding trip (or unfolding, refunded) is off
                     SetPath(unit, path);

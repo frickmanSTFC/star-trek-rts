@@ -258,12 +258,23 @@ public class LaneTests
             Assert.All(rovers, r => Assert.Empty(r.Path));
         }
 
+        void AllParkedApart(int goal)
+        {
+            // Seven spots a tile: the rest of the group parks on the tiles round the goal, every vehicle on a spot of its own.
+            Assert.All(rovers, r => Assert.True(s.Map.Grid.Distance(r.Tile, goal) <= 1, $"{r.Id} stopped on {r.Tile}"));
+            Assert.InRange(rovers.Count(r => r.Tile == goal), 6, 7);
+            for (var i = 0; i < rovers.Count; i++)
+                for (var j = i + 1; j < rovers.Count; j++)
+                    Assert.True((rovers[i].Pos - rovers[j].Pos).Length() >= Fix64.FromInt(3), $"{rovers[i].Id} and {rovers[j].Id} parked on each other");
+        }
+
         Send(far, 120);   // across the base
-        Assert.All(rovers, r => Assert.True(s.Map.Grid.Distance(r.Tile, far) <= 0, $"{r.Id} stopped on {r.Tile}"));
-        Send(hub, 150);   // all into the hub's tile: one on the pad, the rest round it
-        var parked = rovers.Select(r => r.Pos).ToList();
-        Assert.Contains(s.AccessPoint(hub)!.Value, parked);
+        AllParkedApart(far);
+        Send(hub, 150);   // into the hub's tile: one on the pad, the rest round it and on the next tiles
+        AllParkedApart(hub);
+        Assert.Contains(s.AccessPoint(hub)!.Value, rovers.Select(r => r.Pos));
         Send(far, 150);   // and back out through the base
+        AllParkedApart(far);
     }
 
     [Fact]

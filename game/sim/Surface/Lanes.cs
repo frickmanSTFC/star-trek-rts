@@ -23,7 +23,7 @@ public sealed partial class PlanetSurface
     private static readonly Fix64 ArcStep = Fix64.FromInt(30);   // degrees between ring points
     private static readonly Fix64 ArcGrow = Fix64.Parse("1.04"); // ring points this much out, so chords between them clear the disc
     private static readonly Fix64 InHex = Fix64.Parse("12.3");   // detours stay this close to the centre (the hex is 12.5 to an edge)
-    private static readonly Fix64 CornerPark = Fix64.FromInt(13); // parking toward the corners of a tile with something in the middle
+    private static readonly Fix64 CornerPark = Fix64.Parse("12.5"); // parking toward the corners of a tile with something in the middle
     private static readonly Fix64 Root3Half = Fix64.Parse("0.8660254038");
     private static readonly Fix64 Deg360 = Fix64.FromInt(360), Deg180 = Fix64.FromInt(180);
 
@@ -97,8 +97,9 @@ public sealed partial class PlanetSurface
         for (var k = 0; k < 6; k++)
         {
             // 30° + 60°·k: between the edge middles, toward the corners.
-            var corner = Turn(new FixVec2(Root3Half, Fix64.Half), k);
-            list.Add(c + corner * ring);
+            var spot = c + Turn(new FixVec2(Root3Half, Fix64.Half), k) * ring;
+            if (list.Count > 0 && list[0] != c && (spot - list[0]).Length() < Lanes.AvoidRadius + Fix64.Half) continue; // beside the access point
+            list.Add(spot);
         }
         return list;
     }
@@ -302,6 +303,35 @@ public sealed partial class PlanetSurface
     private List<int>? FindPath(int from, int to) =>
         Pathfinder.Find(Map, from, to, t => t != to && BlockRadius(t) > Fix64.Zero ? 1 : 0);
 
+    /// <summary>
+    /// Where each unit of a group order goes: the goal tile while it has parking spots left (counting vehicles already
+    /// parked there that aren't in the group), the overflow on the nearest passable tiles round it. Units nearer the goal
+    /// (then lower ids) pick first. Looked up by unit id, never iterated.
+    /// </summary>
+    private Dictionary<int, int> GroupGoals(List<SurfaceUnit> group, int goal)
+    {
+        var goals = new Dictionary<int, int>();
+        if (group.Count <= 1) return goals;
+        var order = new List<SurfaceUnit>(group);
+        order.Sort((a, b) =>
+        {
+            var c = Map.Grid.Distance(a.Tile, goal).CompareTo(Map.Grid.Distance(b.Tile, goal));
+            return c != 0 ? c : a.Id.CompareTo(b.Id);
+        });
+        var next = 0;
+        for (var ring = 0; ring <= 3 && next < order.Count; ring++)
+            foreach (var tile in Map.Grid.Within(goal, ring))
+            {
+                if (Map.Grid.Distance(goal, tile) != ring || !Map.Terrain(tile).Passable) continue;
+                var room = Spots(tile, null).Count;
+                foreach (var w in _units)
+                    if (!group.Contains(w) && Claim(w, tile) != null) room--;
+                for (; room > 0 && next < order.Count; room--) goals[order[next++].Id] = tile;
+                if (next >= order.Count) break;
+            }
+        return goals;
+    }
+
     private int Ticks(Fix64 seconds) => System.Math.Max(1, (seconds * Simulation.TickRate).FloorToInt());
 
     /// <summary>Waits for a vehicle close in front (true = don't move this tick); after wait_seconds drives on regardless.</summary>
@@ -314,32 +344,51 @@ public sealed partial class PlanetSurface
             u.BlockedBy = 0;
             return false;
         }
-        var to = u._route[0] - u.Pos;
-        var len = to.Length();
-        if (len > Fix64.Zero)
+        if (InTheWay(u) is { } w)
         {
-            var dir = new FixVec2(to.X / len, to.Y / len);
-            var last = u._route.Count == 1 && u._path[0] == u.Tile;
-            var reach = last ? Fix64.Min(Lanes.GapAhead, len + Fix64.FromInt(2)) : Lanes.GapAhead;
-            foreach (var w in _units)
-            {
-                if (w == u || w.Mode != UnitMode.Mobile || w.BlockedBy == u.Id) continue;
-                var v = w.Pos - u.Pos;
-                if (Fix64.Abs(v.X) > Lanes.GapAhead || Fix64.Abs(v.Y) > Lanes.GapAhead) continue;
-                var ahead = v.X * dir.X + v.Y * dir.Y;
-                if (ahead <= Fix64.Zero || ahead > reach) continue;
-                if (Fix64.Abs(v.X * dir.Y - v.Y * dir.X) >= Lanes.GapSide) continue;
-                u.BlockedBy = w.Id;
-                if (++u.WaitTicks < Ticks(Lanes.WaitSeconds)) return true;
-                u.PushTicks = Ticks(Lanes.PushSeconds);
-                u.WaitTicks = 0;
-                u.BlockedBy = 0;
-                return false;
-            }
+            u.BlockedBy = w.Id;
+            if (++u.WaitTicks < Ticks(Lanes.WaitSeconds)) return true;
+            u.PushTicks = Ticks(Lanes.PushSeconds);
         }
         u.WaitTicks = 0;
         u.BlockedBy = 0;
         return false;
+    }
+
+    /// <summary>The first vehicle less than gap_side from the next gap_ahead of the unit's route, in front of it (not one
+    /// that is itself waiting for this unit), or null.</summary>
+    private SurfaceUnit? InTheWay(SurfaceUnit u)
+    {
+        var reach = Lanes.GapAhead + Lanes.GapSide;
+        foreach (var w in _units)
+        {
+            if (w == u || w.Mode != UnitMode.Mobile || w.BlockedBy == u.Id) continue;
+            var v = w.Pos - u.Pos;
+            if (Fix64.Abs(v.X) > reach || Fix64.Abs(v.Y) > reach) continue;
+            // A parked vehicle it couldn't swerve round (no room on a crowded tile) only stops it when it would hit it
+            // nearly head on: brushing past is better than queueing behind something that never moves.
+            var gap = w._path.Count == 0 ? Lanes.GapSide * 2 / 3 : Lanes.GapSide;
+            var a = u.Pos;
+            var left = Lanes.GapAhead;
+            for (var i = 0; i < u._route.Count && left > Fix64.Zero; i++)
+            {
+                var b = u._route[i];
+                var seg = b - a;
+                var len = seg.Length();
+                if (len == Fix64.Zero) continue;
+                if (len > left)
+                {
+                    b = a + seg * (left / len);
+                    len = left;
+                }
+                // Only what is in front: on the first stretch, not beside or behind it.
+                var front = i > 0 || v.X * seg.X + v.Y * seg.Y > Fix64.Zero;
+                if (front && SegmentDistance(w.Pos, a, b) < gap) return w;
+                left -= len;
+                a = b;
+            }
+        }
+        return null;
     }
 
     private void MoveUnits(Simulation sim)
