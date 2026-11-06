@@ -72,7 +72,7 @@ layer above it once the surface game is fun.
   - *Light rules:* no landing or building within 4 tiles of a native settlement (Prime Directive); toxic ground and
     predators make a tile unsafe to land on, and risky within 2 tiles.
   - *Ways down:* **land the colony** (first, free); **outpost drop** (another Colony Hub, a new base, at least 10 tiles
-    from your others); **shuttle** (flies a rover, crawler or survey team to any safe spot; away for the round trip);
+    from your others; the ground route is the construction rover, see Vehicle Bay); **shuttle** (flies a rover, crawler or survey team to any safe spot; away for the round trip);
     **transporter** (beams a survey team, or supplies from the ship's hold into a base; level set by faction and era:
     Enterprise era people only within 6 tiles, TOS cargo within 12, TNG and later anywhere; the Borg always level 3);
     **survey satellites** (up to 3; each sweeps a band of 9 rows around the planet every 60 s, surveying it, even before landing).
@@ -113,7 +113,13 @@ layer above it once the surface game is fun.
 - **Vehicle Bay** (built 2026-11-03): a surface building (180 duranium, 60 tritanium, uses power) that assembles
   survey rovers in three marks (Mk I Scout 60 duranium, 20 s; Mk II Surveyor 90 duranium + 20 tritanium, 30 s, faster
   with a wider survey; Mk III Explorer 120 duranium + 60 tritanium + 5 dilithium, 45 s, fastest and widest; which
-  research unlocks Mk II and III is still to be decided) and mining crawlers (150 duranium + 50 tritanium, 45 s), one at a time with up
+  research unlocks Mk II and III is still to be decided), mining crawlers (150 duranium + 50 tritanium, 45 s) and
+  **construction rovers** (120 duranium + 40 tritanium, 50 s; a slow six-wheeler carrying a folded Colony Hub, a crane
+  and an exocomp dock: drive it to a surveyed, buildable, safe site at least 8 tiles from your other colony cores, press
+  FOUND OUTPOST, and it pays 120 duranium + 40 tritanium + 30 crew, unfolds for 6 s and is used up as a new Colony Hub
+  that its exocomps build in 90 s, a new base with its own queue, power and storage; cancelling the unfinished hub
+  refunds it and the rover rolls back out; the ground route to a second base, cheaper and closer-spaced than an outpost
+  drop but slower), one at a time with up
   to 5 orders queued, paid when ordered. Select it and the command card shows its orders; Backspace cancels the
   last order for a full refund. The door rolls up and the vehicle drives out beside the bay. Low power slows
   assembly; an idle bay draws no power; salvaging a bay refunds its unbuilt orders in full.

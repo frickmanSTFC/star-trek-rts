@@ -65,3 +65,7 @@ public sealed record ChangeTyreCommand(int Player, IReadOnlyList<int> UnitIds) :
 
 /// <summary>Take down a finished building (not a colony core) for part of its cost back; frees the tile.</summary>
 public sealed record SalvageCommand(int Player, int StructureId) : Command(Player);
+
+/// <summary>Send a construction rover to found a new outpost on a tile: it drives there, unfolds (paying the founding
+/// cost) and is used up as a new Colony Hub under construction (or starts at once if it is on the tile).</summary>
+public sealed record FoundOutpostCommand(int Player, int UnitId, int Tile) : Command(Player);

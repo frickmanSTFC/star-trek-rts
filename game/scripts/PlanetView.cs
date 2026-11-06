@@ -224,6 +224,7 @@ public partial class PlanetView : Node3D
 
         var delta = (float)GetProcessDeltaTime();
         _landing.Update(alpha, delta); // the first landing's drop ships and assembly (hides the hub until the uplink)
+        UpdateFounders(delta); // PlanetView.Founding.cs: used-up construction rovers parked at their new hubs (exocomp docks)
         UpdateStructures(delta);
         UpdateRefineries(delta); // PlanetView.Refinery.cs: the refinery's machinery, furnace and lamps by status
         UpdateScatter();
@@ -973,14 +974,15 @@ public partial class PlanetView : Node3D
             if (!_rovers.TryGetValue(u.Id, out var model))
             {
                 var colour = PlanetDriver.PlayerColors[u.Owner % PlanetDriver.PlayerColors.Length];
-                model = def.CanMine ? BuildingModels.Crawler(colour) : BuildingModels.Rover(colour, def.Id);
+                model = def.CanMine ? BuildingModels.Crawler(colour) : def.CanFound ? BuildingModels.Constructor(colour) : BuildingModels.Rover(colour, def.Id);
                 RoverLook.Paint(model, u.Name, u.Number);
-                _grime[u.Id] = RoverLook.Grime.Attach(model, def.CanMine ? 3.2f : 2.4f);
+                _grime[u.Id] = RoverLook.Grime.Attach(model, def.CanMine || def.CanFound ? 3.2f : 2.4f);
                 _lamps[u.Id] = RoverLook.Lamps.Attach(model, u.Id);
                 if (_lamps[u.Id].Area is { } wiped) _grime[u.Id].SetWipers(wiped);
                 // Wheel spray from behind the rear wheels (rover) or just behind the tracks' rear sprockets (crawler,
                 // Mining Vehicle Mk I: tracks at x ±1.13, ending at z 2.16 behind the scrapers); +Z is the back.
-                var (sx, sz) = def.CanMine ? (1.13f, 2.4f) : def.Mark switch { 1 => (1.3f, 1.75f), 3 => (1.5f, 2.5f), _ => (1.35f, 2.3f) };
+                // Construction rover: rear wheels at x ±1.35, z 2.2 (radius 0.62).
+                var (sx, sz) = def.CanMine ? (1.13f, 2.4f) : def.CanFound ? (1.35f, 2.95f) : def.Mark switch { 1 => (1.3f, 1.75f), 3 => (1.5f, 2.5f), _ => (1.35f, 2.3f) };
                 model.AddChild(new SprayRig(new[] { new Vector3(-sx, 0.15f, sz), new Vector3(sx, 0.15f, sz) }));
                 AddChild(model);
                 _rovers[u.Id] = model;
@@ -1042,6 +1044,7 @@ public partial class PlanetView : Node3D
                 aboard = carried.Basis != null && !driving; // still in the bay (maybe flying): no selection ring
             }
             model.Position = pos + new Vector3(0, 0.1f, 0);
+            if (def.CanFound) AnimateConstructor(model, u, delta); // unfolding on its site (PlanetView.Founding.cs)
             UpdateRoverDamage(u, def, model, moving || rolling, delta); // flat wheels, lean, damage looks (rovers only)
             var ground = SprayRig.KindFor(_surface.Map, TileAt(pos));
             if (model.GetNodeOrNull<SprayRig>("SprayRig") is { } spray) spray.Spray(ground, moving || rolling);
@@ -1076,6 +1079,7 @@ public partial class PlanetView : Node3D
                 };
             }
             else text = RoverText(u, def, model, alpha, delta);
+            if (text.Length == 0 && def.CanFound) text = FounderLabel(u);
             var lbl = _unitLabels[u.Id];
             lbl.Text = text;
             lbl.Position = model.Position + new Vector3(0, 9f, 0);
