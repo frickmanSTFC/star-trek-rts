@@ -537,9 +537,9 @@ class Terrain:
 
     def tile_field(self, per_tile, default=0.0, blur=4.0):
         """Piecewise-constant field from a {(col, row): value} function, blurred so hexes read as soft plateaus."""
-        keys = self.col * 1000 + self.row
+        keys = (self.col + 500) * 2000 + (self.row + 500)      # offsets keep negative cols/rows (outside the map) apart
         uk, inv = np.unique(keys, return_inverse=True)
-        vals = np.array([per_tile(int(k // 1000), int(k % 1000)) for k in uk], float)
+        vals = np.array([per_tile(int(k // 2000) - 500, int(k % 2000) - 500) for k in uk], float)
         f = vals[inv].reshape(self.X.shape)
         if blur > 0:
             k = max(1, int(round(blur / self.step)))
@@ -752,20 +752,20 @@ def planet_in_sky(direction, dist, radius, sun_dir):
     nt = m.node_tree
     p = nt.nodes["Principled BSDF"]
     tc = nt.nodes.new("ShaderNodeTexCoord")
-    nz = node(nt, "ShaderNodeTexNoise", Scale=2.2, Detail=8.0, Roughness=0.62)
-    link(nt, tc.outputs["Object"], nz.inputs["Vector"])
+    nz = node(nt, "ShaderNodeTexNoise", Scale=3.0, Detail=8.0, Roughness=0.62)
+    link(nt, tc.outputs["Generated"], nz.inputs["Vector"])
     ramp = nt.nodes.new("ShaderNodeValToRGB")
     cr = ramp.color_ramp
     cr.elements[0].position = 0.5
-    cr.elements[0].color = (0.004, 0.025, 0.11, 1)
+    cr.elements[0].color = (0.015, 0.07, 0.32, 1)
     cr.elements[1].position = 0.6
-    cr.elements[1].color = (0.2, 0.16, 0.08, 1)
+    cr.elements[1].color = (0.36, 0.27, 0.13, 1)
     e = cr.elements.new(0.515)
-    e.color = (0.05, 0.13, 0.035, 1)
+    e.color = (0.1, 0.22, 0.05, 1)
     link(nt, nz.outputs["Fac"], ramp.inputs[0])
-    cl = node(nt, "ShaderNodeTexNoise", Scale=4.5, Detail=6.0, Roughness=0.55)
-    link(nt, tc.outputs["Object"], cl.inputs["Vector"])
-    cloud = math_node(nt, "MULTIPLY", math_node(nt, "SUBTRACT", cl.outputs["Fac"], 0.56), 3.0, clamp=True)
+    cl = node(nt, "ShaderNodeTexNoise", Scale=6.0, Detail=6.0, Roughness=0.55)
+    link(nt, tc.outputs["Generated"], cl.inputs["Vector"])
+    cloud = math_node(nt, "MULTIPLY", math_node(nt, "SUBTRACT", cl.outputs["Fac"], 0.6), 3.0, clamp=True)
     mx = nt.nodes.new("ShaderNodeMix")
     mx.data_type = "RGBA"
     link(nt, cloud, mx.inputs["Factor"])
@@ -892,7 +892,7 @@ def world_veyra(T, sun_dir):
     T.H = H
     n = T.normals()
     lit = np.clip((n * np.array(sun_dir)).sum(-1), 0, 1) / max(0.05, float(sun_dir[2]))   # 1 = flat ground
-    frost = smooth(0.6, 0.25, lit) * smooth(0.4, 0.7, fbm(X * 0.09, Y * 0.09, 3, 76)) * 0.7
+    frost = smooth(0.6, 0.25, lit) * smooth(0.45, 0.7, fbm(X * 0.09, Y * 0.09, 3, 76)) * 0.45
     polar = smooth(-ROW * 1.1, ROW * 0.3, Y + 16 * (fbm(X * 0.03, Y * 0.03, 3, 77) - 0.5))  # north rows
     H = H - polar * (H - np.minimum(H, 6 + 3 * fbm(X * 0.02, Y * 0.02, 3, 84)))    # the cap is a flat ice sheet
     T.H = H
@@ -905,6 +905,7 @@ def world_veyra(T, sun_dir):
     alb = mix(alb, lin("#b39274"), smooth(0.55, 0.7, fbm(X * 0.012, Y * 0.012 + 7, 3, 83)) * 0.5)    # pale dust
     alb = mix(alb, sand, dunes * 0.5)
     alb = mix(alb, lin("#3d4a2e"), lichen * 0.75)
+    frost = frost * (1 - dunes)
     alb = mix(alb, lin("#d9dde2"), frost * 0.75)
     alb = mix(alb, lin("#e9eef5"), polar)
     alb = mix(alb, lin("#c7d6e8"), polar * smooth(0.55, 0.75, fbm(X * 0.04, Y * 0.04, 3, 80)) * 0.6)  # CO2 ice
@@ -968,7 +969,7 @@ def world_tarsis_a(T):
             dc = math.hypot(p[0] - big[0], p[1] - big[1])
             hexes[(c, r)] = "crater" if dc < big[2] * 0.8 else ("ridge" if abs(dc - big[2]) < 12 else "regolith")
     return dict(terrain=(alb, rough, maskA), hexes=hexes, base=base, big=big,
-                rock_weight=smooth(0.55, 0.85, 0.5 * ray + 0.6 * fbm(X * 0.05, Y * 0.05, 2, 94)) * (1 - smooth(18, 12, pd)))
+                rock_weight=smooth(0.6, 0.8, fbm(X * 0.05, Y * 0.05, 2, 94)) * (1 - smooth(18, 12, pd)))
 
 
 # ---------------------------------------------------------------- main
@@ -1125,7 +1126,7 @@ def main():
     else:
         import_glb("game/models/buildings/outpost_l1.glb", (base[0], base[1], bz), 200)
         dome((base[0], base[1], bz), 16, 12, glass=glass_mat("DomeGlassT", (0.8, 0.9, 1.0), 0.08), ribs=3)
-        field_bubble((base[0], base[1], bz - 1), 38, 24, (0.5, 0.75, 1.0), 0.45)
+        field_bubble((base[0], base[1], bz - 1), 38, 24, (0.5, 0.75, 1.0), 0.45 if args.shot != "feed" else 0.18)
         airlock((base[0] + 16, base[1] - 3, bz + 1.6), 90)
         ref = centre(9, 10)
         import_glb("game/models/buildings/refinery.glb", (ref[0], ref[1], T.z_at(*ref)), 25)
