@@ -535,6 +535,7 @@ public partial class PlanetHud : CanvasLayer
                 ("F / 1", "construction rover: found an outpost (pick a site 8+ tiles from your bases)"),
                 ("Tab", "next base (in orbit: next scan)"), ("Esc", "back to the base / stop placing"),
                 ("O", "orbit view and back"), ("Orbit", "drag or WASD turn the planet, wheel zoom, 1–9 deploy, click to send"),
+                ("Sky (top bar)", "day, season, local time and weather at the view's centre; hover for wind and ground"),
             },
             new[]
             {
@@ -542,6 +543,7 @@ public partial class PlanetHud : CanvasLayer
                 ("U", "upgrade the selected building or base"), ("M", "maintain the selected building"), ("X", "cancel a build or upgrade / salvage (an unfinished founded hub: the rover comes back)"),
                 ("Backspace", "cancel the bay's last order"), ("WASD, middle-drag", "pan"), ("Q / E", "turn the view"), ("Wheel", "zoom"), ("H", "fly home"), ("F1", "this list"),
                 ("F9", "test panel (dev builds): edit anything for testing"), ("Ctrl+Z", "undo the last test-panel edit"), ("Space", "pause / resume while the test panel is open"),
+                ("F9 › SKY", "force time of day, season, weather and wind (look only)"),
             },
         };
         foreach (var g in groups)

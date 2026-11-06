@@ -22,6 +22,7 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `scripts/Scatter.cs`, `PlanetView.Scatter.cs`, `models/scatter/scatter.glb` | Landscape scatter: trees, bushes, grass, ferns, rocks, sandstone and ice per terrain (built by `blender/build_scatter.py`), chunked MultiMeshes with near/far LOD, wind and clearings under buildings |
 | `scripts/OrbitView.cs`, `OrbitPainter.cs`, `shaders/planet`, `atmosphere`, `clouds` (+ `air`/`clouds` includes) | Orbit view (the helm viewscreen): the painted globe with satellite-photo ground, animated oceans, two lit cloud layers with ground shadows and a ray-marched (Rayleigh + Mie) atmosphere; displays Planet (optional lat/long grid), Orbit (tracks of the ship, satellites and moon), Atmosphere (full clouds, storm cells) and System |
 | `scripts/SurfaceFeed.cs`, `SurfaceTelemetry.cs`, `PlanetDriver.Uplink.cs`, `sim/Surface/Telemetry.cs` | Once the outpost's uplink is online: the helm's live video feed from the surface (its own camera and SubViewport; the surface moves to render layer 20 while it shows) and the environmental telemetry (temperature, humidity, wind, pressure, gases, radiation, hazards) computed from `surfaces.json` environments |
+| `scripts/PlanetDriver.Sky.cs`, `SkyField.cs`, `SkyModel.cs`, `WeatherView.cs`, `PlanetView.Sky.cs`, `OrbitView.Sky.cs`, `shaders/sky.gdshaderinc`, `sky_dome` | Day/night, seasons and weather drawn from the sim's `Climate`: per-tile daylight and lying snow / wet ground / puddles in two textures the terrain, water, foliage and rock shaders read; the sun, moon, ambient, haze and sky dome (stars at night) for the view's centre; rain, snow, dust and lightning around the camera; lamps brighter at night; the orbit globe's sun over the same subsolar column; the top bar's time/season/weather readout |
 | `scripts/SystemPlot.cs`, `OrbitLines.cs` | The helm's top-down star-system plot from the map's bodies; thin line meshes for tracks, rings and the grid |
 | `textures/planet/` | Tileable ground photos for the orbit globe, cut from NASA's Blue Marble Next Generation (public domain; credit: NASA Earth Observatory). Read at runtime, not imported (`.gdignore`) |
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
@@ -86,6 +87,11 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    its buildings and build queue. Keep power supply above use (Fusion Reactors) or everything that uses power slows.
    Upgrade the Colony Hub to Colonial Administration for two build queues and a bigger radius.
 
+Day and night sweep across the map (the planet turns; a local day is about 12 minutes), seasons change the light and
+the weather: rain wets the ground and leaves puddles, snow settles in cold seasons and melts in warm ones, fog, dust
+storms and thunderstorms come and go, and the wind bends the trees. At night lamps and windows light up. The top bar
+shows the day, season, local time and weather at the centre of the view (hover it for wind, visibility and the ground).
+
 The HUD: resources across the top (stock and rate per minute; power used / supply and storage used / space at the right), events top-left,
 a tooltip for whatever is under the mouse, the survey map bottom-left (click or drag to move the camera), the
 selected base or object in the middle, and the build card bottom-right. Fog: bright = in sight now, dim = explored,
@@ -100,8 +106,9 @@ WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel 
 breakdown, flat tyres and spares, dirt, position (teleport), clone or remove it; the selected building's condition, wear, level, work speed,
 construction / upgrade / order progress ("finish now"), whole-base repairs; every resource, limits (no storage cap,
 unlimited power, free and instant building), game speed ¼–8×, pause (**Space**), step a tick, skip a minute; research;
-fog off, survey everything, deposit amounts, place any vehicle or building for any player; and any number in the data
-files (search, apply to this game, reload, save back to JSON). Every change is a sim command (in replays and the state
+fog off, survey everything, deposit amounts, place any vehicle or building for any player; any number in the data
+files (search, apply to this game, reload, save back to JSON); and (SKY tab, look only) the time of day, season,
+weather and wind. Every change is a sim command (in replays and the state
 hash); the top bar shows TEST MODE once one is made. **Ctrl+Z** undoes the last edit.
 
 Map size is `width` / `height` in `data/surfaces.json` (Class M: 128×88 tiles); the camera adapts to it.

@@ -1,4 +1,5 @@
 // Animated water over ocean and shallow tiles, darkened by the same fog texture as the terrain.
+// Day/night (and rain roughening the surface) from sky.gdshaderinc; off by default, so it looks as before.
 shader_type spatial;
 render_mode blend_mix, cull_disabled, depth_draw_opaque, specular_schlick_ggx;
 
@@ -9,6 +10,8 @@ uniform vec4 deep_colour : source_color = vec4(0.02, 0.09, 0.2, 0.92);
 uniform vec4 shallow_colour : source_color = vec4(0.08, 0.3, 0.42, 0.8);
 uniform float wave_height = 0.22;
 uniform float wave_speed = 0.7;
+
+#include "res://shaders/sky.gdshaderinc"
 
 varying vec3 world_pos;
 varying float wave;
@@ -36,9 +39,10 @@ void fragment() {
 	NORMAL = normalize((VIEW_MATRIX * vec4(normalize(ripple), 0.0)).xyz);
 	float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 	float fresnel = pow(1.0 - facing, 3.0);
-	ALBEDO = (base.rgb + vec3(0.04, 0.06, 0.08) * (0.5 + 0.5 * wave)) * seen;
+	vec3 lit = sky_light(world_pos);
+	ALBEDO = (base.rgb + vec3(0.04, 0.06, 0.08) * (0.5 + 0.5 * wave)) * seen * lit;
 	ALPHA = mix(base.a, 1.0, fresnel * 0.6);
-	ROUGHNESS = 0.06;
+	ROUGHNESS = mix(0.06, 0.22, sky_rain);
 	METALLIC = 0.0;
-	SPECULAR = 0.7 * seen;
+	SPECULAR = 0.7 * seen * min(1.0, (lit.r + lit.g + lit.b) / 3.0);
 }

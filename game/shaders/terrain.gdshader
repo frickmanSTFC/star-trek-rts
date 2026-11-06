@@ -1,5 +1,6 @@
 // Planet terrain: per-tile colour from the mesh, hex outlines near tile edges, and fog of war
 // from a small texture (one texel per tile: 1 = in sight, ~0.4 = explored, ~0.08 = unexplored).
+// Day/night, wet ground, puddles and lying snow come from sky.gdshaderinc (off by default: then it looks as before).
 shader_type spatial;
 render_mode cull_disabled, diffuse_burley, specular_schlick_ggx;
 
@@ -7,6 +8,8 @@ uniform sampler2D fog_tex : filter_linear, repeat_disable;
 uniform vec2 map_tiles = vec2(44.0, 30.0);
 uniform float hex_width = 10.0;
 uniform float grid_strength : hint_range(0.0, 1.0) = 0.22;
+
+#include "res://shaders/sky.gdshaderinc"
 
 varying vec3 world_pos;
 
@@ -23,7 +26,27 @@ void fragment() {
 	float seen = fog_at(world_pos);
 	// UV.x is 0 at a tile's centre and 1 at its corners: darken a thin band at the edge.
 	float rim = smoothstep(0.82, 1.0, UV.x) * grid_strength;
-	ALBEDO = COLOR.rgb * (1.0 - rim) * seen;
-	ROUGHNESS = 0.9;
-	SPECULAR = 0.25 * seen;
+	vec3 albedo = COLOR.rgb * (1.0 - rim);
+	float rough = 0.9;
+	float spec = 0.25;
+	if (sky_on > 0.5) {
+		vec3 lying = sky_cover(world_pos);
+		float up = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).y;
+		float puddle = sky_puddle(world_pos, up, lying.z);
+		float wet = max(lying.y, puddle);
+		albedo *= mix(1.0, 0.6, wet);
+		rough = mix(rough, 0.35, lying.y);
+		rough = mix(rough, 0.04, puddle);
+		spec = mix(spec, 0.55, max(lying.y * 0.5, puddle));
+		float snow = sky_snow(world_pos, up, lying.x);
+		albedo = mix(albedo, sky_snow_colour * (0.93 + 0.07 * sky_noise(world_pos.xz * 2.3)), snow);
+		rough = mix(rough, 0.7, snow);
+		spec = mix(spec, 0.35, snow);
+		vec3 lit = sky_light(world_pos);
+		albedo *= lit;
+		spec *= min(1.0, (lit.r + lit.g + lit.b) / 3.0);
+	}
+	ALBEDO = albedo * seen;
+	ROUGHNESS = rough;
+	SPECULAR = spec * seen;
 }
