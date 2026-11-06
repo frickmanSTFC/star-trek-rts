@@ -9,6 +9,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Runs are short and hot: compile optimised from the start so every run's ticks/s is comparable. -->
+    <TieredCompilationQuickJit>false</TieredCompilationQuickJit>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../game/sim/FinalFrontier.Sim.csproj" />

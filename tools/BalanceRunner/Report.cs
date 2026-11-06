@@ -14,12 +14,14 @@ public static class Report
         "research_known", "crawlers_mining", "rover_integrity_avg", "buildings", "buildings_idle", "surveyed_tiles",
     };
 
-    public static void Write(string outDir, IReadOnlyList<Variant> variants, string title, double minutes, int sample, bool writeRuns = true)
+    /// <param name="lean">No runs/ folder (per-run JSON + CSV) and a compact summary, to keep committed reports small;
+    /// the HTML still has the main series of every run.</param>
+    public static void Write(string outDir, IReadOnlyList<Variant> variants, string title, double minutes, int sample, bool lean = false)
     {
         Directory.CreateDirectory(outDir);
         var keys = Aggregate.MilestoneKeys(variants);
         foreach (var v in variants) Aggregate.Measure(v, keys);
-        if (writeRuns)
+        if (!lean)
         {
             var runs = Path.Combine(outDir, "runs");
             Directory.CreateDirectory(runs);
@@ -48,7 +50,7 @@ public static class Report
                 measures = v.Measures,
             }),
         };
-        var pretty = new JsonSerializerOptions(Aggregate.Json) { WriteIndented = true };
+        var pretty = new JsonSerializerOptions(Aggregate.Json) { WriteIndented = !lean };
         File.WriteAllText(Path.Combine(outDir, "summary.json"), JsonSerializer.Serialize(summary, pretty));
         File.WriteAllText(Path.Combine(outDir, "report.html"), Html(variants, title, minutes, sample));
     }
@@ -82,7 +84,7 @@ public static class Report
                     r.StepsTotal,
                     r.StuckOn,
                     times = r.Times,
-                    series = ChartSeries.Where(r.Series.ContainsKey).ToDictionary(k => k, k => r.Series[k]),
+                    series = ChartSeries.Where(r.Series.ContainsKey).ToDictionary(k => k, k => r.Series[k].Select(x => System.Math.Round(x, 1))),
                     r.Milestones,
                     r.Stalls,
                     r.StatusSeconds,

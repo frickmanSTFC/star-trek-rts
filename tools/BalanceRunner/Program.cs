@@ -36,6 +36,7 @@ internal static class Cli
         double minutes = 30;
         var sample = 10;
         var quiet = false;
+        var lean = false;
         var labels = new List<string>();
         for (var i = 0; i < args.Length; i++)
         {
@@ -54,6 +55,7 @@ internal static class Cli
                 case "--factions": case "--faction": factions.AddRange(Next().Split(',', StringSplitOptions.RemoveEmptyEntries)); break;
                 case "--labels": labels.AddRange(Next().Split(',')); break;
                 case "--quiet": quiet = true; break;
+                case "--lean": lean = true; break;
                 case "-h": case "--help": Console.WriteLine(Help); return 0;
                 default: throw new ArgumentException($"unknown option {args[i]} (try --help)");
             }
@@ -79,6 +81,7 @@ internal static class Cli
 
         var loaded = orders.Select(BuildOrder.Load).ToList();
         if (factions.Count == 0) factions.Add("");
+        Runner.Run(dataVariants[0].Data, loaded[0], seeds[0], 0.5); // warm up the JIT so the first run's speed is fair
         var variants = new List<Variant>();
         foreach (var (dLabel, dir, data, edits) in dataVariants)
             foreach (var o in loaded)
@@ -113,7 +116,7 @@ internal static class Cli
 
         title ??= variants.Count == 1 ? $"Balance run: {variants[0].Order}" : "Balance comparison: " + string.Join(" vs ", variants.Select(v => v.Label));
         outDir ??= Path.Combine(repo ?? ".", "balance", "reports", "latest");
-        Report.Write(outDir, variants, title, minutes, sample);
+        Report.Write(outDir, variants, title, minutes, sample, lean);
         if (!quiet) Summary(variants);
         Console.WriteLine($"report: {Path.GetFullPath(Path.Combine(outDir, "report.html"))}");
         return 0;
@@ -204,6 +207,7 @@ internal static class Cli
           --factions a,b           run each order as these factions
           --labels A,B             names for the variants
           --title <text>           report title
+          --lean                   no runs/ folder (per-run JSON + CSV), compact summary: for committed reports
           --quiet                  only print the report path
         """;
 }
