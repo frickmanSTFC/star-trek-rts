@@ -58,6 +58,10 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    The crawler can break down while mining (a minor fault, a major breakdown, or an explosion that loses its load).
    It then folds up and drives slower: press **F** (or right-click the Colony Hub) to send it to the repair pad
    beside the hub, where two crew members walk out and weld it back to 100% for a little duranium.
+   Rovers wear while they drive (hills, ice and forest most), can hit rock strikes, sinkholes or sharp ice, corrode on
+   toxic ground and get attacked by predators. Below half integrity they drive slower, badly damaged their sensors see
+   less, and at 0 they are disabled. A flat tyre slows a rover (two flats: a crawl): press **T** to have the crew change
+   it with the spare, or **R** to send it to the repair pad, which fixes everything for a little duranium.
    Build a **Vehicle Bay** (key 8) for more vehicles: select it and the command card shows its orders
    (survey rover Mk I Scout, mining crawler, Mk II Surveyor, Mk III Explorer; keys 1–4). Orders are paid up front and queue up to 5; **Backspace** cancels
    the last one. Each vehicle rolls out of the bay's door when it's done.
@@ -79,12 +83,12 @@ selected base or object in the middle, and the build card bottom-right. Fog: bri
 near-black = unexplored (set `FogDarkness` on the root node).
 
 Controls: left-click selects a vehicle, building, base or tile (Shift adds vehicles), **A** selects all vehicles, right-click
-drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair), **1–8** build (or order vehicles when a Vehicle Bay is selected), **Backspace** cancel the bay's last order, **R** rotate,
+drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair), **R** send damaged vehicles to the repair pad, **T** change a rover's flat tyre, **1–8** build (or order vehicles when a Vehicle Bay is selected), **Backspace** cancel the bay's last order, **R** rotate,
 **U** upgrade the selected building (or the base), **M** maintain the selected building, **F1** all controls, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
 WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
 
 **Test panel (dev builds only, F9 on the surface):** change anything for testing — the selected vehicle's integrity,
-breakdown, dirt, position (teleport), clone or remove it; the selected building's condition, wear, level, work speed,
+breakdown, flat tyres and spares, dirt, position (teleport), clone or remove it; the selected building's condition, wear, level, work speed,
 construction / upgrade / order progress ("finish now"), whole-base repairs; every resource, limits (no storage cap,
 unlimited power, free and instant building), game speed ¼–8×, pause (**Space**), step a tick, skip a minute; research;
 fog off, survey everything, deposit amounts, place any vehicle or building for any player; and any number in the data
