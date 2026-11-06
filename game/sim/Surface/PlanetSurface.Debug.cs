@@ -129,6 +129,7 @@ public sealed partial class PlanetSurface
                 if (!OnMap(c.Tile)) return "off the map";
                 if (!Map.Terrain(c.Tile).Buildable) return "can't build on that ground";
                 if (_structureAt[c.Tile] != 0) return "a building is there";
+                if (PodLandingNear(c.Tile)) return "a colony is landing there";
                 if (_units.Any(u => u.Tile == c.Tile && u.Mode != UnitMode.Mobile)) return "a crawler is mining there";
                 if (!def.IsCore && BaseFor(c.Owner, c.Tile) == 0) return "out of that player's build range (place a Colony Hub first)";
                 return null;

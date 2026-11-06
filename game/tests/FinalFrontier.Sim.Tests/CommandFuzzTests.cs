@@ -27,9 +27,10 @@ public class CommandFuzzTests
     private static GameData Data => TestData.Real;
 
     /// <summary>Two players (Federation and Cardassian) landed on seed 1701, both outposts assembled.</summary>
-    internal static Simulation TwoPlayersLanded()
+    internal static Simulation TwoPlayersLanded(GameData? data = null)
     {
-        var sim = new Simulation(Data, 1701);
+        data ??= Data;
+        var sim = new Simulation(data, 1701);
         sim.LoadSurface(MatchSetup.MvpPlanetClass, 1701);
         sim.AddPlayer("federation");
         sim.AddPlayer("cardassian");
@@ -38,7 +39,7 @@ public class CommandFuzzTests
         var second = Enumerable.Range(0, map.Grid.Count).Last(t => sim.Surface.CanLand(1, t) && map.Grid.Distance(t, first) > 20);
         sim.Schedule(0, new LandColonyCommand(0, first));
         sim.Schedule(0, new LandColonyCommand(1, second));
-        for (var i = 0; i <= TestData.ReadyTicks(Data); i++) sim.Step();
+        for (var i = 0; i <= TestData.ReadyTicks(data); i++) sim.Step();
         return sim;
     }
 
@@ -102,7 +103,7 @@ public class CommandFuzzTests
             return N(4) switch { 0 => null, 1 => "", 2 => "no_such_thing", _ => OrbitRules.Supplies };
         }
 
-        private string? BuildingId() => Text(Data.Buildings.Select(b => b.Id).ToList());
+        private string? BuildingId() => Text(Chance(75) ? Data.BuildMenu : Data.Buildings.Select(b => b.Id).ToList());
         private string? SurfaceUnitId() => Text(Data.SurfaceUnits.Select(u => u.Id).ToList());
         private string? TechId() => Text(Data.Techs.Select(t => t.Id).ToList());
 
@@ -131,55 +132,66 @@ public class CommandFuzzTests
             return Enumerable.Range(0, n).Select(_ => new ResourceAmount(Chance(90) ? N(Data.Resources.Count) : AnyInt(), Value())).ToList();
         }
 
+        /// <summary>How often each kind of command comes up (per mille-ish). Building things up outweighs taking them
+        /// away, so the game keeps bases, bays, crawlers and rovers to fuzz.</summary>
+        private static readonly int[] Weights =
+        {
+            5, 5, 60, 80, 8, 20, 30, 10, 40, 10, 10, 10, 10, 5, 15, 15, 15, 10, 6, 15, 5, 5, // 0..21 player commands
+            40, 15, 4, 20, 50, 4, 50, 15, 25, 15, 15, 3, 10, 2, 1, 1, // 22..37 test panel
+        };
+
+        private static readonly int TotalWeight = Weights.Sum();
+
         public Command Next()
         {
             var p = Player();
-            switch (N(42))
+            var roll = N(TotalWeight);
+            var kind = 0;
+            while (roll >= Weights[kind]) roll -= Weights[kind++];
+            switch (kind)
             {
                 case 0: return new MoveCommand(p, UnitIds(), new FixVec2(Value(), Value()));
                 case 1: return new LandColonyCommand(p, Tile());
-                case 2: case 3: return new MoveUnitsCommand(p, UnitIds(), Tile());
-                case 4: case 5: return new PlaceBuildingCommand(p, BuildingId()!, Tile(), AnyInt());
-                case 6: return new CancelBuildingCommand(p, StructureId());
-                case 7: return new UpgradeCommand(p, StructureId());
-                case 8: return new MineCommand(p, UnitId(), Tile());
-                case 9: return new PackUpCommand(p, UnitIds());
-                case 10: return new BuildUnitCommand(p, StructureId(), SurfaceUnitId()!);
-                case 11: return new CancelUnitCommand(p, StructureId());
-                case 12: return new OutpostDropCommand(p, Tile());
-                case 13: return new ShuttleCommand(p, Tile(), SurfaceUnitId()!);
-                case 14: return new BeamCommand(p, Tile(), SurfaceUnitId()!);
-                case 15: return new SatelliteCommand(p, Chance(80) ? N(S.Map.Grid.Height) : AnyInt());
-                case 16: return new ResearchCommand(p, TechId()!);
-                case 17: return new MaintainCommand(p, StructureId());
-                case 18: return new RepairCommand(p, UnitIds());
-                case 19: return new ChangeTyreCommand(p, UnitIds());
-                case 20: return new SalvageCommand(p, StructureId());
-                case 21: return new FoundOutpostCommand(p, UnitId(), Tile());
-                case 22: return new FakeCommand(p, AnyInt());
-                case 23: return new FakeDebugCommand(p);
+                case 2: return new MoveUnitsCommand(p, UnitIds(), Tile());
+                case 3: return new PlaceBuildingCommand(p, BuildingId()!, Tile(), AnyInt());
+                case 4: return new CancelBuildingCommand(p, StructureId());
+                case 5: return new UpgradeCommand(p, StructureId());
+                case 6: return new MineCommand(p, UnitId(), Tile());
+                case 7: return new PackUpCommand(p, UnitIds());
+                case 8: return new BuildUnitCommand(p, StructureId(), SurfaceUnitId()!);
+                case 9: return new CancelUnitCommand(p, StructureId());
+                case 10: return new OutpostDropCommand(p, Tile());
+                case 11: return new ShuttleCommand(p, Tile(), SurfaceUnitId()!);
+                case 12: return new BeamCommand(p, Tile(), SurfaceUnitId()!);
+                case 13: return new SatelliteCommand(p, Chance(80) ? N(S.Map.Grid.Height) : AnyInt());
+                case 14: return new ResearchCommand(p, TechId()!);
+                case 15: return new MaintainCommand(p, StructureId());
+                case 16: return new RepairCommand(p, UnitIds());
+                case 17: return new ChangeTyreCommand(p, UnitIds());
+                case 18: return new SalvageCommand(p, StructureId());
+                case 19: return new FoundOutpostCommand(p, UnitId(), Tile());
+                case 20: return new FakeCommand(p, AnyInt());
+                case 21: return new FakeDebugCommand(p);
                 // Test-panel commands.
-                case 24: return new DebugUnitCommand(p, UnitId(), Enum<DebugUnitField>(), Value());
-                case 25: return new DebugMoveUnitCommand(p, UnitId(), Tile());
-                case 26: return new DebugRemoveUnitCommand(p, UnitId());
-                case 27: return new DebugSpawnUnitCommand(p, Player(), SurfaceUnitId()!, Tile());
-                case 28: case 29: return new DebugStructureCommand(p, StructureId(), Enum<DebugStructureField>(), Value());
-                case 30: return new DebugRemoveStructureCommand(p, StructureId());
-                case 31: return new DebugPlaceBuildingCommand(p, Player(), BuildingId()!, Tile(), AnyInt());
-                case 32: return new DebugBaseCommand(p, StructureId(), Enum<DebugBaseAction>(), Value());
-                case 33: return new DebugStockCommand(p, Player(), Amounts());
-                case 34: return new DebugFlagCommand(p, Player(), Enum<DebugFlag>(), Chance(50));
-                case 35: return new DebugTechCommand(p, Player(), TechId()!, Chance(50), Value());
-                case 36: return new DebugSurveyAllCommand(p, Player());
-                case 37: return new DebugDepositCommand(p, Tile(), Value());
-                case 38: return new DebugAddPlayerCommand(p, Text(Data.Factions.Select(f => f.Id).ToList())!);
-                case 39:
-                    if (!Chance(3)) goto case 2; // reloading data is slow: rarely
-                    return new DebugDataCommand(p, Chance(10) ? null! : new[] { DataEdit() });
-                case 40:
-                    if (!Chance(3)) goto case 4;
-                    return new DebugReloadDataCommand(p, Chance(30) ? null! : new[] { new DataFile(Pick(_numbers).File, Chance(50) ? "{ nonsense" : null!) });
-                default: return new MoveUnitsCommand(p, UnitIds(), Tile());
+                case 22: return new DebugUnitCommand(p, UnitId(), Enum<DebugUnitField>(), Value());
+                case 23: return new DebugMoveUnitCommand(p, UnitId(), Tile());
+                case 24: return new DebugRemoveUnitCommand(p, UnitId());
+                case 25: return new DebugSpawnUnitCommand(p, Player(), SurfaceUnitId()!, Tile());
+                case 26: return new DebugStructureCommand(p, StructureId(), Enum<DebugStructureField>(), Value());
+                case 27: return new DebugRemoveStructureCommand(p, StructureId());
+                case 28: return new DebugPlaceBuildingCommand(p, Player(), BuildingId()!, Tile(), AnyInt());
+                case 29: return new DebugBaseCommand(p, StructureId(), Enum<DebugBaseAction>(), Value());
+                case 30:
+                    return Chance(50) // plenty of everything, so orders get paid for
+                        ? new DebugStockCommand(p, Player(), Data.Resources.Select(r => new ResourceAmount(r.Index, Fix64.FromInt(5000))).ToList())
+                        : new DebugStockCommand(p, Player(), Amounts());
+                case 31: return new DebugFlagCommand(p, Player(), Enum<DebugFlag>(), Chance(50));
+                case 32: return new DebugTechCommand(p, Player(), TechId()!, Chance(50), Value());
+                case 33: return new DebugSurveyAllCommand(p, Player());
+                case 34: return new DebugDepositCommand(p, Tile(), Value());
+                case 35: return new DebugAddPlayerCommand(p, Text(Data.Factions.Select(f => f.Id).ToList())!);
+                case 36: return new DebugDataCommand(p, Chance(10) ? null! : new[] { DataEdit() }); // slow (reloads the data): rare
+                default: return new DebugReloadDataCommand(p, Chance(30) ? null! : new[] { new DataFile(Pick(_numbers).File, Chance(50) ? "{ nonsense" : null!) });
             }
         }
 
@@ -258,11 +270,14 @@ public class CommandFuzzTests
     }
 
     /// <summary>Plays one fuzzed game: returns the state hashes along the way and the number of commands sent.</summary>
-    internal static (List<ulong> Hashes, int Commands, int Refused) PlayForHunt(ulong seed, int ticks, List<string> problems) => Play(seed, ticks, problems);
+    internal static Simulation? LastHuntGame;
 
-    private static (List<ulong> Hashes, int Commands, int Refused) Play(ulong seed, int ticks, List<string> problems)
+    internal static (List<ulong> Hashes, int Commands, int Refused) PlayForHunt(ulong seed, int ticks, List<string> problems) => Play(seed, ticks, problems);
+    internal static (List<ulong> Hashes, int Commands, int Refused) PlayWithData(GameData d, ulong seed, int ticks, List<string> problems) => Play(seed, ticks, problems, d);
+
+    private static (List<ulong> Hashes, int Commands, int Refused) Play(ulong seed, int ticks, List<string> problems, GameData? data = null)
     {
-        var sim = TwoPlayersLanded();
+        var sim = TwoPlayersLanded(data);
         var fuzz = new Fuzzer(sim, seed);
         var hashes = new List<ulong>();
         var sent = 0;
@@ -286,6 +301,7 @@ public class CommandFuzzTests
         }
         hashes.Add(sim.StateHash());
         problems.AddRange(Problems(sim));
+        LastHuntGame = sim;
         return (hashes, sent, sim.RefusedCommands);
     }
 
@@ -303,5 +319,85 @@ public class CommandFuzzTests
         Assert.True(a.Commands > 3000, $"only {a.Commands} commands");
         Assert.True(a.Refused > 0 && a.Refused < a.Commands, $"{a.Refused} of {a.Commands} refused");
         _out.WriteLine($"seed {seed}: {a.Commands} commands, {a.Refused} refused, final hash {a.Hashes[^1]:x16}");
+    }
+
+    // ---------------------------------------------------------------- bugs the fuzzer found
+
+    /// <summary>Two players sending their colony pods to the same site in the same tick used to put two Colony Hubs on
+    /// one tile (touchdown didn't look); now the second order is refused.</summary>
+    [Fact]
+    public void TwoColoniesCantLandOnTheSameSite()
+    {
+        var sim = new Simulation(Data, 1701);
+        sim.LoadSurface(MatchSetup.MvpPlanetClass, 1701);
+        sim.AddPlayer("federation");
+        sim.AddPlayer("cardassian");
+        var s = sim.Surface!;
+        var site = Enumerable.Range(0, s.Map.Grid.Count).First(t => s.CanLand(0, t));
+        var next = s.Map.Grid.Neighbours(site).First(t => s.CanLand(1, t));
+        sim.Schedule(0, new LandColonyCommand(0, site));
+        sim.Schedule(0, new LandColonyCommand(1, site));
+        sim.Schedule(1, new LandColonyCommand(1, next)); // right beside it: refused too
+        for (var i = 0; i <= TestData.ReadyTicks(Data); i++) sim.Step();
+        Assert.Equal(2, sim.RefusedCommands);
+        Assert.Single(s.Structures);
+        Assert.Equal(0, s.StructureAt(site)!.Owner);
+        Assert.Equal(LandingPhase.InOrbit, s.Players[1].Phase);
+        Assert.False(s.CanLand(1, next)); // the hub's neighbours stay clear, as for any landing
+        Assert.Empty(Problems(sim));
+    }
+
+    /// <summary>A building put down on (or beside) the site of a colony pod that is still coming down used to end up
+    /// sharing its tile with the Colony Hub at touchdown; the site is now kept clear until the pod is down.</summary>
+    [Fact]
+    public void NothingCanBePutUnderAFallingPod()
+    {
+        var sim = new Simulation(Data, 1701);
+        sim.LoadSurface(MatchSetup.MvpPlanetClass, 1701);
+        sim.AddPlayer("federation");
+        sim.AddPlayer("cardassian");
+        var s = sim.Surface!;
+        var site = Enumerable.Range(0, s.Map.Grid.Count).First(t => s.CanLand(0, t));
+        sim.Schedule(0, new LandColonyCommand(1, site));
+        sim.Step();
+        Assert.Equal(LandingPhase.Descending, s.Players[1].Phase);
+        Assert.False(s.CanLand(0, site));
+        var beside = s.Map.Grid.Neighbours(site).First(t => s.Map.Terrain(t).Buildable);
+        Assert.Equal("a colony is landing there", s.DebugProblem(sim, new DebugPlaceBuildingCommand(0, 0, "colony_hub", site, 0)));
+        Assert.Equal("a colony is landing there", s.DebugProblem(sim, new DebugPlaceBuildingCommand(0, 0, "colony_hub", beside, 0)));
+        sim.Schedule(sim.Tick, new DebugPlaceBuildingCommand(0, 0, "colony_hub", site, 0));
+        sim.Schedule(sim.Tick, new LandColonyCommand(0, site));
+        for (var i = 0; i <= TestData.ReadyTicks(Data); i++) sim.Step();
+        Assert.Equal(2, sim.RefusedCommands);
+        Assert.Single(s.Structures);
+        Assert.Equal(1, s.StructureAt(site)!.Owner);
+        Assert.Empty(Problems(sim));
+    }
+
+    /// <summary>
+    /// A refused command changes nothing: game A gets one random command a tick; game B gets only the ones A accepted.
+    /// Once each command has run the two hashes must be equal (a refusal that changed something on its way out would
+    /// split them).
+    /// </summary>
+    [Fact]
+    public void RefusedCommandsChangeNothing()
+    {
+        var a = TwoPlayersLanded();
+        var b = TwoPlayersLanded();
+        var fuzz = new Fuzzer(a, 99);
+        var refused = 0;
+        for (var i = 0; i < 1200; i++)
+        {
+            var c = fuzz.Next();
+            var before = a.RefusedCommands;
+            a.Schedule(a.Tick, c);
+            a.Step();
+            if (a.RefusedCommands == before) b.Schedule(b.Tick, c);
+            else refused++;
+            b.Step();
+            Assert.True(a.StateHash() == b.StateHash(), $"tick {a.Tick}: {c} (refused: {a.RefusedCommands != before}, {a.LastRefusal}) left a trace");
+        }
+        Assert.InRange(refused, 100, 1100);
+        _out.WriteLine($"{refused} of 1200 refused");
     }
 }

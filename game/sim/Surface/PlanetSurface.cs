@@ -456,6 +456,7 @@ public sealed partial class PlanetSurface
         if (Map.Safety(tile) == LandingSafety.Unsafe) return Map.NearNatives(tile) ? "that's the natives' land" : "not a safe landing site";
         foreach (var t in Map.Grid.Within(tile, 1))
             if (_structureAt[t] != 0) return "too close to a building";
+        if (PodLandingNear(tile)) return "a colony is landing there";
         switch (ClearOfBases(player, tile, orbit.OutpostMinDistance, null)) // the same spacing rule as founding on the ground
         {
             case FoundProblem.TooCloseToBase: return $"too close to a base (at least {orbit.OutpostMinDistance} tiles)";
@@ -962,7 +963,19 @@ public sealed partial class PlanetSurface
         if (tile < 0 || tile >= Map.Grid.Count || Map.Safety(tile) == LandingSafety.Unsafe) return false;
         foreach (var t in Map.Grid.Within(tile, 1))
             if (_structureAt[t] != 0) return false;
-        return true;
+        foreach (var d in _deliveries)
+            if (d.Kind == DeliveryKind.Outpost && Map.Grid.Distance(d.Tile, tile) <= 1) return false; // an outpost is coming down there
+        return !PodLandingNear(tile);
+    }
+
+    /// <summary>A colony pod (any player's first landing) is coming down on this tile or next to it. Its site and the
+    /// tiles round it are kept clear until touchdown (no landing, building, outpost drop or founding there), so two
+    /// players picking the same spot, or a building put down under a falling pod, can't put two structures on one tile.</summary>
+    public bool PodLandingNear(int tile)
+    {
+        foreach (var p in _players)
+            if (p.Phase == LandingPhase.Descending && p.LandingTile >= 0 && Map.Grid.Distance(p.LandingTile, tile) <= 1) return true;
+        return false;
     }
 
     /// <summary>
@@ -977,7 +990,7 @@ public sealed partial class PlanetSurface
         if (!_players[player].Surveyed[tile]) return PlacementProblem.NotSurveyed;
         if (!Map.Terrain(tile).Buildable) return PlacementProblem.TerrainUnbuildable;
         if (Map.NearNatives(tile)) return PlacementProblem.NativeLand;
-        if (_structureAt[tile] != 0) return PlacementProblem.Occupied;
+        if (_structureAt[tile] != 0 || PodLandingNear(tile)) return PlacementProblem.Occupied;
         foreach (var u in _units)
             if (u.Tile == tile && u.Mode != UnitMode.Mobile) return PlacementProblem.Occupied;
         var baseId = BaseFor(player, tile);
@@ -1773,6 +1786,16 @@ public sealed partial class PlanetSurface
     /// <summary>The landing convoy is down: the hub stands on the landing tile (assembling until UplinkTick), the units roll out.</summary>
     private void Touchdown(Simulation sim, int player, SurfacePlayer p)
     {
+        if (_structureAt[p.LandingTile] != 0)
+        {
+            // The site was taken while the pod came down (PodLandingNear keeps it clear, so only a case nothing else
+            // caught): back to orbit to pick another, rather than two structures on one tile.
+            p.Phase = LandingPhase.InOrbit;
+            p.LandingTile = -1;
+            p.LandsAtTick = 0;
+            p.DescentStartTick = 0;
+            return;
+        }
         p.Phase = LandingPhase.Landed;
         p.UplinkTick = p.LandsAtTick + AssembleTicks;
         PlaceCore(player, _data.Landing.HubBuilding, p.LandingTile, sim.Tick, p.UplinkTick);

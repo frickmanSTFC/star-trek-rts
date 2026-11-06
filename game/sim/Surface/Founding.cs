@@ -96,6 +96,7 @@ public sealed partial class PlanetSurface
     {
         foreach (var t in Map.Grid.Within(tile, 1))
             if (_structureAt[t] != 0) return FoundProblem.BuildingInTheWay;
+        if (PodLandingNear(tile)) return FoundProblem.BuildingInTheWay; // a colony pod is coming down there
         foreach (var u in _units)
             if (u != except && u.Tile == tile && u.Mode != UnitMode.Mobile) return FoundProblem.VehicleInTheWay;
         return FoundProblem.None;
