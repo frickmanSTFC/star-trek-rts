@@ -21,6 +21,7 @@ Godot 4.7 (.NET edition, C#) over a deterministic simulation library. The game r
 | `scripts/Scatter.cs`, `PlanetView.Scatter.cs`, `models/scatter/scatter.glb` | Landscape scatter: trees, bushes, grass, ferns, rocks, sandstone and ice per terrain (built by `blender/build_scatter.py`), chunked MultiMeshes with near/far LOD, wind and clearings under buildings |
 | `scripts/OrbitView.cs`, `OrbitPainter.cs`, `shaders/planet`, `atmosphere`, `clouds` (+ `air`/`clouds` includes) | Orbit view (the helm viewscreen): the painted globe with satellite-photo ground, animated oceans, two lit cloud layers with ground shadows and a ray-marched (Rayleigh + Mie) atmosphere; displays Planet (optional lat/long grid), Orbit (tracks of the ship, satellites and moon), Atmosphere (full clouds, storm cells) and System |
 | `scripts/SurfaceFeed.cs`, `SurfaceTelemetry.cs`, `PlanetDriver.Uplink.cs`, `sim/Surface/Telemetry.cs` | Once the outpost's uplink is online: the helm's live video feed from the surface (its own camera and SubViewport; the surface moves to render layer 20 while it shows) and the environmental telemetry (temperature, humidity, wind, pressure, gases, radiation, hazards) computed from `surfaces.json` environments |
+| `sim/Surface/Climate.cs`, `PlanetSurface.Climate.cs`, `sim/Data/ClimateDefs.cs`, `GameData.Climate.cs` | Planetary climate from `data/climate.json`: the sun (day/night by spin, seasons by tilt, sunlight by orbit), temperature and humidity per tile, drifting weather cells with seasonal odds, and their mild gameplay effects (rover speed, survey radius, rover damage, grounded drop ships). Pure functions of data, map and tick |
 | `scripts/SystemPlot.cs`, `OrbitLines.cs` | The helm's top-down star-system plot from the map's bodies; thin line meshes for tracks, rings and the grid |
 | `textures/planet/` | Tileable ground photos for the orbit globe, cut from NASA's Blue Marble Next Generation (public domain; credit: NASA Earth Observatory). Read at runtime, not imported (`.gdignore`) |
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
@@ -64,6 +65,9 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    toxic ground and get attacked by predators. Below half integrity they drive slower, badly damaged their sensors see
    less, and at 0 they are disabled. A flat tyre slows a rover (two flats: a crawl): press **T** to have the crew change
    it with the spare, or **R** to send it to the repair pad, which fixes everything for a little duranium.
+   Day and night sweep across the map (a Tarsis day is 12 minutes, its year 8 days with four seasons), and weather
+   drifts over it with the seasons: rain, snow, fog and storms slow vehicles, shorten their surveys and wear rovers
+   faster, and storms keep drop ships and outpost drops (and the first landing) from coming down under them.
    Build a **Vehicle Bay** (key 8) for more vehicles: select it and the command card shows its orders
    (survey rover Mk I Scout, mining crawler, Mk II Surveyor, Mk III Explorer; keys 1–4). Orders are paid up front and queue up to 5; **Backspace** cancels
    the last one. Each vehicle rolls out of the bay's door when it's done.
