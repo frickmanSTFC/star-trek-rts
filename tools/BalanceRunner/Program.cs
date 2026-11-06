@@ -38,6 +38,7 @@ internal static class Cli
         var quiet = false;
         var lean = false;
         var labels = new List<string>();
+        string? targetsPath = null;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} needs a value");
@@ -56,11 +57,14 @@ internal static class Cli
                 case "--labels": labels.AddRange(Next().Split(',')); break;
                 case "--quiet": quiet = true; break;
                 case "--lean": lean = true; break;
+                case "--targets": targetsPath = Next(); break;
                 case "-h": case "--help": Console.WriteLine(Help); return 0;
                 default: throw new ArgumentException($"unknown option {args[i]} (try --help)");
             }
         }
         var repo = FindRepo();
+        targetsPath ??= repo != null && File.Exists(Path.Combine(repo, "balance", "targets.json")) ? Path.Combine(repo, "balance", "targets.json") : "none";
+        var targets = targetsPath == "none" ? Targets.Empty : Targets.Load(targetsPath);
         if (orders.Count == 0) orders.Add(Path.Combine(repo ?? ".", "balance", "orders", "standard_opener.json"));
 
         // Data variants: one folder, two folders (--compare), or the folder plus edits (--set).
@@ -115,7 +119,7 @@ internal static class Cli
 
         title ??= variants.Count == 1 ? $"Balance run: {variants[0].Order}" : "Balance comparison: " + string.Join(" vs ", variants.Select(v => v.Label));
         outDir ??= Path.Combine(repo ?? ".", "balance", "reports", "latest");
-        Report.Write(outDir, variants, title, minutes, sample, lean);
+        Report.Write(outDir, variants, title, minutes, sample, lean, targets);
         if (!quiet) Summary(variants);
         Console.WriteLine($"report: {Path.GetFullPath(Path.Combine(outDir, "report.html"))}");
         return 0;
@@ -164,6 +168,7 @@ internal static class Cli
         RepairBelow = o.RepairBelow,
         Research = o.Research,
         Steps = o.Steps,
+        Pauses = o.Pauses,
     };
 
     private static string? FindRepo()
@@ -180,6 +185,13 @@ internal static class Cli
     private static void Summary(List<Variant> variants)
     {
         Console.WriteLine();
+        foreach (var v in variants)
+        {
+            var t = v.Measures.Where(m => m.Target != null && m.Target.Verdict != "after run").ToList();
+            if (t.Count == 0) continue;
+            Console.WriteLine($"{v.Label}: {t.Count(m => m.Target!.Verdict == "in")} of {t.Count} targets in their window" +
+                string.Concat(t.Where(m => m.Target!.Verdict != "in").Select(m => $"\n    out: {m.Label} = {Show(m)} ({m.Target!.Verdict}; target {Targets.Window(new TargetWindow(m.Target.Min, m.Target.Max, ""), m.Unit)})")));
+        }
         var keys = new[] { "ms:built:refinery", "ms:first_metal", "ms:built:vehicle_bay", "ms:first_parasteel", "ms:mk2", "ms:second_base", "end:duranium", "end:tritanium", "end:parasteel", "peak_storage", "stall:storage_full", "crawler_uptime", "speed" };
         Console.WriteLine($"{"measure (median of seeds)",-44}" + string.Join("", variants.Select(v => $"{v.Label,22}")));
         foreach (var k in keys)
@@ -196,6 +208,9 @@ internal static class Cli
         }
     }
 
+    private static string Show(Measure m) =>
+        m.Spread.Median is not { } x ? "-" : m.Unit == "time" ? $"{(int)x / 60}:{(int)x % 60:00}" : x.ToString("0.#", CultureInfo.InvariantCulture);
+
     private const string Help = """
         BalanceRunner: plays the surface economy headless with scripted build orders and reports what happened.
           --data <dir>             data folder (default: the repo's data/)
@@ -210,6 +225,7 @@ internal static class Cli
           --labels A,B             names for the variants
           --title <text>           report title
           --lean                   no runs/ folder (per-run JSON + CSV), compact summary: for committed reports
+          --targets <file|none>    target windows per order (default balance/targets.json): the report marks each measure in / out
           --quiet                  only print the report path
         """;
 }

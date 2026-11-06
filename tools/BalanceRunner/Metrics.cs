@@ -241,6 +241,7 @@ public sealed class Recorder
         }
         foreach (var t in Data.Techs)
             if (me.Known[t.Index]) Milestone("research:" + t.Id);
+        if (Data.Techs.Count > 0 && Data.Techs.All(t => me.Known[t.Index])) Milestone("research_all");
         var parasteel = Data.Resources.FirstOrDefault(r => r.Id == "parasteel");
         if (parasteel != null && _sim.Players[_p].Stock[parasteel.Index] > Fix64.Zero) Milestone("first_parasteel");
         if (_bot.StepIndex >= Result.StepsTotal && Result.StepsTotal > 0) Milestone("order_done");
@@ -248,7 +249,11 @@ public sealed class Recorder
         var ready = S.UplinkOnline(_p, _sim.Tick);
         var storageFull = ready && S.FreeStorage(_sim, _p) < Fix64.One;
         if (storageFull) Milestone("storage_full");
+        var cap = S.StorageCapacity(_p);
+        if (ready && cap > Fix64.Zero && (S.Stored(_sim, _p) + S.InFlight(_p)) * Fix64.FromInt(5) >= cap * Fix64.FromInt(4)) Milestone("storage_80");
         var powerShort = S.Bases(_p).Any(b => b.State == StructureState.Complete && S.PowerOf(b.Id).Efficiency < Fix64.One);
+        // The first time a base draws more power than its own core supplies: a reactor (or pausing something) is now needed.
+        if (S.Bases(_p).Any(b => b.State == StructureState.Complete && S.PowerOf(b.Id).Use > Data.Building(b.DefId).PowerSupply)) Milestone("power_needed");
         Track("storage_full", storageFull);
         Track("mining_blocked", ready && miningBlocked);
         Track("refinery_idle", refineries > 0 && refineriesIdle == refineries);

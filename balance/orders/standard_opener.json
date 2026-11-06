@@ -1,23 +1,26 @@
 {
   "name": "standard_opener",
-  "description": "The opener the Data Lab mockup assumed, played for real: storage and a refinery first, a tritanium mine, a lab, a reactor, more storage, refinery Mk II, a Vehicle Bay and a second crawler, the foundry, Colonial Administration (Mk III needs a level 2 base), then refinery Mk III once there is parasteel. No beams from the ship.",
+  "description": "The opener the Data Lab mockup assumed, played for real: storage and a refinery first, a tritanium mine (else duranium), a lab, more storage, refinery Mk II, a Vehicle Bay and a second crawler, then the Fusion Reactor once the foundry needs the power, the foundry (paused while metal is short or parasteel piles up), Colonial Administration (Mk III needs a level 2 base), then refinery Mk III once there is parasteel. The newest crawler fetches deuterium when the reactor runs low. No beams from the ship.",
   "faction": "federation",
   "planet": "class_m",
   "landing": { "prefer": ["duranium_ore", "tritanium_ore"] },
   "survey": { "max_distance": 22 },
-  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 12 },
+  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 12, "refuel": { "resource": "deuterium", "below": 60, "until": 200 } },
   "upkeep": { "maintain_below": 55, "repair_below": 45 },
   "research": ["improved_smelting", "ore_conveyors", "preventive_maintenance", "alloy_metallurgy", "reinforced_drills", "automated_maintenance", "deep_core_mining"],
+  "pause": [
+    { "building": "foundry", "when": "duranium < 100 or tritanium < 60 or parasteel >= 40", "resume": "duranium >= 180 and tritanium >= 100 and parasteel < 20" }
+  ],
   "steps": [
     { "build": "storage_container" },
     { "build": "refinery" },
-    { "build": "mine", "deposit": "tritanium_ore", "timeout": 300 },
+    { "build": "mine", "deposit": ["tritanium_ore", "duranium_ore"], "timeout": 300 },
     { "build": "science_lab" },
-    { "build": "fusion_reactor" },
     { "build": "storage_container" },
     { "upgrade": "refinery" },
     { "build": "vehicle_bay" },
     { "unit": "mining_crawler" },
+    { "build": "fusion_reactor" },
     { "build": "foundry" },
     { "upgrade": "colony_hub" },
     { "upgrade": "refinery", "when": "parasteel >= 20" }

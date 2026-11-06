@@ -1,0 +1,35 @@
+{
+  "_notes": "Target windows the balance runner checks each build order against (placeholders, like every number in the data: change them as the design settles). Keys are the report's measure keys (summary.json / the Key numbers table): ms:<milestone> takes minutes of game time, other measures their own unit (% for storage fill, min for stalls, plain numbers for stock). min and max are both optional. The report and the console mark each one in / early / late / low / high / missed, with how many seeds landed inside; a window that starts after the run's end is not judged ('after run'). \"*\" applies to every order; an order's own entry wins. Written 2026-11-07 for the economy retune (owner: storage limited and fills fast, ore must be refined, one crawler lands with the colony, small hub metal trickle, power per base).",
+  "orders": {
+    "*": {
+      "stall:power_short": { "max": 1, "why": "a sensible order builds the reactor before the base runs short" },
+      "end:deuterium": { "min": 20, "why": "the surface must be able to fuel a reactor (deuterium deposits, fetched by a crawler)" },
+      "crashed": { "max": 0, "why": "no sim exceptions" }
+    },
+    "standard_opener": {
+      "ms:built:refinery": { "min": 1, "max": 2, "why": "the first build after storage" },
+      "ms:built:vehicle_bay": { "min": 6, "max": 9, "why": "early expansion of the fleet" },
+      "ms:unit:mining_crawler": { "min": 9, "max": 12, "why": "the second crawler (the first lands with the colony)" },
+      "ms:first_parasteel": { "min": 12, "max": 18, "why": "the foundry comes mid-game, not straight away" },
+      "ms:core:colonial_administration": { "min": 20, "max": 30, "why": "the first core upgrade in the first half hour" },
+      "ms:power_needed": { "min": 10, "max": 20, "why": "at least one power decision (a reactor) by ~15-20 min, not from the start" },
+      "ms:storage_80": { "min": 8, "max": 25, "why": "storage gets tight even with containers: it fills fast" },
+      "ms:research_all": { "min": 35, "max": 45, "why": "all seven surface techs with one lab" },
+      "stall:refinery_idle": { "max": 5, "why": "one crawler and a mine keep a refinery busy" },
+      "made:duranium": { "min": 35, "why": "duranium no longer the bottleneck (was ~20 a minute)" }
+    },
+    "storage_skip": {
+      "ms:storage_full": { "min": 10, "max": 15, "why": "without containers the hub vault fills in 10-15 min" }
+    },
+    "fast_expand": {
+      "ms:built:vehicle_bay": { "max": 4, "why": "beams make the bay come early" },
+      "ms:second_base": { "min": 4, "max": 10, "why": "a second base in the first ten minutes" },
+      "ms:unit:mining_crawler": { "max": 15 },
+      "ms:storage_80": { "min": 5, "max": 25 }
+    },
+    "tech_rush": {
+      "ms:research_all": { "min": 18, "max": 30, "why": "two labs: about twice as fast as one" },
+      "ms:first_parasteel": { "max": 15 }
+    }
+  }
+}

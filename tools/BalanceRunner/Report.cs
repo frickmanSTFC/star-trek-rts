@@ -16,11 +16,11 @@ public static class Report
 
     /// <param name="lean">No runs/ folder (per-run JSON + CSV) and a compact summary, to keep committed reports small;
     /// the HTML still has the main series of every run.</param>
-    public static void Write(string outDir, IReadOnlyList<Variant> variants, string title, double minutes, int sample, bool lean = false)
+    public static void Write(string outDir, IReadOnlyList<Variant> variants, string title, double minutes, int sample, bool lean = false, Targets? targets = null)
     {
         Directory.CreateDirectory(outDir);
-        var keys = Aggregate.MilestoneKeys(variants);
-        foreach (var v in variants) Aggregate.Measure(v, keys);
+        var keys = Aggregate.MilestoneKeys(variants, targets);
+        foreach (var v in variants) Aggregate.Measure(v, keys, targets);
         if (!lean)
         {
             var runs = Path.Combine(outDir, "runs");
@@ -39,6 +39,7 @@ public static class Report
             minutes,
             sample_seconds = sample,
             seeds = variants[0].Runs.Select(r => r.Seed).ToList(),
+            targets = targets?.Source is { Length: > 0 } src ? Path.GetFileName(src) : "",
             variants = variants.Select(v => new
             {
                 v.Label,
@@ -64,6 +65,7 @@ public static class Report
             title,
             minutes,
             sample,
+            has_targets = variants.Any(v => v.Measures.Any(m => m.Target != null)),
             variants = variants.Select(v => new
             {
                 v.Label,
@@ -114,7 +116,7 @@ public static class Report
   --bg: #f4f4f1; --surface: #fcfcfb; --line: #dcdbd5; --grid: #e9e8e3;
   --text: #0b0b0b; --text2: #52514e; --muted: #77766f;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
-  --good: #0b7d3b; --bad: #c63d3d; --chg: #fff2cc;
+  --good: #0b7d3b; --bad: #c63d3d; --chg: #fff2cc; --inbg: #dff3e6; --outbg: #fbe3e3;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -122,7 +124,7 @@ public static class Report
     --bg: #111110; --surface: #1a1a19; --line: #33322f; --grid: #262624;
     --text: #f0efec; --text2: #c3c2b7; --muted: #8f8e86;
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
-    --good: #4cc27a; --bad: #ef7070; --chg: #3a3216;
+    --good: #4cc27a; --bad: #ef7070; --chg: #3a3216; --inbg: #173322; --outbg: #3d1d1d;
   }
 }
 :root[data-theme="dark"] {
@@ -130,7 +132,7 @@ public static class Report
   --bg: #111110; --surface: #1a1a19; --line: #33322f; --grid: #262624;
   --text: #f0efec; --text2: #c3c2b7; --muted: #8f8e86;
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
-  --good: #4cc27a; --bad: #ef7070; --chg: #3a3216;
+  --good: #4cc27a; --bad: #ef7070; --chg: #3a3216; --inbg: #173322; --outbg: #3d1d1d;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -165,6 +167,9 @@ details { margin: 6px 0; } summary { cursor: pointer; color: var(--text2); }
 .note { color: var(--text2); font-size: 13px; }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
 code { font: 12px ui-monospace, Consolas, monospace; }
+.tg { display: inline-block; font-size: 11px; font-weight: 600; padding: 0 5px; border-radius: 4px; margin-left: 6px; }
+.tg { background: var(--grid); color: var(--muted); } .tg.in { background: var(--inbg); color: var(--good); } .tg.out { background: var(--outbg); color: var(--bad); }
+#targets p { margin: 4px 0; }
 @media (max-width: 600px) { .tile .v { font-size: 17px; } th, td { padding: 4px 5px; } }
 </style>
 </head>
@@ -173,6 +178,7 @@ code { font: 12px ui-monospace, Consolas, monospace; }
 <h1 id="title"></h1>
 <p class="sub" id="sub"></p>
 <div class="tiles" id="tiles"></div>
+<div id="targets"></div>
 <h2>Over time</h2>
 <div class="card">
   <div class="seg" id="metric"></div>
@@ -214,6 +220,18 @@ $("#tiles").innerHTML = TILES.map((k) => {
   const reach = m.spread.reached < m.spread.runs ? ` · reached in ${m.spread.reached}/${m.spread.runs}` : "";
   return `<div class="card tile"><div class="k">${esc(m.label)}</div><div class="v">${fmt(m.spread.median, m.unit)}</div><div class="d">${V.length > 1 ? esc(V[0].label) + " · " : ""}seeds ${fmt(m.spread.min, m.unit)} – ${fmt(m.spread.max, m.unit)}${reach}${others ? "<br>" + others : ""}</div></div>`;
 }).join("");
+
+// ---- targets: how many measures land in the order's windows (balance/targets.json)
+const win = (m) => { const t = m.target; if (!t) return ""; const f = (v) => m.unit === "time" ? `${+v.toFixed(2)} min` : m.unit === "%" ? `${+v.toFixed(1)}%` : `${+v.toFixed(1)}`; return t.min != null && t.max != null ? `${f(t.min)}–${f(t.max)}` : t.min != null ? `≥ ${f(t.min)}` : `≤ ${f(t.max)}`; };
+const badge = (m) => !m.target ? "" : `<span class="tg ${m.target.verdict === "in" ? "in" : m.target.verdict === "after run" ? "" : "out"}" title="${esc("target " + win(m) + (m.target.why ? " · " + m.target.why : ""))}">${esc(m.target.verdict)} ${m.target.in_seeds}/${m.target.seeds}</span>`;
+if (R.has_targets) {
+  const rows = V.map((v, i) => {
+    const t = v.measures.filter((m) => m.target && m.target.verdict !== "after run"); const ok = t.filter((m) => m.target.verdict === "in");
+    const out = t.filter((m) => m.target.verdict !== "in").map((m) => `${esc(m.label)} ${fmt(m.spread.median, m.unit)} (target ${win(m)})${badge(m)}`).join(" · ");
+    return `<p>${SW(i)}<b>${esc(v.label)}</b>: <b>${ok.length} of ${t.length}</b> targets in their window${out ? '<br><span class="note">out: ' + out + "</span>" : ""}</p>`;
+  }).join("");
+  $("#targets").innerHTML = `<h2>Targets</h2><div class="card">${rows}<p class="note">Windows per build order from <code>balance/targets.json</code> (placeholders to balance toward): the median of the seeds must land inside; n/m = seeds whose own value is inside. Each targeted row in Key numbers carries the same badge.</p></div>`;
+}
 
 // ---- chart
 const METRICS = [
@@ -293,11 +311,11 @@ function delta(m0, m, i) {
   let group = "";
   V[0].measures.forEach((m0, k) => {
     if (m0.group !== group) { group = m0.group; html += `<tr class="group"><td colspan="${1 + V.length * 2}">${esc(group)}</td></tr>`; }
-    html += `<tr><td>${esc(m0.label)}</td>` + V.map((v, i) => {
+    html += `<tr><td>${esc(m0.label)}${m0.target ? ` <span class="rng">target ${win(m0)}</span>` : ""}</td>` + V.map((v, i) => {
       const m = v.measures[k]; const s = m.spread;
       const reach = m.unit === "time" && s.reached < s.runs ? ` <span class="rng">${s.reached}/${s.runs}</span>` : "";
       const changed = i && delta(m0, m, i).indexOf("same") < 0;
-      const cell = `<td class="${changed ? "chg" : ""}">${fmt(s.median, m.unit)}${s.runs > 1 && s.min != null ? `<span class="rng">(${fmt(s.min, m.unit)}–${fmt(s.max, m.unit)})</span>` : ""}${reach}</td>`;
+      const cell = `<td class="${changed ? "chg" : ""}">${fmt(s.median, m.unit)}${s.runs > 1 && s.min != null ? `<span class="rng">(${fmt(s.min, m.unit)}–${fmt(s.max, m.unit)})</span>` : ""}${reach}${badge(m)}</td>`;
       return cell + (i ? `<td>${delta(m0, m, i)}</td>` : "");
     }).join("") + `</tr>`;
   });
@@ -307,7 +325,7 @@ function delta(m0, m, i) {
 
 // ---- idle reasons
 (function () {
-  const statuses = ["Working", "LowPower", "NoInput", "StorageFull", "NoUpkeep", "Depleted", "Broken"];
+  const statuses = ["Working", "LowPower", "NoInput", "StorageFull", "NoUpkeep", "Depleted", "Broken", "Paused"];
   $("#idle").innerHTML = V.map((v, i) => {
     const types = [...new Set(v.runs.flatMap((r) => Object.keys(r.status_seconds)))];
     const rows = types.map((t) => `<tr><td>${esc(t)}</td>` + statuses.map((s) => { const x = median(v.runs.map((r) => (r.status_seconds[t] || {})[s] || 0)) / 60; return `<td>${x ? num(x, 1) : ""}</td>`; }).join("") + "</tr>").join("");

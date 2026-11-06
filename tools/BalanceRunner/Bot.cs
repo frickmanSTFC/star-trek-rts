@@ -77,6 +77,7 @@ public sealed class Bot
         if (Me.Phase != LandingPhase.Landed) return;
         Vehicles();
         Maintain();
+        PauseRules();
         Research();
         Steps();
     }
@@ -156,6 +157,7 @@ public sealed class Bot
     {
         var units = Mine().ToList();
         foreach (var u in units) Upkeep(u);
+        Refuelling(units);
         var crawlerIndex = 0;
         foreach (var u in units)
         {
@@ -163,6 +165,28 @@ public sealed class Bot
             var def = Data.SurfaceUnit(u.DefId);
             if (def.CanMine) Crawler(u, crawlerIndex++);
             else if (IsSurveyRover(u)) Survey(u, units);
+        }
+    }
+
+    private int _refuelCrawler = -1; // crawler id sent for fuel (crawlers.refuel), -1 = none
+
+    /// <summary>crawlers.refuel: the newest crawler fetches fuel (deuterium for the reactors) while the stock is low.</summary>
+    private void Refuelling(List<SurfaceUnit> units)
+    {
+        if (_order.CrawlerRefuel is not { } rule || Data.Resources.FirstOrDefault(r => r.Id == rule.Resource) is not { } res) return;
+        var stock = Stock[res.Index].ToDouble();
+        var crawlers = units.Where(u => Data.SurfaceUnit(u.DefId).CanMine).ToList();
+        if (_refuelCrawler >= 0 && (stock >= rule.Until || crawlers.All(u => u.Id != _refuelCrawler)))
+        {
+            Say($"refuel done ({rule.Resource} {stock:0})");
+            _refuelCrawler = -1;
+        }
+        // Only when a reactor actually burns it (no point fetching fuel nothing uses yet).
+        var burning = S.Structures.Any(s => s.Owner == _p && s.State == StructureState.Complete && Data.Building(s.DefId).UpkeepPerMinute.Any(x => x.Resource == res.Index));
+        if (_refuelCrawler < 0 && burning && stock < rule.Below && crawlers.Count > 0)
+        {
+            _refuelCrawler = crawlers[^1].Id;
+            Say($"{rule.Resource} low ({stock:0}): crawler {crawlers[^1].Name} {crawlers[^1].Number} goes for {rule.Resource}");
         }
     }
 
@@ -207,7 +231,7 @@ public sealed class Bot
         if (u.Mode == UnitMode.Deployed && u.MiningStatus == MiningStatus.Mining && (_sim.Tick / ThinkTicks + u.Id) % 60 == 0)
         {
             // Once a minute: a crawler on a less wanted ore moves when a more wanted deposit is known now.
-            var here = Rank(Map.DepositResource[u.Tile], index);
+            var here = Rank(Map.DepositResource[u.Tile], index, u.Id);
             if (here > 0 && BestDeposit(u, index) is { Tile: >= 0 } better && better.Rank < here) MineAt(u, better.Tile, "moves");
             return;
         }
@@ -230,9 +254,11 @@ public sealed class Bot
     }
 
     /// <summary>0 = the crawler's first choice of ore; crawler n starts at entry n of the preference list. -1 = not wanted.</summary>
-    private int Rank(int resource, int index)
+    private int Rank(int resource, int index, int unitId = -1)
     {
         var prefer = _order.CrawlerPrefer;
+        if (unitId >= 0 && unitId == _refuelCrawler && _order.CrawlerRefuel is { } fuel)
+            return resource >= 0 && Data.Resources[resource].Id == fuel.Resource ? 0 : Rank(resource, index) is var r and >= 0 ? r + 1 : -1;
         if (resource < 0) return -1;
         if (prefer.Count == 0) return 0;
         var at = -1;
@@ -262,7 +288,7 @@ public sealed class Bot
             {
                 if (!seen.Add(t) || t == u.Tile && u.Mode != UnitMode.Mobile || taken.Contains(t) || _badMine.Contains((u.Id, t))) continue;
                 if (Map.DepositAmount[t] <= Fix64.Zero) continue;
-                var rank = Rank(Map.DepositResource[t], index);
+                var rank = Rank(Map.DepositResource[t], index, u.Id);
                 if (rank < 0) continue;
                 var score = 2 * bases.Min(x => Map.Grid.Distance(x.Tile, t)) + Map.Grid.Distance(u.Tile, t);
                 if (rank > bestRank || (rank == bestRank && (score > bestScore || (score == bestScore && t > best)))) continue;
@@ -341,6 +367,20 @@ public sealed class Bot
             if (S.MaintenanceProblem(_p, s.Id) != null) continue;
             Send(new MaintainCommand(_p, s.Id)); // a toggle: only ever sent when not ordered
         }
+    }
+
+    /// <summary>The order's standing pause rules (PauseCommand), e.g. "pause the foundry while duranium is short".</summary>
+    private void PauseRules()
+    {
+        foreach (var rule in _order.Pauses)
+            foreach (var s in S.Structures)
+            {
+                if (s.Owner != _p || s.DefId != rule.Building || !S.CanPause(s.DefId)) continue;
+                var pause = s.Paused ? !(rule.Resume?.Holds(Value) ?? !rule.When.Holds(Value)) : rule.When.Holds(Value);
+                if (pause == s.Paused || S.PauseProblem(_p, s.Id, pause) != null) continue;
+                Send(new PauseCommand(_p, s.Id, pause));
+                Say($"{(pause ? "pause" : "resume")} {s.DefId} {s.Id} ({(pause ? rule.When : rule.Resume?.ToString() ?? "not " + rule.When)})");
+            }
     }
 
     private void Research()
@@ -541,13 +581,18 @@ public sealed class Bot
     /// <paramref name="cannotAfford"/> is set). Nearest the core first; ordinary buildings keep off deposits and off tiles
     /// crawlers are heading for; mines go on the wanted ore, the biggest deposit first.
     /// </summary>
-    private int Spot(SurfaceStructure core, string buildingId, string deposit, out bool cannotAfford)
+    private int Spot(SurfaceStructure core, string buildingId, IReadOnlyList<string> deposit, out bool cannotAfford)
     {
         cannotAfford = false;
         var def = Data.Building(buildingId);
         var radius = Data.Building(core.DefId).BuildRadius;
         var heading = Mine().Where(u => u.Path.Count > 0).Select(u => u.Path[^1]).ToHashSet();
-        var wanted = deposit.Length > 0 ? Data.Resources.FirstOrDefault(r => r.Id == deposit)?.Index ?? -2 : -1;
+        // Mines: rank of a deposit's resource in the wanted list (0 = first); one entry = that, then any raw ore; none = any.
+        var wantedIds = deposit.Select(id => Data.Resources.FirstOrDefault(r => r.Id == id)?.Index ?? -2).ToList();
+        int DepositRank(int resource) => resource < 0 ? -1
+            : wantedIds.Count == 0 ? 0
+            : wantedIds.IndexOf(resource) is var i and >= 0 ? i
+            : wantedIds.Count == 1 && Data.Resources[resource].Tier == "raw" ? 1 : -1;
         int best = -1;
         (int, long, int) bestKey = (int.MaxValue, 0, 0);
         var bestShort = false;
@@ -555,10 +600,11 @@ public sealed class Bot
         {
             if (S.BaseFor(_p, t) != core.Id || heading.Contains(t)) continue;
             var hasDeposit = Map.DepositResource[t] >= 0;
+            if (def.RequiresDeposit && hasDeposit && DepositRank(Map.DepositResource[t]) < 0) continue; // not a deposit this step wants
             var problem = S.CheckPlacement(_sim, _p, buildingId, t);
             if (problem is not (PlacementProblem.None or PlacementProblem.CannotAfford)) continue;
-            // rank: ordinary buildings off deposits first; mines on the wanted ore, then the biggest deposit; then nearest the core
-            var pass = def.RequiresDeposit ? (wanted >= 0 && Map.DepositResource[t] != wanted ? 1 : 0) : def.RequiresDepleted ? 0 : hasDeposit ? 1 : 0;
+            // rank: ordinary buildings off deposits first; mines on the most wanted deposit, then the biggest; then nearest the core
+            var pass = def.RequiresDeposit ? DepositRank(Map.DepositResource[t]) : def.RequiresDepleted ? 0 : hasDeposit ? 1 : 0;
             var size = def.RequiresDeposit ? -Map.DepositAmount[t].Raw : 0;
             var key = (pass, size, Map.Grid.Distance(core.Tile, t));
             if (best >= 0 && key.CompareTo(bestKey) >= 0) continue;

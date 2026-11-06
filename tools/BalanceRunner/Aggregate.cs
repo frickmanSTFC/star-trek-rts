@@ -8,7 +8,11 @@ namespace FinalFrontier.Balance;
 public sealed record Spread(double? Min, double? Median, double? Max, int Reached, int Runs);
 
 /// <summary>One headline measure of a variant, aggregated across its seeds.</summary>
-public sealed record Measure(string Key, string Label, string Group, string Unit, bool? GoodUp, Spread Spread);
+public sealed record Measure(string Key, string Label, string Group, string Unit, bool? GoodUp, Spread Spread)
+{
+    /// <summary>How it did against the order's window in balance/targets.json (null = no target for it).</summary>
+    public TargetResult? Target { get; init; }
+}
 
 /// <summary>A set of runs that share data + build order + faction (one per seed).</summary>
 public sealed class Variant
@@ -38,6 +42,9 @@ public static class Aggregate
         ["mk3"] = "First Mk III building",
         ["second_base"] = "Second base up",
         ["storage_full"] = "Storage first full",
+        ["storage_80"] = "Storage first 80% full",
+        ["power_needed"] = "Power needed beyond the core",
+        ["research_all"] = "Every surface tech known",
         ["order_done"] = "Build order finished",
         ["landed"] = "Touchdown",
     };
@@ -74,14 +81,19 @@ public static class Aggregate
     private static double R(double v) => System.Math.Round(v, 2);
 
     /// <summary>The headline measures of a variant (milestone keys = the union over every variant, so tables line up).</summary>
-    public static void Measure(Variant v, IReadOnlyList<string> milestoneKeys)
+    public static void Measure(Variant v, IReadOnlyList<string> milestoneKeys, Targets? targets = null)
     {
         var list = new List<Measure>();
-        void Add(string key, string label, string group, string unit, bool? goodUp, Func<RunResult, double?> f) =>
-            list.Add(new Measure(key, label, group, unit, goodUp, SpreadOf(v.Runs.Select(f).ToList())));
+        var windows = (targets ?? Targets.Empty).For(v.Order);
+        void Add(string key, string label, string group, string unit, bool? goodUp, Func<RunResult, double?> f)
+        {
+            var values = v.Runs.Select(f).ToList();
+            var m = new Measure(key, label, group, unit, goodUp, SpreadOf(values));
+            list.Add(m with { Target = Targets.Judge(windows.GetValueOrDefault(key), m, values, v.Runs.Count > 0 ? v.Runs[0].Minutes : 0) });
+        }
 
         foreach (var k in milestoneKeys)
-            Add("ms:" + k, MilestoneName(k), "Milestones", "time", k == "storage_full" ? true : false, r => r.Milestones.TryGetValue(k, out var t) ? t : null);
+            Add("ms:" + k, MilestoneName(k), "Milestones", "time", k is "storage_full" or "storage_80" or "power_needed" ? null : false, r => r.Milestones.TryGetValue(k, out var t) ? t : null);
 
         foreach (var res in StockKeys)
             Add("end:" + res, $"{Pretty(res)} at the end", "End of run", "", res.EndsWith("_ore") ? null : true, r => r.Series.TryGetValue("stock:" + res, out var s) && s.Count > 0 ? s[^1] : null);
@@ -110,7 +122,7 @@ public static class Aggregate
         Add("buildings", "Finished buildings at the end", "Base", "", true, r => Last(r, "buildings"));
         Add("techs", "Techs known at the end", "Base", "", true, r => r.EndTechs.Count);
         Add("steps", "Build-order steps done", "Base", "", true, r => r.StepsDone);
-        Add("idle_share", "Building time idle (no input, full, no upkeep, depleted, broken)", "Base", "%", false, IdleShare);
+        Add("idle_share", "Building time idle (no input, full, no upkeep, depleted, broken, paused)", "Base", "%", false, IdleShare);
         Add("speed", "Simulation speed (× real time)", "Run", "×", null, r => r.Speedup);
         Add("crashed", "Run stopped by an exception (1 = yes; see Runs)", "Run", "", false, r => r.Crash.Length > 0 ? 1 : 0);
         v.Measures = list;
@@ -147,11 +159,13 @@ public static class Aggregate
         return total <= 0 ? null : 100 * idle / total;
     }
 
-    /// <summary>Every milestone any run reached, ordered by the earliest median time.</summary>
-    public static List<string> MilestoneKeys(IEnumerable<Variant> variants)
+    /// <summary>Every milestone any run reached or a target names, ordered by the earliest median time (never reached: last).</summary>
+    public static List<string> MilestoneKeys(IEnumerable<Variant> variants, Targets? targets = null)
     {
-        var all = variants.SelectMany(v => v.Runs).ToList();
-        return all.SelectMany(r => r.Milestones.Keys).Distinct()
+        var vs = variants.ToList();
+        var all = vs.SelectMany(v => v.Runs).ToList();
+        var targeted = vs.SelectMany(v => (targets ?? Targets.Empty).For(v.Order).Keys).Where(k => k.StartsWith("ms:", StringComparison.Ordinal)).Select(k => k[3..]);
+        return all.SelectMany(r => r.Milestones.Keys).Concat(targeted).Distinct()
             .Where(k => k != "landed")
             .Select(k => (k, t: SpreadOf(all.Select(r => r.Milestones.TryGetValue(k, out var x) ? x : (double?)null).ToList()).Median ?? 1e9))
             .OrderBy(x => x.t).ThenBy(x => x.k, StringComparer.Ordinal).Select(x => x.k).ToList();
