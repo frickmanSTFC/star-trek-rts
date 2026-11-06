@@ -226,6 +226,7 @@ public partial class PlanetDriver
         {
             if (s.Owner != LocalPlayer || s.Founder is not { } rover) continue;
             live.Add(s.Id);
+            _seenFounders.Remove(rover.Id); // used up: if the hub is cancelled it comes back as a fresh sighting (no "folded up" line)
             var built = s.State == StructureState.Complete;
             if (!_foundedCores.TryGetValue(s.Id, out var seen))
             {
