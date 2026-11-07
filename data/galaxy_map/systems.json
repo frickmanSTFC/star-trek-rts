@@ -147,6 +147,15 @@
       "note": "Hollowed-asteroid fortress."
     },
     {
+      "id": "azati_prime",
+      "name": "Azati Prime (Delphic Expanse)",
+      "faction": "xindi",
+      "kind": "capital",
+      "x": 165,
+      "y": 66,
+      "note": "Xindi weapon site inside the Delphic Expanse, beyond Klingon space. Placeholder position."
+    },
+    {
       "id": "romulus",
       "name": "Romulus and Remus",
       "faction": "romulan",
@@ -285,6 +294,15 @@
       "y": -42
     },
     {
+      "id": "suliban_helix",
+      "name": "Suliban Helix",
+      "faction": "suliban",
+      "kind": "capital",
+      "x": 44,
+      "y": -36,
+      "note": "The Cabal's station since the Suliban homeworld became uninhabitable. Placeholder position."
+    },
+    {
       "id": "fenris",
       "name": "Fenris Rangers base",
       "faction": "fenris_rangers",
@@ -402,6 +420,24 @@
       "kind": "capital",
       "x": 24000,
       "y": 35000
+    },
+    {
+      "id": "krenim_imperium",
+      "name": "Krenim Imperium",
+      "faction": "krenim",
+      "kind": "capital",
+      "x": 31000,
+      "y": 43500,
+      "note": "Home of the temporal weapon ship (the year of hell), on Voyager's route. Placeholder position."
+    },
+    {
+      "id": "malon_space",
+      "name": "Malon Export space",
+      "faction": "malon",
+      "kind": "capital",
+      "x": 20500,
+      "y": 31000,
+      "note": "Waste-freighter routes past the Hirogen relays. Placeholder position."
     },
     {
       "id": "barzan_delta",

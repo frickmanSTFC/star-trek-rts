@@ -68,9 +68,9 @@ Each data document is a folder of small files, one per table or record family (o
 |---|---|
 | `resources/` | Raw materials, refined components, faction resources, trade goods. Files: notes, one file per tier |
 | `factions/` | Playable, minor, pirate and crisis factions with signature mechanics. Files: one file per great power, the rest by group |
-| `eras/` | Eight starting eras with available factions, events and stardate formats. Files: one file |
+| `eras/` | Eight starting eras with their playable and AI-only factions, events and stardate formats (the game loads and checks it against `factions/`, read-only for now). Files: one file |
 | `planet_classes/` | Planet classes and other celestial bodies with yields and hazards. Files: notes + classes |
-| `tech_tree/` | Research tree across seven branches. Files: notes, rules, `techs/<branch>.json` |
+| `tech_tree/` | Research tree across seven branches (the game loads and checks it, read-only for now; the prototype's surface research is in `surfaces/`). Files: notes, rules, `techs/<branch>.json` |
 | `ships/` | Hull sizes, module slots and ship classes per faction. Files: notes, hulls + modules, `classes/<faction or era>.json` |
 | `vehicles/` | Small craft, probes, civilian/support ships, ground forces and vehicles. Files: notes + one file per table |
 | `buildings/` | All structures, faction-only buildings, relics, `faction_lines` (level-1-to-max upgrade chains for all seven factions) and `starting_sets` (each faction's Class M opening buildings). Files: notes, rules, `surface/<building or family>.json`, orbital, deep space, `faction_buildings/<faction>.json`, relics, `faction_lines/<faction>.json`, `starting_sets/<faction>.json` |

@@ -11,6 +11,10 @@
       "signature": { "id": "imperial_guard", "desc": "Strong early military; ice-world colonization bonus." } },
     { "id": "tellarite", "name": "Tellarite", "playable": true, "eras": ["ent"],
       "playstyle": "Engineering / trade / argument", "secondary": ["cheap_construction", "hard_bargains", "debate_as_sport"], "weakness": "Argumentative diplomacy; weak navy.", "home": "Tellar Prime", "weapons": ["phase_cannon", "spatial_torpedo"], "flavor_units": {"hero": "Tellarite Ambassador", "ground": "Tellarite Engineers", "special": "Tellarite Cruiser"},
-      "signature": { "id": "engineers_and_hagglers", "desc": "Cheaper construction; trade bonuses; argumentative diplomacy." } }
+      "signature": { "id": "engineers_and_hagglers", "desc": "Cheaper construction; trade bonuses; argumentative diplomacy." } },
+    { "id": "xindi", "name": "Xindi Council", "playable": "minor", "eras": ["ent"],
+      "signature": { "id": "five_species", "desc": "Primate, Arboreal, Insectoid, Reptilian and Aquatic Xindi under one uneasy council inside the Delphic Expanse; builds a superweapon on the Sphere Builders' word." } },
+    { "id": "suliban", "name": "Suliban Cabal", "playable": "minor", "eras": ["ent"],
+      "signature": { "id": "temporal_agents", "desc": "Genetically enhanced agents taking orders from the future in the Temporal Cold War; cloaking cell ships that swarm and slip away." } }
   ]
 }

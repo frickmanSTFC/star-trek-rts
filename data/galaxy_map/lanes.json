@@ -261,6 +261,26 @@
       "kind": "warp"
     },
     {
+      "a": "tygokor",
+      "b": "azati_prime",
+      "kind": "warp"
+    },
+    {
+      "a": "risa",
+      "b": "suliban_helix",
+      "kind": "warp"
+    },
+    {
+      "a": "vidiia",
+      "b": "krenim_imperium",
+      "kind": "warp"
+    },
+    {
+      "a": "hirogen_relay",
+      "b": "malon_space",
+      "kind": "warp"
+    },
+    {
       "a": "bajor",
       "b": "idran",
       "kind": "wormhole",
