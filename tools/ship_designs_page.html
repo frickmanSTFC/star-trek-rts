@@ -68,6 +68,8 @@ nav.jump a:nth-child(2) { background: var(--orange); }
 nav.jump a:nth-child(3) { background: var(--lilac); }
 nav.jump a:nth-child(4) { background: var(--peach); }
 nav.jump a:nth-child(5) { background: var(--good); }
+nav.jump a:nth-child(6) { background: var(--peach); }
+nav.jump a:nth-child(7) { background: var(--good); }
 nav.jump a:focus-visible, button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
 
 /* ---------- sections ---------- */
@@ -150,6 +152,26 @@ tfoot td, tfoot th { border-top: 1px solid var(--rule); border-bottom: 0; font-f
 .ship .sn { font-weight: 600; font-size: 13px; }
 .ship .se { display: block; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
 .ship.dim { opacity: .28; }
+.ship.civ { background: transparent; border: 1px dashed color-mix(in srgb, var(--fc) 60%, transparent); border-left: 3px dashed var(--fc); }
+/* build costs */
+.cost { display: flex; flex-wrap: wrap; gap: 3px 4px; min-width: 150px; }
+.cc { font-family: var(--label); font-size: 12px; letter-spacing: .03em; border-radius: 8px; padding: 0 7px; background: var(--panel-2); color: var(--ink-dim); white-space: nowrap; }
+.cc b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.formula { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1000px) { .formula { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .formula { grid-template-columns: 1fr; } }
+.fcard { background: var(--panel); border-radius: 10px; padding: 12px 14px; border-top: 4px solid var(--sec); display: grid; gap: 6px; align-content: start; }
+.fcard h4 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; color: var(--sec); }
+.fcard p { margin: 0; font-size: 14px; color: var(--ink-dim); overflow-wrap: anywhere; }
+.fcard code, .note code, .sechead code { font-size: 13px; color: var(--peach); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.tag { display: inline-block; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; border-radius: 9px; padding: 0 7px; border: 1px solid var(--rule); color: var(--ink-dim); white-space: nowrap; }
+.tag.civ { border-style: dashed; border-color: var(--good); color: var(--good); }
+.tag.borg { border-color: var(--f-borg); color: var(--f-borg); }
+.checks { margin: 0; padding: 12px 14px 12px 32px; background: var(--panel); border-radius: 10px; display: grid; gap: 4px; }
+.checks li { font-size: 14px; }
+.checks li.ok { list-style: none; margin-left: -18px; color: var(--good); }
+.checks li.bad { color: var(--bad); }
 .eras td { min-width: 130px; border-left: 1px solid var(--rule); }
 .eras td.closed { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--rule) 55%, transparent) 6px 7px); }
 .flag { display: inline-block; margin-top: 4px; font-family: var(--label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--peach); border: 1px solid var(--peach); border-radius: 9px; padding: 0 7px; }
@@ -187,9 +209,9 @@ footer p { margin: 0; max-width: 90ch; }
       <div class="readout" id="readout"></div>
     </div>
     <div>
-      <p class="intro">How the seven playable factions of the Star Trek RTS differ in the ships they fly. Every ship is a hull plus modules: the hull sets size, hull points, speed, crew and slot counts, and each faction's classes are templates on those hulls. All stats are placeholders for balancing.</p>
+      <p class="intro">How the seven playable factions of the Star Trek RTS differ in the ships they fly. Every ship is a hull plus modules: the hull sets size, hull points, speed, crew and slot counts, and each faction's classes are templates on those hulls. Each class also has a build cost, build time, crew cost and tech gate worked out from its hull and role, and the civilian fleet (freighters, colony transports, construction tenders, survey ships, tankers) is listed alongside the warships. All stats are placeholders for balancing.</p>
       <nav class="jump" aria-label="Sections">
-        <a href="#doctrine">Fleet doctrine</a><a href="#hulls">Hulls</a><a href="#roster">Class roster</a><a href="#eras">By era</a><a href="#modules">Specials &amp; modules</a>
+        <a href="#doctrine">Fleet doctrine</a><a href="#hulls">Hulls</a><a href="#roster">Class roster</a><a href="#eras">By era</a><a href="#modules">Specials &amp; modules</a><a href="#costs">Build costs</a><a href="#checks">Data checks</a>
       </nav>
     </div>
   </header>
@@ -204,7 +226,7 @@ footer p { margin: 0; max-width: 90ch; }
   </section>
 
   <section id="hulls" style="--sec: var(--orange)">
-    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Hull reference</h2><p>Shared by every faction. Hull points are drawn to one scale; slot pips show how many modules of each kind fit (W weapon, D defense, E engine, U utility).</p></div></div>
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 2</span><h2>Hull reference</h2><p>Shared by every faction. Hull points are drawn to one scale; slot pips show how many modules of each kind fit (W weapon, D defense, E engine, U utility). Complement is the canon crew (lore); crew cost, base cost and build time are what a combat class on the hull takes, before its role scales them (see Build costs).</p></div></div>
     <div class="legend" aria-hidden="true"><span style="--pc: var(--slot-w)"><i></i>Weapon</span><span style="--pc: var(--slot-d)"><i></i>Defense</span><span style="--pc: var(--slot-e)"><i></i>Engine</span><span style="--pc: var(--slot-u)"><i></i>Utility</span></div>
     <div class="scroll"><table id="hulltable"></table></div>
   </section>
@@ -213,6 +235,7 @@ footer p { margin: 0; max-width: 90ch; }
     <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 3</span><h2>Class roster</h2><p>Every class on its hull, faction by faction. Pick a starting era to highlight what each faction can field in it: classes stay in service after the era they arrive in, and the Kelvin timeline only has its own ships.</p></div></div>
     <div class="seg" id="erafilter" role="group" aria-label="Era"></div>
     <div class="scroll"><table class="roster" id="rostertable"></table></div>
+    <p class="note">Dashed cards are civilian and support classes (freighters, colony transports, construction tenders, survey ships, tankers); the rest are warships.</p>
     <h3 class="sub-h">Other powers</h3>
     <div class="scroll"><table id="otherstable"></table></div>
   </section>
@@ -230,8 +253,24 @@ footer p { margin: 0; max-width: 90ch; }
     <div class="modgrid" id="modgrid"></div>
   </section>
 
+  <section id="costs" style="--sec: var(--peach)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 6</span><h2>Build costs</h2><p>What each class takes to build, how long, how much of the crew resource it uses and the tech it needs first. The numbers come from one formula on hull size and role (<code>data/ships/rules.json</code>, written by <code>tools/ship_costs.py</code>), not picked by hand.</p></div></div>
+    <div class="formula" id="formula"></div>
+    <div class="filters">
+      <div class="seg" id="costfaction" role="group" aria-label="Faction"></div>
+      <div class="seg" id="costkind" role="group" aria-label="Kind"></div>
+    </div>
+    <div class="scroll"><table id="costtable"></table></div>
+    <p class="note" id="costnote"></p>
+  </section>
+
+  <section id="checks" style="--sec: var(--good)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 7</span><h2>Data checks</h2><p>Every class has a cost, build time, crew cost and tech gate; costs use resources that exist; tech ids resolve, the faction can get the tech and its tier fits the era; roles are known; the numbers match the formula; each great power that researches has a civilian fleet with a construction ship. This list should be empty.</p></div></div>
+    <ul class="checks" id="checklist"></ul>
+  </section>
+
   <footer>
-    <p>Built from <code>data/ships.json</code>, <code>factions.json</code>, <code>eras.json</code> and <code>buildings.json</code> in the star-trek-rts design repo (<code>tools/gen_ship_designs_page.py</code>). Companion page: Faction Buildings.</p>
+    <p>Built from <code>data/ships.json</code>, <code>factions.json</code>, <code>eras.json</code>, <code>buildings.json</code>, <code>tech_tree.json</code> and <code>resources.json</code> in the star-trek-rts design repo (<code>tools/gen_ship_designs_page.py</code>). Companion page: Faction Buildings.</p>
     <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
   </footer>
 </div>
@@ -244,9 +283,11 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const fc = (id) => `--fc: var(--f-${id})`;
 const fname = (f) => `<span class="fname" style="${fc(f.id)}"><span class="fdot"></span>${esc(f.name)}</span>`;
 const eraShort = Object.fromEntries(D.eras.map((e) => [e.id, e.short]));
+const costChips = (cost) => `<span class="cost">${Object.entries(cost).map(([r, n]) => `<span class="cc" title="${esc(D.resNames[r] || r)}"><b>${n.toLocaleString("en-US")}</b> ${esc(D.resNames[r] || r)}</span>`).join("")}</span>`;
+const secs = (s) => s >= 60 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : `${s} s`;
 const pips = (n, max, color) => `<span class="pips" style="--pc: var(${color})" aria-label="${n}">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</span>`;
 
-$("readout").innerHTML = `<span><b>${D.factions.length}</b> playable factions</span><span><b>${D.counts.classes}</b> classes</span><span><b>${D.counts.hulls}</b> hulls</span><span><b>${D.counts.modules}</b> modules</span>`;
+$("readout").innerHTML = `<span><b>${D.factions.length}</b> playable factions</span><span><b>${D.counts.classes}</b> classes</span><span><b>${D.counts.civilian}</b> civilian</span><span><b>${D.counts.hulls}</b> hulls</span><span><b>${D.counts.modules}</b> modules</span>`;
 
 // ---- doctrine
 $("ov").innerHTML = D.factions.map((f) => `
@@ -255,7 +296,7 @@ $("ov").innerHTML = D.factions.map((f) => `
     <div><h4>Doctrine</h4><p>${esc(f.doctrine)}</p></div>
     <div><h4>Signature weapons</h4><div class="chips">${f.weapons.map((w) => `<span class="wchip ${w.modules.length ? "" : "missing"}" title="${w.modules.length ? "Module: " + esc(w.modules.join(", ")) : "No matching module yet"}">${esc(w.label)}</span>`).join("")}</div></div>
     <div><h4>Weakness</h4><p>${esc(f.weakness)}</p></div>
-    <div class="facts"><span><b>${f.count}</b> ${f.count === 1 ? "class" : "classes"} on <b>${f.hulls_used}</b> ${f.hulls_used === 1 ? "hull" : "hulls"}</span><span>Flagship <b>${esc(f.flagship)}</b> (${esc(f.flagship_hull)})</span><span>Largest hull its yards build: <b>${esc(f.yard)}</b></span></div>
+    <div class="facts"><span><b>${f.count}</b> ${f.count === 1 ? "class" : "classes"} on <b>${f.hulls_used}</b> ${f.hulls_used === 1 ? "hull" : "hulls"}</span><span><b>${f.civilian}</b> civilian</span><span>Flagship <b>${esc(f.flagship)}</b> (${esc(f.flagship_hull)})</span><span>Largest hull its yards build: <b>${esc(f.yard)}</b></span></div>
   </div>`).join("");
 
 // ---- hulls (hull points on one scale)
@@ -263,11 +304,12 @@ $("ov").innerHTML = D.factions.map((f) => `
   const maxHp = Math.max(...D.hulls.map((h) => h.hp));
   const maxSize = Math.max(...D.hulls.map((h) => h.size));
   const names = ["W", "D", "E", "U"], cols = ["--slot-w", "--slot-d", "--slot-e", "--slot-u"];
-  $("hulltable").innerHTML = `<thead><tr><th scope="col">Hull</th><th scope="col">Size</th><th scope="col">Hull points</th><th scope="col">Speed</th><th scope="col">Crew</th><th scope="col">Slots</th><th scope="col">Built at</th><th scope="col">Notes</th></tr></thead><tbody>` +
+  $("hulltable").innerHTML = `<thead><tr><th scope="col">Hull</th><th scope="col">Size</th><th scope="col">Hull points</th><th scope="col">Speed</th><th scope="col" title="Canon complement (lore)">Complement</th><th scope="col" title="What a combat class on this hull takes from the crew resource">Crew cost</th><th scope="col" title="A combat class on this hull; a class's role scales it">Base cost</th><th scope="col" title="Build time of a combat class on this hull">Build</th><th scope="col">Slots</th><th scope="col">Built at</th><th scope="col">Notes</th></tr></thead><tbody>` +
     D.hulls.map((h) => `<tr><th scope="row">${esc(h.label)}</th>
       <td class="num">${pips(h.size, maxSize, "--peach")} ${h.size}</td>
       <td><div class="hp"><div class="track"><div class="fill" style="width:${(h.hp / maxHp) * 100}%"></div></div><span>${h.hp}</span></div></td>
-      <td class="num">${h.speed}</td><td class="num">${h.crew.toLocaleString("en-US")}</td>
+      <td class="num">${h.speed}</td><td class="num">${h.crew.toLocaleString("en-US")}</td><td class="num">${h.crewCost}</td>
+      <td>${costChips(h.cost)}</td><td class="num">${secs(h.build)}</td>
       <td><div class="slots">${h.slots.map((n, i) => `<span class="slot" style="--pc: var(${cols[i]})"><b>${names[i]}${n}</b>${n ? `<span class="pips">${"<i class=\"on\"></i>".repeat(n)}</span>` : ""}</span>`).join("")}</div></td>
       <td><span class="yard">${esc(h.yard)}</span></td>
       <td>${h.notes.length ? esc(h.notes.join("; ")) : `<span class="none">—</span>`}</td></tr>`).join("") + `</tbody>`;
@@ -286,7 +328,7 @@ function renderRoster(era) {
   const body = D.hulls.map((h) => `<tr><th scope="row">${esc(h.label)}<small>size ${h.size}</small></th>${D.factions.map((f) => {
     const list = D.classes.filter((c) => c.faction === f.id && c.hull === h.id);
     if (!list.length) return `<td><span class="none">—</span></td>`;
-    return `<td>${list.map((c) => `<span class="ship ${available(c, f, era) ? "" : "dim"}" style="${fc(f.id)}"><span class="sn">${esc(c.name)}</span><span class="se">${esc(eraShort[c.era])}${c.role ? " · " + esc(c.role) : ""}</span></span>`).join("")}</td>`;
+    return `<td>${list.map((c) => `<span class="ship ${available(c, f, era) ? "" : "dim"} ${c.civilian ? "civ" : ""}" style="${fc(f.id)}"><span class="sn">${esc(c.name)}</span><span class="se">${esc(eraShort[c.era])}${c.role ? " · " + esc(c.role) : ""}</span></span>`).join("")}</td>`;
   }).join("")}</tr>`).join("");
   const foot = `<tfoot><tr><th scope="row">${era === "all" ? "Classes" : "In " + esc(eraShort[era])}</th>${D.factions.map((f) => `<td>${era !== "all" && f.status[era] === "absent" ? "not in era" : D.classes.filter((c) => c.faction === f.id && available(c, f, era)).length + (era !== "all" && f.status[era] === "ai" ? " (AI only)" : "")}</td>`).join("")}</tr></tfoot>`;
   $("rostertable").innerHTML = head + `<tbody>${body}</tbody>` + foot;
@@ -330,4 +372,60 @@ $("otherstable").innerHTML = `<thead><tr><th scope="col">Power</th><th scope="co
   $("modgrid").innerHTML = D.modules.map((g) => `<div class="modcol" style="--pc: var(${colors[g.slot]})"><h4>${esc(g.slot)}<small>${g.items.length}</small></h4>${g.items.map((m) =>
     `<div class="mod"><span>${esc(m.label)}</span><span class="u">${m.users.map((u) => `<span class="fdot" style="${fc(u)}" title="${esc(D.factions.find((f) => f.id === u).name)}"></span>`).join("")}</span></div>`).join("")}</div>`).join("");
 })();
+
+// ---- build costs
+(function () {
+  const roleBy = Object.fromEntries(D.roles.map((r) => [r.id, r]));
+  const ladder = (l) => l.map((t) => `tier ${t.tier} <code>${esc(t.id)}</code>`).join(", ");
+  const mult = D.roles.filter((r) => r.id !== "combat").map((r) => `${esc(r.label.toLowerCase())} ×${r.cost}`).join(", ");
+  const K = D.costing, rn = (r) => esc((D.resNames[r] || r).toLowerCase());
+  const costText = Object.entries(K.per_size2).map(([r, k]) => `${rn(r)} ${k}·s²`)
+    .concat(Object.entries(K.per_size).map(([r, k]) => `${rn(r)} ${k}·s (size ${K.from_size} up)`))
+    .concat(Object.entries(K.per_size_over).map(([r, p]) => `${rn(r)} ${p.per}·(s−${p.over}) above size ${p.over}`)).join(", ");
+  const swaps = Object.values(K.no_research).flatMap((n) => Object.entries(n.swap || {}).map(([r, w]) => `${rn(w.to)} (${w.times}× the ${rn(r)}) instead of ${rn(r)}`));
+  const hullBy = Object.fromEntries(D.hulls.map((h) => [h.id, h]));
+  const ex = ["shuttle", "frigate", "explorer", "titan"].filter((id) => hullBy[id]).map((id) => `${esc(hullBy[id].label.toLowerCase())} ${secs(hullBy[id].build)}`).join(", ");
+  const bands = Object.entries(K.tech_band_by_size).filter(([, t]) => t).map(([s, t]) => `size ${s} → tier ${t}`).join(", ");
+  const starter = Object.entries(K.tech_band_by_size).filter(([, t]) => !t).map(([s]) => s).join(", ");
+  const bs = K.build_seconds;
+  $("formula").innerHTML = [
+    ["Cost", `With s = hull size: ${costText}, all times the role's cost scale (${mult}); amounts of ${K.round_from} or more round to ${K.round_to}.${swaps.length ? ` ${esc(D.noResearch.join(", "))} pay ${swaps.join("; ")}.` : ""}`],
+    ["Build time", `(${bs.base} + ${bs.per_size_pow}·s<sup>${bs.pow}</sup>) seconds, times the role's build scale, rounded to ${K.round_to}: ${ex}.`],
+    ["Crew cost", `${K.crew_per_sqrt_complement} × √(the hull's canon complement), times the role's crew scale (colony transports carry colonists: ×${roleBy.colony ? roleBy.colony.crew : 1}), at least 1 and at most the complement. The complement stays as lore; crew cost is paid from the crew resource, which starts at ${esc(D.startCrew)} on a colony.`],
+    ["Tech gate", `Hull band: ${bands} (sizes ${starter} are starter hulls with no gate), capped at the tech tier of the era the class enters service, so it can be built there: ${ladder(D.ladder)}. ${D.roles.filter((r) => r.tech).map((r) => `${esc(r.label)} ships need <code>${esc(r.tech)}</code>.`).join(" ")} ${esc(D.noResearch.join(", "))} never research: their ships need a tech the Collective holds by assimilation, or by combining it for nanoprobes (${ladder(D.borgLadder)}).`],
+  ].map(([h, p]) => `<div class="fcard"><h4>${h}</h4><p>${p}</p></div>`).join("");
+
+  const fnames = Object.fromEntries(D.factions.map((f) => [f.id, f.name]));
+  const all = D.classes.map((c) => ({ ...c, fid: c.faction, fn: fnames[c.faction] }))
+    .concat(D.others.map((c) => ({ ...c, fid: "other", fn: c.faction_name })));
+  const size = Object.fromEntries(D.hulls.map((h) => [h.id, h.size]));
+  const crewOf = Object.fromEntries(D.hulls.map((h) => [h.id, h.crew]));
+  const order = D.factions.map((f) => f.id).concat(["other"]);
+  all.sort((a, b) => order.indexOf(a.fid) - order.indexOf(b.fid) || a.civilian - b.civilian || size[a.hull] - size[b.hull] || a.name.localeCompare(b.name));
+  let fsel = "all", ksel = "all";
+  const facs = [["all", "All"]].concat(D.factions.map((f) => [f.id, f.name]), [["other", "Other powers"]]);
+  $("costfaction").innerHTML = facs.map(([id, n]) => `<button type="button" data-f="${id}" aria-pressed="${id === "all"}">${esc(n)}</button>`).join("");
+  $("costkind").innerHTML = [["all", "All ships"], ["combat", "Warships"], ["civ", "Civilian"]].map(([id, n]) => `<button type="button" data-k="${id}" aria-pressed="${id === "all"}">${n}</button>`).join("");
+  function render() {
+    const rows = all.filter((c) => (fsel === "all" || c.fid === fsel) && (ksel === "all" || (ksel === "civ") === c.civilian));
+    const gate = (g) => !g ? `<span class="none">none</span>` : `<span class="bname" style="font-weight:500">${esc(g.name)}</span><span class="sub">tier ${g.tier}${g.kind === "assimilate" ? ` · <span class="tag borg">assimilate</span>` : ""}</span>`;
+    $("costtable").innerHTML = `<thead><tr><th scope="col">Class</th><th scope="col">Faction</th><th scope="col">Hull</th><th scope="col">Role</th><th scope="col">Cost</th><th scope="col">Build</th><th scope="col">Crew cost</th><th scope="col">Needs</th></tr></thead><tbody>` +
+      (rows.length ? rows.map((c) => `<tr><td><span class="bname">${esc(c.name)}</span><span class="sub">${esc(eraShort[c.era])}${c.tuned ? " · tuned" : ""}</span></td>
+        <td><span class="fname" style="${fc(c.fid)};font-size:14px"><span class="fdot"></span>${esc(c.fn)}</span></td>
+        <td>${esc(D.hullLabels[c.hull])}<span class="sub">size ${size[c.hull]}</span></td>
+        <td><span class="tag ${c.civilian ? "civ" : ""}">${esc((roleBy[c.roleId] || { label: c.roleId }).label)}</span></td>
+        <td>${costChips(c.cost)}</td><td class="num">${secs(c.build)}</td>
+        <td class="num">${c.crewCost}<span class="sub">of ${crewOf[c.hull].toLocaleString("en-US")}</span></td>
+        <td>${gate(c.gate)}</td></tr>`).join("") : `<tr><td colspan="8"><span class="none">No classes match.</span></td></tr>`) + `</tbody>`;
+    $("costnote").textContent = `${rows.length} of ${all.length} classes. Crew cost "of N" is the hull's canon complement. Costs, times and crew are placeholders for balancing; a class marked tuned keeps hand-set numbers.`;
+    document.querySelectorAll("#costfaction button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === fsel)));
+    document.querySelectorAll("#costkind button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === ksel)));
+  }
+  document.querySelectorAll("#costfaction button").forEach((b) => b.addEventListener("click", () => { fsel = b.dataset.f; render(); }));
+  document.querySelectorAll("#costkind button").forEach((b) => b.addEventListener("click", () => { ksel = b.dataset.k; render(); }));
+  render();
+})();
+
+// ---- data checks
+$("checklist").innerHTML = D.checks.length ? D.checks.map((c) => `<li class="bad">${esc(c)}</li>`).join("") : `<li class="ok">No problems found.</li>`;
 </script>
