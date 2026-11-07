@@ -9,13 +9,25 @@ namespace FinalFrontier.Sim.Data;
 
 public sealed record FactionDef(string Id, string Name, bool Playable);
 
-/// <summary>Hull stats from ships.json. Speed is in map units per second (placeholder scale).</summary>
-public sealed record HullDef(string Id, int Size, int Hp, Fix64 Speed, int Crew);
+/// <summary>Hull stats from ships.json. Speed is in map units per second (placeholder scale). Crew is the canon
+/// complement (lore); what a ship costs in the crew resource is its class's CrewCost. Roles: the roles a class on
+/// this hull may have (the civilian hull's; empty = any).</summary>
+public sealed record HullDef(string Id, int Size, int Hp, Fix64 Speed, int Crew, IReadOnlyList<string> Roles);
 
-/// <summary>A faction's ship class: a named template on a hull. Key is "faction.Name".</summary>
+/// <summary>A faction's ship class: a named template on a hull. Key is "faction.Name". Role is a ships.json roles
+/// id ("combat" when the class has none). Cost, BuildSeconds, CrewCost and the tech gate come from the formula in
+/// ships/rules.json (tools/ship_costs.py); RequiresTech is a tech_tree.json id (null = a starter hull),
+/// RequiresAssimilated the same for a faction that doesn't research (the Borg). The sim doesn't read tech_tree.json,
+/// so those two ids are checked by the ship designs page (tools/gen_ship_designs_page.py).</summary>
 public sealed record ShipClassDef(string Faction, string Name, string HullId, string Era, string Source)
 {
     public string Key => $"{Faction}.{Name}";
+    public string Role { get; init; } = GameData.CombatRole;
+    public IReadOnlyList<ResourceAmount> Cost { get; init; } = Array.Empty<ResourceAmount>();
+    public Fix64 BuildSeconds { get; init; }
+    public int CrewCost { get; init; }
+    public string? RequiresTech { get; init; }
+    public string? RequiresAssimilated { get; init; }
 }
 
 /// <summary>
@@ -278,11 +290,8 @@ public sealed partial class GameData
 
         var hulls = shipsRoot.GetProperty("hulls").EnumerateArray()
             .Select(h => new HullDef(Str(h, "id"), h.GetProperty("size").GetInt32(), h.GetProperty("hp").GetInt32(),
-                Num(h.GetProperty("speed")), h.GetProperty("crew").GetInt32()))
-            .ToList();
-
-        var classes = shipsRoot.GetProperty("classes").EnumerateArray()
-            .Select(c => new ShipClassDef(Str(c, "faction"), Str(c, "name"), Str(c, "hull"), Str(c, "era"), Str(c, "source")))
+                Num(h.GetProperty("speed")), h.GetProperty("crew").GetInt32(),
+                h.TryGetProperty("roles", out var hr) ? hr.EnumerateArray().Select(x => x.GetString()!).ToList() : new List<string>()))
             .ToList();
 
         var resources = resourcesRoot.GetProperty("resources").EnumerateArray()
@@ -304,6 +313,8 @@ public sealed partial class GameData
             list.Sort((a, b) => a.Resource.CompareTo(b.Resource));
             return list;
         }
+
+        var classes = ReadShipClasses(shipsRoot, Amounts, problems);
 
         List<Modifier> Modifiers(JsonElement parent, string owner)
         {
@@ -494,6 +505,7 @@ public sealed partial class GameData
             groundVehicles, problems)
         {
             UnitNames = unitNames,
+            ShipRoles = ReadShipRoles(shipsRoot),
             Environments = ReadEnvironments(surfacesRoot),
             Telemetry = ReadTelemetry(surfacesRoot),
             Climate = ReadClimate(climateRoot, problems),
@@ -556,6 +568,7 @@ public sealed partial class GameData
         }
         foreach (var dup in ShipClasses.GroupBy(c => c.Key).Where(g => g.Count() > 1))
             problems.Add($"Ship class {dup.Key} is listed {dup.Count()} times.");
+        ValidateShips(problems);
 
         foreach (var p in PlanetClasses)
             foreach (var y in p.Yields)

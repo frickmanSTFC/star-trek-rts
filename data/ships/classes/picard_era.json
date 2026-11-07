@@ -1,6 +1,6 @@
 {
   "classes": [
-    { "faction": "romulan_free_state", "name": "Free State Warbird", "hull": "battleship", "era": "picard", "source": "canon", "special": "cloak" },
-    { "faction": "ni_var", "name": "Ni'Var Cruiser", "hull": "cruiser", "era": "far_future", "source": "original", "special": "cloak, science_lab" }
+    { "faction": "romulan_free_state", "name": "Free State Warbird", "hull": "battleship", "era": "picard", "source": "canon", "special": "cloak", "cost": { "duranium": 1080, "tritanium": 430, "dilithium": 35, "parasteel": 60, "warp_coils": 10 }, "build_seconds": 240, "crew_cost": 69, "requires_tech": "warp_9_9" },
+    { "faction": "ni_var", "name": "Ni'Var Cruiser", "hull": "cruiser", "era": "far_future", "source": "original", "special": "cloak, science_lab", "cost": { "duranium": 480, "tritanium": 190, "dilithium": 25, "parasteel": 20 }, "build_seconds": 140, "crew_cost": 40, "requires_tech": "warp_8" }
   ]
 }

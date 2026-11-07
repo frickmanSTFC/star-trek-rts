@@ -1,0 +1,30 @@
+{
+  "_notes_roles": "What a class is for. A class without a role is combat. civilian = a civilian or support ship (unarmed or lightly armed; the page lists them apart and the checks count them). cost, build and crew scale the formula's cost, build_seconds and crew_cost for that role (see _notes_costing); tech = a tech the role needs on top of the hull's (taken when it is the higher tier). A class on the civilian hull must have one of that hull's roles.",
+  "roles": {
+    "combat":       { "label": "Combat",            "civilian": false, "cost": 1,   "build": 1,   "crew": 1 },
+    "science":      { "label": "Survey / science",  "civilian": true,  "cost": 0.9, "build": 0.9, "crew": 0.8, "tech": "long_range_sensors" },
+    "freighter":    { "label": "Freighter",         "civilian": true,  "cost": 0.6, "build": 0.7, "crew": 0.5 },
+    "colony":       { "label": "Colony transport",  "civilian": true,  "cost": 0.8, "build": 0.9, "crew": 1.5 },
+    "construction": { "label": "Construction",      "civilian": true,  "cost": 0.8, "build": 0.8, "crew": 0.8 },
+    "mining":       { "label": "Mining",            "civilian": true,  "cost": 0.7, "build": 0.8, "crew": 0.6 },
+    "tanker":       { "label": "Tanker",            "civilian": true,  "cost": 0.6, "build": 0.7, "crew": 0.5 },
+    "courier":      { "label": "Courier",           "civilian": true,  "cost": 0.5, "build": 0.5, "crew": 0.4 }
+  },
+  "_notes_costing": "How tools/ship_costs.py derives every class's cost, build_seconds, crew_cost and requires_tech (or requires_assimilated) from its hull and role; run python3 tools/ship_costs.py --write after changing these numbers or a class's hull/role. s = hull size, m = the role's multiplier. cost: per_size2 × s² + per_size × s (from from_size) + per_size_over × (s − over) (above over), each × m.cost, amounts of 20 or more rounded to round_to, smaller ones to whole numbers, zero left out. build_seconds = (base + per_size_pow × s^pow) × m.build, rounded to round_to. crew_cost = crew_per_sqrt_complement × √(hull crew) × m.crew, rounded, at least 1 and at most the hull's crew: the hull's crew stays the canon complement (lore); crew_cost is what the crew resource pays (start stock 150, a Colony Hub makes 6 a minute and a Habitat Dome 10). requires_tech: tech_band_by_size gives the hull's band (null = a starter hull, no gate), capped at the class's era tech_cap_tier (eras.json) so every class can be built in the era it enters service; tech_ladder names the tech for that tier; the role's tech is used instead when it is a higher tier (or the hull has no band). A faction listed in no_research (tech_tree faction_rules research: false) gets requires_tech null and requires_assimilated from its own ladder (a tech the Collective must hold, by assimilation or by combining for nanoprobes), and its cost swaps resources per swap. A class with \"tuned\": true is left alone by the tool and by the page's formula check. All numbers are placeholders for balancing.",
+  "costing": {
+    "per_size2":    { "duranium": 30, "tritanium": 12 },
+    "per_size":     { "dilithium": 6 },
+    "from_size":    2,
+    "per_size_over": { "parasteel": { "over": 3, "per": 20 }, "warp_coils": { "over": 4, "per": 5 } },
+    "round_to":     5,
+    "round_from":   20,
+    "build_seconds": { "base": 20, "per_size_pow": 15, "pow": 1.5 },
+    "crew_per_sqrt_complement": 2,
+    "tech_band_by_size": { "1": null, "2": null, "3": 1, "4": 2, "5": 3, "6": 3, "8": 4 },
+    "tech_ladder": { "1": "warp_5", "2": "warp_8", "3": "warp_9_9", "4": "ablative_armor" },
+    "no_research": {
+      "borg": { "gate": "requires_assimilated", "ladder": { "1": "deflector_shields", "2": "tractor_beam", "3": "regenerative_shields", "4": "transwarp_conduits" },
+        "swap": { "dilithium": { "to": "nanoprobes", "times": 2 } } }
+    }
+  }
+}

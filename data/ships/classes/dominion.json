@@ -1,10 +1,12 @@
 {
   "classes": [
-    { "faction": "dominion", "name": "Jem'Hadar Attack Ship",  "hull": "escort",     "era": "dominion_war", "source": "canon", "special": "kamikaze_ram" },
-    { "faction": "dominion", "name": "Jem'Hadar Battle Cruiser","hull": "battleship","era": "dominion_war", "source": "canon" },
-    { "faction": "dominion", "name": "Jem'Hadar Battleship",   "hull": "titan",      "era": "dominion_war", "source": "canon" },
-    { "faction": "dominion", "name": "Dominion Scout",         "hull": "scout",      "era": "dominion_war", "source": "original", "special": "wormhole_survey" },
-    { "faction": "dominion", "name": "Ketracel-white Courier", "hull": "civilian",   "era": "dominion_war", "source": "original", "role": "freighter", "special": "white_resupply" },
-    { "faction": "dominion", "name": "Vorta Command Ship",     "hull": "explorer",   "era": "dominion_war", "source": "original", "special": "command_aura, vorta_diplomacy" }
+    { "faction": "dominion", "name": "Jem'Hadar Attack Ship",  "hull": "escort",     "era": "dominion_war", "source": "canon", "special": "kamikaze_ram", "cost": { "duranium": 270, "tritanium": 110, "dilithium": 18 }, "build_seconds": 100, "crew_cost": 14, "requires_tech": "warp_5" },
+    { "faction": "dominion", "name": "Jem'Hadar Battle Cruiser","hull": "battleship","era": "dominion_war", "source": "canon", "cost": { "duranium": 1080, "tritanium": 430, "dilithium": 35, "parasteel": 60, "warp_coils": 10 }, "build_seconds": 240, "crew_cost": 69, "requires_tech": "warp_9_9" },
+    { "faction": "dominion", "name": "Jem'Hadar Battleship",   "hull": "titan",      "era": "dominion_war", "source": "canon", "cost": { "duranium": 1920, "tritanium": 770, "dilithium": 50, "parasteel": 100, "warp_coils": 20 }, "build_seconds": 360, "crew_cost": 110, "requires_tech": "ablative_armor" },
+    { "faction": "dominion", "name": "Dominion Scout",         "hull": "scout",      "era": "dominion_war", "source": "original", "special": "wormhole_survey", "cost": { "duranium": 120, "tritanium": 50, "dilithium": 12 }, "build_seconds": 60, "crew_cost": 9, "requires_tech": null },
+    { "faction": "dominion", "name": "Ketracel-white Courier", "hull": "civilian",   "era": "dominion_war", "source": "original", "role": "freighter", "special": "white_resupply", "cost": { "duranium": 70, "tritanium": 30, "dilithium": 7 }, "build_seconds": 45, "crew_cost": 5, "requires_tech": null },
+    { "faction": "dominion", "name": "Vorta Command Ship",     "hull": "explorer",   "era": "dominion_war", "source": "original", "special": "command_aura, vorta_diplomacy", "cost": { "duranium": 1080, "tritanium": 430, "dilithium": 35, "parasteel": 60, "warp_coils": 10 }, "build_seconds": 240, "crew_cost": 63, "requires_tech": "warp_9_9" },
+    { "faction": "dominion", "name": "Dominion Settlement Transport", "hull": "civilian", "era": "dominion_war", "source": "original", "role": "colony", "special": "found_colony", "cost": { "duranium": 95, "tritanium": 40, "dilithium": 10 }, "build_seconds": 55, "crew_cost": 16, "requires_tech": null },
+    { "faction": "dominion", "name": "Vorta Yard Tender", "hull": "civilian", "era": "dominion_war", "source": "original", "role": "construction", "special": "construction_rig", "cost": { "duranium": 95, "tritanium": 40, "dilithium": 10 }, "build_seconds": 50, "crew_cost": 9, "requires_tech": null }
   ]
 }

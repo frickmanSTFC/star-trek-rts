@@ -18,6 +18,7 @@
     "ships": [
       "ships/notes.json",
       "ships/hulls.json",
+      "ships/rules.json",
       "ships/classes/federation.json",
       "ships/classes/klingon.json",
       "ships/classes/romulan.json",

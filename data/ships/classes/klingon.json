@@ -1,13 +1,16 @@
 {
   "classes": [
-    { "faction": "klingon", "name": "D5",               "hull": "cruiser",       "era": "ent",  "source": "canon" },
-    { "faction": "klingon", "name": "Raptor",           "hull": "scout",         "era": "ent",  "source": "canon" },
-    { "faction": "klingon", "name": "Sarcophagus",      "hull": "titan",         "era": "tos",  "source": "canon" },
-    { "faction": "klingon", "name": "D7",               "hull": "heavy_cruiser", "era": "tos",  "source": "canon" },
-    { "faction": "klingon", "name": "B'rel Bird-of-Prey", "hull": "escort",      "era": "tos",  "source": "canon", "special": "cloak" },
-    { "faction": "klingon", "name": "K't'inga",         "hull": "heavy_cruiser", "era": "tos",  "source": "canon" },
-    { "faction": "klingon", "name": "K'Vort",           "hull": "frigate",       "era": "tng",  "source": "canon", "special": "cloak" },
-    { "faction": "klingon", "name": "Vor'cha",          "hull": "battleship",    "era": "tng",  "source": "canon" },
-    { "faction": "klingon", "name": "Negh'Var",         "hull": "titan",         "era": "dominion_war", "source": "canon" }
+    { "faction": "klingon", "name": "D5",               "hull": "cruiser",       "era": "ent",  "source": "canon", "cost": { "duranium": 480, "tritanium": 190, "dilithium": 25, "parasteel": 20 }, "build_seconds": 140, "crew_cost": 40, "requires_tech": "warp_5" },
+    { "faction": "klingon", "name": "Raptor",           "hull": "scout",         "era": "ent",  "source": "canon", "cost": { "duranium": 120, "tritanium": 50, "dilithium": 12 }, "build_seconds": 60, "crew_cost": 9, "requires_tech": null },
+    { "faction": "klingon", "name": "Sarcophagus",      "hull": "titan",         "era": "tos",  "source": "canon", "cost": { "duranium": 1920, "tritanium": 770, "dilithium": 50, "parasteel": 100, "warp_coils": 20 }, "build_seconds": 360, "crew_cost": 110, "requires_tech": "warp_8" },
+    { "faction": "klingon", "name": "D7",               "hull": "heavy_cruiser", "era": "tos",  "source": "canon", "cost": { "duranium": 750, "tritanium": 300, "dilithium": 30, "parasteel": 40, "warp_coils": 5 }, "build_seconds": 190, "crew_cost": 49, "requires_tech": "warp_8" },
+    { "faction": "klingon", "name": "B'rel Bird-of-Prey", "hull": "escort",      "era": "tos",  "source": "canon", "special": "cloak", "cost": { "duranium": 270, "tritanium": 110, "dilithium": 18 }, "build_seconds": 100, "crew_cost": 14, "requires_tech": "warp_5" },
+    { "faction": "klingon", "name": "K't'inga",         "hull": "heavy_cruiser", "era": "tos",  "source": "canon", "cost": { "duranium": 750, "tritanium": 300, "dilithium": 30, "parasteel": 40, "warp_coils": 5 }, "build_seconds": 190, "crew_cost": 49, "requires_tech": "warp_8" },
+    { "faction": "klingon", "name": "K'Vort",           "hull": "frigate",       "era": "tng",  "source": "canon", "special": "cloak", "cost": { "duranium": 270, "tritanium": 110, "dilithium": 18 }, "build_seconds": 100, "crew_cost": 28, "requires_tech": "warp_5" },
+    { "faction": "klingon", "name": "Vor'cha",          "hull": "battleship",    "era": "tng",  "source": "canon", "cost": { "duranium": 1080, "tritanium": 430, "dilithium": 35, "parasteel": 60, "warp_coils": 10 }, "build_seconds": 240, "crew_cost": 69, "requires_tech": "warp_9_9" },
+    { "faction": "klingon", "name": "Negh'Var",         "hull": "titan",         "era": "dominion_war", "source": "canon", "cost": { "duranium": 1920, "tritanium": 770, "dilithium": 50, "parasteel": 100, "warp_coils": 20 }, "build_seconds": 360, "crew_cost": 110, "requires_tech": "ablative_armor" },
+    { "faction": "klingon", "name": "Klingon Ore Hauler", "hull": "civilian", "era": "ent", "source": "original", "role": "freighter", "special": "cargo_bay", "cost": { "duranium": 70, "tritanium": 30, "dilithium": 7 }, "build_seconds": 45, "crew_cost": 5, "requires_tech": null },
+    { "faction": "klingon", "name": "Klingon Colony Transport", "hull": "civilian", "era": "tos", "source": "original", "role": "colony", "special": "found_colony", "cost": { "duranium": 95, "tritanium": 40, "dilithium": 10 }, "build_seconds": 55, "crew_cost": 16, "requires_tech": null },
+    { "faction": "klingon", "name": "Klingon Yard Tender", "hull": "civilian", "era": "tng", "source": "original", "role": "construction", "special": "construction_rig", "cost": { "duranium": 95, "tritanium": 40, "dilithium": 10 }, "build_seconds": 50, "crew_cost": 9, "requires_tech": null }
   ]
 }
