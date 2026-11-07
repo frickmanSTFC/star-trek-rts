@@ -121,7 +121,7 @@ public class OrbitTests
     [Fact]
     public void TheTransporterBeamsATeamWithinRangeThenCycles()
     {
-        var sim = Landed(out var hub, data: TestData.Patched(("surfaces.json", "\"tng\": 3,", "\"tng\": 2,")));
+        var sim = Landed(out var hub, data: TestData.Patched(("surfaces.json", "\"dominion_war\": 3,", "\"dominion_war\": 2,")));
         var s = sim.Surface!;
         var map = s.Map;
         var level = sim.Data.Orbit!.Transporter(s.Players[0].TransporterLevel)!;
