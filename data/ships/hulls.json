@@ -3,7 +3,7 @@
     { "id": "shuttle",       "size": 1, "hp": 50,   "speed": 6, "crew": 2,    "slots": { "weapon": 0, "defense": 1, "engine": 1, "utility": 1 } },
     { "id": "fighter",       "size": 1, "hp": 80,   "speed": 7, "crew": 3,    "slots": { "weapon": 1, "defense": 1, "engine": 1, "utility": 0 } },
     { "id": "scout",         "size": 2, "hp": 150,  "speed": 7, "crew": 20,   "slots": { "weapon": 1, "defense": 1, "engine": 1, "utility": 2 } },
-    { "id": "civilian",      "size": 2, "hp": 200,  "speed": 4, "crew": 30,   "slots": { "weapon": 0, "defense": 1, "engine": 1, "utility": 3 }, "roles": ["construction", "mining", "freighter", "colony"] },
+    { "id": "civilian",      "size": 2, "hp": 200,  "speed": 4, "crew": 30,   "slots": { "weapon": 0, "defense": 1, "engine": 1, "utility": 3 }, "roles": ["construction", "mining", "freighter", "colony", "tanker", "courier"] },
     { "id": "escort",        "size": 3, "hp": 400,  "speed": 6, "crew": 50,   "slots": { "weapon": 3, "defense": 2, "engine": 1, "utility": 1 } },
     { "id": "frigate",       "size": 3, "hp": 500,  "speed": 5, "crew": 200,  "slots": { "weapon": 2, "defense": 2, "engine": 1, "utility": 2 } },
     { "id": "cruiser",       "size": 4, "hp": 900,  "speed": 5, "crew": 400,  "slots": { "weapon": 3, "defense": 3, "engine": 2, "utility": 2 } },

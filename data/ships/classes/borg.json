@@ -1,9 +1,9 @@
 {
   "classes": [
-    { "faction": "borg", "name": "Probe",               "hull": "scout",         "era": "tng",  "source": "canon" },
-    { "faction": "borg", "name": "Sphere",              "hull": "heavy_cruiser", "era": "tng",  "source": "canon" },
-    { "faction": "borg", "name": "Cube",                "hull": "titan",         "era": "tng",  "source": "canon", "special": "adaptation, regeneration" },
-    { "faction": "borg", "name": "Tactical Cube",       "hull": "titan",         "era": "voy",  "source": "canon" },
-    { "faction": "borg", "name": "Queen's Diamond",     "hull": "titan",         "era": "voy",  "source": "canon", "special": "command_aura" }
+    { "faction": "borg", "name": "Probe",               "hull": "scout",         "era": "tng",  "source": "canon", "cost": { "duranium": 120, "tritanium": 50, "nanoprobes": 25 }, "build_seconds": 60, "crew_cost": 9, "requires_tech": null, "requires_assimilated": null },
+    { "faction": "borg", "name": "Sphere",              "hull": "heavy_cruiser", "era": "tng",  "source": "canon", "cost": { "duranium": 750, "tritanium": 300, "parasteel": 40, "warp_coils": 5, "nanoprobes": 60 }, "build_seconds": 190, "crew_cost": 49, "requires_tech": null, "requires_assimilated": "regenerative_shields" },
+    { "faction": "borg", "name": "Cube",                "hull": "titan",         "era": "tng",  "source": "canon", "special": "adaptation, regeneration", "cost": { "duranium": 1920, "tritanium": 770, "parasteel": 100, "warp_coils": 20, "nanoprobes": 95 }, "build_seconds": 360, "crew_cost": 110, "requires_tech": null, "requires_assimilated": "regenerative_shields" },
+    { "faction": "borg", "name": "Tactical Cube",       "hull": "titan",         "era": "voy",  "source": "canon", "cost": { "duranium": 1920, "tritanium": 770, "parasteel": 100, "warp_coils": 20, "nanoprobes": 95 }, "build_seconds": 360, "crew_cost": 110, "requires_tech": null, "requires_assimilated": "transwarp_conduits" },
+    { "faction": "borg", "name": "Queen's Diamond",     "hull": "titan",         "era": "voy",  "source": "canon", "special": "command_aura", "cost": { "duranium": 1920, "tritanium": 770, "parasteel": 100, "warp_coils": 20, "nanoprobes": 95 }, "build_seconds": 360, "crew_cost": 110, "requires_tech": null, "requires_assimilated": "transwarp_conduits" }
   ]
 }

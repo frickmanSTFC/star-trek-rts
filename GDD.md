@@ -262,7 +262,7 @@ Tree → `data/tech_tree/`.
 
 **Hull + modules** design system:
 
-- Hull defines size class, slot counts, base HP, speed, crew requirement.
+- Hull defines size class, slot counts, base HP, speed and the canon crew complement (lore: an explorer's 1,000).
 - Slots: Weapon (beam / torpedo), Defense (shield / armor), Engine, Utility (sensor, cloak, tractor, transporter,
   cargo, troop, science lab, mining laser, construction).
 - Each faction has **class templates** (Galaxy, Vor'cha, D'deridex, Galor…) = a hull + default module loadout.
@@ -270,6 +270,21 @@ Tree → `data/tech_tree/`.
 
 Roles: Scout · Construction · Mining · Freighter · Colony · Science · Escort · Frigate · Destroyer · Cruiser ·
 Heavy Cruiser · Explorer · Carrier · Battleship · Dreadnought · Titan (faction super-unit).
+
+**Civilian fleet:** each great power that researches has civilian/support classes beside its warships (role
+freighter, colony, construction, science, tanker; e.g. Federation Sydney freighter, Homestead colony transport,
+Keystone Yard Tender, Nova surveyor; Cardassian Groumall; Ferengi Latinum Hauler and Fuel Trader). The Borg have none:
+cubes do everything.
+
+**Build cost, time, crew and tech gate** (placeholders, one formula on hull size s and role, `data/ships/rules.json`,
+applied by `tools/ship_costs.py`): duranium 30·s², tritanium 12·s², dilithium 6·s, parasteel above size 3, warp coils
+above size 4, scaled by role (freighter ×0.6 … combat ×1); build (20 + 15·s^1.5) s (frigate 1:40, explorer 4:00,
+titan 6:00). **Crew cost** is separate from the complement and on the colony economy's scale (start crew 150, a Colony
+Hub makes 6 a minute): 2·√complement × role (frigate 28, explorer 63, titan 110; colony transports ×1.5 for colonists).
+**Tech gate** by hull band (sizes 1–2 none; 3 Warp 5, 4 Warp 8, 5–6 Warp 9.9, 8 Ablative Armor), capped at the tier of
+the era the class enters service; science ships need Long-Range Sensors. The Borg, who never research, need a tech
+the Collective holds instead (assimilated, or combined for nanoprobes: Deflector Shields → Tractor Beams →
+Regenerative Shielding → Transwarp Conduits) and pay nanoprobes in place of dilithium.
 
 Templates → `data/ships/`.
 

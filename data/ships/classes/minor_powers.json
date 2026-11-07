@@ -1,11 +1,11 @@
 {
   "classes": [
-    { "faction": "breen",       "name": "Breen Warship",  "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon", "special": "energy_dampener" },
-    { "faction": "kazon",       "name": "Kazon Raider",   "hull": "escort",        "era": "voy", "source": "canon" },
-    { "faction": "kazon",       "name": "Kazon Carrier",  "hull": "carrier",       "era": "voy", "source": "canon" },
-    { "faction": "hirogen",     "name": "Hirogen Hunter", "hull": "cruiser",       "era": "voy", "source": "canon", "special": "tetryon, hunt_tracking" },
-    { "faction": "species_8472","name": "Bioship",        "hull": "heavy_cruiser", "era": "voy", "source": "canon", "special": "planet_killer_formation, immune_non_nanoprobe" },
-    { "faction": "orion",       "name": "Orion Interceptor", "hull": "escort",     "era": "tos", "source": "beta" },
-    { "faction": "nausicaan",   "name": "Nausicaan Raider",  "hull": "escort",     "era": "tng", "source": "original" }
+    { "faction": "breen",       "name": "Breen Warship",  "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon", "special": "energy_dampener", "cost": { "duranium": 750, "tritanium": 300, "dilithium": 30, "parasteel": 40, "warp_coils": 5 }, "build_seconds": 190, "crew_cost": 49, "requires_tech": "warp_9_9" },
+    { "faction": "kazon",       "name": "Kazon Raider",   "hull": "escort",        "era": "voy", "source": "canon", "cost": { "duranium": 270, "tritanium": 110, "dilithium": 18 }, "build_seconds": 100, "crew_cost": 14, "requires_tech": "warp_5" },
+    { "faction": "kazon",       "name": "Kazon Carrier",  "hull": "carrier",       "era": "voy", "source": "canon", "cost": { "duranium": 750, "tritanium": 300, "dilithium": 30, "parasteel": 40, "warp_coils": 5 }, "build_seconds": 190, "crew_cost": 45, "requires_tech": "warp_9_9" },
+    { "faction": "hirogen",     "name": "Hirogen Hunter", "hull": "cruiser",       "era": "voy", "source": "canon", "special": "tetryon, hunt_tracking", "cost": { "duranium": 480, "tritanium": 190, "dilithium": 25, "parasteel": 20 }, "build_seconds": 140, "crew_cost": 40, "requires_tech": "warp_8" },
+    { "faction": "species_8472","name": "Bioship",        "hull": "heavy_cruiser", "era": "voy", "source": "canon", "special": "planet_killer_formation, immune_non_nanoprobe", "cost": { "duranium": 750, "tritanium": 300, "dilithium": 30, "parasteel": 40, "warp_coils": 5 }, "build_seconds": 190, "crew_cost": 49, "requires_tech": "warp_9_9" },
+    { "faction": "orion",       "name": "Orion Interceptor", "hull": "escort",     "era": "tos", "source": "beta", "cost": { "duranium": 270, "tritanium": 110, "dilithium": 18 }, "build_seconds": 100, "crew_cost": 14, "requires_tech": "warp_5" },
+    { "faction": "nausicaan",   "name": "Nausicaan Raider",  "hull": "escort",     "era": "tng", "source": "original", "cost": { "duranium": 270, "tritanium": 110, "dilithium": 18 }, "build_seconds": 100, "crew_cost": 14, "requires_tech": "warp_5" }
   ]
 }

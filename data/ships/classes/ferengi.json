@@ -1,9 +1,12 @@
 {
   "classes": [
-    { "faction": "ferengi", "name": "Ferengi Shuttle",  "hull": "shuttle",       "era": "tng",  "source": "canon" },
-    { "faction": "ferengi", "name": "Latinum Hauler",   "hull": "civilian",      "era": "tng",  "source": "original", "role": "freighter", "special": "cargo_bay, trade_route_bonus" },
-    { "faction": "ferengi", "name": "Acquired Bird-of-Prey", "hull": "escort",   "era": "tng",  "source": "canon", "special": "bought_hull, cloak" },
-    { "faction": "ferengi", "name": "Mercenary Frigate", "hull": "frigate",      "era": "dominion_war", "source": "original", "special": "hired_crew" },
-    { "faction": "ferengi", "name": "D'Kora Marauder",  "hull": "cruiser",       "era": "tng",  "source": "canon", "special": "energy_whip, cargo_bay" }
+    { "faction": "ferengi", "name": "Ferengi Shuttle",  "hull": "shuttle",       "era": "tng",  "source": "canon", "cost": { "duranium": 30, "tritanium": 12 }, "build_seconds": 35, "crew_cost": 2, "requires_tech": null },
+    { "faction": "ferengi", "name": "Latinum Hauler",   "hull": "civilian",      "era": "tng",  "source": "original", "role": "freighter", "special": "cargo_bay, trade_route_bonus", "cost": { "duranium": 70, "tritanium": 30, "dilithium": 7 }, "build_seconds": 45, "crew_cost": 5, "requires_tech": null },
+    { "faction": "ferengi", "name": "Acquired Bird-of-Prey", "hull": "escort",   "era": "tng",  "source": "canon", "special": "bought_hull, cloak", "cost": { "duranium": 270, "tritanium": 110, "dilithium": 18 }, "build_seconds": 100, "crew_cost": 14, "requires_tech": "warp_5" },
+    { "faction": "ferengi", "name": "Mercenary Frigate", "hull": "frigate",      "era": "dominion_war", "source": "original", "special": "hired_crew", "cost": { "duranium": 270, "tritanium": 110, "dilithium": 18 }, "build_seconds": 100, "crew_cost": 28, "requires_tech": "warp_5" },
+    { "faction": "ferengi", "name": "D'Kora Marauder",  "hull": "cruiser",       "era": "tng",  "source": "canon", "special": "energy_whip, cargo_bay", "cost": { "duranium": 480, "tritanium": 190, "dilithium": 25, "parasteel": 20 }, "build_seconds": 140, "crew_cost": 40, "requires_tech": "warp_8" },
+    { "faction": "ferengi", "name": "Ferengi Fuel Trader", "hull": "civilian", "era": "tng", "source": "original", "role": "tanker", "special": "refuel_fleet, sells_fuel", "cost": { "duranium": 70, "tritanium": 30, "dilithium": 7 }, "build_seconds": 45, "crew_cost": 5, "requires_tech": null },
+    { "faction": "ferengi", "name": "Ferengi Contract Builder", "hull": "civilian", "era": "tng", "source": "original", "role": "construction", "special": "construction_rig, build_for_hire", "cost": { "duranium": 95, "tritanium": 40, "dilithium": 10 }, "build_seconds": 50, "crew_cost": 9, "requires_tech": null },
+    { "faction": "ferengi", "name": "Ferengi Prospector", "hull": "scout", "era": "tng", "source": "original", "role": "science", "special": "deep_survey, resource_appraisal", "cost": { "duranium": 110, "tritanium": 45, "dilithium": 11 }, "build_seconds": 55, "crew_cost": 7, "requires_tech": "long_range_sensors" }
   ]
 }

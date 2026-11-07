@@ -1,9 +1,13 @@
 {
   "classes": [
-    { "faction": "romulan", "name": "Bird-of-Prey (22nd c.)", "hull": "frigate", "era": "ent",  "source": "canon", "special": "telecapture" },
-    { "faction": "romulan", "name": "Bird-of-Prey (23rd c.)", "hull": "cruiser", "era": "tos",  "source": "canon", "special": "cloak, plasma_torpedo" },
-    { "faction": "romulan", "name": "D'deridex Warbird", "hull": "battleship",   "era": "tng",  "source": "canon", "special": "cloak, singularity_core" },
-    { "faction": "romulan", "name": "Valdore",          "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon" },
-    { "faction": "romulan", "name": "Scimitar",         "hull": "titan",         "era": "dominion_war", "source": "canon", "special": "thalaron, perfect_cloak" }
+    { "faction": "romulan", "name": "Bird-of-Prey (22nd c.)", "hull": "frigate", "era": "ent",  "source": "canon", "special": "telecapture", "cost": { "duranium": 270, "tritanium": 110, "dilithium": 18 }, "build_seconds": 100, "crew_cost": 28, "requires_tech": "warp_5" },
+    { "faction": "romulan", "name": "Bird-of-Prey (23rd c.)", "hull": "cruiser", "era": "tos",  "source": "canon", "special": "cloak, plasma_torpedo", "cost": { "duranium": 480, "tritanium": 190, "dilithium": 25, "parasteel": 20 }, "build_seconds": 140, "crew_cost": 40, "requires_tech": "warp_8" },
+    { "faction": "romulan", "name": "D'deridex Warbird", "hull": "battleship",   "era": "tng",  "source": "canon", "special": "cloak, singularity_core", "cost": { "duranium": 1080, "tritanium": 430, "dilithium": 35, "parasteel": 60, "warp_coils": 10 }, "build_seconds": 240, "crew_cost": 69, "requires_tech": "warp_9_9" },
+    { "faction": "romulan", "name": "Valdore",          "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon", "cost": { "duranium": 750, "tritanium": 300, "dilithium": 30, "parasteel": 40, "warp_coils": 5 }, "build_seconds": 190, "crew_cost": 49, "requires_tech": "warp_9_9" },
+    { "faction": "romulan", "name": "Scimitar",         "hull": "titan",         "era": "dominion_war", "source": "canon", "special": "thalaron, perfect_cloak", "cost": { "duranium": 1920, "tritanium": 770, "dilithium": 50, "parasteel": 100, "warp_coils": 20 }, "build_seconds": 360, "crew_cost": 110, "requires_tech": "ablative_armor" },
+    { "faction": "romulan", "name": "Romulan Cargo Transport", "hull": "civilian", "era": "ent", "source": "original", "role": "freighter", "special": "cargo_bay", "cost": { "duranium": 70, "tritanium": 30, "dilithium": 7 }, "build_seconds": 45, "crew_cost": 5, "requires_tech": null },
+    { "faction": "romulan", "name": "Romulan Colony Transport", "hull": "civilian", "era": "tos", "source": "original", "role": "colony", "special": "found_colony", "cost": { "duranium": 95, "tritanium": 40, "dilithium": 10 }, "build_seconds": 55, "crew_cost": 16, "requires_tech": null },
+    { "faction": "romulan", "name": "Romulan Yard Tender", "hull": "civilian", "era": "tng", "source": "original", "role": "construction", "special": "construction_rig", "cost": { "duranium": 95, "tritanium": 40, "dilithium": 10 }, "build_seconds": 50, "crew_cost": 9, "requires_tech": null },
+    { "faction": "romulan", "name": "Romulan Science Vessel", "hull": "scout", "era": "tng", "source": "canon", "role": "science", "special": "deep_survey", "cost": { "duranium": 110, "tritanium": 45, "dilithium": 11 }, "build_seconds": 55, "crew_cost": 7, "requires_tech": "long_range_sensors" }
   ]
 }

@@ -7,7 +7,7 @@ Early planning material for a Star Trek–themed real-time strategy game (1–4 
 - `CLAUDE.md`: project memory for Claude sessions (design rules decided so far, how pages are built).
 - `GDD.md`: the game design document (pillars, modes, map, economy, colonization, eras, factions, research, ships, threats, multiplayer, open decisions).
 - `faction-buildings.html`: the same comparison as an interactive web page (open in any browser). Regenerate with `python3 tools/gen_faction_buildings_page.py`.
-- `ship-designs.html`: interactive comparison of every faction's starships (doctrine, hulls, class roster by hull and era, specials, modules). Regenerate with `python3 tools/gen_ship_designs_page.py`.
+- `ship-designs.html`: interactive comparison of every faction's starships (doctrine, hulls, class roster by hull and era with the civilian fleet marked, specials, modules, build costs with the formula, data checks). Regenerate with `python3 tools/gen_ship_designs_page.py`. Every class's cost, build time, crew cost and tech gate come from one formula on hull size and role (`data/ships/rules.json`); after changing it or a class's hull/role, run `python3 tools/ship_costs.py --write` (without `--write` it lists the classes that differ).
 - `tech-tree.html`: interactive research tree (faction research models, prerequisite tracing, starting-era grants, forbidden techs, resources, data checks). Regenerate with `python3 tools/gen_tech_tree_page.py`.
 - `hazards.html`: interactive hazard catalog (categories, filterable cards, faction exposure, counter techs by faction, data checks). Regenerate with `python3 tools/gen_hazards_page.py`.
 - `planet-classes.html`: interactive guide to planet classes and bodies (habitability, resource map, terraforming, faction world preferences, data checks). Regenerate with `python3 tools/gen_planet_classes_page.py`.
@@ -71,7 +71,7 @@ Each data document is a folder of small files, one per table or record family (o
 | `eras/` | Eight starting eras with available factions, events and stardate formats. Files: one file |
 | `planet_classes/` | Planet classes and other celestial bodies with yields and hazards. Files: notes + classes |
 | `tech_tree/` | Research tree across seven branches. Files: notes, rules, `techs/<branch>.json` |
-| `ships/` | Hull sizes, module slots and ship classes per faction. Files: notes, hulls + modules, `classes/<faction or era>.json` |
+| `ships/` | Hull sizes (canon crew complements), module slots and ship classes per faction, warships and civilian/support classes, each with a cost, build time, crew cost and tech gate. Files: notes, hulls + modules, rules (roles and the costing formula), `classes/<faction or era>.json` |
 | `vehicles/` | Small craft, probes, civilian/support ships, ground forces and vehicles. Files: notes + one file per table |
 | `buildings/` | All structures, faction-only buildings, relics, `faction_lines` (level-1-to-max upgrade chains for all seven factions) and `starting_sets` (each faction's Class M opening buildings). Files: notes, rules, `surface/<building or family>.json`, orbital, deep space, `faction_buildings/<faction>.json`, relics, `faction_lines/<faction>.json`, `starting_sets/<faction>.json` |
 | `hazards/` | Anomalies, habitat dangers, raiders, crisis entities and wildcards. Files: notes + one file per category |

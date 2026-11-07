@@ -1,8 +1,11 @@
 {
   "classes": [
-    { "faction": "cardassian", "name": "Hideki",        "hull": "fighter",       "era": "tng",  "source": "canon" },
-    { "faction": "cardassian", "name": "Groumall",      "hull": "civilian",      "era": "tng",  "source": "canon", "role": "freighter" },
-    { "faction": "cardassian", "name": "Galor",         "hull": "cruiser",       "era": "tng",  "source": "canon" },
-    { "faction": "cardassian", "name": "Keldon",        "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon" }
+    { "faction": "cardassian", "name": "Hideki",        "hull": "fighter",       "era": "tng",  "source": "canon", "cost": { "duranium": 30, "tritanium": 12 }, "build_seconds": 35, "crew_cost": 3, "requires_tech": null },
+    { "faction": "cardassian", "name": "Groumall",      "hull": "civilian",      "era": "tng",  "source": "canon", "role": "freighter", "cost": { "duranium": 70, "tritanium": 30, "dilithium": 7 }, "build_seconds": 45, "crew_cost": 5, "requires_tech": null },
+    { "faction": "cardassian", "name": "Galor",         "hull": "cruiser",       "era": "tng",  "source": "canon", "cost": { "duranium": 480, "tritanium": 190, "dilithium": 25, "parasteel": 20 }, "build_seconds": 140, "crew_cost": 40, "requires_tech": "warp_8" },
+    { "faction": "cardassian", "name": "Keldon",        "hull": "heavy_cruiser", "era": "dominion_war", "source": "canon", "cost": { "duranium": 750, "tritanium": 300, "dilithium": 30, "parasteel": 40, "warp_coils": 5 }, "build_seconds": 190, "crew_cost": 49, "requires_tech": "warp_9_9" },
+    { "faction": "cardassian", "name": "Cardassian Colony Transport", "hull": "civilian", "era": "tng", "source": "original", "role": "colony", "special": "found_colony", "cost": { "duranium": 95, "tritanium": 40, "dilithium": 10 }, "build_seconds": 55, "crew_cost": 16, "requires_tech": null },
+    { "faction": "cardassian", "name": "Cardassian Construction Tender", "hull": "civilian", "era": "tng", "source": "original", "role": "construction", "special": "construction_rig", "cost": { "duranium": 95, "tritanium": 40, "dilithium": 10 }, "build_seconds": 50, "crew_cost": 9, "requires_tech": null },
+    { "faction": "cardassian", "name": "Cardassian Survey Ship", "hull": "scout", "era": "tng", "source": "original", "role": "science", "special": "deep_survey", "cost": { "duranium": 110, "tritanium": 45, "dilithium": 11 }, "build_seconds": 55, "crew_cost": 7, "requires_tech": "long_range_sensors" }
   ]
 }

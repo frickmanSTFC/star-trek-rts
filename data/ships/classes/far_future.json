@@ -1,8 +1,8 @@
 {
   "classes": [
-    { "faction": "federation_remnant", "name": "Crossfield refit (Discovery-A)", "hull": "explorer", "era": "far_future", "source": "canon", "special": "spore_drive, detached_nacelles, programmable_matter" },
-    { "faction": "federation_remnant", "name": "Voyager-J",       "hull": "explorer",      "era": "far_future", "source": "canon", "special": "programmable_matter" },
-    { "faction": "emerald_chain",      "name": "Viridian",        "hull": "battleship",    "era": "far_future", "source": "canon" },
-    { "faction": "klingon",            "name": "Bird-of-Prey (32nd c.)", "hull": "escort", "era": "far_future", "source": "original", "special": "cloak, programmable_matter" }
+    { "faction": "federation_remnant", "name": "Crossfield refit (Discovery-A)", "hull": "explorer", "era": "far_future", "source": "canon", "special": "spore_drive, detached_nacelles, programmable_matter", "cost": { "duranium": 1080, "tritanium": 430, "dilithium": 35, "parasteel": 60, "warp_coils": 10 }, "build_seconds": 240, "crew_cost": 63, "requires_tech": "warp_9_9" },
+    { "faction": "federation_remnant", "name": "Voyager-J",       "hull": "explorer",      "era": "far_future", "source": "canon", "special": "programmable_matter", "cost": { "duranium": 1080, "tritanium": 430, "dilithium": 35, "parasteel": 60, "warp_coils": 10 }, "build_seconds": 240, "crew_cost": 63, "requires_tech": "warp_9_9" },
+    { "faction": "emerald_chain",      "name": "Viridian",        "hull": "battleship",    "era": "far_future", "source": "canon", "cost": { "duranium": 1080, "tritanium": 430, "dilithium": 35, "parasteel": 60, "warp_coils": 10 }, "build_seconds": 240, "crew_cost": 69, "requires_tech": "warp_9_9" },
+    { "faction": "klingon",            "name": "Bird-of-Prey (32nd c.)", "hull": "escort", "era": "far_future", "source": "original", "special": "cloak, programmable_matter", "cost": { "duranium": 270, "tritanium": 110, "dilithium": 18 }, "build_seconds": 100, "crew_cost": 14, "requires_tech": "warp_5" }
   ]
 }
