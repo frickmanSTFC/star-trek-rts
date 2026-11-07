@@ -434,7 +434,9 @@ public sealed partial class PlanetSurface
                     // Over the edge into the next tile (the last one stays in Path until it parks).
                     unit.Tile = unit._path[0];
                     if (unit._path.Count > 1) unit._path.RemoveAt(0);
-                    Reveal(unit.Owner, unit.Tile, SurveyRadiusOf(unit));
+                    var surveyRadius = SurveyRadiusOf(unit);
+                    Reveal(unit.Owner, unit.Tile, surveyRadius);
+                    MarkSightAt(unit, surveyRadius); // Visibility.cs: fog of war memory
                     continue;
                 }
                 unit._path.Clear();

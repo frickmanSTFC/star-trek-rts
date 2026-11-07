@@ -576,6 +576,14 @@ public sealed class SurfacePlayer
     /// <summary>Tiles whose deposits this player knows exactly.</summary>
     public bool[] Surveyed { get; }
 
+    /// <summary>Tiles this player has had in sight at some point (fog of war memory; see PlanetSurface.IsExplored).</summary>
+    public bool[] Seen { get; }
+
+    /// <summary>Ids of other players' structures this player has seen, ascending (kept once seen; see PlanetSurface.Remembers).</summary>
+    public IReadOnlyList<int> SeenStructures => _seenStructures;
+
+    internal readonly List<int> _seenStructures = new();
+
     /// <summary>Researched surface techs, by TechDef.Index.</summary>
     public bool[] Known { get; }
 
@@ -623,6 +631,7 @@ public sealed class SurfacePlayer
     internal SurfacePlayer(int tileCount, int techCount, int resourceCount)
     {
         Surveyed = new bool[tileCount];
+        Seen = new bool[tileCount];
         Known = new bool[techCount];
         ResearchProgress = new Fix64[techCount];
         Hold = new Fix64[resourceCount];
@@ -636,6 +645,9 @@ public sealed class SurfacePlayer
         h.Add(DescentStartTick);
         h.Add(UplinkTick);
         foreach (var s in Surveyed) h.Add(s);
+        foreach (var s in Seen) h.Add(s);
+        h.Add(_seenStructures.Count);
+        foreach (var id in _seenStructures) h.Add(id);
         foreach (var k in Known) h.Add(k);
         foreach (var r in ResearchProgress) h.Add(r);
         h.Add(ActiveTech);
