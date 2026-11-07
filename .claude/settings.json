@@ -1,10 +1,34 @@
-{
+﻿{
   "permissions": {
     "allow": [
-      "Bash(dotnet build *)",
-      "Bash(dotnet test *)",
-      "Bash(dotnet test)",
-      "Bash(unzip -l *)"
+      "Bash(dotnet *)",
+      "Bash(git *)",
+      "Bash(GIT_COMMITTER_NAME=Claude GIT_COMMITTER_EMAIL=noreply@anthropic.com git *)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(/home/user/.bpyvenv/bin/python *)",
+      "Bash(node *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(rm *)",
+      "Bash(touch *)",
+      "Bash(unzip *)",
+      "Bash(tar *)",
+      "Bash(sleep *)",
+      "Bash(for *)",
+      "Bash(until *)",
+      "Bash(pkill *)",
+      "Bash(curl *)",
+      "Bash(gh *)",
+      "Bash(apt-get install *)",
+      "Bash(pip install *)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard origin*)",
+      "Bash(rm -rf /*)"
     ]
   }
 }
