@@ -518,6 +518,7 @@ public sealed partial class GameData
             Climate = ReadClimate(climateRoot, problems),
             Eras = ReadEras(erasRoot),
             TechTree = ReadTechTree(techTreeRoot),
+            StartingSetRefs = ReadStartingSetRefs(buildingsRoot, Amounts),
             Lanes = ReadLanes(surfacesRoot),
             BuildingFootprints = ReadBuildingFootprints(buildingsRoot, problems),
             UnitFootprints = ReadUnitFootprints(surfacesRoot),
@@ -592,6 +593,7 @@ public sealed partial class GameData
         ValidateLanes(problems);
         ValidateEras(problems);
         ValidateTechTree(problems);
+        ValidateStartingSets(problems);
         return problems;
     }
 

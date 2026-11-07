@@ -21,6 +21,12 @@ public class DataTests
     [Fact]
     public void RealDataPassesTheSharedChecks() => Assert.Empty(DataChecks.All(TestData.Real));
 
+    /// <summary>A starting-set entry with building_ref copies that building, so the two costs can't drift apart.</summary>
+    [Fact]
+    public void StartingSetCopiesKeepTheirBuildingsCost() =>
+        Assert.Contains(TestData.Patched(("buildings/starting_sets/federation.json", "\"duranium\": 120,", "\"duranium\": 100,")).Validate(),
+            p => p.StartsWith("Starting set federation science_lab: costs 40 tritanium + 100 duranium but its building_ref science_lab costs 40 tritanium + 120 duranium"));
+
     [Fact]
     public void MvpFactionsArePlayableWithValidStarterFleets()
     {
