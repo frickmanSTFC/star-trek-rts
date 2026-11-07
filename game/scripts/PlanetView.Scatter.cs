@@ -450,9 +450,18 @@ public partial class PlanetView
     private long ClearingSignature()
     {
         var h = 17L;
-        foreach (var s in _surface.Structures) h = h * 31 + s.Tile * 2 + (_sim.Data.Building(s.DefId).IsCore ? 1 : 0);
-        foreach (var p in _surface.Players) h = h * 31 + (p.Phase == LandingPhase.InOrbit ? -1 : p.LandingTile);
+        foreach (var s in _surface.Structures) h = h * 31 + (Shows(s) ? s.Tile * 2 + (_sim.Data.Building(s.DefId).IsCore ? 1 : 0) : -1);
+        for (var i = 0; i < _surface.Players.Count; i++) h = h * 31 + ClearedLanding(i);
         return h;
+    }
+
+    /// <summary>A player's landing site while it clears the scatter (from the descent on), or -1: in orbit, or another
+    /// player's site out of sight (fog: a clearing would give a hidden base away).</summary>
+    private int ClearedLanding(int player)
+    {
+        var p = _surface.Players[player];
+        if (p.Phase == LandingPhase.InOrbit || p.LandingTile < 0) return -1;
+        return player == _localPlayer || Sees(p.LandingTile) || _surface.StructureAt(p.LandingTile) is { } s && Shows(s) ? p.LandingTile : -1;
     }
 
     /// <summary>Hide every scatter instance on a building's site: a colony core with its repair pad clears most of its
@@ -465,9 +474,9 @@ public partial class PlanetView
 
         var sites = new List<(Vector3 Centre, float Radius)>();
         foreach (var s in _surface.Structures)
-            sites.Add((TileCentre(s.Tile), _sim.Data.Building(s.DefId).IsCore ? 14.5f : 8.5f));
-        foreach (var p in _surface.Players)
-            if (p.Phase != LandingPhase.InOrbit && p.LandingTile >= 0) sites.Add((TileCentre(p.LandingTile), 14.5f));
+            if (Shows(s)) sites.Add((TileCentre(s.Tile), _sim.Data.Building(s.DefId).IsCore ? 14.5f : 8.5f)); // fog: known ones only
+        for (var i = 0; i < _surface.Players.Count; i++)
+            if (ClearedLanding(i) is var landing && landing >= 0) sites.Add((TileCentre(landing), 14.5f));
 
         var zero = new Basis(Vector3.Zero, Vector3.Zero, Vector3.Zero);
         var done = new HashSet<(ScatterBatch, int)>();

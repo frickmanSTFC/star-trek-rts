@@ -308,7 +308,7 @@ public partial class DropShipView : Node3D
     {
         var t = ship.Time;
         var from = ship.Convoy?.ShowFrom ?? ship.DescentFrom;
-        ship.Shown = t >= from && (ship.Owner == _localPlayer || (ship.Tile >= 0 && _view.FogAt(ship.Tile) == PlanetView.Fog.Visible));
+        ship.Shown = t >= from && (ship.Owner == _localPlayer || (ship.Tile >= 0 && _view.Sees(ship.Tile)));
         ship.Model.Visible = ship.Shown;
         var l = ship.Landed;
         var forward = -l.Basis.Z.Normalized();

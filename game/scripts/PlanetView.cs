@@ -10,8 +10,10 @@ namespace FinalFrontier;
 /// <summary>
 /// Draws a planet surface: one continuous terrain mesh over the hex grid (smooth slopes, mountain peaks,
 /// coasts running under animated water), trees, deposit crystals, orbital-scan hints, the hover marker,
-/// the colony pod's descent, structures, survey rovers, mining crawlers and their cargo pods. Fog of war is a one-texel-per-tile texture
-/// the terrain, water and tree shaders read. Render-only: nothing here changes the sim.
+/// the colony pod's descent, structures, survey rovers, mining crawlers and their cargo pods. Fog of war comes from the sim
+/// (PlanetSurface.IsVisible / IsExplored, Visibility.cs), drawn as a one-texel-per-tile texture the terrain, water and tree
+/// shaders read; other players' things show only while in sight (structures also once remembered). Render-only: nothing
+/// here changes the sim.
 /// </summary>
 public partial class PlanetView : Node3D
 {
@@ -76,6 +78,7 @@ public partial class PlanetView : Node3D
     private ConstructionView _construction = null!;
     private MeshInstance3D _rangeRing = null!;
     private int _surveyedCount = -1;
+    private int _exploredCount = -1;
     private int _spentCount = -1;
     private LandingPhase _lastPhase = (LandingPhase)(-1);
 
@@ -202,22 +205,25 @@ public partial class PlanetView : Node3D
     {
         var me = _surface.Players[_localPlayer];
         var surveyed = 0;
+        var explored = 0; // seen or surveyed (the sim's fog memory)
         var spent = 0; // surveyed deposits that are used up: redraw their markers when one runs out (or is reopened)
         var map = _surface.Map;
         for (var t = 0; t < me.Surveyed.Length; t++)
         {
+            if (me.Seen[t] || me.Surveyed[t]) explored++;
             if (!me.Surveyed[t]) continue;
             surveyed++;
             if (map.IsDepleted(t)) spent++;
         }
         var vision = VisionSignature();
-        if (surveyed != _surveyedCount || spent != _spentCount || me.Phase != _lastPhase || vision != _visionSignature)
+        if (surveyed != _surveyedCount || explored != _exploredCount || spent != _spentCount || me.Phase != _lastPhase || vision != _visionSignature)
         {
             _spentCount = spent;
             _surveyedCount = surveyed;
+            _exploredCount = explored;
             _lastPhase = me.Phase;
             _visionSignature = vision;
-            UpdateVisibility(me);
+            UpdateVisibility();
             UpdateFogTexture();
             PlaceDeposits(me);
             foreach (var l in _hintLabels) l.Visible = me.Phase == LandingPhase.InOrbit;
@@ -540,17 +546,17 @@ public partial class PlanetView : Node3D
         return material;
     }
 
-    // ---------------------------------------------------------------- fog of war (render-only)
+    // ---------------------------------------------------------------- fog of war (the sim's, drawn here)
 
-    /// <summary>How far your buildings and rovers can see, in tiles. Render-only: the sim tracks surveying, not sight.</summary>
-    public const int StructureSight = 3;
-
+    /// <summary>The local player's tiles in sight now (the sim's <see cref="PlanetSurface.VisibleTiles"/>), refreshed
+    /// whenever <see cref="VisionSignature"/> changes.</summary>
     private bool[] _visible = System.Array.Empty<bool>();
     private long _visionSignature = -1;
 
     private bool _fogOff;
 
-    /// <summary>Test panel: show the whole planet as if in sight (render only; the sim's surveying is unchanged).</summary>
+    /// <summary>Test panel: show the whole planet as if in sight, other players' things included (render only; the sim's
+    /// surveying and fog memory are unchanged).</summary>
     public bool FogOff
     {
         get => _fogOff;
@@ -576,17 +582,31 @@ public partial class PlanetView : Node3D
     public enum Fog { Visible, Explored, Unexplored }
 
     /// <summary>
-    /// Three levels: Visible = in sight of your buildings or rovers now; Explored = surveyed before, shown dimmed;
-    /// Unexplored = near-black. From orbit the scan shows the whole surface.
+    /// The ground's three levels (from the sim's fog): Visible = in sight of your buildings or rovers now; Explored = seen
+    /// or surveyed before, shown dimmed; Unexplored = near-black. Before landing the orbital scan shows the whole
+    /// surface's ground, but not what stands on it: other players' things go by <see cref="Sees"/> / <see cref="Shows"/>.
     /// </summary>
     public Fog FogAt(int tile)
     {
         if (_fogOff) return Fog.Visible;
         var me = _surface.Players[_localPlayer];
         if (me.Phase == LandingPhase.InOrbit) return Fog.Visible;
-        if (tile < _visible.Length && _visible[tile]) return Fog.Visible;
-        return me.Surveyed[tile] ? Fog.Explored : Fog.Unexplored;
+        if (tile >= 0 && tile < _visible.Length && _visible[tile]) return Fog.Visible;
+        return _surface.IsExplored(_localPlayer, tile) ? Fog.Explored : Fog.Unexplored;
     }
+
+    /// <summary>The local player has the tile in sight now (the sim's fog; always with the test panel's fog off).</summary>
+    public bool Sees(int tile) => _fogOff || (tile >= 0 && tile < _visible.Length && _visible[tile]);
+
+    /// <summary>Draw this structure: your own always; another player's while in sight or once remembered (the sim's
+    /// <see cref="PlanetSurface.Remembers"/>).</summary>
+    public bool Shows(SurfaceStructure s) => s.Owner == _localPlayer || Sees(s.Tile) || _surface.Remembers(_localPlayer, s);
+
+    /// <summary>Draw this vehicle: your own always; another player's only while in sight.</summary>
+    public bool Shows(SurfaceUnit u) => u.Owner == _localPlayer || Sees(u.Tile);
+
+    /// <summary>Another player's live detail (labels, crews, drones, beams) at a tile: your own always, theirs only in sight.</summary>
+    public bool ShowsLive(int owner, int tile) => owner == _localPlayer || Sees(tile);
 
     /// <summary>The colour a tile shows on the minimap, fog applied.</summary>
     public Color TileColour(int tile)
@@ -625,29 +645,20 @@ public partial class PlanetView : Node3D
         _fogTexture.Update(_fogImage);
     }
 
+    /// <summary>What the local player's sight depends on: their structures, their vehicles' tiles and sight radii
+    /// (damage and weather change those), the landing. The sight is recomputed when it changes.</summary>
     private long VisionSignature()
     {
-        long h = _surface.Structures.Count * 7919L + _surface.Players[_localPlayer].LandingTile;
+        var me = _surface.Players[_localPlayer];
+        long h = _surface.Structures.Count * 7919L + me.LandingTile * 13L + (int)me.Phase;
+        foreach (var s in _surface.Structures)
+            if (s.Owner == _localPlayer) h = h * 31 + s.Tile + 1;
         foreach (var u in _surface.Units)
-            if (u.Owner == _localPlayer) h = h * 31 + u.Tile + 1;
+            if (u.Owner == _localPlayer) h = (h * 31 + u.Tile + 1) * 17 + _surface.SightOf(u);
         return h;
     }
 
-    private void UpdateVisibility(SurfacePlayer me)
-    {
-        var grid = _surface.Map.Grid;
-        if (_visible.Length != grid.Count) _visible = new bool[grid.Count];
-        System.Array.Clear(_visible);
-        void See(int centre, int radius)
-        {
-            foreach (var t in grid.Within(centre, radius)) _visible[t] = true;
-        }
-        foreach (var s in _surface.Structures)
-            if (s.Owner == _localPlayer) See(s.Tile, StructureSight);
-        foreach (var u in _surface.Units)
-            if (u.Owner == _localPlayer) See(u.Tile, _surface.SurveyRadiusOf(u) + 1); // damaged sensors see less
-        if (me.Phase == LandingPhase.Descending) See(me.LandingTile, 2);
-    }
+    private void UpdateVisibility() => _visible = _surface.VisibleTiles(_localPlayer);
 
     /// <summary>
     /// A small cluster of glowing crystals on every surveyed deposit (dim when out of sight). Used-up deposits
@@ -765,7 +776,9 @@ public partial class PlanetView : Node3D
             }
             v!.State = s.State;
             var assembling = _landing.Hides(s); // the landed outpost is still coming together (LandingView draws it)
-            v.Model.Visible = v.Label.Visible = !assembling;
+            // Fog: another player's building shows while in sight or once remembered; its label (live status) only in sight.
+            v.Model.Visible = !assembling && Shows(s);
+            v.Label.Visible = !assembling && ShowsLive(s.Owner, s.Tile);
 
             if (!complete)
             {
@@ -853,6 +866,7 @@ public partial class PlanetView : Node3D
                 drone.Position = TileCentre(s.Tile) + new Vector3(0, 14f, 0); // flies down from above
                 _drones[s.Id] = drone;
             }
+            drone.Visible = ShowsLive(s.Owner, s.Tile);
             var a = _time * 1.3f + s.Id;
             var target = TileCentre(s.Tile) + new Vector3(Mathf.Cos(a) * 4f, 6.5f + Mathf.Sin(a * 2f) * 0.5f, Mathf.Sin(a) * 4f);
             drone.Position = drone.Position.Lerp(target, Mathf.Min(1f, delta * 3f));
@@ -897,6 +911,8 @@ public partial class PlanetView : Node3D
             };
             var walking = core.CrewPhase != CrewPhase.Working;
             var welding = !walking && job != null && !job.MaintenanceWaiting;
+            var crewShown = ShowsLive(core.Owner, core.Tile) || (job != null && ShowsLive(job.Owner, job.Tile));
+            foreach (var person in people) person.Visible = crewShown;
             for (var i = 0; i < people.Length; i++)
             {
                 var person = people[i];
@@ -1005,6 +1021,10 @@ public partial class PlanetView : Node3D
             }
 
             UntiltRover(u.Id, model); // a flat tyre's lean comes off before the heading code turns it (RoverDamage)
+            // Fog: another player's vehicle only while in sight (its lights follow in UnitHeadlights).
+            var shown = Shows(u);
+            model.Visible = shown;
+            _unitLabels[u.Id].Visible = shown;
 
             // Where the sim's lanes put it (PlanetView.Lanes.cs): round buildings, parked at access points. The one on its
             // own colony core's pad lines up with it and gets washed there.
@@ -1303,6 +1323,7 @@ public partial class PlanetView : Node3D
             crew.Back = -1f;
         }
         if (crew == null) return;
+        foreach (var person in crew.People) person.Visible = Shows(u); // another player's crew only in sight
 
         var sides = new[] { new Vector3(-2.6f, 0, 0.4f), new Vector3(2.6f, 0, -0.6f) };
         var crewTicks = Mathf.Max(1, (_sim.Data.SurfaceUnit(u.DefId).Repair?.CrewSeconds ?? 0) * Simulation.TickRate);
@@ -1432,6 +1453,7 @@ public partial class PlanetView : Node3D
             // a high arc; onto a refinery's pad it ends by settling straight down (PlanetView.Refinery.cs)
             var (here, basis) = PodPose(p, alpha);
             model.Position = here;
+            model.Visible = ShowsLive(p.Owner, p.FromTile) || ShowsLive(p.Owner, p.ToTile) || ShowsLive(p.Owner, TileAt(here));
             if (basis is { } heading) model.Basis = heading;
         }
         foreach (var id in new List<int>(_pods.Keys))

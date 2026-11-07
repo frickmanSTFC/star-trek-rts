@@ -560,7 +560,7 @@ public partial class LandingView : Node3D
     {
         var T = c.Time;
         var S = c.Scale;
-        var shown = T >= c.Slots.Min(s => s.Start) && (c.Owner == _localPlayer || _view.FogAt(c.Tile) == PlanetView.Fog.Visible);
+        var shown = T >= c.Slots.Min(s => s.Start) && (c.Owner == _localPlayer || _view.Sees(c.Tile));
         c.Model.Visible = shown;
         var hubY = c.Hub.Origin.Y;
         var dock = DockAt * S;

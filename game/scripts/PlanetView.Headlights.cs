@@ -54,7 +54,7 @@ public partial class PlanetView
         if (!_headlights.TryGetValue(u.Id, out var rig)) return;
         rig.Dead = u.Broken;
         rig.Damaged = u.Integrity < Fix64.FromInt(VehicleLights.FlickerBelow);
-        rig.Hidden = u.Owner != _localPlayer && FogAt(u.Tile) != Fog.Visible;
+        rig.Hidden = !Shows(u); // another player's vehicle out of sight (the sim's fog)
         if (def.CanMine)
         {
             // Deployed: the lamps tip down onto the dig site and the boom-tip work lamp comes on.

@@ -144,6 +144,7 @@ public partial class PlanetView
                 _founderProps[s.Id] = prop;
             }
             live.Add(s.Id);
+            prop.Model.Visible = Shows(s); // fog: another player's only while in sight or remembered
             if (prop.Model.FindChild("Dock", true, false) is Node3D dock) _construction.Docks[s.Id] = dock.GlobalPosition;
             if (!complete) continue;
             prop.Fade = prop.Fade < 0f ? 0f : prop.Fade + delta;
