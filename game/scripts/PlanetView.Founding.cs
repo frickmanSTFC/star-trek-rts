@@ -133,7 +133,7 @@ public partial class PlanetView
             if (!_founderProps.TryGetValue(s.Id, out var prop))
             {
                 if (complete) continue; // finished before we saw it (a loaded game): nothing to show
-                var model = BuildingModels.Constructor(PlanetDriver.PlayerColors[s.Owner % PlanetDriver.PlayerColors.Length]);
+                var model = BuildingModels.Constructor(PlanetDriver.ColorOf(s.Owner));
                 RoverLook.Paint(model, rover.Name, rover.Number);
                 if (model.FindChild("Selected", false, false) is Node3D ring) ring.Visible = false;
                 AddChild(model);

@@ -745,7 +745,7 @@ public partial class PlanetView : Node3D
                     v.Model.QueueFree();
                     v.Label.QueueFree();
                 }
-                var model = BuildingModels.Build(s.DefId, PlanetDriver.PlayerColors[s.Owner % PlanetDriver.PlayerColors.Length], VisualSeed(s), VisualSerial(s));
+                var model = BuildingModels.Build(s.DefId, PlanetDriver.ColorOf(s.Owner), VisualSeed(s), VisualSerial(s));
                 model.Position = TileCentre(s.Tile);
                 model.RotationDegrees = new Vector3(0, -60f * s.Facing, 0);
                 AddChild(model);
@@ -848,7 +848,7 @@ public partial class PlanetView : Node3D
             busy.Add(s.Id);
             if (!_drones.TryGetValue(s.Id, out var drone))
             {
-                drone = BuildingModels.Drone(PlanetDriver.PlayerColors[s.Owner % PlanetDriver.PlayerColors.Length]);
+                drone = BuildingModels.Drone(PlanetDriver.ColorOf(s.Owner));
                 AddChild(drone);
                 drone.Position = TileCentre(s.Tile) + new Vector3(0, 14f, 0); // flies down from above
                 _drones[s.Id] = drone;
@@ -879,7 +879,7 @@ public partial class PlanetView : Node3D
             active.Add(core.Id);
             if (!_buildingCrews.TryGetValue(core.Id, out var people))
             {
-                var colour = PlanetDriver.PlayerColors[core.Owner % PlanetDriver.PlayerColors.Length];
+                var colour = PlanetDriver.ColorOf(core.Owner);
                 people = new[] { BuildingModels.Crew(colour), BuildingModels.Crew(colour) };
                 foreach (var p in people) AddChild(p);
                 _buildingCrews[core.Id] = people;
@@ -977,7 +977,7 @@ public partial class PlanetView : Node3D
             var def = _sim.Data.SurfaceUnit(u.DefId);
             if (!_rovers.TryGetValue(u.Id, out var model))
             {
-                var colour = PlanetDriver.PlayerColors[u.Owner % PlanetDriver.PlayerColors.Length];
+                var colour = PlanetDriver.ColorOf(u.Owner);
                 model = BuildingModels.Vehicle(def, colour);
                 RoverLook.Paint(model, u.Name, u.Number);
                 _grime[u.Id] = RoverLook.Grime.Attach(model, def.CanMine || def.CanFound ? 3.2f : 2.4f);
@@ -1294,7 +1294,7 @@ public partial class PlanetView : Node3D
             var core = PadCore(u, u.Tile)!;
             if (crew == null)
             {
-                var colour = PlanetDriver.PlayerColors[u.Owner % PlanetDriver.PlayerColors.Length];
+                var colour = PlanetDriver.ColorOf(u.Owner);
                 crew = new CrewVisual { People = new[] { BuildingModels.Crew(colour), BuildingModels.Crew(colour) } };
                 foreach (var p in crew.People) AddChild(p);
                 _crews[u.Id] = crew;
@@ -1425,7 +1425,7 @@ public partial class PlanetView : Node3D
             alive.Add(p.Id);
             if (!_pods.TryGetValue(p.Id, out var model))
             {
-                model = BuildingModels.CargoPod(PlanetDriver.PlayerColors[p.Owner % PlanetDriver.PlayerColors.Length]);
+                model = BuildingModels.CargoPod(PlanetDriver.ColorOf(p.Owner));
                 AddChild(model);
                 _pods[p.Id] = model;
             }

@@ -441,7 +441,7 @@ public partial class DropShipView : Node3D
 
     private Ship Create(int key, int owner, long launchTick, long arriveTick, Transform3D landed, bool crawler, string name, string number)
     {
-        var colour = PlanetDriver.PlayerColors[owner % PlanetDriver.PlayerColors.Length];
+        var colour = PlanetDriver.ColorOf(owner);
         var model = BuildingModels.DropShip(colour) ?? Primitive(colour);
         RoverLook.Paint(model, name, number);
         model.Visible = false;

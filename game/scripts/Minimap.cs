@@ -112,7 +112,7 @@ public partial class Minimap : Control
         foreach (var b in surface.Bases(_localPlayer))
         {
             var p = ToMap(_view.TileCentre(b.Tile));
-            DrawRect(new Rect2(p - new Vector2(5, 5), new Vector2(10, 10)), PlanetDriver.PlayerColors[0]);
+            DrawRect(new Rect2(p - new Vector2(5, 5), new Vector2(10, 10)), PlanetDriver.ColorOf(_localPlayer));
             DrawRect(new Rect2(p - new Vector2(5, 5), new Vector2(10, 10)), Colors.White, false, 1.5f);
         }
         foreach (var u in surface.Units)

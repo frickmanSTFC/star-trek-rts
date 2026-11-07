@@ -27,9 +27,31 @@ public partial class PlanetDriver : Node3D, ITestHost
     /// <summary>How close unexplored ground gets to black (0..1).</summary>
     [Export(PropertyHint.Range, "0.5,0.98,0.01")] public float FogDarkness { get; set; } = 0.92f;
 
-    public static readonly Color[] PlayerColors = { new(0.45f, 0.7f, 1f), new(0.95f, 0.6f, 0.25f) };
+    /// <summary>
+    /// One colour per player slot (owner colour on models, markers, HUD swatches): Federation blue and Cardassian orange
+    /// first (unchanged), then six more that stay apart from them and from each other. Use <see cref="ColorOf"/>.
+    /// </summary>
+    private static readonly Color[] PlayerColors =
+    {
+        new(0.45f, 0.7f, 1f),    // 0 blue
+        new(0.95f, 0.6f, 0.25f), // 1 orange
+        new(0.42f, 0.85f, 0.4f), // 2 green
+        new(0.88f, 0.32f, 0.36f), // 3 red
+        new(0.72f, 0.5f, 0.95f), // 4 violet
+        new(0.95f, 0.88f, 0.35f), // 5 yellow
+        new(0.3f, 0.86f, 0.82f), // 6 teal
+        new(0.95f, 0.55f, 0.8f), // 7 pink
+    };
 
-    private const int LocalPlayer = 0;
+    /// <summary>A player's colour (the palette repeats past eight players).</summary>
+    public static Color ColorOf(int player) => PlayerColors[((player % PlayerColors.Length) + PlayerColors.Length) % PlayerColors.Length];
+
+    /// <summary>The player slot this machine plays. The one place to change it: the match uses it from _Ready on
+    /// (clamped to the players the match has; the planet landing has one, so 0).</summary>
+    [Export] public int LocalPlayerSlot { get; set; } = 0;
+
+    /// <summary>The player this machine plays, set once the match is set up (<see cref="LocalPlayerSlot"/>).</summary>
+    public int LocalPlayer { get; private set; }
 
     private Simulation _sim = null!;
 
@@ -118,8 +140,10 @@ public partial class PlanetDriver : Node3D, ITestHost
         foreach (var problem in data.Validate()) GD.PushWarning($"Data check: {problem}");
 
         _sim = MatchSetup.CreatePlanetLanding(data, Seed);
+        LocalPlayer = Mathf.Clamp(LocalPlayerSlot, 0, _sim.Players.Count - 1);
         _camera = GetNode<Camera3D>("Camera3D");
         _hud = GetNode<PlanetHud>("Hud");
+        _hud.LocalColour = ColorOf(LocalPlayer);
         _view = new PlanetView { FogDarkness = FogDarkness };
         AddChild(_view);
         _view.Build(_sim, LocalPlayer);
@@ -917,7 +941,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         {
             _view.SelectedUnits.UnionWith(Surface.Units.Where(u => u.Owner == LocalPlayer).Select(u => u.Id));
             _selectedBase = Surface.Bases(LocalPlayer).FirstOrDefault()?.Id ?? 0;
-            _hud.PushEvent($"Colony founded on {PlanetName}", PlayerColors[0]);
+            _hud.PushEvent($"Colony founded on {PlanetName}", ColorOf(LocalPlayer));
         }
     }
 

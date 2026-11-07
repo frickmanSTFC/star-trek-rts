@@ -886,7 +886,7 @@ public partial class OrbitView : Node3D
             alive.Add(core.Id);
             if (_baseMarkers.ContainsKey(core.Id)) continue;
             var marker = new Node3D();
-            var colour = PlanetDriver.PlayerColors[core.Owner % PlanetDriver.PlayerColors.Length];
+            var colour = PlanetDriver.ColorOf(core.Owner);
             marker.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.35f, BottomRadius = 0.5f, Height = 5f }, Position = new Vector3(0, 2.5f, 0), MaterialOverride = GlowMaterial(colour) });
             marker.AddChild(new MeshInstance3D { Mesh = new TorusMesh { InnerRadius = 2f, OuterRadius = 2.5f, Rings = 24 }, MaterialOverride = GlowMaterial(colour, 1.5f) });
             _globe.AddChild(marker);

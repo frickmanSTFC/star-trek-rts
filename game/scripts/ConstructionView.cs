@@ -640,7 +640,7 @@ public partial class ConstructionView : Node3D
 
     private void Launch(Site site)
     {
-        var colour = PlanetDriver.PlayerColors[site.Owner % PlanetDriver.PlayerColors.Length];
+        var colour = PlanetDriver.ColorOf(site.Owner);
         var node = BuildingModels.Exocomp(colour);
         AddChild(node);
         var home = HomeFor(site.Owner, site.Centre, site.Id);

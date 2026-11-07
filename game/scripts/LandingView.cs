@@ -255,7 +255,7 @@ public partial class LandingView : Node3D
     {
         var now = (_sim.Tick - touchTick) / (float)Simulation.TickRate;
         if (now >= end || tile < 0) return;
-        var colour = PlanetDriver.PlayerColors[owner % PlanetDriver.PlayerColors.Length];
+        var colour = PlanetDriver.ColorOf(owner);
         var model = BuildingModels.Build(hubId, colour);
         var modules = new Node3D?[3];
         for (var k = 0; k < 3; k++) modules[k] = model.FindChild(BuildingModels.OutpostModules[k], true, false) as Node3D;
