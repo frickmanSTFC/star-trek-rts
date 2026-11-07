@@ -1,6 +1,6 @@
 {
   "orbit": {
-    "era": "tng",
+    "era": "dominion_war",
     "ships": {
       "federation": { "name": "U.S.S. Endeavour", "class": "Galaxy" },
       "klingon": { "name": "I.K.S. Gorkon", "class": "Vor'cha" },
