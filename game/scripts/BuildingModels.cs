@@ -68,6 +68,18 @@ public static partial class BuildingModels
         return m;
     }
 
+    /// <summary>A straight member (derrick leg, strut) from <paramref name="from"/> to <paramref name="to"/>. The mesh is
+    /// one built along local Y and centred on the origin (CylinderMesh, BoxMesh) whose length the caller sets to the
+    /// distance between the two points; it is placed at the midpoint and turned from +Y onto the from→to direction
+    /// (shortest arc, so a box's faces stay square to the axis it leans across). Its -Y end (a cylinder's bottom
+    /// radius) lands on <paramref name="from"/>.</summary>
+    private static MeshInstance3D Strut(Node3D parent, Mesh mesh, Vector3 from, Vector3 to, Material material)
+    {
+        var m = Add(parent, mesh, (from + to) / 2f, material);
+        m.Basis = new Basis(new Quaternion(Vector3.Up, (to - from).Normalized()));
+        return m;
+    }
+
     // ---------------------------------------------------------------- buildings
 
     /// <summary>Colony core: a domed hub that grows a ring of modules and a taller tower with each level.</summary>
@@ -113,12 +125,13 @@ public static partial class BuildingModels
         var hull = Metal(HullColour);
         var dark = Metal(Trim, 0.3f, 0.6f);
         Add(n, new BoxMesh { Size = new Vector3(6.6f, 0.7f, 6.6f) }, new Vector3(0, 0.35f, 0), dark);
-        // Derrick: four angled legs meeting under a cap.
+        // Derrick: four legs tapering inward from wide feet on the pad to the corners under the cap.
         var h = v.Height;
         foreach (var (x, z) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
         {
-            var leg = Add(n, new CylinderMesh { TopRadius = 0.1f, BottomRadius = 0.18f, Height = 7f * h, RadialSegments = 6 }, new Vector3(x * 1.1f, 0.6f + 3.5f * h, z * 1.1f), hull);
-            leg.RotationDegrees = new Vector3(z * 8f, 0, -x * 8f);
+            var foot = new Vector3(x * 1.2f, 0.6f, z * 1.2f);
+            var top = new Vector3(x * 0.55f, 0.6f + 7f * h, z * 0.55f);
+            Strut(n, new CylinderMesh { TopRadius = 0.1f, BottomRadius = 0.18f, Height = foot.DistanceTo(top), RadialSegments = 6 }, foot, top, hull);
         }
         Add(n, new BoxMesh { Size = new Vector3(1.6f, 0.7f, 1.6f) }, new Vector3(0, 0.6f + 7f * h, 0), Glow(owner, 2f));
         var spin = new Node3D { Name = "Spin", Position = new Vector3(0, 2.6f, 0) };
@@ -428,10 +441,12 @@ public static partial class BuildingModels
         Add(n, new CylinderMesh { TopRadius = 3.6f, BottomRadius = 4.1f, Height = 0.8f, RadialSegments = 8 }, new Vector3(0, 0.4f, 0), dark);
         Add(n, new TorusMesh { InnerRadius = 1.5f, OuterRadius = 1.9f, Rings = 24 }, new Vector3(0, 0.85f, 0), Glow(new Color(1f, 0.5f, 0.2f), 2.6f));
         var h = v.Height3;
+        // Derrick legs: feet outside the shaft ring, tapering inward to the corners under the cap.
         foreach (var (x, z) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
         {
-            var leg = Add(n, new BoxMesh { Size = new Vector3(0.35f, 10f * h, 0.35f) }, new Vector3(x * 1.6f, 0.4f + 5f * h, z * 1.6f), hull);
-            leg.RotationDegrees = new Vector3(z * 7f, 0, -x * 7f);
+            var foot = new Vector3(x * 1.8f, 0.4f, z * 1.8f);
+            var top = new Vector3(x * 1f, 0.4f + 10f * h, z * 1f);
+            Strut(n, new BoxMesh { Size = new Vector3(0.35f, foot.DistanceTo(top), 0.35f) }, foot, top, hull);
         }
         Add(n, new BoxMesh { Size = new Vector3(2.4f, 1f, 2.4f) }, new Vector3(0, 0.4f + 10f * h, 0), hull);
         Add(n, new BoxMesh { Size = new Vector3(2.5f, 0.2f, 2.5f) }, new Vector3(0, 0.9f + 10f * h, 0), Glow(owner, 2f));
