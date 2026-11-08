@@ -567,6 +567,7 @@ public partial class PlanetHud : CanvasLayer
                 ("Backspace", "cancel the bay's last order"), ("WASD, middle-drag", "pan"), ("Q / E", "turn the view"), ("Wheel", "zoom"), ("H", "fly home"), ("F1", "this list"),
                 ("F9", "test panel (dev builds): edit anything for testing"), ("Ctrl+Z", "undo the last test-panel edit"), ("Space", "pause / resume while the test panel is open"),
                 ("F9 › SKY", "force time of day, season, weather and wind (look only)"),
+                ("F3", "achievements, and the HANGAR for the cosmetics they unlock"),
             },
         };
         foreach (var g in groups)

@@ -166,7 +166,7 @@ public partial class AchievementToasts : Control
     public float CentreX { get; set; } = -1;
 
     private readonly Queue<ToastView> _queue = new();
-    private readonly List<Toast> _shown = new();
+    private readonly List<AchievementToast> _shown = new();
 
     public int Pending => _queue.Count + _shown.Count;
 
@@ -194,7 +194,8 @@ public partial class AchievementToasts : Control
         if (Waiting) return;
         while (_queue.Count > 0 && _shown.Count < MaxShown)
         {
-            var t = new Toast(_queue.Dequeue());
+            var t = new AchievementToast();
+            t.Init(_queue.Dequeue());
             t.Clicked += id => Clicked?.Invoke(id);
             AddChild(t);
             _shown.Add(t);
@@ -223,274 +224,275 @@ public partial class AchievementToasts : Control
                 _shown.RemoveAt(i);
             }
     }
+}
 
-    /// <summary>One badge. Draws its own rounded panel (tier tint fading out by 46% of the width, shadow and tier glow,
-    /// border, light sweep, timer bar) in vertical slices so the tint, sweep and bar stay inside the rounded corners.</summary>
-    private sealed partial class Toast : Control
+/// <summary>One badge. Draws its own rounded panel (tier tint fading out by 46% of the width, shadow and tier glow,
+/// border, light sweep, timer bar) in vertical slices so the tint, sweep and bar stay inside the rounded corners.</summary>
+public partial class AchievementToast : Control
+{
+    public event Action<string>? Clicked;
+    public Vector2? Slot;
+    public bool Gone => _leave >= Leave;
+
+    private ToastView _v = null!;
+    private float _life;
+    private float _left, _age, _leave = -1f;
+    private const float Enter = 0.42f, Leave = 0.35f;
+    private float _s = -1f;
+    private Vector2 _screen;
+    private TextureRect _medal = null!;
+    private Label _kicker = null!, _name = null!, _desc = null!, _meta = null!;
+    private VBoxContainer _text = null!;
+    private StyleBoxFlat _shadow = null!, _glow = null!;
+
+    /// <summary>Builds the badge for one unlock (call once, before it enters the tree).</summary>
+    public void Init(ToastView v)
     {
-        public event Action<string>? Clicked;
-        public Vector2? Slot;
-        public bool Gone => _leave >= Leave;
-
-        private readonly ToastView _v;
-        private readonly float _life;
-        private float _left, _age, _leave = -1f;
-        private const float Enter = 0.42f, Leave = 0.35f;
-        private float _s = -1f;
-        private Vector2 _screen;
-        private readonly TextureRect _medal;
-        private readonly Label _kicker, _name, _desc, _meta;
-        private readonly VBoxContainer _text;
-        private StyleBoxFlat _shadow = null!, _glow = null!;
-
-        public Toast(ToastView v)
+        _v = v;
+        _life = _left = v.Tier == "gold" ? 6f : 4.5f;
+        MouseFilter = MouseFilterEnum.Stop;
+        MouseDefaultCursorShape = CursorShape.PointingHand;
+        TooltipText = "Open the achievements (F3)";
+        _medal = new TextureRect
         {
-            _v = v;
-            _life = _left = v.Tier == "gold" ? 6f : 4.5f;
-            MouseFilter = MouseFilterEnum.Stop;
-            MouseDefaultCursorShape = CursorShape.PointingHand;
-            TooltipText = "Open the achievements (F3)";
-            _medal = new TextureRect
-            {
-                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                TextureFilter = TextureFilterEnum.LinearWithMipmaps,
-                MouseFilter = MouseFilterEnum.Ignore,
-            };
-            AddChild(_medal);
-            _text = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-            AddChild(_text);
-            _kicker = HudKit.Label(v.Hidden ? "HIDDEN ACHIEVEMENT UNLOCKED" : "ACHIEVEMENT UNLOCKED", 12, v.Colour, condensed: true, bold: true);
-            _name = HudKit.Label(v.Name, 26, HudKit.Ink, condensed: true, bold: true);
-            _name.ClipText = true;
-            _name.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-            _desc = HudKit.Label(v.Description, 14, HudKit.Dim);
-            _desc.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            _text.AddChild(_kicker);
-            _text.AddChild(_name);
-            _text.AddChild(_desc);
-            _meta = HudKit.Label($"{v.TierName} · {v.Points}", 11, v.Colour);
-            _meta.AddThemeFontOverride("font", Medals.Mono());
-            AddChild(_meta);
-            GuiInput += e =>
-            {
-                if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } && _leave < 0)
-                {
-                    Clicked?.Invoke(_v.Id);
-                    _left = 0; // it has done its job
-                    AcceptEvent();
-                }
-            };
-        }
-
-        /// <summary>Sizes and fonts for the screen (rebuilt only when the scale changes).</summary>
-        public void Layout(float s, Vector2 screen)
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = TextureFilterEnum.LinearWithMipmaps,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        AddChild(_medal);
+        _text = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        AddChild(_text);
+        _kicker = HudKit.Label(v.Hidden ? "HIDDEN ACHIEVEMENT UNLOCKED" : "ACHIEVEMENT UNLOCKED", 12, v.Colour, condensed: true, bold: true);
+        _name = HudKit.Label(v.Name, 26, HudKit.Ink, condensed: true, bold: true);
+        _name.ClipText = true;
+        _name.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        _desc = HudKit.Label(v.Description, 14, HudKit.Dim);
+        _desc.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _text.AddChild(_kicker);
+        _text.AddChild(_name);
+        _text.AddChild(_desc);
+        _meta = HudKit.Label($"{v.TierName} · {v.Points}", 11, v.Colour);
+        _meta.AddThemeFontOverride("font", Medals.Mono());
+        AddChild(_meta);
+        GuiInput += e =>
         {
-            if (Mathf.IsEqualApprox(s, _s) && screen == _screen) return;
-            _s = s;
-            _screen = screen;
-            var width = Mathf.Min(screen.X - 32f, 540f * s);
-            var padL = 14f * s;
-            var padR = 22f * s;
-            var medal = 74f * s;
-            _medal.Texture = Medals.Medal(_v.Tier, _v.Colour, _v.Icon, false, false, medal * 1.5f);
-            _medal.Size = new Vector2(medal, medal);
-            _medal.PivotOffset = _medal.Size / 2f;
-            _kicker.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(12 * s));
-            _name.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(26 * s));
-            _desc.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(14 * s));
-            _meta.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(11 * s));
-            _text.AddThemeConstantOverride("separation", Mathf.RoundToInt(3 * s));
-            var textX = padL + medal + 18f * s;
-            var textW = width - textX - padR;
-            _desc.CustomMinimumSize = new Vector2(textW, 0);
-            _name.CustomMinimumSize = new Vector2(textW - 70f * s, 0); // clear of TIER · points
-            _width = width;
-            _textX = textX;
-            _medalSize = medal;
-            Fit();
-            var r = 11f * s;
-            _shadow = new StyleBoxFlat { BgColor = new Color(0.027f, 0.043f, 0.086f, 0.96f), ShadowColor = new Color(0, 0, 0, 0.62f), ShadowSize = Mathf.RoundToInt(28 * s), ShadowOffset = new Vector2(0, 12 * s) };
-            _shadow.SetCornerRadiusAll(Mathf.RoundToInt(r));
-            _glow = new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0), ShadowColor = new Color(_v.Colour, 0.22f), ShadowSize = Mathf.RoundToInt(24 * s) };
-            _glow.SetCornerRadiusAll(Mathf.RoundToInt(r));
+            if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } && _leave < 0)
+            {
+                Clicked?.Invoke(_v.Id);
+                _left = 0; // it has done its job
+                AcceptEvent();
+            }
+        };
+    }
+
+    /// <summary>Sizes and fonts for the screen (rebuilt only when the scale changes).</summary>
+    public void Layout(float s, Vector2 screen)
+    {
+        if (Mathf.IsEqualApprox(s, _s) && screen == _screen) return;
+        _s = s;
+        _screen = screen;
+        var width = Mathf.Min(screen.X - 32f, 540f * s);
+        var padL = 14f * s;
+        var padR = 22f * s;
+        var medal = 74f * s;
+        _medal.Texture = Medals.Medal(_v.Tier, _v.Colour, _v.Icon, false, false, medal * 1.5f);
+        _medal.Size = new Vector2(medal, medal);
+        _medal.PivotOffset = _medal.Size / 2f;
+        _kicker.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(12 * s));
+        _name.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(26 * s));
+        _desc.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(14 * s));
+        _meta.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(11 * s));
+        _text.AddThemeConstantOverride("separation", Mathf.RoundToInt(3 * s));
+        var textX = padL + medal + 18f * s;
+        var textW = width - textX - padR;
+        _desc.CustomMinimumSize = new Vector2(textW, 0);
+        _name.CustomMinimumSize = new Vector2(textW - 70f * s, 0); // clear of TIER · points
+        _width = width;
+        _textX = textX;
+        _medalSize = medal;
+        Fit();
+        var r = 11f * s;
+        _shadow = new StyleBoxFlat { BgColor = new Color(0.027f, 0.043f, 0.086f, 0.96f), ShadowColor = new Color(0, 0, 0, 0.62f), ShadowSize = Mathf.RoundToInt(28 * s), ShadowOffset = new Vector2(0, 12 * s) };
+        _shadow.SetCornerRadiusAll(Mathf.RoundToInt(r));
+        _glow = new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0), ShadowColor = new Color(_v.Colour, 0.22f), ShadowSize = Mathf.RoundToInt(24 * s) };
+        _glow.SetCornerRadiusAll(Mathf.RoundToInt(r));
+        QueueRedraw();
+    }
+
+    private float _width, _textX, _medalSize;
+
+    /// <summary>Height from the text (wrapped description), positions of the medal, text and points.</summary>
+    public void Fit()
+    {
+        var s = _s;
+        var padY = 13f * s;
+        var textW = _width - _textX - 22f * s;
+        _text.Size = new Vector2(textW, 0);
+        var textH = _text.GetCombinedMinimumSize().Y;
+        var height = Mathf.Max(_medalSize + padY * 2f, textH + padY * 2f);
+        if (Size != new Vector2(_width, height))
+        {
+            Size = new Vector2(_width, height);
+            PivotOffset = Size / 2f;
             QueueRedraw();
         }
+        _text.Position = new Vector2(_textX, (height - textH) / 2f);
+        _medal.Position = new Vector2(14f * s, (height - _medalSize) / 2f);
+        _meta.Position = new Vector2(_width - 14f * s - _meta.GetCombinedMinimumSize().X, 10f * s);
+    }
 
-        private float _width, _textX, _medalSize;
+    public void Advance(float dt, bool hover)
+    {
+        _age += dt;
+        if (_leave >= 0) _leave += dt;
+        else if (!hover || _left <= 0) _left -= dt; // hovering holds it
+        if (_leave < 0 && _left <= 0) _leave = 0;
+        QueueRedraw();
+    }
 
-        /// <summary>Height from the text (wrapped description), positions of the medal, text and points.</summary>
-        public void Fit()
+    public void Place()
+    {
+        // drop in (0.42 s, slight overshoot), lift out (0.35 s); the medal pops with a spin from 0.12 s
+        var dy = 0f;
+        var alpha = 1f;
+        var scale = 1f;
+        if (_age < Enter)
         {
-            var s = _s;
-            var padY = 13f * s;
-            var textW = _width - _textX - 22f * s;
-            _text.Size = new Vector2(textW, 0);
-            var textH = _text.GetCombinedMinimumSize().Y;
-            var height = Mathf.Max(_medalSize + padY * 2f, textH + padY * 2f);
-            if (Size != new Vector2(_width, height))
-            {
-                Size = new Vector2(_width, height);
-                PivotOffset = Size / 2f;
-                QueueRedraw();
-            }
-            _text.Position = new Vector2(_textX, (height - textH) / 2f);
-            _medal.Position = new Vector2(14f * s, (height - _medalSize) / 2f);
-            _meta.Position = new Vector2(_width - 14f * s - _meta.GetCombinedMinimumSize().X, 10f * s);
+            var t = _age / Enter;
+            var e = BackOut(t, 1.2f);
+            dy = -24f * _s * (1f - e);
+            scale = 0.96f + 0.04f * e;
+            alpha = Mathf.Clamp(t * 2.2f, 0f, 1f);
         }
-
-        public void Advance(float dt, bool hover)
+        if (_leave >= 0)
         {
-            _age += dt;
-            if (_leave >= 0) _leave += dt;
-            else if (!hover || _left <= 0) _left -= dt; // hovering holds it
-            if (_leave < 0 && _left <= 0) _leave = 0;
-            QueueRedraw();
+            var t = Mathf.Clamp(_leave / Leave, 0f, 1f);
+            var e = t * t;
+            dy = -16f * _s * e;
+            alpha = 1f - e;
         }
+        Position = Slot!.Value + new Vector2(0, dy);
+        Scale = new Vector2(scale, scale);
+        Modulate = new Color(1, 1, 1, alpha);
 
-        public void Place()
+        var p = Mathf.Clamp((_age - 0.12f) / 0.55f, 0f, 1f);
+        float ms, rot;
+        if (p < 0.7f)
         {
-            // drop in (0.42 s, slight overshoot), lift out (0.35 s); the medal pops with a spin from 0.12 s
-            var dy = 0f;
-            var alpha = 1f;
-            var scale = 1f;
-            if (_age < Enter)
-            {
-                var t = _age / Enter;
-                var e = BackOut(t, 1.2f);
-                dy = -24f * _s * (1f - e);
-                scale = 0.96f + 0.04f * e;
-                alpha = Mathf.Clamp(t * 2.2f, 0f, 1f);
-            }
-            if (_leave >= 0)
-            {
-                var t = Mathf.Clamp(_leave / Leave, 0f, 1f);
-                var e = t * t;
-                dy = -16f * _s * e;
-                alpha = 1f - e;
-            }
-            Position = Slot!.Value + new Vector2(0, dy);
-            Scale = new Vector2(scale, scale);
-            Modulate = new Color(1, 1, 1, alpha);
-
-            var p = Mathf.Clamp((_age - 0.12f) / 0.55f, 0f, 1f);
-            float ms, rot;
-            if (p < 0.7f)
-            {
-                var k = Ease(p / 0.7f);
-                ms = Mathf.Lerp(0.4f, 1.12f, k);
-                rot = Mathf.Lerp(-30f, 4f, k);
-            }
-            else
-            {
-                var k = Ease((p - 0.7f) / 0.3f);
-                ms = Mathf.Lerp(1.12f, 1f, k);
-                rot = Mathf.Lerp(4f, 0f, k);
-            }
-            _medal.Scale = new Vector2(ms, ms);
-            _medal.RotationDegrees = rot;
-            _medal.Modulate = new Color(1, 1, 1, Mathf.Clamp(p / 0.4f, 0f, 1f));
+            var k = Ease(p / 0.7f);
+            ms = Mathf.Lerp(0.4f, 1.12f, k);
+            rot = Mathf.Lerp(-30f, 4f, k);
         }
-
-        private static float Ease(float t) => 1f - Mathf.Pow(1f - Mathf.Clamp(t, 0f, 1f), 3f);
-
-        private static float BackOut(float t, float k)
+        else
         {
-            t = Mathf.Clamp(t, 0f, 1f) - 1f;
-            return t * t * ((k + 1f) * t + k) + 1f;
+            var k = Ease((p - 0.7f) / 0.3f);
+            ms = Mathf.Lerp(1.12f, 1f, k);
+            rot = Mathf.Lerp(4f, 0f, k);
         }
+        _medal.Scale = new Vector2(ms, ms);
+        _medal.RotationDegrees = rot;
+        _medal.Modulate = new Color(1, 1, 1, Mathf.Clamp(p / 0.4f, 0f, 1f));
+    }
 
-        public override void _Draw()
+    private static float Ease(float t) => 1f - Mathf.Pow(1f - Mathf.Clamp(t, 0f, 1f), 3f);
+
+    private static float BackOut(float t, float k)
+    {
+        t = Mathf.Clamp(t, 0f, 1f) - 1f;
+        return t * t * ((k + 1f) * t + k) + 1f;
+    }
+
+    public override void _Draw()
+    {
+        if (_s <= 0) return;
+        var w = Size.X;
+        var h = Size.Y;
+        var r = 11f * _s;
+        var rect = new Rect2(Vector2.Zero, Size);
+        DrawStyleBox(_glow, rect);
+        DrawStyleBox(_shadow, rect);
+
+        var panel = new Color(0.027f, 0.043f, 0.086f, 0.96f);
+        var tinted = Medals.Mix(_v.Colour, new Color(0.027f, 0.043f, 0.086f), 0.16f);
+        var line = Medals.Mix(_v.Colour, HudKit.Line, 0.55f);
+        // light sweep: a skewed band crossing from -30% to 120% over 1.1 s from 0.35 s
+        var sweep = (_age - 0.35f) / 1.1f;
+        var band = w * 0.22f;
+        var bandX = Mathf.Lerp(-0.3f * w, 1.2f * w, sweep) + band / 2f;
+        var skew = Mathf.Tan(Mathf.DegToRad(18f));
+        var drain = Mathf.Clamp(_left / _life, 0f, 1f);
+
+        const int slices = 72;
+        for (var i = 0; i < slices; i++)
         {
-            if (_s <= 0) return;
-            var w = Size.X;
-            var h = Size.Y;
-            var r = 11f * _s;
-            var rect = new Rect2(Vector2.Zero, Size);
-            DrawStyleBox(_glow, rect);
-            DrawStyleBox(_shadow, rect);
-
-            var panel = new Color(0.027f, 0.043f, 0.086f, 0.96f);
-            var tinted = Medals.Mix(_v.Colour, new Color(0.027f, 0.043f, 0.086f), 0.16f);
-            var line = Medals.Mix(_v.Colour, HudKit.Line, 0.55f);
-            // light sweep: a skewed band crossing from -30% to 120% over 1.1 s from 0.35 s
-            var sweep = (_age - 0.35f) / 1.1f;
-            var band = w * 0.22f;
-            var bandX = Mathf.Lerp(-0.3f * w, 1.2f * w, sweep) + band / 2f;
-            var skew = Mathf.Tan(Mathf.DegToRad(18f));
-            var drain = Mathf.Clamp(_left / _life, 0f, 1f);
-
-            const int slices = 72;
-            for (var i = 0; i < slices; i++)
+            var x0 = w * i / slices;
+            var x1 = w * (i + 1) / slices;
+            var (t0, b0) = Edge(x0, w, h, r);
+            var (t1, b1) = Edge(x1, w, h, r);
+            var c0 = Fill(x0 / w, tinted, panel);
+            var c1 = Fill(x1 / w, tinted, panel);
+            var pts = new[] { new Vector2(x0, t0), new Vector2(x1, t1), new Vector2(x1, b1), new Vector2(x0, b0) };
+            if (sweep is > 0f and < 1f)
             {
-                var x0 = w * i / slices;
-                var x1 = w * (i + 1) / slices;
-                var (t0, b0) = Edge(x0, w, h, r);
-                var (t1, b1) = Edge(x1, w, h, r);
-                var c0 = Fill(x0 / w, tinted, panel);
-                var c1 = Fill(x1 / w, tinted, panel);
-                var pts = new[] { new Vector2(x0, t0), new Vector2(x1, t1), new Vector2(x1, b1), new Vector2(x0, b0) };
-                if (sweep is > 0f and < 1f)
+                var cols = new[]
                 {
-                    var cols = new[]
-                    {
-                        c0 + Shine(x0 + skew * (h / 2f - t0), bandX, band), c1 + Shine(x1 + skew * (h / 2f - t1), bandX, band),
-                        c1 + Shine(x1 + skew * (h / 2f - b1), bandX, band), c0 + Shine(x0 + skew * (h / 2f - b0), bandX, band),
-                    };
-                    DrawPolygon(pts, cols);
-                }
-                else DrawPolygon(pts, new[] { c0, c1, c1, c0 });
-                // timer bar: the bottom 2 px, from the left to the time left
-                var barTop = h - 2f * Mathf.Max(1f, _s);
-                var xe = Mathf.Min(x1, w * drain);
-                if (xe > x0)
-                {
-                    var (_, be) = Edge(xe, w, h, r);
-                    var bt0 = Mathf.Max(barTop, t0);
-                    var bte = Mathf.Max(barTop, Edge(xe, w, h, r).Top);
-                    if (b0 > bt0 && be > bte)
-                        DrawPolygon(new[] { new Vector2(x0, bt0), new Vector2(xe, bte), new Vector2(xe, be), new Vector2(x0, b0) },
-                            new[] { new Color(_v.Colour, 0.75f), new Color(_v.Colour, 0.75f), new Color(_v.Colour, 0.75f), new Color(_v.Colour, 0.75f) });
-                }
+                    c0 + Shine(x0 + skew * (h / 2f - t0), bandX, band), c1 + Shine(x1 + skew * (h / 2f - t1), bandX, band),
+                    c1 + Shine(x1 + skew * (h / 2f - b1), bandX, band), c0 + Shine(x0 + skew * (h / 2f - b0), bandX, band),
+                };
+                DrawPolygon(pts, cols);
             }
-            DrawPolyline(Outline(w, h, r), line, 1f, true);
-        }
-
-        private static Color Fill(float u, Color tinted, Color panel) => u >= 0.46f ? panel : tinted.Lerp(panel, u / 0.46f);
-
-        private static Color Shine(float x, float centre, float band)
-        {
-            var d = Mathf.Abs(x - centre) / (band / 2f);
-            var k = d >= 1f ? 0f : 0.15f * (1f - d); // the mockup's #ffffff26 at the band's middle
-            return new Color(k, k, k, 0f);
-        }
-
-        /// <summary>Top and bottom of the rounded rectangle at x.</summary>
-        private static (float Top, float Bottom) Edge(float x, float w, float h, float r)
-        {
-            var dx = x < r ? r - x : x > w - r ? x - (w - r) : 0f;
-            var dy = dx > 0 ? r - Mathf.Sqrt(Mathf.Max(0f, r * r - dx * dx)) : 0f;
-            return (dy, h - dy);
-        }
-
-        private static Vector2[] Outline(float w, float h, float r)
-        {
-            var pts = new List<Vector2>();
-            void Arc(Vector2 c, float from)
+            else DrawPolygon(pts, new[] { c0, c1, c1, c0 });
+            // timer bar: the bottom 2 px, from the left to the time left
+            var barTop = h - 2f * Mathf.Max(1f, _s);
+            var xe = Mathf.Min(x1, w * drain);
+            if (xe > x0)
             {
-                for (var k = 0; k <= 6; k++)
-                {
-                    var a = Mathf.DegToRad(from + 90f * k / 6f);
-                    pts.Add(c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r);
-                }
+                var (_, be) = Edge(xe, w, h, r);
+                var bt0 = Mathf.Max(barTop, t0);
+                var bte = Mathf.Max(barTop, Edge(xe, w, h, r).Top);
+                if (b0 > bt0 && be > bte)
+                    DrawPolygon(new[] { new Vector2(x0, bt0), new Vector2(xe, bte), new Vector2(xe, be), new Vector2(x0, b0) },
+                        new[] { new Color(_v.Colour, 0.75f), new Color(_v.Colour, 0.75f), new Color(_v.Colour, 0.75f), new Color(_v.Colour, 0.75f) });
             }
-            var o = 0.5f;
-            Arc(new Vector2(r + o, r + o), 180f);
-            Arc(new Vector2(w - r - o, r + o), 270f);
-            Arc(new Vector2(w - r - o, h - r - o), 0f);
-            Arc(new Vector2(r + o, h - r - o), 90f);
-            pts.Add(pts[0]);
-            return pts.ToArray();
         }
+        DrawPolyline(Outline(w, h, r), line, 1f, true);
+    }
+
+    private static Color Fill(float u, Color tinted, Color panel) => u >= 0.46f ? panel : tinted.Lerp(panel, u / 0.46f);
+
+    private static Color Shine(float x, float centre, float band)
+    {
+        var d = Mathf.Abs(x - centre) / (band / 2f);
+        var k = d >= 1f ? 0f : 0.15f * (1f - d); // the mockup's #ffffff26 at the band's middle
+        return new Color(k, k, k, 0f);
+    }
+
+    /// <summary>Top and bottom of the rounded rectangle at x.</summary>
+    private static (float Top, float Bottom) Edge(float x, float w, float h, float r)
+    {
+        var dx = x < r ? r - x : x > w - r ? x - (w - r) : 0f;
+        var dy = dx > 0 ? r - Mathf.Sqrt(Mathf.Max(0f, r * r - dx * dx)) : 0f;
+        return (dy, h - dy);
+    }
+
+    private static Vector2[] Outline(float w, float h, float r)
+    {
+        var pts = new List<Vector2>();
+        void Arc(Vector2 c, float from)
+        {
+            for (var k = 0; k <= 6; k++)
+            {
+                var a = Mathf.DegToRad(from + 90f * k / 6f);
+                pts.Add(c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r);
+            }
+        }
+        var o = 0.5f;
+        Arc(new Vector2(r + o, r + o), 180f);
+        Arc(new Vector2(w - r - o, r + o), 270f);
+        Arc(new Vector2(w - r - o, h - r - o), 0f);
+        Arc(new Vector2(r + o, h - r - o), 90f);
+        pts.Add(pts[0]);
+        return pts.ToArray();
     }
 }

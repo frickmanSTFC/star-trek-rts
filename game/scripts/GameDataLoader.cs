@@ -17,6 +17,10 @@ public static class GameDataLoader
 {
     public const string PackPath = "res://gamedata.pack";
 
+    /// <summary>True when the last load gave the base data as it is (data/ or the release pack): no draft, no fallback.
+    /// Achievements only count then (PlanetDriver.Achievements.cs).</summary>
+    public static bool Official { get; private set; } = true;
+
     /// <param name="dataDirectory">The data/ folder in use, or "" when the data came from the pack.</param>
     /// <param name="messages">What was refused on the way (shown as warnings); empty = loaded as asked.</param>
     public static GameData Load(DataSetup setup, out string dataDirectory, out IReadOnlyList<string> messages)
@@ -28,6 +32,7 @@ public static class GameDataLoader
             var result = DataStore.LoadForGame(dir, setup);
             dataDirectory = dir;
             messages = result.Refused;
+            Official = result.From == "data/";
             GD.Print($"Game data: {result.From} ({setup}), fingerprint {result.Data.Fingerprint[..12]}");
             foreach (var m in result.Refused) GD.PushError($"Game data: {m}");
             if (result.UsedFallback) GD.PushError($"Game data: running on {result.From}.");
@@ -39,6 +44,7 @@ public static class GameDataLoader
             throw new InvalidOperationException($"No game data: {PackPath} is missing ({Godot.FileAccess.GetOpenError()}). " +
                                                 "Build it with `dotnet run --project tools/DataPacker -- --out game/gamedata.pack` before exporting.");
         var data = GameData.LoadPack(bytes, setup);
+        Official = true;
         GD.Print($"Game data: {PackPath}, fingerprint {data.Fingerprint[..12]}");
         return data;
     }

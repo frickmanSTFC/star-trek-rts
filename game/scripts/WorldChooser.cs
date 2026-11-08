@@ -74,6 +74,12 @@ public partial class WorldChooser : Control
 
     public bool IsOpen => _panel.Visible;
 
+    /// <summary>The panel's ACHIEVEMENTS button (PlanetDriver.Achievements.cs opens the screen).</summary>
+    public event System.Action? AchievementsRequested;
+
+    /// <summary>The WORLD button in viewport pixels (empty while hidden).</summary>
+    public Rect2 ButtonRect => _open.Visible ? _open.GetGlobalRect() : new Rect2();
+
     public void Setup(GameData data, string currentWorld, ulong currentSeed)
     {
         _data = data;
@@ -126,6 +132,15 @@ public partial class WorldChooser : Control
 
         var buttons = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         buttons.AddThemeConstantOverride("separation", 10);
+        var achievements = new Button { Text = "ACHIEVEMENTS", FocusMode = FocusModeEnum.None, TooltipText = "Your achievements and the HANGAR (F3)" };
+        HudKit.StyleTile(achievements, 6, 8);
+        achievements.Pressed += () =>
+        {
+            Close();
+            AchievementsRequested?.Invoke();
+        };
+        buttons.AddChild(achievements);
+        buttons.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         var cancel = new Button { Text = "CANCEL", FocusMode = FocusModeEnum.None };
         HudKit.StyleTile(cancel, 6, 8);
         cancel.Pressed += Close;
