@@ -68,7 +68,7 @@ void fragment() {
 	} else if (pattern == 2) {
 		float yc = box_min.y + box_size.y * 0.18;
 		float along = abs(nrm.x) >= abs(nrm.z) ? m_pos.z : abs(m_pos.x);
-		float s = (along + abs(m_pos.y - yc)) / 0.7;
+		float s = (along - abs(m_pos.y - yc)) / 0.7; // apex toward -Z: pointing forward
 		float t = abs(fract(s) - 0.5) * 2.0;
 		float ws = fwidth(s) * 2.0 + 0.0005;
 		float dark = smoothstep(0.5 - ws, 0.5 + ws, t);

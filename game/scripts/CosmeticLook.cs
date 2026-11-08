@@ -229,9 +229,16 @@ public static class CosmeticLook
     {
         var m = (BaseMaterial3D)source.Duplicate();
         m.AlbedoColor = new Color(c.R, c.G, c.B, source.AlbedoColor.A);
-        if (m.EmissionEnabled) m.Emission = c;
+        if (m.EmissionEnabled)
+        {
+            m.Emission = c;
+            m.EmissionEnergyMultiplier = OwnerGlow; // BuildingModels.Recolour's (the night boost may have raised the source's)
+        }
         return m;
     }
+
+    /// <summary>The "Owner" stripes' self-glow, as BuildingModels.Recolour sets it.</summary>
+    private const float OwnerGlow = 0.35f;
 
     private static BaseMaterial3D Finished(BaseMaterial3D source, Cosmetics.FinishLook f)
     {
