@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FinalFrontier.Sim.Core;
 using FinalFrontier.Sim.Data;
+using FinalFrontier.Sim.Math;
 using FinalFrontier.Sim.Space;
 using FinalFrontier.Sim.Surface;
 using Godot;
@@ -236,6 +237,18 @@ public partial class PlanetDriver
             return rows;
         }
         rows.Add(new HelmRow("LIVE", "live data from satellite", HelmScreen.Cyan));
+        // the sim's satellite readings (StarSystemState.LiveReadings): temperature now, day/night, season; its weather is
+        // the season's likeliest kind, not a live report, so it is labelled as such
+        if (_system.State?.LiveReadings(LocalPlayer, b.Id) is { } live)
+        {
+            if (live.TemperatureC is { } t) rows.Add(new HelmRow("TEMP", $"{t.ToFloat():0.#} °C now{(live.Night ? " · night" : " · day")}"));
+            else if (live.MeanTemperatureC is { } mean) rows.Add(new HelmRow("TEMP", $"{mean.ToFloat():0.#} °C mean"));
+            if (live.PressureKpa is { } kpa) rows.Add(new HelmRow("PRESSURE", kpa > Fix64.Zero ? $"{kpa.ToFloat():0.#} kPa" : "airless"));
+            if (live.GravityG is { } g) rows.Add(new HelmRow("GRAVITY", $"{g.ToFloat():0.##} g"));
+            if (live.Season.Length > 0) rows.Add(new HelmRow("SEASON", live.Season));
+            if (live.HasWeather) rows.Add(new HelmRow("TYPICAL", $"{live.Weather} this season"));
+            return rows;
+        }
         var env = _data.EnvironmentOf(b.ClassId);
         var map = _orbit.LookMapOf(b.Id);
         if (env != null && map != null && _data.Telemetry != null)
