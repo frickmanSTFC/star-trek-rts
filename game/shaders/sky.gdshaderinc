@@ -9,8 +9,9 @@
 // sky_ref_shade  sky_shade() of the daylight the scene's own lights carry right now (the Sun, the moon and the ambient
 //              are set for the view's centre): a tile lit less than that is darkened by the ratio, a brighter one is
 //              brightened a little, so the night side reads dark from high above while the view's centre stays right.
-// sky_wx_tex   one texel per tile: R = snow lying on the ground, G = wetness, B = puddles (render-only accumulation in
-//              scripts/SkyField.cs).
+// sky_wx_tex   one texel per tile: R = snow lying on the ground, G = wetness, B = puddles, A = night frost (render-only
+//              accumulation in scripts/SkyField.cs). The frost shows only with sky_frost_on (class L, PlanetLook.Frost),
+//              so worlds without it look exactly as before.
 // Names are prefixed sky_ (uniforms, functions) and p_ (parameters) so nothing shadows the including shader's globals.
 
 uniform float sky_on = 0.0;
@@ -20,6 +21,8 @@ uniform vec3 sky_ref_shade = vec3(1.0);
 uniform sampler2D sky_wx_tex : hint_default_black, filter_linear, repeat_disable;
 uniform vec3 sky_snow_colour : source_color = vec3(0.86, 0.89, 0.95);
 uniform float sky_rain = 0.0; // 0..1 falling at the view's centre (water roughens)
+uniform float sky_frost_on = 0.0; // 1 on worlds with night frost (PlanetView.Veyra.cs)
+uniform vec3 sky_frost_colour : source_color = vec3(0.8, 0.85, 0.9);
 
 vec2 sky_tile_uv(vec3 p_world) {
 	return vec2((p_world.x / hex_width + 0.5) / map_tiles.x, (p_world.z / (0.866 * hex_width) + 0.5) / map_tiles.y);
@@ -86,4 +89,16 @@ float sky_snow(vec3 p_world, float p_up, float p_cover) {
 float sky_puddle(vec3 p_world, float p_up, float p_amount) {
 	float n = sky_noise(p_world.xz * 0.06) * 0.7 + sky_noise(p_world.xz * 0.31) * 0.3;
 	return smoothstep(0.0, 0.06, n - (1.0 - p_amount * 0.55)) * smoothstep(0.93, 0.985, p_up);
+}
+
+// Hoar frost at a world point (0..1) for a surface facing up by p_up: a fine, patchy white crust from the tile's frost
+// (sky_wx_tex alpha), first in the open on flat ground and on up-facing rims, then thicker. 0 unless sky_frost_on.
+float sky_frost(vec3 p_world, float p_up) {
+	if (sky_on < 0.5 || sky_frost_on < 0.5) {
+		return 0.0;
+	}
+	float f = texture(sky_wx_tex, sky_tile_uv(p_world)).a;
+	float n = sky_noise(p_world.xz * 0.9) * 0.55 + sky_noise(p_world.xz * 4.3) * 0.45;
+	float s = smoothstep(0.15, 0.5, f + (n - 0.5) * 0.55 - (1.0 - p_up) * 0.7);
+	return s * smoothstep(0.0, 0.12, f) * 0.9;
 }

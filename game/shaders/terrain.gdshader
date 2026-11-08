@@ -1,6 +1,7 @@
 // Planet terrain: per-tile colour from the mesh, hex outlines near tile edges, and fog of war
 // from a small texture (one texel per tile: 1 = in sight, ~0.4 = explored, ~0.08 = unexplored).
-// Day/night, wet ground, puddles and lying snow come from sky.gdshaderinc (off by default: then it looks as before).
+// Day/night, wet ground, puddles, lying snow and night frost come from sky.gdshaderinc (off by default: then it looks
+// as before). Ground colours are per planet class, baked into the vertex colours (scripts/PlanetLook.cs).
 shader_type spatial;
 render_mode cull_disabled, diffuse_burley, specular_schlick_ggx;
 
@@ -42,6 +43,11 @@ void fragment() {
 		albedo = mix(albedo, sky_snow_colour * (0.93 + 0.07 * sky_noise(world_pos.xz * 2.3)), snow);
 		rough = mix(rough, 0.7, snow);
 		spec = mix(spec, 0.35, snow);
+		// Night frost (class L only; 0 elsewhere): a thin, glittery white crust.
+		float frost = sky_frost(world_pos, up) * (1.0 - snow);
+		albedo = mix(albedo, sky_frost_colour * (0.9 + 0.1 * sky_noise(world_pos.xz * 7.1)), frost);
+		rough = mix(rough, 0.55, frost);
+		spec = mix(spec, 0.5, frost);
 		vec3 lit = sky_light(world_pos);
 		albedo *= lit;
 		spec *= min(1.0, (lit.r + lit.g + lit.b) / 3.0);

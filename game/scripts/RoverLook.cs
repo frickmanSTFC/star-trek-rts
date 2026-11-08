@@ -336,10 +336,17 @@ public static class RoverLook
                         _snow += drive / SnowSeconds;
                         _dust -= drive / DustSeconds;
                         break;
+                    case SprayKind.RustDust:
+                        _dust += drive / DustSeconds;
+                        break;
+                    case SprayKind.FrostGrit:
+                        _snow += drive / SnowSeconds * 0.35f;
+                        _dust += drive / DustSeconds * 0.3f;
+                        break;
                 }
-                if (kind != SprayKind.Snow) _snow -= delta / 90f; // melts off away from the ice
+                if (kind is not (SprayKind.Snow or SprayKind.FrostGrit)) _snow -= delta / 90f; // melts off away from the ice
                 _dust -= delta / 600f;                             // a little shakes off over time
-                if (moving && kind is SprayKind.Dust or SprayKind.Grit or SprayKind.Dirt)
+                if (moving && kind is SprayKind.Dust or SprayKind.Grit or SprayKind.Dirt or SprayKind.RustDust)
                     _dustColour = _dustColour.Lerp(DustOf(kind), Mathf.Min(1f, delta / 20f));
                 _dust = Mathf.Clamp(_dust, 0f, 1f);
                 _mud = Mathf.Clamp(_mud, 0f, 1f);
@@ -368,6 +375,7 @@ public static class RoverLook
         {
             SprayKind.Grit => new Color(0.55f, 0.52f, 0.47f),
             SprayKind.Dirt => new Color(0.5f, 0.41f, 0.3f),
+            SprayKind.RustDust => new Color(0.6f, 0.4f, 0.27f),
             _ => new Color(0.74f, 0.6f, 0.41f),
         };
     }

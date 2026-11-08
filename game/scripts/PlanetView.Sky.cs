@@ -18,8 +18,10 @@ public partial class PlanetView
     private int _skyMaterialCount;
 
     /// <summary>The two per-tile textures (SkyField); they keep their identity, so this is needed once. Turns sky_on on.</summary>
-    public void SetSkyTextures(Texture2D day, Texture2D weather)
+    /// <param name="field">The SkyField itself, for per-tile frost on the CPU side (spray; PlanetView.Veyra.cs).</param>
+    public void SetSkyTextures(Texture2D day, Texture2D weather, SkyField? field = null)
     {
+        _skyField = field ?? _skyField;
         _skyDay = day;
         _skyWeather = weather;
         _skyMaterialCount = 0;
@@ -38,6 +40,7 @@ public partial class PlanetView
                 m.SetShaderParameter("sky_on", 1f);
                 m.SetShaderParameter("sky_day_tex", _skyDay);
                 m.SetShaderParameter("sky_wx_tex", _skyWeather);
+                m.SetShaderParameter("sky_frost_on", Look.Frost ? 1f : 0f); // night frost: class L only (PlanetLook)
             }
         }
         foreach (var m in _fogMaterials)

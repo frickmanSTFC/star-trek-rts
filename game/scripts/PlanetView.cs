@@ -31,6 +31,9 @@ public partial class PlanetView : Node3D
 
     private Simulation _sim = null!;
     private PlanetSurface _surface = null!;
+
+    /// <summary>How this planet class looks (PlanetLook.cs): ground palette, scatter set, frost, dust devils, haze.</summary>
+    public PlanetLook Look { get; private set; } = PlanetLook.ClassM;
     private int _localPlayer;
 
     private float[] _centreHeight = System.Array.Empty<float>();
@@ -87,11 +90,13 @@ public partial class PlanetView : Node3D
         _sim = sim;
         _surface = sim.Surface!;
         _localPlayer = localPlayer;
+        Look = PlanetLook.For(_surface.Map.Def.ClassId); // PlanetLook.cs: class M = the old colours exactly
 
         BuildFogTexture();
         BuildTerrain();
         BuildWater();
         BuildScatter();
+        BuildCo2Haze(); // PlanetView.Veyra.cs: class L only
         // Region hints are read on the orbital globe now (no floating words over the map).
         _deposits = BuildCrystals();
 
@@ -237,6 +242,8 @@ public partial class PlanetView : Node3D
         UpdateRefineries(delta); // PlanetView.Refinery.cs: the refinery's machinery, furnace and lamps by status
         UpdateDetailedBuildings(delta); // PlanetView.Detailed.cs: mine hoist, storage crane + fill gauge, reactor core
         UpdateScatter();
+        UpdateVeyra(delta); // PlanetView.Veyra.cs: class L dust devils and CO₂ haze (nothing on class M)
+        UpdateDomes(delta); // PlanetView.Domes.cs: glass domes and containment fields on a Domes world
         _time += delta;
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
         UpdateRovers(alpha, delta);
@@ -349,12 +356,13 @@ public partial class PlanetView : Node3D
         return Mathf.Clamp(a * 0.75f + b * 0.35f, -1f, 1f);
     }
 
-    /// <summary>Mountain colours by height: dark rock low, grey crags, snow above the snow line.</summary>
-    private static Color RockColour(float height, Vector3 p)
+    /// <summary>Mountain colours by height: dark rock low, grey crags, snow above the snow line (the planet class's
+    /// rock and peaks: class M grey + snow, class L basalt + frost).</summary>
+    private Color RockColour(float height, Vector3 p)
     {
-        var rock = new Color(0.33f, 0.31f, 0.3f).Lerp(new Color(0.5f, 0.48f, 0.46f), Mathf.Clamp((height - 12f) / 20f, 0f, 1f));
+        var rock = Look.RockLow.Lerp(Look.RockHigh, Mathf.Clamp((height - 12f) / 20f, 0f, 1f));
         var snowLine = 34f + Bump(p) * 4f;
-        return height > snowLine ? new Color(0.93f, 0.95f, 0.98f) : rock;
+        return height > snowLine ? Look.Peak : rock;
     }
 
     private void BuildTerrain()
@@ -402,8 +410,8 @@ public partial class PlanetView : Node3D
         {
             var terrain = map.Terrain(t);
             var water = map.IsWater(t);
-            var colour = Color.FromHtml(terrain.Color).Lightened((map.Elevation[t].ToFloat() - 0.5f) * 0.15f);
-            if (water) colour = new Color(0.36f, 0.33f, 0.24f).Lerp(colour, 0.35f); // seabed
+            var colour = Look.TerrainColour(terrain.Id, terrain.Color).Lightened((map.Elevation[t].ToFloat() - 0.5f) * 0.15f);
+            if (water) colour = Look.Seabed.Lerp(colour, 0.35f); // seabed
             var centreColour = colour;
             if (terrain.Id == "hills") centreColour = colour.Lightened(0.08f);
 
@@ -502,7 +510,13 @@ public partial class PlanetView : Node3D
             index += 7;
         }
         if (index == 0) return;
-        AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = FogMaterial("res://shaders/water.gdshader"), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        var waterMaterial = FogMaterial("res://shaders/water.gdshader");
+        if (!Look.IsDefault)
+        {
+            waterMaterial.SetShaderParameter("deep_colour", Look.WaterDeep);
+            waterMaterial.SetShaderParameter("shallow_colour", Look.WaterShallow);
+        }
+        AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = waterMaterial, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
     }
 
     // Trees, grass and rocks: BuildScatter / UpdateScatter in PlanetView.Scatter.cs.
@@ -612,7 +626,8 @@ public partial class PlanetView : Node3D
     public Color TileColour(int tile)
     {
         var map = _surface.Map;
-        var colour = Color.FromHtml(map.Terrain(tile).Color).Lightened((map.Elevation[tile].ToFloat() - 0.5f) * 0.15f);
+        var terrain = map.Terrain(tile);
+        var colour = Look.TerrainColour(terrain.Id, terrain.Color).Lightened((map.Elevation[tile].ToFloat() - 0.5f) * 0.15f);
         return FogAt(tile) switch
         {
             Fog.Visible => colour,
@@ -894,8 +909,7 @@ public partial class PlanetView : Node3D
             active.Add(core.Id);
             if (!_buildingCrews.TryGetValue(core.Id, out var people))
             {
-                var colour = PlanetDriver.ColorOf(core.Owner);
-                people = new[] { NewRepairer(colour, core.Id * 31 + 5001), NewRepairer(colour, core.Id * 31 + 5002) };
+                people = new[] { NewRepairer(core.Owner, core.Id * 31 + 5001), NewRepairer(core.Owner, core.Id * 31 + 5002) };
                 foreach (var p in people) AddChild(p);
                 _buildingCrews[core.Id] = people;
             }
@@ -1056,7 +1070,8 @@ public partial class PlanetView : Node3D
             model.Position = pos + new Vector3(0, 0.1f, 0);
             if (def.CanFound) AnimateConstructor(model, u, delta); // unfolding on its site (PlanetView.Founding.cs)
             UpdateRoverDamage(u, def, model, moving || rolling, delta); // flat wheels, lean, damage looks (rovers only)
-            var ground = SprayRig.KindFor(_surface.Map, TileAt(pos));
+            var groundTile = TileAt(pos);
+            var ground = SprayRig.KindFor(_surface.Map, groundTile, FrostAt(groundTile)); // frost: PlanetView.Veyra.cs
             if (model.GetNodeOrNull<SprayRig>("SprayRig") is { } spray) spray.Spray(ground, moving || rolling);
             var dirty = false;
             if (_grime.TryGetValue(u.Id, out var grime))
@@ -1068,7 +1083,7 @@ public partial class PlanetView : Node3D
             if (_lamps.TryGetValue(u.Id, out var lamps))
             {
                 // Wipers run on wet, muddy, snowy or dusty ground, and while the pad washes a dirty vehicle.
-                var wipe = ((moving || rolling) && ground is SprayKind.Water or SprayKind.Mud or SprayKind.Snow or SprayKind.Dust) || (onPad && dirty);
+                var wipe = ((moving || rolling) && ground is SprayKind.Water or SprayKind.Mud or SprayKind.Snow or SprayKind.Dust or SprayKind.RustDust) || (onPad && dirty);
                 lamps.Update(moving || rolling, u.Broken || u.Integrity < Fix64.FromInt(50), wipe, delta);
             }
             UnitHeadlights(u, def); // PlanetView.Headlights.cs: broken / damaged / out of sight / crawler deployed
@@ -1305,8 +1320,7 @@ public partial class PlanetView : Node3D
             var core = PadCore(u, u.Tile)!;
             if (crew == null)
             {
-                var colour = PlanetDriver.ColorOf(u.Owner);
-                crew = new CrewVisual { People = new[] { NewRepairer(colour, u.Id * 31 + 9001), NewRepairer(colour, u.Id * 31 + 9002) } };
+                crew = new CrewVisual { People = new[] { NewRepairer(u.Owner, u.Id * 31 + 9001), NewRepairer(u.Owner, u.Id * 31 + 9002) } };
                 foreach (var p in crew.People) AddChild(p);
                 _crews[u.Id] = crew;
             }

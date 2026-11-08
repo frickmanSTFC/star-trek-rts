@@ -74,6 +74,7 @@ public partial class PlanetDriver
         _weatherView = new WeatherView { Name = "Weather", Visible = false }; // shown on the surface only
         AddChild(_weatherView);
         _weatherView.Build();
+        _weatherView.DustColour = _view.Look.StormDust; // rust on Veyra (PlanetLook)
 
         _skyDomeMaterial = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/sky_dome.gdshader"), RenderPriority = -100 };
         _skyDome = new MeshInstance3D
@@ -221,7 +222,7 @@ public partial class PlanetDriver
         if (!_skyTexturesSet)
         {
             _skyTexturesSet = true;
-            _view.SetSkyTextures(_skyField.DayTexture, _skyField.WeatherTexture);
+            _view.SetSkyTextures(_skyField.DayTexture, _skyField.WeatherTexture, _skyField);
         }
         var refShade = SkyModel.Shade(dayRef);
         if (!Mathf.IsEqualApprox(shift, _lastShift) || !refShade.IsEqualApprox(_lastRef) || Mathf.Abs(_look.Rain - _lastRain) > 0.01f)
@@ -359,7 +360,7 @@ public partial class PlanetDriver
         var dayHorizon = _skyColour.Lightened(0.25f).Lerp(grey, 0.7f * _cloudEased) * SkyModel.Warm(Mathf.Max(dayRef, 0.2f));
         var nightHorizon = new Color(0.02f, 0.03f, 0.06f);
         var horizon = nightHorizon.Lerp(dayHorizon, light);
-        var weatherTint = (_look.Dust > Mathf.Max(_look.Fog, Mathf.Max(_look.Rain, _look.Snow)) ? new Color(0.7f, 0.5f, 0.3f) : grey) * Mathf.Max(light, 0.08f);
+        var weatherTint = (_look.Dust > Mathf.Max(_look.Fog, Mathf.Max(_look.Rain, _look.Snow)) ? _view.Look.FogDust : grey) * Mathf.Max(light, 0.08f);
         var thick = Mathf.Clamp(Mathf.Max(Mathf.Max(_look.Fog, _look.Rain * 0.5f), Mathf.Max(_look.Snow * 0.6f, _look.Dust)), 0f, 1f) * (1f - 0.5f * wide);
         // Close up the haze takes on the sky (darkened: it fills the near air too), so far ground fades into the horizon.
         var fogColour = _baseFogColour.Lerp(horizon * 0.65f, tilt * 0.75f).Lerp(weatherTint, thick) + new Color(0.5f, 0.55f, 0.7f) * flash * 0.3f;

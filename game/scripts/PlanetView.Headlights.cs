@@ -100,6 +100,7 @@ public partial class PlanetView
     public void UpdateHeadlights(System.Func<Vector3, float> daylightAt, Vector3 eye, float delta)
     {
         _eye = eye; // also the walkers' range check (PlanetView.Walkers.cs)
+        _skyDaylightAt = daylightAt; // dust devils / haze (PlanetView.Veyra.cs)
         _headlightClock += delta;
         var count = _lightRigs.Count;
         if (_rigDistance.Length < count)

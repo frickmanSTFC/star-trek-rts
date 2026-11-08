@@ -27,8 +27,10 @@ public partial class PlanetView
     /// <param name="MaxHeight">Highest ground it grows on (trees on the lower mountain slopes only).</param>
     /// <param name="MinUp">Steepest ground it stands on (the ground normal's Y).</param>
     /// <param name="Dry">Grass: how much the meadow noise turns it straw-coloured.</param>
+    /// <param name="YScale">Squashes (below 1) the model's height: class L's lichen mats are flattened grass tufts and
+    /// fern rosettes, its shrubs low bushes.</param>
     private sealed record ScatterRule(ScatterKind Kind, string[] Assets, float PerTile, float MinScale, float MaxScale, Color[] Tints,
-        float Clump = 0f, float Snow = 0f, float Moss = 0f, float MaxHeight = 1e9f, float MinUp = 0f, float Dry = 0f);
+        float Clump = 0f, float Snow = 0f, float Moss = 0f, float MaxHeight = 1e9f, float MinUp = 0f, float Dry = 0f, float YScale = 1f);
 
     private static readonly Color[] TreeTints = { new(1f, 1f, 1f), new(0.9f, 1f, 0.88f), new(1.06f, 1f, 0.86f), new(0.86f, 0.95f, 0.97f), new(0.96f, 0.93f, 0.8f) };
     private static readonly Color[] GrassTints = { new(1f, 1f, 1f), new(0.92f, 1.02f, 0.9f), new(1.08f, 1.05f, 0.82f) };
@@ -99,6 +101,76 @@ public partial class PlanetView
             new(ScatterKind.Small, new[] { "scree" }, 1f, 0.8f, 1.4f, MountainStoneTints, Snow: 0.7f),
         },
     };
+
+    // Class L (Veyra): cold tundra with few or no trees. The same scatter.glb models, tinted, squashed and thinned out.
+    private static readonly Color[] LShrubTints = { new(1.45f, 0.95f, 0.7f), new(1.3f, 1f, 0.76f), new(1.6f, 1.05f, 0.7f) };   // olive-brown, rusty
+    private static readonly Color[] LichenTints = { new(1.6f, 1.15f, 1.55f), new(1.55f, 1.25f, 1.25f), new(1.85f, 1.35f, 1.15f) }; // pale grey-green, ochre
+    private static readonly Color[] LStuntedTints = { new(0.95f, 0.85f, 0.75f), new(1.05f, 0.9f, 0.72f) };
+    private static readonly Color[] TundraStoneTints = { new(1.05f, 0.97f, 0.86f), new(0.92f, 0.9f, 0.87f) };
+    private static readonly Color[] RustStoneTints = { new(1.22f, 0.88f, 0.66f), new(1.12f, 0.86f, 0.7f), new(1f, 0.86f, 0.76f) };
+    private static readonly Color[] CarvedTints = { new(1f, 0.82f, 0.7f), new(0.9f, 0.78f, 0.7f), new(0.8f, 0.74f, 0.7f) };       // wind-carved, rust-grey
+    private static readonly Color[] BasaltTints = { new(0.55f, 0.53f, 0.53f), new(0.62f, 0.58f, 0.56f) };
+
+    /// <summary>Class L's scatter by terrain role (PlanetLook.Role: tundra = plains, lichen lowlands = forest, rust hills,
+    /// dust flats = desert, basalt = mountains, water ice): sparse low shrubs, lichen mats, wind-carved rocks (the
+    /// sandstone models), frost-rimmed boulders (Snow = a frosty rim on top, the night frost adds more), and only a few
+    /// stunted conifers in the damp lowlands. Roughly a quarter of class M's instance count.</summary>
+    private static readonly Dictionary<string, ScatterRule[]> ScatterRulesL = new()
+    {
+        ["plains"] = new ScatterRule[]
+        {
+            new(ScatterKind.Plant, new[] { "bush_a", "bush_b" }, 1.6f, 0.3f, 0.55f, LShrubTints, Clump: 1.4f, YScale: 0.7f),
+            new(ScatterKind.Grass, new[] { "grass_b", "grass_c" }, 16f, 1f, 2f, LichenTints, Clump: 1.2f, YScale: 0.2f),
+            new(ScatterKind.Plant, new[] { "fern" }, 2f, 0.6f, 1f, LichenTints, Clump: 1f, YScale: 0.22f),
+            new(ScatterKind.Rock, new[] { "boulder_a", "boulder_c" }, 0.7f, 0.4f, 1.1f, TundraStoneTints, Snow: 0.3f, Moss: 0.35f),
+            new(ScatterKind.Rock, new[] { "sandstone_a", "sandstone_b" }, 0.35f, 0.5f, 1.4f, CarvedTints, Clump: 1.2f),
+            new(ScatterKind.Small, new[] { "pebbles" }, 1.5f, 0.8f, 1.3f, TundraStoneTints),
+        },
+        ["forest"] = new ScatterRule[]
+        {
+            new(ScatterKind.Grass, new[] { "grass_b", "grass_c", "grass_a" }, 30f, 1f, 2.2f, LichenTints, Clump: 1f, YScale: 0.22f),
+            new(ScatterKind.Plant, new[] { "fern" }, 5f, 0.6f, 1.1f, LichenTints, Clump: 1f, YScale: 0.25f),
+            new(ScatterKind.Plant, new[] { "bush_b", "bush_a" }, 3f, 0.35f, 0.65f, LShrubTints, Clump: 1.2f, YScale: 0.75f),
+            new(ScatterKind.Tree, new[] { "conifer_c" }, 0.15f, 0.35f, 0.55f, LStuntedTints, Clump: 2.5f),
+            new(ScatterKind.Plant, new[] { "snag" }, 0.1f, 0.5f, 0.8f, new[] { new Color(0.9f, 0.85f, 0.8f) }),
+            new(ScatterKind.Rock, new[] { "boulder_a", "boulder_b" }, 0.5f, 0.5f, 1.2f, TundraStoneTints, Snow: 0.2f, Moss: 0.7f),
+        },
+        ["hills"] = new ScatterRule[]
+        {
+            new(ScatterKind.Rock, new[] { "boulder_a", "boulder_b", "boulder_c" }, 3f, 0.6f, 2f, RustStoneTints, Clump: 0.8f, Snow: 0.25f, Moss: 0.15f),
+            new(ScatterKind.Rock, new[] { "sandstone_a", "sandstone_b" }, 1.2f, 0.7f, 2.2f, CarvedTints, Clump: 1f),
+            new(ScatterKind.Rock, new[] { "rock_cluster" }, 0.6f, 0.7f, 1.3f, RustStoneTints, Snow: 0.2f),
+            new(ScatterKind.Small, new[] { "scree" }, 1.8f, 0.8f, 1.4f, RustStoneTints),
+            new(ScatterKind.Plant, new[] { "bush_b" }, 0.8f, 0.3f, 0.5f, LShrubTints, Clump: 1.2f, MinUp: 0.8f, YScale: 0.7f),
+            new(ScatterKind.Grass, new[] { "grass_b", "grass_c" }, 6f, 0.9f, 1.8f, LichenTints, Clump: 1f, YScale: 0.2f),
+        },
+        ["desert"] = new ScatterRule[]
+        {
+            new(ScatterKind.Rock, new[] { "sandstone_a", "sandstone_a", "sandstone_b" }, 1.4f, 0.6f, 2.6f, CarvedTints, Clump: 1f),
+            new(ScatterKind.Small, new[] { "pebbles" }, 2.5f, 0.8f, 1.4f, RustStoneTints),
+            new(ScatterKind.Plant, new[] { "shrub_desert" }, 1f, 0.4f, 0.8f, LShrubTints, Clump: 1.4f, YScale: 0.8f),
+            new(ScatterKind.Rock, new[] { "boulder_b" }, 0.3f, 0.5f, 1.3f, RustStoneTints, Snow: 0.2f),
+        },
+        ["mountains"] = new ScatterRule[]
+        {
+            new(ScatterKind.Rock, new[] { "boulder_a", "boulder_b", "boulder_c" }, 6f, 0.8f, 3.2f, BasaltTints, Clump: 0.6f, Snow: 0.15f),
+            new(ScatterKind.Rock, new[] { "rock_cluster" }, 1.2f, 0.8f, 1.8f, BasaltTints),
+            new(ScatterKind.Small, new[] { "scree" }, 3f, 1f, 2f, BasaltTints),
+        },
+        ["ice"] = new ScatterRule[]
+        {
+            new(ScatterKind.Rock, new[] { "ice_a", "ice_b" }, 3f, 0.6f, 1.8f, IceTints, Clump: 1f),
+            new(ScatterKind.Rock, new[] { "boulder_a", "boulder_c" }, 1.2f, 0.6f, 1.6f, BasaltTints, Snow: 0.85f),
+            new(ScatterKind.Small, new[] { "scree" }, 1f, 0.8f, 1.4f, BasaltTints, Snow: 0.7f),
+        },
+    };
+
+    /// <summary>The scatter for a terrain on this world (by its class-M role on other classes), or null.</summary>
+    private ScatterRule[]? RulesFor(string terrainId)
+    {
+        var set = Look.ScatterSet == "class_l" ? ScatterRulesL : ScatterRules;
+        return set.TryGetValue(Look.Role(terrainId), out var rules) ? rules : null;
+    }
 
     /// <summary>Cheaper stand-ins for distant trees and rocks (scaled per instance to the near model's size).</summary>
     private static readonly Dictionary<string, string> ScatterFar = new()
@@ -186,7 +258,7 @@ public partial class PlanetView
         for (var t = 0; t < grid.Count; t++)
         {
             var terrain = map.Terrain(t);
-            if (map.IsWater(t) || !ScatterRules.TryGetValue(terrain.Id, out var rules)) continue;
+            if (map.IsWater(t) || RulesFor(terrain.Id) is not { } rules) continue;
             var centre = TileCentre(t) with { Y = 0 };
             foreach (var rule in rules)
             {
@@ -222,17 +294,17 @@ public partial class PlanetView
                     {
                         case ScatterKind.Tree:
                         case ScatterKind.Plant:
-                            basis = new Basis(Vector3.Up, yaw) * Basis.FromScale(new Vector3(s, s * rng.RandfRange(0.9f, 1.15f), s));
+                            basis = new Basis(Vector3.Up, yaw) * Basis.FromScale(new Vector3(s, s * rng.RandfRange(0.9f, 1.15f) * rule.YScale, s));
                             sink = 0.1f * s;
                             break;
                         case ScatterKind.Grass:
-                            basis = Lean(normal, 0.5f, yaw, new Vector3(s, s * rng.RandfRange(0.85f, 1.2f), s));
+                            basis = Lean(normal, 0.5f, yaw, new Vector3(s, s * rng.RandfRange(0.85f, 1.2f) * rule.YScale, s));
                             sink = 0.03f;
                             break;
                         default:
                             var tilt = new Vector3(rng.RandfRange(-0.2f, 0.2f), 0, rng.RandfRange(-0.2f, 0.2f));
                             basis = Lean((normal + tilt).Normalized(), 0.85f, yaw,
-                                new Vector3(s * rng.RandfRange(0.85f, 1.15f), s * rng.RandfRange(0.8f, 1.2f), s * rng.RandfRange(0.85f, 1.15f)));
+                                new Vector3(s * rng.RandfRange(0.85f, 1.15f), s * rng.RandfRange(0.8f, 1.2f) * rule.YScale, s * rng.RandfRange(0.85f, 1.15f)));
                             sink = 0.06f * s;
                             break;
                     }
@@ -243,7 +315,7 @@ public partial class PlanetView
                     if (_scatterAssets.IsFallback(name)) tint *= ScatterFallbackColour(name);
                     tint = new Color(tint.R, tint.G, tint.B).SrgbToLinear();
                     var snow = rule.Snow;
-                    if (terrain.Id == "mountains" || map.Terrain(tile).Id == "mountains") snow = Mathf.Max(snow, Mathf.SmoothStep(28f, 38f, y));
+                    if (Look.Role(terrain.Id) == "mountains" || Look.Role(map.Terrain(tile).Id) == "mountains") snow = Mathf.Max(snow, Mathf.SmoothStep(28f, 38f, y));
                     var custom = new Color(rng.Randf(), snow, rule.Moss, 0f);
 
                     var chunk = ChunkOf(p);
@@ -396,6 +468,11 @@ public partial class PlanetView
             : new Vector4(-2f, -1f, nearFade.X, nearFade.Y));
         if (rock)
         {
+            if (!Look.IsDefault)
+            {
+                m.SetShaderParameter("moss_colour", Look.Moss); // class L: pale lichen
+                m.SetShaderParameter("snow_colour", Look.RockSnow); // frost rims
+            }
             if (name.StartsWith("ice"))
             {
                 m.SetShaderParameter("roughness", 0.22f);

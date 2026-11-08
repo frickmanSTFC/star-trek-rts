@@ -1588,6 +1588,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             _hoverTile = _view.PickTile(_camera.ProjectRayOrigin(mouse), _camera.ProjectRayNormal(mouse));
             if (_hoverTile >= 0) _cursorTile = _hoverTile;
         }
+        _view.ShowCover(_placing, _hoverTile); // Domes world: dome/field cover while placing (PlanetView.Domes.cs)
 
         if (_founding != 0)
         {

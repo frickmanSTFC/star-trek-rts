@@ -184,6 +184,7 @@ public partial class OrbitView : Node3D
         _groundMaterial.SetShaderParameter("splat_a", ImageTexture.CreateFromImage(painted.SplatA));
         _groundMaterial.SetShaderParameter("splat_b", ImageTexture.CreateFromImage(painted.SplatB));
         _groundMaterial.SetShaderParameter("photo_layers", PhotoLayers());
+        _groundMaterial.SetShaderParameter("photo_mix", PlanetLook.For(_surface.Map.Def.ClassId).PhotoMix); // class M 0.5 as before
         _groundMaterial.SetShaderParameter("detail_normal", new NoiseTexture2D
         {
             Width = 512, Height = 512, Seamless = true, AsNormalMap = true, BumpStrength = 6f,
