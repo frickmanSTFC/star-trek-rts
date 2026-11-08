@@ -485,6 +485,7 @@ public partial class PlanetDriver
             _selectedShip = shipId;
             _systemCard = $"ship:{shipId}";
             _orbit.HighlightShip(shipId);
+            NoteShipInspected(shipId); // view-only achievement rule (PlanetDriver.Achievements.cs)
             return;
         }
         var body = _orbit.PickBody(mouse);
