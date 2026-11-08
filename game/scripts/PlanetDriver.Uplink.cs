@@ -93,7 +93,7 @@ public partial class PlanetDriver
         // A hostile world reports many at once: the worst three get a line each, the rest one summary line.
         fresh = fresh.OrderByDescending(h => h.Severe).ToList();
         foreach (var h in fresh.Take(fresh.Count > 4 ? 3 : 4))
-            _hud.PushEvent(SurfaceTelemetry.HazardText(h, r), h.Severe ? HazardSevere : HazardWarn);
+            _hud.PushEvent(SurfaceTelemetry.HazardText(h, r, Surface.Tier), h.Severe ? HazardSevere : HazardWarn);
         if (fresh.Count > 4) _hud.PushEvent($"… and {fresh.Count - 3} more hazards at the outpost (helm findings)", HazardSevere);
         if (fresh.Count > 0) _findingsAt = -1;
         _hazardsPresent.Clear();
@@ -122,7 +122,7 @@ public partial class PlanetDriver
         }
         yield return $"Outpost uplink online · {SurfaceTelemetry.SkyName(r.Sky)}, {SurfaceTelemetry.Celsius(r.TemperatureC.ToFloat())}" +
                      (r.Sky == SkyCondition.Vacuum ? "" : $", wind {SurfaceTelemetry.CompassPoint(r.WindFromDeg)} {r.WindMs.ToFloat():0} m/s");
-        foreach (var h in r.Hazards.OrderByDescending(h => h.Severe)) yield return $"HAZARD · {SurfaceTelemetry.HazardText(h, r)}";
+        foreach (var h in r.Hazards.OrderByDescending(h => h.Severe)) yield return $"HAZARD · {SurfaceTelemetry.HazardText(h, r, Surface.Tier)}";
     }
 
     /// <summary>The Atmosphere display's orbital rows; once the sensors report, the planet name and habitability make room for them.</summary>

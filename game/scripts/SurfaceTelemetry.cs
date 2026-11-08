@@ -128,11 +128,22 @@ public sealed class SurfaceTelemetry
 
     // ------------------------------------------------------------------ hazards
 
-    /// <summary>A full sentence for the event feed and the findings list.</summary>
-    public static string HazardText(TelemetryHazard h, SurfaceReadings r) => h.Kind switch
+    /// <summary>What the crews need on a world of this tier (the habitability rules), or the given words.</summary>
+    private static string Protection(HabitabilityTier tier, string otherwise) => tier switch
     {
-        HazardKind.Vacuum => "No atmosphere at the outpost: pressure suits outside",
-        HazardKind.Unbreathable => $"Unbreathable air at the outpost: O2 {Pct(h.Value.ToFloat())} at {Kpa(h.Limit.ToFloat())} — suits or masks outside",
+        HabitabilityTier.Masks => "breathing masks outside",
+        HabitabilityTier.Suits => "EVA suits outside, sealed buildings",
+        HabitabilityTier.Domes => "crews live under domes; EVA suits outside them",
+        HabitabilityTier.Tech or HabitabilityTier.Impossible => "no unprotected crew can work here",
+        _ => otherwise,
+    };
+
+    /// <summary>A full sentence for the event feed and the findings list.</summary>
+    /// <param name="tier">The world's protection tier (PlanetSurface.Tier): says what the crews need.</param>
+    public static string HazardText(TelemetryHazard h, SurfaceReadings r, HabitabilityTier tier = HabitabilityTier.Open) => h.Kind switch
+    {
+        HazardKind.Vacuum => $"No atmosphere at the outpost: {Protection(tier, "pressure suits outside")}",
+        HazardKind.Unbreathable => $"Unbreathable air at the outpost: O2 {Pct(h.Value.ToFloat())} at {Kpa(h.Limit.ToFloat())} — {Protection(tier, "suits or masks outside")}",
         HazardKind.ToxicGas => $"Toxic gas at the outpost: {h.Gas} {Ppm(GasPpm(r, h.Gas))} ppm (limit {Ppm(h.Limit.ToFloat())}){(h.Severe ? " — lethal levels" : "")}",
         HazardKind.Radiation => $"{(h.Severe ? "Dangerous radiation" : "High radiation")} at the outpost: {Dose(h.Value.ToFloat())} (warning level {Dose(h.Limit.ToFloat())})",
         HazardKind.Heat => $"Extreme heat at the outpost: {Celsius(h.Value.ToFloat())}",
