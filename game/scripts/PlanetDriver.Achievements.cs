@@ -102,6 +102,7 @@ public partial class PlanetDriver
     {
         var data = Achievements;
         var unlocks = _sim.Achievements.Unlocks;
+        if (_unlocksSeen > unlocks.Count) _unlocksSeen = 0; // a new tracker (never expected; the profile skips repeats)
         for (var i = _unlocksSeen; i < unlocks.Count; i++)
             if (unlocks[i].Player == LocalPlayer) Earn(unlocks[i].Id, unlocks[i].Tick);
         _unlocksSeen = unlocks.Count;
