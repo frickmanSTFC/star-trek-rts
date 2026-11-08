@@ -125,7 +125,7 @@ public sealed partial class PlanetSurface
                 if (!IsPlayer(c.Owner)) return "no such player";
                 if (_data.Buildings.All(b => b.Id != c.BuildingId)) return "unknown building";
                 var def = _data.Building(c.BuildingId);
-                if (!def.IsCore && !_data.BuildMenu.Contains(c.BuildingId)) return "not a surface building";
+                if (!def.IsCore && !BuildMenu.Contains(c.BuildingId)) return "not a surface building";
                 if (!OnMap(c.Tile)) return "off the map";
                 if (!Map.Terrain(c.Tile).Buildable) return "can't build on that ground";
                 if (_structureAt[c.Tile] != 0) return "a building is there";

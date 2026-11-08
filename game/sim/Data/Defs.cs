@@ -76,6 +76,10 @@ public sealed record BuildingDef(
     /// <summary>A colony core (hub and its upgrades): defines a base, its build radius and queues.</summary>
     public bool IsCore => BuildRadius > 0;
 
+    /// <summary>People work inside it (buildings.json crewed): on a Domes world it must stand under cover and draws life
+    /// support (habitats, labs, the foundry, the bay, cores); automated ones (mines, storage, reactor, refinery) don't.</summary>
+    public bool Crewed { get; init; }
+
     /// <summary>Digs the deposit under it (a mine, or a deep-core mine once it has reopened the deposit).</summary>
     public bool IsMine => ExtractPerMinute > Fix64.Zero;
 

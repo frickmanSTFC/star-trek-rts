@@ -938,7 +938,7 @@ public sealed partial class PlanetSurface
         {
             if (s.Owner != player || s.State != StructureState.Complete || s.Status is not (StructureStatus.Working or StructureStatus.LowPower)) continue;
             var def = _data.Building(s.DefId);
-            if (def.IsLab) total += def.ResearchPerMinute * WorkRate(s, PowerOf(s.BaseId).Efficiency);
+            if (def.IsLab) total += def.ResearchPerMinute * WorkRate(s, PowerOf(s.BaseId).Efficiency) * CrewShare(s, null);
         }
         return total;
     }
@@ -1024,7 +1024,7 @@ public sealed partial class PlanetSurface
     /// </summary>
     public PlacementProblem CheckPlacement(Simulation sim, int player, string buildingId, int tile)
     {
-        if (!_data.BuildMenu.Contains(buildingId)) return PlacementProblem.NotInBuildMenu;
+        if (!BuildMenu.Contains(buildingId)) return PlacementProblem.NotInBuildMenu; // + the domes kit on Domes worlds
         if (tile < 0 || tile >= Map.Grid.Count) return PlacementProblem.OffMap;
         if (player < 0 || player >= _players.Count || _players[player].Phase != LandingPhase.Landed) return PlacementProblem.NotLanded;
         if (!_players[player].Surveyed[tile]) return PlacementProblem.NotSurveyed;
@@ -1043,6 +1043,7 @@ public sealed partial class PlanetSurface
         if (def.RequiresTech.Length > 0 && (!_data.HasTech(def.RequiresTech) || !_players[player].Known[_data.Tech(def.RequiresTech).Index])) return PlacementProblem.NeedsTech;
         if (def.RequiresDeposit && (Map.DepositResource[tile] < 0 || Map.DepositAmount[tile] <= Fix64.Zero)) return PlacementProblem.NeedsDeposit;
         if (def.RequiresDepleted && (!Map.IsDepleted(tile) || Map.DepositReopened[tile])) return PlacementProblem.NeedsDepletedDeposit;
+        if (def.Crewed && !Covered(player, tile)) return PlacementProblem.NeedsDome; // Domes worlds only (Habitability.cs)
         if (!_players[player].FreeBuilding && !sim.Players[player].Stock.CanAfford(BuildCostOf(buildingId))) return PlacementProblem.CannotAfford;
         return PlacementProblem.None;
     }
@@ -1140,14 +1141,16 @@ public sealed partial class PlanetSurface
             if (u.Owner == player && u.Mode == UnitMode.Deployed && u.MiningStatus == MiningStatus.Mining && Map.DepositResource[u.Tile] >= 0)
                 income.Add(Map.DepositResource[u.Tile], _data.SurfaceUnit(u.DefId).ExtractPerMinute * Gravity.Extraction);
         var efficiency = new Dictionary<int, Fix64>();
+        var lifeSupport = new Dictionary<int, Fix64>();
         foreach (var s in _structures)
         {
             if (s.Owner != player || s.State != StructureState.Complete) continue;
             if (s.Status is not (StructureStatus.Working or StructureStatus.LowPower)) continue;
             var def = _data.Building(s.DefId);
             if (!efficiency.TryGetValue(s.BaseId, out var eff)) efficiency[s.BaseId] = eff = PowerOf(s.BaseId).Efficiency;
-            var output = (def.PowerUse > Fix64.Zero ? eff : Fix64.One) * ConditionFactor(s);
-            var speed = WorkRate(s, eff);
+            var air = CrewShare(s, lifeSupport); // crewed buildings on a Domes world short of life support
+            var output = (def.PowerUse > Fix64.Zero ? eff : Fix64.One) * ConditionFactor(s) * air;
+            var speed = WorkRate(s, eff) * air;
             foreach (var o in def.OutputPerMinute) income.Add(o.Resource, o.Amount * output);
             foreach (var u in def.UpkeepPerMinute) income.Add(u.Resource, -u.Amount);
             if (def.IsMine && Map.DepositResource[s.Tile] >= 0)
@@ -1506,6 +1509,7 @@ public sealed partial class PlanetSurface
         LandDeliveries(sim);
         SweepSatellites(sim);
         Economy(sim);
+        LifeSupport(sim); // Habitability.cs: Domes worlds only
         Maintenance(sim);
         Crawlers(sim);
         Founders(sim);
@@ -1664,6 +1668,7 @@ public sealed partial class PlanetSurface
         }
 
         var efficiency = new Dictionary<int, Fix64>();
+        var lifeSupport = new Dictionary<int, Fix64>(); // per base, as the statuses stand after the first pass
         foreach (var s in _structures)
         {
             if (s.State != StructureState.Complete || s.Status != StructureStatus.Working) continue;
@@ -1671,8 +1676,9 @@ public sealed partial class PlanetSurface
             if (!efficiency.TryGetValue(s.BaseId, out var eff)) efficiency[s.BaseId] = eff = PowerOf(s.BaseId).Efficiency;
             if (def.PowerUse > Fix64.Zero && eff < Fix64.One) s.Status = StructureStatus.LowPower;
             var condition = ConditionFactor(s);
-            var output = (def.PowerUse > Fix64.Zero ? eff : Fix64.One) * condition; // plain outputs (crew, the core's trickle)
-            var speed = WorkRate(s, eff); // its work: extraction, cycles, assembly, research
+            var air = CrewShare(s, lifeSupport); // crewed buildings on a Domes world work at their base's life support (1 elsewhere)
+            var output = (def.PowerUse > Fix64.Zero ? eff : Fix64.One) * condition * air; // plain outputs (crew, the core's trickle)
+            var speed = WorkRate(s, eff) * air; // its work: extraction, cycles, assembly, research
 
             var stock = sim.Players[s.Owner].Stock;
             foreach (var o in def.OutputPerMinute) Store(sim, s.Owner, o.Resource, o.Amount * output / Simulation.TicksPerMinute);
@@ -1895,6 +1901,7 @@ public sealed partial class PlanetSurface
         h.Add(_nextPodId);
         h.Add(_nextDeliveryId);
         h.Add(_nextSatelliteId);
+        AddLifeSupportToHash(ref h); // Domes worlds only (Habitability.cs)
         // Not hashed because they follow from what is hashed: _structureAt (each structure's Tile; the fuzz test checks
         // they agree), _weatherTick (sim.Tick at the top of Step), _data (Simulation hashes each change of data), and
         // each unit's SpeedPerTick / SurveyRadius (its def in that data).

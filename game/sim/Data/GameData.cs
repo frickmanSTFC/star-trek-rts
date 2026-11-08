@@ -390,7 +390,10 @@ public sealed partial class GameData
                             Modifiers(l, $"Building {id} level"))).ToList()
                         : new List<BuildingLevel>(),
                     b.TryGetProperty("requires_tech", out var rt) ? rt.GetString() ?? "" : "",
-                    b.TryGetProperty("description", out var ds) ? ds.GetString() ?? "" : "");
+                    b.TryGetProperty("description", out var ds) ? ds.GetString() ?? "" : "")
+                {
+                    Crewed = b.TryGetProperty("crewed", out var cw) && cw.ValueKind == JsonValueKind.True,
+                };
             })
             .ToList();
 
@@ -708,14 +711,14 @@ public sealed partial class GameData
             core = next;
         }
 
-        foreach (var id in BuildMenu.Concat(seen))
+        foreach (var id in EveryBuildMenu.Concat(seen))
         {
             if (!_buildings.TryGetValue(id, out var b) || power == null) continue;
             if (b.OutputPerMinute.Concat(b.UpkeepPerMinute).Any(a => a.Resource == power.Index))
                 problems.Add($"Building {id}: {PowerResource} is a power budget on the surface; use power_supply / power_use instead of output or upkeep.");
         }
 
-        foreach (var id in BuildMenu)
+        foreach (var id in EveryBuildMenu)
         {
             if (!_buildings.TryGetValue(id, out var b))
             {

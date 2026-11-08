@@ -98,8 +98,13 @@ public sealed partial class GameData
     /// <summary>A building's crew / dome / life-support stats (all off when the data says nothing).</summary>
     public BuildingWorldStats WorldStatsOf(string buildingId) => BuildingWorlds.TryGetValue(buildingId, out var w) ? w : NoWorldStats;
 
+    /// <summary>The build menu plus the buildings only Domes worlds add (habitability.domes.build_menu): every building a
+    /// player can place on some surface (the build-menu checks run on all of them).</summary>
+    public IReadOnlyList<string> EveryBuildMenu =>
+        Habitability?.Domes is { BuildMenu.Count: > 0 } d ? BuildMenu.Concat(d.BuildMenu.Where(id => !BuildMenu.Contains(id))).ToList() : BuildMenu;
+
     /// <summary>Crewed buildings need cover and life support on a Domes world (buildings.json crewed).</summary>
-    public bool IsCrewed(string buildingId) => WorldStatsOf(buildingId).Crewed;
+    public bool IsCrewed(string buildingId) => _buildings.TryGetValue(buildingId, out var b) && b.Crewed;
 
     private static GravityRules? ReadGravity(JsonElement surfaces, List<string> problems)
     {
@@ -248,19 +253,12 @@ public sealed partial class GameData
             {
                 if (d.CoreDomeRadius < 0 || d.GraceSeconds < 0 || d.LifeSupportPerCrewed < Fix64.Zero || d.CrewLossPerMinute < Fix64.Zero)
                     problems.Add("Habitability domes: radius, grace, life support and crew loss can't be negative.");
-                foreach (var id in d.BuildMenu)
-                {
-                    if (!_buildings.TryGetValue(id, out var b))
-                    {
-                        problems.Add($"Habitability domes: build_menu has unknown building '{id}'.");
-                        continue;
-                    }
+                foreach (var id in d.BuildMenu) // the rest of the build-menu checks run on these too (EveryBuildMenu)
                     if (BuildMenu.Contains(id)) problems.Add($"Habitability domes: {id} is already in the build menu.");
-                    if (b.BuildSeconds <= 0) problems.Add($"Habitability domes: {id} needs build_seconds.");
-                    if (b.Layer != "surface") problems.Add($"Habitability domes: {id} must be a surface building.");
-                    if (b.RequiresTech.Length > 0 && !_techs.ContainsKey(b.RequiresTech))
-                        problems.Add($"Habitability domes: {id} requires tech '{b.RequiresTech}', which isn't in surfaces.json research.");
-                }
+                if (!d.BuildMenu.Any(id => _buildings.TryGetValue(id, out var b) && WorldStatsOf(b.Id).LifeSupport > Fix64.Zero && !b.IsCore))
+                    problems.Add("Habitability domes: the domes build menu needs a building with life_support (the Life Support Plant).");
+                if (!d.BuildMenu.Any(id => WorldStatsOf(id).DomeRadius > 0))
+                    problems.Add("Habitability domes: the domes build menu needs a building with dome_radius (the Pressure Dome).");
             }
         }
 
