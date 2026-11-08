@@ -41,6 +41,7 @@ public partial class PlanetView
     }
 
     private readonly Dictionary<int, DomeVisual> _domes = new();
+    private readonly HashSet<int> _domesSeen = new();
     private Node3D? _domeRoot;
     private static Shader? _fieldShader;
     private static ArrayMesh? _fieldMesh;
@@ -62,7 +63,8 @@ public partial class PlanetView
             return;
         }
         _domeRoot ??= AddDomeRoot();
-        var seen = new HashSet<int>();
+        var seen = _domesSeen;
+        seen.Clear();
         foreach (var s in _surface.Structures)
         {
             var radius = _surface.DomeRadiusOf(s);
@@ -115,6 +117,7 @@ public partial class PlanetView
                 v.FieldMaterial.SetShaderParameter("strength", (live ? 1f : 0.5f) * _fieldBoost);
             }
         }
+        if (seen.Count == _domes.Count) return;
         foreach (var id in _domes.Keys.Where(id => !seen.Contains(id)).ToList())
         {
             _domes[id].Field?.QueueFree();

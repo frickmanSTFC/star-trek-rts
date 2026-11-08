@@ -80,7 +80,7 @@ public partial class PlanetView
     private Vector3 FocusPoint()
     {
         var cam = GetViewport()?.GetCamera3D();
-        if (cam != null && cam.IsInsideTree() && cam.GlobalPosition.DistanceSquaredTo(_eye) < 4f)
+        if (cam != null && cam.IsInsideTree() && cam.GlobalPosition.DistanceSquaredTo(_eye) < 2500f) // the surface camera (eye = last frame's)
         {
             var forward = -cam.GlobalTransform.Basis.Z;
             if (forward.Y < -0.05f)

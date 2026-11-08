@@ -180,7 +180,10 @@ public sealed class SkyField
             if (dt > 0f)
             {
                 Accumulate(index, kind, intensity, temperature, daylight, dt);
-                Frost(index, kind, temperature, daylight, at.HumidityPct.ToFloat(), dt);
+                // A forced test-panel clock: shift the temperature with the forced sun (~20 °C from noon to night),
+                // so the SKY tab's night shows frost and its morning the thaw.
+                var frostTemperature = _passForcedSun ? temperature + (daylight - at.Daylight.ToFloat()) * 20f : temperature;
+                Frost(index, kind, frostTemperature, daylight, at.HumidityPct.ToFloat(), dt);
             }
         }
         var o = index * 4;
