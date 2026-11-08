@@ -132,6 +132,7 @@ public partial class AchievementScreen : Control
         var inner = new Vector2(width - pad * 2, height - pad * 1.8f);
 
         column.AddChild(Header(s));
+        column.AddChild(Tabs(s));
         if (Gate != null)
         {
             var gate = HudKit.Label($"Unlocks don't count in this game: {Gate}. Earned achievements and the hangar still show.", 13 * s, HudKit.Warn);
@@ -161,23 +162,9 @@ public partial class AchievementScreen : Control
         var titles = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
         titles.AddThemeConstantOverride("separation", Mathf.RoundToInt(2 * s));
         titles.AddChild(HudKit.Label("ACHIEVEMENTS", 30 * s, HudKit.Ink, condensed: true, bold: true));
-        titles.AddChild(HudKit.Label("Commander profile · kept between games on this machine", 13 * s, HudKit.Dim));
+        titles.AddChild(HudKit.Label("Commander profile · kept on this machine", 13 * s, HudKit.Dim));
         row.AddChild(titles);
 
-        var tabs = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsVertical = SizeFlags.ShrinkEnd };
-        tabs.AddThemeConstantOverride("separation", Mathf.RoundToInt(6 * s));
-        foreach (var (id, name) in new[] { ("achievements", "ACHIEVEMENTS"), ("hangar", "HANGAR") })
-        {
-            var b = PillButton(name, _tab == id, s);
-            var pick = id;
-            b.Pressed += () =>
-            {
-                _tab = pick;
-                _builtKey = "";
-            };
-            tabs.AddChild(b);
-        }
-        row.AddChild(tabs);
         row.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore });
 
         if (Data != null)
@@ -213,6 +200,25 @@ public partial class AchievementScreen : Control
         close.Pressed += Close;
         row.AddChild(close);
         return row;
+    }
+
+    /// <summary>ACHIEVEMENTS | HANGAR, under the header.</summary>
+    private Control Tabs(float s)
+    {
+        var tabs = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+        tabs.AddThemeConstantOverride("separation", Mathf.RoundToInt(6 * s));
+        foreach (var (id, name) in new[] { ("achievements", "ACHIEVEMENTS"), ("hangar", "HANGAR") })
+        {
+            var b = PillButton(name, _tab == id, s);
+            var pick = id;
+            b.Pressed += () =>
+            {
+                _tab = pick;
+                _builtKey = "";
+            };
+            tabs.AddChild(b);
+        }
+        return tabs;
     }
 
     private static VBoxContainer Stat(string value, string label, float s)
