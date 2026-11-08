@@ -92,6 +92,13 @@ public sealed record ClimateSummary(string BodyId, string ClimateId, string Clim
     int DaySeconds, Fix64 DayHours, Fix64 YearDays, Fix64 YearSeconds, Fix64 AxialTiltDeg, bool Retrograde, SpinLock Locked,
     IReadOnlyList<string> Seasons, bool HasWeather, bool Landable);
 
+/// <summary>A body's climate right now, from orbit (<see cref="Climate.Now"/>).</summary>
+/// <param name="DayFraction">0..1 through the local day at the reference meridian (0 = midnight).</param>
+/// <param name="TemperatureC">At the equator under the reference meridian now.</param>
+/// <param name="Weather">The season's prevailing weather (its most likely kind), not a cell's actual weather.</param>
+public sealed record BodyClimateNow(string BodyId, long Tick, string Season, Fix64 Insolation, Fix64 DayFraction, bool Night,
+    Fix64 TemperatureC, Fix64 MeanTemperatureC, WeatherKind Weather, bool HasWeather);
+
 public static class Climate
 {
     private static readonly Fix64 Quarter = Fix64.Ratio(1, 4);
@@ -196,6 +203,43 @@ public static class Climate
         var body = system.Body(bodyId);
         if (rules == null || body == null) return null;
         return SummaryOf(ForBody(data, rules, body, system.ClassOf(bodyId), system.Body, rules.Star(system.StarClass)?.Luminosity ?? Fix64.One), body);
+    }
+
+    /// <summary>
+    /// A body's climate right now as a satellite in orbit reads it (no surface map needed): the season (north), sunlight,
+    /// local time and temperature at the equator under column 0 (the reference meridian), whether it is night there, and
+    /// the season's prevailing weather (its most likely kind; clear without air). Null when the body has no climate entry
+    /// (climate.json's, or the generated system's when <paramref name="system"/> is given).
+    /// </summary>
+    public static BodyClimateNow? Now(GameData data, SystemClimate? system, string bodyId, long tick)
+    {
+        var rules = data.Climate;
+        if (rules == null) return null;
+        Context c;
+        if (system?.Body(bodyId) is { } generated)
+            c = ForBody(data, rules, generated, system.ClassOf(bodyId), system.Body, rules.Star(system.StarClass)?.Luminosity ?? Fix64.One);
+        else if (rules.Body(bodyId) is { } body)
+            c = ForBody(data, rules, body, ClassOf(data, bodyId), rules.Body, StarOf(data, rules, body.Id)?.Luminosity ?? Fix64.One);
+        else return null;
+        var day = DayFraction(c, tick);
+        var year = YearFraction(c, tick);
+        var insolation = Insolation(c, year);
+        var lagYear = year - c.SeasonLag;
+        var dec = c.TiltDeg * SinTurns(lagYear);
+        var hot = CosDeg(dec) * Telemetry.CosTurns(day - Fix64.Half - c.ThermalLag);
+        var seasonOffset = c.Seasons.Count > 0 ? Blend(c.Seasons, Frac(lagYear), s => s.TempC) * (c.Template?.BandAt(Fix64.Zero).SeasonScale ?? Fix64.One) : Fix64.Zero;
+        var temperature = Fix64.Max(Fix64.FromInt(-270), MeanTemperature(c, insolation) + c.PolarDropC * c.EquatorShare + c.SwingC * hot + seasonOffset);
+        var seasonIndex = SeasonIndex(c.Seasons, year);
+        var weather = WeatherKind.Clear;
+        if (c.Air && seasonIndex >= 0 && seasonIndex < c.Seasons.Count)
+        {
+            var weights = c.Seasons[seasonIndex].Weights;
+            for (var k = 1; k < weights.Count; k++)
+                if (weights[k] > weights[(int)weather]) weather = (WeatherKind)k;
+        }
+        var sunUp = Telemetry.CosTurns(day - Fix64.Half) * CosDeg(dec);
+        return new BodyClimateNow(bodyId, tick, SeasonName(c.Seasons, seasonIndex), insolation, day, sunUp < Fix64.Zero, temperature,
+            MeanTemperature(c, c.MeanInsolation), weather, c.Air);
     }
 
     private static ClimateSummary SummaryOf(Context c, BodyClimateDef body)

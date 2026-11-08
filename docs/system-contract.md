@@ -47,6 +47,18 @@ Names and signatures above are unchanged. Added for the view:
   temperature/landable/resources once Charted; position, size, rough size, zone always), `EtaSeconds(ship, tick)`,
   `Heading(ship)`, `OrbitProblem(player)` ("the ship is not in orbit of <name>"), `ScanProblem(player, shipId)`,
   `ScanTargets(ship)`, `SatelliteProblem(player, bodyId)`.
+- For the view's wiring (added after the view branch): `LiveReadings(player, bodyId)` → `LiveReadings` record (null
+  without live data; the colony's body = outpost telemetry at the landing site with `Surface` set and `FromUplink`;
+  elsewhere a satellite's reading: class air, gravity, sunlight, season, temperature now at the equator's reference
+  meridian, the season's prevailing weather; `Climate.Now(data, systemClimate?, bodyId, tick)` underneath);
+  `GravityOf(bodyId)` (own gravity_g, else the class's; null for giants/belts; generated bodies carry their class's
+  today); `Version` (goes up on any knowledge, course, arrival, cargo, satellite or scan change; not hashed);
+  `ScanCooldownTicks`, `ScanRange`; a ship's `ScanReadyTick`/`LastScanTick`.
+- Confirmed: `SystemShip.ClassId` is the ships data `Key` ("federation.Galaxy", neutral "ferengi.Latinum Hauler"); only if
+  orbit.ships names a class that isn't in the ships data is it the bare class name. `ShipPosition(ship, tick)` is pure
+  (any tick; clamped to the destination past `ArriveTick`) and returns the body's own position for a ship in orbit (no
+  orbit offset: the view spreads parked ships). `Ships` is not fogged: it lists every ship (ours, rivals', neutral).
+  `HasLiveData` is true for the colony's body once `UplinkOnline`.
 - `SystemShip` gained `Faction`, `Role`, `IsNeutral`, `InFlight`, `ScanReadyTick`, `LastScanTick`, `Trips`, `LeaveTick`.
 - Commands (`CommandHash` tags 22–24): `SetCourseCommand(Player, ShipId, BodyId)`, `LongRangeScanCommand(Player,
   ShipId)`, `SystemSatelliteCommand(Player, BodyId)`; refused with "no star system" in planet-only games.
