@@ -247,10 +247,10 @@ public partial class PlanetDriver : Node3D, ITestHost
         var orbit = _data.Orbit;
         if (orbit != null)
         {
+            list.Add(("orbit:satellite", "Survey Satellite")); // third, so it never falls off the end of the strip
             foreach (var u in orbit.ShuttlePayloads) list.Add(($"orbit:shuttle:{u}", $"Drop Ship: {ShortUnit(u)}"));
             var payloads = orbit.TransporterLevels.SelectMany(l => l.Payloads).Distinct().ToList();
             foreach (var pl in payloads) list.Add(($"orbit:beam:{pl}", pl == OrbitRules.Supplies ? "Beam Supplies" : $"Beam: {ShortUnit(pl)}"));
-            list.Add(("orbit:satellite", "Survey Satellite"));
         }
         return list;
     }
@@ -740,7 +740,11 @@ public partial class PlanetDriver : Node3D, ITestHost
             actions.Add(new HelmAction("display:planet", "", "BACK TO PLANET", Colour: HelmScreen.Peach));
             if (_system.State != null) actions.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null, Colour: HelmScreen.Lavender));
         }
-        // Orbit-only bodies get no deployment cards: land, outpost, drop ships, beams and satellites are the colony's.
+        // Orbit-only bodies get no deployment cards (land, outpost, drop ships, beams are the colony's), but a
+        // satellite can go up over any body the ship orbits: live data there (StarSystemState satellites).
+        if (!AtColony && _system.State != null && !_system.FlagshipInFlight && _system.OrbitBodyId is { } here)
+            actions.Add(new HelmAction($"sys:sat:{here}", "", _system.HasLive(here) ? "SATELLITE ✓" : "DEPLOY SATELLITE",
+                SatelliteProblem(here) == null, Colour: HelmScreen.Cyan));
         var cards = AtColony ? OrbitCards() : new List<(string Id, string Name)>();
         for (var i = 0; i < cards.Count; i++)
         {

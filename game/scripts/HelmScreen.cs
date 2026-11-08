@@ -116,6 +116,7 @@ public partial class HelmScreen : Control
     private readonly List<HelmPill> _displayButtons = new();
     private VBoxContainer? _railBox;
     private HBoxContainer? _pillBox;
+    private float _pillFit = 1f; // < 1 when the action strip is too wide for the screen: smaller pill text and padding
     private PanelContainer? _panel;
     private Label? _panelHeaderLabel;
     private VBoxContainer? _sectionsBox;
@@ -388,12 +389,28 @@ public partial class HelmScreen : Control
         }
 
         ScrollFeed((float)delta);
+        FitActions();
         if (_readout != null && _readout.Visible) PlaceReadout();
         if (_card != null && _card.Visible) PlaceCard();
         if (_info != null && _info.Visible) PlaceInfo();
     }
 
     // ================================================================== layout
+
+    private int PillFont() => Mathf.Max(8, Mathf.RoundToInt(_m.PillSize * _s * _pillFit));
+
+    /// <summary>Shrink the action pills (text and padding, down to 55%) while the strip runs off the right edge of the
+    /// screen, and let them grow back when there is room again, so every action stays on screen.</summary>
+    private void FitActions()
+    {
+        if (_pillBox == null || _actions.Count == 0 || !_pillBox.IsVisibleInTree()) return;
+        var right = _pillBox.GetGlobalRect().End.X;
+        var edge = GetViewportRect().Size.X - P(8);
+        if (right > edge && _pillFit > 0.55f) _pillFit = Mathf.Max(0.55f, _pillFit - 0.05f);
+        else if (right < edge - P(70) && _pillFit < 1f) _pillFit = Mathf.Min(1f, _pillFit + 0.05f);
+        else return;
+        ApplyActions();
+    }
 
     private int P(float v) => Mathf.Max(1, Mathf.RoundToInt(v * _s));
     private int F(int v) => Mathf.Max(8, Mathf.RoundToInt(v * _s));
@@ -713,7 +730,7 @@ public partial class HelmScreen : Control
         foreach (var _ in _actions)
         {
             var pill = new HelmPill();
-            FontOf(pill, F(_m.PillSize));
+            FontOf(pill, PillFont());
             pill.Pressed += () => ActionPicked?.Invoke(pill.Id);
             _pillBox.AddChild(pill);
         }
@@ -729,8 +746,9 @@ public partial class HelmScreen : Control
             if (_pillBox.GetChild(i) is not HelmPill pill) continue;
             var item = _actions[i];
             pill.Id = item.Id;
+            pill.AddThemeFontSizeOverride("font_size", PillFont());
             pill.Set(Caption(item), Tone(item.Colour ?? (item.Highlight ? Peach : Lavender)), !item.Enabled,
-                i == 0 ? round : 0, i == _actions.Count - 1 ? round : 0, P(_panelOpen ? 14 : 12), 0);
+                i == 0 ? round : 0, i == _actions.Count - 1 ? round : 0, P((_panelOpen ? 14 : 12) * _pillFit), 0);
         }
     }
 
