@@ -39,6 +39,9 @@ public partial class WeatherView : Node3D
     /// <summary>Brightness of the current lightning flash (0..1), for the sky and ambient.</summary>
     public float Flash => _flashLevel;
 
+    /// <summary>Blowing dust's colour (sRGB): the planet class's (PlanetLook.StormDust; rust on Veyra).</summary>
+    public Color DustColour { get; set; } = new(0.78f, 0.58f, 0.36f);
+
     private const float RainLifetime = 1.6f;
     private const float SnowLifetime = 7f;
 
@@ -148,7 +151,7 @@ public partial class WeatherView : Node3D
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
             BillboardMode = BaseMaterial3D.BillboardModeEnum.Particles,
             AlbedoTexture = soft,
-            AlbedoColor = new Color(0.78f, 0.58f, 0.36f, 0.14f),
+            AlbedoColor = DustColour with { A = 0.14f },
         };
         _dust = Emitter("Dust", 900, 3.0f, _dustProcess, new QuadMesh { Size = new Vector2(9f, 9f), Material = _dustDraw });
 
@@ -251,7 +254,7 @@ public partial class WeatherView : Node3D
         _dust.GlobalPosition = focus with { Y = groundAt(focus) + Mathf.Min(height, 6f + scale * 3f) * 0.6f };
         SetAmount(_dust, w.Dust * near);
         var dustLight = Mathf.Lerp(0.1f, 1f, w.Light);
-        _dustDraw.AlbedoColor = new Color(0.78f * dustLight, 0.58f * dustLight, 0.36f * dustLight, 0.08f + 0.14f * w.Dust);
+        _dustDraw.AlbedoColor = new Color(DustColour.R * dustLight, DustColour.G * dustLight, DustColour.B * dustLight, 0.08f + 0.14f * w.Dust);
 
         // Splashes where it rains near the camera (not from far up).
         var splashOn = w.Rain > 0.12f && distance < 380f;

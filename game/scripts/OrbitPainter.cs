@@ -30,6 +30,8 @@ public static class OrbitPainter
     {
         var g = map.Grid;
         int W = g.Width, H = g.Height;
+        var look = PlanetLook.For(map.Def.ClassId); // the planet class's colours (class M: as before)
+        var pal = look.Orbit;
 
         // Per-tile inputs.
         var kind = new int[g.Count];
@@ -42,7 +44,7 @@ public static class OrbitPainter
         var mountainsFrom = map.Def.MountainsFrom.ToFloat();
         for (var t = 0; t < g.Count; t++)
         {
-            var id = map.Terrain(t).Id;
+            var id = look.Role(map.Terrain(t).Id); // another class's terrain ids play the class-M kinds
             kind[t] = Array.IndexOf(Kinds, id);
             water[t] = map.IsWater(t) ? 1f : 0f;
             elev[t] = map.Elevation[t].ToFloat();
@@ -126,8 +128,8 @@ public static class OrbitPainter
                         // Sea: deeper = darker; near the coast, turquoise shallows; a faint large-scale mottle (currents, plankton).
                         float depth = Math.Clamp((water[t00] > 0 ? elev[t00] : oceanBelow) * w00 + (water[t01] > 0 ? elev[t01] : oceanBelow) * w01
                             + (water[t10] > 0 ? elev[t10] : oceanBelow) * w10 + (water[t11] > 0 ? elev[t11] : oceanBelow) * w11, 0f, oceanBelow) / oceanBelow;
-                        sea = new Color(0.015f, 0.05f, 0.16f).Lerp(new Color(0.04f, 0.18f, 0.38f), depth);
-                        sea = sea.Lerp(new Color(0.07f, 0.36f, 0.5f), Math.Clamp(1f - (wf - 0.5f) * 4f, 0f, 1f) * 0.7f);
+                        sea = pal.SeaDeep.Lerp(pal.SeaMid, depth);
+                        sea = sea.Lerp(pal.SeaCoast, Math.Clamp(1f - (wf - 0.5f) * 4f, 0f, 1f) * 0.7f);
                         sea *= 0.88f + 0.24f * caps.Sample(u * 2f % 1f, v);
                     }
                     if (isWater >= 1f)
@@ -186,22 +188,22 @@ public static class OrbitPainter
                         var b = Blend(bio);
                         c = Kinds[k] switch
                         {
-                            "plains" => new Color(0.58f, 0.6f, 0.33f).Lerp(new Color(0.25f, 0.45f, 0.17f), b),
-                            "forest" => new Color(0.16f, 0.31f, 0.12f).Lerp(new Color(0.06f, 0.2f, 0.08f), b),
-                            "desert" => new Color(0.84f, 0.71f, 0.49f).Lerp(new Color(0.72f, 0.53f, 0.33f), Math.Clamp((e - 0.4f) * 3f, 0f, 1f)),
-                            "hills" => new Color(0.5f, 0.44f, 0.31f).Lerp(new Color(0.37f, 0.39f, 0.24f), b),
-                            "mountains" => new Color(0.4f, 0.37f, 0.34f),
-                            _ => new Color(0.9f, 0.93f, 0.97f),
+                            "plains" => pal.PlainsDry.Lerp(pal.PlainsLush, b),
+                            "forest" => pal.ForestDry.Lerp(pal.ForestLush, b),
+                            "desert" => pal.DesertLow.Lerp(pal.DesertHigh, Math.Clamp((e - 0.4f) * 3f, 0f, 1f)),
+                            "hills" => pal.HillsDry.Lerp(pal.HillsLush, b),
+                            "mountains" => pal.Mountains,
+                            _ => pal.Ice,
                         };
                         h = Blend(tileH);
                         var d = detail.Sample(u, v);
                         var mount = Math.Clamp((h - 0.45f) * 2.5f, 0f, 1f);
                         h += (d - 0.5f) * 0.06f + ridge.Sample(u, v) * mount * 0.22f;
                         c *= 0.8f + 0.4f * d;
-                        c = c.Lerp(new Color(0.42f, 0.39f, 0.36f), mount * 0.55f);
-                        c = c.Lerp(new Color(0.95f, 0.96f, 0.99f), Math.Clamp((h - 0.86f) * 9f, 0f, 1f)); // snow on the high peaks
+                        c = c.Lerp(pal.MountRock, mount * 0.55f);
+                        c = c.Lerp(pal.Snow, Math.Clamp((h - 0.86f) * 9f, 0f, 1f)); // snow on the high peaks
                         var beach = Math.Clamp(1f - MathF.Abs(wf - 0.45f) * 5f, 0f, 1f) * (1f - mount);
-                        c = c.Lerp(new Color(0.83f, 0.77f, 0.57f), beach * 0.5f);
+                        c = c.Lerp(pal.Beach, beach * 0.5f);
 
                         // Photo layers: soft across biome borders (within 0.15 of the winner), then rock, snow, sand.
                         var total = 0f;
@@ -230,8 +232,8 @@ public static class OrbitPainter
                     var n = caps.Sample(u, v);
                     var r = ridge.Sample(u, v);
                     var d = detail.Sample(u, v);
-                    var ice = new Color(0.8f, 0.85f, 0.91f).Lerp(new Color(0.97f, 0.98f, 1f), n) * (0.93f + 0.07f * d);
-                    ice = ice.Lerp(new Color(0.66f, 0.74f, 0.85f), Smooth(0.82f, 1f, r) * 0.35f);
+                    var ice = pal.CapLow.Lerp(pal.CapHigh, n) * (0.93f + 0.07f * d);
+                    ice = ice.Lerp(pal.CapCrevasse, Smooth(0.82f, 1f, r) * 0.35f);
                     var iceH = 0.12f + n * 0.1f + r * 0.05f + (d - 0.5f) * 0.03f;
                     c = c.Lerp(ice, capness);
                     h += (iceH - h) * capness;

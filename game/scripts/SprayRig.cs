@@ -4,8 +4,10 @@ using Godot;
 
 namespace FinalFrontier;
 
-/// <summary>What the wheels or tracks throw up, by the ground under them.</summary>
-public enum SprayKind { None, Dust, Dirt, Grit, Mud, Snow, Water }
+/// <summary>What the wheels or tracks throw up, by the ground under them.
+/// RustDust and FrostGrit are class L's (Veyra): fine rust-red dust off the tundra, hills and flats, and frozen grit off the
+/// ice caps and frosted ground at night.</summary>
+public enum SprayKind { None, Dust, Dirt, Grit, Mud, Snow, Water, RustDust, FrostGrit }
 
 /// <summary>
 /// Wheel spray for a ground vehicle (render-only): a child of the vehicle model holding one emitter group per kind of
@@ -29,11 +31,22 @@ public partial class SprayRig : Node3D
     // Parameterless constructor for Godot's script machinery.
     public SprayRig() : this(System.Array.Empty<Vector3>()) { }
 
-    /// <summary>The ground a vehicle on this tile throws up. Wet ground is any plains or forest tile beside water.</summary>
-    public static SprayKind KindFor(SurfaceMap map, int tile)
+    /// <summary>The ground a vehicle on this tile throws up. Wet ground is any plains or forest tile beside water.
+    /// On class L (PlanetLook ScatterSet "class_l") dry ground throws rust dust, the ice frost grit, and
+    /// <paramref name="frost"/> (0..1, night frost lying on the tile) turns the tundra's dust into frost grit.</summary>
+    public static SprayKind KindFor(SurfaceMap map, int tile, float frost = 0f)
     {
         if (tile < 0) return SprayKind.None;
-        var id = map.Terrain(tile).Id;
+        var look = PlanetLook.For(map.Def.ClassId);
+        var id = look.Role(map.Terrain(tile).Id);
+        if (look.ScatterSet == "class_l")
+            return id switch
+            {
+                "ice" => SprayKind.FrostGrit,
+                "plains" or "hills" or "desert" => frost > 0.45f ? SprayKind.FrostGrit : SprayKind.RustDust,
+                "forest" => map.TouchesWater(tile) ? SprayKind.Mud : frost > 0.45f ? SprayKind.FrostGrit : SprayKind.Dirt,
+                _ => SprayKind.None,
+            };
         if ((id == "plains" || id == "forest") && map.TouchesWater(tile)) return SprayKind.Water;
         return id switch
         {
@@ -108,6 +121,19 @@ public partial class SprayRig : Node3D
         {
             new Layer(false, new Color(0.72f, 0.82f, 0.92f), 28, 0.6f, 1.3f, 30f, 4f, 7f, -9.8f, 0.05f, 0.1f),
             new Layer(true, new Color(0.86f, 0.9f, 0.95f, 0.35f), 12, 0.9f, 0.6f, 40f, 2f, 3.5f, -1f, 0.4f, 0.8f),
+        },
+        // Class L: fine rust dust hangs long in the thin cold air; a few dark basalt chips.
+        [SprayKind.RustDust] = new[]
+        {
+            new Layer(true, new Color(0.62f, 0.42f, 0.28f, 0.55f), 30, 2.8f, 0.4f, 38f, 2f, 4.5f, 0.2f, 0.7f, 1.4f),
+            new Layer(false, new Color(0.36f, 0.26f, 0.2f), 10, 0.6f, 0.8f, 25f, 3f, 5f, -9.8f, 0.06f, 0.13f),
+        },
+        // Frozen grit: glittering pale chips and a thin cold haze.
+        [SprayKind.FrostGrit] = new[]
+        {
+            new Layer(false, new Color(0.84f, 0.88f, 0.93f), 16, 0.6f, 0.9f, 28f, 3f, 5.5f, -9.8f, 0.06f, 0.14f),
+            new Layer(true, new Color(0.8f, 0.84f, 0.88f, 0.4f), 16, 1.6f, 0.45f, 38f, 2f, 4f, -0.4f, 0.5f, 1.0f),
+            new Layer(false, new Color(0.4f, 0.32f, 0.26f), 6, 0.55f, 0.8f, 25f, 3f, 5f, -9.8f, 0.06f, 0.12f),
         },
     };
 

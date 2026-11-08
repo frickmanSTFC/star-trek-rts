@@ -14,10 +14,12 @@ namespace FinalFrontier;
 /// <item><see cref="DayTexture"/> (R8): each tile's daylight from <c>Climate.At</c>, plus the subsolar column it was baked
 /// at (<see cref="BakedSubsolar"/>); the shader reads it shifted by how far the star has moved since, so the terminator
 /// sweeps smoothly between bakes.</item>
-/// <item><see cref="WeatherTexture"/> (RGBA8): R = snow lying, G = wetness, B = puddles. Render-only accumulation from
+/// <item><see cref="WeatherTexture"/> (RGBA8): R = snow lying, G = wetness, B = puddles, A = night frost. Render-only accumulation from
 /// <c>Climate.Weather</c> and the temperature: snow builds while it snows and the air is cold and melts when it's warm
 /// (rain melts it faster), rain wets the ground at once and it dries over minutes (faster in sun and heat), puddles fill
-/// in long rain and dry slowly. Game time (sim ticks), so pause and game speed apply.</item>
+/// in long rain and dry slowly; hoar frost forms on clear, cold nights (below ~1 °C) and burns off in the morning
+/// sun (slowly while it's still below freezing, so cold mornings stay white for a while). Only class L's shaders show the
+/// frost (sky_frost_on), so class M looks as before. Game time (sim ticks), so pause and game speed apply.</item>
 /// </list>
 /// With the test panel's SKY overrides the sun and/or the weather come from <see cref="SkyOverride"/> instead.
 /// </summary>
@@ -26,7 +28,7 @@ public sealed class SkyField
     private readonly SurfaceMap _map;
     private readonly int _w, _h;
     private readonly byte[] _dayWork, _wx;
-    private readonly float[] _snow, _wet, _puddle;
+    private readonly float[] _snow, _wet, _puddle, _frost;
     private readonly long[] _lastTick;
     private readonly byte[] _dayShown;
     private readonly Image _dayImage, _wxImage;
@@ -62,6 +64,7 @@ public sealed class SkyField
         _snow = new float[count];
         _wet = new float[count];
         _puddle = new float[count];
+        _frost = new float[count];
         _lastTick = new long[count];
         System.Array.Fill(_lastTick, -1L);
         _dayImage = Image.CreateFromData(_w, _h, false, Image.Format.R8, _dayShown);
@@ -81,6 +84,9 @@ public sealed class SkyField
 
     /// <summary>Snow lying on a tile (0..1), for the HUD and the feed.</summary>
     public float SnowAt(int tile) => tile >= 0 && tile < _snow.Length ? _snow[tile] : 0f;
+
+    /// <summary>Night frost on a tile (0..1): spray turns to frost grit, the HUD can say "frost".</summary>
+    public float FrostAt(int tile) => tile >= 0 && tile < _frost.Length ? _frost[tile] : 0f;
 
     /// <summary>Wetness of a tile (0..1).</summary>
     public float WetAt(int tile) => tile >= 0 && tile < _wet.Length ? _wet[tile] : 0f;
@@ -165,17 +171,43 @@ public sealed class SkyField
         {
             // First look: cold, damp tiles start with some snow on them.
             if (temperature < -2f && at.HumidityPct.ToFloat() > 55f) _snow[index] = Mathf.Clamp(-temperature / 10f, 0f, 0.7f);
+            // ... and a cold night starts frosted already.
+            if (temperature < 0f && daylight < 0.15f) _frost[index] = Mathf.Clamp(-temperature / 4f, 0f, 0.9f);
         }
         else
         {
             var dt = Mathf.Clamp((_passTick - last) / (float)Simulation.TickRate, 0f, 30f);
-            if (dt > 0f) Accumulate(index, kind, intensity, temperature, daylight, dt);
+            if (dt > 0f)
+            {
+                Accumulate(index, kind, intensity, temperature, daylight, dt);
+                // A forced test-panel clock: shift the temperature with the forced sun (~20 °C from noon to night),
+                // so the SKY tab's night shows frost and its morning the thaw.
+                var frostTemperature = _passForcedSun ? temperature + (daylight - at.Daylight.ToFloat()) * 20f : temperature;
+                Frost(index, kind, frostTemperature, daylight, at.HumidityPct.ToFloat(), dt);
+            }
         }
         var o = index * 4;
         _wx[o] = (byte)Mathf.RoundToInt(_snow[index] * 255f);
         _wx[o + 1] = (byte)Mathf.RoundToInt(_wet[index] * 255f);
         _wx[o + 2] = (byte)Mathf.RoundToInt(_puddle[index] * 255f);
-        _wx[o + 3] = 255;
+        _wx[o + 3] = (byte)Mathf.RoundToInt(_frost[index] * 255f);
+    }
+
+    /// <summary>Hoar frost: grows on calm, clear-ish nights below ~1 °C (faster the colder and damper), is wiped by
+    /// wind-blown dust and rain, and burns off once the sun is up: quickly above freezing, slowly below it (the cold
+    /// morning look), not at all in the dark.</summary>
+    private void Frost(int i, WeatherKind kind, float temperature, float daylight, float humidity, float dt)
+    {
+        var cold = Mathf.Clamp((1f - temperature) / 5f, 0f, 1f);
+        var dark = 1f - Mathf.SmoothStep(0.05f, 0.2f, daylight);
+        var still = kind is WeatherKind.Clear or WeatherKind.Cloudy or WeatherKind.Fog ? 1f : kind == WeatherKind.Overcast ? 0.4f : 0f;
+        var damp = 0.35f + 0.65f * Mathf.Clamp(humidity / 60f, 0f, 1f);
+        _frost[i] += dt * 0.014f * cold * dark * still * damp; // ~70 s to whiten on a cold, damp, clear night
+        var sun = Mathf.SmoothStep(0.08f, 0.35f, daylight);
+        var burn = sun * (temperature > 0f ? 0.004f + 0.003f * Mathf.Min(temperature, 12f) : 0.0025f);
+        if (kind is WeatherKind.Rain or WeatherKind.Storm or WeatherKind.Dust or WeatherKind.DustStorm or WeatherKind.HighWind) burn += 0.01f;
+        if (temperature > 3f) burn += 0.006f;
+        _frost[i] = Mathf.Clamp(_frost[i] - dt * burn, 0f, 1f);
     }
 
     private void Accumulate(int i, WeatherKind kind, float intensity, float temperature, float daylight, float dt)

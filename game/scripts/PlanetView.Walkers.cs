@@ -17,6 +17,8 @@ namespace FinalFrontier;
 // industry, Scan at labs and mines, Idle/Wave at the core) and goes on. From storage, a refinery or a foundry they
 // often carry a crate to the next stop. They come out of the core's door when a base is new; when a base goes they go.
 // Rival crews show only in sight; figures beyond WalkerRange of the eye are hidden and their animation stops.
+// On a hostile world (PlanetView.Domes.cs NeedsSuit: a Domes world outside every dome/field of theirs) a walker swaps to
+// an EVA-suited figure (CrewModels role "eva", same seed) as it crosses out of cover, and back to its own role inside.
 public partial class PlanetView
 {
     private const int WalkersPerBase = 8;
@@ -27,7 +29,13 @@ public partial class PlanetView
 
     private sealed class Walker
     {
-        public required Node3D Model;
+        public required Node3D Model; // the figure showing now (Shirt, or Suit outside cover)
+        public required Node3D Shirt; // the walker's own role
+        public Node3D? Suit;          // EVA suit, made the first time it's needed
+        public required string Role;
+        public required int Seed;
+        public bool Suited;
+        public int SuitTile = -2;
         public required int BaseId;
         public required int Owner;
         public required int Slot;
@@ -64,7 +72,8 @@ public partial class PlanetView
         {
             var w = _walkers[i];
             if (_baseStops.ContainsKey(w.BaseId)) continue;
-            w.Model.QueueFree();
+            w.Shirt.QueueFree();
+            w.Suit?.QueueFree();
             _walkers.RemoveAt(i);
         }
 
@@ -137,6 +146,9 @@ public partial class PlanetView
         var w = new Walker
         {
             Model = model,
+            Shirt = model,
+            Role = role,
+            Seed = seed,
             BaseId = core.Id,
             Owner = core.Owner,
             Slot = slot,
@@ -153,6 +165,7 @@ public partial class PlanetView
     {
         var pos = w.Model.Position;
         var tile = TileAt(pos);
+        SuitWalker(w, tile);
         var shown = tile >= 0 && ShowsLive(w.Owner, tile);
         var near = pos.DistanceSquaredTo(_eye) < WalkerRange * WalkerRange;
         var active = shown && near;
@@ -195,6 +208,38 @@ public partial class PlanetView
         pos.Y = GroundAt(pos);
         w.Model.Position = pos;
         if (dist > 0.01f) Face(w, flat, delta);
+    }
+
+    /// <summary>Swap the walker into (or out of) an EVA suit when it crosses the edge of cover: the other figure takes
+    /// over its place, facing, visibility and current action.</summary>
+    private void SuitWalker(Walker w, int tile)
+    {
+        if (tile == w.SuitTile) return;
+        w.SuitTile = tile;
+        var suit = NeedsSuit(w.Owner, tile);
+        if (suit == w.Suited) return;
+        w.Suited = suit;
+        Node3D next;
+        if (suit)
+        {
+            if (w.Suit == null)
+            {
+                w.Suit = CrewModels.Build("eva", PlanetDriver.ColorOf(w.Owner), w.Seed);
+                AddChild(w.Suit);
+            }
+            next = w.Suit;
+        }
+        else next = w.Shirt;
+        var old = w.Model;
+        next.Transform = old.Transform;
+        next.Visible = old.Visible;
+        next.ProcessMode = old.ProcessMode;
+        old.Visible = false;
+        old.ProcessMode = ProcessModeEnum.Disabled;
+        w.Model = next;
+        w.Height = CrewModels.Variant(w.Seed, suit ? "eva" : w.Role).Height;
+        var walking = w.Path.Count > 0 && w.Leg < w.Path.Count && w.Wait <= 0f;
+        CrewModels.Play(next, walking ? w.Moving : w.Action == "" ? "Idle" : w.Action, 0f);
     }
 
     private void Face(Walker w, Vector3 dir, float delta)

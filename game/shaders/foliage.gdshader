@@ -81,6 +81,7 @@ void fragment() {
 		float up = (INV_VIEW_MATRIX * vec4(view_normal, 0.0)).y;
 		albedo *= mix(1.0, 0.8, lying.y);
 		albedo = mix(albedo, sky_snow_colour, sky_snow(world_pos, up, lying.x) * 0.85);
+		albedo = mix(albedo, sky_frost_colour, sky_frost(world_pos, up) * 0.6); // class L night frost (0 elsewhere)
 		lit = sky_light(world_pos);
 	}
 	ALBEDO = albedo * seen * lit;
