@@ -621,6 +621,7 @@ public sealed partial class StarSystemState
                 ship.ToBody = null;
                 Version++;
                 if (ship.Owner >= 0 && ship.AtBody != null) BeginSweep(ship, tick);
+                if (ship.Owner >= 0 && ship.AtBody != null && FlagshipOf(ship.Owner) == ship) sim.Achievements.FlagshipArrived(ship.Owner, ship.AtBody);
                 if (ship.IsNeutral && sim.Data.SystemRules is { } r)
                     ship.LeaveTick = tick + (long)SystemGenerator.Int(Hash(TripSalt, ship.Id * 1024L + ship.Trips), r.DwellMinSeconds, r.DwellMaxSeconds) * Simulation.TickRate;
             }
@@ -716,6 +717,7 @@ public sealed partial class StarSystemState
         if (i < 0 || player < 0 || player >= _knowledge.Count || _knowledge[player][i] == BodyKnowledge.Charted) return;
         _knowledge[player][i] = BodyKnowledge.Charted;
         Version++;
+        _sim?.Achievements.Note(player, "charted_class", Bodies[i].ClassId);
     }
 
     private int IndexOf(string? bodyId)

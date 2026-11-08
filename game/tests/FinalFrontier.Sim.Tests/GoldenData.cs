@@ -89,7 +89,9 @@ public class SplitGoldenTests
         var assembled = manifest.Documents.ToDictionary(d => d, d => manifest.Assemble(files, d, problems));
         Assert.Empty(problems);
         var snap = Snapshot();
-        Assert.Equal(snap.GetProperty("documents").EnumerateObject().Select(p => p.Name).OrderBy(n => n), manifest.Documents.OrderBy(n => n));
+        // Every pre-split document is still there; documents added since (achievements, 2026-11-08) are new data, so the
+        // fingerprint below no longer matches and the snapshot stops applying.
+        Assert.All(snap.GetProperty("documents").EnumerateObject().Select(p => p.Name), d => Assert.Contains(d, manifest.Documents));
         if (DocumentFilesFingerprint(files, manifest) != snap.GetProperty("split_fingerprint").GetString()) return; // edited since the split
         foreach (var p in snap.GetProperty("documents").EnumerateObject())
             Assert.True(p.Value.GetString() == GoldenData.DocumentHash(assembled[p.Name]), $"{p.Name} differs from the pre-split file");

@@ -22,6 +22,7 @@ public static class Runner
         var sim = order.World != null
             ? MatchSetup.CreatePlanetLanding(data, seed, order.Faction, null, order.World)
             : MatchSetup.CreatePlanetLanding(data, seed, order.Faction, order.Planet);
+        sim.AchievementsEnabled = false; // bots earn nothing, and the hashes stay what they were before achievements
         var bot = new Bot(sim, 0, order);
         var recorder = new Recorder(sim, 0, bot, sampleSeconds, result);
         var ticks = (long)System.Math.Round(minutes * Simulation.TicksPerMinute);

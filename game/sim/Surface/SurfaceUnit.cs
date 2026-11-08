@@ -624,6 +624,19 @@ public sealed class SurfacePlayer
     internal readonly List<string> _usedUnitNames = new();
     internal readonly List<string> _usedUnitNumbers = new();
 
+    /// <summary>Achievement rover names this player brought (Simulation.SetCosmetics): handed out first, in order.</summary>
+    public IReadOnlyList<string> ExtraNames => _extraNames;
+
+    /// <summary>Achievement hull numbers this player brought: handed out first, in order (formatted to the first band's width).</summary>
+    public IReadOnlyList<int> ExtraNumbers => _extraNumbers;
+
+    internal List<string> _extraNames = new();
+    internal List<int> _extraNumbers = new();
+
+    /// <summary>With extras: how far into the shuffled name / number pools this player is (pool entries equal to an
+    /// extra are skipped). Without extras the pools are read at the used count, as always.</summary>
+    internal int NamePoolNext, NumberPoolNext;
+
     // Test-panel limits (DebugFlagCommand).
 
     /// <summary>Storage never fills.</summary>
@@ -673,5 +686,14 @@ public sealed class SurfacePlayer
         h.Add(UnlimitedPower);
         h.Add(FreeBuilding);
         h.Add(InstantBuild);
+        if (_extraNames.Count > 0 || _extraNumbers.Count > 0) // only with cosmetics, so other games hash as before
+        {
+            h.Add(_extraNames.Count);
+            foreach (var n in _extraNames) h.Add(n);
+            h.Add(_extraNumbers.Count);
+            foreach (var n in _extraNumbers) h.Add(n);
+            h.Add(NamePoolNext);
+            h.Add(NumberPoolNext);
+        }
     }
 }

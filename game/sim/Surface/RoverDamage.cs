@@ -160,6 +160,7 @@ public sealed partial class PlanetSurface
         u.TyreChangeTicks = 0;
         u.RepairTicks = 0;
         u.RepairWaiting = false;
+        Tracker?.Report(u.Owner); // an SOS if the flagship is away (achievements)
     }
 
     /// <summary>At the pad: every flat fixed and the spares restocked, paying pad_cost a tyre. False if the player can't pay.</summary>
@@ -202,6 +203,7 @@ public sealed partial class PlanetSurface
                     {
                         u.FlatTyres &= ~(1 << wheel);
                         u.Spares--;
+                        if (RepairPadAt(u.Owner, u.Tile) == null) Achieve(u.Owner, "tyre_changed_field");
                     }
                 }
             }

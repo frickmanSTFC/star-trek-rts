@@ -435,6 +435,7 @@ public sealed partial class PlanetSurface
                     // Over the edge into the next tile (the last one stays in Path until it parks).
                     unit.Tile = unit._path[0];
                     if (unit._path.Count > 1) unit._path.RemoveAt(0);
+                    Tracker?.Drove(unit); // achievements: hexes driven
                     var surveyRadius = SurveyRadiusOf(unit);
                     Reveal(unit.Owner, unit.Tile, surveyRadius);
                     MarkSightAt(unit, surveyRadius); // Visibility.cs: fog of war memory
@@ -453,6 +454,7 @@ public sealed partial class PlanetSurface
         unit.WaitTicks = 0;
         unit.PushTicks = 0;
         unit.BlockedBy = 0;
+        if (Disabled(unit) && RepairPadAt(unit.Owner, unit.Tile) != null) Achieve(unit.Owner, "limped_home");
         if (!unit.DeployOnArrival) return;
         unit.DeployOnArrival = false;
         if (unit.FoundTile >= 0) // a construction rover at its site (Founding.cs)

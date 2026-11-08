@@ -105,7 +105,7 @@ public sealed partial class Simulation
     {
         if (Surface != null) throw new InvalidOperationException("A surface is already loaded.");
         if (_players.Count > 0) throw new InvalidOperationException("Load the surface before adding players.");
-        Surface = new PlanetSurface(Data, SurfaceMap.Generate(Data, Data.Surface(planetClassId), seed, climateBody, system));
+        Surface = new PlanetSurface(Data, SurfaceMap.Generate(Data, Data.Surface(planetClassId), seed, climateBody, system)) { Tracker = Achievements };
     }
 
     /// <summary>Makes this game's star system (MatchSetup.CreateSystemGame). Call once, before adding players.</summary>
@@ -238,7 +238,11 @@ public sealed partial class Simulation
             if (due.Count > 0)
             {
                 _inTransit.RemoveAll(o => o.ArriveTick <= Tick);
-                foreach (var o in due) Apply(o.Command, relayed: true);
+                foreach (var o in due)
+                {
+                    Achievements.Note(o.Command.Player, "order_relayed", number: (o.ArriveTick - o.SentTick) / TickRate);
+                    Apply(o.Command, relayed: true);
+                }
             }
         }
 
@@ -246,6 +250,7 @@ public sealed partial class Simulation
         System?.Step(this);
         Surface?.Step(this);
         foreach (var ship in _ships) Movement(ship);
+        if (Tick % TickRate == 0) Achievements.Check(); // once a second, after everything has moved (Achievements.cs)
         Tick++;
     }
 
@@ -465,6 +470,7 @@ public sealed partial class Simulation
                 CommandHash.Add(ref h, o.Command);
             }
         }
+        Achievements.AddToHash(ref h); // only once it has tracked anything (Achievements.cs)
         h.Add(DebugEdits);
         h.Add(_dataChanges.Count);
         foreach (var c in _dataChanges) h.Add(c);

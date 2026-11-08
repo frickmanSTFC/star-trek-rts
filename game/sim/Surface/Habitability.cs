@@ -257,6 +257,8 @@ public sealed partial class PlanetSurface
             var budget = LifeSupportBudget(core.Id);
             if (budget.Use <= Fix64.Zero || budget.Supply > Fix64.Zero)
             {
+                // Back before the grace ran out (and not just a flicker): an achievement event.
+                if (core.AirlessTicks >= Simulation.TickRate && !core.LifeSupportFailing) Achieve(core.Owner, "life_support_saved");
                 core.AirlessTicks = 0;
                 core.LifeSupportFailing = false;
                 continue;
