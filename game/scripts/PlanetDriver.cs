@@ -91,6 +91,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     // Orbit view: the globe from the ship. The game opens here; O switches to the surface and back once landed.
     private OrbitView _orbit = null!;
     private bool _inOrbit;
+    private WorldChooser _chooser = null!;
     private string? _orbitAction; // armed deployment: land, outpost, shuttle:<unit>, beam:<payload>, satellite
     private int _orbitHover = -1;
     private Vector2 _pressAt;
@@ -144,7 +145,9 @@ public partial class PlanetDriver : Node3D, ITestHost
         var data = GameDataLoader.Load(new DataSetup(Factions: new[] { "federation" }), out _dataDirectory, out var dataMessages);
         foreach (var problem in data.Validate()) GD.PushWarning($"Data check: {problem}");
 
-        var world = (World ?? "").Trim();
+        // the in-game world chooser's choice (WorldChooser.cs, kept between runs) wins over the Inspector's World / Seed
+        var world = (GameSetup.World ?? World ?? "").Trim();
+        if (GameSetup.Seed is { } chosenSeed) Seed = chosenSeed;
         if (world.Length == 0) world = MatchSetup.DefaultWorld;
         if (!MatchSetup.IsWorld(data, world))
         {
@@ -211,6 +214,11 @@ public partial class PlanetDriver : Node3D, ITestHost
         _helm.DisplayPicked += SetOrbitDisplay;
         _helm.SetInfoHandlers(InfoAction, () => _info = null);
         SetupUplink(helmLayer); // the outpost's surface feed window, over the helm
+        var chooserLayer = new CanvasLayer { Name = "WorldChooserLayer", Layer = 3 };
+        AddChild(chooserLayer);
+        _chooser = new WorldChooser { Name = "WorldChooser" };
+        chooserLayer.AddChild(_chooser);
+        _chooser.Setup(data, worldBody, Seed);
         SetupSky(); // day/night, seasons and weather from Climate (PlanetDriver.Sky.cs); before EnterOrbit changes the environment
 
         // The test panel exists only in debug builds (editor runs); release exports never get it.
@@ -442,6 +450,12 @@ public partial class PlanetDriver : Node3D, ITestHost
             case Key.Tab when _orbit.Display != OrbitDisplay.System:
                 _orbit.SetScan((ScanMode)(((int)_orbit.Mode + (key.ShiftPressed ? 4 : 1)) % 5));
                 break;
+            case Key.F2:
+                _chooser.Toggle(); // WorldChooser.cs: pick the world (and seed) for a new game
+                break;
+            case Key.Escape when _chooser.IsOpen:
+                _chooser.Toggle();
+                break;
             case Key.Escape:
                 if (_info != null) _info = null;
                 _orbitAction = null;
@@ -472,7 +486,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void OrbitHover(float delta)
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _chooser.IsOverUi(mouse);
         if (_helm.ViewRect.Size.X > 32f && _helm.ViewRect.Size.Y > 32f) _orbit.SetViewRect(_helm.ViewRect, GetViewport().GetVisibleRect().Size);
         _orbitHover = _mouseOverUi ? -1 : _orbit.PickTile(mouse);
         var colour = _orbitAction == null ? new Color(1f, 1f, 1f, 0.6f)
@@ -887,6 +901,7 @@ public partial class PlanetDriver : Node3D, ITestHost
 
     public override void _Process(double delta)
     {
+        _chooser.Available = _inOrbit; // the WORLD button shows on the orbit screen
         // Game speed and pause come from the test panel (render-side pacing; the sim just steps).
         var speed = _test?.Speed ?? 1.0;
         if (!(_test?.Paused ?? false)) _accumulator += delta * speed;
