@@ -96,6 +96,12 @@ public sealed class SystemSource
 
     public bool Charted(string bodyId) => Knowledge(bodyId) == BodyKnowledge.Charted;
 
+    /// <summary>Name and class known (a long-range scan, or the ship arrived): Scanned or Charted.</summary>
+    public bool Identified(string bodyId) => Knowledge(bodyId) >= BodyKnowledge.Scanned;
+
+    /// <summary>The local player's ship's sensors read this body live (in orbit of it, Charted).</summary>
+    public bool LiveFromShip(string bodyId) => State?.LiveFromShip(_player, bodyId) ?? false;
+
     /// <summary>A satellite at the body (or the colony's uplink there): live local readings.</summary>
     public bool HasLive(string bodyId) => State?.HasLiveData(_player, bodyId) ?? false;
 
@@ -218,8 +224,8 @@ public sealed class SystemSource
         return ship.Owner == _player ? $"Ours ({name})" : name;
     }
 
-    /// <summary>A body's name as the player knows it: charted = its name, detected = "Unknown body".</summary>
-    public string KnownName(BodyDef b) => Charted(b.Id) ? b.Name : "Unknown body";
+    /// <summary>A body's name as the player knows it: identified (scanned or charted) = its name, detected = "Unknown body".</summary>
+    public string KnownName(BodyDef b) => Identified(b.Id) ? b.Name : "Unknown body";
 
     /// <summary>Changes whenever something the plot draws (other than ship positions) changes: the bodies, what we know
     /// of each, live data, the orbit body, which ships exist and their courses. Cheap enough to work out every frame.</summary>
@@ -238,6 +244,7 @@ public sealed class SystemSource
             }
             Mix((OrbitBodyId ?? "").GetHashCode());
             Mix(FlagshipInFlight ? 1 : 0);
+            Mix((Flagship?.SweepBody ?? "").GetHashCode());
             return h;
         }
     }

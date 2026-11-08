@@ -53,7 +53,7 @@ public partial class PlanetDriver
         if (online && !_uplinkAnnounced)
         {
             _uplinkAnnounced = true;
-            _hud.PushEvent($"{_data.Building(_data.Landing.HubBuilding).Name} assembled and working — uplink established, surface feed and telemetry online", UplinkColour);
+            ColonyReport($"{_data.Building(_data.Landing.HubBuilding).Name} assembled and working — uplink established, surface feed and telemetry online", UplinkColour);
             if (_inOrbit) _feed.Open = true;
             else _hud.PushEvent("Press O for the helm: the outpost's video feed and sensor readings are up", UplinkColour);
             _findingsAt = -1; // refresh the helm's findings now
@@ -93,8 +93,8 @@ public partial class PlanetDriver
         // A hostile world reports many at once: the worst three get a line each, the rest one summary line.
         fresh = fresh.OrderByDescending(h => h.Severe).ToList();
         foreach (var h in fresh.Take(fresh.Count > 4 ? 3 : 4))
-            _hud.PushEvent(SurfaceTelemetry.HazardText(h, r, Surface.Tier), h.Severe ? HazardSevere : HazardWarn);
-        if (fresh.Count > 4) _hud.PushEvent($"… and {fresh.Count - 3} more hazards at the outpost (helm findings)", HazardSevere);
+            ColonyReport(SurfaceTelemetry.HazardText(h, r, Surface.Tier), h.Severe ? HazardSevere : HazardWarn);
+        if (fresh.Count > 4) ColonyReport($"… and {fresh.Count - 3} more hazards at the outpost (helm findings)", HazardSevere);
         if (fresh.Count > 0) _findingsAt = -1;
         _hazardsPresent.Clear();
         _hazardsPresent.UnionWith(now);

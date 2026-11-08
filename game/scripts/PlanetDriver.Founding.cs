@@ -212,11 +212,11 @@ public partial class PlanetDriver
             {
                 var rules = Surface.FoundRulesOf(u)!;
                 if (now.Failed != was.Failed && u.FoundFailedTick >= 0)
-                    _hud.PushEvent($"{UnitName(u)} couldn't found an outpost: {Surface.FoundText(u.FoundFailure, u.Tile, rules.MinDistance)}", RoverWarn);
+                    ColonyReport($"{UnitName(u)} couldn't found an outpost: {Surface.FoundText(u.FoundFailure, u.Tile, rules.MinDistance)}", RoverWarn);
                 else if (now.Unfolding && !was.Unfolding)
-                    _hud.PushEvent($"{UnitName(u)} unfolding at the site ({Amounts(rules.Cost, false)} paid)", FoundBlue);
+                    ColonyReport($"{UnitName(u)} unfolding at the site ({Amounts(rules.Cost, false)} paid)", FoundBlue);
                 else if (!now.Unfolding && was.Unfolding)
-                    _hud.PushEvent($"{UnitName(u)} folded up: founding called off (refunded)", RoverWarn);
+                    ColonyReport($"{UnitName(u)} folded up: founding called off (refunded)", RoverWarn);
             }
             _seenFounders[u.Id] = now;
         }
@@ -231,19 +231,19 @@ public partial class PlanetDriver
             if (!_foundedCores.TryGetValue(s.Id, out var seen))
             {
                 if (!built)
-                    _hud.PushEvent($"{UnitName(rover)} founded {BaseName(s.Id)}: its exocomps are building the {_data.Building(s.DefId).Name} ({_data.Building(s.DefId).BuildSeconds} s)", PlanetHud.Accent);
+                    ColonyReport($"{UnitName(rover)} founded {BaseName(s.Id)}: its exocomps are building the {_data.Building(s.DefId).Name} ({_data.Building(s.DefId).BuildSeconds} s)", PlanetHud.Accent);
                 _foundedCores[s.Id] = (UnitName(rover), built);
                 continue;
             }
             if (built && !seen.Built)
             {
-                _hud.PushEvent($"{BaseName(s.Id)} is up: the new {_data.Building(s.DefId).Name} is working (Tab to switch bases)", FoundBlue);
+                ColonyReport($"{BaseName(s.Id)} is up: the new {_data.Building(s.DefId).Name} is working (Tab to switch bases)", FoundBlue);
                 _foundedCores[s.Id] = (seen.Name, true);
             }
         }
         foreach (var id in _foundedCores.Keys.Where(id => !live.Contains(id)).ToList())
         {
-            if (!_foundedCores[id].Built) _hud.PushEvent($"Outpost cancelled: {_foundedCores[id].Name} folds up and rolls back out (refunded)", RoverWarn);
+            if (!_foundedCores[id].Built) ColonyReport($"Outpost cancelled: {_foundedCores[id].Name} folds up and rolls back out (refunded)", RoverWarn);
             _foundedCores.Remove(id);
         }
     }

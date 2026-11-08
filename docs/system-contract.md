@@ -68,3 +68,32 @@ Names and signatures above are unchanged. Added for the view:
   `GameData.SystemGenerator`, `GameData.SystemRules`, `GameData.IsLandableClass`, `GameData.TrafficClasses()`.
 - Orbit gate: `PlanetSurface.LandProblem/OutpostProblem/ShuttleProblem/BeamProblem/SatelliteProblem` return the
   `OrbitProblem` text while the flagship is away from `SurfaceBody` (so `PlanetDriver.OrbitProblem` shows it as is).
+
+## Signal delay and the orbital sensor sweep (2026-11-08)
+
+Owner: "if the ship is not in orbit, communications to them is delayed by the distance, so any SOS or support is
+delayed"; "if you go to a non-explored body, how do you scan it? Ship sensors … test what is in the atmosphere, some
+information on structures on the planet, same as a satellite in orbit". Answers: **orders + alerts** delayed (the surface
+view stays live, with a SIGNAL DELAY tag), **1–10 s** by distance, **auto sweep on arrival** (~15 s), **long-range scan
+only identifies** (name, class, size, moons).
+
+- Data `maps/system.json`: `sweep.seconds` 15; `comms.delay_seconds` [1, 10] over `comms.distance` [0, 1000] map units
+  (`StarSystemRules.SweepSeconds/CommsMinSeconds/CommsMaxSeconds/CommsNear/CommsFar`, validated).
+- Knowledge: `BodyKnowledge.Scanned` between Detected and Charted (`NameFor` shows the name from Scanned). Long-range scan
+  → Scanned. Entering orbit → Scanned at once and, if not Charted, a sweep (`SystemShip.SweepBody/SweepStartTick/
+  SweepDoneTick`, hashed; `Sweeping`); done → Charted; leaving orbit calls it off. `SweepingShip(player, body)`,
+  `SweepShare(ship)`, `SweepSecondsLeft(ship)`, `SweepTicks`.
+- Live: `HasLiveData` is also true while a ship of the player's orbits a Charted body (`LiveFromShip`).
+  `Structures(player, body)` → `StructureSighting(Owner, Bases, Buildings, Vehicles)` per owner, only with live data
+  (only the colony's body has a surface today); also `BodyReport.Structures`. `Report` at Scanned: name, class, moons,
+  landable; no air/gravity/temperature/resources.
+- Comms: `CommsDelayTicks(player)` / `CommsDelaySeconds` = 0 in orbit of `SurfaceBody` (or no ship / no colony body),
+  else min + (max − min) × distance share. `Simulation.IsColonyOrder` (move, place, cancel, upgrade, mine, pack up,
+  salvage, repair, tyre, bay orders, research, maintain, pause, found outpost) is relayed: `Simulation.OrdersInTransit`
+  (`OrderInTransit(SentTick, ArriveTick, Command)`, hashed only in system games) and applied at ArriveTick (checked
+  then). Ship, orbit and debug commands are never delayed.
+- View: `PlanetDriver.Comms.cs` (`ColonyReport` = event lines from the surface (DetectEvents, RoverEvents, FounderEvents,
+  hazards, uplink) wait the delay in game time and show "· relayed, N s old"; "Order relayed … arrives in N s"; sweep
+  start/done/called-off lines), `PlanetHud.Signal.cs` (SIGNAL DELAY tag + orders in transit), helm subtitles
+  "SENSOR SWEEP · N S" / "SIGNAL DELAY N S", body cards by level (Scanned: class/size/moons + sweep progress; Charted:
+  + STRUCTURES / CONTACT rows; LIVE says satellite or ship's sensors), plot tags UNCHARTED / SWEEPING.

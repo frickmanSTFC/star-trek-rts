@@ -129,9 +129,12 @@ public partial class PlanetDriver
     private string OrbitState()
     {
         var f = _system.Flagship;
-        if (f == null || !SystemSource.InFlight(f)) return "STANDARD ORBIT";
+        var delay = _sim.System?.CommsDelaySeconds(LocalPlayer) ?? 0;
+        var signal = delay > 0 ? $" · SIGNAL DELAY {delay} S" : "";
+        if (f == null || !SystemSource.InFlight(f))
+            return (f?.SweepBody != null && _system.State is { } sys ? $"SENSOR SWEEP · {sys.SweepSecondsLeft(f)} S" : "STANDARD ORBIT") + signal;
         var to = _system.Body(f.ToBody);
-        return $"UNDER WAY TO {(to == null ? "?" : _system.KnownName(to).ToUpperInvariant())} · {_system.SecondsToArrival(f)} S";
+        return $"UNDER WAY TO {(to == null ? "?" : _system.KnownName(to).ToUpperInvariant())} · {_system.SecondsToArrival(f)} S{signal}";
     }
 
     private string ResourceName(string id) => _data.Resources.FirstOrDefault(r => r.Id == id)?.Name ?? id;
@@ -186,15 +189,24 @@ public partial class PlanetDriver
     // ---------------------------------------------------------------- body rows (card, panel, planet display)
 
     /// <summary>What the player knows of a body, by knowledge level: Detected = rough size, distance and flight time
-    /// only; Charted = class, gravity, habitability, atmosphere, moons, possible resources; Live adds current readings.</summary>
+    /// only; Scanned = class, size, moons (and the sweep's progress); Charted = class, gravity, habitability, atmosphere,
+    /// moons, possible resources; Live adds current readings and what is built there.</summary>
     private List<HelmRow> BodyRows(BodyDef b, bool withDistance)
     {
         var rows = new List<HelmRow>();
         var knowledge = _system.Knowledge(b.Id);
-        if (knowledge != BodyKnowledge.Charted)
+        if (knowledge < BodyKnowledge.Scanned)
         {
             rows.Add(new HelmRow("", $"Unknown body · size ~{b.Size}", DetectedGrey));
-            rows.Add(new HelmRow("DATA", "position and rough size only: a long-range scan or a visit charts it", DetectedGrey));
+            rows.Add(new HelmRow("DATA", "position and rough size only: a long-range scan identifies it, a visit charts it", DetectedGrey));
+        }
+        else if (knowledge == BodyKnowledge.Scanned)
+        {
+            rows.Add(new HelmRow("CLASS", _system.ClassName(b.ClassId)));
+            rows.Add(new HelmRow("SIZE", $"{StarSystemState.RoughSize(b.Size)} (~{b.Size})"));
+            var moons = _system.Bodies.Where(m => m.Parent == b.Id && _system.Known(m.Id)).Select(_system.KnownName).ToList();
+            rows.Add(new HelmRow("MOONS", moons.Count == 0 ? "none" : string.Join(", ", moons)));
+            rows.Add(SweepRow(b));
         }
         else
         {
@@ -207,6 +219,7 @@ public partial class PlanetDriver
             rows.Add(new HelmRow("MOONS", moons.Count == 0 ? "none" : string.Join(", ", moons)));
             var res = PossibleResources(b);
             rows.Add(new HelmRow("MAY HOLD", res.Count == 0 ? "nothing known" : string.Join(", ", res)));
+            rows.AddRange(StructureRows(b));
         }
         if (withDistance)
         {
@@ -215,6 +228,49 @@ public partial class PlanetDriver
         }
         rows.AddRange(LiveRows(b));
         return rows;
+    }
+
+    /// <summary>The sensor sweep's state for a body that is only Scanned: running (seconds left, share) or not started.</summary>
+    private HelmRow SweepRow(BodyDef b)
+    {
+        if (_system.State is { } sys && sys.SweepingShip(LocalPlayer, b.Id) is { } ship)
+            return new HelmRow("SWEEP", $"sensor sweep {Mathf.RoundToInt(sys.SweepShare(ship).ToFloat() * 100)} % · {sys.SweepSecondsLeft(ship)} s left", HelmScreen.Cyan);
+        return new HelmRow("DATA", "identified only: enter orbit for a sensor sweep (air, surface, structures, resources)", DetectedGrey);
+    }
+
+    /// <summary>What orbital sensors see built on a Charted body: per owner while there is live data (the ship in orbit
+    /// or a satellite), else that it needs live data.</summary>
+    private List<HelmRow> StructureRows(BodyDef b)
+    {
+        var rows = new List<HelmRow>();
+        if (_system.State is not { } sys) return rows;
+        if (!_system.HasLive(b.Id))
+        {
+            rows.Add(new HelmRow("STRUCTURES", "unknown: needs the ship in orbit or a satellite", DetectedGrey));
+            return rows;
+        }
+        var seen = sys.Structures(LocalPlayer, b.Id);
+        if (seen.Count == 0)
+        {
+            rows.Add(new HelmRow("STRUCTURES", "none detected"));
+            return rows;
+        }
+        foreach (var s in seen)
+        {
+            var who = s.Owner == LocalPlayer ? "ours" : _sim.Data.Factions.FirstOrDefault(f => f.Id == _sim.Players[s.Owner].FactionId)?.Name ?? $"player {s.Owner + 1}";
+            string N(int n, string one) => $"{n} {one}{(n == 1 ? "" : "s")}";
+            rows.Add(new HelmRow(s.Owner == LocalPlayer ? "STRUCTURES" : "CONTACT", $"{who}: {N(s.Bases, "base")} · {N(s.Buildings, "building")} · {N(s.Vehicles, "vehicle")}",
+                s.Owner == LocalPlayer ? null : PlanetDriver.ColorOf(s.Owner)));
+        }
+        return rows;
+    }
+
+    /// <summary>Where a body's live data comes from: the outpost's uplink, a satellite, or the ship's sensors in orbit.</summary>
+    private string LiveSource(BodyDef b)
+    {
+        if (_system.State?.Satellites.Any(s => s.Owner == LocalPlayer && s.BodyId == b.Id) == true) return "live data from satellite";
+        if (_system.LiveFromShip(b.Id)) return "live: ship's sensors in orbit";
+        return "live data";
     }
 
     /// <summary>Live readings: the colony's body from the outpost's telemetry; another body from its satellite (look-only
@@ -233,10 +289,10 @@ public partial class PlanetDriver
                 rows.Add(new HelmRow("WEATHER", $"{r.Weather} · wind {r.WindMs.ToFloat():0} m/s"));
                 rows.Add(new HelmRow("PRESSURE", $"{r.PressureKpa.ToFloat():0.#} kPa"));
             }
-            else rows.Add(new HelmRow("LIVE", "satellite in orbit · surface readings once the outpost uplink is up", HelmScreen.Cyan));
+            else rows.Add(new HelmRow("LIVE", $"{LiveSource(b)} · surface readings once the outpost uplink is up", HelmScreen.Cyan));
             return rows;
         }
-        rows.Add(new HelmRow("LIVE", "live data from satellite", HelmScreen.Cyan));
+        rows.Add(new HelmRow("LIVE", LiveSource(b), HelmScreen.Cyan));
         // the sim's satellite readings (StarSystemState.LiveReadings): temperature now, day/night, season; its weather is
         // the season's likeliest kind, not a live report, so it is labelled as such
         if (_system.State?.LiveReadings(LocalPlayer, b.Id) is { } live)
@@ -270,7 +326,7 @@ public partial class PlanetDriver
         var bodies = _orbit.SystemBodies();
         var current = _selectedBody ?? bodies.FirstOrDefault(x => x.Current)?.Id;
         return bodies.Where(b => b.ParentId == null)
-            .Select(b => new HelmAction($"body:{b.Id}", "", b.Name.ToUpperInvariant(), Highlight: b.Id == current, Colour: b.Charted ? null : DetectedGrey))
+            .Select(b => new HelmAction($"body:{b.Id}", "", b.Name.ToUpperInvariant(), Highlight: b.Id == current, Colour: b.Identified ? null : DetectedGrey))
             .ToList();
     }
 
@@ -280,16 +336,16 @@ public partial class PlanetDriver
         var bodies = _orbit.SystemBodies();
         var star = _system.Star;
         var known = bodies.Count(b => b.ParentId == null);
-        _helm.SetTitle(star != null ? $"{star.Name} SYSTEM" : "STAR SYSTEM", hint ?? $"{known} BODIES · {ShipLine()}{(_system.FlagshipInFlight ? $" · {OrbitState()}" : "")}");
+        _helm.SetTitle(star != null ? $"{star.Name} SYSTEM" : "STAR SYSTEM", hint ?? $"{known} BODIES · {ShipLine()}{(OrbitState() is var state && state != "STANDARD ORBIT" ? $" · {state}" : "")}");
 
         var sections = new List<HelmSection>();
         var selected = _system.Body(_selectedBody ?? bodies.FirstOrDefault(b => b.Current)?.Id);
         if (selected != null && _system.Known(selected.Id))
-            sections.Add(new HelmSection(_system.KnownName(selected).ToUpperInvariant(), _system.Charted(selected.Id) ? HelmScreen.Peach : DetectedGrey, BodyRows(selected, true)));
+            sections.Add(new HelmSection(_system.KnownName(selected).ToUpperInvariant(), _system.Identified(selected.Id) ? HelmScreen.Peach : DetectedGrey, BodyRows(selected, true)));
         sections.Add(new HelmSection("BODIES", HelmScreen.Sky, bodies.Where(b => b.ParentId == null).Select(b => new HelmRow(
             b.Name.ToUpperInvariant(),
-            b.Charted ? b.ClassName + (b.Live ? " · live" : "") : $"detected · size ~{b.Size}",
-            b.Current ? HelmScreen.Peach : b.Charted ? null : DetectedGrey)).ToList()));
+            b.Charted ? b.ClassName + (b.Live ? " · live" : "") : b.Identified ? $"{b.ClassName} · uncharted" : $"detected · size ~{b.Size}",
+            b.Current ? HelmScreen.Peach : b.Identified ? null : DetectedGrey)).ToList()));
         var ships = _system.Ships;
         if (ships.Count > 0)
             sections.Add(new HelmSection("SHIPS", HelmScreen.Lavender, ships.Select(s => new HelmRow(
@@ -305,7 +361,7 @@ public partial class PlanetDriver
         {
             var id = _mouseOverUi ? null : _orbit.PickBody(mouse);
             var b = id == null ? null : bodies.FirstOrDefault(x => x.Id == id);
-            _helm.ShowReadout(b?.Name.ToUpperInvariant(), b == null ? "" : b.Charted ? b.ClassName : $"size ~{b.Size} · click for details", b?.Charted == false ? DetectedGrey : HelmScreen.Peach, mouse + new Vector2(18, 14));
+            _helm.ShowReadout(b?.Name.ToUpperInvariant(), b == null ? "" : b.Identified ? b.ClassName : $"size ~{b.Size} · click for details", b?.Identified == false ? DetectedGrey : HelmScreen.Peach, mouse + new Vector2(18, 14));
         }
         ShowSystemCard();
     }
@@ -354,7 +410,7 @@ public partial class PlanetDriver
         }
         var bodyRows = BodyRows(body, true);
         if (_system.State != null && CourseProblem(body.Id) is { } course) bodyRows.Add(new HelmRow("COURSE", course, HelmScreen.Red)); // why SET COURSE is greyed
-        _helm.ShowCard(_system.KnownName(body), bodyRows, BodyButtons(body), pos.Value, _system.Charted(body.Id) ? HelmScreen.Peach : DetectedGrey);
+        _helm.ShowCard(_system.KnownName(body), bodyRows, BodyButtons(body), pos.Value, _system.Identified(body.Id) ? HelmScreen.Peach : DetectedGrey);
     }
 
     private (List<HelmRow> Rows, List<HelmAction> Buttons, Color Colour) ShipCard(SystemShip s)
@@ -475,7 +531,7 @@ public partial class PlanetDriver
         else if (id == "sys:scan")
         {
             problem = ScanProblem() ?? SystemOrders.LongRangeScan(_sim, LocalPlayer, f!.Id, when);
-            done = "Long-range scan running";
+            done = "Long-range scan: bodies in range identified (name, class, moons); orbit one for a sensor sweep";
         }
         else return;
         if (problem != null) _hud.PushEvent($"Can't do that: {problem}", new Color(1f, 0.7f, 0.42f));
@@ -495,9 +551,9 @@ public partial class PlanetDriver
             return sections;
         }
         var charted = _system.Charted(b.Id);
-        sections.Add(new HelmSection("", charted ? HelmScreen.Cyan : DetectedGrey, charted
+        sections.Add(new HelmSection("", _system.Identified(b.Id) ? HelmScreen.Cyan : DetectedGrey, _system.Identified(b.Id)
             ? BodyRows(b, false)
-            : new List<HelmRow> { new("SURFACE", "no data", DetectedGrey), new("SIZE", $"~{b.Size}", DetectedGrey), new("", "Uncharted: a long-range scan charts it.", DetectedGrey) }));
+            : new List<HelmRow> { new("SURFACE", "no data", DetectedGrey), new("SIZE", $"~{b.Size}", DetectedGrey), new("", "Unidentified: a long-range scan identifies it; orbiting it charts it.", DetectedGrey) }));
         var landable = b.ClassId is "class_m" or "class_l";
         sections.Add(new HelmSection("ORBIT", HelmScreen.Sky, new List<HelmRow>
         {
@@ -516,7 +572,9 @@ public partial class PlanetDriver
         var b = OrbitBody;
         if (b == null || !_system.Charted(b.Id))
         {
-            sections.Add(new HelmSection("CONDITIONS", DetectedGrey, new List<HelmRow> { new("AIR", "no data", DetectedGrey), new("", "Uncharted: a long-range scan charts it.", DetectedGrey) }));
+            var rows0 = new List<HelmRow> { new("AIR", "no data", DetectedGrey) };
+            rows0.Add(b != null && _system.Identified(b.Id) ? SweepRow(b) : new HelmRow("", "Uncharted: enter orbit for a sensor sweep.", DetectedGrey));
+            sections.Add(new HelmSection("CONDITIONS", DetectedGrey, rows0));
             return sections;
         }
         var rows = new List<HelmRow> { new("BODY", b.Name), new("CLASS", _system.ClassName(b.ClassId)), new("AIR", AtmosphereText(b.ClassId)) };
@@ -529,7 +587,7 @@ public partial class PlanetDriver
         }
         sections.Add(new HelmSection("CONDITIONS", HelmScreen.Sky, rows));
         var live = LiveRows(b);
-        sections.Add(new HelmSection("LIVE", HelmScreen.Cyan, live.Count > 0 ? live : new List<HelmRow> { new("", "No satellite here: deploy one for live weather and temperature.", DetectedGrey) }));
+        sections.Add(new HelmSection("LIVE", HelmScreen.Cyan, live.Count > 0 ? live : new List<HelmRow> { new("", "No live data here: stay in orbit, or deploy a satellite for live weather and temperature for good.", DetectedGrey) }));
         return sections;
     }
 }

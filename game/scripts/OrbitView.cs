@@ -1245,7 +1245,7 @@ public partial class OrbitView : Node3D
 
     /// <summary>The moon as tracked: its name and class once charted, "Unknown body · uncharted" before.</summary>
     private OrbitObject MoonObject(BodyDef moon) =>
-        new(_source.KnownName(moon), "Moon", _source.Charted(moon.Id) ? _source.ClassName(moon.ClassId) : "uncharted", Lavender);
+        new(_source.KnownName(moon), "Moon", _source.Identified(moon.Id) ? _source.ClassName(moon.ClassId) : "unidentified", Lavender);
 
     /// <summary>Whole seconds (rounded up) from now to a sim tick.</summary>
     private long SecondsTo(long tick) => (tick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate;

@@ -694,7 +694,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             case OrbitDisplay.Planet when !atColony:
             {
                 var b = OrbitBody;
-                var classLabel = b != null && _system.Charted(b.Id) ? _system.ClassLabel(b.ClassId) : "UNCHARTED";
+                var classLabel = b != null && _system.Identified(b.Id) ? _system.ClassLabel(b.ClassId) : "UNIDENTIFIED";
                 _helm.SetTitle(OrbitBodyTitle(), hint ?? $"{classLabel} · {OrbitState()} · {shipLine}");
                 _helm.SetPanel("PLANETARY DATA", OtherBodyPlanetSections());
                 break;
@@ -938,6 +938,7 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         OnPhaseChange();
         DetectEvents();
+        UpdateComms(); // PlanetDriver.Comms.cs: relayed colony reports, SIGNAL DELAY, sensor sweeps
         if (_selectedStructure != 0 && Surface.FindStructure(_selectedStructure) == null) _selectedStructure = 0;
         if (Me.Phase == LandingPhase.Landed && Surface.FindStructure(_selectedBase) == null)
             _selectedBase = Surface.Bases(LocalPlayer).FirstOrDefault()?.Id ?? 0;
@@ -1005,9 +1006,9 @@ public partial class PlanetDriver : Node3D, ITestHost
             foreach (var t in found)
             {
                 var r = _data.Resources[map.DepositResource[t]];
-                _hud.PushEvent($"Found {r.Name} {Hud.Whole(map.DepositAmount[t])}", Icons.ResourceColors.GetValueOrDefault(r.Id, Colors.White));
+                ColonyReport($"Found {r.Name} {Hud.Whole(map.DepositAmount[t])}", Icons.ResourceColors.GetValueOrDefault(r.Id, Colors.White));
             }
-        else if (found.Count > 2) _hud.PushEvent($"Survey found {found.Count} deposits", new Color(1f, 0.54f, 0.85f));
+        else if (found.Count > 2) ColonyReport($"Survey found {found.Count} deposits", new Color(1f, 0.54f, 0.85f));
 
         foreach (var s in Surface.Structures.Where(s => s.Owner == LocalPlayer))
         {
@@ -1018,12 +1019,12 @@ public partial class PlanetDriver : Node3D, ITestHost
                 // The first landing's hub finishes on the uplink tick; its "assembled" line is folded into the uplink event.
                 var firstHub = was.State == StructureState.Assembling && s.Tile == Me.LandingTile;
                 if (was.State != StructureState.Complete && s.State == StructureState.Complete && !firstHub && !s.Founded) // founded: FounderEvents
-                    _hud.PushEvent(was.State == StructureState.Assembling ? $"{name} assembled: {BaseName(s.BaseId)} is working" : $"{name} completed", new Color(0.62f, 0.82f, 1f));
-                if (was.DefId != s.DefId) _hud.PushEvent($"{BaseName(s.BaseId)} upgraded: {name} (Level {_data.Building(s.DefId).Level})", PlanetHud.Accent);
-                if (was.Status != StructureStatus.NoUpkeep && s.Status == StructureStatus.NoUpkeep) _hud.PushEvent($"{name} idle: can't pay upkeep", new Color(1f, 0.7f, 0.42f));
-                if (was.Status != StructureStatus.Depleted && s.Status == StructureStatus.Depleted) _hud.PushEvent($"{name}: deposit used up", new Color(1f, 0.7f, 0.42f));
-                if (was.Status != StructureStatus.Paused && s.Status == StructureStatus.Paused) _hud.PushEvent($"{name} paused (P to resume)", new Color(0.6f, 0.65f, 0.75f));
-                if (was.Status == StructureStatus.Paused && s.Status != StructureStatus.Paused && s.State == StructureState.Complete) _hud.PushEvent($"{name} back to work", new Color(0.62f, 0.82f, 1f));
+                    ColonyReport(was.State == StructureState.Assembling ? $"{name} assembled: {BaseName(s.BaseId)} is working" : $"{name} completed", new Color(0.62f, 0.82f, 1f));
+                if (was.DefId != s.DefId) ColonyReport($"{BaseName(s.BaseId)} upgraded: {name} (Level {_data.Building(s.DefId).Level})", PlanetHud.Accent);
+                if (was.Status != StructureStatus.NoUpkeep && s.Status == StructureStatus.NoUpkeep) ColonyReport($"{name} idle: can't pay upkeep", new Color(1f, 0.7f, 0.42f));
+                if (was.Status != StructureStatus.Depleted && s.Status == StructureStatus.Depleted) ColonyReport($"{name}: deposit used up", new Color(1f, 0.7f, 0.42f));
+                if (was.Status != StructureStatus.Paused && s.Status == StructureStatus.Paused) ColonyReport($"{name} paused (P to resume)", new Color(0.6f, 0.65f, 0.75f));
+                if (was.Status == StructureStatus.Paused && s.Status != StructureStatus.Paused && s.State == StructureState.Complete) ColonyReport($"{name} back to work", new Color(0.62f, 0.82f, 1f));
             }
             _seen[s.Id] = now;
         }
@@ -1036,12 +1037,12 @@ public partial class PlanetDriver : Node3D, ITestHost
             {
                 var name = UnitName(u);
                 if (was.Mode != UnitMode.Deployed && u.Mode == UnitMode.Deployed && Surface.Map.DepositResource[u.Tile] >= 0)
-                    _hud.PushEvent($"{name} unfurled: mining {_data.Resources[Surface.Map.DepositResource[u.Tile]].Name}", new Color(0.62f, 0.82f, 1f));
+                    ColonyReport($"{name} unfurled: mining {_data.Resources[Surface.Map.DepositResource[u.Tile]].Name}", new Color(0.62f, 0.82f, 1f));
                 if (was.Status != u.MiningStatus)
                 {
-                    if (u.MiningStatus == MiningStatus.StorageFull) _hud.PushEvent($"{name} waiting: storage full — build a Storage Container or Ore Refinery", warn);
-                    if (u.MiningStatus == MiningStatus.NoDestination) _hud.PushEvent($"{name} waiting: nowhere to send ore", warn);
-                    if (u.MiningStatus == MiningStatus.Depleted) _hud.PushEvent($"{name}: deposit used up, folding up", warn);
+                    if (u.MiningStatus == MiningStatus.StorageFull) ColonyReport($"{name} waiting: storage full — build a Storage Container or Ore Refinery", warn);
+                    if (u.MiningStatus == MiningStatus.NoDestination) ColonyReport($"{name} waiting: nowhere to send ore", warn);
+                    if (u.MiningStatus == MiningStatus.Depleted) ColonyReport($"{name}: deposit used up, folding up", warn);
                 }
             }
             _seenUnits[u.Id] = now;
@@ -1057,9 +1058,9 @@ public partial class PlanetDriver : Node3D, ITestHost
                     var text = sev.LosesLoad
                         ? $"{name}: {sev.Name.ToLowerInvariant()}! Its load is lost ({Mathf.FloorToInt(u.Integrity.ToFloat())}% integrity) — send it to the Colony Hub for repair (F)"
                         : $"{name}: {sev.Name.ToLowerInvariant()} ({Mathf.FloorToInt(u.Integrity.ToFloat())}% integrity) — send it to the Colony Hub for repair (F)";
-                    _hud.PushEvent(text, u.Breakdown >= 2 ? new Color(1f, 0.42f, 0.32f) : warn);
+                    ColonyReport(text, u.Breakdown >= 2 ? new Color(1f, 0.42f, 0.32f) : warn);
                 }
-                if (before.Broken && !u.Broken) _hud.PushEvent($"{name} repaired and ready to mine", new Color(0.56f, 0.83f, 0.69f));
+                if (before.Broken && !u.Broken) ColonyReport($"{name} repaired and ready to mine", new Color(0.56f, 0.83f, 0.69f));
             }
             _seenCondition[u.Id] = condition;
         }
@@ -1070,13 +1071,13 @@ public partial class PlanetDriver : Node3D, ITestHost
         {
             if (!_knownUnits.Add(u.Id) || u.BuiltAtTick < 0) continue;
             var bay = Surface.StructureAt(u.BuiltAtTile);
-            _hud.PushEvent($"{UnitName(u)} rolled out of the {(bay != null ? _data.Building(bay.DefId).Name : "Vehicle Bay")}", new Color(0.62f, 0.82f, 1f));
+            ColonyReport($"{UnitName(u)} rolled out of the {(bay != null ? _data.Building(bay.DefId).Name : "Vehicle Bay")}", new Color(0.62f, 0.82f, 1f));
         }
 
         if (Me.Phase == LandingPhase.Landed)
         {
             var full = Surface.FreeStorage(_sim, LocalPlayer) <= Fix64.Zero;
-            if (full && !_storageFull) _hud.PushEvent("Storage full: mining has stopped — build a Storage Container or refine ore", warn);
+            if (full && !_storageFull) ColonyReport("Storage full: mining has stopped — build a Storage Container or refine ore", warn);
             _storageFull = full;
         }
 
@@ -1087,9 +1088,9 @@ public partial class PlanetDriver : Node3D, ITestHost
             {
                 var name = _data.Building(s.DefId).Name;
                 if (!was.Broken && s.Broken)
-                    _hud.PushEvent(Surface.AutoMaintained(s) ? $"{name} broke down: drones are on it" : $"{name} broke down — select it and press M to send the crew", new Color(1f, 0.42f, 0.36f));
-                if (was.Broken && !s.Broken) _hud.PushEvent($"{name} repaired", new Color(0.56f, 0.83f, 0.69f));
-                if (s.Level > was.Level) _hud.PushEvent($"{name} upgraded to {Surface.LevelName(s)}", PlanetHud.Accent);
+                    ColonyReport(Surface.AutoMaintained(s) ? $"{name} broke down: drones are on it" : $"{name} broke down — select it and press M to send the crew", new Color(1f, 0.42f, 0.36f));
+                if (was.Broken && !s.Broken) ColonyReport($"{name} repaired", new Color(0.56f, 0.83f, 0.69f));
+                if (s.Level > was.Level) ColonyReport($"{name} upgraded to {Surface.LevelName(s)}", PlanetHud.Accent);
             }
             _seenUpkeep[s.Id] = now;
         }
@@ -1105,7 +1106,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             _seenDeliveries.Remove(id);
             var what = _data.GroundVehicleNames.GetValueOrDefault(payload, payload);
             var landedBase = Surface.StructureAt(tile);
-            _hud.PushEvent(kind switch
+            ColonyReport(kind switch
             {
                 DeliveryKind.Outpost => landedBase != null ? $"Outpost founded: {BaseName(landedBase.Id)}" : "Outpost drop aborted: the site was taken (refunded)",
                 DeliveryKind.Shuttle => $"Drop ship landed a {what}",
@@ -1116,14 +1117,14 @@ public partial class PlanetDriver : Node3D, ITestHost
         var me = Surface.Players[LocalPlayer];
         for (var t = 0; t < me.Known.Length; t++)
         {
-            if (me.Known[t] && !_knownTechs[t]) _hud.PushEvent($"Research complete: {_data.Techs[t].Name} — {_data.Techs[t].Effect}", new Color(0.55f, 0.88f, 1f));
+            if (me.Known[t] && !_knownTechs[t]) ColonyReport($"Research complete: {_data.Techs[t].Name} — {_data.Techs[t].Effect}", new Color(0.55f, 0.88f, 1f));
             _knownTechs[t] = me.Known[t];
         }
 
         foreach (var b in Surface.Bases(LocalPlayer))
         {
             var low = Surface.PowerOf(b.Id).Efficiency < Fix64.One;
-            if (low && _lowPowerBases.Add(b.Id)) _hud.PushEvent($"Low power at {BaseName(b.Id)}: buildings slowed", new Color(1f, 0.7f, 0.42f));
+            if (low && _lowPowerBases.Add(b.Id)) ColonyReport($"Low power at {BaseName(b.Id)}: buildings slowed", new Color(1f, 0.7f, 0.42f));
             if (!low) _lowPowerBases.Remove(b.Id);
         }
     }

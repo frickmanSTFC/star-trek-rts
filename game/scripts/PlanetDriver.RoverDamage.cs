@@ -52,25 +52,25 @@ public partial class PlanetDriver
                 var name = UnitName(u);
                 var pct = Mathf.FloorToInt(integrity.ToFloat());
                 if (now.Hazard != was.Hazard && u.HazardAtTick >= 0)
-                    _hud.PushEvent(u.LastHazard == PlanetSurface.WildlifeHazard
+                    ColonyReport(u.LastHazard == PlanetSurface.WildlifeHazard
                         ? $"{name} attacked by wildlife (−{u.LastHazardDamage}, {pct}% integrity) — get it away from the herd"
                         : $"{name}: {Surface.HazardName(u).ToLowerInvariant()} (−{u.LastHazardDamage}, {pct}% integrity)", u.LastHazardDamage >= 15 ? RoverBad : RoverWarn);
                 if (now.Flat != was.Flat && u.FlatAtTick >= 0 && now.Flats > 0)
-                    _hud.PushEvent($"{name}: flat tyre ({WheelName(u, u.LastFlat)})" + (u.Spares > 0
+                    ColonyReport($"{name}: flat tyre ({WheelName(u, u.LastFlat)})" + (u.Spares > 0
                         ? $" — T to change it ({Spares(u.Spares)} on board)"
                         : " — no spare left: R to the repair pad"), now.Flats >= 2 ? RoverBad : RoverWarn);
                 if (now.Flats < was.Flats && now.Spares < was.Spares)
-                    _hud.PushEvent($"{name}: tyre changed ({Spares(u.Spares)} left)", RoverGood);
+                    ColonyReport($"{name}: tyre changed ({Spares(u.Spares)} left)", RoverGood);
                 if (now.Broken && !was.Broken)
-                    _hud.PushEvent($"{name} disabled ({pct}% integrity) — R to limp to the repair pad", RoverBad);
+                    ColonyReport($"{name} disabled ({pct}% integrity) — R to limp to the repair pad", RoverBad);
                 else if (now.Sensors && !was.Sensors && !now.Broken)
-                    _hud.PushEvent($"{name}: sensors damaged ({pct}%), it surveys less ground — R to repair", RoverWarn);
+                    ColonyReport($"{name}: sensors damaged ({pct}%), it surveys less ground — R to repair", RoverWarn);
                 else if (now.Damaged && !was.Damaged && !now.Broken)
-                    _hud.PushEvent($"{name} damaged ({pct}%): it drives slower — R to repair", RoverWarn);
+                    ColonyReport($"{name} damaged ({pct}%): it drives slower — R to repair", RoverWarn);
                 if (now.Toxic && !was.Toxic && d.ToxicPerMinute > Fix64.Zero)
-                    _hud.PushEvent($"{name} is in a toxic patch: it corrodes while it stays", RoverWarn);
+                    ColonyReport($"{name} is in a toxic patch: it corrodes while it stays", RoverWarn);
                 if (was.NeedsRepair && !now.NeedsRepair && Surface.StructureAt(u.Tile) != null)
-                    _hud.PushEvent($"{name} repaired and ready", RoverGood);
+                    ColonyReport($"{name} repaired and ready", RoverGood);
             }
             _seenRovers[u.Id] = now;
         }

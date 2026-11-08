@@ -36,6 +36,9 @@ public sealed record SystemBody(string Id, string Name, string ClassName, int Si
     BodyKnowledge Knowledge = BodyKnowledge.Charted, bool Live = false, bool Colony = false, string ClassId = "")
 {
     public bool Charted => Knowledge == BodyKnowledge.Charted;
+
+    /// <summary>Name and class known: Scanned (long-range scan / just arrived) or Charted.</summary>
+    public bool Identified => Knowledge >= BodyKnowledge.Scanned;
 }
 
 /// <summary>A ship on the system plot (render-only): id, name, owner (-1 neutral), whether it is ours, in flight.</summary>

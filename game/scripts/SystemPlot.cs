@@ -171,8 +171,8 @@ public partial class SystemPlot : Node3D
             if (b.ClassId == "asteroid")
             {
                 var i0 = belts.FindIndex(x => Mathf.Abs(x.Radius - r) < 5f);
-                if (i0 < 0) belts.Add((r, source.Charted(b.Id)));
-                else if (source.Charted(b.Id)) belts[i0] = (belts[i0].Radius, true);
+                if (i0 < 0) belts.Add((r, source.Identified(b.Id)));
+                else if (source.Identified(b.Id)) belts[i0] = (belts[i0].Radius, true);
                 continue;
             }
             if (IsRocks(b.ClassId)) continue;
@@ -191,7 +191,7 @@ public partial class SystemPlot : Node3D
         {
             var knowledge = source.Knowledge(b.Id);
             if (knowledge == BodyKnowledge.Unknown) continue;
-            var charted = knowledge == BodyKnowledge.Charted;
+            var charted = knowledge >= BodyKnowledge.Scanned; // name and class known (Scanned = no sweep yet)
             var live = source.HasLive(b.Id);
             var pos = PlotPosition(b);
             var isCurrent = b.Id == orbitBody;
@@ -230,6 +230,7 @@ public partial class SystemPlot : Node3D
             if (isCurrent) tags.Add("IN ORBIT");
             else if (isColony) tags.Add("COLONY");
             else if (charted && moons > 0) tags.Add($"{moons} MOON{(moons > 1 ? "S" : "")}");
+            if (knowledge == BodyKnowledge.Scanned) tags.Add(source.State?.SweepingShip(source.Player, b.Id) != null ? "SWEEPING" : "UNCHARTED");
             if (live) tags.Add("LIVE");
             var text = string.Join(" · ", tags);
             var textColour = isCurrent ? Peach : !charted ? new Color(0.62f, 0.64f, 0.68f) : IsRocks(b.ClassId) ? Cyan : new Color(0.95f, 0.9f, 0.85f);
