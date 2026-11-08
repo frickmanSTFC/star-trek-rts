@@ -37,7 +37,7 @@ public partial class PlanetDriver
         {
             if (key.StartsWith("unit:")) return BuildingModels.Vehicle(_data.SurfaceUnit(key[5..]), colour);
             return BuildingModels.Build(key, colour);
-        }, PlayerColors[LocalPlayer]);
+        }, ColorOf(LocalPlayer));
         AddChild(_thumbs);
 
         _drawer = new BuildDrawer { Name = "BuildDrawer" };

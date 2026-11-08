@@ -1471,6 +1471,7 @@ public sealed partial class PlanetSurface
         RoverWear(sim);
         MoveUnits(sim);
         FinishAssembly(sim.Tick + 1);
+        UpdateSight(sim.Tick); // Visibility.cs: fog of war memory, after everything has moved
     }
 
     /// <summary>Each base's oldest unfinished buildings get that base's free build queues; the rest wait.</summary>

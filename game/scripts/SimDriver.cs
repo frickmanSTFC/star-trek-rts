@@ -21,12 +21,15 @@ public partial class SimDriver : Node3D
 
     [Export] public ulong Seed { get; set; } = 1701;
 
-    private const int LocalPlayer = 0;
-    private static readonly Color[] PlayerColors = { new(0.45f, 0.7f, 1f), new(0.95f, 0.6f, 0.25f) };
+    /// <summary>The player slot this machine plays (clamped to the match's players); every other slot gets a ChaseAi.</summary>
+    [Export] public int LocalPlayerSlot { get; set; } = 0;
+
+    /// <summary>The player this machine plays, set once the match is set up.</summary>
+    public int LocalPlayer { get; private set; }
     private static readonly Color SelectedColor = new(1f, 1f, 0.55f);
 
     private Simulation _sim = null!;
-    private ChaseAi _ai = null!;
+    private readonly List<ChaseAi> _ais = new();
     private SystemView _system = null!;
     private Hud _hud = null!;
     private readonly Dictionary<int, Vector3> _previous = new();
@@ -45,13 +48,15 @@ public partial class SimDriver : Node3D
         foreach (var problem in data.Validate()) GD.PushWarning($"Data check: {problem}");
 
         _sim = MatchSetup.CreateMvpSkirmish(data, Seed);
-        _ai = new ChaseAi(1);
+        LocalPlayer = Mathf.Clamp(LocalPlayerSlot, 0, _sim.Players.Count - 1);
+        for (var p = 0; p < _sim.Players.Count; p++)
+            if (p != LocalPlayer) _ais.Add(new ChaseAi(p));
         _camera = GetNode<Camera3D>("Camera3D");
         _hud = GetNode<Hud>("Hud");
 
         _system = new SystemView();
         AddChild(_system);
-        _system.Build(_sim, PlayerColors);
+        _system.Build(_sim);
 
         var mesh = BuildShipMesh();
         for (var player = 0; player < _sim.Players.Count; player++)
@@ -89,7 +94,8 @@ public partial class SimDriver : Node3D
         while (_accumulator >= tickSeconds && steps < 5) // cap catch-up after a hitch
         {
             foreach (var s in _sim.Ships) _previous[s.Id] = ToWorld(s.Position);
-            foreach (var c in _ai.Think(_sim)) _sim.Schedule(_sim.Tick + InputDelayTicks, c);
+            foreach (var ai in _ais)
+                foreach (var c in ai.Think(_sim)) _sim.Schedule(_sim.Tick + InputDelayTicks, c);
             _sim.Step();
             _accumulator -= tickSeconds;
             steps++;
@@ -226,7 +232,7 @@ public partial class SimDriver : Node3D
             var basis = facing.LengthSquared() > 0.0001f ? Basis.LookingAt(facing, Vector3.Up) : Basis.Identity;
             var scale = 3f + s.HullSize * 2.5f;
             mm.SetInstanceTransform(i, new Transform3D(basis.Scaled(new Vector3(scale, scale, scale)), pos));
-            mm.SetInstanceColor(i, _selected.Contains(s.Id) ? SelectedColor : PlayerColors[s.Owner % PlayerColors.Length]);
+            mm.SetInstanceColor(i, _selected.Contains(s.Id) ? SelectedColor : PlanetDriver.ColorOf(s.Owner));
         }
     }
 

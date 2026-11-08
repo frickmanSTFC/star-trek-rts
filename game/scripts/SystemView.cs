@@ -21,7 +21,6 @@ public partial class SystemView : Node3D
 
     private readonly List<BodyVisual> _bodies = new();
     private Simulation _sim = null!;
-    private Color[] _playerColors = null!;
 
     /// <summary>Placeholder look per planet class until real art exists.</summary>
     private static readonly Dictionary<string, Color> ClassColors = new()
@@ -45,10 +44,9 @@ public partial class SystemView : Node3D
 
     private static bool IsField(Body body) => body.ClassId.StartsWith("asteroid");
 
-    public void Build(Simulation sim, Color[] playerColors)
+    public void Build(Simulation sim)
     {
         _sim = sim;
-        _playerColors = playerColors;
         BuildStar();
         BuildStarfield();
         foreach (var body in sim.Bodies) BuildBody(body);
@@ -66,7 +64,7 @@ public partial class SystemView : Node3D
                 v.Label.Modulate = new Color(0.8f, 0.85f, 0.9f);
                 continue;
             }
-            var color = _playerColors[colony.Owner % _playerColors.Length];
+            var color = PlanetDriver.ColorOf(colony.Owner);
             v.ColonyMaterial.AlbedoColor = color;
             v.Label.Modulate = color;
         }

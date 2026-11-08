@@ -654,16 +654,19 @@ public partial class OrbitView : Node3D
     /// <summary>City lights for the night side: your buildings glow warm (bases brightest), the natives' settlement dimly.</summary>
     private void RefreshLights()
     {
-        // Assembling cores light up when they turn Complete, so count those too.
+        // Assembling cores light up when they turn Complete, so count those too; other players' buildings light up once
+        // you know of them (in sight now or remembered: the sim's fog).
+        RefreshSight();
         var stamp = _surface.Structures.Count * 7919L + _surface.Bases(_localPlayer).Count
-            + 104729L * _surface.Structures.Count(x => x.State == StructureState.Complete);
+            + 104729L * _surface.Structures.Count(x => x.State == StructureState.Complete)
+            + 1299709L * _surface.Structures.Count(Knows);
         if (stamp == _lightsStamp) return;
         _lightsStamp = stamp;
         var map = _surface.Map;
         var glow = new Dictionary<int, float>();
         foreach (var s in _surface.Structures)
         {
-            if (s.Owner != _localPlayer || s.State != StructureState.Complete) continue;
+            if (!Knows(s) || s.State != StructureState.Complete) continue;
             var strength = _sim.Data.Building(s.DefId).IsCore ? 1f : 0.55f;
             glow[s.Tile] = Mathf.Max(glow.GetValueOrDefault(s.Tile), strength);
             foreach (var n in map.Grid.Neighbours(s.Tile)) glow[n] = Mathf.Max(glow.GetValueOrDefault(n), strength * 0.3f);
@@ -877,16 +880,37 @@ public partial class OrbitView : Node3D
         EmissionEnergyMultiplier = energy,
     };
 
-    /// <summary>A beacon on each of your bases: a lit mast and a ring on the ground.</summary>
+    // ---------------------------------------------------------------- fog of war (the sim's)
+
+    private bool[] _sight = System.Array.Empty<bool>();
+    private long _sightTick = -1;
+
+    /// <summary>The local player's tiles in sight now (the sim's PlanetSurface.VisibleTiles), once per sim tick.</summary>
+    private void RefreshSight()
+    {
+        if (_sightTick == _sim.Tick && _sight.Length > 0) return;
+        _sightTick = _sim.Tick;
+        _sight = _surface.VisibleTiles(_localPlayer);
+    }
+
+    private bool InSight(int tile) => tile >= 0 && tile < _sight.Length && _sight[tile];
+
+    /// <summary>Your own structures always; another player's while in sight or once remembered.</summary>
+    private bool Knows(SurfaceStructure s) => s.Owner == _localPlayer || InSight(s.Tile) || _surface.Remembers(_localPlayer, s);
+
+    /// <summary>A beacon on each base you know of (yours, and other players' in sight or remembered): a lit mast and a
+    /// ring on the ground, in the owner's colour.</summary>
     private void UpdateBases()
     {
+        RefreshSight();
         var alive = new HashSet<int>();
-        foreach (var core in _surface.Bases(_localPlayer))
+        foreach (var core in _surface.Structures)
         {
+            if (core.Id != core.BaseId || !_sim.Data.Building(core.DefId).IsCore || !Knows(core)) continue;
             alive.Add(core.Id);
             if (_baseMarkers.ContainsKey(core.Id)) continue;
             var marker = new Node3D();
-            var colour = PlanetDriver.PlayerColors[core.Owner % PlanetDriver.PlayerColors.Length];
+            var colour = PlanetDriver.ColorOf(core.Owner);
             marker.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.35f, BottomRadius = 0.5f, Height = 5f }, Position = new Vector3(0, 2.5f, 0), MaterialOverride = GlowMaterial(colour) });
             marker.AddChild(new MeshInstance3D { Mesh = new TorusMesh { InnerRadius = 2f, OuterRadius = 2.5f, Rings = 24 }, MaterialOverride = GlowMaterial(colour, 1.5f) });
             _globe.AddChild(marker);
@@ -906,11 +930,12 @@ public partial class OrbitView : Node3D
         var alive = new HashSet<int>();
         foreach (var u in _surface.Units)
         {
-            if (u.Owner != _localPlayer) continue;
+            if (u.Owner != _localPlayer && !InSight(u.Tile)) continue; // another player's vehicles only while in sight
             alive.Add(u.Id);
             if (!_unitMarkers.TryGetValue(u.Id, out var dot))
             {
-                dot = new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.7f, Height = 1.4f, RadialSegments = 8, Rings = 4 }, MaterialOverride = GlowMaterial(new Color(1f, 0.95f, 0.7f), 2f) };
+                var tint = u.Owner == _localPlayer ? new Color(1f, 0.95f, 0.7f) : PlanetDriver.ColorOf(u.Owner);
+                dot = new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.7f, Height = 1.4f, RadialSegments = 8, Rings = 4 }, MaterialOverride = GlowMaterial(tint, 2f) };
                 _globe.AddChild(dot);
                 _unitMarkers[u.Id] = dot;
             }

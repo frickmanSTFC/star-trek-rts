@@ -117,6 +117,7 @@ public partial class ConstructionView : Node3D
         public float Spin;                // the drones' slow orbit
         public float CutY;                // where the beams aim (top of the printed part of the current piece)
         public Aabb Focus;                // the piece being printed (or the whole building for an upgrade)
+        public bool InSight = true;       // fog: the local player sees the site now (else its drones and beams are hidden)
     }
 
     private enum DroneState { Outbound, Working, Home }
@@ -363,6 +364,7 @@ public partial class ConstructionView : Node3D
         site.Working = (site.Upgrade || s.State == StructureState.Building) && !stalled;
         if (!site.Upgrade && ticks > 0) site.Fresh = false;
         var visible = site.Model.Visible;
+        site.InSight = _view.ShowsLive(s.Owner, s.Tile);
         site.Spin += delta * 0.16f;
 
         // Drones: none for a building still waiting in the queue; the rest fly out one after another.
@@ -640,7 +642,7 @@ public partial class ConstructionView : Node3D
 
     private void Launch(Site site)
     {
-        var colour = PlanetDriver.PlayerColors[site.Owner % PlanetDriver.PlayerColors.Length];
+        var colour = PlanetDriver.ColorOf(site.Owner);
         var node = BuildingModels.Exocomp(colour);
         AddChild(node);
         var home = HomeFor(site.Owner, site.Centre, site.Id);
@@ -814,6 +816,10 @@ public partial class ConstructionView : Node3D
             }
         }
 
+        // Fog: another player's exocomps over a site out of sight are hidden (they keep flying, so they're right when it shows).
+        var hidden = site != null && !site.InSight;
+        d.Node.Visible = !hidden;
+        firing &= !hidden;
         d.Node.GlobalPosition = pos;
         var velocity = delta > 0f ? (pos - d.LastPos) / delta : Vector3.Zero;
         d.LastPos = pos;

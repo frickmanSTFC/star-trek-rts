@@ -109,10 +109,20 @@ public partial class Minimap : Control
         DrawTextureRect(_texture, new Rect2(Vector2.Zero, Size), false);
 
         var surface = _sim.Surface!;
+        // Other players' bases you know of (in sight now or remembered: the sim's fog) and their vehicles in sight.
+        foreach (var s in surface.Structures)
+        {
+            if (s.Owner == _localPlayer || s.Id != s.BaseId || !_view.Shows(s)) continue;
+            var p = ToMap(_view.TileCentre(s.Tile));
+            DrawRect(new Rect2(p - new Vector2(4, 4), new Vector2(8, 8)), PlanetDriver.ColorOf(s.Owner));
+            DrawRect(new Rect2(p - new Vector2(4, 4), new Vector2(8, 8)), new Color(0.02f, 0.02f, 0.04f), false, 1.5f);
+        }
+        foreach (var u in surface.Units)
+            if (u.Owner != _localPlayer && _view.Shows(u)) DrawCircle(ToMap(_view.UnitPos(u)), 2.5f, PlanetDriver.ColorOf(u.Owner));
         foreach (var b in surface.Bases(_localPlayer))
         {
             var p = ToMap(_view.TileCentre(b.Tile));
-            DrawRect(new Rect2(p - new Vector2(5, 5), new Vector2(10, 10)), PlanetDriver.PlayerColors[0]);
+            DrawRect(new Rect2(p - new Vector2(5, 5), new Vector2(10, 10)), PlanetDriver.ColorOf(_localPlayer));
             DrawRect(new Rect2(p - new Vector2(5, 5), new Vector2(10, 10)), Colors.White, false, 1.5f);
         }
         foreach (var u in surface.Units)

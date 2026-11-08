@@ -308,7 +308,7 @@ public partial class DropShipView : Node3D
     {
         var t = ship.Time;
         var from = ship.Convoy?.ShowFrom ?? ship.DescentFrom;
-        ship.Shown = t >= from && (ship.Owner == _localPlayer || (ship.Tile >= 0 && _view.FogAt(ship.Tile) == PlanetView.Fog.Visible));
+        ship.Shown = t >= from && (ship.Owner == _localPlayer || (ship.Tile >= 0 && _view.Sees(ship.Tile)));
         ship.Model.Visible = ship.Shown;
         var l = ship.Landed;
         var forward = -l.Basis.Z.Normalized();
@@ -441,7 +441,7 @@ public partial class DropShipView : Node3D
 
     private Ship Create(int key, int owner, long launchTick, long arriveTick, Transform3D landed, bool crawler, string name, string number)
     {
-        var colour = PlanetDriver.PlayerColors[owner % PlanetDriver.PlayerColors.Length];
+        var colour = PlanetDriver.ColorOf(owner);
         var model = BuildingModels.DropShip(colour) ?? Primitive(colour);
         RoverLook.Paint(model, name, number);
         model.Visible = false;

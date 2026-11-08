@@ -94,6 +94,19 @@ public partial class PlanetHud : CanvasLayer
     private Control _vignette = null!;
     private Control _bottom = null!;
     private Label _factionName = null!;
+    private ColorRect? _factionSwatch;
+    private Color _localColour = PlanetDriver.ColorOf(0);
+
+    /// <summary>The local player's colour (top-bar swatch, base and building icons); the driver sets it at start.</summary>
+    public Color LocalColour
+    {
+        get => _localColour;
+        set
+        {
+            _localColour = value;
+            if (_factionSwatch != null) _factionSwatch.Color = value;
+        }
+    }
     private Label _factionSub = null!;
     private readonly Dictionary<int, (Label Amount, Label Rate)> _chips = new();
     private Label _powerChip = null!;
@@ -655,7 +668,7 @@ public partial class PlanetHud : CanvasLayer
         _detailView.Visible = false;
         _structureView.Visible = false;
         _orbitPanel.Visible = false;
-        _baseIcon.Texture = Icons.Get(v.CoreId, PlanetDriver.PlayerColors[0]);
+        _baseIcon.Texture = Icons.Get(v.CoreId, LocalColour);
         _baseName.Text = v.Name.ToUpperInvariant();
         _coreName.Text = v.CoreName;
         _levelBadge.Text = $" LEVEL {v.Level} ";
@@ -709,7 +722,7 @@ public partial class PlanetHud : CanvasLayer
         _detailView.Visible = false;
         _orbitPanel.Visible = false;
         _structureView.Visible = true;
-        _structIcon.Texture = Icons.Get(v.IconId, PlanetDriver.PlayerColors[0]);
+        _structIcon.Texture = Icons.Get(v.IconId, LocalColour);
         _structTitle.Text = v.Title.ToUpperInvariant();
         _structSub.Text = v.Subtitle;
         _structStatus.Text = v.Status;
@@ -789,7 +802,7 @@ public partial class PlanetHud : CanvasLayer
 
         var faction = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         faction.AddThemeConstantOverride("separation", 10);
-        faction.AddChild(new ColorRect { Color = PlanetDriver.PlayerColors[0], CustomMinimumSize = new Vector2(8, 28), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore });
+        faction.AddChild(_factionSwatch = new ColorRect { Color = LocalColour, CustomMinimumSize = new Vector2(8, 28), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore });
         var names = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         names.AddThemeConstantOverride("separation", -2);
         _factionName = MakeLabel("", 16, Ink);
