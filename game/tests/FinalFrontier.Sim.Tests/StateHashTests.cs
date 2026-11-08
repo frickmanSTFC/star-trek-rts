@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using FinalFrontier.Sim.Core;
 using FinalFrontier.Sim.Math;
+using FinalFrontier.Sim.Space;
 using FinalFrontier.Sim.Surface;
 
 namespace FinalFrontier.Sim.Tests;
@@ -38,9 +39,23 @@ public class StateHashTests
         Assert.Equal(new[] { "_nextBuildingId", "_nextColonyId", "_nextDeliveryId", "_nextPodId", "_nextSatelliteId", "_nextShipId",
             "_nextStructureId", "_nextUnitId" }, checkedNames.OrderBy(n => n, StringComparer.Ordinal));
 
+        // The star system's counter, in a game that has one.
+        var game = MatchSetup.CreateSystemGame(TestData.Real, 1701);
+        var systemCounters = Counters(typeof(StarSystemState)).ToList();
+        Assert.Equal(new[] { "_nextShipId" }, systemCounters.Select(f => f.Name));
+        foreach (var f in systemCounters)
+        {
+            var before = game.StateHash();
+            var value = (int)f.GetValue(game.System)!;
+            f.SetValue(game.System, value + 1);
+            Assert.True(before != game.StateHash(), $"StarSystemState.{f.Name} is not in the state hash");
+            f.SetValue(game.System, value);
+            Assert.Equal(before, game.StateHash());
+        }
+
         // A counter anywhere else in the sim would need its own line above (and in that class's AddToHash).
         var elsewhere = typeof(Simulation).Assembly.GetTypes()
-            .Where(t => t != typeof(Simulation) && t != typeof(PlanetSurface))
+            .Where(t => t != typeof(Simulation) && t != typeof(PlanetSurface) && t != typeof(StarSystemState))
             .SelectMany(t => Counters(t).Select(f => $"{t.Name}.{f.Name}")).ToList();
         Assert.Empty(elsewhere);
     }

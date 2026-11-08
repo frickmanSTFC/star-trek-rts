@@ -43,6 +43,8 @@ public static class CommandChecks
             case ShuttleCommand c: return Id(c.UnitId);
             case BeamCommand c: return Id(c.Payload);
             case ResearchCommand c: return Id(c.TechId);
+            case SetCourseCommand c: return Id(c.BodyId);
+            case SystemSatelliteCommand c: return Id(c.BodyId);
             case DebugUnitCommand c: return Enum.IsDefined(c.Field) ? null : "unknown field";
             case DebugSpawnUnitCommand c: return Id(c.UnitId);
             case DebugStructureCommand c: return Enum.IsDefined(c.Field) ? null : "unknown field";
@@ -118,6 +120,9 @@ public static class CommandHash
         SalvageCommand => 19,
         FoundOutpostCommand => 20,
         PauseCommand => 21,
+        SetCourseCommand => 22,
+        LongRangeScanCommand => 23,
+        SystemSatelliteCommand => 24,
         // Test panel.
         DebugUnitCommand => 101,
         DebugMoveUnitCommand => 102,
@@ -166,6 +171,9 @@ public static class CommandHash
             case SalvageCommand c: h.Add(c.StructureId); break;
             case FoundOutpostCommand c: h.Add(c.UnitId); h.Add(c.Tile); break;
             case PauseCommand c: h.Add(c.StructureId); h.Add(c.Pause); break;
+            case SetCourseCommand c: h.Add(c.ShipId); Text(ref h, c.BodyId); break;
+            case LongRangeScanCommand c: h.Add(c.ShipId); break;
+            case SystemSatelliteCommand c: Text(ref h, c.BodyId); break;
             case DebugUnitCommand c: h.Add(c.UnitId); h.Add((int)c.Field); h.Add(c.Value); break;
             case DebugMoveUnitCommand c: h.Add(c.UnitId); h.Add(c.Tile); break;
             case DebugRemoveUnitCommand c: h.Add(c.UnitId); break;

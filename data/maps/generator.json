@@ -1,0 +1,58 @@
+{
+  "_notes_system_generator": "Star systems generated from a game's seed (game/sim/Space/SystemGenerator.cs; pure, its own hash, not sim.Rng). star: spectral class weights (classes must be in climate/stars.json), radius range and a name list. planets: how many planets and belts (moons come on top), placed one per slot between orbit.min and orbit.max map units (star at 0, 0, like maps.json; slot share jitter keeps neighbouring orbits apart). zones: the band of orbit distances (map units) each zone covers, the au range that band stands for at a Sol-bright star (scaled by the square root of the star's luminosity, so a habitable zone stays habitable round a K or F star; feeds the climate), and the class weights rolled there (any planet_classes id; Class M is the rare roll: 5 of 100 in the habitable zone, none elsewhere); habitable_zone names the zone the landable fallback looks in. belts = classes drawn as rings and named with belt_suffix. moons: how many each parent class gets ([min, max], uniform; absent = none), their class weights by parent class (default for the rest), their distance from the parent and their names (parent name + suffix). sizes: [min, max] per class (default for the rest), the same 1..7 scale as maps.json. names: the planet and belt names, each used once per system. landable_fallback: when no rolled body has a surface (surfaces.json planets), the habitable-zone planet nearest the zone's middle (else the nearest planet that isn't a giant or belt) becomes this class. climate: what each generated body's climate entry gets per class (default for the rest) on top of the class's climate template (climate/classes.json): day_seconds, axial_tilt_deg and eccentricity ranges, albedo, greenhouse_c, spin (prograde share), moons locked to their parent; year_seconds_at_1_au = play seconds of a year at 1 au round a Sol-mass star (Tarsis: 8 days of 720 s), scaled by au^1.5. All numbers are placeholders.",
+  "system_generator": {
+    "star": {
+      "classes": { "G": 46, "K": 30, "F": 14, "M": 10 },
+      "radius": [32, 48],
+      "names": ["Kalandra", "Veshan", "Oriel", "Tavrin", "Meridia", "Corvanis", "Halcyon", "Ystrel", "Brannoc", "Selevar", "Amarant", "Quessa",
+                "Dovrenne", "Ilthar", "Marrok", "Sabine", "Teodane", "Valkis", "Ostrava", "Pellucid", "Rhadamant", "Zephira", "Calloway", "Nimbra"]
+    },
+    "planets": [5, 8],
+    "orbit": { "min": 110, "max": 500, "slot_jitter": 0.6 },
+    "zones": [
+      { "id": "inner", "distance": [110, 240], "au": [0.3, 0.7],
+        "weights": { "class_y": 16, "class_h": 18, "class_d": 20, "class_k": 8, "class_l": 3, "asteroid": 14, "asteroid_rare": 5 } },
+      { "id": "habitable", "distance": [240, 380], "au": [0.9, 1.2],
+        "weights": { "class_m": 5, "class_l": 20, "class_k": 22, "class_h": 18, "class_d": 14, "class_n": 6, "class_y": 2, "asteroid": 10, "asteroid_rare": 3 } },
+      { "id": "outer", "distance": [380, 500], "au": [2.0, 7.0],
+        "weights": { "class_j": 32, "class_t": 6, "class_k": 8, "class_d": 14, "ice_moon": 8, "asteroid": 12 } }
+    ],
+    "habitable_zone": "habitable",
+    "belts": ["asteroid", "asteroid_rare"],
+    "belt_suffix": " Belt",
+    "moons": {
+      "counts": { "class_j": [1, 3], "class_t": [2, 3], "class_m": [0, 1], "class_l": [0, 1], "class_k": [0, 1], "class_n": [0, 1] },
+      "weights": {
+        "class_j": { "ice_moon": 55, "class_d": 35, "class_k": 6, "class_l": 4 },
+        "class_t": { "ice_moon": 50, "class_d": 40, "class_k": 6, "class_l": 4 },
+        "default": { "class_d": 100 } },
+      "distance": [40, 70],
+      "suffixes": [" A", " B", " C", " D"]
+    },
+    "sizes": { "class_j": [5, 6], "class_t": [6, 7], "class_m": [3, 4], "class_l": [3, 3], "class_k": [2, 3], "class_h": [2, 3], "class_n": [3, 4],
+               "class_y": [2, 3], "asteroid": [2, 2], "asteroid_rare": [1, 1], "default": [1, 2] },
+    "names": ["Tessaly", "Corvane", "Marrow", "Ilsabet", "Durance", "Kestrel", "Abernath", "Solace", "Prydain", "Varlo", "Hesperine", "Quillon",
+              "Ostend", "Bellweather", "Calder", "Mirabel", "Thane", "Esker", "Lantern", "Orrin", "Sallow", "Tamsin", "Wrenfield", "Cassock",
+              "Dunmore", "Galloway", "Hollin", "Ivory", "Juniper", "Larkspur"],
+    "landable_fallback": "class_l",
+    "climate": {
+      "year_seconds_at_1_au": 5760,
+      "classes": {
+        "class_m": { "day_seconds": [660, 780], "axial_tilt_deg": [10, 30], "eccentricity": [0, 0.04], "albedo": 0.3, "greenhouse_c": 30, "prograde": 0.85 },
+        "class_l": { "day_seconds": [600, 780], "axial_tilt_deg": [10, 35], "eccentricity": [0.02, 0.09], "albedo": 0.26, "greenhouse_c": 8, "prograde": 0.7 },
+        "class_k": { "day_seconds": [600, 900], "axial_tilt_deg": [5, 35], "eccentricity": [0.02, 0.1], "albedo": 0.25, "greenhouse_c": 4, "prograde": 0.8 },
+        "class_h": { "day_seconds": [500, 900], "axial_tilt_deg": [2, 25], "eccentricity": [0.01, 0.08], "albedo": 0.3, "greenhouse_c": 18, "prograde": 0.8 },
+        "class_n": { "day_seconds": [600, 840], "axial_tilt_deg": [5, 30], "eccentricity": [0, 0.05], "albedo": 0.22, "greenhouse_c": 26, "prograde": 0.85 },
+        "class_y": { "day_seconds": [900, 2400], "axial_tilt_deg": [0, 10], "eccentricity": [0, 0.05], "albedo": 0.5, "greenhouse_c": 380, "prograde": 0.5 },
+        "class_d": { "day_seconds": [600, 1800], "axial_tilt_deg": [0, 10], "eccentricity": [0, 0.1], "albedo": 0.12, "greenhouse_c": 0, "prograde": 0.8 },
+        "ice_moon": { "day_seconds": [1200, 2400], "axial_tilt_deg": [0, 6], "eccentricity": [0, 0.06], "albedo": 0.62, "greenhouse_c": 3, "prograde": 0.9 },
+        "class_j": { "day_seconds": [360, 480], "axial_tilt_deg": [1, 10], "eccentricity": [0.01, 0.06], "albedo": 0.5, "greenhouse_c": 45, "prograde": 0.9 },
+        "class_t": { "day_seconds": [360, 480], "axial_tilt_deg": [1, 10], "eccentricity": [0.01, 0.06], "albedo": 0.5, "greenhouse_c": 60, "prograde": 0.9 },
+        "asteroid": { "day_seconds": [60, 120], "axial_tilt_deg": [5, 60], "eccentricity": [0.02, 0.12], "albedo": 0.1, "greenhouse_c": 0, "prograde": 0.6 },
+        "asteroid_rare": { "day_seconds": [45, 90], "axial_tilt_deg": [5, 60], "eccentricity": [0.02, 0.12], "albedo": 0.08, "greenhouse_c": 0, "prograde": 0.5 },
+        "default": { "day_seconds": [600, 1200], "axial_tilt_deg": [0, 20], "eccentricity": [0, 0.08], "albedo": 0.2, "greenhouse_c": 0, "prograde": 0.8 }
+      },
+      "moon_day_seconds": [1200, 2400]
+    }
+  }
+}

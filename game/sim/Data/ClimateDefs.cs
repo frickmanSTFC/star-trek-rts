@@ -176,3 +176,45 @@ public sealed record ClimateRules(
         return Weather[0];
     }
 }
+
+/// <summary>
+/// The climate entries of a generated star system's bodies (Space/SystemGenerator.cs), which are not in climate.json:
+/// one <see cref="BodyClimateDef"/> per body (moons have Parent set and share their planet's orbit), the planet class of
+/// each and the star's spectral class. A surface of one of these bodies carries it (SurfaceMap.SystemClimate), so
+/// Climate finds its day, seasons and weather. A pure function of the data and the system's seed.
+/// </summary>
+public sealed class SystemClimate
+{
+    private readonly List<BodyClimateDef> _bodies = new();
+    private readonly List<string> _classes = new();
+
+    public SystemClimate(string starClass, IEnumerable<(BodyClimateDef Body, string ClassId)> bodies)
+    {
+        StarClass = starClass;
+        foreach (var (b, c) in bodies)
+        {
+            _bodies.Add(b);
+            _classes.Add(c);
+        }
+    }
+
+    /// <summary>The star's spectral class (climate.json stars).</summary>
+    public string StarClass { get; }
+
+    public IReadOnlyList<BodyClimateDef> Bodies => _bodies;
+
+    public BodyClimateDef? Body(string id)
+    {
+        for (var i = 0; i < _bodies.Count; i++)
+            if (_bodies[i].Id == id) return _bodies[i];
+        return null;
+    }
+
+    /// <summary>The planet class of a body (null if it isn't one of this system's).</summary>
+    public string? ClassOf(string id)
+    {
+        for (var i = 0; i < _bodies.Count; i++)
+            if (_bodies[i].Id == id) return _classes[i];
+        return null;
+    }
+}
