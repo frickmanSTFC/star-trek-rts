@@ -80,7 +80,7 @@ def materials():
             m.blend_method = "BLEND"
         m.use_backface_culling = True
     K.mat("frost", "Frost", (0.86, 0.9, 0.95), 0.0, 0.75, textured=True)
-    K.mat("frame", "Frame", (0.32, 0.34, 0.38), 0.55, 0.4, textured=True)
+    K.mat("frame", "Frame", (0.34, 0.36, 0.4), 0.3, 0.5, textured=True)
     K.mat("deck", "Deck", (0.5, 0.52, 0.55), 0.15, 0.6, textured=True)
     K.mat("walk", "Walkway", (0.72, 0.71, 0.68), 0.0, 0.7, textured=True)
     K.mat("planter", "Planter", (0.3, 0.33, 0.34), 0.2, 0.55, textured=True)
@@ -252,6 +252,17 @@ def struts():
     return pts, nrm, edges, faces
 
 
+def in_airlock(p):
+    """Is p inside one of the airlock vestibules (with a little margin)?"""
+    for a in AIRLOCKS:
+        d = at(a, 1.0)
+        r = p.x * d.x + p.y * d.y
+        side = abs(-p.x * d.y + p.y * d.x)
+        if LOCK_R - 1.6 < r < LOCK_R + 1.4 and side < 1.4 and p.z < 3.2:
+            return True
+    return False
+
+
 def frame(g):
     piv = empty("DomeFrame", P(0, 0, 0), g)
     pts, nrm, edges, _ = struts()
@@ -259,10 +270,12 @@ def frame(g):
         a, b = pts[i], pts[j]
         if a.z < RING_Z + 0.01 and b.z < RING_Z + 0.01:
             continue
+        if any(in_airlock(a.lerp(b, t / 6)) for t in range(7)):
+            continue   # the vestibules break through the frame
         up = (nrm[i] + nrm[j]).normalized()
         obox(f"Strut{k}", (0.1, (b - a).length - 0.1, 0.17), (a + b) / 2, b - a, MT["frame"], piv, up=up)
     for i, (p, n) in enumerate(zip(pts, nrm)):
-        if p.z < RING_Z + 0.01:
+        if p.z < RING_Z + 0.01 or in_airlock(p):
             continue
         t = n.cross(Vector((0, 0, 1)))
         t = t.normalized() if t.length > 1e-4 else Vector((1, 0, 0))
