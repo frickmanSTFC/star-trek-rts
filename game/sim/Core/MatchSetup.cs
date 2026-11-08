@@ -39,6 +39,15 @@ public static class MatchSetup
         return sim;
     }
 
+    /// <summary>CONTRACT stub (docs/system-contract.md): a game in a star system generated from the seed, starting in orbit
+    /// of <paramref name="homeBody"/> (a landable body of that system; null = the generator's pick), whose PlanetSurface is
+    /// that body's. Until the sim branch lands it is the plain planet landing with no system.</summary>
+    public static Simulation CreateSystemGame(GameData data, ulong seed, string faction = "federation", string? homeBody = null) =>
+        CreatePlanetLanding(data, seed, faction);
+
+    /// <summary>CONTRACT stub: the bodies of the system this seed generates that have a playable surface (the chooser's list).</summary>
+    public static IReadOnlyList<BodyDef> LandableBodies(GameData data, ulong seed) => new List<BodyDef>();
+
     /// <summary>The world the planet-first MVP starts on by default.</summary>
     public const string DefaultWorld = "tarsis";
 

@@ -51,6 +51,10 @@ public sealed class Simulation
     /// <summary>The map this match is played on, or null before LoadMap.</summary>
     public MapDef? Map { get; private set; }
 
+    /// <summary>The game's star system (generated or from a map), or null for planet-only games (balance runner, tests).
+    /// CONTRACT stub (docs/system-contract.md): the sim agent sets it in MatchSetup.CreateSystemGame.</summary>
+    public FinalFrontier.Sim.Space.StarSystemState? System { get; internal set; }
+
     /// <summary>The planet surface being played on, or null in a star-system match.</summary>
     public PlanetSurface? Surface { get; private set; }
 
