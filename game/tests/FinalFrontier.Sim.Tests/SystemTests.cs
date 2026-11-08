@@ -430,7 +430,6 @@ public class SystemTests
         Assert.NotNull(home.MeanTemperatureC);
         Assert.Equal(Data.PlanetClass(home.ClassId!).Yields.Where(y => Data.Resources.Any(r => r.Id == y)), home.Resources);
         Assert.Equal(sys.MoonsOf(sys.SurfaceBody!).Select(m => m.Id), home.Moons);
-        Assert.Equal("habitable", sys.ZoneOf(sys.SurfaceBody!) is "habitable" ? "habitable" : "habitable"); // zone is reported
         Assert.False(string.IsNullOrEmpty(home.Zone));
     }
 
@@ -628,5 +627,49 @@ public class SystemTests
             return hashes;
         }
         Assert.Equal(Play(), Play());
+    }
+
+    // ---------------------------------------------------------------- data
+
+    [Fact]
+    public void TheSystemDataPassesItsChecks()
+    {
+        Assert.NotNull(Data.SystemGenerator);
+        Assert.NotNull(Data.SystemRules);
+        foreach (var seed in DataChecks.PlanetSeeds) Assert.Empty(DataChecks.SystemProblems(Data, seed));
+        Assert.Equal(new[] { 20, 90 }, new[] { Data.SystemRules!.TravelMinSeconds, Data.SystemRules.TravelMaxSeconds });
+        Assert.Contains(Data.TrafficClasses(), c => c.Role == "tanker");
+    }
+
+    [Theory]
+    [InlineData("\"weights\": { \"class_m\": 5,", "\"weights\": { \"class_q\": 5,", "unknown planet class 'class_q'")]
+    [InlineData("\"distance\": [240, 380]", "\"distance\": [250, 380]", "must start where the previous zone")]
+    [InlineData("\"landable_fallback\": \"class_l\"", "\"landable_fallback\": \"class_k\"", "landable_fallback 'class_k' has no surface")]
+    [InlineData("\"planets\": [5, 8]", "\"planets\": [5, 40]", "planets needs 1 <= min <= max <= 20")]
+    [InlineData("\"classes\": { \"G\": 46,", "\"classes\": { \"Q\": 46,", "'Q' is not in climate/stars.json")]
+    [InlineData("\"class_j\": [1, 3],", "\"class_j\": [1, 9],", "moons counts class_j")]
+    [InlineData("\"seconds\": [20, 90]", "\"seconds\": [90, 20]", "travel seconds needs 1 <= min <= max")]
+    [InlineData("\"factions\": [\"federation\", \"ferengi\"", "\"factions\": [\"nobody\", \"ferengi\"", "traffic faction 'nobody' is unknown")]
+    public void BrokenSystemDataIsReported(string from, string to, string problem)
+    {
+        var file = from.Contains("seconds\": [20") || from.Contains("factions\"") ? "maps/system.json" : "maps/generator.json";
+        var data = TestData.Patched((file, from, to));
+        Assert.Contains(data.Validate(), p => p.Contains(problem, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TheDataSetsTheFlightTimesAndTheScan()
+    {
+        var data = TestData.Patched(("maps/system.json", "\"seconds\": [20, 90]", "\"seconds\": [30, 30]"),
+            ("maps/system.json", "\"range\": 320, \"cooldown_seconds\": 90", "\"range\": 5000, \"cooldown_seconds\": 10"));
+        Assert.Empty(data.Validate());
+        var sim = MatchSetup.CreateSystemGame(data, 1701);
+        var sys = sim.System!;
+        foreach (var b in sys.Bodies.Where(b => b.Id != sys.SurfaceBody))
+            Assert.Equal(30 * Simulation.TickRate, sys.TravelTicks(sys.SurfaceBody!, b.Id));
+        sim.Schedule(0, new LongRangeScanCommand(0, sys.FlagshipOf(0)!.Id));
+        sim.Step();
+        Assert.All(sys.Bodies, b => Assert.Equal(BodyKnowledge.Charted, sys.KnowledgeOf(0, b.Id)));
+        Assert.Equal(10 * Simulation.TickRate, sys.FlagshipOf(0)!.ScanReadyTick);
     }
 }
