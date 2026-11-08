@@ -11,7 +11,7 @@
 //   globe_mode 6  Class N: deep ocean, a few islands, drifting white cloud swirls
 // Note: PI and TAU are Godot built-ins; never redefine them here.
 shader_type spatial;
-render_mode cull_back;
+render_mode cull_disabled; // like planet.gdshader: OrbitView's own UV sphere is wound counter-clockwise
 
 uniform int globe_mode = 1;
 uniform vec3 colour_a : source_color = vec3(0.58, 0.55, 0.50);
@@ -193,8 +193,8 @@ void fragment() {
 		rough = 0.85;
 	} else {
 		// Ocean world: depth tones, rare islands, two layers of drifting cloud swirls.
-		float depth = fbm(sd * 2.4);
-		albedo = mix(colour_b, colour_a, smoothstep(0.35, 0.7, depth));
+		float sea_depth = fbm(sd * 2.4);
+		albedo = mix(colour_b, colour_a, smoothstep(0.35, 0.7, sea_depth));
 		float island = smoothstep(0.7, 0.74, fbm(sd * 4.0 + vec3(1.9)));
 		albedo = mix(albedo, vec3(0.42, 0.45, 0.3), island);
 		vec3 cw = turn_y(d, TIME * 0.006);
@@ -207,7 +207,7 @@ void fragment() {
 	}
 
 	// Relief: bump the normal by the screen-space slope of the height (the surface's own derivatives, so no tangents
-	// are needed). Heights are in world units scaled by relief; a tiny share of the old normal keeps it defined.
+	// are needed). Heights are in world units scaled by relief; a degenerate result keeps the mesh normal.
 	float h = height * relief;
 	vec3 dpdx = dFdx(VERTEX);
 	vec3 dpdy = dFdy(VERTEX);
