@@ -832,6 +832,7 @@ public partial class PlanetView : Node3D
         _construction.Update(delta);
         UpdateDrones(delta);
         UpdateBuildingCrews(delta);
+        UpdateWalkers(delta); // PlanetView.Walkers.cs: crew on foot between each base's buildings
     }
 
     // ---------------------------------------------------------------- building upkeep (render-only)
