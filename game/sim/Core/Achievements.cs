@@ -191,7 +191,7 @@ public sealed class AchievementTracker
     /// GameData.AchievementEvents). Dropped while the gate is shut or when no achievement still to earn listens for it.</summary>
     internal void Note(int player, string name, string text = "", long number = 0)
     {
-        if (!Counts(player) || !Listens(name)) return;
+        if (!Counts(player) || !Listens(name, player)) return;
         _events.Add(new AchievementEvent(player, name, text, number));
     }
 
@@ -205,7 +205,7 @@ public sealed class AchievementTracker
     /// <summary>A breakdown or a disabled vehicle: an SOS when the flagship is away from the colony's body.</summary>
     internal void Report(int player)
     {
-        if (!Counts(player) || !Listens("sos_answered")) return;
+        if (!Counts(player) || !Listens("sos_answered", player)) return;
         if (_sim.System is not { SurfaceBody: { } home } sys || sys.FlagshipOf(player) is not { } ship || ship.AtBody == home) return;
         Track(player).SosTick = _sim.Tick;
     }
@@ -243,27 +243,35 @@ public sealed class AchievementTracker
 
     // What the data listens for, worked out once per GameData (the test panel can swap it).
     private GameData? _cachedFor;
-    private HashSet<string> _eventNames = new(StringComparer.Ordinal);
+    private Dictionary<string, List<string>> _eventNames = new(StringComparer.Ordinal); // event -> achievements using it
     private HashSet<string> _countedUnits = new(StringComparer.Ordinal);
 
     private void Cache()
     {
         if (ReferenceEquals(_cachedFor, _sim.Data)) return;
         _cachedFor = _sim.Data;
-        _eventNames = new HashSet<string>(StringComparer.Ordinal);
+        _eventNames = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         _countedUnits = new HashSet<string>(StringComparer.Ordinal);
         foreach (var a in _sim.Data.Achievements?.List ?? Array.Empty<AchievementDef>())
             foreach (var t in Flatten(a.Trigger))
             {
-                if (t.Kind == "event" && t.Fields.TryGetValue("event", out var e)) _eventNames.Add(e);
+                if (t.Kind == "event" && t.Fields.TryGetValue("event", out var e))
+                {
+                    if (!_eventNames.TryGetValue(e, out var ids)) _eventNames[e] = ids = new List<string>();
+                    if (!ids.Contains(a.Id)) ids.Add(a.Id);
+                }
                 if (t.Kind == "unit_counter") _countedUnits.UnionWith(t.List);
             }
     }
 
-    private bool Listens(string eventName)
+    /// <summary>Some achievement the player hasn't earned yet listens for the event.</summary>
+    private bool Listens(string eventName, int player)
     {
         Cache();
-        return _eventNames.Contains(eventName);
+        if (!_eventNames.TryGetValue(eventName, out var ids)) return false;
+        foreach (var id in ids)
+            if (!Earned(player, id)) return true;
+        return false;
     }
 
     private bool Counted(string unitDef)
