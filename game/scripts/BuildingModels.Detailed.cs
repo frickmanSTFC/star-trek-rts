@@ -151,6 +151,9 @@ public static partial class BuildingModels
                 PaintMarker(n, "LabelTank", "DEUTERIUM", PlateInk);
                 PaintMarker(n, "LabelPylon", "HIGH VOLTAGE", PlateInk);
                 break;
+            case "pressure_dome" or "life_support_plant":
+                PaintHostileSigns(n, defId, number);
+                break;
         }
     }
 

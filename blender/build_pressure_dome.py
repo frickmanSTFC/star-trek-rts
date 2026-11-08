@@ -398,7 +398,7 @@ def lights(g):
         bx(f"GrowBar{j}", (1.5, 0.18, 0.06), p + P(0, 0, DECK_Z + 1.52), MT["dark"], g, rot=rot)
         bx(f"GrowLens{j}", (1.4, 0.12, 0.02), p + P(0, 0, DECK_Z + 1.48), MT["grow"], g, rot=rot).visible_shadow = False
     # the field strip round the ring and floodlights on the apron aimed at the dome
-    K.band("FieldStrip", RING_OUT + 0.015, 0.6, 0.68, MT["field"], g, segs=48).visible_shadow = False
+    K.band("FieldStrip", RING_OUT + 0.08, 0.56, 0.64, MT["field"], g, segs=48).visible_shadow = False
     for j, a in enumerate((-120, -60, 60, 120, 180, 0)):
         if near(a, AIRLOCKS + EMITTERS + (HEATER,), 12):
             continue

@@ -43,6 +43,8 @@ public static partial class BuildingModels
         "science_lab" => ResearchLab(owner, v),
         "fusion_reactor" => Reactor(owner, v),
         "prefab_habitat" => Habitat(owner, v),
+        "pressure_dome" => PressureDome(owner, v),
+        "life_support_plant" => LifeSupportPlant(owner, v),
         _ => Generic(owner),
     };
 
