@@ -58,7 +58,7 @@ ROLES = ["engineer", "science", "security", "eva", "colonist"]
 
 def contact_sheet(folder):
     from PIL import Image, ImageDraw
-    order = ["crew-lineup", "crew-poses", "crew-variants", "crew-walk", "crew-run", "crew-lod", "crew-game"]
+    order = ["crew-lineup", "crew-poses", "crew-variants", "crew-faces", "crew-walk", "crew-run", "crew-lod", "crew-game"]
     order += [f"{r}-turn" for r in ROLES]
     files = [os.path.join(folder, f"{n}.png") for n in order if os.path.exists(os.path.join(folder, f"{n}.png"))]
     w = 900
@@ -2812,7 +2812,7 @@ def previews(folder):
             objs = []
             for k, yaw in enumerate((0, -45, -90, 180)):
                 objs += instance(r, seeds[r], V((-1.5 + k * 1.0, 0, 0)), yaw + 180, "Idle", 0.15)
-            shoot(cam, os.path.join(folder, f"{r}-turn.png"), (0, -9, 1.0), (0, 0, 0.92), ortho=4.2, w=RES, h=int(RES * 0.52))
+            shoot(cam, os.path.join(folder, f"{r}-turn.png"), (0, -9, 2.2), (0, 0, 0.98), ortho=4.2, w=RES, h=int(RES * 0.52))
             clear(objs)
     if "lineup" in SHOTS:
         # the survey rover Mk I side-on (front to +X), its door (sill 0.85, top 1.75) toward the camera, the five roles
