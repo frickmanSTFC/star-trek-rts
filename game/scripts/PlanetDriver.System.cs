@@ -23,6 +23,55 @@ public partial class PlanetDriver
 
     private static readonly Color DetectedGrey = new(0.62f, 0.64f, 0.68f);
 
+    /// <summary>
+    /// Sets up the game (from _Ready): a star-system game (MatchSetup.CreateSystemGame) whose home is the chosen body when
+    /// it is one of the seed's landable bodies (MatchSetup.LandableBodies), else the generator's pick. While the sim has
+    /// no system generator yet (LandableBodies empty), a duel-map world picked from the chooser's fallback list (Veyra,
+    /// Morrow, Oscen) still starts the planet landing on it, as before. Sets PlanetName; returns the chooser's world id.
+    /// </summary>
+    private string StartGame(GameData data, string world)
+    {
+        static bool Is(string a, string b) => string.Equals(a, b, System.StringComparison.OrdinalIgnoreCase);
+        var landable = MatchSetup.LandableBodies(data, Seed);
+        var home = world.Length == 0 ? null : landable.FirstOrDefault(b => Is(b.Id, world) || Is(b.Name, world));
+        if (landable.Count == 0 && world.Length > 0 && !Is(world, MatchSetup.DefaultWorld) && MatchSetup.IsWorld(data, world))
+        {
+            var (cls, id) = MatchSetup.ResolveWorld(data, world);
+            PlanetName = MapBodyName(data, id) ?? PlanetName;
+            GD.Print($"World: {PlanetName} ({id}, {cls}), seed {Seed}, duel-map world (no generated system yet)");
+            _sim = MatchSetup.CreatePlanetLanding(data, Seed, "federation", null, world);
+            return id;
+        }
+        if (world.Length > 0 && home == null && !Is(world, MatchSetup.DefaultWorld))
+        {
+            if (landable.Count > 0) GD.PushWarning($"World '{world}' isn't a landable body of seed {Seed}'s system; the system's own pick is home.");
+            else GD.PushError($"World '{world}' isn't a playable world (try \"tarsis\" or \"veyra\"); starting on {MatchSetup.DefaultWorld}.");
+        }
+        _sim = MatchSetup.CreateSystemGame(data, Seed, "federation", home?.Id);
+        var sys = _sim.System;
+        var body = sys?.Bodies.FirstOrDefault(b => b.Id == sys.SurfaceBody) ?? home;
+        var classId = _sim.Surface?.Map.Def.ClassId ?? "?";
+        if (body == null)
+        {
+            // The contract stub: a plain planet landing, no system: it is the default world of the duel map.
+            var (_, id) = MatchSetup.ResolveWorld(data, MatchSetup.DefaultWorld);
+            PlanetName = MapBodyName(data, id) ?? PlanetName;
+            GD.Print($"World: {PlanetName} ({id}, {classId}), seed {Seed}, no star system (sim stub)");
+            return id;
+        }
+        PlanetName = body.Name;
+        GD.Print($"World: {PlanetName} ({body.Id}, {classId}), seed {Seed}, star system {sys?.Star.Name ?? "none"}");
+        return body.Id;
+    }
+
+    private static string? MapBodyName(GameData data, string bodyId)
+    {
+        foreach (var m in data.Maps)
+            foreach (var b in m.Bodies)
+                if (b.Id == bodyId) return b.Name;
+        return null;
+    }
+
     /// <summary>In orbit of the colony's own body: the orbit actions, scans, findings and telemetry are for it.</summary>
     private bool AtColony => _system.AtColony;
 

@@ -160,18 +160,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         // the in-game world chooser's choice (WorldChooser.cs, kept between runs) wins over the Inspector's World / Seed
         var world = (GameSetup.World ?? World ?? "").Trim();
         if (GameSetup.Seed is { } chosenSeed) Seed = chosenSeed;
-        if (world.Length == 0) world = MatchSetup.DefaultWorld;
-        if (!MatchSetup.IsWorld(data, world))
-        {
-            GD.PushError($"World '{World}' isn't a playable world (try \"tarsis\" or \"veyra\"); starting on {MatchSetup.DefaultWorld}.");
-            world = MatchSetup.DefaultWorld;
-        }
-        var (worldClass, worldBody) = MatchSetup.ResolveWorld(data, world);
-        foreach (var m in data.Maps)
-            foreach (var b in m.Bodies)
-                if (b.Id == worldBody) PlanetName = b.Name;
-        GD.Print($"World: {PlanetName} ({worldBody}, {worldClass}), seed {Seed}");
-        _sim = MatchSetup.CreatePlanetLanding(data, Seed, "federation", null, world);
+        var worldBody = StartGame(data, world); // a star-system game on the chosen home body (PlanetDriver.System.cs)
         LocalPlayer = Mathf.Clamp(LocalPlayerSlot, 0, _sim.Players.Count - 1);
         _camera = GetNode<Camera3D>("Camera3D");
         _hud = GetNode<PlanetHud>("Hud");
