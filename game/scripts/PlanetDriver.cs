@@ -160,18 +160,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         // the in-game world chooser's choice (WorldChooser.cs, kept between runs) wins over the Inspector's World / Seed
         var world = (GameSetup.World ?? World ?? "").Trim();
         if (GameSetup.Seed is { } chosenSeed) Seed = chosenSeed;
-        if (world.Length == 0) world = MatchSetup.DefaultWorld;
-        if (!MatchSetup.IsWorld(data, world))
-        {
-            GD.PushError($"World '{World}' isn't a playable world (try \"tarsis\" or \"veyra\"); starting on {MatchSetup.DefaultWorld}.");
-            world = MatchSetup.DefaultWorld;
-        }
-        var (worldClass, worldBody) = MatchSetup.ResolveWorld(data, world);
-        foreach (var m in data.Maps)
-            foreach (var b in m.Bodies)
-                if (b.Id == worldBody) PlanetName = b.Name;
-        GD.Print($"World: {PlanetName} ({worldBody}, {worldClass}), seed {Seed}");
-        _sim = MatchSetup.CreatePlanetLanding(data, Seed, "federation", null, world);
+        var worldBody = StartGame(data, world); // a star-system game on the chosen home body (PlanetDriver.System.cs)
         LocalPlayer = Mathf.Clamp(LocalPlayerSlot, 0, _sim.Players.Count - 1);
         _camera = GetNode<Camera3D>("Camera3D");
         _hud = GetNode<PlanetHud>("Hud");
@@ -212,7 +201,8 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         _orbit = new OrbitView();
         AddChild(_orbit); // in the tree before Build: it aims its light with LookAt
-        _orbit.Build(_sim, LocalPlayer, _sim.Players[LocalPlayer].FactionId);
+        _system = new SystemSource(_sim, LocalPlayer, PlanetName); // Simulation.System, else the duel map (PlanetDriver.System.cs)
+        _orbit.Build(_sim, LocalPlayer, _sim.Players[LocalPlayer].FactionId, _system);
         _orbit.CurrentBodyName = PlanetName;
         _hud.SetScanHandler(i => _orbit.SetScan((ScanMode)i));
 
@@ -366,12 +356,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     {
         if (_orbit.Display == OrbitDisplay.System)
         {
-            var body = _orbit.PickBody(GetViewport().GetMousePosition());
-            if (body != null)
-            {
-                _selectedBody = body;
-                _orbit.HighlightBody(body);
-            }
+            SystemClick(GetViewport().GetMousePosition()); // a ship or body opens its card (PlanetDriver.System.cs)
             return;
         }
         var tile = _orbitHover;
@@ -403,6 +388,11 @@ public partial class PlanetDriver : Node3D, ITestHost
 
     private void ArmOrbit(string cardId)
     {
+        if (!AtColony)
+        {
+            _hud.PushEvent($"Deployments work in orbit of {PlanetName}, the colony's world", new Color(1f, 0.7f, 0.42f));
+            return;
+        }
         if (_orbit.Display == OrbitDisplay.System) SetOrbitDisplay(OrbitDisplay.Planet); // deployments aim at the globe
         var action = cardId[6..];
         if (_orbitAction == action && _info == cardId)
@@ -459,7 +449,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             case Key.O when Me.Phase == LandingPhase.Landed:
                 LeaveOrbit();
                 break;
-            case Key.Tab when _orbit.Display != OrbitDisplay.System:
+            case Key.Tab when _orbit.Display != OrbitDisplay.System && _orbit.AtColony:
                 _orbit.SetScan((ScanMode)(((int)_orbit.Mode + (key.ShiftPressed ? 4 : 1)) % 5));
                 break;
             case Key.F2:
@@ -467,6 +457,9 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case Key.Escape when _chooser.IsOpen:
                 _chooser.Toggle();
+                break;
+            case Key.Escape when _systemCard != null && _orbit.Display == OrbitDisplay.System:
+                CloseSystemCard();
                 break;
             case Key.Escape:
                 if (_info != null) _info = null;
@@ -479,14 +472,14 @@ public partial class PlanetDriver : Node3D, ITestHost
                 ToggleFeed();
                 break;
             case Key.H:
-                if (Me.LandingTile < 0) break;
+                if (Me.LandingTile < 0 || !_orbit.AtColony) break;
                 if (_orbit.Display == OrbitDisplay.System) SetOrbitDisplay(OrbitDisplay.Planet);
                 _orbit.Focus(Me.LandingTile, 230f);
                 break;
             case Key.F1:
                 _hud.ToggleHelp();
                 break;
-            case >= Key.Key1 and <= Key.Key9:
+            case >= Key.Key1 and <= Key.Key9 when AtColony: // the deployments are the colony's
                 var cards = OrbitCards();
                 var index = (int)(key.Keycode - Key.Key1);
                 if (index < cards.Count) ArmOrbit(cards[index].Id);
@@ -556,11 +549,8 @@ public partial class PlanetDriver : Node3D, ITestHost
     {
         if (id.StartsWith("scan:")) _orbit.SetScan((ScanMode)int.Parse(id[5..]));
         else if (id == "grid") _orbit.Grid = !_orbit.Grid;
-        else if (id.StartsWith("body:"))
-        {
-            _selectedBody = id[5..];
-            _orbit.HighlightBody(_selectedBody);
-        }
+        else if (id.StartsWith("body:")) SelectSystemBody(id[5..]); // rail: select it and open its card
+        else if (id.StartsWith("sys:")) OnSystemAction(id); // body / ship card buttons (PlanetDriver.System.cs)
         else if (id.StartsWith("orbit:")) ArmOrbit(id);
         else if (id == "surface") LeaveOrbit();
         else if (id == "display:planet") SetOrbitDisplay(OrbitDisplay.Planet);
@@ -572,6 +562,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _orbit.SetDisplay(display);
         _helm.SetDisplay(display);
         if (display != OrbitDisplay.System) _orbit.HighlightBody(null);
+        else if (_selectedShip != null) _orbit.HighlightShip(_selectedShip);
         else _orbit.HighlightBody(_selectedBody);
     }
 
@@ -661,17 +652,13 @@ public partial class PlanetDriver : Node3D, ITestHost
         var hint = me.Phase == LandingPhase.Descending ? "DROP SHIPS AWAY…"
             : _orbitAction == "land" && me.Phase == LandingPhase.InOrbit ? "CLICK A GREEN (SAFE) SITE TO LAND THE COLONY"
             : _orbitAction != null ? "CLICK THE PLANET TO CHOOSE WHERE · RIGHT-CLICK CANCELS" : null;
-        var shipLine = $"{ship?.Name?.ToUpperInvariant() ?? "YOUR SHIP"}{(ship?.ClassName is { Length: > 0 } c ? $" · {c.ToUpperInvariant()} CLASS" : "")}";
+        var shipLine = ShipLine(); // the flagship's name and class (PlanetDriver.System.cs)
+        var atColony = _orbit.AtColony; // the globe shows the colony's own body (else another body: OrbitView.Bodies.cs)
 
-        // Rail: the scans (+ grid) on the globe displays, the bodies on the system plot.
+        // Rail: the scans (+ grid) on the colony's globe, the bodies (fogged) on the system plot.
         var rail = new List<HelmAction>();
-        var bodies = _orbit.SystemBodies();
-        if (display == OrbitDisplay.System)
-        {
-            foreach (var b in bodies.Where(b => b.ParentId == null))
-                rail.Add(new HelmAction($"body:{b.Id}", "", b.Name.ToUpperInvariant(), Highlight: b.Id == (_selectedBody ?? bodies.FirstOrDefault(x => x.Current)?.Id)));
-        }
-        else if (display != OrbitDisplay.Atmosphere)
+        if (display == OrbitDisplay.System) rail = SystemRail();
+        else if (display != OrbitDisplay.Atmosphere && atColony)
         {
             for (var i = 0; i < PlanetHud.ScanNames.Length; i++)
                 rail.Add(new HelmAction($"scan:{i}", "", PlanetHud.ScanNames[i], Highlight: (int)_orbit.Mode == i));
@@ -684,40 +671,39 @@ public partial class PlanetDriver : Node3D, ITestHost
         switch (display)
         {
             case OrbitDisplay.System:
-            {
-                var selected = bodies.FirstOrDefault(b => b.Id == _selectedBody) ?? bodies.FirstOrDefault(b => b.Current);
-                _helm.SetTitle("STAR SYSTEM", hint ?? $"{bodies.Count(b => b.ParentId == null)} BODIES · {shipLine}");
-                if (selected != null)
-                    sections.Add(new HelmSection(selected.Name.ToUpperInvariant(), HelmScreen.Peach, new List<HelmRow>
-                    {
-                        new("CLASS", selected.ClassName),
-                        new("SIZE", selected.Size.ToString()),
-                        new("MOONS", bodies.Count(b => b.ParentId == selected.Id).ToString()),
-                        new("STATUS", selected.Current ? "in orbit" : "not visited", selected.Current ? HelmScreen.Green : null),
-                    }));
-                sections.Add(new HelmSection("BODIES", HelmScreen.Sky, bodies.Where(b => b.ParentId == null).Select(b => new HelmRow(b.Name.ToUpperInvariant(), b.ClassName, b.Current ? HelmScreen.Peach : null)).ToList()));
-                _helm.SetPanel("SYSTEM DATA", sections);
+                SystemDisplayHud(hint, mouse); // title, fogged panel, readout, body / ship card (PlanetDriver.System.cs)
                 break;
-            }
             case OrbitDisplay.Orbit:
             {
                 var objects = _orbit.TrackedObjects();
-                _helm.SetTitle("ORBITAL TRAFFIC", hint ?? $"{objects.Count} OBJECTS TRACKED · {PlanetName.ToUpperInvariant()}");
+                _helm.SetTitle("ORBITAL TRAFFIC", hint ?? $"{objects.Count} OBJECTS TRACKED · {OrbitBodyTitle()}");
                 sections.Add(new HelmSection("OBJECTS IN ORBIT", HelmScreen.Lavender, objects.Select(o => new HelmRow(o.Name.ToUpperInvariant(), $"{o.Kind} · {o.Status}", o.Colour)).ToList()));
                 _helm.SetPanel("ORBIT DATA", sections);
                 break;
             }
+            case OrbitDisplay.Atmosphere when !atColony:
+                _helm.SetTitle("ATMOSPHERE", hint ?? $"{OrbitBodyTitle()} · {shipLine}");
+                _helm.SetPanel("ATMOSPHERIC DATA", OtherBodyAtmosphereSections());
+                break;
             case OrbitDisplay.Atmosphere:
                 _helm.SetTitle("ATMOSPHERE", hint ?? $"{PlanetName.ToUpperInvariant()} · {shipLine}");
                 sections.Add(new HelmSection("CONDITIONS", HelmScreen.Sky, AtmosphereConditions()));
                 sections.AddRange(_telemetry.Sections(_readings, UplinkStatus()));
                 _helm.SetPanel("ATMOSPHERIC DATA", sections);
                 break;
+            case OrbitDisplay.Planet when !atColony:
+            {
+                var b = OrbitBody;
+                var classLabel = b != null && _system.Charted(b.Id) ? _system.ClassLabel(b.ClassId) : "UNCHARTED";
+                _helm.SetTitle(OrbitBodyTitle(), hint ?? $"{classLabel} · {OrbitState()} · {shipLine}");
+                _helm.SetPanel("PLANETARY DATA", OtherBodyPlanetSections());
+                break;
+            }
             default:
             {
                 _planetShares ??= PlanetShares();
                 var mode = (int)_orbit.Mode;
-                _helm.SetTitle(PlanetName.ToUpperInvariant(), hint ?? $"{ClassLabel} · STANDARD ORBIT · {shipLine}");
+                _helm.SetTitle(PlanetName.ToUpperInvariant(), hint ?? $"{ClassLabel} · {OrbitState()} · {shipLine}");
                 sections.Add(new HelmSection("", HelmScreen.Cyan, new List<HelmRow>
                 {
                     new("SURFACE", $"{map.Grid.Width} × {map.Grid.Height} sectors"),
@@ -732,15 +718,11 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             }
         }
-        _helm.SetFeed(Findings());
+        // The findings are the colony's surface: only while the flagship is at its body.
+        _helm.SetFeed(AtColony ? Findings() : new[] { $"No surface findings here: the survey covers {PlanetName} only" });
 
-        // Cursor readout: the tile under the mouse (or the body on the system plot).
-        if (display == OrbitDisplay.System)
-        {
-            var id = _mouseOverUi ? null : _orbit.PickBody(mouse);
-            var b = id == null ? null : bodies.FirstOrDefault(x => x.Id == id);
-            _helm.ShowReadout(b?.Name.ToUpperInvariant(), b == null ? "" : b.ClassName, HelmScreen.Peach, mouse + new Vector2(18, 14));
-        }
+        // Cursor readout: the tile under the mouse (the system plot does its own in SystemDisplayHud).
+        if (display == OrbitDisplay.System) { }
         else if (_orbitHover >= 0)
         {
             var lines = OrbitTileText(_orbitHover).Split('\n');
@@ -753,8 +735,13 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         // Action strip: the deployments (keys 1–9), then back to the surface.
         var actions = new List<HelmAction>();
-        if (display == OrbitDisplay.System) actions.Add(new HelmAction("display:planet", "", "BACK TO PLANET", Colour: HelmScreen.Peach));
-        var cards = OrbitCards();
+        if (display == OrbitDisplay.System)
+        {
+            actions.Add(new HelmAction("display:planet", "", "BACK TO PLANET", Colour: HelmScreen.Peach));
+            if (_system.State != null) actions.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null, Colour: HelmScreen.Lavender));
+        }
+        // Orbit-only bodies get no deployment cards: land, outpost, drop ships, beams and satellites are the colony's.
+        var cards = AtColony ? OrbitCards() : new List<(string Id, string Name)>();
         for (var i = 0; i < cards.Count; i++)
         {
             var id = cards[i].Id;
@@ -780,7 +767,8 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (me.Phase == LandingPhase.Landed) actions.Add(new HelmAction("surface", "O", "SURFACE", Colour: HelmScreen.Rust));
         _helm.SetActions(actions);
 
-        _helm.ShowInfo(_info != null && _info.StartsWith("orbit:") ? OrbitInfo(_info) : null);
+        _helm.ShowInfo(_info != null && _info.StartsWith("orbit:") && AtColony ? OrbitInfo(_info) : null);
+        if (display != OrbitDisplay.System) ShowSystemCard(); // hides the plot's card on the globe displays
     }
 
     /// <summary>Share of water tiles and average land biomass, in percent (the map doesn't change, so this is worked out once).</summary>
@@ -959,6 +947,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var alpha = (float)(_accumulator / tickSeconds);
         if (_inOrbit)
         {
+            UpdateOrbitBody(); // the globe displays follow the flagship (PlanetDriver.System.cs)
             OrbitHover((float)delta);
             _orbit.Refresh((float)delta, alpha);
         }

@@ -47,9 +47,11 @@ public static class GameSetup
 }
 
 /// <summary>
-/// The in-game world chooser: a WORLD button on the orbit screen (and F2) opens a panel listing every playable world of
-/// the duel map (class, gravity, habitability tier, map size) and the map seed; START saves the choice (GameSetup) and
-/// reloads the scene, so the new game begins in orbit over that world. Lives on its own CanvasLayer above the helm.
+/// The in-game world chooser: a WORLD button on the orbit screen (and F2) opens a panel listing the landable bodies of
+/// the star system the seed in the MAP SEED field generates (MatchSetup.LandableBodies: class, gravity, habitability
+/// tier, map size; refreshed as the seed changes; Class M is rare). While that list is empty (the sim's generator isn't
+/// in yet, or a seed with none) it falls back to the duel map's playable worlds. START saves the choice (GameSetup) and
+/// reloads the scene; PlanetDriver then starts MatchSetup.CreateSystemGame on that home body. Own CanvasLayer above the helm.
 /// </summary>
 public partial class WorldChooser : Control
 {
@@ -61,6 +63,9 @@ public partial class WorldChooser : Control
     private VBoxContainer _rows = null!;
     private LineEdit _seedEdit = null!;
     private Label _note = null!;
+    private Label _listNote = null!;
+    private ulong? _listedSeed;
+    private bool _systemList;
     private string _picked = "";
     private readonly Dictionary<string, Button> _worldButtons = new();
 
@@ -97,27 +102,22 @@ public partial class WorldChooser : Control
         _rows = new VBoxContainer();
         _rows.AddThemeConstantOverride("separation", 6);
         box.AddChild(_rows);
-        foreach (var (id, name, cls) in Worlds())
-        {
-            var b = new Button { ToggleMode = true, FocusMode = FocusModeEnum.None, Alignment = HorizontalAlignment.Left };
-            HudKit.StyleTile(b, 6, 8);
-            b.AddThemeFontOverride("font", HudKit.Condensed());
-            b.AddThemeColorOverride("font_color", HudKit.Ink);
-            b.Text = Describe(name, cls);
-            var pick = id;
-            b.Pressed += () => Pick(pick);
-            _rows.AddChild(b);
-            _worldButtons[id] = b;
-        }
+        _listNote = HudKit.Label("", 13, HudKit.Dim);
+        box.AddChild(_listNote);
 
         var seedRow = new HBoxContainer();
         seedRow.AddThemeConstantOverride("separation", 8);
         seedRow.AddChild(HudKit.Label("MAP SEED", 15, HudKit.Dim, condensed: true, bold: true));
-        _seedEdit = new LineEdit { Text = currentSeed.ToString(), CustomMinimumSize = new Vector2(140, 0), TooltipText = "The same seed always gives the same map" };
+        _seedEdit = new LineEdit { Text = currentSeed.ToString(), CustomMinimumSize = new Vector2(140, 0), TooltipText = "The same seed always gives the same star system and map" };
+        _seedEdit.TextChanged += _ => RefreshList();
         seedRow.AddChild(_seedEdit);
         var random = new Button { Text = "RANDOM", FocusMode = FocusModeEnum.None };
         HudKit.StyleTile(random, 6, 6);
-        random.Pressed += () => _seedEdit.Text = (GD.Randi() % 99999 + 1).ToString();
+        random.Pressed += () =>
+        {
+            _seedEdit.Text = (GD.Randi() % 99999 + 1).ToString(); // setting Text doesn't emit TextChanged
+            RefreshList();
+        };
         seedRow.AddChild(random);
         box.AddChild(seedRow);
 
@@ -136,7 +136,54 @@ public partial class WorldChooser : Control
         buttons.AddChild(cancel);
         buttons.AddChild(start);
         box.AddChild(buttons);
-        Pick(currentWorld);
+        RefreshList();
+        Pick(_worldButtons.ContainsKey(currentWorld) ? currentWorld : _picked);
+    }
+
+    /// <summary>Lists the worlds for the seed in the field (when it parses and changed): the seed's system's landable
+    /// bodies, else the duel map's worlds. Keeps the pick if it is still listed, else picks the first.</summary>
+    private void RefreshList()
+    {
+        if (!ulong.TryParse(_seedEdit.Text.Trim(), out var seed)) return;
+        if (_listedSeed == seed) return;
+        _listedSeed = seed;
+        foreach (var child in _rows.GetChildren()) child.QueueFree();
+        _worldButtons.Clear();
+        var worlds = SystemWorlds(seed).ToList();
+        _systemList = worlds.Count > 0;
+        if (!_systemList) worlds = Worlds().ToList();
+        foreach (var (id, name, cls) in worlds)
+        {
+            var b = new Button { ToggleMode = true, FocusMode = FocusModeEnum.None, Alignment = HorizontalAlignment.Left };
+            HudKit.StyleTile(b, 6, 8);
+            b.AddThemeFontOverride("font", HudKit.Condensed());
+            b.AddThemeColorOverride("font_color", cls == "class_m" ? HudKit.Accent : HudKit.Ink);
+            b.Text = Describe(name, cls);
+            var pick = id;
+            b.Pressed += () => Pick(pick);
+            _rows.AddChild(b);
+            _worldButtons[id] = b;
+        }
+        _listNote.Text = _systemList
+            ? "Landable bodies of this seed's star system. Class M is rare: most systems have none."
+            : "No generated star system for this seed yet: the duel map's worlds. Class M is rare: most systems have none.";
+        Pick(_worldButtons.ContainsKey(_picked) ? _picked : worlds.Count > 0 ? worlds[0].Id : "");
+    }
+
+    /// <summary>The landable bodies of the system this seed generates (empty until the sim's generator is in).</summary>
+    private List<(string Id, string Name, string Class)> SystemWorlds(ulong seed)
+    {
+        var list = new List<(string, string, string)>();
+        try
+        {
+            foreach (var b in MatchSetup.LandableBodies(_data, seed)) list.Add((b.Id, b.Name, b.ClassId));
+        }
+        catch (System.Exception e)
+        {
+            GD.PushWarning($"World chooser: no system for seed {seed}: {e.Message}");
+            list.Clear();
+        }
+        return list;
     }
 
     /// <summary>Every body of the duel map (then other maps) with a playable surface, by id, name and class; each id once.</summary>
@@ -166,7 +213,11 @@ public partial class WorldChooser : Control
             HabitabilityTier.Tech => "needs tech",
             _ => "uninhabitable",
         };
-        return $"{name.ToUpperInvariant()}    {className} · {g} · {need} · {size} sectors";
+        var parts = new List<string> { className };
+        if (g.Length > 0) parts.Add(g);
+        parts.Add(need);
+        if (size.Length > 0) parts.Add($"{size} sectors");
+        return $"{name.ToUpperInvariant()}    {string.Join(" · ", parts)}";
     }
 
     private void Pick(string id)
@@ -181,7 +232,8 @@ public partial class WorldChooser : Control
         else
         {
             _seedEdit.Text = _currentSeed.ToString();
-            Pick(_current);
+            RefreshList();
+            Pick(_worldButtons.ContainsKey(_current) ? _current : _picked);
             _note.Text = "";
             _panel.Visible = true;
         }
@@ -196,7 +248,8 @@ public partial class WorldChooser : Control
             _note.Text = "The seed must be a whole number.";
             return;
         }
-        if (!MatchSetup.IsWorld(_data, _picked))
+        RefreshList(); // the list matches the seed being started
+        if (!_worldButtons.ContainsKey(_picked) || (!_systemList && !MatchSetup.IsWorld(_data, _picked)))
         {
             _note.Text = "Pick a world.";
             return;

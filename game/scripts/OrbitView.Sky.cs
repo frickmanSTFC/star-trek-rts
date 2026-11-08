@@ -32,6 +32,7 @@ public partial class OrbitView
         var up = Mathf.Abs(world.Y) > 0.98f ? Vector3.Forward : Vector3.Up;
         _light.Basis = Basis.LookingAt(-world, up);
         _groundMaterial.SetShaderParameter("sun_dir", world);
+        _lookMaterial?.SetShaderParameter("sun_dir", world); // another landable body's look-only globe (OrbitView.Bodies.cs)
         (_clouds.MaterialOverride as ShaderMaterial)?.SetShaderParameter("sun_dir", world);
         (_highClouds.MaterialOverride as ShaderMaterial)?.SetShaderParameter("sun_dir", world);
         (_atmosphere.MaterialOverride as ShaderMaterial)?.SetShaderParameter("sun_dir", world);
