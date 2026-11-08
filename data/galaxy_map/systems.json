@@ -233,6 +233,15 @@
       "note": "Plasma storms; Maquis hideout in the Demilitarized Zone."
     },
     {
+      "id": "kalandra",
+      "name": "Kalandra Expanse",
+      "faction": null,
+      "kind": "colony",
+      "x": -68,
+      "y": 14,
+      "note": "G-class star of the mvp_duel skirmish map and \"The Kalandra Expanse\" campaign (Quests & Missions): Federation colony Tarsis against the Cardassians on its twin Morrow. Unclaimed frontier near the Cardassian border, south of the Badlands. Placeholder position, waiting on the owner."
+    },
+    {
       "id": "ferenginar",
       "name": "Ferenginar",
       "faction": "ferengi",

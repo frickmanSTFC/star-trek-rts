@@ -20,7 +20,7 @@
 | Mode | Players | Notes |
 |---|---|---|
 | Skirmish | 1–4 (humans + AI) | Free-for-all or 2v2. Choose era, map size, hazard level, victory types. |
-| Campaign (single-player) | 1 | Faction story arcs per era; scripted crises (e.g. Wolf 359, Dominion War). |
+| Campaign (single-player) | 1 | Faction story arcs per era; scripted crises (e.g. Wolf 359, Dominion War). First proposal: the Federation campaign "The Kalandra Expanse" (Quests & Missions doc), on the `mvp_duel` system, which sits on the galaxy map near the Cardassian border (placeholder position). |
 | "Ages" Campaign | 1 | One long game that advances era to era — your tech tree moves the timeline. |
 | Co-op vs Crisis | 2–4 | Players ally against a scaling Borg / Species 8472 / Burn scenario. |
 | Challenge Scenarios | 1 | Kobayashi Maru (unwinnable — score on survival time), Battle of the Binary Stars, etc. |

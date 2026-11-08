@@ -191,6 +191,16 @@
       "kind": "warp"
     },
     {
+      "a": "badlands",
+      "b": "kalandra",
+      "kind": "warp"
+    },
+    {
+      "a": "kalandra",
+      "b": "septimus",
+      "kind": "warp"
+    },
+    {
       "a": "ferenginar",
       "b": "barzan",
       "kind": "warp"
