@@ -606,25 +606,33 @@ public partial class PlanetDriver : Node3D, ITestHost
         _findingsAt = _clock;
         var map = Surface.Map;
         var list = new List<string>();
+        // Resources as present / possible, one line each (owner 2026-11-08: "don't show the individual areas that you
+        // found resources, just show that those resources are there or could be there"): present = a surveyed deposit
+        // of it that isn't used up; possible = a region scan reading only (the strongest reading named).
+        var present = new SortedSet<int>();
+        var possible = new Dictionary<int, HintStrength>();
         for (var r = 0; r < map.RegionCount; r++)
-        {
-            var hints = map.Hints(r);
-            if (hints.Count == 0) continue;
-            var h = hints[0];
-            list.Add($"{_data.Resources[h.Resource].Name}: {h.Strength.ToString().ToLowerInvariant()} reading · {RegionPlace(r)}");
-        }
+            foreach (var h in map.Hints(r))
+                if (!possible.TryGetValue(h.Resource, out var best) || h.Strength > best) possible[h.Resource] = h.Strength;
         int surveyed = 0, deposits = 0, herds = 0, predators = 0, toxic = 0;
         for (var t = 0; t < map.Grid.Count; t++)
         {
             if (Me.Surveyed[t])
             {
                 surveyed++;
-                if (map.DepositResource[t] >= 0 && !map.IsDepleted(t)) deposits++;
+                if (map.DepositResource[t] >= 0 && !map.IsDepleted(t))
+                {
+                    deposits++;
+                    present.Add(map.DepositResource[t]);
+                }
             }
             if (map.WildlifeAt[t] == Wildlife.Predators) predators++;
             else if (map.WildlifeAt[t] != Wildlife.None) herds++;
             if (map.Toxic[t]) toxic++;
         }
+        foreach (var res in present) list.Add($"{_data.Resources[res].Name}: present (surveyed)");
+        foreach (var (res, strength) in possible.OrderByDescending(p => p.Value).ThenBy(p => p.Key))
+            if (!present.Contains(res)) list.Add($"{_data.Resources[res].Name}: possible ({strength.ToString().ToLowerInvariant()} readings)");
         if (map.NativeTile >= 0) list.Insert(0, $"Native settlement, pre-warp · {RegionPlace(map.Region(map.NativeTile))} · their land is off-limits");
         if (predators > 0) list.Add($"Predators on {predators} sectors: landing beside them is risky");
         if (herds > 0) list.Add($"Grazing herds on {herds} sectors");
