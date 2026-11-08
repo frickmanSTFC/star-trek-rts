@@ -36,7 +36,7 @@ Run (bpy 5.x venv; import bpy before bmesh):
   /home/user/.bpyvenv/bin/python blender/build_crew.py --game                          (all roles -> game/models/crew/)
   /home/user/.bpyvenv/bin/python blender/build_crew.py --game --preview blender/previews/crew
   python3 blender/build_crew.py --sheet blender/previews/crew                          (contact sheet, system PIL)
-Flags: --role <id>[,<id>], --variant N (previews), --res 900, --samples 24, --shots turn,lineup,poses,walk,run,variants,lod,game
+Flags: --role <id>[,<id>], --variant N (previews), --res 900, --samples 24, --shots turn,lineup,poses,walk,run,variants,faces,lod,game
 """
 import math
 import os
@@ -100,7 +100,7 @@ PREVIEW = arg("--preview")
 VARIANT = int(arg("--variant", "-1"))
 RES = int(arg("--res", "900"))
 SAMPLES = int(arg("--samples", "24"))
-SHOTS = [s.strip() for s in arg("--shots", "turn,lineup,poses,walk,run,variants,lod,game").split(",") if s.strip()]
+SHOTS = [s.strip() for s in arg("--shots", "turn,lineup,poses,walk,run,variants,faces,lod,game").split(",") if s.strip()]
 ONLY = [r for r in (arg("--role") or ",".join(ROLES)).split(",") if r]
 FPS = 30
 FACE_LENS = float(arg("--face-lens", "70"))
