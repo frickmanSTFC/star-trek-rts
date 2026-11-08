@@ -14,6 +14,7 @@ happens in one place. Release exports read one packed copy instead (`gamedata.pa
 | `scripts/GameDataLoader.cs` | Debug builds: `../data/` + draft (refused data falls back to the last good copy); release exports: `res://gamedata.pack` |
 | `sim/Core/` | `Simulation` (fixed 15 Hz tick, command queue, economy, state hash), `Player`, `ResourceBag`, `Body`, `Colony`, `Ship`, `Commands`, `MatchSetup` |
 | `sim/Surface/` | Planet surface: `HexGrid`, `SurfaceMap` (seeded terrain and deposit generation, orbital hints, landing sites), `Pathfinder` (A*), `Lanes` (vehicles drive inside the hexes: round buildings, to access points and parking spots, keeping their distance), `PlanetSurface` (landing, rovers, surveying, placing and constructing buildings, upkeep, storage, mining, refining, mining crawlers and cargo pods, salvage) |
+| `sim/Space/` | The star system of a system game: `SystemGenerator` (a system from the seed: star, planets, belts, moons, zones, each body's climate entry; Class M rare, at least one landable world) and `StarSystemState` (`Simulation.System`: ships, timed flight, the three fog levels Detected / Charted / Live, body satellites, long-range scans, neutral traffic). Planet-only games have none |
 | `sim/Ai/` | `ChaseAi`: placeholder opponent that only issues commands |
 | `tests/` | xUnit tests: math, RNG, data checks, determinism |
 | `scenes/Planet.tscn`, `scripts/PlanetDriver.cs`, `PlanetView.cs` | **Main scene**: the planet surface (one continuous terrain mesh over the hex grid, animated water, trees, deposit crystals, scan hints, landing, buildings, rovers) |
@@ -172,5 +173,5 @@ which plays the sim with scripted build orders ~2,000× faster than real time an
 
 ## Not done yet
 
-On the surface: shields and integrity, more buildings (research lab, garrison, refineries), population, the Cardassian rival landing. Later: the star system above, shipyards, combat, orbits, the sector (lane) map, the network layer, exported builds
+On the surface: shields and integrity, more buildings (research lab, garrison, refineries), population, the Cardassian rival landing. The star system's sim is in (`sim/Space/`: generated systems, flight, system fog, satellites, scans, neutral traffic; `MatchSetup.CreateSystemGame`); its SYSTEM view is being built. Later: shipyards, combat, orbits, the sector (lane) map, the network layer, exported builds
 (the data now ships as `gamedata.pack`; the orbit globe's photo textures are still read from the project folder).
