@@ -22,6 +22,18 @@ public partial class PlanetDriver : Node3D, ITestHost
     /// <summary>Change to get a different planet; the same seed always gives the same world.</summary>
     [Export] public ulong Seed { get; set; } = 1701;
 
+    /// <summary>The surface's planet class for the helm title ("CLASS L"): the class name before its " — " description.</summary>
+    private string ClassLabel
+    {
+        get
+        {
+            var id = Surface.Map.Def.ClassId;
+            var name = _data.PlanetClasses.FirstOrDefault(c => c.Id == id)?.Name ?? id.Replace('_', ' ');
+            var dash = name.IndexOf(" —", System.StringComparison.Ordinal);
+            return (dash > 0 ? name[..dash] : name).ToUpperInvariant();
+        }
+    }
+
     /// <summary>The name of the world being played ("Tarsis", "Veyra"): from <see cref="World"/>'s map body, set in _Ready.</summary>
     public string PlanetName { get; private set; } = "Tarsis";
 
@@ -697,7 +709,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             {
                 _planetShares ??= PlanetShares();
                 var mode = (int)_orbit.Mode;
-                _helm.SetTitle(PlanetName.ToUpperInvariant(), hint ?? $"CLASS M · STANDARD ORBIT · {shipLine}");
+                _helm.SetTitle(PlanetName.ToUpperInvariant(), hint ?? $"{ClassLabel} · STANDARD ORBIT · {shipLine}");
                 sections.Add(new HelmSection("", HelmScreen.Cyan, new List<HelmRow>
                 {
                     new("SURFACE", $"{map.Grid.Width} × {map.Grid.Height} sectors"),

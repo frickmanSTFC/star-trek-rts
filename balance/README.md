@@ -341,6 +341,7 @@ Tuning done (placeholders): Pressure Dome 200 duranium + 60 tritanium, 45 s, 8 p
 power (the doc's Domes-tier row; `habitability.domes` crewed_metal_cost / crewed_extra_power); the plant moved after the
 second refinery in the order. **Findings:**
 
+- **Update 2026-11-08 (owner: "yes, make refineries crewed on dome worlds"):** the Ore Refinery is `crewed: true`, so on a Domes world it needs cover, costs 15% more metal and draws 2 more power; the order now builds the Life Support Plant right after the first refinery and the mine. Seeds 1/1701/99999 × 30 min (median): refined metal **299 / 790 / 1,300** at minutes 10 / 20 / 30 vs Tarsis 550 / 1,362 / 2,262 = **54% / 58% / 57%**, a little under the doc's 60–80% band; Vehicle Bay 20:48 (2.5× Tarsis; it waits for the dome), no parasteel by 30 min, base short of power 1.4 min. Tried and reverted (no effect on these numbers): core life support 2/3/4 → 3/4/5, crewed_extra_power 2 → 1. The rest of this section is the earlier, automated-refinery result. Report: `reports/veyra_opener/`.
 - **Refined metal stays at ~97–101% of class M, above the doc's 60–80% band.** The refineries set the pace of refined
   metal, and they are automated (crewed: false, as the doc lists the Ore Refinery), so the domes kit never slows them:
   it costs metal and time instead (bay 1.76×, second crawler 1.6×, parasteel 1.3×, Colonial Administration 1.2×).

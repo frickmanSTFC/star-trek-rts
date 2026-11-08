@@ -29,7 +29,7 @@ public class VeyraBalanceTests
         Assert.Equal("veyra", order.World);
         foreach (var s in order.Steps.Where(s => s.Kind == StepKind.Build)) Assert.Contains(s.Target, Data.EveryBuildMenu);
 
-        var r = Runner.Run(Data, order, 1701, 18);
+        var r = Runner.Run(Data, order, 1701, 25); // crewed refineries (2026-11-08) put the bay at ~21 min
         Assert.True(string.IsNullOrEmpty(r.Crash), r.Crash);
         Assert.True(r.Milestones.ContainsKey("built:life_support_plant"), "no life support plant");
         Assert.True(r.Milestones.ContainsKey("built:pressure_dome"), "no pressure dome");
@@ -47,7 +47,8 @@ public class VeyraBalanceTests
         var sealedX = Data.Habitability!.Domes!.CrewedMetalCost;
         // Crewed: × gravity × 1.15; automated: × gravity only; class M: the data's cost.
         Assert.Equal(Data.Building("science_lab").Cost.Single(c => c.Resource == R("duranium")).Amount * g * sealedX, Duranium(veyra, "science_lab"));
-        Assert.Equal(Data.Building("refinery").Cost.Single(c => c.Resource == R("duranium")).Amount * g, Duranium(veyra, "refinery"));
+        Assert.Equal(Data.Building("refinery").Cost.Single(c => c.Resource == R("duranium")).Amount * g * sealedX, Duranium(veyra, "refinery")); // crewed since 2026-11-08 (owner)
+        Assert.Equal(Data.Building("storage_container").Cost.Single(c => c.Resource == R("duranium")).Amount * g, Duranium(veyra, "storage_container"));
         Assert.Equal(Data.Building("science_lab").Cost.Single(c => c.Resource == R("duranium")).Amount, Duranium(tarsis, "science_lab"));
 
         // And they draw crewed_extra_power more power there (not cores).
