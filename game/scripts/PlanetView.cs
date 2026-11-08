@@ -895,7 +895,7 @@ public partial class PlanetView : Node3D
             if (!_buildingCrews.TryGetValue(core.Id, out var people))
             {
                 var colour = PlanetDriver.ColorOf(core.Owner);
-                people = new[] { BuildingModels.Crew(colour), BuildingModels.Crew(colour) };
+                people = new[] { NewRepairer(colour, core.Id * 31 + 5001), NewRepairer(colour, core.Id * 31 + 5002) };
                 foreach (var p in people) AddChild(p);
                 _buildingCrews[core.Id] = people;
             }
@@ -921,21 +921,11 @@ public partial class PlanetView : Node3D
                 var at = door.Lerp(spot, Mathf.SmoothStep(0f, 1f, Mathf.Clamp(t * 1.08f - i * 0.08f, 0f, 1f)));
                 var faceTo = walking ? (core.CrewPhase == CrewPhase.Back ? door : spot) : jobCentre;
                 if (at.DistanceTo(person.Position) > 60f) person.Position = at; // first frame
+                var before = person.Position;
                 person.Position = at;
                 var dir = (faceTo - at) with { Y = 0 };
                 if (dir.LengthSquared() > 0.01f) person.Basis = person.Basis.Orthonormalized().Slerp(Basis.LookingAt(dir.Normalized(), Vector3.Up), Mathf.Min(1f, delta * 10f));
-                var swing = walking ? Mathf.Sin(_time * 9f + i * 1.7f) * 30f : 0f;
-                if (person.GetNodeOrNull<Node3D>("LegL") is { } l) l.RotationDegrees = new Vector3(swing, 0, 0);
-                if (person.GetNodeOrNull<Node3D>("LegR") is { } r) r.RotationDegrees = new Vector3(-swing, 0, 0);
-                if (person.GetNodeOrNull<Node3D>("Arm") is { } arm)
-                {
-                    arm.RotationDegrees = new Vector3(welding ? -15f + Mathf.Sin(_time * 6f + i) * 10f : 20f, 0, 0);
-                    if (arm.GetNodeOrNull<Node3D>("Torch") is { } torch)
-                    {
-                        if (torch.GetNodeOrNull<CpuParticles3D>("Sparks") is { } sparks && sparks.Emitting != welding) sparks.Emitting = welding;
-                        if (torch.GetNodeOrNull<Node3D>("Flame") is { } flame) flame.Visible = welding && Mathf.Sin(_time * 40f + i * 3f) > -0.6f;
-                    }
-                }
+                PoseRepairer(person, before, walking, welding, i, delta); // PlanetView.RepairCrew.cs
             }
         }
         foreach (var id in new List<int>(_buildingCrews.Keys))
@@ -1316,7 +1306,7 @@ public partial class PlanetView : Node3D
             if (crew == null)
             {
                 var colour = PlanetDriver.ColorOf(u.Owner);
-                crew = new CrewVisual { People = new[] { BuildingModels.Crew(colour), BuildingModels.Crew(colour) } };
+                crew = new CrewVisual { People = new[] { NewRepairer(colour, u.Id * 31 + 9001), NewRepairer(colour, u.Id * 31 + 9002) } };
                 foreach (var p in crew.People) AddChild(p);
                 _crews[u.Id] = crew;
             }
@@ -1348,24 +1338,14 @@ public partial class PlanetView : Node3D
             var at = crew.Door.Lerp(work, t);
             var walking = repairing ? t < 1f : true;
             var faceTo = walking ? (repairing ? work : crew.Door) : model.Position;
+            var before = person.Position;
             person.Position = at;
             var dir = (faceTo - at) with { Y = 0 };
             if (dir.LengthSquared() > 0.01f) person.Basis = person.Basis.Orthonormalized().Slerp(Basis.LookingAt(dir.Normalized(), Vector3.Up), Mathf.Min(1f, delta * 10f));
 
-            // Walk cycle while moving; a slight crouch and torch work at the crawler.
-            var swing = walking ? Mathf.Sin(_time * 9f + i * 1.7f) * 30f : 0f;
-            if (person.GetNodeOrNull<Node3D>("LegL") is { } l) l.RotationDegrees = new Vector3(swing, 0, 0);
-            if (person.GetNodeOrNull<Node3D>("LegR") is { } r) r.RotationDegrees = new Vector3(-swing, 0, 0);
+            // Walk out, then torch work at the vehicle (PlanetView.RepairCrew.cs).
             var welding = repairing && !walking && !u.RepairWaiting;
-            if (person.GetNodeOrNull<Node3D>("Arm") is { } arm)
-            {
-                arm.RotationDegrees = new Vector3(welding ? -15f + Mathf.Sin(_time * 6f + i) * 10f : 20f, 0, 0);
-                if (arm.GetNodeOrNull<Node3D>("Torch") is { } torch)
-                {
-                    if (torch.GetNodeOrNull<CpuParticles3D>("Sparks") is { } sparks && sparks.Emitting != welding) sparks.Emitting = welding;
-                    if (torch.GetNodeOrNull<Node3D>("Flame") is { } flame) flame.Visible = welding && Mathf.Sin(_time * 40f + i * 3f) > -0.6f;
-                }
-            }
+            PoseRepairer(person, before, walking, welding, i, delta);
         }
     }
 
