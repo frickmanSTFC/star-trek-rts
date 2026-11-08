@@ -99,6 +99,8 @@ public static class Aggregate
             Add("end:" + res, $"{Pretty(res)} at the end", "End of run", "", res.EndsWith("_ore") ? null : true, r => r.Series.TryGetValue("stock:" + res, out var s) && s.Count > 0 ? s[^1] : null);
         foreach (var res in new[] { "duranium", "tritanium", "parasteel" })
             Add("made:" + res, $"{Pretty(res)} income / min (mean after touchdown)", "Income", "", true, r => MeanAfter(r, "income:" + res, r.Milestones.GetValueOrDefault("hub_ready", 0)));
+        foreach (var minute in new[] { 10, 20, 30 })
+            Add($"metal:{minute}", $"Metal made by minute {minute} (duranium + tritanium + parasteel)", "Income", "", true, r => MetalBy(r, minute * 60));
         Add("peak_storage", "Peak storage fill", "Storage", "%", null, r => r.Series.TryGetValue("storage_pct", out var s) && s.Count > 0 ? s.Max() : null);
         Add("end_storage_cap", "Storage capacity at the end", "Storage", "", true, r => Last(r, "storage_cap"));
         foreach (var kind in Recorder.StallKinds)
@@ -139,6 +141,18 @@ public static class Aggregate
     };
 
     private static double? Last(RunResult r, string series) => r.Series.TryGetValue(series, out var s) && s.Count > 0 ? s[^1] : null;
+
+    /// <summary>Refined metal the run made by this time: the HUD's net income of duranium, tritanium and parasteel, summed over
+    /// the samples up to it (the gravity design doc's "refined metal at minute 10 and 20"); null when the run ends earlier.</summary>
+    private static double? MetalBy(RunResult r, double seconds)
+    {
+        if (r.Times.Count == 0 || r.Times[^1] < seconds - 0.01) return null;
+        double total = 0;
+        for (var i = 1; i < r.Times.Count && r.Times[i] <= seconds + 0.01; i++)
+            foreach (var res in new[] { "duranium", "tritanium", "parasteel" })
+                if (r.Series.TryGetValue("income:" + res, out var s) && i < s.Count) total += s[i] * (r.Times[i] - r.Times[i - 1]) / 60;
+        return total;
+    }
 
     private static double? MeanAfter(RunResult r, string series, double from)
     {

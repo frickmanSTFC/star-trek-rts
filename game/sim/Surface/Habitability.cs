@@ -217,6 +217,11 @@ public sealed partial class PlanetSurface
     /// <summary>Life support of a base on a Domes world: 1 = fully supplied, 0 = no air (crew loss). 1 elsewhere.</summary>
     public Fix64 LifeSupportOf(int baseId) => Domes == null ? Fix64.One : LifeSupportBudget(baseId).Level;
 
+    /// <summary>Power a crewed building draws on top of its own on a Domes world (life support's fans and heaters:
+    /// habitability.domes crewed_extra_power; not cores). 0 elsewhere.</summary>
+    public Fix64 CrewedExtraPower(SurfaceStructure s) =>
+        Domes is { } d && _data.IsCrewed(s.DefId) && !_data.Building(s.DefId).IsCore ? d.CrewedExtraPower : Fix64.Zero;
+
     /// <summary>How fast a building works for want of air: its base's life support if it is crewed on a Domes world, else 1.</summary>
     private Fix64 CrewShare(SurfaceStructure s, Dictionary<int, Fix64>? cache)
     {

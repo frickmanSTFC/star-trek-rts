@@ -167,7 +167,7 @@ public sealed partial class PlanetSurface
             if (!DrawsPower(s.Status)) continue;
             var def = _data.Building(s.DefId);
             supply += def.PowerSupply * ConditionFactor(s); // worn reactors supply less
-            use += def.PowerUse;
+            use += def.PowerUse + CrewedExtraPower(s);
         }
         if (owner >= 0 && _players[owner].UnlimitedPower) supply = Fix64.Max(supply, use); // test panel
         return new BasePower(supply, use);
@@ -514,7 +514,12 @@ public sealed partial class PlanetSurface
     public int LevelTicksOf(BuildingLevel level) => (int)GravityProfile.Ticks((long)level.BuildSeconds * Simulation.TickRate, Gravity.BuildTime);
 
     /// <summary>What a building costs on this surface: its cost with the metal × the build-cost curve (class M: the data's cost).</summary>
-    public IReadOnlyList<ResourceAmount> BuildCostOf(string buildingId) => Gravity.ScaleCost(_data.Building(buildingId).Cost);
+    public IReadOnlyList<ResourceAmount> BuildCostOf(string buildingId)
+    {
+        var cost = Gravity.ScaleCost(_data.Building(buildingId).Cost);
+        // Domes worlds: a crewed building is built sealed (habitability.domes crewed_metal_cost).
+        return Domes is { } d && _data.IsCrewed(buildingId) && !_data.Building(buildingId).IsCore ? Gravity.ScaleMetal(cost, d.CrewedMetalCost) : cost;
+    }
 
     /// <summary>What a building level costs on this surface.</summary>
     public IReadOnlyList<ResourceAmount> LevelCostOf(BuildingLevel level) => Gravity.ScaleCost(level.Cost);

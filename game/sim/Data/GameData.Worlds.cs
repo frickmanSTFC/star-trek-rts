@@ -58,7 +58,14 @@ public sealed record HabitabilityCheck(string Id, IReadOnlyList<TierRange> Range
 /// buildings added to the build menu there, life support each crewed building needs, and the failure rule (after
 /// GraceSeconds at no life support, CrewLossPerMinute crew a minute per crewed building).
 /// </summary>
-public sealed record DomeRules(int CoreDomeRadius, IReadOnlyList<string> BuildMenu, Fix64 LifeSupportPerCrewed, int GraceSeconds, Fix64 CrewLossPerMinute);
+public sealed record DomeRules(int CoreDomeRadius, IReadOnlyList<string> BuildMenu, Fix64 LifeSupportPerCrewed, int GraceSeconds, Fix64 CrewLossPerMinute)
+{
+    /// <summary>× the metal in a crewed building's cost (it is built sealed).</summary>
+    public Fix64 CrewedMetalCost { get; init; } = Fix64.One;
+
+    /// <summary>Power each crewed building draws on top of its own.</summary>
+    public Fix64 CrewedExtraPower { get; init; }
+}
 
 /// <summary>Habitability rules (surfaces.json "habitability"): tier names, the checks, the domes kit.</summary>
 public sealed record HabitabilityRules(IReadOnlyList<(string Id, string Name)> Tiers, IReadOnlyList<HabitabilityCheck> Checks, DomeRules? Domes)
@@ -169,7 +176,11 @@ public sealed partial class GameData
         if (h.TryGetProperty("domes", out var d))
             domes = new DomeRules(d.GetProperty("core_dome_radius").GetInt32(),
                 d.GetProperty("build_menu").EnumerateArray().Select(x => x.GetString()!).ToList(),
-                Num(d.GetProperty("life_support_per_crewed")), d.GetProperty("grace_seconds").GetInt32(), Num(d.GetProperty("crew_loss_per_min")));
+                Num(d.GetProperty("life_support_per_crewed")), d.GetProperty("grace_seconds").GetInt32(), Num(d.GetProperty("crew_loss_per_min")))
+            {
+                CrewedMetalCost = d.TryGetProperty("crewed_metal_cost", out var cm) ? Num(cm) : Fix64.One,
+                CrewedExtraPower = d.TryGetProperty("crewed_extra_power", out var cp) ? Num(cp) : Fix64.Zero,
+            };
         return new HabitabilityRules(tiers, checks, domes);
     }
 
@@ -251,7 +262,7 @@ public sealed partial class GameData
             }
             if (h.Domes is { } d)
             {
-                if (d.CoreDomeRadius < 0 || d.GraceSeconds < 0 || d.LifeSupportPerCrewed < Fix64.Zero || d.CrewLossPerMinute < Fix64.Zero)
+                if (d.CoreDomeRadius < 0 || d.GraceSeconds < 0 || d.LifeSupportPerCrewed < Fix64.Zero || d.CrewLossPerMinute < Fix64.Zero || d.CrewedMetalCost <= Fix64.Zero || d.CrewedExtraPower < Fix64.Zero)
                     problems.Add("Habitability domes: radius, grace, life support and crew loss can't be negative.");
                 foreach (var id in d.BuildMenu) // the rest of the build-menu checks run on these too (EveryBuildMenu)
                     if (BuildMenu.Contains(id)) problems.Add($"Habitability domes: {id} is already in the build menu.");

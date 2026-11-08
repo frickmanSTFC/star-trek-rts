@@ -95,6 +95,10 @@ order; a step waits until it can be done (and its conditions hold), then the bot
 
 **Standing behaviour** (all optional, defaults shown above):
 
+- `planet` / `world`: the planet class to generate, or a world of the duel map by name or id (`"world": "veyra"` =
+  class L with Veyra's climate body; `MatchSetup.ResolveWorld`), which also sets gravity and the habitability tier. On a
+  Domes world the bot keeps automated buildings off covered ground and puts a Pressure Dome past the core's own field.
+
 - `landing.prefer`: ores the landing site should have, by the orbital scan's region hints (what a player sees). Every
   legal site (`PlanetSurface.CanLand` + `LandProblem`, the green tiles in the UI) is scored by those hints, buildable
   ground in the hub's build radius, open land around it and safety; the best one without a storm over it wins.
@@ -311,6 +315,47 @@ Before the retune (2026-11-06, kept for the record): duranium ~20 a minute and u
 Colonial Administration in 75 min, storage never filled (peak 63% in the first minute), one crawler (30/min) left a
 refinery (40/min) idle 11.5 of 30 min, tritanium trickled, the foundry drained duranium with no way to stop it, the
 reactor ran dry at ~45–50 min, one lab needed 63 min for seven techs.
+
+## Veyra, a Domes world (2026-11-08, 3 seeds × 30 min, `reports/veyra_opener/`)
+
+`orders/veyra_opener.json` plays the standard opener on Veyra (`"world": "veyra"`: class L on body west_l, 0.9 g,
+Domes tier because O2 13.5% is below 16%) with the domes kit: a Life Support Plant after refinery Mk II (the hub's own
+life support carries the hub and the lab), a Pressure Dome two tiles out (the hub's field only reaches its ring), the
+Fusion Reactor before the bay (the dome and the plant draw power). The bot keeps automated buildings off covered ground
+and puts a dome past the hub's field. New measure: `metal:<minute>` = refined metal made by then (the HUD's net
+duranium + tritanium + parasteel income summed), the gravity doc's "refined metal at minute 10 and 20".
+
+| median of seeds 1 / 1701 / 99999 | Tarsis (M) | Veyra (Domes) | Veyra ÷ M |
+|---|---|---|---|
+| Metal made by minute 10 / 20 / 30 | 550 / 1,362 / 2,262 | 534 / 1,376 / 2,186 | 97% / 101% / 97% |
+| Duranium / tritanium income a minute | 52.2 / 23.0 | 57.2 / 14.9 | 110% / 65% |
+| Life Support Plant, Pressure Dome | — | 8:11, 11:20 | |
+| Vehicle Bay, second crawler | 8:19, 10:37 | 14:40, 17:02 | 1.76×, 1.60× |
+| Fusion Reactor, first parasteel | 11:21, 16:27 | 12:06, 21:20 | 1.07×, 1.30× |
+| Colonial Administration | 23:07 | 27:38 | 1.20× |
+| A base short of power | 0 min | 3.9 min | |
+| Crew at the end | 353 | 337 | 95% (none lost to failed life support) |
+
+Tuning done (placeholders): Pressure Dome 200 duranium + 60 tritanium, 45 s, 8 power; Life Support Plant 120 + 30,
+25 s, 6 power, supports 4 crewed buildings; on a Domes world every crewed building costs 15% more metal and draws 2 more
+power (the doc's Domes-tier row; `habitability.domes` crewed_metal_cost / crewed_extra_power); the plant moved after the
+second refinery in the order. **Findings:**
+
+- **Refined metal stays at ~97–101% of class M, above the doc's 60–80% band.** The refineries set the pace of refined
+  metal, and they are automated (crewed: false, as the doc lists the Ore Refinery), so the domes kit never slows them:
+  it costs metal and time instead (bay 1.76×, second crawler 1.6×, parasteel 1.3×, Colonial Administration 1.2×).
+  Veyra's map (more hills) even gives more duranium. Making the kit dearer only moved things when it pushed the second
+  refinery past its 240 s window (one refinery all game: ~60%), which is a cliff, not a dial. Making Veyra's ore
+  poorer (duranium/tritanium chance 0.09) changed nothing: one crawler and a mine already outrun two refineries.
+- **What would bring it into the band:** with the refinery crewed (a smelter needs operators, so under a dome with life
+  support) the same order made 45% / 59% / 72% at minutes 10 / 20 / 30. That is a design call for the owner (the doc
+  says automated), so the data keeps the refinery automated for now.
+- The Vehicle Bay comes later than the doc's 1.5× (14:40 vs 12:30): the bay waits for the dome (it needs the ring the
+  dome opens). The base runs ~4 minutes short of power before the reactor (target ≤ 1): the reactor could come before
+  the dome. Crew loss to failed life support: none with the plant (it is the grace clock: 30 s at zero, then 2 crew a
+  minute per crewed building).
+- Class M is untouched: the four shipped orders give the same final state hashes on all three seeds as before the
+  gravity and hostile-worlds work.
 
 ## Writing new measures
 

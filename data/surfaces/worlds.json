@@ -47,7 +47,9 @@
       "build_menu": ["life_support_plant", "pressure_dome"],
       "life_support_per_crewed": 1,
       "grace_seconds": 30,
-      "crew_loss_per_min": 2
+      "crew_loss_per_min": 2,
+      "crewed_metal_cost": 1.15,
+      "crewed_extra_power": 2
     }
   }
 }

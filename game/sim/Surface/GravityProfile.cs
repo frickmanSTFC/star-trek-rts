@@ -121,14 +121,17 @@ public sealed class GravityProfile
     }
 
     /// <summary>A cost with its metal scaled by <see cref="BuildCost"/> (the same list when that is 1).</summary>
-    public IReadOnlyList<ResourceAmount> ScaleCost(IReadOnlyList<ResourceAmount> cost)
+    public IReadOnlyList<ResourceAmount> ScaleCost(IReadOnlyList<ResourceAmount> cost) => ScaleMetal(cost, BuildCost);
+
+    /// <summary>A cost with its metal (build_cost_resources) × a multiplier (the same list when that is 1).</summary>
+    public IReadOnlyList<ResourceAmount> ScaleMetal(IReadOnlyList<ResourceAmount> cost, Fix64 multiplier)
     {
-        if (BuildCost == Fix64.One || cost.Count == 0) return cost;
+        if (multiplier == Fix64.One || cost.Count == 0) return cost;
         var any = false;
         foreach (var c in cost)
             if (c.Resource < _costResource.Length && _costResource[c.Resource]) any = true;
         if (!any) return cost;
-        return cost.Select(c => c.Resource < _costResource.Length && _costResource[c.Resource] ? new ResourceAmount(c.Resource, c.Amount * BuildCost) : c).ToList();
+        return cost.Select(c => c.Resource < _costResource.Length && _costResource[c.Resource] ? new ResourceAmount(c.Resource, c.Amount * multiplier) : c).ToList();
     }
 
     /// <summary>The drop ship's fuel a trip on this surface: orbit.shuttle.fuel × <see cref="LiftCost"/>.</summary>
