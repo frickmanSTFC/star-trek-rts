@@ -1,0 +1,17 @@
+{
+  "achievements": [
+    { "id": "under_glass", "name": "Under Glass", "description": "Run a crewed building inside a Pressure Dome.",
+      "category": "hostile", "tier": "silver", "icon": "dome", "hidden": false, "progress": false, "reward": "dome_amber",
+      "trigger": { "kind": "event", "event": "domed_crewed_working" } },
+    { "id": "holding_breath", "name": "Holding Breath", "description": "Restore life support before the 30-second grace runs out.",
+      "category": "hostile", "tier": "gold", "icon": "lungs", "hidden": true, "progress": false, "reward": "finish_pearl",
+      "trigger": { "kind": "event", "event": "life_support_saved" } },
+    { "id": "heavy_world", "name": "Heavy World", "description": "Reach Colonial Administration on a world over 1.3 g.",
+      "category": "hostile", "tier": "gold", "icon": "weight", "hidden": false, "progress": false, "reward": "finish_gunmetal",
+      "trigger": { "kind": "built", "building": "colonial_administration", "count": 1 },
+      "worlds": { "min_gravity_g": 1.3 } },
+    { "id": "every_kind_of_weather", "name": "Every Kind of Weather", "description": "See a storm, a blizzard and a dust storm in one game.",
+      "category": "hostile", "tier": "silver", "icon": "storm", "hidden": false, "progress": true, "reward": "paint_storm_grey",
+      "trigger": { "kind": "set", "measure": "weather_seen", "contains": ["storm", "blizzard", "dust_storm"] } }
+  ]
+}

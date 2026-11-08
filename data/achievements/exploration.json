@@ -1,0 +1,19 @@
+{
+  "achievements": [
+    { "id": "uncharted_no_more", "name": "Uncharted No More", "description": "Chart every body in the star system.",
+      "category": "exploration", "tier": "silver", "icon": "chart", "hidden": false, "progress": true, "reward": "paint_survey_orange",
+      "trigger": { "kind": "count", "measure": "bodies_charted", "all": true } },
+    { "id": "eyes_everywhere", "name": "Eyes Everywhere", "description": "Have 4 satellites out at the same time.",
+      "category": "exploration", "tier": "silver", "icon": "satellite", "hidden": false, "progress": true, "reward": "beam_cyan",
+      "trigger": { "kind": "count", "measure": "system_satellites", "at_least": 4 } },
+    { "id": "long_way_round", "name": "Long Way Round", "description": "Take the flagship to the body farthest from the colony.",
+      "category": "exploration", "tier": "bronze", "icon": "route", "hidden": false, "progress": false, "reward": "name_long_haul",
+      "trigger": { "kind": "event", "event": "orbit_farthest" } },
+    { "id": "rare_find", "name": "Rare Find", "description": "Chart a Class M world. About one system in nine has one.",
+      "category": "exploration", "tier": "gold", "icon": "planet", "hidden": false, "progress": false, "reward": "finish_blue_white",
+      "trigger": { "kind": "event", "event": "charted_class", "class": "class_m" } },
+    { "id": "hailing_frequencies", "name": "Hailing Frequencies", "description": "Open the card of every neutral ship in the system.",
+      "category": "exploration", "tier": "bronze", "icon": "hail", "hidden": false, "progress": true, "reward": "ship_hailer",
+      "trigger": { "kind": "view_count", "measure": "ships_inspected", "all": true } }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "categories": [
+    { "id": "colony",      "name": "Colony",         "order": 1, "icon": "base" },
+    { "id": "exploration", "name": "Exploration",    "order": 2, "icon": "chart" },
+    { "id": "surface",     "name": "Surface",        "order": 3, "icon": "hex" },
+    { "id": "vehicles",    "name": "Vehicles",       "order": 4, "icon": "rover" },
+    { "id": "hostile",     "name": "Hostile worlds", "order": 5, "icon": "dome" },
+    { "id": "comms",       "name": "Comms",          "order": 6, "icon": "signal" },
+    { "id": "challenge",   "name": "Challenge",      "order": 7, "icon": "crown" },
+    { "id": "research",    "name": "Research",       "order": 8, "icon": "flask" }
+  ],
+  "tiers": [
+    { "id": "bronze", "name": "Bronze", "colour": "#cf8a52", "points": 10 },
+    { "id": "silver", "name": "Silver", "colour": "#c3cedd", "points": 25 },
+    { "id": "gold",   "name": "Gold",   "colour": "#f5a624", "points": 50 }
+  ],
+  "cosmetics": [
+    { "id": "name_beacon",         "kind": "rover_name",    "name": "Rover name BEACON",     "value": "BEACON",       "colour2": "",        "pattern": "" },
+    { "id": "hull_10",             "kind": "hull_number",   "name": "Hull number 10",        "value": "10",           "colour2": "",        "pattern": "" },
+    { "id": "paint_steel_blue",    "kind": "paint",         "name": "Steel blue paint",      "value": "#4f7fb8",      "colour2": "",        "pattern": "solid" },
+    { "id": "beam_violet",         "kind": "beam_colour",   "name": "Violet exocomp beams",  "value": "#b48cff",      "colour2": "",        "pattern": "" },
+    { "id": "finish_chrome",       "kind": "finish",        "name": "Chrome finish",         "value": "chrome",       "colour2": "",        "pattern": "" },
+    { "id": "paint_amber_band",    "kind": "paint",         "name": "Amber band",            "value": "#f5a624",      "colour2": "#1b2233", "pattern": "band" },
+    { "id": "paint_survey_orange", "kind": "paint",         "name": "Survey orange paint",   "value": "#ff8c3a",      "colour2": "",        "pattern": "solid" },
+    { "id": "beam_cyan",           "kind": "beam_colour",   "name": "Cyan exocomp beams",    "value": "#5ff2e6",      "colour2": "",        "pattern": "" },
+    { "id": "name_long_haul",      "kind": "rover_name",    "name": "Rover name LONG HAUL",  "value": "LONG HAUL",    "colour2": "",        "pattern": "" },
+    { "id": "finish_blue_white",   "kind": "finish",        "name": "Blue-white livery",     "value": "blue_white",   "colour2": "",        "pattern": "" },
+    { "id": "ship_hailer",         "kind": "dropship_name", "name": "Drop ship HAILER 01",   "value": "HAILER 01",    "colour2": "",        "pattern": "" },
+    { "id": "paint_survey_green",  "kind": "paint",         "name": "Survey green stripes",  "value": "#5fbf7a",      "colour2": "#e6ebf5", "pattern": "stripes" },
+    { "id": "name_motherlode",     "kind": "rover_name",    "name": "Rover name MOTHERLODE", "value": "MOTHERLODE",   "colour2": "",        "pattern": "" },
+    { "id": "beam_green",          "kind": "beam_colour",   "name": "Green exocomp beams",   "value": "#7dff9a",      "colour2": "",        "pattern": "" },
+    { "id": "ship_taproot",        "kind": "dropship_name", "name": "Drop ship TAPROOT 05",  "value": "TAPROOT 05",   "colour2": "",        "pattern": "" },
+    { "id": "hull_44",             "kind": "hull_number",   "name": "Hull number 44",        "value": "44",           "colour2": "",        "pattern": "" },
+    { "id": "paint_hazard",        "kind": "paint",         "name": "Hazard chevrons",       "value": "#ffd23a",      "colour2": "#111111", "pattern": "chevrons" },
+    { "id": "name_limpet",         "kind": "rover_name",    "name": "Rover name LIMPET",     "value": "LIMPET",       "colour2": "",        "pattern": "" },
+    { "id": "hull_01",             "kind": "hull_number",   "name": "Hull number 01",        "value": "1",            "colour2": "",        "pattern": "" },
+    { "id": "name_scorch",         "kind": "rover_name",    "name": "Rover name SCORCH",     "value": "SCORCH",       "colour2": "",        "pattern": "" },
+    { "id": "dome_amber",          "kind": "dome_tint",     "name": "Amber dome glass",      "value": "#ffb85c",      "colour2": "",        "pattern": "" },
+    { "id": "finish_pearl",        "kind": "finish",        "name": "Pearl finish",          "value": "pearl",        "colour2": "",        "pattern": "" },
+    { "id": "finish_gunmetal",     "kind": "finish",        "name": "Gunmetal finish",       "value": "gunmetal",     "colour2": "",        "pattern": "" },
+    { "id": "paint_storm_grey",    "kind": "paint",         "name": "Storm grey band",       "value": "#8a93a6",      "colour2": "#e6ebf5", "pattern": "band" },
+    { "id": "ship_farcall",        "kind": "dropship_name", "name": "Drop ship FARCALL 08",  "value": "FARCALL 08",   "colour2": "",        "pattern": "" },
+    { "id": "finish_rescue_white", "kind": "finish",        "name": "Rescue white finish",   "value": "rescue_white", "colour2": "",        "pattern": "" },
+    { "id": "finish_brushed_gold", "kind": "finish",        "name": "Brushed gold finish",   "value": "brushed_gold", "colour2": "",        "pattern": "" },
+    { "id": "paint_graphite",      "kind": "paint",         "name": "Graphite paint",        "value": "#2b2f38",      "colour2": "",        "pattern": "solid" },
+    { "id": "name_homebody",       "kind": "rover_name",    "name": "Rover name HOMEBODY",   "value": "HOMEBODY",     "colour2": "",        "pattern": "" },
+    { "id": "beam_gold",           "kind": "beam_colour",   "name": "Gold exocomp beams",    "value": "#ffd27a",      "colour2": "",        "pattern": "" }
+  ]
+}

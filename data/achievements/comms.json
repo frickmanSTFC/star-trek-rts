@@ -1,0 +1,10 @@
+{
+  "achievements": [
+    { "id": "long_distance", "name": "Long Distance", "description": "Have an order arrive after 8 s or more of signal delay.",
+      "category": "comms", "tier": "bronze", "icon": "signal", "hidden": false, "progress": false, "reward": "ship_farcall",
+      "trigger": { "kind": "event", "event": "order_relayed", "delay_seconds": 8 } },
+    { "id": "sos_answered", "name": "SOS Answered", "description": "Get back to the colony within 60 s of a breakdown reported while away.",
+      "category": "comms", "tier": "gold", "icon": "sos", "hidden": true, "progress": false, "reward": "finish_rescue_white",
+      "trigger": { "kind": "event", "event": "sos_answered", "within_seconds": 60 } }
+  ]
+}

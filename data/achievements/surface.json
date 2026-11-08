@@ -1,0 +1,16 @@
+{
+  "achievements": [
+    { "id": "ground_truth", "name": "Ground Truth", "description": "Survey half the map.",
+      "category": "surface", "tier": "silver", "icon": "hex", "hidden": false, "progress": true, "reward": "paint_survey_green",
+      "trigger": { "kind": "share", "measure": "surveyed", "at_least": 0.5 } },
+    { "id": "motherlode", "name": "Motherlode", "description": "Survey a deposit of 2,500 units or more.",
+      "category": "surface", "tier": "bronze", "icon": "gem", "hidden": false, "progress": false, "reward": "name_motherlode",
+      "trigger": { "kind": "event", "event": "deposit_found", "amount": 2500 } },
+    { "id": "second_base", "name": "Second Base", "description": "Found an outpost with a construction rover.",
+      "category": "surface", "tier": "silver", "icon": "base", "hidden": false, "progress": false, "reward": "beam_green",
+      "trigger": { "kind": "event", "event": "founded" } },
+    { "id": "deep_roots", "name": "Deep Roots", "description": "Reopen a used-up deposit with a Deep-Core Mine.",
+      "category": "surface", "tier": "silver", "icon": "drill", "hidden": false, "progress": false, "reward": "ship_taproot",
+      "trigger": { "kind": "event", "event": "deposit_reopened" } }
+  ]
+}
