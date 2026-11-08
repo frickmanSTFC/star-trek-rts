@@ -75,7 +75,7 @@ public partial class PlanetDriver
             _menuFrame = frame;
             _menuData = _data;
             _menu.Clear();
-            foreach (var id in _data.BuildMenu)
+            foreach (var id in Surface.BuildMenu)
                 if (ShowLockedBuildings || !Locked(id)) _menu.Add(id);
         }
         return _menu;
@@ -93,7 +93,10 @@ public partial class PlanetDriver
         return i is >= 0 and < 9 ? (i + 1).ToString() : "";
     }
 
-    private bool IsBuildingCard(string? id) => id != null && !id.Contains(':') && _data.BuildMenu.Contains(id);
+    /// <summary>Build time in seconds on this world (gravity scales it; class M = the data's build_seconds).</summary>
+    private int BuildSecondsOf(string id) => Mathf.RoundToInt(Surface.BuildTicksOf(id) / (float)Simulation.TickRate);
+
+    private bool IsBuildingCard(string? id) => id != null && !id.Contains(':') && Surface.BuildMenu.Contains(id);
 
     /// <summary>Number keys pick buildings (not a bay's orders or a lab's techs) while the drawer, a building card or placement is up.</summary>
     private bool BuildingKeysActive => _drawer.IsOpen || IsBuildingCard(_info) || _placing != null;
@@ -165,7 +168,7 @@ public partial class PlanetDriver
         if (Locked(id)) return $"needs {_data.Tech(_data.Building(id).RequiresTech).Name} research at a Research Lab";
         if (!Surface.Bases(LocalPlayer).Any(b => b.State == StructureState.Complete)) return PlanetSurface.AssemblingProblem;
         var def = _data.Building(id);
-        if (!_sim.Players[LocalPlayer].Stock.CanAfford(def.Cost) && !Surface.Players[LocalPlayer].FreeBuilding) return "not enough resources";
+        if (!_sim.Players[LocalPlayer].Stock.CanAfford(Surface.BuildCostOf(def.Id)) && !Surface.Players[LocalPlayer].FreeBuilding) return "not enough resources";
         return null;
     }
 
@@ -284,7 +287,7 @@ public partial class PlanetDriver
         var tiles = recent.Select(id =>
         {
             var def = _data.Building(id);
-            return new RecentTile(id, def.Name, BuildKey(id), ShortCost(def.Cost), _placing == id || _info == id);
+            return new RecentTile(id, def.Name, BuildKey(id), ShortCost(Surface.BuildCostOf(def.Id)), _placing == id || _info == id);
         }).ToList();
         _hud.ShowBuildStrip(title, new BuildStripView($"[B]  ·  {menu.Count} buildings", tiles, enabled, _drawer.IsOpen), _thumbs);
     }
@@ -309,7 +312,7 @@ public partial class PlanetDriver
         var sb = new StringBuilder();
         var key = BuildKey(id!);
         sb.Append(def.Name).Append(key.Length > 0 ? $"  [{key}]" : "").Append('\n');
-        sb.Append(Amounts(def.Cost, false)).Append("  ·  ").Append(def.BuildSeconds).Append(" s to build");
+        sb.Append(Amounts(Surface.BuildCostOf(def.Id), false)).Append("  ·  ").Append(BuildSecondsOf(def.Id)).Append(" s to build");
         var power = PowerText(def);
         if (power.Length > 0) sb.Append("  ·  ").Append(power);
         if (def.Effect.Length > 0) sb.Append('\n').Append(def.Effect);
@@ -325,7 +328,7 @@ public partial class PlanetDriver
         var def = _data.Building(id);
         var locked = Locked(id);
         return new DrawerTile(id, def.Name, BuildKey(id), locked, locked ? _data.Tech(def.RequiresTech).Name : "",
-            def.Cost.OrderByDescending(a => a.Amount).Select(a => new CostPart(_data.Resources[a.Resource].Id, a.Resource, a.Amount,
+            Surface.BuildCostOf(def.Id).OrderByDescending(a => a.Amount).Select(a => new CostPart(_data.Resources[a.Resource].Id, a.Resource, a.Amount,
                 $"{Hud.Whole(a.Amount)} {HudKit.Short(_data.Resources[a.Resource].Name)}")).ToList());
     }
 
@@ -414,7 +417,7 @@ public partial class PlanetDriver
         var levelLine = def.Levels.Count > 0 ? "Mk I → " + string.Join(" → ", def.Levels.Select(l => l.Name)) : "Mk I  ·  no upgrades";
 
         // Stat tiles.
-        var stats = new List<CardStat> { new("Build", $"{def.BuildSeconds} s") };
+        var stats = new List<CardStat> { new("Build", $"{BuildSecondsOf(def.Id)} s") };
         if (def.PowerSupply > Fix64.Zero) stats.Add(new("Power", $"+{Hud.Whole(def.PowerSupply)}", HudKit.Good));
         else if (def.PowerUse > Fix64.Zero) stats.Add(new("Power", $"−{Hud.Whole(def.PowerUse)}"));
         else stats.Add(new("Power", "none"));
@@ -450,10 +453,10 @@ public partial class PlanetDriver
     {
         var def = _data.Building(id);
         var problem = PlaceProblem(id);
-        var warning = problem == null ? "" : problem == "not enough resources" ? Shortfall(def.Cost) : char.ToUpperInvariant(problem[0]) + problem[1..] + ".";
+        var warning = problem == null ? "" : problem == "not enough resources" ? Shortfall(Surface.BuildCostOf(def.Id)) : char.ToUpperInvariant(problem[0]) + problem[1..] + ".";
         var action = Locked(id) ? "RESEARCH AT A LAB" : "PLACE [ENTER]";
         var range = Surface.FindStructure(_selectedBase) is { } core ? $" (the blue area round {BaseName(core.Id)})" : "";
-        return new CardLive(LongCost(def.Cost), $"·  {def.BuildSeconds} s to build", warning, action, problem == null,
+        return new CardLive(LongCost(Surface.BuildCostOf(def.Id)), $"·  {BuildSecondsOf(def.Id)} s to build", warning, action, problem == null,
             $"Then click a tile in the build area{range}  ·  R rotate  ·  Shift+click place more  ·  Shift+pick skips this card");
     }
 
@@ -592,7 +595,7 @@ public partial class PlanetDriver
     /// <summary>What it takes from the economy and where that comes from; what it gives and who uses it.</summary>
     private List<CardBlock> LinkBlocks(BuildingDef def)
     {
-        var menu = _data.BuildMenu.Select(_data.Building).ToList();
+        var menu = Surface.BuildMenu.Select(_data.Building).ToList();
         var core = _data.Buildings.Where(b => b.IsCore).ToList();
         var crawlers = _data.SurfaceUnits.Where(u => u.CanMine).Select(u => _data.GroundVehicleNames.GetValueOrDefault(u.Id, u.Id)).ToList();
         var depositRes = Surface.Map.Def.Deposits.Select(d => _data.Resource(d.ResourceId).Index).ToHashSet();
@@ -687,13 +690,13 @@ public partial class PlanetDriver
         if (def.IsLab)
         {
             tips.Add("Select the lab to pick a tech: the command card shows the list.");
-            foreach (var b in _data.BuildMenu.Select(_data.Building).Where(b => b.RequiresTech.Length > 0 && _data.HasTech(b.RequiresTech)))
+            foreach (var b in Surface.BuildMenu.Select(_data.Building).Where(b => b.RequiresTech.Length > 0 && _data.HasTech(b.RequiresTech)))
                 tips.Add($"{_data.Tech(b.RequiresTech).Name} ({Hud.Whole(_data.Tech(b.RequiresTech).Cost)} RP) unlocks the {b.Name}.");
         }
         foreach (var l in def.Levels)
             foreach (var c in l.Cost.Where(c => def.Cost.All(b => b.Resource != c.Resource)))
             {
-                var maker = _data.BuildMenu.Select(_data.Building).FirstOrDefault(b => b.Recipes.Any(r => r.Out.Any(a => a.Resource == c.Resource)) || b.OutputPerMinute.Any(a => a.Resource == c.Resource));
+                var maker = Surface.BuildMenu.Select(_data.Building).FirstOrDefault(b => b.Recipes.Any(r => r.Out.Any(a => a.Resource == c.Resource)) || b.OutputPerMinute.Any(a => a.Resource == c.Resource));
                 tips.Add($"{l.Name} needs {ResName(c.Resource)}" + (maker != null ? $" (from the {maker.Name})." : "."));
             }
         return tips.Distinct().Take(5).ToList();

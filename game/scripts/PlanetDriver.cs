@@ -156,10 +156,10 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         _hud.SetResources(_data.HudResources.Select(r => (r.Index, r.Id, r.Name)).ToList());
         // The command card holds the build menu and every Vehicle Bay order; UpdateHud shows one set at a time.
-        var commands = _data.BuildMenu.Select((id, i) => (id, _data.Building(id).Name, $"[{i + 1}]")).ToList();
-        foreach (var unit in _data.BuildMenu.SelectMany(id => _data.Building(id).Produces).Distinct().ToList())
+        var commands = Surface.BuildMenu.Select((id, i) => (id, _data.Building(id).Name, $"[{i + 1}]")).ToList();
+        foreach (var unit in Surface.BuildMenu.SelectMany(id => _data.Building(id).Produces).Distinct().ToList())
         {
-            var key = _data.BuildMenu.Select(id => _data.Building(id).Produces.ToList().IndexOf(unit)).FirstOrDefault(i => i >= 0);
+            var key = Surface.BuildMenu.Select(id => _data.Building(id).Produces.ToList().IndexOf(unit)).FirstOrDefault(i => i >= 0);
             commands.Add(($"unit:{unit}", _data.GroundVehicleNames.GetValueOrDefault(unit, unit), $"[{key + 1}]"));
         }
         foreach (var t in _data.Techs) commands.Add(($"tech:{t.Id}", t.Name, $"[{t.Index + 1}]"));
@@ -1810,7 +1810,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             affects.Add($"{what}: {ModifierText(m)}");
         }
         if (affects.Count > 0) rows.Add(("Changes", string.Join("\n", affects)));
-        var unlocks = _data.BuildMenu.Where(id => _data.Building(id).RequiresTech == t.Id).Select(BuildingName).ToList();
+        var unlocks = Surface.BuildMenu.Where(id => _data.Building(id).RequiresTech == t.Id).Select(BuildingName).ToList();
         if (unlocks.Count > 0) rows.Add(("Unlocks", string.Join(", ", unlocks)));
         rows.Add(("Needs", t.Requires.Count == 0 ? "nothing" : string.Join(", ", t.Requires.Select(r => _data.Tech(r).Name + (me.Known[_data.Tech(r).Index] ? " (done)" : " (not yet)")))));
         var neededBy = _data.Techs.Where(o => o.Requires.Contains(t.Id)).Select(o => o.Name).ToList();
@@ -2235,6 +2235,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         PlacementProblem.OffMap => "off the map",
         PlacementProblem.CoreAssembling => PlanetSurface.AssemblingProblem,
         PlacementProblem.CoreUnderConstruction => "the new outpost is still being built (exocomps)",
+        PlacementProblem.NeedsDome => PlanetSurface.NeedsDomeProblem,
         _ => "not available",
     };
 
