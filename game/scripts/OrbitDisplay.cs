@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using FinalFrontier.Sim.Space;
 using Godot;
 
 namespace FinalFrontier;
@@ -28,5 +29,14 @@ public sealed record HelmAction(string Id, string Key, string Label, bool Enable
 /// <summary>Something tracked in orbit (our ship, survey satellites, moons, deliveries on the way down).</summary>
 public sealed record OrbitObject(string Name, string Kind, string Status, Color Colour);
 
-/// <summary>A body in the star system plot (from the map's bodies; render-only).</summary>
-public sealed record SystemBody(string Id, string Name, string ClassName, int Size, Vector2 Position, string? ParentId, bool Current);
+/// <summary>A body in the star system plot (from the system's bodies; render-only). Name and ClassName are what the
+/// player knows: a body only Detected is "Unknown body" with no class. Current = the flagship is in orbit of it;
+/// Colony = the colony's surface is on it; Live = a satellite (or the colony's uplink) gives live readings there.</summary>
+public sealed record SystemBody(string Id, string Name, string ClassName, int Size, Vector2 Position, string? ParentId, bool Current,
+    BodyKnowledge Knowledge = BodyKnowledge.Charted, bool Live = false, bool Colony = false, string ClassId = "")
+{
+    public bool Charted => Knowledge == BodyKnowledge.Charted;
+}
+
+/// <summary>A ship on the system plot (render-only): id, name, owner (-1 neutral), whether it is ours, in flight.</summary>
+public sealed record SystemShipMark(int Id, string Name, int Owner, bool Ours, bool InFlight);

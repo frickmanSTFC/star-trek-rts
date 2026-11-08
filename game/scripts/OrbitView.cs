@@ -56,6 +56,7 @@ public partial class OrbitView : Node3D
     private static readonly Color BeamColour = new(0.6f, 0.85f, 1f);
 
     private Simulation _sim = null!;
+    private SystemSource _source = null!;
     private PlanetSurface _surface = null!;
     private int _localPlayer;
     private string _factionId = "";
@@ -144,9 +145,10 @@ public partial class OrbitView : Node3D
 
     // ---------------------------------------------------------------- setup
 
-    public void Build(Simulation sim, int localPlayer, string factionId)
+    public void Build(Simulation sim, int localPlayer, string factionId, SystemSource source)
     {
         _sim = sim;
+        _source = source;
         _surface = sim.Surface!;
         _localPlayer = localPlayer;
         _factionId = factionId;
@@ -279,6 +281,7 @@ public partial class OrbitView : Node3D
 
         _system = new SystemPlot { Name = "SystemPlot", Visible = false };
         AddChild(_system);
+        BuildBodyGlobe(ground.Mesh); // OrbitView.Bodies.cs: the globes of bodies other than the colony's
         RebuildSystem();
 
         SetScan(ScanMode.Landing);
@@ -601,7 +604,7 @@ public partial class OrbitView : Node3D
     /// <summary>The tile under the mouse, or -1 (space, or the polar caps).</summary>
     public int PickTile(Vector2 mouse)
     {
-        if (Display == OrbitDisplay.System) return -1;
+        if (Display == OrbitDisplay.System || !_atColony) return -1; // only the colony's globe is the tile map
         // The camera's real transform carries the view-rect shift (FrameViewRect moves it, no H/V offsets), so Godot's rays are exact.
         var origin = _camera.ProjectRayOrigin(mouse) - _globe.GlobalPosition;
         var dir = _camera.ProjectRayNormal(mouse);
@@ -765,7 +768,7 @@ public partial class OrbitView : Node3D
     {
         var i = (int)Mode;
         // The scan shows on the Planet and Orbit displays; Atmosphere shows the clouds at full strength instead.
-        var show = Mode != ScanMode.Terrain && Display is OrbitDisplay.Planet or OrbitDisplay.Orbit;
+        var show = Mode != ScanMode.Terrain && Display is OrbitDisplay.Planet or OrbitDisplay.Orbit && _atColony; // scans: the colony's body only
         _overlay.Visible = show;
         ThinClouds(show);
         if (!show) return;
@@ -835,9 +838,13 @@ public partial class OrbitView : Node3D
         _pitch = Mathf.Lerp(_pitch, _pitchTarget, k);
         _distance = Mathf.Lerp(_distance, _distanceTarget, 1f - Mathf.Exp(-4f * delta));
         _globe.Basis = new Basis(Vector3.Right, _pitch) * new Basis(Vector3.Up, _yaw);
+        _bodyGlobe.Basis = _globe.Basis;
         _clouds.Basis = _globe.Basis * new Basis(Vector3.Up, _time * 0.012f);
         _highClouds.Basis = _globe.Basis * new Basis(Vector3.Up, -_time * 0.007f + 1.3f);
         _groundMaterial.SetShaderParameter("cloud_from_world", _clouds.GlobalTransform.Basis.Inverse());
+        _lookMaterial?.SetShaderParameter("cloud_from_world", _clouds.GlobalTransform.Basis.Inverse());
+        RefreshBodyGlobe(delta); // OrbitView.Bodies.cs
+        if (Display == OrbitDisplay.System) _system.Refresh(_source, alpha, PlanetDriver.ColorOf);
         _moon.Rotation = _moon.Rotation with { Y = _time * 0.02f };
         RefreshLights();
 
@@ -859,7 +866,7 @@ public partial class OrbitView : Node3D
         {
             _sweepTime += delta;
             var t = _sweepTime / 1.3f;
-            _sweep.Visible = t < 1f && Display is OrbitDisplay.Planet or OrbitDisplay.Orbit;
+            _sweep.Visible = t < 1f && Display is OrbitDisplay.Planet or OrbitDisplay.Orbit && _atColony;
             _sweep.Basis = new Basis(Vector3.Up, Mathf.Lerp(-1.45f, 1.45f, t)) * new Basis(Vector3.Forward, Mathf.Pi / 2f);
             _overlayMaterial.AlbedoColor = new Color(1, 1, 1, Mathf.Clamp(t, 0f, 1f) * 0.85f);
             if (t >= 1f) _sweepTime = -1f;
@@ -1063,10 +1070,11 @@ public partial class OrbitView : Node3D
     {
         if (_system == null) return; // before Build
         var globe = Display != OrbitDisplay.System;
-        _globe.Visible = globe; // the overlay, grid, hover ring and every marker are its children
-        _clouds.Visible = globe;
-        _highClouds.Visible = globe;
-        _atmosphere.Visible = globe;
+        _globe.Visible = globe && _atColony; // the overlay, grid, hover ring and every marker are its children
+        _bodyGlobe.Visible = globe && !_atColony; // another body's globe or rock field (OrbitView.Bodies.cs)
+        _clouds.Visible = globe && _cloudsOn;
+        _highClouds.Visible = globe && _cloudsOn;
+        _atmosphere.Visible = globe && _airOn;
         _light.Visible = globe; // the plot is lit by its star's own point light
         _moon.Visible = globe && _moonBody != null;
         _moonTrack.Visible = Display == OrbitDisplay.Orbit;
@@ -1079,40 +1087,20 @@ public partial class OrbitView : Node3D
         RefreshOverlay(force: true);
     }
 
-    /// <summary>The star system: the loaded map, or (on the planet-first MVP, which loads no map) maps.json mvp_duel.</summary>
-    private MapDef? SystemMap()
-    {
-        if (_sim.Map != null) return _sim.Map;
-        foreach (var m in _sim.Data.Maps)
-            if (m.Id == MatchSetup.MvpMap) return m;
-        return _sim.Data.Maps.Count > 0 ? _sim.Data.Maps[0] : null;
-    }
+    /// <summary>The body the globe displays show: the flagship's (SystemSource.OrbitBodyId), else CurrentBodyName.</summary>
+    private string? CurrentName() => _source.OrbitBodyId ?? (string.IsNullOrEmpty(_currentBodyName) ? null : _currentBodyName);
 
-    /// <summary>CurrentBodyName, else the local player's home body on the map.</summary>
-    private string? CurrentName()
-    {
-        if (!string.IsNullOrEmpty(_currentBodyName)) return _currentBodyName;
-        var map = SystemMap();
-        if (map == null) return null;
-        foreach (var start in map.Starts)
-            if (start.Slot == _localPlayer) return start.HomeBodyId;
-        return null;
-    }
-
+    /// <summary>The plot rebuilds itself when the system changes (SystemPlot.Refresh); this forces it now and picks the
+    /// moon of the body we orbit (the first known moon of it).</summary>
     private void RebuildSystem()
     {
-        foreach (var child in _system.GetChildren())
-        {
-            _system.RemoveChild(child);
-            child.QueueFree();
-        }
-        var map = SystemMap();
-        _system.Build(map, _sim.Data, CurrentName());
-        var current = SystemPlot.FindBody(map, CurrentName());
+        _system.Invalidate();
+        _system.Refresh(_source, 0f, PlanetDriver.ColorOf);
+        var current = _source.Body(CurrentName());
         _moonBody = null;
-        if (map != null && current != null)
-            foreach (var b in map.Bodies)
-                if (b.Parent == current.Id)
+        if (current != null)
+            foreach (var b in _source.Bodies)
+                if (b.Parent == current.Id && _source.Known(b.Id))
                 {
                     _moonBody = b;
                     break;
@@ -1120,11 +1108,36 @@ public partial class OrbitView : Node3D
         ApplyDisplay();
     }
 
-    /// <summary>The bodies in the System plot (the map's, in map order; Current marks ours).</summary>
+    /// <summary>The bodies in the System plot (the system's, in order, as far as the player knows them).</summary>
     public IReadOnlyList<SystemBody> SystemBodies() => _system.Bodies;
 
     /// <summary>Ring one body of the System plot in cyan (by id); null clears it.</summary>
     public void HighlightBody(string? id) => _system.Highlight(id);
+
+    /// <summary>The ships on the System plot (ours, rivals, neutral traffic).</summary>
+    public IReadOnlyList<SystemShipMark> SystemShips() => _system.Ships;
+
+    /// <summary>Ring one ship of the System plot in cyan; null clears it.</summary>
+    public void HighlightShip(int? id) => _system.HighlightShip(id);
+
+    /// <summary>The ship chevron under the mouse (within ~16 px), or null (also on the other displays).</summary>
+    public int? PickShip(Vector2 mouse)
+    {
+        if (Display != OrbitDisplay.System) return null;
+        int? best = null;
+        var bestDistance = 16f;
+        foreach (var s in _system.Ships)
+        {
+            if (!_system.TryLocateShip(s.Id, out var at) || _camera.IsPositionBehind(at)) continue;
+            var d = _camera.UnprojectPosition(at).DistanceTo(mouse);
+            if (d < bestDistance)
+            {
+                best = s.Id;
+                bestDistance = d;
+            }
+        }
+        return best;
+    }
 
     /// <summary>The System plot body under the mouse (id), or null (also on the other displays).</summary>
     public string? PickBody(Vector2 mouse)
@@ -1163,7 +1176,11 @@ public partial class OrbitView : Node3D
     public Vector2? ScreenPositionOf(string objectName)
     {
         if (Display == OrbitDisplay.System)
+        {
+            if (objectName.StartsWith("ship:") && int.TryParse(objectName[5..], out var shipId))
+                return _system.TryLocateShip(shipId, out var ship) && !_camera.IsPositionBehind(ship) ? _camera.UnprojectPosition(ship) : null;
             return _system.TryLocate(objectName, out var body, out _) && !_camera.IsPositionBehind(body) ? _camera.UnprojectPosition(body) : null;
+        }
         foreach (var (o, node) in Tracked())
         {
             if (o.Name != objectName) continue;
@@ -1180,11 +1197,19 @@ public partial class OrbitView : Node3D
         var list = new List<(OrbitObject, Node3D?)>();
         var me = _surface.Players[_localPlayer];
         var ship = _sim.Data.Orbit?.ShipFor(_factionId);
-        var status = new List<string> { "In orbit" };
-        if (ship != null) status.Add($"{ship.ClassName} class");
-        if (me.ShuttleBackTick > _sim.Tick) status.Add($"drop ship away, back in {SecondsTo(me.ShuttleBackTick)} s");
-        if (me.TransporterReadyTick > _sim.Tick) status.Add($"transporter ready in {SecondsTo(me.TransporterReadyTick)} s");
-        list.Add((new OrbitObject(ship?.Name ?? "Our ship", "Ship", string.Join(" · ", status), Peach), _shipMarker));
+        var flagship = _source.Flagship;
+        var status = new List<string> { flagship != null && SystemSource.InFlight(flagship) ? $"Under way, arrives in {_source.SecondsToArrival(flagship)} s" : "In orbit" };
+        if (flagship != null) status.Add(_source.ShipClassText(flagship));
+        else if (ship != null) status.Add($"{ship.ClassName} class");
+        if (_atColony && me.ShuttleBackTick > _sim.Tick) status.Add($"drop ship away, back in {SecondsTo(me.ShuttleBackTick)} s");
+        if (_atColony && me.TransporterReadyTick > _sim.Tick) status.Add($"transporter ready in {SecondsTo(me.TransporterReadyTick)} s");
+        list.Add((new OrbitObject(flagship?.Name ?? ship?.Name ?? "Our ship", "Ship", string.Join(" · ", status), Peach), _shipMarker));
+        if (!_atColony)
+        {
+            // Another body: no colony satellites or deliveries here, only our ship and the body's moon.
+            if (_moonBody != null) list.Add((MoonObject(_moonBody), _moonRock));
+            return list;
+        }
 
         var g = _surface.Map.Grid;
         var n = 0;
@@ -1200,13 +1225,7 @@ public partial class OrbitView : Node3D
             list.Add((new OrbitObject($"SAT-{n}", "Satellite", $"Lat {where} · {sweep}", SkyBlue), _satMarkers.TryGetValue(sat.Id, out var m) ? m.Sat : null));
         }
 
-        if (_moonBody != null)
-        {
-            var className = _moonBody.ClassId;
-            foreach (var pc in _sim.Data.PlanetClasses)
-                if (pc.Id == _moonBody.ClassId) className = pc.Name;
-            list.Add((new OrbitObject(_moonBody.Name, "Moon", className, Lavender), _moonRock));
-        }
+        if (_moonBody != null) list.Add((MoonObject(_moonBody), _moonRock));
 
         foreach (var d in _surface.Deliveries)
         {
@@ -1224,6 +1243,10 @@ public partial class OrbitView : Node3D
         return list;
     }
 
+    /// <summary>The moon as tracked: its name and class once charted, "Unknown body · uncharted" before.</summary>
+    private OrbitObject MoonObject(BodyDef moon) =>
+        new(_source.KnownName(moon), "Moon", _source.Charted(moon.Id) ? _source.ClassName(moon.ClassId) : "uncharted", Lavender);
+
     /// <summary>Whole seconds (rounded up) from now to a sim tick.</summary>
     private long SecondsTo(long tick) => (tick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate;
 
@@ -1239,7 +1262,7 @@ public partial class OrbitView : Node3D
     /// <summary>Whether the planet hides a point from the camera.</summary>
     private bool Occluded(Vector3 at)
     {
-        if (!_globe.Visible) return false;
+        if (!_globe.Visible && !(_bodyGlobe.Visible && _bodySolid)) return false;
         var o = _camera.GlobalPosition - _globe.GlobalPosition;
         var to = at - _camera.GlobalPosition;
         var length = to.Length();
@@ -1258,8 +1281,8 @@ public partial class OrbitView : Node3D
     public IReadOnlyList<HelmRow> AtmosphereRows()
     {
         var rows = new List<HelmRow>();
-        var body = SystemPlot.FindBody(SystemMap(), CurrentName());
-        rows.Add(new HelmRow("PLANET", body?.Name ?? CurrentName() ?? "unknown"));
+        var body = _source.Body(_source.ColonyBodyId) ?? _source.Body(_currentBodyName); // the colony's body (the surface's data)
+        rows.Add(new HelmRow("PLANET", body?.Name ?? _currentBodyName ?? "unknown"));
         var classId = _surface.Map.Def.ClassId;
         PlanetClassDef? planetClass = null;
         foreach (var pc in _sim.Data.PlanetClasses)
