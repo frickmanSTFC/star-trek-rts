@@ -12,7 +12,7 @@ namespace FinalFrontier.Sim.Core;
 /// no float/double, no System.Random, no clocks, no Dictionary/HashSet iteration
 /// (keep ordered lists), no engine types. Same inputs => same state on every machine.
 /// </summary>
-public sealed class Simulation
+public sealed partial class Simulation
 {
     /// <summary>Simulation ticks per second (GDD §11: 10–20 Hz).</summary>
     public const int TickRate = 15;
