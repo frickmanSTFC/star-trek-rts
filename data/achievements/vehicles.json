@@ -1,0 +1,19 @@
+{
+  "achievements": [
+    { "id": "kaltys_mileage", "name": "Kalty's Mileage", "description": "Drive one rover 100 hexes.",
+      "category": "vehicles", "tier": "bronze", "icon": "rover", "hidden": false, "progress": true, "reward": "hull_44",
+      "trigger": { "kind": "unit_counter", "counter": "tiles_driven", "at_least": 100, "units": ["survey_rover", "survey_rover_mk2", "survey_rover_mk3"] } },
+    { "id": "pit_crew", "name": "Pit Crew", "description": "Change a flat tyre out in the field.",
+      "category": "vehicles", "tier": "bronze", "icon": "tyre", "hidden": false, "progress": false, "reward": "paint_hazard",
+      "trigger": { "kind": "event", "event": "tyre_changed_field" } },
+    { "id": "limp_home", "name": "Limp Home", "description": "Get a disabled rover back to the repair pad.",
+      "category": "vehicles", "tier": "silver", "icon": "wrench", "hidden": false, "progress": false, "reward": "name_limpet",
+      "trigger": { "kind": "event", "event": "limped_home" } },
+    { "id": "fleet", "name": "Fleet", "description": "Have 10 vehicles on the ground at once.",
+      "category": "vehicles", "tier": "silver", "icon": "fleet", "hidden": false, "progress": true, "reward": "hull_01",
+      "trigger": { "kind": "count", "measure": "units", "at_least": 10 } },
+    { "id": "unlucky", "name": "Unlucky", "description": "Lose a mining crawler to an explosion.",
+      "category": "vehicles", "tier": "bronze", "icon": "blast", "hidden": true, "progress": false, "reward": "name_scorch",
+      "trigger": { "kind": "event", "event": "crawler_explosion" } }
+  ]
+}

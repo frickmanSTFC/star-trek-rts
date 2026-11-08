@@ -46,6 +46,39 @@ internal static class UnitNaming
         return (from + order[(int)index]).ToString(CultureInfo.InvariantCulture).PadLeft(width, '0');
     }
 
+    /// <summary>A hull number as painted: zero-padded to the first band's width (1 → "01").</summary>
+    public static string FormatNumber(UnitNameRules rules, int number) =>
+        number.ToString(CultureInfo.InvariantCulture).PadLeft(rules.NumbersTo.ToString(CultureInfo.InvariantCulture).Length, '0');
+
+    /// <summary>The player's next name: their achievement extras first, then the pool (skipping a pool name equal to an extra).</summary>
+    public static string NextName(UnitNameRules rules, ulong seed, int owner, SurfacePlayer p)
+    {
+        var used = p._usedUnitNames.Count;
+        if (p._extraNames.Count == 0) return NameFor(rules, seed, owner, used);
+        if (used < p._extraNames.Count) return p._extraNames[used];
+        while (true)
+        {
+            var name = NameFor(rules, seed, owner, p.NamePoolNext++);
+            if (!p._extraNames.Contains(name)) return name;
+        }
+    }
+
+    /// <summary>The player's next hull number, the same way.</summary>
+    public static string NextNumber(UnitNameRules rules, ulong seed, int owner, SurfacePlayer p)
+    {
+        var used = p._usedUnitNumbers.Count;
+        if (p._extraNumbers.Count == 0) return NumberFor(rules, seed, owner, used);
+        if (used < p._extraNumbers.Count) return FormatNumber(rules, p._extraNumbers[used]);
+        while (true)
+        {
+            var number = NumberFor(rules, seed, owner, p.NumberPoolNext++);
+            var taken = false;
+            foreach (var x in p._extraNumbers)
+                if (FormatNumber(rules, x) == number) taken = true;
+            if (!taken) return number;
+        }
+    }
+
     private static DeterministicRng Stream(ulong seed, ulong salt, int owner, int round) =>
         new(seed ^ salt ^ ((ulong)(owner + 1) * 0x9E3779B97F4A7C15UL) ^ ((ulong)(round + 1) * 0xC2B2AE3D27D4EB4FUL));
 

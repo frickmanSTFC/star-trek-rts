@@ -1,0 +1,160 @@
+<title>Achievements</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: console frame shared with the other design pages; sections stack (summary, one grid of medal cards per
+   category, the cosmetics catalogue, trigger kinds, data checks). Single dark look by design. Medal colours are the
+   tiers' colours from data/achievements/rules.json; line icons are the mockup's set. */
+:root {
+  color-scheme: dark;
+  --void: #05060b;
+  --panel: #0e1018;
+  --panel-2: #161a26;
+  --rule: #262a3a;
+  --ink: #e9e4f2;
+  --ink-dim: #a29fb6;
+  --ink-faint: #6a687e;
+  --orange: #ff9c5b;
+  --peach: #ffc999;
+  --lilac: #c99ad6;
+  --periwinkle: #9aa3ff;
+  --sky: #7fc4e8;
+  --gold: #f3cb5b;
+  --good: #8fd3b0;
+  --bad: #e2787a;
+  --display: "Antonio", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.page {
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1480px; margin: 0 auto; display: grid; gap: 40px;
+}
+.page > * { min-width: 0; }
+code { font-size: 13px; color: var(--peach); overflow-wrap: anywhere; }
+
+/* ---------- header frame ---------- */
+.frame { display: grid; grid-template-columns: 96px 1fr; gap: 0 8px; }
+.elbow { grid-row: 1 / span 3; background: var(--gold); border-radius: 44px 0 0 44px; position: relative; min-height: 120px; }
+.elbow::after { content: ""; position: absolute; right: -8px; bottom: 0; width: 8px; height: 22px; background: var(--gold); }
+.bars { display: flex; gap: 6px; height: 22px; }
+.bars span { display: block; }
+.bars .b1 { flex: 5; background: var(--gold); }
+.bars .b2 { flex: 1.2; background: var(--orange); }
+.bars .b3 { flex: 2; background: var(--periwinkle); }
+.bars .b4 { flex: .8; background: var(--lilac); border-radius: 0 11px 11px 0; }
+.titleblock { padding: 14px 0 6px 6px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--peach); margin: 0; text-wrap: balance; }
+.readout { font-family: var(--label); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.readout b { color: var(--gold); font-weight: 600; }
+.intro { max-width: 76ch; color: var(--ink-dim); margin: 0; padding: 0 0 0 6px; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0 6px; }
+nav.jump a { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; color: var(--void); background: var(--gold); padding: 4px 14px; border-radius: 14px; }
+nav.jump a:nth-child(3n+2) { background: var(--sky); }
+nav.jump a:nth-child(3n) { background: var(--periwinkle); }
+nav.jump a:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+
+/* ---------- sections ---------- */
+section { display: grid; gap: 16px; scroll-margin-top: 16px; }
+section > * { min-width: 0; }
+.sechead { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: stretch; }
+.sechead .cap { background: var(--sec, var(--orange)); border-radius: 11px 0 0 11px; }
+.sechead div { display: grid; gap: 2px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: var(--sec, var(--orange)); margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--ink-dim); max-width: 80ch; }
+.eyebrow { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.note { font-size: 13px; color: var(--ink-faint); margin: 0; max-width: 90ch; }
+.tag { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); border: 1px solid var(--rule); border-radius: 8px; padding: 0 6px; white-space: nowrap; }
+.tag.hidden { color: var(--lilac); border-color: var(--lilac); }
+.tag.bar { color: var(--sky); border-color: var(--sky); }
+.tag.view { color: var(--orange); border-color: var(--orange); }
+
+/* ---------- summary tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+.tile { background: var(--panel); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; border-left: 4px solid var(--t, var(--gold)); }
+.tile b { font-family: var(--display); font-weight: 600; font-size: 28px; line-height: 1; color: var(--ink); }
+.tile span { font-family: var(--label); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); }
+
+/* ---------- medal cards ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 12px; }
+.card { background: var(--panel); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 14px; align-content: start; }
+.card svg.medal { width: 64px; height: 64px; grid-row: 1 / span 4; }
+.card h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 20px; line-height: 1.1; letter-spacing: .03em; text-transform: uppercase; color: var(--ink); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.card h3 small { font-family: var(--label); font-size: 12px; letter-spacing: .1em; color: var(--ink-faint); }
+.card .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.card p { margin: 0; font-size: 14px; }
+.card .rule { font-size: 13px; color: var(--ink-dim); }
+.card .reward { font-size: 13px; color: var(--ink-dim); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid #fff3; vertical-align: -2px; }
+.plate { font-family: var(--label); font-size: 12px; letter-spacing: .1em; color: var(--void); background: var(--peach); border-radius: 3px; padding: 0 5px; }
+
+/* ---------- tables ---------- */
+.scroll { overflow-x: auto; border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); background: var(--panel-2); white-space: nowrap; }
+tbody th { background: var(--panel-2); font-weight: 600; white-space: nowrap; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child > * { border-bottom: 0; }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; }
+.ok { color: var(--good); }
+.bad { color: var(--bad); }
+
+footer { color: var(--ink-faint); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 560px) {
+  .frame { grid-template-columns: 44px 1fr; }
+  .elbow { border-radius: 22px 0 0 22px; }
+  .card { grid-template-columns: 48px minmax(0, 1fr); }
+  .card svg.medal { width: 48px; height: 48px; }
+}
+</style>
+
+<div class="page">
+  <header class="frame">
+    <div class="elbow" aria-hidden="true"></div>
+    <div class="bars" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+    <div class="titleblock">
+      <h1>Achievements</h1>
+      <div class="readout">/*READOUT*/</div>
+    </div>
+    <div>
+      <p class="intro">Every achievement of the game prototype, by category, as <code>data/achievements/</code> defines it. Each one earns a cosmetic (a rover name, a hull number, a paint, a finish, a drop ship name, an exocomp beam colour or a dome tint), never anything that changes play. The simulation checks the rules about once a second of game time; nothing counts in test mode, with draft data or in the balance runner. Hidden ones show as question marks in the game until earned. All thresholds are fixed in the data.</p>
+      <nav class="jump" aria-label="Sections">/*NAV*/</nav>
+    </div>
+  </header>
+
+  <section id="summary" style="--sec: var(--gold)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Section 1</span><h2>At a glance</h2><p>Medals per tier and the points they give (data/achievements/rules.json tiers).</p></div></div>
+    <div class="tiles">/*TILES*/</div>
+  </section>
+
+/*CATEGORIES*/
+
+  <section id="cosmetics" style="--sec: var(--periwinkle)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Rewards</span><h2>Cosmetics</h2><p>What each reward is. Rover names and hull numbers are handed out by the simulation in a new game (before the shuffled name pool); the rest only change how the local player's things look. One pick per kind in the HANGAR tab (rover names and hull numbers: several).</p></div></div>
+    <div class="scroll"><table>/*COSMETICS*/</table></div>
+  </section>
+
+  <section id="kinds" style="--sec: var(--sky)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Reference</span><h2>Trigger kinds</h2><p>How a rule is written (see <code>data/achievements/notes.json</code> for every milestone, event, measure and condition name).</p></div></div>
+    <div class="scroll"><table>/*KINDS*/</table></div>
+  </section>
+
+  <section id="checks" style="--sec: var(--lilac)">
+    <div class="sechead"><span class="cap"></span><div><span class="eyebrow">Data checks</span><h2>Data checks</h2><p>The page's own checks against the other design data. The game runs the same and more (GameData.Validate: ValidateAchievements).</p></div></div>
+    <ul class="plain">/*CHECKS*/</ul>
+  </section>
+
+  <footer>
+    <p>Built from <code>data/achievements/</code>, <code>buildings/</code>, <code>surfaces/</code>, <code>planet_classes/</code> and <code>climate/</code> in the star-trek-rts design repo (<code>tools/gen_achievements_page.py</code>). The tracker is <code>game/sim/Core/Achievements.cs</code>; the line icons are the mockup's (<code>docs/mockups/achievements/index.html</code>).</p>
+    <p>Fan design project. Star Trek is owned by Paramount; a commercial release would need a license or an original setting.</p>
+  </footer>
+</div>

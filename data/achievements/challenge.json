@@ -1,0 +1,13 @@
+{
+  "achievements": [
+    { "id": "bay_by_eight", "name": "Bay by Eight", "description": "Finish a Vehicle Bay before 8:30.",
+      "category": "challenge", "tier": "gold", "icon": "bay", "hidden": false, "progress": false, "reward": "finish_brushed_gold",
+      "trigger": { "kind": "milestone", "milestone": "built:vehicle_bay", "before_seconds": 510 } },
+    { "id": "no_storage", "name": "No Storage", "description": "Refine your first metal without building a Storage Container.",
+      "category": "challenge", "tier": "silver", "icon": "box", "hidden": false, "progress": false, "reward": "paint_graphite",
+      "trigger": { "kind": "milestone", "milestone": "first_metal", "without": "storage_container" } },
+    { "id": "never_left", "name": "Never Left", "description": "Play 30 minutes without the flagship leaving the colony.",
+      "category": "challenge", "tier": "bronze", "icon": "anchor", "hidden": true, "progress": false, "reward": "name_homebody",
+      "trigger": { "kind": "streak", "condition": "flagship_home", "seconds": 1800, "from_start": true } }
+  ]
+}

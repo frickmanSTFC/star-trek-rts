@@ -532,7 +532,7 @@ public sealed partial class StarSystemState
             Id = _nextShipId++, Owner = slot, ClassId = key, Name = orbitShip?.Name ?? $"{faction} ship", Faction = faction, Role = role,
             AtBody = home,
         });
-        if (home != null) Chart(slot, home);
+        if (home != null) Chart(slot, home, report: false); // the home body is known from the start: no achievement event
         Version++;
     }
 
@@ -621,6 +621,7 @@ public sealed partial class StarSystemState
                 ship.ToBody = null;
                 Version++;
                 if (ship.Owner >= 0 && ship.AtBody != null) BeginSweep(ship, tick);
+                if (ship.Owner >= 0 && ship.AtBody != null && FlagshipOf(ship.Owner) == ship) sim.Achievements.FlagshipArrived(ship.Owner, ship.AtBody);
                 if (ship.IsNeutral && sim.Data.SystemRules is { } r)
                     ship.LeaveTick = tick + (long)SystemGenerator.Int(Hash(TripSalt, ship.Id * 1024L + ship.Trips), r.DwellMinSeconds, r.DwellMaxSeconds) * Simulation.TickRate;
             }
@@ -710,12 +711,13 @@ public sealed partial class StarSystemState
     }
 
     /// <summary>The player learns a body for good.</summary>
-    private void Chart(int player, string bodyId)
+    private void Chart(int player, string bodyId, bool report = true)
     {
         var i = IndexOf(bodyId);
         if (i < 0 || player < 0 || player >= _knowledge.Count || _knowledge[player][i] == BodyKnowledge.Charted) return;
         _knowledge[player][i] = BodyKnowledge.Charted;
         Version++;
+        if (report) _sim?.Achievements.Note(player, "charted_class", Bodies[i].ClassId);
     }
 
     private int IndexOf(string? bodyId)

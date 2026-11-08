@@ -1,0 +1,7 @@
+{
+  "achievements": [
+    { "id": "scholar", "name": "Scholar", "description": "Learn all 7 surface techs.",
+      "category": "research", "tier": "silver", "icon": "flask", "hidden": false, "progress": true, "reward": "beam_gold",
+      "trigger": { "kind": "count", "measure": "techs_known", "all": true } }
+  ]
+}

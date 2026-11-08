@@ -175,6 +175,18 @@
       "galaxy_map/drives.json",
       "galaxy_map/systems.json",
       "galaxy_map/lanes.json"
+    ],
+    "achievements": [
+      "achievements/notes.json",
+      "achievements/rules.json",
+      "achievements/colony.json",
+      "achievements/exploration.json",
+      "achievements/surface.json",
+      "achievements/vehicles.json",
+      "achievements/hostile.json",
+      "achievements/comms.json",
+      "achievements/challenge.json",
+      "achievements/research.json"
     ]
   }
 }

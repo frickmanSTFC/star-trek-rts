@@ -201,7 +201,11 @@ public sealed partial class GameData
     {
         "factions", "ships", "resources", "planet_classes", "buildings", "maps", "surfaces", "vehicles", "climate",
         "eras", "tech_tree", // read-only: loaded and checked, not played yet (GameData.Eras.cs)
+        "achievements", // optional: a data set without it has no achievements (GameData.Achievements.cs)
     };
+
+    /// <summary>Documents a data set may leave out (the property is then null).</summary>
+    private static readonly IReadOnlyList<string> OptionalDocuments = new[] { "achievements" };
 
     /// <summary>
     /// The text of every file this was loaded from, by path under data/ ("manifest.json", "surfaces/orbit.json",
@@ -268,11 +272,15 @@ public sealed partial class GameData
         var roots = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
         foreach (var doc in Documents)
         {
-            if (!manifest.HasDocument(doc)) throw new InvalidDataException($"data/manifest.json has no document '{doc}'.");
+            if (!manifest.HasDocument(doc))
+            {
+                if (OptionalDocuments.Contains(doc)) continue;
+                throw new InvalidDataException($"data/manifest.json has no document '{doc}'.");
+            }
             roots[doc] = manifest.Assemble(texts, doc, problems);
         }
         var sources = new Dictionary<string, string>(StringComparer.Ordinal) { [DataManifest.FileName] = manifestText };
-        var parts = Documents.SelectMany(manifest.PartsOf).ToList();
+        var parts = Documents.Where(manifest.HasDocument).SelectMany(manifest.PartsOf).ToList();
         foreach (var path in parts.Concat(files.Keys.Where(k => DataPatcher.Kind(k) != null).OrderBy(k => k, StringComparer.Ordinal)))
             if (files.TryGetValue(path, out var text)) sources[path] = text;
         return FromDocuments(roots, problems, sources, parts, setup);
@@ -531,6 +539,7 @@ public sealed partial class GameData
             Environments = ReadEnvironments(surfacesRoot),
             Telemetry = ReadTelemetry(surfacesRoot),
             Climate = ReadClimate(climateRoot, problems),
+            Achievements = roots.TryGetValue("achievements", out var achievementsRoot) ? ReadAchievements(achievementsRoot, problems) : null,
             Eras = ReadEras(erasRoot),
             TechTree = ReadTechTree(techTreeRoot),
             StartingSetRefs = ReadStartingSetRefs(buildingsRoot, Amounts),
@@ -620,6 +629,7 @@ public sealed partial class GameData
         ValidateEras(problems);
         ValidateTechTree(problems);
         ValidateStartingSets(problems);
+        ValidateAchievements(problems);
         return problems;
     }
 

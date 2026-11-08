@@ -407,6 +407,8 @@ public sealed partial class PlanetSurface
         StartPacking(unit);
         unit.DeployOnArrival = false;
         unit.MiningStatus = MiningStatus.None;
+        if (severity.Id == "explosion") Achieve(unit.Owner, "crawler_explosion");
+        Tracker?.Report(unit.Owner); // an SOS if the flagship is away
     }
 
     /// <summary>On a repair pad: the crew walk out, then each tick restores integrity while the player can pay for it.</summary>
@@ -622,8 +624,8 @@ public sealed partial class PlanetSurface
         var p = _players[owner];
         var unit = new SurfaceUnit(_nextUnitId++, owner, def.Id, def.Speed * Simulation.SecondsPerTick, def.SurveyRadius, tile)
         {
-            Name = UnitNaming.NameFor(_data.UnitNames, Map.Seed, owner, p._usedUnitNames.Count),
-            Number = UnitNaming.NumberFor(_data.UnitNames, Map.Seed, owner, p._usedUnitNumbers.Count),
+            Name = UnitNaming.NextName(_data.UnitNames, Map.Seed, owner, p),
+            Number = UnitNaming.NextNumber(_data.UnitNames, Map.Seed, owner, p),
             BuiltAtTick = builtAtTick,
             BuiltAtTile = builtAtTile,
             DeliveryId = deliveryId,
@@ -691,9 +693,8 @@ public sealed partial class PlanetSurface
             for (; sat.Swept < target; sat.Swept++)
             {
                 var col = sat.Swept % g.Width;
-                var surveyed = _players[sat.Owner].Surveyed;
                 for (var r = System.Math.Max(0, sat.Row - half); r <= System.Math.Min(g.Height - 1, sat.Row + half); r++)
-                    surveyed[g.Index(col, r)] = true;
+                    Survey(sat.Owner, g.Index(col, r));
             }
         }
     }
@@ -1569,7 +1570,9 @@ public sealed partial class PlanetSurface
         {
             Map.DepositAmount[s.Tile] = Map.DepositStart[s.Tile] * def.ReopenShare;
             Map.DepositReopened[s.Tile] = true;
+            Achieve(s.Owner, "deposit_reopened");
         }
+        if (s.Founder != null && def.IsCore) Achieve(s.Owner, "founded"); // a construction rover's outpost is up
     }
 
     /// <summary>Upgrading cores keep working at their current level until the upgrade completes.</summary>
@@ -1886,8 +1889,32 @@ public sealed partial class PlanetSurface
 
     private void Reveal(int player, int centre, int radius)
     {
+        foreach (var t in Map.Grid.Within(centre, radius)) Survey(player, t);
+    }
+
+    /// <summary>The player knows the tile's deposit from now on (a deposit found is an achievement event).</summary>
+    private void Survey(int player, int tile)
+    {
         var surveyed = _players[player].Surveyed;
-        foreach (var t in Map.Grid.Within(centre, radius)) surveyed[t] = true;
+        if (surveyed[tile]) return;
+        surveyed[tile] = true;
+        if (Map.DepositResource[tile] >= 0) Achieve(player, "deposit_found", number: Map.DepositStart[tile].FloorToInt());
+    }
+
+    /// <summary>The game's achievement tracker (set by Simulation.LoadSurface); events go to it.</summary>
+    internal AchievementTracker? Tracker { get; set; }
+
+    private void Achieve(int player, string name, string text = "", long number = 0) => Tracker?.Note(player, name, text, number);
+
+    /// <summary>Simulation.SetCosmetics: the player's extra names and numbers (before they have had any unit).</summary>
+    internal void SetCosmetics(int player, List<string> names, List<int> numbers)
+    {
+        var p = _players[player];
+        if (p._usedUnitNames.Count > 0 || p._usedUnitNumbers.Count > 0) return;
+        p._extraNames = names;
+        p._extraNumbers = numbers;
+        p.NamePoolNext = 0;
+        p.NumberPoolNext = 0;
     }
 
     internal void AddToHash(ref StateHasher h)

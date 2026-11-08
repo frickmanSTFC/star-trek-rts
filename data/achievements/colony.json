@@ -1,0 +1,22 @@
+{
+  "achievements": [
+    { "id": "first_light", "name": "First Light", "description": "The Level 1 outpost assembled and its uplink came online.",
+      "category": "colony", "tier": "bronze", "icon": "uplink", "hidden": false, "progress": false, "reward": "name_beacon",
+      "trigger": { "kind": "milestone", "milestone": "uplink" } },
+    { "id": "refined_taste", "name": "Refined Taste", "description": "Refine your first metal at an Ore Refinery.",
+      "category": "colony", "tier": "bronze", "icon": "ingot", "hidden": false, "progress": false, "reward": "hull_10",
+      "trigger": { "kind": "milestone", "milestone": "first_metal" } },
+    { "id": "parasteel_age", "name": "Parasteel Age", "description": "Pour your first parasteel at an Alloy Foundry.",
+      "category": "colony", "tier": "silver", "icon": "alloy", "hidden": false, "progress": false, "reward": "paint_steel_blue",
+      "trigger": { "kind": "milestone", "milestone": "first_parasteel" } },
+    { "id": "seat_of_government", "name": "Seat of Government", "description": "Upgrade a Colony Hub to Colonial Administration.",
+      "category": "colony", "tier": "silver", "icon": "crown", "hidden": false, "progress": false, "reward": "beam_violet",
+      "trigger": { "kind": "built", "building": "colonial_administration", "count": 1 } },
+    { "id": "capital_idea", "name": "Capital Idea", "description": "Raise a Planetary Capital.",
+      "category": "colony", "tier": "gold", "icon": "capitol", "hidden": false, "progress": false, "reward": "finish_chrome",
+      "trigger": { "kind": "built", "building": "planetary_capital", "count": 1 } },
+    { "id": "lights_stay_on", "name": "Lights Stay On", "description": "30 minutes in a row with no base short of power.",
+      "category": "colony", "tier": "silver", "icon": "bolt", "hidden": false, "progress": true, "reward": "paint_amber_band",
+      "trigger": { "kind": "streak", "condition": "no_power_short", "seconds": 1800 } }
+  ]
+}
