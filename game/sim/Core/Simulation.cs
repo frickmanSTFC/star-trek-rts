@@ -68,6 +68,7 @@ public sealed class Simulation
     private readonly List<Colony> _colonies = new();
     private readonly List<Ship> _ships = new();
     private readonly SortedDictionary<long, List<Command>> _scheduled = new();
+    private readonly List<OrderInTransit> _inTransit = new();
     private int _nextShipId = 1;
     private int _nextColonyId = 1;
     private int _nextBuildingId = 1;
@@ -211,6 +212,17 @@ public sealed class Simulation
         list.Add(command);
     }
 
+    /// <summary>Orders on their way to a colony while the player's flagship is away from it (signal delay,
+    /// <see cref="FinalFrontier.Sim.Space.StarSystemState.CommsDelayTicks"/>), oldest first. Each runs at its ArriveTick
+    /// and is checked then, like any order.</summary>
+    public IReadOnlyList<OrderInTransit> OrdersInTransit => _inTransit;
+
+    /// <summary>Orders a player gives their colony (not the orbit actions, which need the ship in orbit anyway, and not
+    /// ship or debug commands): in a star-system game they are relayed with the signal delay while the flagship is away.</summary>
+    public static bool IsColonyOrder(Command command) => command is MoveUnitsCommand or PlaceBuildingCommand or CancelBuildingCommand
+        or UpgradeCommand or MineCommand or PackUpCommand or SalvageCommand or RepairCommand or ChangeTyreCommand or BuildUnitCommand
+        or CancelUnitCommand or ResearchCommand or MaintainCommand or PauseCommand or FoundOutpostCommand;
+
     /// <summary>Advance one tick.</summary>
     public void Step()
     {
@@ -218,6 +230,16 @@ public sealed class Simulation
         {
             // OrderBy is a stable sort, so same-player commands keep their scheduling order.
             foreach (var c in commands.OrderBy(c => c.Player)) Apply(c);
+        }
+        if (_inTransit.Count > 0)
+        {
+            // Relayed orders that reach the colony now, in the order they were sent (they were checked as sent).
+            var due = _inTransit.Where(o => o.ArriveTick <= Tick).ToList();
+            if (due.Count > 0)
+            {
+                _inTransit.RemoveAll(o => o.ArriveTick <= Tick);
+                foreach (var o in due) Apply(o.Command, relayed: true);
+            }
         }
 
         Economy();
@@ -227,7 +249,7 @@ public sealed class Simulation
         Tick++;
     }
 
-    private void Apply(Command command)
+    private void Apply(Command command, bool relayed = false)
     {
         if (command.Player < 0 || command.Player >= _players.Count)
         {
@@ -248,6 +270,11 @@ public sealed class Simulation
         {
             if (System == null) Refuse(command, "no star system");
             else System.Apply(this, command);
+            return;
+        }
+        if (!relayed && System != null && IsColonyOrder(command) && System.CommsDelayTicks(command.Player) is var delay && delay > 0)
+        {
+            _inTransit.Add(new OrderInTransit(Tick, Tick + delay, command));
             return;
         }
         if (Surface != null && Surface.Apply(this, command)) return;
@@ -428,6 +455,16 @@ public sealed class Simulation
         Surface?.AddToHash(ref h);
         // The star system only where there is one, so planet-only games keep the hashes they always had.
         System?.AddToHash(ref h);
+        if (System != null)
+        {
+            h.Add(_inTransit.Count);
+            foreach (var o in _inTransit)
+            {
+                h.Add(o.SentTick);
+                h.Add(o.ArriveTick);
+                CommandHash.Add(ref h, o.Command);
+            }
+        }
         h.Add(DebugEdits);
         h.Add(_dataChanges.Count);
         foreach (var c in _dataChanges) h.Add(c);
@@ -447,3 +484,6 @@ public sealed class Simulation
         return h.Value;
     }
 }
+
+/// <summary>An order relayed to a colony with the signal delay (<see cref="Simulation.OrdersInTransit"/>).</summary>
+public sealed record OrderInTransit(long SentTick, long ArriveTick, Command Command);

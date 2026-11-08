@@ -130,7 +130,12 @@ public sealed record StarSystemRules(
     IReadOnlyList<string> ShipNames,
     IReadOnlyList<(string Faction, string Prefix)> Registry,
     int RegistryMin,
-    int RegistryMax)
+    int RegistryMax,
+    int SweepSeconds,
+    int CommsMinSeconds,
+    int CommsMaxSeconds,
+    Fix64 CommsNear,
+    Fix64 CommsFar)
 {
     public IReadOnlyList<string> CargoFor(string role)
     {
@@ -228,6 +233,10 @@ public sealed partial class GameData
         var ships = t.GetProperty("ships");
         var dwell = t.GetProperty("dwell_seconds");
         var numbers = t.GetProperty("registry_numbers");
+        var sweep = s.GetProperty("sweep");
+        var comms = s.GetProperty("comms");
+        var delay = comms.GetProperty("delay_seconds");
+        var commsDistance = comms.GetProperty("distance");
         return new StarSystemRules(
             seconds[0].GetInt32(), seconds[1].GetInt32(), Num(distance[0]), Num(distance[1]), Num(travel.GetProperty("neutral_scale")),
             Num(scan.GetProperty("range")), scan.GetProperty("cooldown_seconds").GetInt32(),
@@ -238,7 +247,9 @@ public sealed partial class GameData
             dwell[0].GetInt32(), dwell[1].GetInt32(),
             ReadStrings(t.GetProperty("names")),
             t.GetProperty("registry").EnumerateObject().Select(p => (p.Name, p.Value.GetString() ?? "")).ToList(),
-            numbers[0].GetInt32(), numbers[1].GetInt32());
+            numbers[0].GetInt32(), numbers[1].GetInt32(),
+            sweep.GetProperty("seconds").GetInt32(),
+            delay[0].GetInt32(), delay[1].GetInt32(), Num(commsDistance[0]), Num(commsDistance[1]));
     }
 
     /// <summary>System generator and system rule checks: every id resolves, weights and ranges are sane, the fallback class
@@ -340,6 +351,9 @@ public sealed partial class GameData
         if (r.NeutralScale <= zero || r.NeutralScale > Fix64.FromInt(10)) problems.Add($"{sw}: neutral_scale must be in (0, 10].");
         if (r.ScanRange <= zero) problems.Add($"{sw}: scan range must be positive.");
         if (r.ScanCooldownSeconds < 0) problems.Add($"{sw}: scan cooldown_seconds can't be negative.");
+        if (r.SweepSeconds < 1 || r.SweepSeconds > 600) problems.Add($"{sw}: sweep seconds must be 1..600.");
+        if (r.CommsMinSeconds < 0 || r.CommsMaxSeconds < r.CommsMinSeconds || r.CommsMaxSeconds > 600) problems.Add($"{sw}: comms delay_seconds needs 0 <= min <= max <= 600.");
+        if (r.CommsNear < zero || r.CommsFar <= r.CommsNear) problems.Add($"{sw}: comms distance needs 0 <= near < far.");
         if (r.SatelliteMax < 1) problems.Add($"{sw}: satellite max must be at least 1.");
         if (r.SatelliteCost.Any(a => a.Amount < zero)) problems.Add($"{sw}: satellite cost can't be negative.");
         if (r.TrafficMin < 0 || r.TrafficMax < r.TrafficMin || r.TrafficMax > 32) problems.Add($"{sw}: traffic ships needs 0 <= min <= max <= 32.");

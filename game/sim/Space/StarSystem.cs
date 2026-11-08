@@ -18,7 +18,9 @@ public enum BodyKnowledge
     Unknown,
     /// <summary>Position and rough size only.</summary>
     Detected,
-    /// <summary>Class, moons, gravity, atmosphere, the resources that may be there; kept for good once learned.</summary>
+    /// <summary>Identified by a long-range scan (or a ship arriving, before its sweep is done): name, class, size, moons.</summary>
+    Scanned,
+    /// <summary>Swept from orbit: class, moons, gravity, atmosphere, temperature, the resources that may be there; kept for good.</summary>
     Charted,
 }
 
@@ -66,6 +68,15 @@ public sealed class SystemShip
     public int Trips { get; internal set; }
     public long LeaveTick { get; internal set; }
 
+    /// <summary>The body its orbital sensor sweep is charting (started on entering orbit of a body its owner hasn't
+    /// Charted), or null; done at <see cref="SweepDoneTick"/>. Leaving orbit calls it off.</summary>
+    public string? SweepBody { get; internal set; }
+    public long SweepStartTick { get; internal set; }
+    public long SweepDoneTick { get; internal set; }
+
+    /// <summary>A sensor sweep is running.</summary>
+    public bool Sweeping => SweepBody != null;
+
     internal void AddToHash(ref StateHasher h)
     {
         h.Add(Id);
@@ -85,6 +96,9 @@ public sealed class SystemShip
         h.Add(LastScanTick);
         h.Add(Trips);
         h.Add(LeaveTick);
+        Text(ref h, SweepBody);
+        h.Add(SweepStartTick);
+        h.Add(SweepDoneTick);
     }
 
     internal static void Text(ref StateHasher h, string? s)
@@ -108,9 +122,16 @@ public sealed record SystemSatellite(int Owner, string BodyId, long PlacedTick);
 /// <param name="Landable">Charted: it has a playable surface.</param>
 /// <param name="Resources">Charted: resources that may be found there (<see cref="StarSystemState.PossibleResources"/>).</param>
 /// <param name="Zone">The orbit zone ("inner", "habitable", "outer"): what its distance from the star says.</param>
+/// <param name="Structures">Live only: what sensors see built on it, per owner (<see cref="StarSystemState.Structures"/>).</param>
+/// <remarks>Scanned fills Name, ClassId, ClassName, Moons and Landable; Charted the rest.</remarks>
 public sealed record BodyReport(string BodyId, BodyKnowledge Knowledge, bool Live, FixVec2 Position, int Size, string RoughSize, string Zone,
     string? ParentId, string? Name, string? ClassId, string? ClassName, IReadOnlyList<string> Moons, Fix64? GravityG, Fix64? PressureKpa,
-    IReadOnlyList<GasAmount> Atmosphere, Fix64? MeanTemperatureC, bool Landable, IReadOnlyList<string> Resources);
+    IReadOnlyList<GasAmount> Atmosphere, Fix64? MeanTemperatureC, bool Landable, IReadOnlyList<string> Resources,
+    IReadOnlyList<StructureSighting> Structures);
+
+/// <summary>What orbital sensors (a ship in orbit or a satellite) see built on a body for one owner: colony cores,
+/// other buildings (finished or not), vehicles on the ground. Counts only, no places.</summary>
+public sealed record StructureSighting(int Owner, int Bases, int Buildings, int Vehicles);
 
 /// <summary>Live readings of a body (<see cref="StarSystemState.LiveReadings"/>): only while the player has a satellite
 /// there, or for the colony's own body once its uplink is up.</summary>
@@ -184,13 +205,86 @@ public sealed partial class StarSystemState
         return player < _knowledge.Count ? _knowledge[player][i] : BodyKnowledge.Detected;
     }
 
-    /// <summary>True while the player has a satellite at the body (or its colony there with the uplink up).</summary>
+    /// <summary>True while the player has a satellite at the body, a ship of theirs in orbit of it once it is Charted
+    /// (its sensors read it like a satellite), or its colony there with the uplink up.</summary>
     public bool HasLiveData(int player, string bodyId)
     {
         foreach (var s in _satellites)
             if (s.Owner == player && s.BodyId == bodyId) return true;
+        if (LiveFromShip(player, bodyId)) return true;
         return bodyId == SurfaceBody && _sim?.Surface is { } surface && surface.UplinkOnline(player, Now);
     }
+
+    /// <summary>A ship of the player's is in orbit of the body and it is Charted: live readings from the ship's sensors.</summary>
+    public bool LiveFromShip(int player, string bodyId)
+    {
+        if (player < 0 || KnowledgeOf(player, bodyId) < BodyKnowledge.Charted) return false;
+        foreach (var s in _ships)
+            if (s.Owner == player && s.AtBody == bodyId) return true;
+        return false;
+    }
+
+    /// <summary>The player's ship sweeping this body now, or null.</summary>
+    public SystemShip? SweepingShip(int player, string bodyId)
+    {
+        foreach (var s in _ships)
+            if (s.Owner == player && s.SweepBody == bodyId && s.AtBody == bodyId) return s;
+        return null;
+    }
+
+    /// <summary>How far a ship's sensor sweep is (0..1; 0 when it isn't sweeping).</summary>
+    public Fix64 SweepShare(SystemShip ship)
+    {
+        if (ship.SweepBody == null) return Fix64.Zero;
+        var span = ship.SweepDoneTick - ship.SweepStartTick;
+        if (span <= 0) return Fix64.One;
+        var done = System.Math.Clamp(Now - ship.SweepStartTick, 0, span);
+        return Fix64.FromRaw((long)(((System.Int128)done << Fix64.FractionalBits) / span));
+    }
+
+    /// <summary>Seconds (rounded up) until a ship's sensor sweep is done; 0 when it isn't sweeping.</summary>
+    public int SweepSecondsLeft(SystemShip ship) => ship.SweepBody == null ? 0 : SecondsUntil(ship.SweepDoneTick);
+
+    /// <summary>How long an orbital sensor sweep takes, in ticks (maps/system.json sweep.seconds).</summary>
+    public long SweepTicks => (long)(Data?.SystemRules?.SweepSeconds ?? 15) * Simulation.TickRate;
+
+    /// <summary>What orbital sensors see built on a body, per owner (own included), while the player has live data there;
+    /// empty otherwise. Only the colony's body has a surface today, so other bodies show nothing built.</summary>
+    public IReadOnlyList<StructureSighting> Structures(int player, string bodyId)
+    {
+        var list = new List<StructureSighting>();
+        if (bodyId != SurfaceBody || _sim?.Surface is not { } surface || !HasLiveData(player, bodyId)) return list;
+        var owners = surface.Structures.Select(x => x.Owner).Concat(surface.Units.Select(u => u.Owner)).Where(o => o >= 0).Distinct().OrderBy(o => o);
+        foreach (var o in owners)
+        {
+            var bases = surface.Structures.Count(x => x.Owner == o && Data!.Building(x.DefId).IsCore);
+            var buildings = surface.Structures.Count(x => x.Owner == o && !Data!.Building(x.DefId).IsCore);
+            var vehicles = surface.Units.Count(u => u.Owner == o);
+            list.Add(new StructureSighting(o, bases, buildings, vehicles));
+        }
+        return list;
+    }
+
+    /// <summary>The signal delay between the player (aboard their flagship) and their colony, in ticks: 0 in orbit of the
+    /// colony's body (or with no colony body or no ship), else maps/system.json comms by the ship's distance from it.
+    /// Orders to the colony (<see cref="Simulation.IsColonyOrder"/>) wait this long before they arrive.</summary>
+    public long CommsDelayTicks(int player)
+    {
+        if (SurfaceBody == null || Body(SurfaceBody) is not { } colony) return 0;
+        var ship = FlagshipOf(player);
+        if (ship == null || ship.AtBody == SurfaceBody) return 0;
+        var r = Data?.SystemRules;
+        var min = r?.CommsMinSeconds ?? 1;
+        var max = r?.CommsMaxSeconds ?? 10;
+        var near = r?.CommsNear ?? Fix64.Zero;
+        var far = r?.CommsFar ?? Fix64.FromInt(1000);
+        var share = Fix64.Clamp((FixVec2.Distance(ShipPosition(ship, Now), colony.Position) - near) / (far - near), Fix64.Zero, Fix64.One);
+        var seconds = Fix64.FromInt(min) + Fix64.FromInt(max - min) * share;
+        return System.Math.Max(min > 0 ? 1L : 0L, (seconds * Simulation.TickRate).FloorToInt());
+    }
+
+    /// <summary><see cref="CommsDelayTicks"/> in seconds (rounded up).</summary>
+    public int CommsDelaySeconds(int player) => (int)((CommsDelayTicks(player) + Simulation.TickRate - 1) / Simulation.TickRate);
 
     /// <summary>The player's own ship (their flagship), or null.</summary>
     public SystemShip? FlagshipOf(int player)
@@ -285,9 +379,9 @@ public sealed partial class StarSystemState
     /// <summary>The moons of a body, in system order.</summary>
     public IReadOnlyList<BodyDef> MoonsOf(string bodyId) => Bodies.Where(b => b.Parent == bodyId).ToList();
 
-    /// <summary>A body's name as the player knows it: its name once Charted, else "unknown body".</summary>
+    /// <summary>A body's name as the player knows it: its name once Scanned, else "unknown body".</summary>
     public string NameFor(int player, string bodyId) =>
-        KnowledgeOf(player, bodyId) >= BodyKnowledge.Charted ? Body(bodyId)?.Name ?? bodyId : UnknownBodyName;
+        KnowledgeOf(player, bodyId) >= BodyKnowledge.Scanned ? Body(bodyId)?.Name ?? bodyId : UnknownBodyName;
 
     public const string UnknownBodyName = "unknown body";
 
@@ -342,16 +436,23 @@ public sealed partial class StarSystemState
         if (body == null) return null;
         var knowledge = KnowledgeOf(player, bodyId);
         var live = HasLiveData(player, bodyId);
-        if (knowledge < BodyKnowledge.Charted || data == null)
+        var structures = Structures(player, bodyId);
+        if (knowledge < BodyKnowledge.Scanned || data == null)
             return new BodyReport(bodyId, knowledge, live, body.Position, body.Size, RoughSize(body.Size), ZoneOf(bodyId), body.Parent,
-                null, null, null, new List<string>(), null, null, new List<GasAmount>(), null, false, new List<string>());
+                null, null, null, new List<string>(), null, null, new List<GasAmount>(), null, false, new List<string>(), structures);
         var env = data.EnvironmentOf(body.ClassId);
         var cls = data.PlanetClasses.FirstOrDefault(c => c.Id == body.ClassId);
+        var moons = MoonsOf(bodyId).Select(m => m.Id).ToList();
+        if (knowledge < BodyKnowledge.Charted)
+            return new BodyReport(bodyId, knowledge, live, body.Position, body.Size, RoughSize(body.Size), ZoneOf(bodyId), body.Parent,
+                body.Name, body.ClassId, cls?.Name ?? body.ClassId, moons, null, null, new List<GasAmount>(), null,
+                data.IsLandableClass(body.ClassId), new List<string>(), structures);
         var climate = Generated != null ? Climate.Summary(data, Generated.Climate, bodyId) : Climate.Summary(data, bodyId);
         var gravity = GravityOf(bodyId);
         return new BodyReport(bodyId, knowledge, live, body.Position, body.Size, RoughSize(body.Size), ZoneOf(bodyId), body.Parent,
-            body.Name, body.ClassId, cls?.Name ?? body.ClassId, MoonsOf(bodyId).Select(m => m.Id).ToList(), gravity, env?.PressureKpa,
-            env?.Atmosphere ?? new List<GasAmount>(), climate?.MeanTemperatureC, data.IsLandableClass(body.ClassId), PossibleResources(player, bodyId));
+            body.Name, body.ClassId, cls?.Name ?? body.ClassId, moons, gravity, env?.PressureKpa,
+            env?.Atmosphere ?? new List<GasAmount>(), climate?.MeanTemperatureC, data.IsLandableClass(body.ClassId), PossibleResources(player, bodyId),
+            structures);
     }
 
     /// <summary>Seconds (rounded up) until a ship in flight arrives; 0 in orbit.</summary>
@@ -486,7 +587,7 @@ public sealed partial class StarSystemState
                     return;
                 }
                 var ship = FindShip(scan.ShipId)!;
-                foreach (var id in ScanTargets(ship)) Chart(scan.Player, id);
+                foreach (var id in ScanTargets(ship)) Identify(scan.Player, id);
                 ship.LastScanTick = sim.Tick;
                 Version++;
                 ship.ScanReadyTick = sim.Tick + ScanCooldownTicks;
@@ -519,9 +620,15 @@ public sealed partial class StarSystemState
                 ship.FromBody = null;
                 ship.ToBody = null;
                 Version++;
-                if (ship.Owner >= 0 && ship.AtBody != null) Chart(ship.Owner, ship.AtBody);
+                if (ship.Owner >= 0 && ship.AtBody != null) BeginSweep(ship, tick);
                 if (ship.IsNeutral && sim.Data.SystemRules is { } r)
                     ship.LeaveTick = tick + (long)SystemGenerator.Int(Hash(TripSalt, ship.Id * 1024L + ship.Trips), r.DwellMinSeconds, r.DwellMaxSeconds) * Simulation.TickRate;
+            }
+            if (ship.SweepBody != null && ship.AtBody == ship.SweepBody && tick >= ship.SweepDoneTick)
+            {
+                Chart(ship.Owner, ship.SweepBody);
+                ship.SweepBody = null;
+                Version++;
             }
             if (ship.IsNeutral && ship.AtBody != null && tick >= ship.LeaveTick && Bodies.Count > 1 && sim.Data.SystemRules is { } rules)
             {
@@ -573,11 +680,33 @@ public sealed partial class StarSystemState
     private void Depart(SystemShip ship, string to, long tick, long ticks)
     {
         Version++;
+        ship.SweepBody = null; // leaving orbit calls the sweep off
         ship.FromBody = ship.AtBody;
         ship.ToBody = to;
         ship.AtBody = null;
         ship.DepartTick = tick;
         ship.ArriveTick = tick + ticks;
+    }
+
+    /// <summary>A ship entering orbit: the body is identified at once, and a sensor sweep starts if it isn't Charted yet.</summary>
+    private void BeginSweep(SystemShip ship, long tick)
+    {
+        var body = ship.AtBody!;
+        Identify(ship.Owner, body);
+        if (KnowledgeOf(ship.Owner, body) >= BodyKnowledge.Charted) return;
+        ship.SweepBody = body;
+        ship.SweepStartTick = tick;
+        ship.SweepDoneTick = tick + SweepTicks;
+        Version++;
+    }
+
+    /// <summary>The player identifies a body (Detected → Scanned; never lowers what they know).</summary>
+    private void Identify(int player, string bodyId)
+    {
+        var i = IndexOf(bodyId);
+        if (i < 0 || player < 0 || player >= _knowledge.Count || _knowledge[player][i] >= BodyKnowledge.Scanned) return;
+        _knowledge[player][i] = BodyKnowledge.Scanned;
+        Version++;
     }
 
     /// <summary>The player learns a body for good.</summary>

@@ -284,8 +284,16 @@ public class SystemTests
         Assert.Equal(BodyKnowledge.Detected, sys.KnowledgeOf(0, target.Id));
         sim.Step();
         Assert.Equal(target.Id, ship.AtBody);
-        Assert.Equal(BodyKnowledge.Charted, sys.KnowledgeOf(0, target.Id));
+        // Entering orbit identifies it and starts the sensor sweep; the sweep charts it.
+        Assert.Equal(BodyKnowledge.Scanned, sys.KnowledgeOf(0, target.Id));
         Assert.Equal(target.Name, sys.NameFor(0, target.Id));
+        Assert.Equal(target.Id, ship.SweepBody);
+        Assert.Same(ship, sys.SweepingShip(0, target.Id));
+        Assert.Equal(Data.SystemRules!.SweepSeconds, sys.SweepSecondsLeft(ship));
+        Run(sim, (int)sys.SweepTicks);
+        Assert.Equal(BodyKnowledge.Charted, sys.KnowledgeOf(0, target.Id));
+        Assert.Null(ship.SweepBody);
+        Assert.Equal(0, sys.SweepSecondsLeft(ship));
 
         // Charted is kept after leaving.
         sim.Schedule(sim.Tick, new SetCourseCommand(0, ship.Id, home));
@@ -362,15 +370,19 @@ public class SystemTests
         var ship = sys.FlagshipOf(0)!;
         var home = sys.SurfaceBody!;
         var target = sys.Bodies.First(b => b.Id != home).Id;
-        Assert.False(sys.HasLiveData(0, home));
+        Assert.True(sys.HasLiveData(0, home)); // the flagship's own sensors in orbit of the (charted) colony body
         Assert.False(sys.HasLiveData(0, target));
         Assert.StartsWith("the ship is not in orbit of", sys.SatelliteProblem(0, target));
 
         sim.Schedule(sim.Tick, new SetCourseCommand(0, ship.Id, target));
         Run(sim, (int)sys.TravelTicks(home, target) + 2);
         Assert.Equal(target, ship.AtBody);
-        Assert.False(sys.HasLiveData(0, target)); // charted, not live
+        Assert.False(sys.HasLiveData(0, target)); // identified, still sweeping
+        Assert.Equal(BodyKnowledge.Scanned, sys.KnowledgeOf(0, target));
+        Run(sim, (int)sys.SweepTicks);
         Assert.Equal(BodyKnowledge.Charted, sys.KnowledgeOf(0, target));
+        Assert.True(sys.HasLiveData(0, target)); // the ship in orbit reads it like a satellite
+        Assert.True(sys.LiveFromShip(0, target));
         var stock = sim.Players[0].Stock[Data.Resource("duranium").Index];
         Assert.Null(sys.SatelliteProblem(0, target));
         sim.Schedule(sim.Tick, new SystemSatelliteCommand(0, target));
@@ -383,8 +395,9 @@ public class SystemTests
         // Leaving keeps the satellite there (live for good) and the chart.
         sim.Schedule(sim.Tick, new SetCourseCommand(0, ship.Id, home));
         Run(sim, (int)sys.TravelTicks(home, target) + 2);
+        Assert.False(sys.LiveFromShip(0, target));
         Assert.True(sys.HasLiveData(0, target));
-        Assert.False(sys.HasLiveData(0, home));
+        Assert.True(sys.LiveFromShip(0, home)); // back in orbit of home
         Assert.False(sys.HasLiveData(1, target));
         Assert.True(sys.Report(0, target)!.Live);
     }
@@ -447,8 +460,16 @@ public class SystemTests
         Assert.Equal(inRange, sys.ScanTargets(ship));
         sim.Schedule(sim.Tick, new LongRangeScanCommand(0, ship.Id));
         sim.Step();
-        foreach (var id in inRange) Assert.Equal(BodyKnowledge.Charted, sys.KnowledgeOf(0, id));
+        // A long-range scan only identifies (name, class, size, moons); the home body stays Charted.
+        foreach (var id in inRange) Assert.Equal(id == ship.AtBody ? BodyKnowledge.Charted : BodyKnowledge.Scanned, sys.KnowledgeOf(0, id));
         foreach (var id in outOfRange) Assert.Equal(BodyKnowledge.Detected, sys.KnowledgeOf(0, id));
+        var scanned = sys.Report(0, inRange.First(id => id != ship.AtBody))!;
+        Assert.NotNull(scanned.Name);
+        Assert.NotNull(scanned.ClassId);
+        Assert.Null(scanned.GravityG);
+        Assert.Null(scanned.PressureKpa);
+        Assert.Empty(scanned.Atmosphere);
+        Assert.Empty(scanned.Resources);
         Assert.StartsWith("the long-range scanners are recharging", sys.ScanProblem(0, ship.Id));
         var refused = sim.RefusedCommands;
         sim.Schedule(sim.Tick, new LongRangeScanCommand(0, ship.Id));
@@ -661,7 +682,9 @@ public class SystemTests
     public void TheDataSetsTheFlightTimesAndTheScan()
     {
         var data = TestData.Patched(("maps/system.json", "\"seconds\": [20, 90]", "\"seconds\": [30, 30]"),
-            ("maps/system.json", "\"range\": 320, \"cooldown_seconds\": 90", "\"range\": 5000, \"cooldown_seconds\": 10"));
+            ("maps/system.json", "\"range\": 320, \"cooldown_seconds\": 90", "\"range\": 5000, \"cooldown_seconds\": 10"),
+            ("maps/system.json", "\"sweep\": { \"seconds\": 15 }", "\"sweep\": { \"seconds\": 4 }"),
+            ("maps/system.json", "\"delay_seconds\": [1, 10]", "\"delay_seconds\": [3, 3]"));
         Assert.Empty(data.Validate());
         var sim = MatchSetup.CreateSystemGame(data, 1701);
         var sys = sim.System!;
@@ -669,7 +692,12 @@ public class SystemTests
             Assert.Equal(30 * Simulation.TickRate, sys.TravelTicks(sys.SurfaceBody!, b.Id));
         sim.Schedule(0, new LongRangeScanCommand(0, sys.FlagshipOf(0)!.Id));
         sim.Step();
-        Assert.All(sys.Bodies, b => Assert.Equal(BodyKnowledge.Charted, sys.KnowledgeOf(0, b.Id)));
+        Assert.All(sys.Bodies, b => Assert.Equal(b.Id == sys.SurfaceBody ? BodyKnowledge.Charted : BodyKnowledge.Scanned, sys.KnowledgeOf(0, b.Id)));
+        Assert.Equal(4 * Simulation.TickRate, sys.SweepTicks);
+        var away = sys.Bodies.First(b => b.Id != sys.SurfaceBody).Id;
+        sim.Schedule(sim.Tick, new SetCourseCommand(0, sys.FlagshipOf(0)!.Id, away));
+        sim.Step();
+        Assert.Equal(3 * Simulation.TickRate, sys.CommsDelayTicks(0));
         Assert.Equal(10 * Simulation.TickRate, sys.FlagshipOf(0)!.ScanReadyTick);
         Assert.Equal(10 * Simulation.TickRate, sys.ScanCooldownTicks);
         Assert.Equal(Fix64.FromInt(5000), sys.ScanRange);
@@ -684,7 +712,7 @@ public class SystemTests
         var sys = sim.System!;
         var ship = sys.FlagshipOf(0)!;
         var home = sys.SurfaceBody!;
-        Assert.Null(sys.LiveReadings(0, home)); // no uplink yet
+        Assert.False(sys.LiveReadings(0, home)!.FromUplink); // the ship's sensors in orbit; no uplink yet
         var target = sys.Bodies.First(b => b.Id != home);
         Assert.Null(sys.LiveReadings(0, target.Id));
         sim.Schedule(sim.Tick, new SetCourseCommand(0, ship.Id, target.Id));
