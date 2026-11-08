@@ -12,7 +12,7 @@
                     "notes": "Rocks of the inner belt (a typical one): tumbling every 90 seconds, flickering between glare and shadow; hot, airless." },
     "west_rich":  { "orbit": { "au": 0.58, "eccentricity": 0.14, "perihelion": 0.1 },   "spin": { "day_seconds": 60,   "day_hours": 3.1, "direction": "retrograde", "locked": "none" },   "axial_tilt_deg": 12,   "year_days": 42,   "year_start": 0.7,  "albedo": 0.07, "greenhouse_c": 0,  "climate": "airless",   "landable": false,
                     "notes": "Dark metal-rich rocks closest to Kalandra: the hottest bodies in the system, spinning once a minute, retrograde." },
-    "west_l":     { "orbit": { "au": 1.2, "eccentricity": 0.09, "perihelion": 0.25 },   "spin": { "day_seconds": 660,  "day_hours": 22,  "direction": "retrograde", "locked": "none" },   "axial_tilt_deg": 31,   "year_days": 11.5, "year_start": 0.5,  "albedo": 0.32, "greenhouse_c": 34, "climate": "marginal",  "landable": false,
+    "west_l":     { "orbit": { "au": 1.2, "eccentricity": 0.09, "perihelion": 0.25 },   "spin": { "day_seconds": 660,  "day_hours": 22,  "direction": "retrograde", "locked": "none" },   "axial_tilt_deg": 31,   "year_days": 11.5, "year_start": 0.5,  "albedo": 0.32, "greenhouse_c": 34, "climate": "marginal",  "landable": true, 
                     "notes": "Cold, dusty marginal world: retrograde spin (the sun rises in the west), a steep tilt and an eccentric orbit, so the north's summer is short and fierce; dust storms in the thaw." },
     "morrow":     { "orbit": { "au": 1.0, "eccentricity": 0.017, "perihelion": 0.79 },  "spin": { "day_seconds": 720,  "day_hours": 26,  "direction": "prograde",   "locked": "none" },   "axial_tilt_deg": 23.5, "year_days": 8,    "year_start": 0.04, "albedo": 0.3,  "greenhouse_c": 30, "climate": "temperate", "landable": true,
                     "notes": "The rival's home world: Tarsis's twin (the duel map is point-symmetric, so its climate matches Tarsis's exactly)." },
@@ -26,7 +26,7 @@
                     "notes": "Twin of the Western Belt." },
     "east_rich":  { "orbit": { "au": 0.58, "eccentricity": 0.14, "perihelion": 0.1 },   "spin": { "day_seconds": 60,   "day_hours": 3.1, "direction": "retrograde", "locked": "none" },   "axial_tilt_deg": 12,   "year_days": 42,   "year_start": 0.7,  "albedo": 0.07, "greenhouse_c": 0,  "climate": "airless",   "landable": false,
                     "notes": "Teral Cluster: twin of the Corsa Cluster." },
-    "east_l":     { "orbit": { "au": 1.2, "eccentricity": 0.09, "perihelion": 0.25 },   "spin": { "day_seconds": 660,  "day_hours": 22,  "direction": "retrograde", "locked": "none" },   "axial_tilt_deg": 31,   "year_days": 11.5, "year_start": 0.5,  "albedo": 0.32, "greenhouse_c": 34, "climate": "marginal",  "landable": false,
+    "east_l":     { "orbit": { "au": 1.2, "eccentricity": 0.09, "perihelion": 0.25 },   "spin": { "day_seconds": 660,  "day_hours": 22,  "direction": "retrograde", "locked": "none" },   "axial_tilt_deg": 31,   "year_days": 11.5, "year_start": 0.5,  "albedo": 0.32, "greenhouse_c": 34, "climate": "marginal",  "landable": true, 
                     "notes": "Oscen: twin of Veyra." }
   }
 }

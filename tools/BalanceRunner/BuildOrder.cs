@@ -15,6 +15,9 @@ public sealed class BuildOrder
     public string Faction { get; init; } = "federation";
     public string Planet { get; init; } = "class_m";
 
+    /// <summary>A world of the duel map ("veyra": class L with its climate body); null = the planet class's default body.</summary>
+    public string? World { get; init; }
+
     /// <summary>Raw ores the landing prefers (by the orbital scan's region hints), most wanted first.</summary>
     public IReadOnlyList<string> LandingPrefer { get; init; } = new[] { "duranium_ore", "tritanium_ore" };
 
@@ -81,6 +84,7 @@ public sealed class BuildOrder
             Description = Str(r, "description") ?? "",
             Faction = Str(r, "faction") ?? "federation",
             Planet = Str(r, "planet") ?? "class_m",
+            World = Str(r, "world"),
             LandingPrefer = Strings(landing, "prefer") ?? new[] { "duranium_ore", "tritanium_ore" },
             SurveyMaxDistance = Int(survey, "max_distance") ?? 14,
             CrawlerPrefer = Strings(crawlers, "prefer") ?? new[] { "duranium_ore", "tritanium_ore" },
