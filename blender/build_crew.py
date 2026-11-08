@@ -9,8 +9,10 @@ Five original roles in the spirit of a Federation colony crew (no canon costume 
   colonist   ochre tunic with a wrap collar and rolled sleeves, sash, trousers, soft boots, satchel, Owner scarf
 
 Frame (CLAUDE.md "Vehicle models"): Blender +Z up, +Y = front (Godot -Z), 1 unit = 1 world unit = 1 m; origin = between
-the feet on the ground. Nominal figure 1.76 tall (the game scales 0.93-1.06 per variant): outpost door 1.75, railings
-0.9 (= belt/hip height), the survey rover's door sill 0.86 and door top ~2.2, so a person stands chest-high to its waist line.
+the feet on the ground. Nominal figure 1.76 tall (variants 0.93-1.06): measured from the glbs, the L1 outpost's crew door
+is 1.75 tall, the survey rover Mk I's door runs from a 0.85 sill to a 1.75 top (0.9 tall, step 0.8) and the Mk II's
+from 0.99 to 1.57 (step 0.86), so a crew member's head is level with the rover's door top and the waist line of the
+hull is at their chest: the vehicles are a little compact for real people, the outpost door fits.
 
 Rig "Rig" (Godot SkeletonProfileHumanoid names, so retargeting needs no bone map): Root, Hips, Spine, Chest, UpperChest,
 Neck, Head; per side (Left/Right) Shoulder, UpperArm, LowerArm, Hand, ThumbProximal, ThumbDistal, IndexProximal,
@@ -19,8 +21,8 @@ Rest pose = A-pose (arms 36 deg from vertical). Actions (30 fps, loop: last key 
 Idle 90, Walk 32, Run 20, Work 60, Carry 36, Scan 96, Wave 40 frames. See WALK_SPEED etc. for the ground speeds.
 
 Meshes (one glb per role, game/models/crew/<role>.glb, all skinned to Rig):
-  <role>        hero body (~7-9k tris) with shape keys Feminine, Heavy, Slim
-  <role>_far    far LOD (~1k tris), same shape keys
+  <role>        hero body (~7.9-10.3k tris) with shape keys Feminine, Heavy, Slim
+  <role>_far    far LOD (~1.2k tris), same shape keys
   HairCrop, HairShort, HairSwept, HairBun, HairCurly, Beard   hair styles (Godot shows one; EVA has HairCrop only)
   Tool (Work), Scanner (Scan), Crate (Carry), SampleCase (science), HelmetLamp (eva, emissive "Lamp")
   empties ToolTip, ScannerTip (RightHand), LampPoint (Head) for effects
@@ -103,6 +105,8 @@ ONLY = [r for r in (arg("--role") or ",".join(ROLES)).split(",") if r]
 FPS = 30
 FACE_LENS = float(arg("--face-lens", "85"))
 SIG = 0.022  # weight falloff (distance beyond the nearest bone, in m)
+TORSO_SEGS, HEAD_LONS, LIMB_SEGS = 28, 28, 12  # hero mesh resolution (budget ~6-10k tris)
+BAND_T, BAND_L = 24, 12  # segments of closed bands round the torso / a limb
 
 pi = math.pi
 rad = math.radians
@@ -604,8 +608,8 @@ TORSO = [
     (1.52, 0.072, 0.055, 0.058, -0.024, 2.1),
     (1.535, 0.060, 0.050, 0.054, -0.023, 2.0),
 ]
-TORSO_Z = [0.795, 0.81, 0.83, 0.855, 0.88, 0.91, 0.94, 0.97, 1.0, 1.03, 1.06, 1.09, 1.12, 1.155, 1.19, 1.225, 1.26,
-           1.295, 1.33, 1.36, 1.39, 1.41, 1.43, 1.45, 1.465, 1.48, 1.495, 1.51, 1.52, 1.535]
+TORSO_Z = [0.795, 0.81, 0.83, 0.855, 0.88, 0.91, 0.94, 0.98, 1.02, 1.06, 1.1, 1.14, 1.19, 1.24,
+           1.29, 1.33, 1.36, 1.39, 1.41, 1.43, 1.45, 1.465, 1.48, 1.495, 1.51, 1.52, 1.535]
 
 
 def catmull(vals, zs, z):
@@ -1463,15 +1467,17 @@ def figure(role, lod="hero", morph=None):
                 return suit2
         return suit
     zs = TORSO_Z if hero else [0.795, 0.84, 0.9, 0.97, 1.03, 1.07, 1.14, 1.22, 1.3, 1.39, 1.43, 1.47, 1.5, 1.535]
-    torso_mesh(mb, body, tmat, 32 if hero else 10, zs)
+    torso_mesh(mb, body, tmat, TORSO_SEGS if hero else 10, zs)
 
     # ---- neck + head
     nl = neck_limb(body)
-    limb_mesh(mb, nl, [0.0, 0.35, 0.7, 1.0], 14 if hero else 6, lambda u, th: "Skin",
+    limb_mesh(mb, nl, [0.0, 0.35, 0.7, 1.0], LIMB_SEGS if hero else 6, lambda u, th: "Skin",
               [("Neck", 0), ("Head", 0.012), ("UpperChest", 0.01)], dome=False, cap_end=False)
-    if hero:
-        head_mesh(mb, body, 36, HEAD_LATS)
+    if hero and not eva:
+        head_mesh(mb, body, HEAD_LONS, HEAD_LATS)
         face_features(mb, body)
+    elif eva and hero:  # the head only shows as a shadow behind the gold visor
+        head_mesh(mb, body, 16, [-70, -50, -30, -10, 10, 30, 50, 70])
     else:
         cap = None if eva else (lambda lo: hairline(lo) + 4)
         head_mesh(mb, body, 10, [-70, -45, -20, 5, 30, 55, 75], hair_cap=cap)
@@ -1479,7 +1485,7 @@ def figure(role, lod="hero", morph=None):
     # ---- arms, hands
     for side, s in SIDES:
         arm = arm_limb(side, s, body)
-        us = [0.0, 0.06, 0.13, 0.22, 0.32, 0.42, 0.48, 0.52, 0.56, 0.62, 0.7, 0.78, 0.86, 0.93, 1.0] if hero else [0.0, 0.25, 0.5, 0.75, 1.0]
+        us = [0.0, 0.08, 0.2, 0.32, 0.42, 0.48, 0.52, 0.56, 0.62, 0.72, 0.84, 0.93, 1.0] if hero else [0.0, 0.25, 0.5, 0.75, 1.0]
 
         def amat(u, th, side=side):
             if role == "colonist" and u > 0.6:
@@ -1491,7 +1497,7 @@ def figure(role, lod="hero", morph=None):
             if not hero and eva and 0.2 < u < 0.28:
                 return "Owner"
             return suit
-        limb_mesh(mb, arm, us, 14 if hero else 6, amat, arm_cand(side), dome=True, cap_end=True)
+        limb_mesh(mb, arm, us, LIMB_SEGS if hero else 6, amat, arm_cand(side), dome=True, cap_end=True)
         glove = pal["glove"]
         hand_mesh(mb, side, s, glove or "Skin", glove=bool(glove), lod=lod)
 
@@ -1499,7 +1505,7 @@ def figure(role, lod="hero", morph=None):
     leg_mat = suit2 if role == "colonist" else suit
     for side, s in SIDES:
         leg = leg_limb(side, s, body)
-        us = [0.0, 0.08, 0.17, 0.26, 0.35, 0.42, 0.47, 0.5, 0.53, 0.58, 0.66, 0.75, 0.84, 0.92, 1.0] if hero else [0.0, 0.3, 0.5, 0.75, 1.0]
+        us = [0.0, 0.1, 0.22, 0.34, 0.43, 0.47, 0.5, 0.53, 0.58, 0.68, 0.8, 0.91, 1.0] if hero else [0.0, 0.3, 0.5, 0.75, 1.0]
 
         def lmat(u, th):
             if eva and 0.48 < u < 0.54:
@@ -1509,7 +1515,7 @@ def figure(role, lod="hero", morph=None):
             if not hero and role in ("engineer", "security") and 0.46 < u < 0.55 and math.sin(th) > 0.3:
                 return "eng_pad"
             return leg_mat
-        limb_mesh(mb, leg, us, 14 if hero else 6, lmat, leg_cand(side), dome=True, cap_end=True)
+        limb_mesh(mb, leg, us, LIMB_SEGS if hero else 6, lmat, leg_cand(side), dome=True, cap_end=True)
         top = {"engineer": 0.30, "science": 0.26, "security": 0.33, "eva": 0.36, "colonist": 0.21}[role]
         boot_mesh(mb, side, s, body, pal["boot"], top_z=top, big=0.012 if eva else 0.0, lod=lod,
                   lacing=role in ("engineer", "security", "science"), toe_cap="trim" if role in ("engineer", "security") else None)
@@ -1542,8 +1548,8 @@ def details(mb, role, body):
         sheet(mb, [r1, r2], cm, T_CAND, outward=lambda m: V((0, 0, 1)))
     if jumpsuit:
         # Owner shoulder yoke with its seam edge, princess/side seams, zip placket
-        zs = [1.385 + (1.505 - 1.385) * k / 6 for k in range(7)]
-        ths = [2 * pi * j / 32 for j in range(32)]
+        zs = [1.385 + (1.505 - 1.385) * k / 4 for k in range(5)]
+        ths = [2 * pi * j / BAND_T for j in range(BAND_T)]
         surface_panel(mb, fn, nf, zs, ths, 0.0025, "Owner", T_CAND, closed=True)
         for thd in (68, 112, 250, 290):
             ribbon(mb, fn, nf, lambda t, thd=thd: (1.385 - 0.335 * t, D(thd + (6 if thd < 90 or thd > 270 else -6) * t * (1 if thd < 180 else -1))), 10, 0.004, 0.0012, "seam", T_CAND)
@@ -1571,9 +1577,9 @@ def details(mb, role, body):
                 pocket_limb(mb, leg, 0.27, 0.42, D(-30), D(25), suit, suit, leg_cand(side))
             # cuffs where the sleeves meet the gloves/wrist
             arm = arm_limb(side, s, body)
-            surface_panel(mb, arm.pt, arm.n, [0.9, 0.95, 0.99], [2 * pi * j / 14 for j in range(14)], 0.003, suit2 if role == "science" else "trim", arm_cand(side), closed=True)
+            surface_panel(mb, arm.pt, arm.n, [0.9, 0.95, 0.99], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.003, suit2 if role == "science" else "trim", arm_cand(side), closed=True)
             # Owner band round the upper sleeve under the yoke
-            surface_panel(mb, arm.pt, arm.n, [0.1, 0.14, 0.18], [2 * pi * j / 14 for j in range(14)], 0.0025, "Owner", arm_cand(side), closed=True)
+            surface_panel(mb, arm.pt, arm.n, [0.1, 0.14, 0.18], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.0025, "Owner", arm_cand(side), closed=True)
 
     if role == "engineer":
         engineer(mb, body)
@@ -1621,7 +1627,7 @@ def engineer(mb, body):
                 ang = thd + (back - 360 * (thd > 90) - thd) * k if thd < 90 else thd + (back - thd) * k
                 return 1.47 + 0.035 * math.sin(pi * k), D(ang)
             return 1.47 - (1.47 - 1.07) * (t - 0.58) / 0.42, D(back)
-        strap_path(mb, body, path, 0.032, H, n=30)
+        strap_path(mb, body, path, 0.032, H, n=20)
     strap_path(mb, body, lambda t: (1.30, D(76 + 28 * t)), 0.026, H, n=6)
     for thd in (76, 104):
         p = body.torso(1.36, D(thd), 0.013)
@@ -1630,8 +1636,7 @@ def engineer(mb, body):
     bp = body.torso(1.30, D(90), 0.013)
     obox(mb, bp, V((1, 0, 0)), V((0, 1, 0)), V((0, 0, 1)), (0.022, 0.004, 0.016), "buckle", H, chamfer=0.003)
     # tool belt pouches and tools
-    for z, thd, size in ((1.0, 22, (0.035, 0.02, 0.045)), (1.0, 158, (0.035, 0.02, 0.045)),
-                         (1.01, 228, (0.03, 0.018, 0.038)), (1.01, 312, (0.03, 0.018, 0.038)), (0.995, 52, (0.022, 0.016, 0.03))):
+    for z, thd, size in ((1.01, 228, (0.03, 0.018, 0.038)), (1.01, 312, (0.03, 0.018, 0.038)), (0.995, 52, (0.022, 0.016, 0.03))):
         p, n, rt, up = pouch(mb, body, z, thd, size, "eng_pouch", LOWER_CAND, flap="eng_pouch", out=0.012)
     p, n, rt, up = pouch(mb, body, 0.99, 22, (0.035, 0.02, 0.045), "eng_pouch", LOWER_CAND, out=0.012)
     tube(mb, p + up * 0.03 + rt * 0.012, p + up * 0.085 + rt * 0.018, 0.007, 0.007, 6, "metal", LOWER_CAND)
@@ -1642,8 +1647,8 @@ def engineer(mb, body):
     for side, s in SIDES:
         leg = leg_limb(side, s, body)
         surface_panel(mb, leg.pt, leg.n, [0.45, 0.48, 0.51, 0.54, 0.57], [D(40 + 100 * k / 6) for k in range(7)], 0.012, "eng_pad", leg_cand(side))
-        surface_panel(mb, leg.pt, leg.n, [0.43, 0.445], [2 * pi * j / 14 for j in range(14)], 0.006, "trim", leg_cand(side), closed=True)
-        surface_panel(mb, leg.pt, leg.n, [0.585, 0.6], [2 * pi * j / 14 for j in range(14)], 0.006, "trim", leg_cand(side), closed=True)
+        surface_panel(mb, leg.pt, leg.n, [0.43, 0.445], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.006, "trim", leg_cand(side), closed=True)
+        surface_panel(mb, leg.pt, leg.n, [0.585, 0.6], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.006, "trim", leg_cand(side), closed=True)
         arm = arm_limb(side, s, body)
         surface_panel(mb, arm.pt, arm.n, [0.46, 0.5, 0.54], [D(-50 - 80 * k / 4) for k in range(5)], 0.004, "eng_suit2", arm_cand(side))
     arm = arm_limb("Left", -1, body)
@@ -1675,8 +1680,8 @@ def security(mb, body):
     nf = body.torso_n
     # armour vest: front and back panels, side straps, raised plates
     for c, span in ((90, 64), (270, 64)):
-        ths = [D(c - span + 2 * span * k / 10) for k in range(11)]
-        zs = [1.0 + (1.46 - 1.0) * k / 9 for k in range(10)]
+        ths = [D(c - span + 2 * span * k / 8) for k in range(9)]
+        zs = [1.0 + (1.46 - 1.0) * k / 6 for k in range(7)]
 
         def off(z, th, c=c):
             d = abs(adiff(math.degrees(th), c))
@@ -1688,7 +1693,7 @@ def security(mb, body):
                               lambda z, th, off=off: off(z, th) + 0.007, "sec_plate", T_CAND, base_off=0.02)
     for z in (1.1, 1.26):
         for c in (0, 180):
-            ribbon(mb, fn, nf, lambda t, c=c: (z, D(c - 28 + 56 * t)), 8, 0.03, 0.012, "trim", T_CAND, depth=0.005)
+            ribbon(mb, fn, nf, lambda t, c=c: (z, D(c - 28 + 56 * t)), 4, 0.03, 0.012, "trim", T_CAND, depth=0.005)
     ribbon(mb, fn, nf, lambda t: (1.17, D(54 + 72 * t)), 10, 0.008, 0.026, "sec_accent", T_CAND)
     # vest pouches and radio
     for thd in (66, 114):
@@ -1699,13 +1704,13 @@ def security(mb, body):
     for side, s in SIDES:
         arm = arm_limb(side, s, body)
         for k, (u0, u1, off) in enumerate(((-0.04, 0.2, 0.016), (0.08, 0.26, 0.012))):
-            surface_panel(mb, arm.pt, arm.n, [u0 + (u1 - u0) * i / 4 for i in range(5)], [D(-80 + 170 * i / 8) for i in range(9)],
+            surface_panel(mb, arm.pt, arm.n, [u0 + (u1 - u0) * i / 3 for i in range(4)], [D(-80 + 170 * i / 6) for i in range(7)],
                           lambda u, th, off=off: off + 0.006 * math.sin(math.pi * clamp((u - u0) / (u1 - u0), 0, 1)),
                           "Owner" if k == 0 else "sec_plate", arm_cand(side))
-        surface_panel(mb, arm.pt, arm.n, [0.46, 0.5, 0.54, 0.58], [D(-40 - 100 * i / 5) for i in range(6)], 0.01, "sec_plate", arm_cand(side))
+        surface_panel(mb, arm.pt, arm.n, [0.46, 0.52, 0.58], [D(-40 - 100 * i / 4) for i in range(5)], 0.01, "sec_plate", arm_cand(side))
         leg = leg_limb(side, s, body)
-        surface_panel(mb, leg.pt, leg.n, [0.44, 0.47, 0.5, 0.53, 0.57], [D(35 + 110 * i / 6) for i in range(7)], 0.014, "sec_plate", leg_cand(side))
-        surface_panel(mb, leg.pt, leg.n, [0.6, 0.62], [2 * pi * j / 14 for j in range(14)], 0.006, "trim", leg_cand(side), closed=True)
+        surface_panel(mb, leg.pt, leg.n, [0.44, 0.5, 0.57], [D(35 + 110 * i / 5) for i in range(6)], 0.014, "sec_plate", leg_cand(side))
+        surface_panel(mb, leg.pt, leg.n, [0.6, 0.62], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.006, "trim", leg_cand(side), closed=True)
     # holster with a compact sidearm on the right thigh
     leg = leg_limb("Right", 1, body)
     c = leg.pt(0.16, D(10), 0.03)
@@ -1776,17 +1781,17 @@ def eva_suit(mb, body):
     # Owner bands on the arms and thighs, a chest stripe, bellows ribs at elbows and knees
     for side, s in SIDES:
         arm = arm_limb(side, s, body)
-        surface_panel(mb, arm.pt, arm.n, [0.2, 0.24, 0.28], [2 * pi * j / 14 for j in range(14)], 0.004, "Owner", arm_cand(side), closed=True)
+        surface_panel(mb, arm.pt, arm.n, [0.2, 0.24, 0.28], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.004, "Owner", arm_cand(side), closed=True)
         for u in (0.5, 0.54, 0.58):
-            surface_panel(mb, arm.pt, arm.n, [u - 0.008, u + 0.008], [2 * pi * j / 14 for j in range(14)], 0.008, "eva_bellows", arm_cand(side), closed=True, edge=False)
+            surface_panel(mb, arm.pt, arm.n, [u - 0.008, u + 0.008], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.008, "eva_bellows", arm_cand(side), closed=True, edge=False)
         leg = leg_limb(side, s, body)
-        surface_panel(mb, leg.pt, leg.n, [0.2, 0.235, 0.27], [2 * pi * j / 14 for j in range(14)], 0.004, "Owner", leg_cand(side), closed=True)
+        surface_panel(mb, leg.pt, leg.n, [0.2, 0.235, 0.27], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.004, "Owner", leg_cand(side), closed=True)
         for u in (0.47, 0.51, 0.55):
-            surface_panel(mb, leg.pt, leg.n, [u - 0.008, u + 0.008], [2 * pi * j / 14 for j in range(14)], 0.009, "eva_bellows", leg_cand(side), closed=True, edge=False)
+            surface_panel(mb, leg.pt, leg.n, [u - 0.008, u + 0.008], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.009, "eva_bellows", leg_cand(side), closed=True, edge=False)
         surface_panel(mb, leg.pt, leg.n, [0.42, 0.45, 0.48], [D(30 + 120 * k / 5) for k in range(6)], 0.012, "eva_suit2", leg_cand(side))
     surface_panel(mb, fn, nf, [1.36, 1.39], [D(55 + 70 * k / 6) for k in range(7)], 0.003, "Owner", T_CAND)
     # suit waist ring
-    surface_panel(mb, fn, nf, [1.03, 1.05, 1.07], [2 * pi * j / 32 for j in range(32)], 0.008, "eva_suit2", LOWER_CAND, closed=True)
+    surface_panel(mb, fn, nf, [1.03, 1.05, 1.07], [2 * pi * j / BAND_T for j in range(BAND_T)], 0.008, "eva_suit2", LOWER_CAND, closed=True)
     badge(mb, body, 1.37, D(118), T_CAND)
 
 
@@ -1795,7 +1800,7 @@ def colonist(mb, body):
     fn = lambda z, th, e: body.torso(z, th, e)  # noqa: E731
     nf = body.torso_n
     # tunic hem flaring over the hips
-    ths = [2 * pi * j / 32 for j in range(32)]
+    ths = [2 * pi * j / BAND_T for j in range(BAND_T)]
     rows = []
     for z, extra in ((1.04, 0.004), (0.98, 0.012), (0.92, 0.022), (0.86, 0.034), (0.845, 0.036)):
         rows.append([body.torso(z, th, extra) for th in ths])
@@ -1826,10 +1831,10 @@ def colonist(mb, body):
     # rolled sleeve cuffs at the elbows
     for side, s in SIDES:
         arm = arm_limb(side, s, body)
-        surface_panel(mb, arm.pt, arm.n, [0.56, 0.59, 0.62], [2 * pi * j / 14 for j in range(14)], 0.01, "col_tunic", arm_cand(side), closed=True)
+        surface_panel(mb, arm.pt, arm.n, [0.56, 0.59, 0.62], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.01, "col_tunic", arm_cand(side), closed=True)
         leg = leg_limb(side, s, body)
         ribbon(mb, leg.pt, leg.n, lambda t: (0.32 + 0.6 * t, 0.0), 10, 0.004, 0.0012, "seam", leg_cand(side))
-        surface_panel(mb, leg.pt, leg.n, [0.84, 0.87, 0.9], [2 * pi * j / 14 for j in range(14)], 0.008, "col_trousers", leg_cand(side), closed=True)
+        surface_panel(mb, leg.pt, leg.n, [0.84, 0.87, 0.9], [2 * pi * j / BAND_L for j in range(BAND_L)], 0.008, "col_trousers", leg_cand(side), closed=True)
     # Owner scarf round the neck with a hanging tail
     nl = neck_limb(body)
     rows = []
@@ -2485,9 +2490,161 @@ def export(role, objs, path):
         o.select_set(True)
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_apply=False,
                               export_yup=True, export_lights=False, export_cameras=False, export_skins=True,
-                              export_morph=True, export_morph_normal=True, export_animation_mode="NLA_TRACKS",
+                              export_morph=True, export_morph_normal=False, export_animation_mode="NLA_TRACKS",
                               export_frame_step=1, export_optimize_animation_size=True, export_def_bones=False)
-    print("exported", path, os.path.getsize(path), "bytes", flush=True)
+    before = os.path.getsize(path)
+    slim_glb(path)
+    print("exported", path, before, "->", os.path.getsize(path), "bytes", flush=True)
+
+
+def slim_glb(path):
+    """Shrink the exported glb without changing what it shows (pure json + struct):
+    - drop the translation/scale channels of every bone but Hips (never animated, the exporter writes them anyway;
+      rotation channels all stay, constant ones included, so switching actions never leaves a bone behind);
+    - store skin weights as normalised unsigned shorts (glTF core allows it; Godot decodes normalised accessors);
+    - drop what is no longer referenced and repack the binary chunk."""
+    import json
+    import struct
+    data = open(path, "rb").read()
+    jl = struct.unpack("<I", data[12:16])[0]
+    j = json.loads(data[20:20 + jl])
+    bl = struct.unpack("<I", data[20 + jl:24 + jl])[0]
+    binc = data[28 + jl:28 + jl + bl]
+    nodes, acc, bvs = j["nodes"], j["accessors"], j["bufferViews"]
+    for an in j.get("animations", []):
+        keep = [c for c in an["channels"]
+                if c["target"]["path"] == "rotation" or nodes[c["target"]["node"]].get("name") == "Hips"
+                or c["target"]["path"] == "weights"]
+        used = sorted({c["sampler"] for c in keep})
+        remap = {o: n for n, o in enumerate(used)}
+        an["samplers"] = [an["samplers"][o] for o in used]
+        for c in keep:
+            c["sampler"] = remap[c["sampler"]]
+        an["channels"] = keep
+    new_views = {}  # accessor index -> replacement bytes for its data
+    for m in j["meshes"]:
+        for prim in m["primitives"]:
+            for k, a in prim["attributes"].items():
+                A = acc[a]
+                if not k.startswith("WEIGHTS_") or A["componentType"] != 5126 or a in new_views:
+                    continue
+                v = bvs[A["bufferView"]]
+                stride = v.get("byteStride", 16)
+                base = v.get("byteOffset", 0) + A.get("byteOffset", 0)
+                out = bytearray()
+                for i in range(A["count"]):
+                    w = struct.unpack_from("<4f", binc, base + i * stride)
+                    tot = sum(w) or 1.0
+                    q = [int(round(x / tot * 65535)) for x in w]
+                    q[q.index(max(q))] += 65535 - sum(q)
+                    out += struct.pack("<4H", *q)
+                new_views[a] = bytes(out)
+                A["componentType"] = 5123
+                A["normalized"] = True
+                A.pop("byteOffset", None)
+                A.pop("min", None)
+                A.pop("max", None)
+    # bone rotations as normalised shorts (core glTF; the importers renormalise the quaternions)
+    for an in j.get("animations", []):
+        for c in an["channels"]:
+            if c["target"]["path"] != "rotation":
+                continue
+            a = an["samplers"][c["sampler"]]["output"]
+            A = acc[a]
+            if A["componentType"] != 5126 or a in new_views:
+                continue
+            v = bvs[A["bufferView"]]
+            base = v.get("byteOffset", 0) + A.get("byteOffset", 0)
+            out = bytearray()
+            for i in range(A["count"]):
+                q = struct.unpack_from("<4f", binc, base + i * 16)
+                out += struct.pack("<4h", *[max(-32767, min(32767, int(round(x * 32767)))) for x in q])
+            new_views[a] = bytes(out)
+            A["componentType"] = 5122
+            A["normalized"] = True
+            A.pop("byteOffset", None)
+            A.pop("min", None)
+            A.pop("max", None)
+    # what is referenced now
+    used_acc = set()
+    for m in j["meshes"]:
+        for prim in m["primitives"]:
+            used_acc |= set(prim["attributes"].values())
+            if "indices" in prim:
+                used_acc.add(prim["indices"])
+            for t in prim.get("targets", []):
+                used_acc |= set(t.values())
+    for sk in j.get("skins", []):
+        if "inverseBindMatrices" in sk:
+            used_acc.add(sk["inverseBindMatrices"])
+    for an in j.get("animations", []):
+        for sm in an["samplers"]:
+            used_acc |= {sm["input"], sm["output"]}
+    acc_order = sorted(used_acc)
+    amap = {o: n for n, o in enumerate(acc_order)}
+    out = bytearray()
+    views = []
+
+    def add_view(blob, src=None):
+        while len(out) % 4:
+            out.append(0)
+        v = {"buffer": 0, "byteOffset": len(out), "byteLength": len(blob)}
+        if src is not None:
+            for key in ("target",):
+                if key in src:
+                    v[key] = src[key]
+        out.extend(blob)
+        views.append(v)
+        return len(views) - 1
+
+    vmap = {}
+
+    def old_view(i):
+        if i not in vmap:
+            v = bvs[i]
+            o = v.get("byteOffset", 0)
+            nv = add_view(binc[o:o + v["byteLength"]], v)
+            if "byteStride" in v:
+                views[nv]["byteStride"] = v["byteStride"]
+            vmap[i] = nv
+        return vmap[i]
+    new_acc = []
+    for o in acc_order:
+        A = acc[o]
+        if o in new_views:
+            A["bufferView"] = add_view(new_views[o], bvs[A["bufferView"]])
+        elif "bufferView" in A:
+            A["bufferView"] = old_view(A["bufferView"])
+        if "sparse" in A:
+            sp = A["sparse"]
+            sp["indices"]["bufferView"] = old_view(sp["indices"]["bufferView"])
+            sp["values"]["bufferView"] = old_view(sp["values"]["bufferView"])
+        new_acc.append(A)
+    for img in j.get("images", []):
+        if "bufferView" in img:
+            img["bufferView"] = old_view(img["bufferView"])
+    for m in j["meshes"]:
+        for prim in m["primitives"]:
+            prim["attributes"] = {k: amap[a] for k, a in prim["attributes"].items()}
+            if "indices" in prim:
+                prim["indices"] = amap[prim["indices"]]
+            if "targets" in prim:
+                prim["targets"] = [{k: amap[a] for k, a in t.items()} for t in prim["targets"]]
+    for sk in j.get("skins", []):
+        if "inverseBindMatrices" in sk:
+            sk["inverseBindMatrices"] = amap[sk["inverseBindMatrices"]]
+    for an in j.get("animations", []):
+        for sm in an["samplers"]:
+            sm["input"], sm["output"] = amap[sm["input"]], amap[sm["output"]]
+    j["accessors"], j["bufferViews"] = new_acc, views
+    while len(out) % 4:
+        out.append(0)
+    j["buffers"] = [{"byteLength": len(out)}]
+    js = json.dumps(j, separators=(",", ":")).encode()
+    js += b" " * ((4 - len(js) % 4) % 4)
+    blob = struct.pack("<4sII", b"glTF", 2, 12 + 8 + len(js) + 8 + len(out))
+    blob += struct.pack("<I4s", len(js), b"JSON") + js + struct.pack("<I4s", len(out), b"BIN\0") + bytes(out)
+    open(path, "wb").write(blob)
 
 
 def report(role, objs):
@@ -2744,6 +2901,8 @@ def main():
         # keep as a preview template under prefixed names
         for o in objs:
             o.name = f"{role}:{o.name}"
+            if o.data is not None:
+                o.data.name = o.name
             o.hide_render = True
         TEMPLATES[role] = (rig, objs)
     for role, tri, size in summary:
