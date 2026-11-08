@@ -22,7 +22,8 @@ public partial class PlanetDriver : Node3D, ITestHost
     /// <summary>Change to get a different planet; the same seed always gives the same world.</summary>
     [Export] public ulong Seed { get; set; } = 1701;
 
-    [Export] public string PlanetName { get; set; } = "Tarsis";
+    /// <summary>The name of the world being played ("Tarsis", "Veyra"): from <see cref="World"/>'s map body, set in _Ready.</summary>
+    public string PlanetName { get; private set; } = "Tarsis";
 
     /// <summary>Which world of the duel map to start on: "tarsis" (class M, Open) or "veyra" (class L, a Domes world).
     /// A body name or id (MatchSetup.ResolveWorld).</summary>
@@ -143,7 +144,19 @@ public partial class PlanetDriver : Node3D, ITestHost
         var data = GameDataLoader.Load(new DataSetup(Factions: new[] { "federation" }), out _dataDirectory, out var dataMessages);
         foreach (var problem in data.Validate()) GD.PushWarning($"Data check: {problem}");
 
-        _sim = MatchSetup.CreatePlanetLanding(data, Seed, "federation", null, string.IsNullOrWhiteSpace(World) ? MatchSetup.DefaultWorld : World);
+        var world = (World ?? "").Trim();
+        if (world.Length == 0) world = MatchSetup.DefaultWorld;
+        if (!MatchSetup.IsWorld(data, world))
+        {
+            GD.PushError($"World '{World}' isn't a playable world (try \"tarsis\" or \"veyra\"); starting on {MatchSetup.DefaultWorld}.");
+            world = MatchSetup.DefaultWorld;
+        }
+        var (worldClass, worldBody) = MatchSetup.ResolveWorld(data, world);
+        foreach (var m in data.Maps)
+            foreach (var b in m.Bodies)
+                if (b.Id == worldBody) PlanetName = b.Name;
+        GD.Print($"World: {PlanetName} ({worldBody}, {worldClass}), seed {Seed}");
+        _sim = MatchSetup.CreatePlanetLanding(data, Seed, "federation", null, world);
         LocalPlayer = Mathf.Clamp(LocalPlayerSlot, 0, _sim.Players.Count - 1);
         _camera = GetNode<Camera3D>("Camera3D");
         _hud = GetNode<PlanetHud>("Hud");
