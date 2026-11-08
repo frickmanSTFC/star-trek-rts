@@ -458,7 +458,7 @@ public sealed class AchievementTracker
             {
                 var key = StreakKey(t);
                 var fromStart = F("from_start") == "true";
-                var holds = Holds(p, F("condition") ?? "");
+                if (Holds(p, F("condition") ?? "") is not { } holds) return false; // can't apply in this game: nothing kept
                 var has = track.Streaks.TryGetValue(key, out var start);
                 if (has && start < 0) return false; // a from_start streak that broke: never again this game
                 if (!holds)
@@ -498,14 +498,14 @@ public sealed class AchievementTracker
         }
     }
 
-    /// <summary>A streak condition now.</summary>
-    private bool Holds(int p, string condition)
+    /// <summary>A streak condition now, or null when it can't apply in this game (no surface, no star system).</summary>
+    private bool? Holds(int p, string condition)
     {
         switch (condition)
         {
             case "no_power_short":
             {
-                if (_sim.Surface is not { } s) return false;
+                if (_sim.Surface is not { } s) return null;
                 var any = false;
                 foreach (var b in s.Bases(p))
                 {
@@ -516,9 +516,10 @@ public sealed class AchievementTracker
                 return any;
             }
             case "flagship_home":
-                return _sim.System is { SurfaceBody: { } home } sys && sys.FlagshipOf(p) is { } ship && ship.AtBody == home;
+                if (_sim.System is not { SurfaceBody: { } home } sys || sys.FlagshipOf(p) is not { } ship) return null;
+                return ship.AtBody == home;
             default:
-                return false;
+                return null;
         }
     }
 

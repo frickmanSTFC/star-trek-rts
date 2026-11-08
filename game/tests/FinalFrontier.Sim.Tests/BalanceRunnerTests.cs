@@ -209,6 +209,7 @@ public class BalanceRunnerTests
         var data = TestData.Real;
         var order = Order("standard_opener");
         var sim = MatchSetup.CreatePlanetLanding(data, 1701, order.Faction, order.Planet);
+        sim.AchievementsEnabled = false; // as the runner does
         var bot = new Bot(sim, 0, order);
         while (sim.Tick < 3 * Simulation.TicksPerMinute)
         {
