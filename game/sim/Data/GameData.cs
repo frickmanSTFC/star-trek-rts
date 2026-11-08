@@ -7,7 +7,15 @@ using FinalFrontier.Sim.Math;
 
 namespace FinalFrontier.Sim.Data;
 
-public sealed record FactionDef(string Id, string Name, bool Playable);
+/// <summary>
+/// A faction (factions.json). <see cref="Playable"/> = "playable": true; <see cref="Role"/> is "playable" or the file's
+/// other value (minor, dlc_or_minor, pirate, insurgent, crisis); <see cref="Eras"/> = the eras it appears in (eras.json ids).
+/// </summary>
+public sealed record FactionDef(string Id, string Name, bool Playable)
+{
+    public string Role { get; init; } = Playable ? "playable" : "";
+    public IReadOnlyList<string> Eras { get; init; } = Array.Empty<string>();
+}
 
 /// <summary>Hull stats from ships.json. Speed is in map units per second (placeholder scale). Crew is the canon
 /// complement (lore); what a ship costs in the crew resource is its class's CrewCost. Roles: the roles a class on
@@ -192,6 +200,7 @@ public sealed partial class GameData
     public static readonly IReadOnlyList<string> Documents = new[]
     {
         "factions", "ships", "resources", "planet_classes", "buildings", "maps", "surfaces", "vehicles", "climate",
+        "eras", "tech_tree", // read-only: loaded and checked, not played yet (GameData.Eras.cs)
     };
 
     /// <summary>
@@ -283,9 +292,19 @@ public sealed partial class GameData
         var surfacesRoot = Read("surfaces");
         var vehiclesRoot = Read("vehicles");
         var climateRoot = Read("climate");
+        var erasRoot = Read("eras");
+        var techTreeRoot = Read("tech_tree");
 
         var factions = factionsRoot.GetProperty("factions").EnumerateArray()
-            .Select(f => new FactionDef(Str(f, "id"), Str(f, "name"), f.GetProperty("playable").ValueKind == JsonValueKind.True))
+            .Select(f =>
+            {
+                var playable = f.GetProperty("playable");
+                return new FactionDef(Str(f, "id"), Str(f, "name"), playable.ValueKind == JsonValueKind.True)
+                {
+                    Role = playable.ValueKind == JsonValueKind.True ? "playable" : playable.ValueKind == JsonValueKind.String ? playable.GetString()! : playable.GetRawText(),
+                    Eras = f.TryGetProperty("eras", out var fe) ? fe.EnumerateArray().Select(x => x.GetString()!).ToList() : new List<string>(),
+                };
+            })
             .ToList();
 
         var hulls = shipsRoot.GetProperty("hulls").EnumerateArray()
@@ -509,6 +528,9 @@ public sealed partial class GameData
             Environments = ReadEnvironments(surfacesRoot),
             Telemetry = ReadTelemetry(surfacesRoot),
             Climate = ReadClimate(climateRoot, problems),
+            Eras = ReadEras(erasRoot),
+            TechTree = ReadTechTree(techTreeRoot),
+            StartingSetRefs = ReadStartingSetRefs(buildingsRoot, Amounts),
             Lanes = ReadLanes(surfacesRoot),
             BuildingFootprints = ReadBuildingFootprints(buildingsRoot, problems),
             UnitFootprints = ReadUnitFootprints(surfacesRoot),
@@ -582,6 +604,9 @@ public sealed partial class GameData
         ValidateClimate(problems);
         ValidateFounding(problems);
         ValidateLanes(problems);
+        ValidateEras(problems);
+        ValidateTechTree(problems);
+        ValidateStartingSets(problems);
         return problems;
     }
 

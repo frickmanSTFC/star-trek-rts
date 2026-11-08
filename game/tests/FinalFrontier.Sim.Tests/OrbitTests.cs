@@ -52,7 +52,7 @@ public class OrbitTests
         Assert.Equal(3, Orbit.TransporterLevelFor("federation", "tng"));
         Assert.Equal(3, Orbit.TransporterLevelFor("borg", "ent")); // the Borg always have them
         Assert.Equal(2, Orbit.TransporterLevelFor("ferengi", "tng"));
-        Assert.Equal(3, Landed(out _).Surface!.Players[0].TransporterLevel); // the match is set in the TNG era
+        Assert.Equal(3, Landed(out _).Surface!.Players[0].TransporterLevel); // the match is set in the Dominion War era
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class OrbitTests
     [Fact]
     public void TheTransporterBeamsATeamWithinRangeThenCycles()
     {
-        var sim = Landed(out var hub, data: TestData.Patched(("surfaces.json", "\"tng\": 3,", "\"tng\": 2,")));
+        var sim = Landed(out var hub, data: TestData.Patched(("surfaces.json", "\"dominion_war\": 3,", "\"dominion_war\": 2,")));
         var s = sim.Surface!;
         var map = s.Map;
         var level = sim.Data.Orbit!.Transporter(s.Players[0].TransporterLevel)!;

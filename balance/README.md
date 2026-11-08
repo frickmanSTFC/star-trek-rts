@@ -182,7 +182,7 @@ first parasteel ≤ 15; every order: no power shortage over a minute, deuterium 
 **Factions.** Today the surface economy is Federation-first: every faction has the same build menu, buildings, units,
 costs and techs. What does differ in the sim is the ship in orbit (name only) and the **transporter level** (surfaces.json
 `orbit.transporter`: by era, with `factions` overrides — Ferengi level 2: 100 cargo a beam, 20 s cooldown, 12-tile range;
-Borg 3; everyone else level 3 in the TNG era: 250 cargo, 10 s, any range). So `--factions` already shows the beaming
+Borg 3; everyone else level 3 in the Dominion War era (the match era): 250 cargo, 10 s, any range). So `--factions` already shows the beaming
 difference (see `reports/factions/`), and any other faction difference added to the sim's data will show up the same way.
 The design data has much more per faction (buildings.json `starting_sets`: e.g. Klingon strip mines +25% yield, Cardassian
 extraction +50%, Klingon/Cardassian/Dominion research −25–30%, Federation "fastest research"; `faction_buildings`), but

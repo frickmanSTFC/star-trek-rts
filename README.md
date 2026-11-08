@@ -68,15 +68,15 @@ Each data document is a folder of small files, one per table or record family (o
 |---|---|
 | `resources/` | Raw materials, refined components, faction resources, trade goods. Files: notes, one file per tier |
 | `factions/` | Playable, minor, pirate and crisis factions with signature mechanics. Files: one file per great power, the rest by group |
-| `eras/` | Eight starting eras with available factions, events and stardate formats. Files: one file |
+| `eras/` | Eight starting eras with their playable and AI-only factions, events and stardate formats (the game loads and checks it against `factions/`, read-only for now). Files: one file |
 | `planet_classes/` | Planet classes and other celestial bodies with yields and hazards. Files: notes + classes |
-| `tech_tree/` | Research tree across seven branches. Files: notes, rules, `techs/<branch>.json` |
+| `tech_tree/` | Research tree across seven branches (the game loads and checks it, read-only for now; the prototype's surface research is in `surfaces/`). Files: notes, rules, `techs/<branch>.json` |
 | `ships/` | Hull sizes (canon crew complements), module slots and ship classes per faction, warships and civilian/support classes, each with a cost, build time, crew cost and tech gate. Files: notes, hulls + modules, rules (roles and the costing formula), `classes/<faction or era>.json` |
 | `vehicles/` | Small craft, probes, civilian/support ships, ground forces and vehicles. Files: notes + one file per table |
 | `buildings/` | All structures, faction-only buildings, relics, `faction_lines` (level-1-to-max upgrade chains for all seven factions) and `starting_sets` (each faction's Class M opening buildings). Files: notes, rules, `surface/<building or family>.json`, orbital, deep space, `faction_buildings/<faction>.json`, relics, `faction_lines/<faction>.json`, `starting_sets/<faction>.json` |
 | `hazards/` | Anomalies, habitat dangers, raiders, crisis entities and wildcards. Files: notes + one file per category |
 | `galaxy_map/` | Star systems, territories, warp lanes and wormholes, warp scale and drive speeds. Files: notes, drives, systems, lanes |
-| `maps/` | Skirmish maps for the game prototype: one star system each (bodies, deposits, player starts, starting stock). Files: notes + `mvp_duel.json` |
+| `maps/` | Skirmish maps for the game prototype: one star system each (bodies, deposits, player starts, starting stock). Files: notes + `mvp_duel.json` (the Kalandra Expanse, on the galaxy map as `kalandra`: placeholder position near the Cardassian border) |
 | `surfaces/` | Planet surfaces for the game prototype: terrain types, how each planet class's hex map is generated, deposits, orbital hints, landing rules, rover and mining crawler stats, storage and salvage rules, planet environments per class (temperature, humidity, wind, pressure, radiation, atmosphere and trace gases) and the outpost telemetry's hazard limits. Files: notes, terrain, planets, environments + telemetry, landing, economy (build menu, power, storage, salvage, maintenance), research, orbit, lanes, unit names, `units/<id>.json` |
 | `climate/` | Planetary climate for the game prototype: star types, every map body's orbit, spin, tilt, year, albedo and greenhouse, climate templates (seasons with weather odds, latitude bands), weather kinds with their gameplay effects (rover speed, survey radius, rover damage, grounded drop ships, solar) and terrain modifiers. Files: notes, stars, bodies, classes, surface, `climates/<template>.json`, weather, terrain |
 

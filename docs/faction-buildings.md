@@ -29,7 +29,7 @@ One building per role is available in the opening minutes. Names only; costs and
 | **Research** | Research Lab | Weapons Forge | State Archive | Science Ministry Lab | Vorta Analysis Lab | Patent Exchange | None |
 | **Defense** | Security Garrison | Disruptor Battery | Surveillance Grid | Cloaked Disruptor Emplacement | Polaron Battery | Mercenary Contract Board | Adaptive Shield Node |
 | **Signature** | Xenology Observation Post | Warrior's Arena | Occupation Office | Tal Shiar Field Office | White Depot | Bar & Holosuites | Nanoprobe Beacon |
-| *Opening cost (total units)* | *700* | *630* | *680* | *760* | *712* | *480* | *585* |
+| *Opening cost (total units)* | *760* | *630* | *680* | *760* | *712* | *480* | *585* |
 
 Total units add every resource together (duranium, crew, latinum, and so on). They're only a rough guide to how expensive each opening is.
 
@@ -87,13 +87,13 @@ Total units add every resource together (duranium, crew, latinum, and so on). Th
 
 | Faction | Building | Cost | vs Federation cost | Effect | Requires |
 |---|---|---|---|---|---|
-| Federation | Research Lab | 100 duranium | baseline | +25% research (best in game). |  |
-| Klingon | Weapons Forge | 80 duranium | -20 | Weapons-tree research only, at -25%. |  |
-| Cardassian | State Archive | 120 duranium | +20 | -25% research. |  |
-| Romulan | Science Ministry Lab | 110 duranium, 10 isolinear | +20 | Normal research; +50% on stealth techs. |  |
-| Dominion | Vorta Analysis Lab | 120 duranium | +20 | -30% research; double research from captured wrecks. |  |
-| Ferengi | Patent Exchange | 80 duranium, 40 latinum | +20 | No own research; buy techs other players already have. |  |
-| Borg | None | free | -100 | No research: assimilates tech from others and combines what the Collective holds into new tech. |  |
+| Federation | Research Lab | 120 duranium, 40 tritanium | baseline | +25% research (best in game). |  |
+| Klingon | Weapons Forge | 80 duranium | -80 | Weapons-tree research only, at -25%. |  |
+| Cardassian | State Archive | 120 duranium | -40 | -25% research. |  |
+| Romulan | Science Ministry Lab | 110 duranium, 10 isolinear | -40 | Normal research; +50% on stealth techs. |  |
+| Dominion | Vorta Analysis Lab | 120 duranium | -40 | -30% research; double research from captured wrecks. |  |
+| Ferengi | Patent Exchange | 80 duranium, 40 latinum | -40 | No own research; buy techs other players already have. |  |
+| Borg | None | free | -160 | No research: assimilates tech from others and combines what the Collective holds into new tech. |  |
 
 ### Defense
 

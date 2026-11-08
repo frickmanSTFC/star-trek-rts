@@ -102,7 +102,7 @@ public class DataLayerTests
     [Fact]
     public void BaseDataHasNoLayersApplied()
     {
-        Assert.Equal("tng", TestData.Real.Orbit!.Era);
+        Assert.Equal("dominion_war", TestData.Real.Orbit!.Era); // the same era as maps.json mvp_duel
         Assert.DoesNotContain(TestData.Real.Orbit.Ships, s => s.Faction == "earth_uec");
     }
 

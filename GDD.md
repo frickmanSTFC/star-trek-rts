@@ -20,7 +20,7 @@
 | Mode | Players | Notes |
 |---|---|---|
 | Skirmish | 1–4 (humans + AI) | Free-for-all or 2v2. Choose era, map size, hazard level, victory types. |
-| Campaign (single-player) | 1 | Faction story arcs per era; scripted crises (e.g. Wolf 359, Dominion War). |
+| Campaign (single-player) | 1 | Faction story arcs per era; scripted crises (e.g. Wolf 359, Dominion War). First proposal: the Federation campaign "The Kalandra Expanse" (Quests & Missions doc), on the `mvp_duel` system, which sits on the galaxy map near the Cardassian border (placeholder position). |
 | "Ages" Campaign | 1 | One long game that advances era to era — your tech tree moves the timeline. |
 | Co-op vs Crisis | 2–4 | Players ally against a scaling Borg / Species 8472 / Burn scenario. |
 | Challenge Scenarios | 1 | Kobayashi Maru (unwinnable — score on survival time), Battle of the Binary Stars, etc. |
@@ -215,17 +215,17 @@ tribble outbreak (food drain), indigenous pre-warp civilization (Prime Directive
 
 ## 6. Eras ("Starting Stardate")
 
-| Era | Years | Stardate style | Tech cap | Playable factions | Era twist |
+| Era | Years | Stardate style | Tech cap | Playable factions (AI only) | Era twist |
 |---|---|---|---|---|---|
-| **Enterprise** | 2151–2161 | Calendar (2151.04) | Warp 5, phase cannons, polarized hull, no true shields | Earth/UEC, Vulcan, Andorian, Tellarite, Klingon, Romulan, Xindi, Suliban | Coalition-building; Temporal Cold War events |
-| **Discovery / TOS** | 2256–2293 | 4-digit (1312.4) | Warp 8, phasers, photon torps, early cloaks | Federation, Klingon, Romulan, Gorn, Tholian, Orion | Dilithium scarcity; Neutral Zone outposts |
-| **TNG** | 2364–2373 | 5-digit (41153.7) | Warp 9.x, Galaxy-class, industrial replicators | Fed, Klingon, Romulan, Cardassian, Ferengi, Borg (AI/crisis) | First Borg contact; Cardassian border |
-| **Dominion War** | 2373–2379 | 5-digit (50xxx) | Quantum torps, ablative armor, pulse phasers | + Dominion, Breen | Massive fleets; wormhole chokepoint; runs to 2379 for the Shinzon crisis |
-| **Delta Quadrant** | 2371–2378 | 5-digit | Bio-neural, slipstream research | Fed (lost ship), Kazon, Vidiian, Hirogen, Borg, 8472 | Isolated start — no supply home; scavenge |
-| **Picard era** | 2380s–2402 | 5-digit (78xxx) | Transwarp research, synths | Fed, Klingon, Romulan Free State, Fenris Rangers, Borg remnants | Romulan supernova refugees; synth ban politics |
+| **Enterprise** | 2151–2161 | Calendar (2151.04) | Warp 5, phase cannons, polarized hull, no true shields | Earth/UEC, Vulcan, Andorian, Tellarite, Klingon, Romulan (AI: Xindi, Suliban, Nausicaan, Orion, Tholian, Gorn) | Coalition-building; Temporal Cold War events |
+| **Discovery / TOS** | 2256–2293 | 4-digit (1312.4) | Warp 8, phasers, photon torps, early cloaks | Federation, Klingon, Romulan (AI: Gorn, Tholian, Orion, Nausicaan; Planet Killer event) | Dilithium scarcity; Neutral Zone outposts |
+| **TNG** | 2364–2373 | 5-digit (41153.7) | Warp 9.x, Galaxy-class, industrial replicators | Fed, Klingon, Romulan, Cardassian, Ferengi (AI: Borg as a crisis, Breen, Tholian, Bajor, Maquis, Orion, Nausicaan; Crystalline Entity event) | First Borg contact; Cardassian border |
+| **Dominion War** | 2373–2379 | 5-digit (50xxx) | Quantum torps, ablative armor, pulse phasers | + Dominion (AI: Breen, Borg, Bajor, Maquis, Orion, Nausicaan) | Massive fleets; wormhole chokepoint; runs to 2379 for the Shinzon crisis |
+| **Delta Quadrant** | 2371–2378 | 5-digit | Bio-neural, slipstream research | Fed (lost ship), Borg (AI: Kazon, Vidiian, Hirogen, Malon, Krenim, Species 8472) | Isolated start — no supply home; scavenge |
+| **Picard era** | 2380s–2402 | 5-digit (78xxx) | Transwarp research, synths | Fed, Klingon, Romulan Free State (AI: Borg remnants, Fenris Rangers, Cardassian, Ferengi, Breen, Gorn, Orion, Nausicaan) | Romulan supernova refugees; synth ban politics |
 | **32nd century** | 3189+ | 6-digit (865xxx) | Programmable matter, spore drive | Federation remnant, Emerald Chain, Klingon, Ni'Var | **The Burn** — dilithium nearly gone |
 
-Era data → `data/eras/`.
+Era data → `data/eras/`. Only factions with `"playable": true` in `data/factions/` can be played; minor, pirate, insurgent and crisis factions are AI only, and each faction's `eras` list matches the eras that name it (checked by the game's data validation).
 
 ## 7. Factions (summary)
 
@@ -238,7 +238,7 @@ Era data → `data/eras/`.
 | Dominion | Clone army / infiltration | **Ketracel-white** controls Jem'Hadar loyalty; Changeling infiltrators; Vorta diplomacy |
 | Ferengi Alliance | Economy / mercenary | **Rules of Acquisition** perks; buys fleets with Latinum; trade monopolies |
 | Borg Collective | Assimilation | **Adaptation** — shields adapt to repeated weapon types; assimilate tech & population |
-| *Minor / AI* | — | Breen, Tholian, Gorn, Bajoran, Orion Syndicate, Nausicaan, Kazon, Hirogen, Species 8472, Son'a |
+| *Minor / AI* | — | Breen, Tholian, Gorn, Bajoran, Xindi, Suliban, Orion Syndicate, Nausicaan, Maquis, Kazon, Vidiian, Hirogen, Malon, Krenim, Species 8472, Fenris Rangers, Son'a |
 
 Full data → `data/factions/`.
 

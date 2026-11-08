@@ -1,7 +1,7 @@
 {
   "factions": [
     { "id": "borg", "name": "Borg Collective", "playable": true,
-      "eras": ["tng", "dominion_war", "voy"],
+      "eras": ["tng", "dominion_war", "voy", "picard"],
       "playstyle": "Assimilation / adaptation",
       "signature": { "id": "adaptation", "desc": "Shields adapt to weapon types used repeatedly against the Collective; assimilate ships, tech and population." },
       "secondary": ["transwarp_conduits", "regeneration", "no_diplomacy"],

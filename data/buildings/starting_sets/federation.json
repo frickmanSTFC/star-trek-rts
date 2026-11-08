@@ -51,7 +51,8 @@
             "id": "science_lab",
             "name": "Research Lab",
             "cost": {
-              "duranium": 100
+              "duranium": 120,
+              "tritanium": 40
             },
             "effect": "+25% research (best in game).",
             "building_ref": "science_lab"
