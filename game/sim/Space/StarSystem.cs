@@ -112,6 +112,17 @@ public sealed record BodyReport(string BodyId, BodyKnowledge Knowledge, bool Liv
     string? ParentId, string? Name, string? ClassId, string? ClassName, IReadOnlyList<string> Moons, Fix64? GravityG, Fix64? PressureKpa,
     IReadOnlyList<GasAmount> Atmosphere, Fix64? MeanTemperatureC, bool Landable, IReadOnlyList<string> Resources);
 
+/// <summary>Live readings of a body (<see cref="StarSystemState.LiveReadings"/>): only while the player has a satellite
+/// there, or for the colony's own body once its uplink is up.</summary>
+/// <param name="FromUplink">The colony's own body with its uplink up (else a satellite).</param>
+/// <param name="TemperatureC">Now: at the colony's landing site (uplink / satellite over the colony's body) or at the
+/// equator under the reference meridian (other bodies).</param>
+/// <param name="Weather">Now over the landing site on the colony's body; elsewhere the season's prevailing weather.</param>
+/// <param name="Surface">The full outpost telemetry when the reading comes from the colony's surface, else null.</param>
+public sealed record LiveReadings(string BodyId, long Tick, bool FromUplink, Fix64? GravityG, Fix64? PressureKpa,
+    IReadOnlyList<GasAmount> Atmosphere, Fix64? TemperatureC, Fix64? MeanTemperatureC, Fix64? Insolation, Fix64? DayFraction, bool Night,
+    string Season, WeatherKind Weather, bool HasWeather, SurfaceReadings? Surface);
+
 /// <summary>
 /// The star system of a game: its star, its bodies (static positions, MapDef units, like maps.json), the ships, and
 /// each player's knowledge of every body. Built by <see cref="SystemGenerator"/> from the seed (or from a maps.json
@@ -143,6 +154,17 @@ public sealed partial class StarSystemState
     private readonly List<BodyKnowledge[]> _knowledge = new();
 
     private int _nextShipId = 1;
+
+    /// <summary>Goes up whenever knowledge, a ship's course or orbit (arrivals, departures, cargo), a satellite or a scan
+    /// changes, so the view can skip rebuilding. A deterministic counter for the view only (not in the state hash: every
+    /// change it counts is).</summary>
+    public int Version { get; private set; }
+
+    /// <summary>How long a long-range scan takes to recharge, in ticks (maps/system.json scan.cooldown_seconds).</summary>
+    public long ScanCooldownTicks => (long)(Data?.SystemRules?.ScanCooldownSeconds ?? 90) * Simulation.TickRate;
+
+    /// <summary>The long-range scan range in map units (maps/system.json scan.range).</summary>
+    public Fix64 ScanRange => Data?.SystemRules?.ScanRange ?? Fix64.FromInt(320);
 
     /// <summary>The game this system belongs to (set by <see cref="Attach"/>; data, tick, surface).</summary>
     private Simulation? _sim;
@@ -275,6 +297,43 @@ public sealed partial class StarSystemState
     /// <summary>"small" (size 1), "medium" (2-3), "large" (4-5) or "giant" (6+): what a Detected body shows.</summary>
     public static string RoughSize(int size) => size <= 1 ? "small" : size <= 3 ? "medium" : size <= 5 ? "large" : "giant";
 
+    /// <summary>A body's surface gravity in g: its own climate entry's gravity_g if it has one, else its class's
+    /// environment's; null for a body with no surface (giants, belts). Not fogged: <see cref="Report"/> shows it once Charted.
+    /// (Generated bodies carry their class's gravity today.)</summary>
+    public Fix64? GravityOf(string bodyId)
+    {
+        var body = Body(bodyId);
+        var data = Data;
+        if (body == null || data == null) return null;
+        return Generated?.Climate.Body(bodyId)?.GravityG ?? data.Climate?.Body(bodyId)?.GravityG ?? data.EnvironmentOf(body.ClassId)?.GravityG;
+    }
+
+    /// <summary>Live readings of a body now, or null without live data there (<see cref="HasLiveData"/>). On the colony's
+    /// body they are the outpost telemetry at the landing site (or the map's middle before landing); elsewhere what a
+    /// satellite reads from orbit: the class environment's air, the climate's sunlight, season and temperature now, and
+    /// the season's prevailing weather.</summary>
+    public LiveReadings? LiveReadings(int player, string bodyId)
+    {
+        var body = Body(bodyId);
+        var data = Data;
+        if (body == null || data == null || !HasLiveData(player, bodyId)) return null;
+        var env = data.EnvironmentOf(body.ClassId);
+        var gravity = GravityOf(bodyId);
+        var uplink = bodyId == SurfaceBody && _sim?.Surface is { } s && s.UplinkOnline(player, Now);
+        var climate = Climate.Now(data, Generated?.Climate, bodyId, Now);
+        if (bodyId == SurfaceBody && _sim?.Surface is { } surface)
+        {
+            var map = surface.Map;
+            var tile = player < surface.Players.Count && surface.Players[player].LandingTile >= 0 ? surface.Players[player].LandingTile : map.Grid.Count / 2;
+            if (Telemetry.Read(data, map, tile, Now) is { } r)
+                return new LiveReadings(bodyId, Now, uplink, r.GravityG, r.PressureKpa, env?.Atmosphere ?? new List<GasAmount>(), r.TemperatureC,
+                    climate?.MeanTemperatureC, climate?.Insolation, climate?.DayFraction, r.Night, r.Season, r.Weather, env?.HasAtmosphere ?? false, r);
+        }
+        return new LiveReadings(bodyId, Now, false, gravity, env?.PressureKpa, env?.Atmosphere ?? new List<GasAmount>(), climate?.TemperatureC,
+            climate?.MeanTemperatureC, climate?.Insolation, climate?.DayFraction, climate?.Night ?? false, climate?.Season ?? "",
+            climate?.Weather ?? WeatherKind.Clear, climate?.HasWeather ?? false, null);
+    }
+
     /// <summary>Everything the player knows about a body, for its card.</summary>
     public BodyReport? Report(int player, string bodyId)
     {
@@ -289,7 +348,7 @@ public sealed partial class StarSystemState
         var env = data.EnvironmentOf(body.ClassId);
         var cls = data.PlanetClasses.FirstOrDefault(c => c.Id == body.ClassId);
         var climate = Generated != null ? Climate.Summary(data, Generated.Climate, bodyId) : Climate.Summary(data, bodyId);
-        var gravity = Generated?.Climate.Body(bodyId)?.GravityG ?? data.Climate?.Body(bodyId)?.GravityG ?? env?.GravityG;
+        var gravity = GravityOf(bodyId);
         return new BodyReport(bodyId, knowledge, live, body.Position, body.Size, RoughSize(body.Size), ZoneOf(bodyId), body.Parent,
             body.Name, body.ClassId, cls?.Name ?? body.ClassId, MoonsOf(bodyId).Select(m => m.Id).ToList(), gravity, env?.PressureKpa,
             env?.Atmosphere ?? new List<GasAmount>(), climate?.MeanTemperatureC, data.IsLandableClass(body.ClassId), PossibleResources(player, bodyId));
@@ -330,7 +389,7 @@ public sealed partial class StarSystemState
     /// <summary>The bodies a long-range scan from this ship would chart now (within range of where it is).</summary>
     public IReadOnlyList<string> ScanTargets(SystemShip ship)
     {
-        var range = Data?.SystemRules?.ScanRange ?? Fix64.FromInt(320);
+        var range = ScanRange;
         var at = ShipPosition(ship, Now);
         return Bodies.Where(b => FixVec2.Distance(b.Position, at) <= range).Select(b => b.Id).ToList();
     }
@@ -373,6 +432,7 @@ public sealed partial class StarSystemState
             AtBody = home,
         });
         if (home != null) Chart(slot, home);
+        Version++;
     }
 
     /// <summary>Puts the neutral traffic in (maps/system.json traffic): civilian ships at random bodies, leaving at staggered times.</summary>
@@ -397,6 +457,7 @@ public sealed partial class StarSystemState
             ship.LeaveTick = SystemGenerator.Int(Hash(TrafficSalt, 4 + k * 4), 0, rules.DwellMaxSeconds) * (long)Simulation.TickRate;
             _ships.Add(ship);
         }
+        Version++;
     }
 
     // ---------------------------------------------------------------- commands and ticks
@@ -427,7 +488,8 @@ public sealed partial class StarSystemState
                 var ship = FindShip(scan.ShipId)!;
                 foreach (var id in ScanTargets(ship)) Chart(scan.Player, id);
                 ship.LastScanTick = sim.Tick;
-                ship.ScanReadyTick = sim.Tick + (long)(sim.Data.SystemRules?.ScanCooldownSeconds ?? 90) * Simulation.TickRate;
+                Version++;
+                ship.ScanReadyTick = sim.Tick + ScanCooldownTicks;
                 return;
             }
             case SystemSatelliteCommand satellite:
@@ -439,6 +501,7 @@ public sealed partial class StarSystemState
                 }
                 if (sim.Data.SystemRules is { } rules) sim.Players[satellite.Player].Stock.TrySpend(rules.SatelliteCost);
                 _satellites.Add(new SystemSatellite(satellite.Player, satellite.BodyId, sim.Tick));
+                Version++;
                 return;
             }
         }
@@ -455,6 +518,7 @@ public sealed partial class StarSystemState
                 ship.AtBody = ship.ToBody;
                 ship.FromBody = null;
                 ship.ToBody = null;
+                Version++;
                 if (ship.Owner >= 0 && ship.AtBody != null) Chart(ship.Owner, ship.AtBody);
                 if (ship.IsNeutral && sim.Data.SystemRules is { } r)
                     ship.LeaveTick = tick + (long)SystemGenerator.Int(Hash(TripSalt, ship.Id * 1024L + ship.Trips), r.DwellMinSeconds, r.DwellMaxSeconds) * Simulation.TickRate;
@@ -506,8 +570,9 @@ public sealed partial class StarSystemState
         return cargo.Count == 0 ? null : cargo[(int)(Hash(CargoSalt, ship.Id * 1024L + ship.Trips) % (ulong)cargo.Count)];
     }
 
-    private static void Depart(SystemShip ship, string to, long tick, long ticks)
+    private void Depart(SystemShip ship, string to, long tick, long ticks)
     {
+        Version++;
         ship.FromBody = ship.AtBody;
         ship.ToBody = to;
         ship.AtBody = null;
@@ -519,7 +584,9 @@ public sealed partial class StarSystemState
     private void Chart(int player, string bodyId)
     {
         var i = IndexOf(bodyId);
-        if (i >= 0 && player >= 0 && player < _knowledge.Count) _knowledge[player][i] = BodyKnowledge.Charted;
+        if (i < 0 || player < 0 || player >= _knowledge.Count || _knowledge[player][i] == BodyKnowledge.Charted) return;
+        _knowledge[player][i] = BodyKnowledge.Charted;
+        Version++;
     }
 
     private int IndexOf(string? bodyId)

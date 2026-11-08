@@ -671,5 +671,115 @@ public class SystemTests
         sim.Step();
         Assert.All(sys.Bodies, b => Assert.Equal(BodyKnowledge.Charted, sys.KnowledgeOf(0, b.Id)));
         Assert.Equal(10 * Simulation.TickRate, sys.FlagshipOf(0)!.ScanReadyTick);
+        Assert.Equal(10 * Simulation.TickRate, sys.ScanCooldownTicks);
+        Assert.Equal(Fix64.FromInt(5000), sys.ScanRange);
+    }
+
+    // ---------------------------------------------------------------- for the view
+
+    [Fact]
+    public void LiveReadingsOnlyWithLiveData()
+    {
+        var sim = MatchSetup.CreateSystemGame(Data, 1701);
+        var sys = sim.System!;
+        var ship = sys.FlagshipOf(0)!;
+        var home = sys.SurfaceBody!;
+        Assert.Null(sys.LiveReadings(0, home)); // no uplink yet
+        var target = sys.Bodies.First(b => b.Id != home);
+        Assert.Null(sys.LiveReadings(0, target.Id));
+        sim.Schedule(sim.Tick, new SetCourseCommand(0, ship.Id, target.Id));
+        Run(sim, (int)sys.TravelTicks(home, target.Id) + 2);
+        sim.Schedule(sim.Tick, new SystemSatelliteCommand(0, target.Id));
+        sim.Step();
+        var live = sys.LiveReadings(0, target.Id)!;
+        Assert.False(live.FromUplink);
+        Assert.Null(live.Surface);
+        Assert.Equal(Data.EnvironmentOf(target.ClassId)?.GravityG, live.GravityG);
+        Assert.Equal(Data.EnvironmentOf(target.ClassId)?.PressureKpa, live.PressureKpa);
+        Assert.NotNull(live.TemperatureC);
+        Assert.InRange(live.TemperatureC!.Value.ToDouble(), -273, 900);
+        Assert.InRange(live.DayFraction!.Value.ToDouble(), 0, 1);
+        Assert.False(string.IsNullOrEmpty(live.Season));
+        if (!live.HasWeather) Assert.Equal(WeatherKind.Clear, live.Weather);
+        Assert.Null(sys.LiveReadings(1, target.Id));
+        // The temperature moves through the day.
+        var temps = new HashSet<long>();
+        for (var i = 0; i < 8; i++)
+        {
+            Run(sim, 900);
+            temps.Add(sys.LiveReadings(0, target.Id)!.TemperatureC!.Value.Raw);
+        }
+        Assert.True(temps.Count > 1);
+
+        // The colony's own body once the uplink is up: the outpost telemetry.
+        sim.Schedule(sim.Tick, new SetCourseCommand(0, ship.Id, home));
+        Run(sim, (int)sys.TravelTicks(home, target.Id) + 2);
+        var tile = Enumerable.Range(0, sim.Surface!.Map.Grid.Count).First(t => sim.Surface.CanLand(0, t));
+        sim.Schedule(sim.Tick, new LandColonyCommand(0, tile));
+        Run(sim, TestData.ReadyTicks(Data) + 2);
+        var colony = sys.LiveReadings(0, home)!;
+        Assert.True(colony.FromUplink);
+        Assert.NotNull(colony.Surface);
+        Assert.Equal(tile, colony.Surface!.Tile);
+        Assert.Equal(colony.Surface.TemperatureC, colony.TemperatureC);
+    }
+
+    [Fact]
+    public void BodiesReportTheirGravity()
+    {
+        var sim = MatchSetup.CreateSystemGame(Data, 1701);
+        var sys = sim.System!;
+        foreach (var b in sys.Bodies)
+            Assert.Equal(Data.EnvironmentOf(b.ClassId)?.GravityG, sys.GravityOf(b.Id));
+        Assert.Equal(sim.Surface!.GravityG, sys.GravityOf(sys.SurfaceBody!));
+        Assert.Equal(sys.GravityOf(sys.SurfaceBody!), sys.Report(0, sys.SurfaceBody!)!.GravityG);
+    }
+
+    [Fact]
+    public void TheVersionGoesUpWhenTheSystemChanges()
+    {
+        var sim = MatchSetup.CreateSystemGame(Data, 1701);
+        var sys = sim.System!;
+        var ship = sys.FlagshipOf(0)!;
+        var target = sys.Bodies.First(b => b.Id != sys.SurfaceBody).Id;
+        int v;
+        void Bumps(Action act)
+        {
+            v = sys.Version;
+            act();
+            Assert.True(sys.Version > v);
+        }
+        Bumps(() => { sim.Schedule(sim.Tick, new LongRangeScanCommand(0, ship.Id)); sim.Step(); });
+        Bumps(() => { sim.Schedule(sim.Tick, new SetCourseCommand(0, ship.Id, target)); sim.Step(); });
+        Run(sim, (int)ship.ArriveTick - (int)sim.Tick);
+        Bumps(() => sim.Step()); // arrival
+        Bumps(() => { sim.Schedule(sim.Tick, new SystemSatelliteCommand(0, target)); sim.Step(); });
+        // A refused order or a plain look changes nothing.
+        v = sys.Version;
+        var hash = sim.StateHash();
+        sys.ShipPosition(ship, sim.Tick + 1);
+        sys.Report(0, target);
+        sys.LiveReadings(0, target);
+        sys.CourseProblem(0, ship.Id, target);
+        Assert.Equal(v, sys.Version);
+        Assert.Equal(hash, sim.StateHash());
+    }
+
+    [Fact]
+    public void ShipPositionIsPureAndParkedShipsSitOnTheirBody()
+    {
+        var sim = MatchSetup.CreateSystemGame(Data, 1701);
+        var sys = sim.System!;
+        var ship = sys.FlagshipOf(0)!;
+        Assert.Equal(sys.Body(sys.SurfaceBody)!.Position, sys.ShipPosition(ship, sim.Tick));
+        Assert.Equal(sys.Body(sys.SurfaceBody)!.Position, sys.ShipPosition(ship, sim.Tick + 1000));
+        var target = sys.Bodies.First(b => b.Id != sys.SurfaceBody);
+        sim.Schedule(sim.Tick, new SetCourseCommand(0, ship.Id, target.Id));
+        sim.Step();
+        var hash = sim.StateHash();
+        var a = sys.ShipPosition(ship, sim.Tick + 1);
+        Assert.Equal(a, sys.ShipPosition(ship, sim.Tick + 1));
+        Assert.Equal(target.Position, sys.ShipPosition(ship, ship.ArriveTick + 50)); // clamped past arrival
+        Assert.Equal(hash, sim.StateHash());
     }
 }
