@@ -1,0 +1,32 @@
+{
+  "name": "veyra_opener",
+  "description": "The standard opener on Veyra (class L, a Domes world: O2 13.5%): the same economy, plus the domes kit. Crewed buildings (lab, bay, foundry) only fit under cover, and every one costs 15% more metal and 2 more power there. The hub's containment field reaches 1 tile and its own life support carries itself and one more crewed building (the lab), so the economy comes first as on Tarsis (storage, refinery, mine, lab, a second refinery, more storage, refinery Mk II); then a Life Support Plant (off the covered ground, like every automated building), a Pressure Dome two tiles out that opens a ring for the Vehicle Bay and the foundry, and the Fusion Reactor before the bay, since the dome and the plant draw power. The newest crawler fetches deuterium when the reactor runs low. No beams from the ship.",
+  "faction": "federation",
+  "planet": "class_l",
+  "world": "veyra",
+  "landing": { "prefer": ["duranium_ore", "tritanium_ore"] },
+  "survey": { "max_distance": 22 },
+  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 12, "refuel": { "resource": "deuterium", "below": 60, "until": 200 } },
+  "upkeep": { "maintain_below": 55, "repair_below": 45 },
+  "research": ["improved_smelting", "ore_conveyors", "preventive_maintenance", "alloy_metallurgy", "reinforced_drills", "automated_maintenance", "deep_core_mining"],
+  "pause": [
+    { "building": "foundry", "when": "parasteel >= 40 or duranium < 50 or tritanium < 30", "resume": "parasteel < 20 and duranium >= 100 and tritanium >= 60" }
+  ],
+  "steps": [
+    { "build": "storage_container" },
+    { "build": "refinery" },
+    { "build": "mine", "deposit": ["duranium_ore", "tritanium_ore"], "timeout": 90 },
+    { "build": "science_lab" },
+    { "build": "refinery", "when": "duranium_ore >= 100 or tritanium_ore >= 100", "timeout": 240 },
+    { "build": "storage_container" },
+    { "upgrade": "refinery" },
+    { "build": "life_support_plant" },
+    { "build": "pressure_dome" },
+    { "build": "fusion_reactor" },
+    { "build": "vehicle_bay" },
+    { "unit": "mining_crawler" },
+    { "build": "foundry" },
+    { "upgrade": "colony_hub" },
+    { "upgrade": "refinery", "when": "parasteel >= 20" }
+  ]
+}

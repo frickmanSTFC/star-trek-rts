@@ -547,7 +547,7 @@ public sealed class Bot
 
     private void Build(OrderStep step)
     {
-        if (!Data.BuildMenu.Contains(step.Target))
+        if (!S.BuildMenu.Contains(step.Target)) // the surface's menu: + the domes kit on Domes worlds
         {
             Next($"{step.Target} is not in the build menu");
             return;
@@ -605,6 +605,8 @@ public sealed class Bot
             if (problem is not (PlacementProblem.None or PlacementProblem.CannotAfford)) continue;
             // rank: ordinary buildings off deposits first; mines on the most wanted deposit, then the biggest; then nearest the core
             var pass = def.RequiresDeposit ? DepositRank(Map.DepositResource[t]) : def.RequiresDepleted ? 0 : hasDeposit ? 1 : 0;
+            if (Data.WorldStatsOf(buildingId).DomeRadius > 0 && Map.Grid.Distance(core.Tile, t) < 2) pass += 2; // a dome: out past the core's own field
+            if (S.NeedsDomes && !def.Crewed && !def.RequiresDeposit && S.Covered(_p, t)) pass += 1; // keep covered ground for crewed buildings
             var size = def.RequiresDeposit ? -Map.DepositAmount[t].Raw : 0;
             var key = (pass, size, Map.Grid.Distance(core.Tile, t));
             if (best >= 0 && key.CompareTo(bestKey) >= 0) continue;

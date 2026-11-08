@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using FinalFrontier.Sim.Data;
 using FinalFrontier.Sim.Math;
 
@@ -35,6 +37,52 @@ public static class MatchSetup
         sim.LoadSurface(planetClass, seed);
         sim.AddPlayer(faction);
         return sim;
+    }
+
+    /// <summary>The world the planet-first MVP starts on by default.</summary>
+    public const string DefaultWorld = "tarsis";
+
+    /// <summary>
+    /// The same, on a named world of the duel map: a body's name or id ("tarsis", "veyra"; any case). The world gives the
+    /// planet class (its surfaces.json planets entry) and the climate body: Veyra = class_l on body west_l (its climate,
+    /// gravity and habitability tier: a Domes world). Throws for an unknown world or one with no surface yet.
+    /// </summary>
+    public static Simulation CreatePlanetLanding(GameData data, ulong seed, string faction, string? planetClass, string world)
+    {
+        var (cls, body) = ResolveWorld(data, world);
+        if (planetClass != null && planetClass != cls) throw new ArgumentException($"World '{world}' is {cls}, not {planetClass}.");
+        var sim = new Simulation(data, seed);
+        sim.LoadSurface(cls, seed, body);
+        sim.AddPlayer(faction);
+        return sim;
+    }
+
+    /// <summary>A world's planet class and climate body: the first map body (mvp_duel first) whose name or id is the world,
+    /// ignoring case. Throws when there is none, or its class has no surface.</summary>
+    public static (string PlanetClass, string Body) ResolveWorld(GameData data, string world)
+    {
+        foreach (var m in data.Maps.OrderBy(m => m.Id == MvpMap ? 0 : 1))
+            foreach (var b in m.Bodies)
+                if (string.Equals(b.Id, world, StringComparison.OrdinalIgnoreCase) || string.Equals(b.Name, world, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!data.Surfaces.Any(s => s.ClassId == b.ClassId)) throw new ArgumentException($"World '{world}' ({b.ClassId}) has no surface yet.");
+                    return (b.ClassId, b.Id);
+                }
+        throw new ArgumentException($"Unknown world '{world}'.");
+    }
+
+    /// <summary>Whether a world name resolves to a body with a playable surface.</summary>
+    public static bool IsWorld(GameData data, string world)
+    {
+        try
+        {
+            ResolveWorld(data, world);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 
     public static Simulation CreateMvpSkirmish(GameData data, ulong seed) =>

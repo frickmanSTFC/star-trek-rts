@@ -161,6 +161,20 @@ layer above it once the surface game is fun.
   build queue) or object; command card. Shields and integrity come later with defences.
 - **Camera:** pan, zoom, and turn the view in 90° steps (Q / E).
 - **Opponent:** solo first to get landing, surveying and building right; then a Cardassian landing on the same world.
+- **Gravity and hostile worlds** (decided 2026-11-08, Gravity & Hostile Worlds design doc; numbers in
+  `data/surfaces/worlds.json`): every surface has one gravity (its body's, else its class's), and smooth curves turn it
+  into multipliers for driving, rover wear, descents, drop-ship fuel (5 deuterium a trip at 1 g; transporters ignore
+  gravity), cargo pods, build time, metal costs, extraction and crews on foot; hills cost more above 1 g. The curves are
+  normalised so Class M (0.97 g) plays exactly as before. A world's **habitability tier** (Open, Masks, Suits, Domes,
+  Tech, Impossible) is the worst of its gravity, air pressure, oxygen and toxic gases, temperature and radiation
+  checks; below 16% oxygen a world needs domes, so **Veyra** (Class L, the duel map's contested dilithium world:
+  O₂ 13.5%, CO₂ 4.5%) is a Domes world and can now be played. On a Domes world crewed buildings (habitats, labs,
+  the foundry, the Vehicle Bay, cores) only go up under cover: the colony core's containment field (1 tile) or a
+  **Pressure Dome**'s (2 tiles), cost 15% more metal and draw 2 more power; each base needs **life support**
+  (the core's own, plus Life Support Plants): short of it crewed buildings slow down, and with none for 30 s the base
+  starts losing crew. Mines, storage, the refinery and the reactor are automated and can stand anywhere. Both new
+  buildings appear in the build menu only on Domes worlds. Not yet: crew conditioning, species tolerance, EVA teams,
+  unsealed rovers, the other hostile classes' hooks.
 
 ## 4. Economy
 

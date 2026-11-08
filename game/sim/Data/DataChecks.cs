@@ -22,17 +22,28 @@ public static class DataChecks
         return problems;
     }
 
-    /// <summary>A generated Class M planet: ocean share, at least 50 landing sites, the basic deposits, deposits on allowed terrain.</summary>
+    /// <summary>Every planet class with a surface (surfaces.json planets: class M = Tarsis, class L = Veyra), generated on this seed.</summary>
     public static List<string> PlanetProblems(GameData data, ulong seed)
     {
         var problems = new List<string>();
-        var map = MatchSetup.CreatePlanetLanding(data, seed).Surface!.Map;
+        foreach (var def in data.Surfaces) problems.AddRange(PlanetProblems(data, seed, def.ClassId));
+        return problems;
+    }
+
+    /// <summary>A generated planet of this class: ocean share near its threshold (ranking makes it exact, minus the polar
+    /// rows: from 10 points under to 1 over; class M 20–31%), at least 50 landing sites, the basic deposits, deposits on
+    /// allowed terrain.</summary>
+    public static List<string> PlanetProblems(GameData data, ulong seed, string planetClass)
+    {
+        var problems = new List<string>();
+        var map = MatchSetup.CreatePlanetLanding(data, seed, planetClass: planetClass).Surface!.Map;
         var def = map.Def;
         var tiles = Enumerable.Range(0, map.Grid.Count).ToList();
         var where = $"Planet {def.ClassId} seed {seed}";
         var ocean = tiles.Count(t => map.Terrain(t).Id == "ocean");
-        if (ocean < map.Grid.Count * 20 / 100 || ocean > map.Grid.Count * 31 / 100)
-            problems.Add($"{where}: {ocean * 100 / map.Grid.Count}% ocean (should be 20–31%).");
+        var (lo, hi) = OceanRange(def, map.Grid.Count);
+        if (ocean < lo || ocean > hi)
+            problems.Add($"{where}: {ocean * 100 / map.Grid.Count}% ocean (should be {lo * 100 / map.Grid.Count}–{hi * 100 / map.Grid.Count}%).");
         var sites = tiles.Count(map.IsLandingSite);
         if (sites < 50) problems.Add($"{where}: only {sites} landing sites (needs 50).");
         foreach (var basic in new[] { "duranium_ore", "tritanium_ore", "deuterium" })
@@ -47,6 +58,15 @@ public static class DataChecks
             }
         }
         return problems;
+    }
+
+    /// <summary>Tiles of ocean a generated planet may have: its ocean threshold's share from 10 points under to 1 point over
+    /// (polar rows take some). Class M, the home world, keeps its fixed 20–31% whatever its threshold says.</summary>
+    public static (int Min, int Max) OceanRange(PlanetSurfaceDef def, int tiles)
+    {
+        if (def.ClassId == MatchSetup.MvpPlanetClass) return (tiles * 20 / 100, tiles * 31 / 100);
+        var pct = (def.OceanBelow * 100).FloorToInt();
+        return (tiles * System.Math.Max(0, pct - 10) / 100, tiles * (pct + 1) / 100);
     }
 
     /// <summary>The duel map is point-symmetric (every body has a twin at -position: same class, size, deposits, moon-ness) and twins share their climate.</summary>

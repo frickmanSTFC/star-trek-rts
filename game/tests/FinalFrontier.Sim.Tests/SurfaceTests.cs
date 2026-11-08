@@ -47,19 +47,24 @@ public class SurfaceGenerationTests
     }
 
     [Theory]
-    [InlineData(1UL)]
-    [InlineData(1701UL)]
-    [InlineData(99999UL)]
-    public void PlanetsArePlayable(ulong seed)
+    [InlineData(1UL, "tarsis")]
+    [InlineData(1701UL, "tarsis")]
+    [InlineData(99999UL, "tarsis")]
+    [InlineData(1UL, "veyra")]
+    [InlineData(1701UL, "veyra")]
+    [InlineData(99999UL, "veyra")]
+    public void PlanetsArePlayable(ulong seed, string world)
     {
         var data = TestData.Real;
-        var map = Planet(seed);
+        var map = MatchSetup.CreatePlanetLanding(data, seed, "federation", null, world).Surface!.Map;
         var def = map.Def;
         var tiles = Enumerable.Range(0, map.Grid.Count).ToList();
 
-        // Terrain shares follow the thresholds (ranking makes them exact, minus polar rows).
+        // Terrain shares follow the thresholds (ranking makes them exact, minus polar rows): class M 20–31% ocean.
         var ocean = tiles.Count(t => map.Terrain(t).Id == "ocean");
-        Assert.InRange(ocean, map.Grid.Count * 20 / 100, map.Grid.Count * 31 / 100);
+        var (lo, hi) = FinalFrontier.Sim.Data.DataChecks.OceanRange(def, map.Grid.Count);
+        Assert.InRange(ocean, lo, hi);
+        if (world == "tarsis") Assert.InRange(ocean, map.Grid.Count * 20 / 100, map.Grid.Count * 31 / 100);
 
         // Enough places to land, and the basics are on the map.
         Assert.True(tiles.Count(map.IsLandingSite) >= 50, "too few landing sites");

@@ -160,6 +160,7 @@ internal static class Cli
         Description = o.Description,
         Faction = faction,
         Planet = o.Planet,
+        World = o.World,
         LandingPrefer = o.LandingPrefer,
         SurveyMaxDistance = o.SurveyMaxDistance,
         CrawlerPrefer = o.CrawlerPrefer,

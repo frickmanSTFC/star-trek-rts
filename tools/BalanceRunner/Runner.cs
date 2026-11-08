@@ -19,7 +19,9 @@ public static class Runner
             Minutes = minutes,
             StepsTotal = order.Steps.Count,
         };
-        var sim = MatchSetup.CreatePlanetLanding(data, seed, order.Faction, order.Planet);
+        var sim = order.World != null
+            ? MatchSetup.CreatePlanetLanding(data, seed, order.Faction, null, order.World)
+            : MatchSetup.CreatePlanetLanding(data, seed, order.Faction, order.Planet);
         var bot = new Bot(sim, 0, order);
         var recorder = new Recorder(sim, 0, bot, sampleSeconds, result);
         var ticks = (long)System.Math.Round(minutes * Simulation.TicksPerMinute);

@@ -167,7 +167,7 @@ public sealed partial class PlanetSurface
             if (!DrawsPower(s.Status)) continue;
             var def = _data.Building(s.DefId);
             supply += def.PowerSupply * ConditionFactor(s); // worn reactors supply less
-            use += def.PowerUse;
+            use += def.PowerUse + CrewedExtraPower(s);
         }
         if (owner >= 0 && _players[owner].UnlimitedPower) supply = Fix64.Max(supply, use); // test panel
         return new BasePower(supply, use);
@@ -419,7 +419,7 @@ public sealed partial class PlanetSurface
             unit.RepairWaiting = true;
             return;
         }
-        var heal = Fix64.Min(repair.PerSecond / Simulation.TickRate, Hundred - unit.Integrity);
+        var heal = Fix64.Min(repair.PerSecond * Gravity.CrewWork / Simulation.TickRate, Hundred - unit.Integrity);
         var cost = repair.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * heal)).ToList();
         var stock = sim.Players[unit.Owner].Stock;
         if (!stock.TrySpend(cost))
@@ -479,9 +479,53 @@ public sealed partial class PlanetSurface
         if (!OnMap(tile)) return "off the map";
         if (!SafeGround(tile)) return Map.NearNatives(tile) ? "that's the natives' land" : "nowhere safe to land there";
         if (DropWeatherProblem(sim.Tick, tile) is { } weather) return weather;
-        if (!sim.Players[player].Stock.CanAfford(_data.SurfaceUnit(unitId).Cost)) return "not enough resources";
+        var cost = _data.SurfaceUnit(unitId).Cost;
+        var stock = sim.Players[player].Stock;
+        if (!stock.CanAfford(cost)) return "not enough resources";
+        if (ShuttleFuel.Count > 0 && !stock.CanAfford(Plus(cost, ShuttleFuel))) return ShuttleFuelProblem;
         return null;
     }
+
+    /// <summary>What the player is told when the drop ship's fuel is short.</summary>
+    public const string ShuttleFuelProblem = "not enough deuterium for the drop ship";
+
+    /// <summary>What one drop-ship trip burns on this surface: orbit.shuttle.fuel × the lift-cost curve (5 deuterium on
+    /// class M). The first landing and outpost drops don't pay it; transporters ignore gravity.</summary>
+    public IReadOnlyList<ResourceAmount> ShuttleFuel => Gravity.Fuel(_data.Orbit);
+
+    /// <summary>Two costs added together, sorted by resource.</summary>
+    private static List<ResourceAmount> Plus(IReadOnlyList<ResourceAmount> a, IReadOnlyList<ResourceAmount> b)
+    {
+        var list = new List<ResourceAmount>(a);
+        foreach (var c in b)
+        {
+            var i = list.FindIndex(x => x.Resource == c.Resource);
+            if (i >= 0) list[i] = new ResourceAmount(c.Resource, list[i].Amount + c.Amount);
+            else list.Add(c);
+        }
+        list.Sort((x, y) => x.Resource.CompareTo(y.Resource));
+        return list;
+    }
+
+    /// <summary>How long a building takes to build on this surface, in ticks (build_seconds × the build-time curve).</summary>
+    public int BuildTicksOf(string buildingId) => (int)GravityProfile.Ticks((long)_data.Building(buildingId).BuildSeconds * Simulation.TickRate, Gravity.BuildTime);
+
+    /// <summary>How long a building level (Mk II, Mk III) takes on this surface, in ticks.</summary>
+    public int LevelTicksOf(BuildingLevel level) => (int)GravityProfile.Ticks((long)level.BuildSeconds * Simulation.TickRate, Gravity.BuildTime);
+
+    /// <summary>What a building costs on this surface: its cost with the metal × the build-cost curve (class M: the data's cost).</summary>
+    public IReadOnlyList<ResourceAmount> BuildCostOf(string buildingId)
+    {
+        var cost = Gravity.ScaleCost(_data.Building(buildingId).Cost);
+        // Domes worlds: a crewed building is built sealed (habitability.domes crewed_metal_cost).
+        return Domes is { } d && _data.IsCrewed(buildingId) && !_data.Building(buildingId).IsCore ? Gravity.ScaleMetal(cost, d.CrewedMetalCost) : cost;
+    }
+
+    /// <summary>What a building level costs on this surface.</summary>
+    public IReadOnlyList<ResourceAmount> LevelCostOf(BuildingLevel level) => Gravity.ScaleCost(level.Cost);
+
+    /// <summary>A descent or flight of this many seconds on this surface, in ticks (× the descent-time curve).</summary>
+    public long DescentTicks(int seconds) => GravityProfile.Ticks((long)seconds * Simulation.TickRate, Gravity.DescentTime);
 
     /// <summary>Tiles from the player's nearest finished core or unit (the transporter needs a lock on your people).</summary>
     private int DistanceToOwn(int player, int tile)
@@ -781,7 +825,7 @@ public sealed partial class PlanetSurface
     /// <summary>Restores up to one tick of repair, paying for it; false (and MaintenanceWaiting) if the player can't pay.</summary>
     private bool RepairTick(Simulation sim, SurfaceStructure s, MaintenanceRules rules)
     {
-        var heal = Fix64.Min(rules.RepairPerSecond / Simulation.TickRate, Full - s.Condition);
+        var heal = Fix64.Min(rules.RepairPerSecond * Gravity.CrewWork / Simulation.TickRate, Full - s.Condition);
         var cost = rules.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * heal)).ToList();
         if (!sim.Players[s.Owner].Stock.TrySpend(cost))
         {
@@ -839,6 +883,7 @@ public sealed partial class PlanetSurface
                     core.CrewPhase = CrewPhase.Out;
                     core.CrewTicks = 0;
                     var walk = (rules.CrewWalkSeconds + rules.CrewSecondsPerTile * Fix64.FromInt(Map.Grid.Distance(core.Tile, next.Tile))) * Simulation.TickRate;
+                    if (Gravity.CrewWork != Fix64.One) walk /= Gravity.CrewWork; // odd gravity: the crew walk slower
                     core.CrewWalkTicks = System.Math.Max(1, walk.FloorToInt());
                     break;
                 case CrewPhase.Out:
@@ -898,7 +943,7 @@ public sealed partial class PlanetSurface
         {
             if (s.Owner != player || s.State != StructureState.Complete || s.Status is not (StructureStatus.Working or StructureStatus.LowPower)) continue;
             var def = _data.Building(s.DefId);
-            if (def.IsLab) total += def.ResearchPerMinute * WorkRate(s, PowerOf(s.BaseId).Efficiency);
+            if (def.IsLab) total += def.ResearchPerMinute * WorkRate(s, PowerOf(s.BaseId).Efficiency) * CrewShare(s, null);
         }
         return total;
     }
@@ -984,7 +1029,7 @@ public sealed partial class PlanetSurface
     /// </summary>
     public PlacementProblem CheckPlacement(Simulation sim, int player, string buildingId, int tile)
     {
-        if (!_data.BuildMenu.Contains(buildingId)) return PlacementProblem.NotInBuildMenu;
+        if (!BuildMenu.Contains(buildingId)) return PlacementProblem.NotInBuildMenu; // + the domes kit on Domes worlds
         if (tile < 0 || tile >= Map.Grid.Count) return PlacementProblem.OffMap;
         if (player < 0 || player >= _players.Count || _players[player].Phase != LandingPhase.Landed) return PlacementProblem.NotLanded;
         if (!_players[player].Surveyed[tile]) return PlacementProblem.NotSurveyed;
@@ -1003,7 +1048,8 @@ public sealed partial class PlanetSurface
         if (def.RequiresTech.Length > 0 && (!_data.HasTech(def.RequiresTech) || !_players[player].Known[_data.Tech(def.RequiresTech).Index])) return PlacementProblem.NeedsTech;
         if (def.RequiresDeposit && (Map.DepositResource[tile] < 0 || Map.DepositAmount[tile] <= Fix64.Zero)) return PlacementProblem.NeedsDeposit;
         if (def.RequiresDepleted && (!Map.IsDepleted(tile) || Map.DepositReopened[tile])) return PlacementProblem.NeedsDepletedDeposit;
-        if (!_players[player].FreeBuilding && !sim.Players[player].Stock.CanAfford(def.Cost)) return PlacementProblem.CannotAfford;
+        if (def.Crewed && !Covered(player, tile)) return PlacementProblem.NeedsDome; // Domes worlds only (Habitability.cs)
+        if (!_players[player].FreeBuilding && !sim.Players[player].Stock.CanAfford(BuildCostOf(buildingId))) return PlacementProblem.CannotAfford;
         return PlacementProblem.None;
     }
 
@@ -1047,7 +1093,7 @@ public sealed partial class PlanetSurface
     public Fix64 BuildFraction(SurfaceStructure s)
     {
         if (s.State is StructureState.Complete or StructureState.Assembling) return Fix64.One; // assembling ≠ under construction
-        var total = _data.Building(s.DefId).BuildSeconds * Simulation.TickRate;
+        var total = BuildTicksOf(s.DefId);
         return total <= 0 ? Fix64.One : Fix64.Ratio(s.BuildTicks, total);
     }
 
@@ -1056,11 +1102,11 @@ public sealed partial class PlanetSurface
     {
         if (s.UpgradingLevel > 0)
         {
-            var lt = _data.Building(s.DefId).Levels[s.UpgradingLevel - 2].BuildSeconds * Simulation.TickRate;
+            var lt = LevelTicksOf(_data.Building(s.DefId).Levels[s.UpgradingLevel - 2]);
             return lt <= 0 ? Fix64.One : Fix64.Ratio(s.UpgradeTicks, lt);
         }
         if (s.UpgradingTo == null) return Fix64.Zero;
-        var total = _data.Building(s.UpgradingTo).BuildSeconds * Simulation.TickRate;
+        var total = BuildTicksOf(s.UpgradingTo);
         return total <= 0 ? Fix64.One : Fix64.Ratio(s.UpgradeTicks, total);
     }
 
@@ -1079,12 +1125,12 @@ public sealed partial class PlanetSurface
             var core = FindStructure(s.BaseId);
             if (level.RequiresLevel > 0 && (core == null || _data.Building(core.DefId).Level < level.RequiresLevel))
                 return $"needs a level {level.RequiresLevel} base (Colonial Administration)";
-            if (!sim.Players[player].Stock.CanAfford(level.Cost)) return "not enough resources";
+            if (!sim.Players[player].Stock.CanAfford(LevelCostOf(level))) return "not enough resources";
             return null;
         }
         var next = def.UpgradesTo;
         if (next.Length == 0) return "top level";
-        if (!sim.Players[player].Stock.CanAfford(_data.Building(next).Cost)) return "not enough resources";
+        if (!sim.Players[player].Stock.CanAfford(BuildCostOf(next))) return "not enough resources";
         return null;
     }
 
@@ -1098,20 +1144,22 @@ public sealed partial class PlanetSurface
         var stock = sim.Players[player].Stock;
         foreach (var u in _units)
             if (u.Owner == player && u.Mode == UnitMode.Deployed && u.MiningStatus == MiningStatus.Mining && Map.DepositResource[u.Tile] >= 0)
-                income.Add(Map.DepositResource[u.Tile], _data.SurfaceUnit(u.DefId).ExtractPerMinute);
+                income.Add(Map.DepositResource[u.Tile], _data.SurfaceUnit(u.DefId).ExtractPerMinute * Gravity.Extraction);
         var efficiency = new Dictionary<int, Fix64>();
+        var lifeSupport = new Dictionary<int, Fix64>();
         foreach (var s in _structures)
         {
             if (s.Owner != player || s.State != StructureState.Complete) continue;
             if (s.Status is not (StructureStatus.Working or StructureStatus.LowPower)) continue;
             var def = _data.Building(s.DefId);
             if (!efficiency.TryGetValue(s.BaseId, out var eff)) efficiency[s.BaseId] = eff = PowerOf(s.BaseId).Efficiency;
-            var output = (def.PowerUse > Fix64.Zero ? eff : Fix64.One) * ConditionFactor(s);
-            var speed = WorkRate(s, eff);
+            var air = CrewShare(s, lifeSupport); // crewed buildings on a Domes world short of life support
+            var output = (def.PowerUse > Fix64.Zero ? eff : Fix64.One) * ConditionFactor(s) * air;
+            var speed = WorkRate(s, eff) * air;
             foreach (var o in def.OutputPerMinute) income.Add(o.Resource, o.Amount * output);
             foreach (var u in def.UpkeepPerMinute) income.Add(u.Resource, -u.Amount);
             if (def.IsMine && Map.DepositResource[s.Tile] >= 0)
-                income.Add(Map.DepositResource[s.Tile], def.ExtractPerMinute * speed);
+                income.Add(Map.DepositResource[s.Tile], def.ExtractPerMinute * speed * Gravity.Extraction);
             if (def.IsConverter)
             {
                 var runnable = def.Recipes.Where(r => HasInput(stock, r)).ToList();
@@ -1147,7 +1195,7 @@ public sealed partial class PlanetSurface
                 p.Phase = LandingPhase.Descending;
                 p.LandingTile = land.Tile;
                 p.DescentStartTick = sim.Tick;
-                p.LandsAtTick = sim.Tick + (long)_data.Landing.DescentSeconds * Simulation.TickRate;
+                p.LandsAtTick = sim.Tick + DescentTicks(_data.Landing.DescentSeconds);
                 return true;
 
             case MoveUnitsCommand move:
@@ -1201,15 +1249,16 @@ public sealed partial class PlanetSurface
                 var orbit = _data.Orbit!;
                 sim.Players[drop.Player].Stock.TrySpend(orbit.OutpostCost);
                 Deliver(drop.Player, DeliveryKind.Outpost, drop.Tile, orbit.OutpostBuilding, System.Array.Empty<ResourceAmount>(), sim.Tick,
-                    sim.Tick + (long)orbit.OutpostDescentSeconds * Simulation.TickRate);
+                    sim.Tick + DescentTicks(orbit.OutpostDescentSeconds));
                 return true;
             }
 
             case ShuttleCommand shuttle:
             {
                 if (ShuttleProblem(sim, shuttle.Player, shuttle.Tile, shuttle.UnitId) is { } shuttleProblem) return sim.Refuse(shuttle, shuttleProblem);
-                var flight = (long)_data.Orbit!.ShuttleSeconds * Simulation.TickRate;
+                var flight = DescentTicks(_data.Orbit!.ShuttleSeconds);
                 sim.Players[shuttle.Player].Stock.TrySpend(_data.SurfaceUnit(shuttle.UnitId).Cost);
+                sim.Players[shuttle.Player].Stock.TrySpend(ShuttleFuel); // deuterium for the trip (× lift cost)
                 Deliver(shuttle.Player, DeliveryKind.Shuttle, shuttle.Tile, shuttle.UnitId, System.Array.Empty<ResourceAmount>(), sim.Tick, sim.Tick + flight);
                 _players[shuttle.Player].ShuttleBackTick = sim.Tick + flight * 2; // down, then back up to the ship
                 return true;
@@ -1343,11 +1392,11 @@ public sealed partial class PlanetSurface
                 if (def.IsCore) return sim.Refuse(salvage, "a colony core can't be salvaged");
                 var bag = sim.Players[salvaged.Owner].Stock;
                 if (!salvaged.Free) // placed free by the test panel: nothing back for the building itself
-                    foreach (var c in def.Cost) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
+                    foreach (var c in BuildCostOf(salvaged.DefId)) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
                 for (var l = 0; l < salvaged.Level - 1 && l < def.Levels.Count; l++) // levels bought count too
-                    foreach (var c in def.Levels[l].Cost) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
+                    foreach (var c in LevelCostOf(def.Levels[l])) bag.Add(c.Resource, c.Amount * _data.SalvageRefund);
                 if (salvaged.UpgradingLevel > 0) // an unfinished upgrade comes back in full
-                    foreach (var c in def.Levels[salvaged.UpgradingLevel - 2].Cost) bag.Add(c.Resource, c.Amount);
+                    foreach (var c in LevelCostOf(def.Levels[salvaged.UpgradingLevel - 2])) bag.Add(c.Resource, c.Amount);
                 foreach (var queued in salvaged._production) // unbuilt orders come back in full
                     foreach (var c in _data.SurfaceUnit(queued).Cost) bag.Add(c.Resource, c.Amount);
                 _structures.Remove(salvaged);
@@ -1360,7 +1409,7 @@ public sealed partial class PlanetSurface
                 if (CheckPlacement(sim, place.Player, place.BuildingId, place.Tile) is var placement and not PlacementProblem.None)
                     return sim.Refuse(place, placement.ToString());
                 var free = _players[place.Player].FreeBuilding;
-                if (!free) sim.Players[place.Player].Stock.TrySpend(_data.Building(place.BuildingId).Cost);
+                if (!free) sim.Players[place.Player].Stock.TrySpend(BuildCostOf(place.BuildingId));
                 PlaceStructure(place.Player, place.BuildingId, place.Tile, ((place.Facing % 6) + 6) % 6,
                     StructureState.Queued, BaseFor(place.Player, place.Tile)).Free = free;
                 return true;
@@ -1371,13 +1420,13 @@ public sealed partial class PlanetSurface
                 var core = FindStructure(upgrade.StructureId)!;
                 if (NextLevel(core) is { } level)
                 {
-                    sim.Players[core.Owner].Stock.TrySpend(level.Cost);
+                    sim.Players[core.Owner].Stock.TrySpend(LevelCostOf(level));
                     core.UpgradingLevel = core.Level + 1;
                     core.UpgradeTicks = 0;
                     return true;
                 }
                 var target = _data.Building(core.DefId).UpgradesTo;
-                sim.Players[core.Owner].Stock.TrySpend(_data.Building(target).Cost);
+                sim.Players[core.Owner].Stock.TrySpend(BuildCostOf(target));
                 core.UpgradingTo = target;
                 core.UpgradeTicks = 0;
                 return true;
@@ -1397,19 +1446,19 @@ public sealed partial class PlanetSurface
                     // A finished building can only have its upgrade cancelled.
                     if (s.UpgradingLevel > 0)
                     {
-                        foreach (var c in _data.Building(s.DefId).Levels[s.UpgradingLevel - 2].Cost) stock.Add(c.Resource, c.Amount);
+                        foreach (var c in LevelCostOf(_data.Building(s.DefId).Levels[s.UpgradingLevel - 2])) stock.Add(c.Resource, c.Amount);
                         s.UpgradingLevel = 0;
                         s.UpgradeTicks = 0;
                         return true;
                     }
                     if (s.UpgradingTo == null) return sim.Refuse(cancel, "already built, and not upgrading");
-                    foreach (var c in _data.Building(s.UpgradingTo).Cost) stock.Add(c.Resource, c.Amount);
+                    foreach (var c in BuildCostOf(s.UpgradingTo)) stock.Add(c.Resource, c.Amount);
                     s.UpgradingTo = null;
                     s.UpgradeTicks = 0;
                     return true;
                 }
                 if (!s.Free)
-                    foreach (var c in _data.Building(s.DefId).Cost) stock.Add(c.Resource, c.Amount);
+                    foreach (var c in BuildCostOf(s.DefId)) stock.Add(c.Resource, c.Amount);
                 _structures.Remove(s);
                 _structureAt[s.Tile] = 0;
                 return true;
@@ -1433,15 +1482,15 @@ public sealed partial class PlanetSurface
 
     /// <summary>Salvage value of a finished building (its cost × salvage_refund).</summary>
     public IReadOnlyList<ResourceAmount> SalvageValue(string buildingId) =>
-        _data.Building(buildingId).Cost.Select(c => new ResourceAmount(c.Resource, c.Amount * _data.SalvageRefund)).ToList();
+        BuildCostOf(buildingId).Select(c => new ResourceAmount(c.Resource, c.Amount * _data.SalvageRefund)).ToList();
 
     /// <summary>Salvage value of this building, counting the levels bought for it.</summary>
     public IReadOnlyList<ResourceAmount> SalvageValue(SurfaceStructure s)
     {
         var def = _data.Building(s.DefId);
-        var bag = new ResourceBag(_data.Resources.Count, def.Cost);
+        var bag = new ResourceBag(_data.Resources.Count, BuildCostOf(s.DefId));
         for (var l = 0; l < s.Level - 1 && l < def.Levels.Count; l++)
-            foreach (var c in def.Levels[l].Cost) bag.Add(c.Resource, c.Amount);
+            foreach (var c in LevelCostOf(def.Levels[l])) bag.Add(c.Resource, c.Amount);
         var list = new List<ResourceAmount>();
         for (var r = 0; r < bag.Count; r++)
             if (bag[r] > Fix64.Zero) list.Add(new ResourceAmount(r, bag[r] * _data.SalvageRefund));
@@ -1465,6 +1514,7 @@ public sealed partial class PlanetSurface
         LandDeliveries(sim);
         SweepSatellites(sim);
         Economy(sim);
+        LifeSupport(sim); // Habitability.cs: Domes worlds only
         Maintenance(sim);
         Crawlers(sim);
         Founders(sim);
@@ -1498,7 +1548,7 @@ public sealed partial class PlanetSurface
                 free--;
                 s.State = StructureState.Building;
                 s.BuildTicks++;
-                if (s.BuildTicks >= _data.Building(s.DefId).BuildSeconds * Simulation.TickRate) finished.Add(s);
+                if (s.BuildTicks >= BuildTicksOf(s.DefId)) finished.Add(s);
             }
         }
         // Finish after the loop so nothing finished this tick changes this tick's queues.
@@ -1526,7 +1576,7 @@ public sealed partial class PlanetSurface
             var instant = _players[s.Owner].InstantBuild; // test panel
             if (s.UpgradingLevel > 0)
             {
-                if (!instant && ++s.UpgradeTicks < _data.Building(s.DefId).Levels[s.UpgradingLevel - 2].BuildSeconds * Simulation.TickRate) continue;
+                if (!instant && ++s.UpgradeTicks < LevelTicksOf(_data.Building(s.DefId).Levels[s.UpgradingLevel - 2])) continue;
                 FinishLevel(s);
                 continue;
             }
@@ -1534,7 +1584,7 @@ public sealed partial class PlanetSurface
             if (!instant)
             {
                 s.UpgradeTicks++;
-                if (s.UpgradeTicks < _data.Building(s.UpgradingTo).BuildSeconds * Simulation.TickRate) continue;
+                if (s.UpgradeTicks < BuildTicksOf(s.UpgradingTo)) continue;
             }
             FinishCoreUpgrade(s);
         }
@@ -1623,6 +1673,7 @@ public sealed partial class PlanetSurface
         }
 
         var efficiency = new Dictionary<int, Fix64>();
+        var lifeSupport = new Dictionary<int, Fix64>(); // per base, as the statuses stand after the first pass
         foreach (var s in _structures)
         {
             if (s.State != StructureState.Complete || s.Status != StructureStatus.Working) continue;
@@ -1630,14 +1681,15 @@ public sealed partial class PlanetSurface
             if (!efficiency.TryGetValue(s.BaseId, out var eff)) efficiency[s.BaseId] = eff = PowerOf(s.BaseId).Efficiency;
             if (def.PowerUse > Fix64.Zero && eff < Fix64.One) s.Status = StructureStatus.LowPower;
             var condition = ConditionFactor(s);
-            var output = (def.PowerUse > Fix64.Zero ? eff : Fix64.One) * condition; // plain outputs (crew, the core's trickle)
-            var speed = WorkRate(s, eff); // its work: extraction, cycles, assembly, research
+            var air = CrewShare(s, lifeSupport); // crewed buildings on a Domes world work at their base's life support (1 elsewhere)
+            var output = (def.PowerUse > Fix64.Zero ? eff : Fix64.One) * condition * air; // plain outputs (crew, the core's trickle)
+            var speed = WorkRate(s, eff) * air; // its work: extraction, cycles, assembly, research
 
             var stock = sim.Players[s.Owner].Stock;
             foreach (var o in def.OutputPerMinute) Store(sim, s.Owner, o.Resource, o.Amount * output / Simulation.TicksPerMinute);
             if (def.IsMine)
             {
-                var take = Fix64.Min(def.ExtractPerMinute * speed / Simulation.TicksPerMinute, Map.DepositAmount[s.Tile]);
+                var take = Fix64.Min(def.ExtractPerMinute * speed * Gravity.Extraction / Simulation.TicksPerMinute, Map.DepositAmount[s.Tile]);
                 Map.DepositAmount[s.Tile] -= Store(sim, s.Owner, Map.DepositResource[s.Tile], take);
             }
             if (def.IsConverter)
@@ -1762,7 +1814,7 @@ public sealed partial class PlanetSurface
             Break(sim, unit, rules);
             return;
         }
-        var take = Fix64.Min(def.ExtractPerMinute / Simulation.TicksPerMinute, Fix64.Min(Map.DepositAmount[tile], def.Hopper - unit.Hopper));
+        var take = Fix64.Min(def.ExtractPerMinute * Gravity.Extraction / Simulation.TicksPerMinute, Fix64.Min(Map.DepositAmount[tile], def.Hopper - unit.Hopper));
         Map.DepositAmount[tile] -= take;
         unit.Hopper += take;
         unit.HopperResource = Map.DepositResource[tile];
@@ -1784,7 +1836,7 @@ public sealed partial class PlanetSurface
             return false;
         }
         var distance = Map.Grid.Distance(unit.Tile, depot.Tile);
-        var flight = System.Math.Max(Simulation.TickRate, (Fix64.FromInt(distance * Simulation.TickRate) / def.PodSpeed).FloorToInt() + 1);
+        var flight = System.Math.Max(Simulation.TickRate, (Fix64.FromInt(distance * Simulation.TickRate) / (def.PodSpeed * Gravity.PodSpeed)).FloorToInt() + 1);
         _pods.Add(new CargoPod(_nextPodId++, unit.Owner, unit.HopperResource, unit.Hopper, unit.Tile, depot.Tile, sim.Tick, sim.Tick + flight));
         unit.Hopper = Fix64.Zero;
         unit.HopperResource = -1;
@@ -1854,6 +1906,7 @@ public sealed partial class PlanetSurface
         h.Add(_nextPodId);
         h.Add(_nextDeliveryId);
         h.Add(_nextSatelliteId);
+        AddLifeSupportToHash(ref h); // Domes worlds only (Habitability.cs)
         // Not hashed because they follow from what is hashed: _structureAt (each structure's Tile; the fuzz test checks
         // they agree), _weatherTick (sim.Tick at the top of Step), _data (Simulation hashes each change of data), and
         // each unit's SpeedPerTick / SurveyRadius (its def in that data).

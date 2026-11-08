@@ -216,8 +216,8 @@
           "id": "pressure_dome",
           "name": "Pressure Domes",
           "cost": {
-            "transparent_aluminum": 40,
-            "topaline": 10
+            "duranium": 160,
+            "tritanium": 60
           },
           "effect": "Domes on any solid body; breach risk.",
           "stats": {

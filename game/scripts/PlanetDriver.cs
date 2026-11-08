@@ -24,6 +24,10 @@ public partial class PlanetDriver : Node3D, ITestHost
 
     [Export] public string PlanetName { get; set; } = "Tarsis";
 
+    /// <summary>Which world of the duel map to start on: "tarsis" (class M, Open) or "veyra" (class L, a Domes world).
+    /// A body name or id (MatchSetup.ResolveWorld).</summary>
+    [Export] public string World { get; set; } = "tarsis";
+
     /// <summary>How close unexplored ground gets to black (0..1).</summary>
     [Export(PropertyHint.Range, "0.5,0.98,0.01")] public float FogDarkness { get; set; } = 0.92f;
 
@@ -139,7 +143,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var data = GameDataLoader.Load(new DataSetup(Factions: new[] { "federation" }), out _dataDirectory, out var dataMessages);
         foreach (var problem in data.Validate()) GD.PushWarning($"Data check: {problem}");
 
-        _sim = MatchSetup.CreatePlanetLanding(data, Seed);
+        _sim = MatchSetup.CreatePlanetLanding(data, Seed, "federation", null, string.IsNullOrWhiteSpace(World) ? MatchSetup.DefaultWorld : World);
         LocalPlayer = Mathf.Clamp(LocalPlayerSlot, 0, _sim.Players.Count - 1);
         _camera = GetNode<Camera3D>("Camera3D");
         _hud = GetNode<PlanetHud>("Hud");

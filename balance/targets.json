@@ -28,6 +28,12 @@
     "tech_rush": {
       "ms:research_all": { "min": 18, "max": 30, "why": "two labs: about twice as fast as one" },
       "ms:first_parasteel": { "max": 15 }
+    },
+    "veyra_opener": {
+      "metal:10": { "min": 330, "max": 440, "why": "gravity doc: a Domes world makes 60-80% of class M's metal (standard opener on Tarsis: ~550 by minute 10)" },
+      "metal:20": { "min": 815, "max": 1090, "why": "Domes 60-80% of class M (Tarsis: ~1360 by minute 20)" },
+      "ms:built:vehicle_bay": { "max": 12.5, "why": "gravity doc: the first Vehicle Bay no later than 1.5x class M (8:19)" },
+      "ms:built:life_support_plant": { "max": 10, "why": "the kit goes in before the bay" }
     }
   }
 }

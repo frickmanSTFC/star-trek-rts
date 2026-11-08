@@ -487,6 +487,16 @@ public sealed class SurfaceStructure
     /// <summary>Switched off by the player (<see cref="PauseCommand"/>): idle with status Paused until switched back on.</summary>
     public bool Paused { get; internal set; }
 
+    /// <summary>A base's core on a Domes world (Habitability.cs): ticks in a row its base has had no life support at all.</summary>
+    public int AirlessTicks { get; internal set; }
+
+    /// <summary>A base's core on a Domes world: its base has had no life support for the grace time and is losing crew
+    /// (the view's event and warning flag). Hashed only on Domes worlds (never set elsewhere).</summary>
+    public bool LifeSupportFailing { get; internal set; }
+
+    /// <summary>A base's core on a Domes world: crew its base has lost to failed life support so far.</summary>
+    public Fix64 CrewLost { get; internal set; }
+
     /// <summary>Test panel: multiplies its work speed (1 = normal).</summary>
     public Fix64 WorkSpeed { get; internal set; } = Fix64.One;
 

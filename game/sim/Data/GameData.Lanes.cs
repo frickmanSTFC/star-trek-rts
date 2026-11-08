@@ -95,7 +95,7 @@ public sealed partial class GameData
             problems.Add("lanes: gap_side must be under twice lane_offset (plus 1), or oncoming vehicles would stop for each other.");
         if (l.WaitSeconds <= Fix64.Zero || l.PushSeconds <= Fix64.Zero) problems.Add("lanes: wait_seconds and push_seconds must be positive.");
 
-        var surface = new HashSet<string>(BuildMenu, System.StringComparer.Ordinal) { Landing.HubBuilding };
+        var surface = new HashSet<string>(EveryBuildMenu, System.StringComparer.Ordinal) { Landing.HubBuilding };
         foreach (var b in Buildings.Where(b => b.IsCore)) surface.Add(b.Id);
         foreach (var (id, f) in BuildingFootprints)
         {

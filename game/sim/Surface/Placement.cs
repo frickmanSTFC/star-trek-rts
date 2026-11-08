@@ -31,4 +31,8 @@ public enum PlacementProblem
 
     /// <summary>Only in range of a colony core founded on the ground that the exocomps are still building.</summary>
     CoreUnderConstruction,
+
+    /// <summary>A crewed building on a Domes world outside every finished dome and containment field
+    /// (text: <see cref="PlanetSurface.NeedsDomeProblem"/>).</summary>
+    NeedsDome,
 }
