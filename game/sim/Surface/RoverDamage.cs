@@ -213,7 +213,7 @@ public sealed partial class PlanetSurface
             if (driving && d.On(terrain.Id) is { } ground)
             {
                 var flats = t == null ? 0 : Wheels.Count(u.FlatTyres, t.Wheels);
-                var wear = ground.Wear * (Fix64.One + (t?.FlatWear ?? Fix64.Zero) * flats) * weather;
+                var wear = ground.Wear * (Fix64.One + (t?.FlatWear ?? Fix64.Zero) * flats) * weather * Gravity.RoverWear; // lighter load, less wear
                 u.Integrity = Fix64.Max(Fix64.Zero, u.Integrity - wear / Simulation.TicksPerMinute);
 
                 if (ground.Hazard > Fix64.Zero && sim.Rng.NextFix() < ground.Hazard * chances / Simulation.TicksPerMinute)
@@ -238,7 +238,7 @@ public sealed partial class PlanetSurface
                 if (t != null && ground.Flat > Fix64.Zero && Wheels.Count(u.FlatTyres, t.Wheels) < t.Wheels)
                 {
                     var lost = (Hundred - u.Integrity) / Hundred;
-                    var chance = ground.Flat * (Fix64.One + t.LowIntegrity * lost) * chances;
+                    var chance = ground.Flat * (Fix64.One + t.LowIntegrity * lost) * chances * Gravity.RoverWear;
                     if (sim.Rng.NextFix() < chance / Simulation.TicksPerMinute) Puncture(sim, u, t);
                 }
             }

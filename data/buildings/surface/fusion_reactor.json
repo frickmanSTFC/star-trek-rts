@@ -1,6 +1,6 @@
 {
   "buildings": [
-    { "id": "fusion_reactor", "name": "Fusion Reactor", "layer": "surface", "category": "power", "source": "canon",
+    { "id": "fusion_reactor", "name": "Fusion Reactor", "layer": "surface", "category": "power", "crewed": false, "source": "canon",
       "cost": { "duranium": 80, "deuterium": 20 }, "effect": "+Energy; burns deuterium.", "description": "A deuterium fusion plant, the backbone of a colony's power grid. It supplies power to its base and burns deuterium; without fuel it shuts down. Power is a budget, not a stockpile: when a base uses more than it makes, every building there slows. A worn reactor supplies less, so keep it maintained.",
       "build_seconds": 25, "power_supply": 40, "upkeep_per_min": { "deuterium": 3 }, "wear_per_min": 2, "footprint_radius": 7.5 }
   ]

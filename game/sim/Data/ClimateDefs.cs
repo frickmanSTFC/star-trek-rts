@@ -53,6 +53,9 @@ public sealed record BodyClimateDef(
 {
     public bool IsMoon => Parent != null;
 
+    /// <summary>The body's own surface gravity in g (climate.json gravity_g), overriding its class environment's; null = the class's.</summary>
+    public Fix64? GravityG { get; init; }
+
     /// <summary>Play seconds per year.</summary>
     public Fix64 YearSeconds => YearDays * DaySeconds;
 }

@@ -1,6 +1,6 @@
 {
   "buildings": [
-    { "id": "vehicle_bay", "name": "Vehicle Bay", "layer": "surface", "category": "production", "source": "original",
+    { "id": "vehicle_bay", "name": "Vehicle Bay", "layer": "surface", "category": "production", "crewed": true, "source": "original",
       "cost": { "duranium": 180, "tritanium": 60 }, "effect": "Assembles ground vehicles (survey rovers Mk I–III, mining crawlers, construction rovers) one at a time; they roll out beside it.", "description": "An assembly hall for ground vehicles. Order survey rovers (Mk I Scout, Mk II Surveyor, Mk III Explorer) to explore, mining crawlers to dig remote deposits and construction rovers to found new outposts on the ground. Vehicles are paid for when ordered, built one at a time, and drive out through the bay door when they're done.",
       "build_seconds": 30, "power_use": 6, "produces": ["survey_rover", "mining_crawler", "survey_rover_mk2", "survey_rover_mk3", "construction_rover"], "production_queue": 5, "wear_per_min": 2, "footprint_radius": 6.5, "access": [0, 9] }
   ]

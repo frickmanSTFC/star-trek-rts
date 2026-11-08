@@ -418,6 +418,7 @@ public sealed partial class PlanetSurface
                 if (unit._route.Count == 0) PlanLeg(unit);
                 var target = unit._route[0];
                 var cost = Fix64.FromInt(System.Math.Max(1, Map.Terrain(unit.Tile).MoveCost));
+                if (Gravity.HillCost != Fix64.One && Gravity.IsHill(Map.TerrainOf[unit.Tile])) cost *= Gravity.HillCost; // heavy worlds: hills harder
                 var dist = (target - unit.Pos).Length();
                 var need = dist * cost / TileSize;
                 if (need > budget)

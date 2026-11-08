@@ -324,7 +324,7 @@ public sealed partial class PlanetSurface
             case DebugStructureField.Level:
                 if (s.UpgradingLevel > 0) // an upgrade under way is called off and refunded, as with X
                 {
-                    foreach (var c in def.Levels[s.UpgradingLevel - 2].Cost) sim.Players[s.Owner].Stock.Add(c.Resource, c.Amount);
+                    foreach (var c in LevelCostOf(def.Levels[s.UpgradingLevel - 2])) sim.Players[s.Owner].Stock.Add(c.Resource, c.Amount);
                     s.UpgradingLevel = 0;
                     s.UpgradeTicks = 0;
                 }
@@ -335,14 +335,14 @@ public sealed partial class PlanetSurface
                 break;
             case DebugStructureField.BuildProgress:
             {
-                var total = def.BuildSeconds * Simulation.TickRate;
+                var total = (int)BuildTicksOf(s.DefId);
                 if (value >= Fix64.One || total <= 0) Complete(s);
                 else s.BuildTicks = System.Math.Min(total - 1, (value * total).FloorToInt());
                 break;
             }
             case DebugStructureField.UpgradeProgress:
             {
-                var total = (s.UpgradingLevel > 0 ? def.Levels[s.UpgradingLevel - 2].BuildSeconds : _data.Building(s.UpgradingTo!).BuildSeconds) * Simulation.TickRate;
+                var total = (int)(s.UpgradingLevel > 0 ? LevelTicksOf(def.Levels[s.UpgradingLevel - 2]) : BuildTicksOf(s.UpgradingTo!));
                 if (value >= Fix64.One || total <= 0)
                 {
                     if (s.UpgradingLevel > 0) FinishLevel(s);

@@ -534,6 +534,9 @@ public sealed partial class GameData
             Lanes = ReadLanes(surfacesRoot),
             BuildingFootprints = ReadBuildingFootprints(buildingsRoot, problems),
             UnitFootprints = ReadUnitFootprints(surfacesRoot),
+            Gravity = ReadGravity(surfacesRoot, problems),
+            Habitability = ReadHabitability(surfacesRoot, problems),
+            BuildingWorlds = ReadBuildingWorlds(buildingsRoot),
             Sources = sources,
             Files = parts,
             Setup = setup,
@@ -558,7 +561,10 @@ public sealed partial class GameData
             tr.GetProperty("levels").EnumerateArray().Select((l, i) => new TransporterLevel(i + 1, Str(l, "name"), Ids(l, "payloads"),
                 l.GetProperty("range").GetInt32(), Num(l.GetProperty("cargo")), l.GetProperty("cooldown_seconds").GetInt32())).ToList(),
             tr.GetProperty("by_era").EnumerateObject().Select(p => (p.Name, p.Value.GetInt32())).ToList(),
-            tr.TryGetProperty("factions", out var tf) ? tf.EnumerateObject().Select(p => (p.Name, p.Value.GetInt32())).ToList() : new List<(string, int)>());
+            tr.TryGetProperty("factions", out var tf) ? tf.EnumerateObject().Select(p => (p.Name, p.Value.GetInt32())).ToList() : new List<(string, int)>())
+        {
+            ShuttleFuel = amounts(shuttle, "fuel", "Drop ship fuel"),
+        };
     }
 
     private static LifeRules ReadLife(JsonElement l)
@@ -604,6 +610,7 @@ public sealed partial class GameData
         ValidateClimate(problems);
         ValidateFounding(problems);
         ValidateLanes(problems);
+        ValidateWorlds(problems);
         ValidateEras(problems);
         ValidateTechTree(problems);
         ValidateStartingSets(problems);

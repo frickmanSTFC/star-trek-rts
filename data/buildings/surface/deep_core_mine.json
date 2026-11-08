@@ -1,6 +1,6 @@
 {
   "buildings": [
-    { "id": "deep_core_mine", "name": "Deep-Core Mine", "layer": "surface", "category": "resource", "source": "canon",
+    { "id": "deep_core_mine", "name": "Deep-Core Mine", "layer": "surface", "category": "resource", "crewed": false, "source": "canon",
       "cost": { "duranium": 150, "tritanium": 60 }, "requires_tech": "deep_core_mining", "effect": "Reopens a depleted deposit at 50% of its first size, once; slower and power-hungry. Seismic collapse risk.", "description": "A heavy derrick with a deep-core drill that reaches past the spent layers of a used-up deposit and reopens it once, at half its original size. It's slower than a normal mine and needs a lot of power.",
       "build_seconds": 35, "requires_depleted": true, "reopen_share": 0.5, "extract_per_min": 48, "power_use": 14, "wear_per_min": 4, "footprint_radius": 7.5 }
   ]

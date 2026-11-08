@@ -103,6 +103,7 @@
       "surfaces/terrain.json",
       "surfaces/planets.json",
       "surfaces/environments.json",
+      "surfaces/worlds.json",
       "surfaces/landing.json",
       "surfaces/economy.json",
       "surfaces/research.json",

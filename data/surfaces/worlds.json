@@ -1,0 +1,53 @@
+{
+  "_notes_gravity": "Gravity on a surface (gravity design doc, 'Gravity model' / 'Gravity effects'; game/sim/Surface/GravityProfile.cs). A surface's gravity is its climate body's gravity_g if climate.json gives one, else its class environment's gravity_g (environments.json). bands name a world (UI, later gates): below_g = upper edge, the last is null. effects: one curve per effect, points [g, multiplier] sorted by g, interpolated linearly and clamped at the ends; normalise_to = a planet class whose gravity gives exactly x1 everywhere (each multiplier is divided by its value at that class's gravity, so class M plays exactly as tuned; null = raw curves). Where each plugs in: drive_speed = every ground vehicle's speed (wheels and tracks alike for now); rover_wear = rover wear and flat-tyre chances while driving; descent_time = the first landing's descent, outpost drops and the drop ship's flight; lift_cost = the drop ship's fuel a trip (orbit.json shuttle.fuel); pod_speed = mining-crawler cargo pods; build_time = construction, levels and core upgrades; build_cost = the metal part of building, level and upgrade costs (build_cost_resources); extraction = mines, deep-core mines and crawler digging; crew_work = crews on foot: survey teams (on_foot), the maintenance crew's walk and repair rate, the vehicle repair rate on the pad. hills: above 1 g, the move cost of these terrains x (1 + cost_per_g_above_1 x (g - 1)). Not yet: the rollover hazard, dust linger, building height, combat. All numbers are placeholders.",
+  "gravity": {
+    "normalise_to": "class_m",
+    "bands": [
+      { "id": "micro",      "name": "Micro",      "below_g": 0.05 },
+      { "id": "low",        "name": "Low",        "below_g": 0.6 },
+      { "id": "earth_like", "name": "Earth-like", "below_g": 1.15 },
+      { "id": "high",       "name": "High",       "below_g": 2.0 },
+      { "id": "extreme",    "name": "Extreme",    "below_g": null }
+    ],
+    "effects": [
+      { "id": "drive_speed",  "applies": "ground vehicle speed",                     "points": [[0.005, 0.35], [0.13, 0.75], [0.38, 0.9],  [1, 1], [1.2, 0.95], [1.6, 0.8],  [2.5, 0.55]] },
+      { "id": "rover_wear",   "applies": "rover wear and flat-tyre chances",         "points": [[0.005, 0.5],  [0.13, 0.6],  [0.38, 0.8],  [1, 1], [1.2, 1.15], [1.6, 1.4],  [2.5, 1.9]] },
+      { "id": "descent_time", "applies": "first landing, outpost drops, drop ships", "points": [[0.005, 0.4],  [0.13, 0.6],  [0.38, 0.75], [1, 1], [1.2, 1.1],  [1.6, 1.3],  [2.5, 1.7]] },
+      { "id": "lift_cost",    "applies": "drop-ship fuel",                           "points": [[0.005, 0.02], [0.13, 0.25], [0.38, 0.5],  [1, 1], [1.2, 1.3],  [1.6, 2],    [2.5, 4]] },
+      { "id": "pod_speed",    "applies": "cargo pod speed",                          "points": [[0.005, 2.5],  [0.13, 1.6],  [0.38, 1.3],  [1, 1], [1.2, 0.9],  [1.6, 0.75], [2.5, 0.5]] },
+      { "id": "build_time",   "applies": "construction, levels, core upgrades",      "points": [[0.005, 1.2],  [0.13, 0.85], [0.38, 0.9],  [1, 1], [1.2, 1.1],  [1.6, 1.3],  [2.5, 1.8]] },
+      { "id": "build_cost",   "applies": "metal in building costs",                  "points": [[0.005, 0.8],  [0.13, 0.85], [0.38, 0.9],  [1, 1], [1.2, 1.05], [1.6, 1.15], [2.5, 1.4]] },
+      { "id": "extraction",   "applies": "mines and crawlers",                       "points": [[0.005, 0.6],  [0.13, 0.8],  [0.38, 0.9],  [1, 1], [1.2, 0.97], [1.6, 0.9],  [2.5, 0.75]] },
+      { "id": "crew_work",    "applies": "crews on foot: walking and repairs",       "points": [[0.005, 0.7],  [0.13, 0.85], [0.38, 0.95], [1, 1], [1.2, 0.92], [1.6, 0.75], [2.5, 0.3]] }
+    ],
+    "build_cost_resources": ["duranium", "tritanium", "parasteel"],
+    "hills": { "terrain": ["hills"], "cost_per_g_above_1": 0.5 },
+    "on_foot": ["survey_team"]
+  },
+  "_notes_habitability": "Habitability tiers (gravity design doc, 'Life and habitability limits'; game/sim/Surface/Habitability.cs). A world's tier is the worst of six checks on its class environment (and its body's gravity), fixed for the game: gravity_g; pressure_kpa (sea level); o2_pct; gas_limit_x = the worst main or trace gas against telemetry exposure_limits_ppm, at sea-level-equivalent ppm (ppm x pressure / 101.3); temperature_c = the environment's night low and day high must both fit; radiation_usv_h by day. Each check lists, per tier, the range a value must lie in to need no more than that tier (ranges nest: each tier's range holds the cheaper tiers'); a value outside every range is Impossible. The Open ranges of pressure, O2, temperature and radiation are the telemetry limits (breathable_kpa, breathable_o2_pct, cold_warn_c..heat_warn_c, below radiation_warn_usv_h), so they are not repeated here. 2026-11-08 (owner): O2 below 16% now needs Domes (the doc had Masks down to 12%), so class L (Veyra: O2 13.5%, CO2 4.5%) is a Domes world; class M stays Open. domes: what a Domes-tier (or Tech-tier) world adds. Crewed buildings (buildings.json crewed) may only be placed under cover: within core_dome_radius tiles of a finished colony core (its containment field) or within a finished building's dome_radius (Pressure Dome 2). build_menu = buildings added to the build menu on such worlds only. Life support per base: supply = life_support of its working buildings (cores, the Life Support Plant) x condition x the base's power share; use = life_support_per_crewed for each finished crewed building that isn't paused; below 1 every crewed building there works at supply / use; at 0 for grace_seconds the base is failing and loses crew_loss_per_min crew a minute for each crewed building, from stock, until supply is back. Vehicles: every rover counts as sealed for now (no exposure loss). All numbers are placeholders.",
+  "habitability": {
+    "tiers": [
+      { "id": "open",       "name": "Open" },
+      { "id": "masks",      "name": "Masks" },
+      { "id": "suits",      "name": "Suits" },
+      { "id": "domes",      "name": "Domes" },
+      { "id": "tech",       "name": "Tech" },
+      { "id": "impossible", "name": "Impossible" }
+    ],
+    "checks": {
+      "gravity_g":       { "open": [0.6, 1.15], "masks": [0.3, 1.6], "suits": [0, 1.6], "tech": [0, 2.5] },
+      "pressure_kpa":    { "masks": [40, 180], "suits": [10, 180], "domes": [0, 500], "tech": [0, 100000] },
+      "o2_pct":          { "masks": [16, 30], "domes": [0, 100] },
+      "gas_limit_x":     { "open": [0, 1], "masks": [0, 20], "domes": [0, 100], "tech": [0, 1000000] },
+      "temperature_c":   { "masks": [-60, 60], "suits": [-120, 90], "domes": [-200, 150], "tech": [-273, 600] },
+      "radiation_usv_h": { "masks": [0, 50], "suits": [0, 250], "domes": [0, 1000], "tech": [0, 100000] }
+    },
+    "domes": {
+      "core_dome_radius": 1,
+      "build_menu": ["life_support_plant", "pressure_dome"],
+      "life_support_per_crewed": 1,
+      "grace_seconds": 30,
+      "crew_loss_per_min": 2
+    }
+  }
+}

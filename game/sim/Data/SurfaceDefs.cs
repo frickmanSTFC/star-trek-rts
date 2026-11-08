@@ -72,6 +72,10 @@ public sealed record OrbitRules(
 {
     public const string Supplies = "supplies";
 
+    /// <summary>What one drop-ship trip burns at 1 g (orbit.shuttle.fuel), before the surface's lift-cost multiplier
+    /// (<see cref="Surface.GravityProfile.LiftCost"/>); transporters ignore gravity.</summary>
+    public IReadOnlyList<ResourceAmount> ShuttleFuel { get; init; } = System.Array.Empty<ResourceAmount>();
+
     /// <summary>Transporter level for a faction in this era (0 = none): the faction's override, else the era's.</summary>
     public int TransporterLevelFor(string faction, string era)
     {

@@ -11,7 +11,7 @@
       "borg": { "name": "Cube 630", "class": "Cube" } },
     "hold": { "duranium": 400, "tritanium": 200, "deuterium": 100 },
     "outpost_drop": { "building": "colony_hub", "cost": { "duranium": 250, "tritanium": 100, "crew": 40 }, "descent_seconds": 8, "min_distance": 10 },
-    "shuttle": { "flight_seconds": 12, "payloads": ["survey_rover", "mining_crawler", "survey_team"] },
+    "shuttle": { "flight_seconds": 12, "payloads": ["survey_rover", "mining_crawler", "survey_team"], "fuel": { "deuterium": 5 } },
     "satellite": { "cost": { "duranium": 80, "tritanium": 40 }, "max": 3, "band_rows": 9, "sweep_seconds": 60 },
     "transporter": {
       "levels": [

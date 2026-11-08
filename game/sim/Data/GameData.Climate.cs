@@ -83,7 +83,10 @@ public sealed partial class GameData
                 Num(b.GetProperty("albedo")), Num(b.GetProperty("greenhouse_c")), Str(b, "climate"),
                 b.TryGetProperty("seasons", out var bs) ? ReadSeasons(bs, $"Climate body {p.Name}", problems) : new List<SeasonDef>(),
                 b.TryGetProperty("landable", out var la) && la.GetBoolean(),
-                b.TryGetProperty("notes", out var no) ? no.GetString() ?? "" : "");
+                b.TryGetProperty("notes", out var no) ? no.GetString() ?? "" : "")
+            {
+                GravityG = b.TryGetProperty("gravity_g", out var bg) && bg.ValueKind == JsonValueKind.Number ? Num(bg) : null,
+            };
         }).ToList();
 
         var classes = root.TryGetProperty("classes", out var cl)
