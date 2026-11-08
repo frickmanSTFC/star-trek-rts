@@ -103,7 +103,8 @@ SAMPLES = int(arg("--samples", "24"))
 SHOTS = [s.strip() for s in arg("--shots", "turn,lineup,poses,walk,run,variants,lod,game").split(",") if s.strip()]
 ONLY = [r for r in (arg("--role") or ",".join(ROLES)).split(",") if r]
 FPS = 30
-FACE_LENS = float(arg("--face-lens", "85"))
+FACE_LENS = float(arg("--face-lens", "70"))
+LINEUP_ROVER_YAW = float(arg("--rover-yaw", "-90"))
 SIG = 0.022  # weight falloff (distance beyond the nearest bone, in m)
 TORSO_SEGS, HEAD_LONS, LIMB_SEGS = 28, 28, 12  # hero mesh resolution (budget ~6-10k tris)
 BAND_T, BAND_L = 24, 12  # segments of closed bands round the torso / a limb
@@ -1120,7 +1121,7 @@ def face_features(mb, body):
         ellipsoid(mb, c + ax * 0.004, (ax, ay, az), (0.009, 0.019, 0.031), 10, 6, "Skin", cand, deform=ear)
 
 
-HAIRLINE = [(90, 44), (60, 34), (30, 20), (12, 2), (0, 6), (-30, -16), (-60, -28), (-90, -34)]
+HAIRLINE = [(90, 44), (60, 34), (30, 22), (12, 15), (0, 16), (-30, -8), (-60, -28), (-90, -34)]  # round the ears
 
 
 def hairline(lo):
@@ -1756,7 +1757,7 @@ def eva_suit(mb, body):
     # life-support backpack: main box, top unit, tanks, vents, hoses to the chest unit
     up = V((0, 0, 1))
     pk = rigid("UpperChest")
-    bc = V((0, -0.235, 1.24))
+    bc = V((0, -0.224, 1.24))
     obox(mb, bc, V((1, 0, 0)), V((0, 1, 0)), up, (0.16, 0.075, 0.22), "eva_pack", pk, chamfer=0.03)
     obox(mb, bc + V((0, -0.01, 0.255)), V((1, 0, 0)), V((0, 1, 0)), up, (0.14, 0.065, 0.04), "eva_suit2", pk, chamfer=0.02)
     for sx in (-1, 1):
@@ -1854,7 +1855,7 @@ def far_details(mb, role, body):
         hc = HEAD_C + V((0, 0.012, 0.0))
         ellipsoid(mb, hc, (V((1, 0, 0)), V((0, 1, 0)), V((0, 0, 1))), (0.142, 0.158, 0.152), 10, 6, "eva_helmet", rigid("Head"),
                   matf=lambda la, lo: "Visor" if (-35 < la < 35 and abs(adiff(lo, 90)) < 60) else "eva_helmet")
-        obox(mb, V((0, -0.235, 1.24)), V((1, 0, 0)), V((0, 1, 0)), V((0, 0, 1)), (0.17, 0.08, 0.23), "eva_pack", rigid("UpperChest"))
+        obox(mb, V((0, -0.224, 1.24)), V((1, 0, 0)), V((0, 1, 0)), V((0, 0, 1)), (0.17, 0.08, 0.23), "eva_pack", rigid("UpperChest"))
     elif role == "security":
         for side, s in SIDES:
             arm = arm_limb(side, s, body)
@@ -2791,11 +2792,12 @@ def import_rover(path, loc, yaw):
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=path)
     new = [o for o in bpy.data.objects if o not in before]
-    roots = [o for o in new if o.parent is None]
-    for r in roots:
-        r.location = loc
-        r.rotation_euler = (0, 0, rad(yaw))
-    return new
+    holder = link(bpy.data.objects.new("RoverHolder", None))
+    for r in [o for o in new if o.parent is None]:
+        r.parent = holder  # keep each root's own transform from the importer
+    holder.location = loc
+    holder.rotation_euler = (0, 0, rad(yaw))
+    return new + [holder]
 
 
 def previews(folder):
@@ -2808,16 +2810,19 @@ def previews(folder):
     if "turn" in SHOTS:
         for r in roles:
             objs = []
-            for k, yaw in enumerate((0, -40, -90)):
-                objs += instance(r, seeds[r], V((-1.0 + k * 1.0, 0, 0)), yaw + 180, "Idle", 0.15)
-            shoot(cam, os.path.join(folder, f"{r}-turn.png"), (0, -9, 1.0), (0, 0, 0.92), ortho=2.0 * 1.5, w=RES, h=int(RES * 0.66))
+            for k, yaw in enumerate((0, -45, -90, 180)):
+                objs += instance(r, seeds[r], V((-1.5 + k * 1.0, 0, 0)), yaw + 180, "Idle", 0.15)
+            shoot(cam, os.path.join(folder, f"{r}-turn.png"), (0, -9, 1.0), (0, 0, 0.92), ortho=4.2, w=RES, h=int(RES * 0.52))
             clear(objs)
     if "lineup" in SHOTS:
+        # the survey rover Mk I side-on (front to +X), its door (sill 0.85, top 1.75) toward the camera, the five roles
+        # in a row beside it and one more colonist at the door step for scale
         rover = os.path.join(REPO, "game", "models", "vehicles", "survey_rover.glb")
-        objs = import_rover(rover, V((0, 2.2, 0)), 90) if os.path.exists(rover) else []
+        objs = import_rover(rover, V((3.1, 0.95, 0)), LINEUP_ROVER_YAW) if os.path.exists(rover) else []
         for k, r in enumerate(roles):
-            objs += instance(r, seeds[r], V((-1.5 + k * 0.75, 0.2, 0)), 200 + 8 * k, "Idle", 0.1 + 0.15 * k)
-        shoot(cam, os.path.join(folder, "crew-lineup.png"), (2.4, -8.0, 2.0), (0, 1.0, 1.1), lens=50, w=RES, h=int(RES * 0.62))
+            objs += instance(r, seeds[r], V((-2.1 + k * 0.78, -0.1, 0)), 180 + 6 * (k - 2), "Idle", 0.1 + 0.15 * k)
+        objs += instance("colonist" if "colonist" in TEMPLATES else roles[0], 77, V((3.15, -0.95, 0)), 160, "Wave", 0.2)
+        shoot(cam, os.path.join(folder, "crew-lineup.png"), (1.2, -10.4, 1.9), (1.2, 0.3, 1.0), lens=38, w=RES, h=int(RES * 0.5))
         clear(objs)
     if "poses" in SHOTS:
         objs = []
@@ -2837,7 +2842,7 @@ def previews(folder):
         objs = []
         for k in range(n):
             objs += instance(r, seeds[r], V((0, -2.6 + k * 0.75, 0)), 0, act, k / n)
-        shoot(cam, os.path.join(folder, f"crew-{shot}.png"), (9, 0.0, 1.0), (0, 0, 0.9), ortho=6.4, w=RES + 300, h=int((RES + 300) * 0.36))
+        shoot(cam, os.path.join(folder, f"crew-{shot}.png"), (9, 0.0, 2.2), (0, 0, 1.0), ortho=6.4, w=RES + 300, h=int((RES + 300) * 0.36))
         clear(objs)
     if "variants" in SHOTS:
         objs = []
@@ -2850,10 +2855,11 @@ def previews(folder):
         clear(objs)
     if "faces" in SHOTS:
         objs = []
+        face_roles = [x for x in ("engineer", "science", "security", "colonist") if x in TEMPLATES] or roles
         for k in range(5):
-            r = roles[k % len(roles)] if len(roles) > 1 else roles[0]
-            objs += instance(r, 200 + k * 11, V((-1.0 + k * 0.5, 0, 0)), 195 - 6 * k, "Idle", 0.0)
-        shoot(cam, os.path.join(folder, "crew-faces.png"), (0.0, -4.2, 1.66), (0, 0, 1.6), lens=FACE_LENS, w=RES, h=int(RES * 0.36))
+            r = face_roles[k % len(face_roles)]
+            objs += instance(r, 200 + k * 11, V((-0.84 + k * 0.42, 0, 0)), 188 - 4 * k, "Idle", 0.0)
+        shoot(cam, os.path.join(folder, "crew-faces.png"), (0.0, -4.2, 1.62), (0, 0, 1.56), lens=FACE_LENS, w=RES, h=int(RES * 0.36))
         clear(objs)
     if "lod" in SHOTS:
         objs = []
