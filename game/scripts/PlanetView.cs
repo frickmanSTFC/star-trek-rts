@@ -936,7 +936,7 @@ public partial class PlanetView : Node3D
                 var faceTo = walking ? (core.CrewPhase == CrewPhase.Back ? door : spot) : jobCentre;
                 if (at.DistanceTo(person.Position) > 60f) person.Position = at; // first frame
                 var before = person.Position;
-                person.Position = at;
+                person.Position = person.Visible ? PushOut(person, at) : at; // PlanetView.People.cs: never through anything
                 var dir = (faceTo - at) with { Y = 0 };
                 if (dir.LengthSquared() > 0.01f) person.Basis = person.Basis.Orthonormalized().Slerp(Basis.LookingAt(dir.Normalized(), Vector3.Up), Mathf.Min(1f, delta * 10f));
                 PoseRepairer(person, before, walking, welding, i, delta); // PlanetView.RepairCrew.cs
@@ -1353,7 +1353,7 @@ public partial class PlanetView : Node3D
             var walking = repairing ? t < 1f : true;
             var faceTo = walking ? (repairing ? work : crew.Door) : model.Position;
             var before = person.Position;
-            person.Position = at;
+            person.Position = person.Visible ? PushOut(person, at) : at; // PlanetView.People.cs: never through anything
             var dir = (faceTo - at) with { Y = 0 };
             if (dir.LengthSquared() > 0.01f) person.Basis = person.Basis.Orthonormalized().Slerp(Basis.LookingAt(dir.Normalized(), Vector3.Up), Mathf.Min(1f, delta * 10f));
 

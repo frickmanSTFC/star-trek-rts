@@ -183,6 +183,18 @@ public partial class DropShipView : Node3D
         }
     }
 
+    /// <summary>Drop ships standing on (or just above) the ground and shown: people walk round them
+    /// (PlanetView.People.cs).</summary>
+    public void GroundedModels(List<Node3D> into)
+    {
+        foreach (var ship in _ships.Values)
+        {
+            if (!ship.Shown || !ship.Model.Visible) continue;
+            var p = ship.Model.Position;
+            if (p.Y - _view.GroundAt(p) < 3f) into.Add(ship.Model);
+        }
+    }
+
     /// <summary>
     /// While a unit is coming off its drop ship: where to draw it instead of <paramref name="spot"/> (its normal place on
     /// its tile). It waits in the bay until the ramp is down, drives down the ramp and on to its tile centre, then blends

@@ -442,7 +442,9 @@ public partial class PlanetView
         node.VisibilityRangeBegin = begin;
         node.VisibilityRangeEnd = end;
         _scatterRoot!.AddChild(node);
-        _scatterChunks[b.Chunk].Add(new ScatterBatch { Multi = mm, World = worldPos, Local = local });
+        var batch = new ScatterBatch { Multi = mm, World = worldPos, Local = local };
+        _scatterChunks[b.Chunk].Add(batch);
+        if (!b.Far) AddScatterBlockers(batch, b, meshBox); // PlanetView.People.cs: people walk round trees, rocks, bushes
     }
 
     /// <summary>Distances from the camera over which each kind goes: near trees and rocks hand over to their far
@@ -548,6 +550,7 @@ public partial class PlanetView
     {
         foreach (var (batch, index) in _scatterHidden) batch.Multi.SetInstanceTransform(index, batch.Local[index]);
         _scatterHidden.Clear();
+        _scatterHiddenSet.Clear();
 
         var sites = new List<(Vector3 Centre, float Radius)>();
         foreach (var s in _surface.Structures)
@@ -573,6 +576,7 @@ public partial class PlanetView
                             if (d.X * d.X + d.Z * d.Z > r2 || !done.Add((batch, i))) continue;
                             batch.Multi.SetInstanceTransform(i, new Transform3D(zero, batch.Local[i].Origin));
                             _scatterHidden.Add((batch, i));
+                            _scatterHiddenSet.Add((batch, i));
                         }
         }
     }

@@ -12,8 +12,8 @@ namespace FinalFrontier;
 // Each finished base gets 2 + one per finished building of crew (max WalkersPerBase; WalkerBudget over the whole map),
 // CrewModels figures (blender/build_crew.py) in the owner's colour with a look seeded by base + slot. A walker picks
 // another stop in its base (a building's door/access spot, the core's door, or a stroll point on an empty land tile
-// next to the core), walks there along hex-edge crossings (like the vehicles' lanes, a little off the middle so
-// people pass), bending round every building's footprint on a ring, does a job there for a few seconds (Work at
+// next to the core), walks there along hex-edge crossings on "sidewalks" 4.8-6.2 off the edge's middle (clear of the
+// vehicles' lanes at 2.5), never through anything (PlanetView.People.cs: steer, wait for vehicles, push-out), bending round every building's footprint on a ring, does a job there for a few seconds (Work at
 // industry, Scan at labs and mines, Idle/Wave at the core) and goes on. From storage, a refinery or a foundry they
 // often carry a crate to the next stop. They come out of the core's door when a base is new; when a base goes they go.
 // Rival crews show only in sight; figures beyond WalkerRange of the eye are hidden and their animation stops.
@@ -49,6 +49,10 @@ public partial class PlanetView
         public string Moving = "Walk";
         public string Action = "";
         public bool Active = true;
+        public float BestDist = float.MaxValue; // closest it has got to the current waypoint
+        public float Stuck;                     // seconds without getting closer
+        public float Held;                      // seconds waiting for a vehicle to pass
+        public bool Holding;
     }
 
     private readonly record struct Stop(int Tile, Vector3 Spot, Vector3 Face, string Job);
@@ -154,7 +158,8 @@ public partial class PlanetView
             Slot = slot,
             Rng = rng,
             Height = CrewModels.Variant(seed, role).Height,
-            Side = rng.RandfRange(0.8f, 2.6f) * (rng.Randf() < 0.5f ? -1f : 1f),
+            // sidewalks: well off the hex edge's middle, clear of the vehicle lanes (2.5 right of travel)
+            Side = rng.RandfRange(4.8f, 6.2f) * (rng.Randf() < 0.5f ? -1f : 1f),
             StopTile = core.Tile,
             Wait = slot * 1.1f + rng.RandfRange(0f, 1.5f), // file out of the door one after another
         };
@@ -179,6 +184,7 @@ public partial class PlanetView
         if (w.Wait > 0f)
         {
             w.Wait -= delta;
+            if (w.Active) w.Model.Position = PushOut(w.Model, w.Model.Position);
             if (w.Wait > 0f) return;
             if (!PlanTrip(w)) { w.Wait = 2f; return; }
         }
@@ -199,15 +205,56 @@ public partial class PlanetView
         var flat = new Vector3(target.X - pos.X, 0, target.Z - pos.Z);
         var dist = flat.Length();
         var step = speed * delta;
-        if (dist <= step)
+        var last = w.Leg == w.Path.Count - 1;
+        if (dist <= Mathf.Max(step, last ? 0.15f : 0.6f))
         {
-            pos = new Vector3(target.X, pos.Y, target.Z);
-            w.Leg++;
+            NextLeg(w);
+            w.Model.Position = PushOut(w.Model, pos);
+            return;
         }
-        else pos += flat / dist * step;
-        pos.Y = GroundAt(pos);
-        w.Model.Position = pos;
-        if (dist > 0.01f) Face(w, flat, delta);
+
+        if (!w.Active)
+        {
+            // off screen: no collision work, just keep walking the route
+            var plain = pos + flat / dist * step;
+            plain.Y = GroundAt(plain);
+            w.Model.Position = plain;
+            return;
+        }
+
+        // PlanetView.People.cs: never through anything. Steer round what's ahead, wait for a driving vehicle,
+        // give up on a waypoint that can't be reached, then push out of whatever we still touch.
+        var dir2 = new Vector2(flat.X, flat.Z) / dist;
+        var steer = Steer(new Vector2(pos.X, pos.Z), dir2, Mathf.Min(1.4f, dist));
+        if (steer == null && w.Held < 4f)
+        {
+            w.Held += delta;
+            if (!w.Holding) { w.Holding = true; CrewModels.Play(w.Model, "Idle"); }
+            w.Model.Position = PushOut(w.Model, pos); // a vehicle may still shove us
+            return;
+        }
+        if (w.Holding) { w.Holding = false; CrewModels.Play(w.Model, w.Moving); }
+        if (steer == null) steer = dir2; // waited long enough: the push-out keeps us clear
+        w.Held = steer == dir2 ? Mathf.Max(0f, w.Held - delta) : w.Held;
+        var move = steer.Value * step;
+        var next = PushOut(w.Model, pos + new Vector3(move.X, 0, move.Y));
+        var moved = new Vector3(next.X - pos.X, 0, next.Z - pos.Z);
+        w.Model.Position = next;
+        if (moved.LengthSquared() > 1e-6f) Face(w, moved, delta);
+
+        // stuck: not getting closer to the waypoint for a while (or it lies inside something) → move on
+        var now = new Vector2(target.X - next.X, target.Z - next.Z).Length();
+        if (now < w.BestDist - 0.05f) { w.BestDist = now; w.Stuck = 0f; }
+        else w.Stuck += delta;
+        if (w.Stuck > 2.5f) NextLeg(w);
+    }
+
+    private static void NextLeg(Walker w)
+    {
+        w.Leg++;
+        w.BestDist = float.MaxValue;
+        w.Stuck = 0f;
+        w.Held = 0f;
     }
 
     /// <summary>Swap the walker into (or out of) an EVA suit when it crosses the edge of cover: the other figure takes
@@ -271,10 +318,22 @@ public partial class PlanetView
         var tiles = WalkTiles(startTile, next.Tile);
         if (tiles == null) return false;
 
-        // stand a little apart at the stop, so several people don't stack on one spot
-        var spot = next.Spot + new Vector3(w.Rng.RandfRange(-1.4f, 1.4f), 0, w.Rng.RandfRange(-1.4f, 1.4f));
+        // stand a little apart at the stop, so several people don't stack on one spot; at a building, beside its
+        // access point (vehicles park on it), turned 25-45 degrees round the building to one side
+        var spot = next.Spot;
+        if (next.Job is not ("core" or "stroll"))
+        {
+            var c = TileCentre(next.Tile);
+            var turn = Mathf.DegToRad(w.Rng.RandfRange(25f, 45f)) * (w.Rng.Randf() < 0.5f ? -1f : 1f);
+            spot = c + new Basis(Vector3.Up, turn) * (spot - c);
+        }
+        spot += new Vector3(w.Rng.RandfRange(-1.2f, 1.2f), 0, w.Rng.RandfRange(-1.2f, 1.2f));
+        spot = FreeSpotNear(spot);
         w.Path.Clear();
         w.Leg = 0;
+        w.BestDist = float.MaxValue;
+        w.Stuck = 0f;
+        w.Held = 0f;
         var at = from;
         for (var i = 0; i + 1 < tiles.Count; i++)
         {
