@@ -455,7 +455,15 @@ public partial class DropShipView : Node3D
     {
         var colour = PlanetDriver.ColorOf(owner);
         var model = BuildingModels.DropShip(colour) ?? Primitive(colour);
+        var ours = owner == _localPlayer;
+        if (ours)
+        {
+            var down = 0; // our ships already flying: a convoy's second and third ship count on (01, 02, 03)
+            foreach (var other in _ships.Values) if (other.Owner == owner) down++;
+            if (Cosmetics.DropshipHull(down) is { } custom) (name, number) = custom; // achievement name
+        }
         RoverLook.Paint(model, name, number);
+        if (ours) CosmeticLook.Dress(model, colour); // achievement paint / finish (ours only)
         model.Visible = false;
         AddChild(model);
 

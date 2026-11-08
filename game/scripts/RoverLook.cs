@@ -292,6 +292,9 @@ public static class RoverLook
         /// <summary>Rover damage, 0..1 (scratches, then scorch; PlanetView.RoverDamage sets it from integrity).</summary>
         public float Damage { get; set; }
 
+        /// <summary>Clean colour of the painted names and numbers (navy; light on a dark finish, CosmeticLook.Ink).</summary>
+        public Color Ink { get; set; } = DecalInk;
+
         /// <summary>Test panel: set the dirt directly (each 0..1); it then builds up and washes off as usual.</summary>
         public void Set(float dust, float mud, float snow)
         {
@@ -368,7 +371,7 @@ public static class RoverLook
             // The painted names sit on the paint, so they get grubby too.
             var dirt = Mathf.Max(_dust * 0.6f, Mathf.Max(_mud * 0.8f, _snow * 0.9f));
             var tint = _snow > _mud && _snow > _dust ? new Color(0.92f, 0.94f, 0.97f) : _mud > _dust ? new Color(0.22f, 0.16f, 0.1f) : _dustColour;
-            foreach (var d in _decals) d.Modulate = DecalInk.Lerp(tint, dirt * 0.7f);
+            foreach (var d in _decals) d.Modulate = Ink.Lerp(tint, dirt * 0.7f);
         }
 
         private static Color DustOf(SprayKind kind) => kind switch

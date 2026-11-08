@@ -74,6 +74,13 @@ public partial class ConstructionView : Node3D
     private SphereMesh _sparkMesh = null!;
     private StandardMaterial3D _unpowered = null!;
 
+    // Achievement beam colour on our own sites (TintBeam): the shader's and the light's standard blue, and our copies.
+    private static readonly StringName PBeamColour = "beam_colour";
+    private static readonly Color BeamBlue = new(0.35f, 0.75f, 1f), ImpactBlue = new(0.55f, 0.85f, 1f);
+    private Color? _ourBeam;
+    private ShaderMaterial? _ourImpact, _ourEmitter;
+    private SphereMesh? _ourSparks;
+
     private readonly Dictionary<int, Node3D> _models = new();   // every structure model PlanetView has attached
     private readonly Dictionary<int, Site> _byId = new();
     private readonly List<Site> _sites = new();
@@ -156,6 +163,7 @@ public partial class ConstructionView : Node3D
         public required CpuParticles3D Sparks;
         public required OmniLight3D Light;
         public bool On;
+        public Color? Tint;                       // null = the standard blue (TintBeam)
     }
 
     private sealed class Shimmer
@@ -841,7 +849,7 @@ public partial class ConstructionView : Node3D
         if (firing && beams < MaxBeams)
         {
             var from = d.Emitter != null ? d.Emitter.GlobalPosition : pos;
-            DrawBeam(BeamAt(beams), from, d.Aim, d.Phase);
+            DrawBeam(BeamAt(beams), from, d.Aim, d.Phase, site != null && site.Owner == _view.LocalPlayer ? Cosmetics.BeamColour : null);
             beams++;
         }
         return true;
@@ -883,8 +891,9 @@ public partial class ConstructionView : Node3D
         return _beams[i];
     }
 
-    private void DrawBeam(Beam b, Vector3 from, Vector3 to, float phase)
+    private void DrawBeam(Beam b, Vector3 from, Vector3 to, float phase, Color? colour)
     {
+        TintBeam(b, colour);
         var dir = to - from;
         var len = dir.Length();
         if (len < 0.05f)
@@ -905,6 +914,61 @@ public partial class ConstructionView : Node3D
         b.Sparks.Direction = -y;
         b.Light.GlobalPosition = to - y * 0.6f;
         b.Light.LightEnergy = 1.1f + 0.4f * Mathf.Sin(_time * 27f + phase * 3f);
+    }
+
+    /// <summary>A pooled beam in the standard blue (null) or our achievement beam colour (Cosmetics.BeamColour, local
+    /// player's sites only): beam, impact and emitter flares, sparks and the impact light. Only changes on a switch.</summary>
+    private void TintBeam(Beam b, Color? colour)
+    {
+        if (b.Tint == colour) return;
+        b.Tint = colour;
+        if (colour is { } c)
+        {
+            OurBeamLook(c);
+            b.Material.SetShaderParameter(PBeamColour, c);
+            b.Impact.MaterialOverride = _ourImpact;
+            b.Glow.MaterialOverride = _ourEmitter;
+            b.Sparks.Mesh = _ourSparks;
+            b.Light.LightColor = c.Lerp(Colors.White, 0.2f);
+        }
+        else
+        {
+            b.Material.SetShaderParameter(PBeamColour, BeamBlue);
+            b.Impact.MaterialOverride = _impactFlare;
+            b.Glow.MaterialOverride = _emitterFlare;
+            b.Sparks.Mesh = _sparkMesh;
+            b.Light.LightColor = ImpactBlue;
+        }
+    }
+
+    /// <summary>The flares and sparks in our beam colour, remade only when the colour changes.</summary>
+    private void OurBeamLook(Color c)
+    {
+        if (_ourBeam == c && _ourImpact != null) return;
+        _ourBeam = c;
+        var flare = _impactFlare.Shader;
+        _ourImpact = new ShaderMaterial { Shader = flare };
+        _ourImpact.SetShaderParameter("flare_colour", c.Lerp(Colors.White, 0.25f));
+        _ourImpact.SetShaderParameter("energy", 3f);
+        _ourEmitter = new ShaderMaterial { Shader = flare };
+        _ourEmitter.SetShaderParameter("flare_colour", c.Lerp(Colors.White, 0.45f));
+        _ourEmitter.SetShaderParameter("energy", 2.2f);
+        var spark = c.Lerp(Colors.White, 0.5f);
+        _ourSparks = new SphereMesh
+        {
+            Radius = 0.04f,
+            Height = 0.08f,
+            RadialSegments = 4,
+            Rings = 2,
+            Material = new StandardMaterial3D
+            {
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                AlbedoColor = spark,
+                EmissionEnabled = true,
+                Emission = spark,
+                EmissionEnergyMultiplier = 4f,
+            },
+        };
     }
 
     private static void SetBeam(Beam b, bool on)

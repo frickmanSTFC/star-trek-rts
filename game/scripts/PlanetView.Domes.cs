@@ -38,6 +38,7 @@ public partial class PlanetView
         public int Radius;
         public float Reveal;
         public Node3D? Glass;
+        public int TintVersion = int.MinValue; // Cosmetics.Version the field colour was set for (ours only)
     }
 
     private readonly Dictionary<int, DomeVisual> _domes = new();
@@ -80,6 +81,7 @@ public partial class PlanetView
                 v.Glass = NewGlassDome();
                 v.Glass.Position = centre;
                 v.Glass.Basis = new Basis(Vector3.Up, Mathf.DegToRad(-60f * s.Facing));
+                if (s.Owner == _localPlayer) CosmeticLook.DressGlass(v.Glass); // achievement dome tint (ours only)
                 _domeRoot.AddChild(v.Glass);
             }
             else if (!core && v.Glass != null)
@@ -95,6 +97,7 @@ public partial class PlanetView
                 v.Field.Position = centre;
                 v.Radius = radius;
                 v.Reveal = 0f;
+                v.TintVersion = int.MinValue;
                 _domeRoot.AddChild(v.Field);
             }
             else if (radius <= 0 && v.Field != null)
@@ -115,6 +118,12 @@ public partial class PlanetView
                 v.FieldMaterial.SetShaderParameter("reveal", v.Reveal);
                 v.FieldMaterial.SetShaderParameter("flicker", live ? flicker : 0f);
                 v.FieldMaterial.SetShaderParameter("strength", (live ? 1f : 0.5f) * _fieldBoost);
+                if (s.Owner == _localPlayer && v.TintVersion != Cosmetics.Version)
+                {
+                    // Achievement dome tint on our own fields (others keep the standard blue-white).
+                    v.TintVersion = Cosmetics.Version;
+                    v.FieldMaterial.SetShaderParameter("field_colour", Cosmetics.DomeTint is { } tint ? FieldColour.Lerp(tint, 0.75f) : FieldColour);
+                }
             }
         }
         if (seen.Count == _domes.Count) return;
@@ -281,6 +290,7 @@ public partial class PlanetView
     {
         _glassMaterial ??= new StandardMaterial3D
         {
+            ResourceName = "Glass", // CosmeticLook.DressGlass tints ours by this name
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
             AlbedoColor = new Color(0.72f, 0.84f, 0.95f, 0.13f),
             Metallic = 0.4f,

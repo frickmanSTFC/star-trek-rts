@@ -245,6 +245,7 @@ public partial class PlanetView : Node3D
         UpdateVeyra(delta); // PlanetView.Veyra.cs: class L dust devils and CO₂ haze (nothing on class M)
         UpdateDomes(delta); // PlanetView.Domes.cs: glass domes and containment fields on a Domes world
         _time += delta;
+        UpdateCosmetics(); // PlanetView.Cosmetics.cs: re-apply our achievement cosmetics when the picks change
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
         UpdateRovers(alpha, delta);
         UpdatePods(alpha);
@@ -774,6 +775,7 @@ public partial class PlanetView : Node3D
                 var model = BuildingModels.Build(s.DefId, PlanetDriver.ColorOf(s.Owner), VisualSeed(s), VisualSerial(s));
                 model.Position = TileCentre(s.Tile);
                 model.RotationDegrees = new Vector3(0, -60f * s.Facing, 0);
+                DressStructure(s, model); // PlanetView.Cosmetics.cs: our dome glass tint
                 AddChild(model);
                 _construction.Attach(s, model); // build pieces + exocomps while unfinished, the completion beat after
                 var label = new Label3D
@@ -1004,6 +1006,7 @@ public partial class PlanetView : Node3D
                 _grime[u.Id] = RoverLook.Grime.Attach(model, def.CanMine || def.CanFound ? 3.2f : 2.4f);
                 _lamps[u.Id] = RoverLook.Lamps.Attach(model, u.Id);
                 if (_lamps[u.Id].Area is { } wiped) _grime[u.Id].SetWipers(wiped);
+                DressVehicle(u, model, colour); // PlanetView.Cosmetics.cs: ours only
                 // Wheel spray from behind the rear wheels (rover) or just behind the tracks' rear sprockets (crawler,
                 // Mining Vehicle Mk I: tracks at x ±1.13, ending at z 2.16 behind the scrapers); +Z is the back.
                 // Construction rover: rear wheels at x ±1.35, z 2.2 (radius 0.62).
