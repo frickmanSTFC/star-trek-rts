@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FinalFrontier.Sim.Data;
 using FinalFrontier.Sim.Math;
+using FinalFrontier.Sim.Space;
 
 namespace FinalFrontier.Sim.Core;
 
@@ -39,14 +40,41 @@ public static class MatchSetup
         return sim;
     }
 
-    /// <summary>CONTRACT stub (docs/system-contract.md): a game in a star system generated from the seed, starting in orbit
-    /// of <paramref name="homeBody"/> (a landable body of that system; null = the generator's pick), whose PlanetSurface is
-    /// that body's. Until the sim branch lands it is the plain planet landing with no system.</summary>
-    public static Simulation CreateSystemGame(GameData data, ulong seed, string faction = "federation", string? homeBody = null) =>
-        CreatePlanetLanding(data, seed, faction);
+    /// <summary>
+    /// A game in a star system generated from the seed (docs/system-contract.md, <see cref="SystemGenerator"/>), starting in
+    /// orbit of <paramref name="homeBody"/> (a landable body of that system, by id or name, any case; null = the generator's
+    /// pick: a Class M body if there is one, else Class L, else the first landable one), whose PlanetSurface is that body's
+    /// (its class, its climate entry, seed <see cref="SystemGenerator.SurfaceSeed"/>). The player's flagship is in orbit of
+    /// it (Charted; every other body Detected), and 3-5 neutral civilian ships fly between the bodies. Throws for a home
+    /// body that isn't a landable body of this system.
+    /// </summary>
+    public static Simulation CreateSystemGame(GameData data, ulong seed, string faction = "federation", string? homeBody = null)
+    {
+        var system = SystemGenerator.Generate(data, seed);
+        var home = HomeBody(data, system, homeBody);
+        var sim = new Simulation(data, seed);
+        sim.LoadSurface(home.ClassId, SystemGenerator.SurfaceSeed(seed, home.Id), home.Id, system.Climate);
+        sim.LoadSystem(new StarSystemState { Star = system.Star, Bodies = system.Bodies, SurfaceBody = home.Id, Seed = seed, Generated = system });
+        sim.AddPlayer(faction);
+        sim.System!.SpawnTraffic(data);
+        return sim;
+    }
 
-    /// <summary>CONTRACT stub: the bodies of the system this seed generates that have a playable surface (the chooser's list).</summary>
-    public static IReadOnlyList<BodyDef> LandableBodies(GameData data, ulong seed) => new List<BodyDef>();
+    /// <summary>The bodies of the system this seed generates that have a playable surface (the chooser's list), in system order.</summary>
+    public static IReadOnlyList<BodyDef> LandableBodies(GameData data, ulong seed) => SystemGenerator.Generate(data, seed).Landable(data);
+
+    /// <summary>The home body of a system game: the named one (id or name, any case), else the first Class M, else the first
+    /// Class L, else the first landable body.</summary>
+    public static BodyDef HomeBody(GameData data, GeneratedSystem system, string? homeBody = null)
+    {
+        var landable = system.Landable(data);
+        if (homeBody != null)
+            return landable.FirstOrDefault(b => string.Equals(b.Id, homeBody, StringComparison.OrdinalIgnoreCase)
+                       || string.Equals(b.Name, homeBody, StringComparison.OrdinalIgnoreCase))
+                   ?? throw new ArgumentException(system.Body(homeBody) != null || system.Bodies.Any(b => string.Equals(b.Name, homeBody, StringComparison.OrdinalIgnoreCase))
+                       ? $"Body '{homeBody}' has no surface to land on." : $"No body '{homeBody}' in this system.");
+        return landable.FirstOrDefault(b => b.ClassId == MvpPlanetClass) ?? landable.FirstOrDefault(b => b.ClassId == "class_l") ?? landable[0];
+    }
 
     /// <summary>The world the planet-first MVP starts on by default.</summary>
     public const string DefaultWorld = "tarsis";

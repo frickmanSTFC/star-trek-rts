@@ -58,6 +58,11 @@ public sealed class SurfaceMap
     /// </summary>
     public string? ClimateBodyId { get; private set; }
 
+    /// <summary>The climate entries of the generated star system this surface's body belongs to (null for a climate.json
+    /// body): Climate looks <see cref="ClimateBodyId"/> up here first. Not hashed: a pure function of the data and the
+    /// system's seed (StarSystemState.Seed is in the hash).</summary>
+    public SystemClimate? SystemClimate { get; private set; }
+
     /// <summary>Climate's resolved numbers for this map and data (rebuilt when the test panel swaps the data).</summary>
     internal object? ClimateCache;
 
@@ -198,9 +203,10 @@ public sealed class SurfaceMap
     // ------------------------------------------------------------------ generation
 
     /// <param name="climateBody">The climate.json body this surface is (null = <see cref="GameData.DefaultClimateBody"/>).</param>
-    public static SurfaceMap Generate(GameData data, PlanetSurfaceDef def, ulong seed, string? climateBody = null)
+    /// <param name="system">The generated star system's climate entries when climateBody is one of its bodies.</param>
+    public static SurfaceMap Generate(GameData data, PlanetSurfaceDef def, ulong seed, string? climateBody = null, SystemClimate? system = null)
     {
-        var map = new SurfaceMap(data, def) { Seed = seed, ClimateBodyId = climateBody ?? data.DefaultClimateBody(def.ClassId) };
+        var map = new SurfaceMap(data, def) { Seed = seed, ClimateBodyId = climateBody ?? data.DefaultClimateBody(def.ClassId), SystemClimate = system };
         var grid = map.Grid;
         var elevationNoise = new ValueNoise(seed ^ 0xE1E7A7E5UL);
         var moistureNoise = new ValueNoise(seed ^ 0x3015E0DEUL);

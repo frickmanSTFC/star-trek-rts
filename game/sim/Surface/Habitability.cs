@@ -118,7 +118,7 @@ public sealed partial class PlanetSurface
     /// <summary>A surface's gravity: its climate body's own gravity_g, else its class environment's, else 1 g.</summary>
     public static Fix64 GravityOf(GameData data, SurfaceMap map)
     {
-        if (map.ClimateBodyId is { } body && data.Climate?.Body(body) is { GravityG: { } own }) return own;
+        if (map.ClimateBodyId is { } body && (map.SystemClimate?.Body(body) ?? data.Climate?.Body(body)) is { GravityG: { } own }) return own;
         return data.EnvironmentOf(map.Def.ClassId)?.GravityG ?? Fix64.One;
     }
 

@@ -48,6 +48,7 @@ public sealed partial class PlanetSurface
     {
         if (player < 0 || player >= _players.Count) return "no such player";
         if (_players[player].Phase != LandingPhase.InOrbit) return "the colony has landed";
+        if (sim.System?.OrbitProblem(player) is { } away) return away;
         if (!OnMap(tile)) return "off the map";
         if (!CanLand(player, tile))
             return Map.NearNatives(tile) ? "that's the natives' land"

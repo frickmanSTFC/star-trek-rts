@@ -186,7 +186,20 @@ public static class Climate
         var rules = data.Climate;
         var body = rules?.Body(bodyId);
         if (rules == null || body == null) return null;
-        var c = ForBody(data, rules, body, ClassOf(data, bodyId));
+        return SummaryOf(ForBody(data, rules, body, ClassOf(data, bodyId), rules.Body, StarOf(data, rules, body.Id)?.Luminosity ?? Fix64.One), body);
+    }
+
+    /// <summary>A generated system body's climate at a glance (Space/SystemGenerator.cs), or null when it isn't one of the system's.</summary>
+    public static ClimateSummary? Summary(GameData data, SystemClimate system, string bodyId)
+    {
+        var rules = data.Climate;
+        var body = system.Body(bodyId);
+        if (rules == null || body == null) return null;
+        return SummaryOf(ForBody(data, rules, body, system.ClassOf(bodyId), system.Body, rules.Star(system.StarClass)?.Luminosity ?? Fix64.One), body);
+    }
+
+    private static ClimateSummary SummaryOf(Context c, BodyClimateDef body)
+    {
         var template = c.Template;
         var seasons = new List<string>();
         foreach (var s in c.Seasons) seasons.Add(s.Name);
@@ -271,20 +284,26 @@ public static class Climate
     {
         if (map.ClimateCache is Cached cached && ReferenceEquals(cached.Data, data)) return cached.Context;
         var rules = data.Climate;
+        var system = map.SystemClimate;
+        var generated = system != null && map.ClimateBodyId != null ? system.Body(map.ClimateBodyId) : null;
         var body = map.ClimateBodyId != null ? rules?.Body(map.ClimateBodyId) : null;
-        var context = rules != null && body != null
-            ? ForBody(data, rules, body, ClassOf(data, body.Id) ?? map.Def.ClassId) // the body's own class environment
+        var context = rules != null && generated != null
+            ? ForBody(data, rules, generated, system!.ClassOf(generated.Id) ?? map.Def.ClassId, system.Body, rules.Star(system.StarClass)?.Luminosity ?? Fix64.One)
+            : rules != null && body != null
+            ? ForBody(data, rules, body, ClassOf(data, body.Id) ?? map.Def.ClassId, rules.Body, StarOf(data, rules, body.Id)?.Luminosity ?? Fix64.One) // the body's own class environment
             : Standin(data, rules, map.Def.ClassId, data.EnvironmentOf(map.Def.ClassId));
         map.ClimateCache = new Cached { Data = data, Context = context };
         return context;
     }
 
-    /// <summary>The numbers for one climate.json body; classId = the planet class whose environment it reads.</summary>
-    private static Context ForBody(GameData data, ClimateRules rules, BodyClimateDef body, string? classId)
+    /// <summary>The numbers for one body (climate.json's, or a generated system's); classId = the planet class whose
+    /// environment it reads, bodies = where its parent is looked up, luminosity = its star's.</summary>
+    private static Context ForBody(GameData data, ClimateRules rules, BodyClimateDef body, string? classId,
+        System.Func<string, BodyClimateDef?> bodies, Fix64 luminosity)
     {
         var template = rules.Template(body.ClimateId);
         var env = classId != null ? data.EnvironmentOf(classId) : null;
-        var orbit = body.Parent != null ? rules.Body(body.Parent) ?? body : body;
+        var orbit = body.Parent != null ? bodies(body.Parent) ?? body : body;
         var c = new Context
         {
             Data = data,
@@ -293,7 +312,7 @@ public static class Climate
             Template = template,
             Env = env,
             Seasons = body.Seasons.Count > 0 ? body.Seasons : template?.Seasons ?? new List<SeasonDef>(),
-            Luminosity = StarOf(data, rules, body.Id)?.Luminosity ?? Fix64.One,
+            Luminosity = luminosity,
             Au = orbit.Au > Fix64.Zero ? orbit.Au : Fix64.One,
             Eccentricity = orbit.Eccentricity,
             Perihelion = orbit.Perihelion,

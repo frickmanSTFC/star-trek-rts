@@ -449,6 +449,7 @@ public sealed partial class PlanetSurface
         var orbit = _data.Orbit;
         if (!IsPlayer(player)) return "no such player";
         if (orbit == null) return "no ship in orbit";
+        if (sim.System?.OrbitProblem(player) is { } away) return away;
         if (_players[player].Phase != LandingPhase.Landed) return "land the colony first";
         if (!OnMap(tile)) return "off the map";
         foreach (var d in _deliveries)
@@ -473,6 +474,7 @@ public sealed partial class PlanetSurface
         var orbit = _data.Orbit;
         if (!IsPlayer(player)) return "no such player";
         if (orbit == null) return "no ship in orbit";
+        if (sim.System?.OrbitProblem(player) is { } away) return away;
         if (!orbit.ShuttlePayloads.Contains(unitId)) return "the drop ship can't carry that";
         if (_players[player].Phase != LandingPhase.Landed) return "land the colony first";
         if (_players[player].ShuttleBackTick > sim.Tick) return "the drop ship is still away";
@@ -542,6 +544,7 @@ public sealed partial class PlanetSurface
     public string? BeamProblem(Simulation sim, int player, int tile, string payload)
     {
         if (!IsPlayer(player)) return "no such player";
+        if (sim.System?.OrbitProblem(player) is { } away) return away;
         var p = _players[player];
         var level = _data.Orbit?.Transporter(p.TransporterLevel);
         if (level == null) return "no transporters in this era";
@@ -569,6 +572,7 @@ public sealed partial class PlanetSurface
         var orbit = _data.Orbit;
         if (!IsPlayer(player)) return "no such player";
         if (orbit == null) return "no ship in orbit";
+        if (sim.System?.OrbitProblem(player) is { } away) return away;
         if (row < 0 || row >= Map.Grid.Height) return "off the map";
         if (_satellites.Count(x => x.Owner == player) >= orbit.SatelliteMax) return $"all {orbit.SatelliteMax} satellites are up";
         if (!sim.Players[player].Stock.CanAfford(orbit.SatelliteCost)) return "not enough resources";

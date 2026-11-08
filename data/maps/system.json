@@ -1,0 +1,23 @@
+{
+  "_notes_system": "Play rules of the star system around a colony (game/sim/Space/StarSystem.cs). travel: impulse flight between two bodies takes seconds[0] + (seconds[1] - seconds[0]) × the distance's share of distance[0]..distance[1] (map units, clamped), so 20 s next door and 90 s across the system; neutral traffic flies neutral_scale × slower. scan: a long-range scan from a ship in orbit charts every body within range map units of it, then recharges for cooldown_seconds. satellite: a satellite left at the body the flagship orbits (paid from stock) gives live readings there for good; max per player. traffic: how many neutral civilian ships fly between the bodies (ships [min, max]), which factions' civilian classes they use (ships/classes, roles listed under cargo), what each role carries (one picked per trip), how long they stay in orbit between trips, their names and registry prefixes by faction (numbers from registry_numbers). All numbers are placeholders.",
+  "system": {
+    "travel": { "seconds": [20, 90], "distance": [0, 1000], "neutral_scale": 1.25 },
+    "scan": { "range": 320, "cooldown_seconds": 90 },
+    "satellite": { "cost": { "duranium": 60, "tritanium": 30 }, "max": 4 },
+    "traffic": {
+      "ships": [3, 5],
+      "factions": ["federation", "ferengi", "klingon", "cardassian", "romulan"],
+      "cargo": {
+        "freighter": ["duranium ore", "tritanium ingots", "consumer goods", "medical supplies", "machine parts", "foodstuffs"],
+        "tanker": ["deuterium", "antimatter pods", "plasma coolant"],
+        "science": ["survey team", "sensor probes", "geological samples"],
+        "colony": ["colonists", "prefab habitats", "farm equipment"]
+      },
+      "dwell_seconds": [20, 70],
+      "names": ["Morning Star", "Kalla's Fortune", "Patient Hand", "Ember Road", "Long Haul", "Silver Wake", "Tamar Quill", "Second Harvest",
+                "Brass Lantern", "Far Meridian", "Copper Mule", "Quiet Margin", "Steady Keel", "Orison", "Vasko's Pride", "Red Gannet"],
+      "registry": { "federation": "NAR-", "ferengi": "FMV-", "klingon": "IKC-", "cardassian": "CUF-", "romulan": "RTV-" },
+      "registry_numbers": [1000, 89999]
+    }
+  }
+}

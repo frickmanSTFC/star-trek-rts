@@ -73,3 +73,15 @@ public sealed record SalvageCommand(int Player, int StructureId) : Command(Playe
 /// <summary>Send a construction rover to found a new outpost on a tile: it drives there, unfolds (paying the founding
 /// cost) and is used up as a new Colony Hub under construction (or starts at once if it is on the tile).</summary>
 public sealed record FoundOutpostCommand(int Player, int UnitId, int Tile) : Command(Player);
+
+// ---- the star system (Space/StarSystem.cs; refused in games without one)
+
+/// <summary>Send one of your ships from the body it orbits to another body (impulse, 20-90 s by distance; it arrives in
+/// orbit there and charts it). Refused while it is in flight.</summary>
+public sealed record SetCourseCommand(int Player, int ShipId, string BodyId) : Command(Player);
+
+/// <summary>Run a long-range scan from one of your ships in orbit: charts every body within range (then a cooldown).</summary>
+public sealed record LongRangeScanCommand(int Player, int ShipId) : Command(Player);
+
+/// <summary>Leave a satellite at the body your flagship orbits (paid from stock): live readings there for good.</summary>
+public sealed record SystemSatelliteCommand(int Player, string BodyId) : Command(Player);

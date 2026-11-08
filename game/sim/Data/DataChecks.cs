@@ -19,6 +19,39 @@ public static class DataChecks
         if (problems.Count > 0) return problems; // the deeper checks assume the data at least loads cleanly
         foreach (var seed in PlanetSeeds) problems.AddRange(PlanetProblems(data, seed));
         problems.AddRange(SymmetryProblems(data));
+        foreach (var seed in PlanetSeeds) problems.AddRange(SystemProblems(data, seed));
+        return problems;
+    }
+
+    /// <summary>A star system generated on this seed: bodies, at least one landable, distinct ids and names, every body's
+    /// climate entry resolving (template, star, summary) and moons sharing their planet's year.</summary>
+    public static List<string> SystemProblems(GameData data, ulong seed)
+    {
+        var problems = new List<string>();
+        var where = $"System seed {seed}";
+        Space.GeneratedSystem system;
+        try
+        {
+            system = Space.SystemGenerator.Generate(data, seed);
+        }
+        catch (System.Exception e)
+        {
+            problems.Add($"{where}: generation failed ({e.Message}).");
+            return problems;
+        }
+        if (system.Bodies.Count == 0) problems.Add($"{where}: no bodies.");
+        if (system.Landable(data).Count == 0) problems.Add($"{where}: no landable body.");
+        if (system.Bodies.Select(b => b.Id).Distinct().Count() != system.Bodies.Count) problems.Add($"{where}: body ids repeat.");
+        if (system.Bodies.Select(b => b.Name).Distinct().Count() != system.Bodies.Count) problems.Add($"{where}: body names repeat.");
+        if (data.Climate?.Star(system.Star.Class) == null) problems.Add($"{where}: star class {system.Star.Class} has no climate entry.");
+        foreach (var e in system.Entries)
+        {
+            if (data.Climate?.Template(e.Climate.ClimateId) == null) problems.Add($"{where}: {e.Id} ({e.Body.ClassId}) has no climate template.");
+            else if (Surface.Climate.Summary(data, system.Climate, e.Id) == null) problems.Add($"{where}: {e.Id} has no climate summary.");
+            if (e.Climate.Parent is { } parent && system.Climate.Body(parent) is { } pc
+                && Math.Fix64.Abs(e.Climate.YearSeconds - pc.YearSeconds) > pc.YearSeconds / 50)
+                problems.Add($"{where}: moon {e.Id}'s year doesn't match its planet's.");
+        }
         return problems;
     }
 

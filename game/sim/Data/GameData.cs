@@ -540,6 +540,8 @@ public sealed partial class GameData
             Gravity = ReadGravity(surfacesRoot, problems),
             Habitability = ReadHabitability(surfacesRoot, problems),
             BuildingWorlds = ReadBuildingWorlds(buildingsRoot),
+            SystemGenerator = ReadSystemGenerator(mapsRoot),
+            SystemRules = ReadSystemRules(mapsRoot, Amounts),
             Sources = sources,
             Files = parts,
             Setup = setup,
@@ -614,6 +616,7 @@ public sealed partial class GameData
         ValidateFounding(problems);
         ValidateLanes(problems);
         ValidateWorlds(problems);
+        ValidateSystem(problems);
         ValidateEras(problems);
         ValidateTechTree(problems);
         ValidateStartingSets(problems);

@@ -99,11 +99,21 @@ public sealed class Simulation
     /// <summary>Generates the surface of a planet class from the seed. Call once, before adding players.</summary>
     /// <param name="climateBody">The map body it is, for its climate (climate.json bodies); null = the class's default
     /// body (<see cref="GameData.DefaultClimateBody"/>: the home body of the lowest player slot, Tarsis on mvp_duel).</param>
-    public void LoadSurface(string planetClassId, ulong seed, string? climateBody = null)
+    /// <param name="system">When climateBody is a generated star system's body: that system's climate entries.</param>
+    public void LoadSurface(string planetClassId, ulong seed, string? climateBody = null, SystemClimate? system = null)
     {
         if (Surface != null) throw new InvalidOperationException("A surface is already loaded.");
         if (_players.Count > 0) throw new InvalidOperationException("Load the surface before adding players.");
-        Surface = new PlanetSurface(Data, SurfaceMap.Generate(Data, Data.Surface(planetClassId), seed, climateBody));
+        Surface = new PlanetSurface(Data, SurfaceMap.Generate(Data, Data.Surface(planetClassId), seed, climateBody, system));
+    }
+
+    /// <summary>Makes this game's star system (MatchSetup.CreateSystemGame). Call once, before adding players.</summary>
+    public void LoadSystem(FinalFrontier.Sim.Space.StarSystemState system)
+    {
+        if (System != null) throw new InvalidOperationException("A star system is already loaded.");
+        if (_players.Count > 0) throw new InvalidOperationException("Load the star system before adding players.");
+        System = system;
+        system.Attach(this);
     }
 
     /// <summary>
@@ -116,6 +126,7 @@ public sealed class Simulation
         var player = new Player(_players.Count, factionId, new ResourceBag(Data.Resources.Count, startStock));
         _players.Add(player);
         Surface?.AddPlayer(factionId);
+        System?.AddPlayer(this, player.Slot, factionId);
         return player;
     }
 
@@ -210,6 +221,7 @@ public sealed class Simulation
         }
 
         Economy();
+        System?.Step(this);
         Surface?.Step(this);
         foreach (var ship in _ships) Movement(ship);
         Tick++;
@@ -230,6 +242,12 @@ public sealed class Simulation
         if (command is DebugCommand debug)
         {
             ApplyDebug(debug);
+            return;
+        }
+        if (command is SetCourseCommand or LongRangeScanCommand or SystemSatelliteCommand)
+        {
+            if (System == null) Refuse(command, "no star system");
+            else System.Apply(this, command);
             return;
         }
         if (Surface != null && Surface.Apply(this, command)) return;
@@ -408,6 +426,8 @@ public sealed class Simulation
         foreach (var s in _ships) s.AddToHash(ref h);
         h.Add(Surface != null);
         Surface?.AddToHash(ref h);
+        // The star system only where there is one, so planet-only games keep the hashes they always had.
+        System?.AddToHash(ref h);
         h.Add(DebugEdits);
         h.Add(_dataChanges.Count);
         foreach (var c in _dataChanges) h.Add(c);

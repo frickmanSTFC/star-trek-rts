@@ -175,6 +175,21 @@ layer above it once the surface game is fun.
   starts losing crew. Mines, storage, the refinery and the reactor are automated and can stand anywhere. Both new
   buildings appear in the build menu only on Domes worlds. Not yet: crew conditioning, species tolerance, EVA teams,
   unsealed rovers, the other hostile classes' hooks.
+- **The star system above the colony** (decided 2026-11-08; sim side done, view in progress; numbers in
+  `data/maps/generator.json` and `data/maps/system.json`): a system game's star system is **generated from the seed**:
+  5–8 planets and belts in inner / habitable / outer zones, moons round giants (mostly ice and airless moons) and
+  sometimes round rocky worlds. **Class M is a rare roll** (5 in 100 habitable-zone planets, none elsewhere: about one
+  system in nine has one); K, H, L, D, Y and asteroid belts are common, giants and ice worlds sit outside. Every system
+  has **at least one landable world** (a class with a surface: today M or L); if none is rolled, the habitable-zone
+  planet nearest the zone's middle becomes Class L. The game starts in orbit of a Class M world if there is one, else
+  Class L (or the one the player picks). **Flight** between bodies is timed at impulse, 20 s next door to 90 s across the
+  system; orbit actions (landing, outpost drops, drop ships, transporters, row satellites) only work while the ship is in
+  orbit of the colony's world. **System fog** has three levels: every body starts *Detected* (position and rough size);
+  orbiting it or a **long-range scan** (320 map units, 90 s recharge) makes it *Charted* for good (class, moons, gravity,
+  atmosphere, the resources that may be there); *Live* readings only while a **satellite** is left there (60 duranium +
+  30 tritanium, 4 per player) or for the colony's own world once its uplink is up. 3–5 **neutral civilian ships**
+  (freighters, tankers, science and colony ships of the Federation, Ferengi, Klingons, Cardassians and Romulans, with
+  names, registries and cargo) fly between the bodies.
 
 ## 4. Economy
 
