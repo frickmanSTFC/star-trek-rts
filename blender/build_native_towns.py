@@ -201,6 +201,12 @@ class MB:
         section, twist (degrees per unit of height) turns the lobes into a spiral; sx/sy squash it to an oval."""
         rings = []
         tw = math.radians(twist)
+        if twist:  # enough rings that the spiral stays a surface (<= 12 degrees of turn per ring)
+            fine = [prof[0]]
+            for (r0, z0), (r1, z1) in zip(prof, prof[1:]):
+                n = max(1, int(math.ceil(abs(twist * (z1 - z0)) / 12.0)))
+                fine += [(r0 + (r1 - r0) * k / n, z0 + (z1 - z0) * k / n) for k in range(1, n + 1)]
+            prof = fine
 
         def pos(r, z, i):
             a = phase + TAU * i / segs
@@ -377,6 +383,13 @@ def wall_loop(mb, M, pts, h, w, col, gaps=(), taper=0.7):
         if i in gaps:
             continue
         mb.segment(M, pts[i], pts[(i + 1) % n], w, h, SPECIES, col, taper=taper)
+
+
+def fill_blocks(mb, rng, n, avoid, r0=2.5, r1=8.4, h=(1.2, 2.6), roof="shell", gap=1.9):
+    """Low lit blocks between the landmarks (avoid = [((x, y), radius)])."""
+    for (x, y) in scatter_points(rng, n, r0, r1, avoid=avoid, min_gap=gap):
+        house(mb, T(x, y, 0, rng.choice((0, 90)) + rng.random() * 12), rng, 1.2 + 0.5 * rng.random(),
+              1.1 + 0.4 * rng.random(), h[0] + (h[1] - h[0]) * rng.random(), roof=roof, lit=True)
 
 
 def scatter_points(rng, n, r0, r1, avoid=(), min_gap=2.2, tries=400):
@@ -771,6 +784,12 @@ def town_l4_a(mb, rng, smoke):
     for x, y in [(-7.0, 1.6), (-3.5, 1.6), (2.0, 1.6), (6.0, -0.4), (1.6, 5.0), (-0.4, -3.0), (1.6, -5.0),
                  (-4.0, -4.4)]:
         lamp_post(mb, T(x, y), 1.4)
+    roads = [((x, 0.6), 1.3) for x in range(-9, 10, 2)] + [((0.6, y), 1.3) for y in range(-9, 10, 2)] + \
+            [((x, -5.4), 1.3) for x in range(-7, 8, 2)]
+    fill_blocks(mb, rng, 9, roads + [((-2.4, 3.2), 2.6), ((4.4, 4.0), 2.2), ((5.0, -2.5), 2.0), ((-4.6, -2.5), 2.2),
+                                     ((-6.8, 3.8), 1.8), ((2.4, 7.4), 1.0), ((-1.2, -7.4), 1.0), ((-6.4, -6.0), 1.8),
+                                     ((4.0, -7.0), 2.2), ((1.4, -7.4), 1.4), ((-5.6, 0.3), 1.8), ((6.8, 1.6), 1.6),
+                                     ((-2.6, -4.0), 1.5), ((3.0, 1.9), 1.5)])
 
 
 def town_l4_b(mb, rng, smoke):
@@ -785,11 +804,11 @@ def town_l4_b(mb, rng, smoke):
     # spiral tower
     S = T(-2.0, 2.4)
     prof = [(1.5, 0), (1.35, 3.0), (1.2, 7.0), (1.0, 11.0), (0.7, 14.0), (0.0, 16.0)]
-    mb.lathe(S, prof, 12, SPECIES, shade(rng), lobes=3, amp=0.32, twist=22)
+    mb.lathe(S, prof, 12, SPECIES, shade(rng), lobes=3, amp=0.32, twist=14)
     for z in (2.0, 4.2, 6.4, 8.6, 10.8):
         r = 1.5 - 0.5 * z / 14.0
-        mb.band(S, r * 1.02, z, 0.5, 12, mat=GLASS, lobes=3, amp=0.32, twist=22)
-        mb.band(S, r * 1.02 + 0.02, z + 0.15, 0.18, 12, lobes=3, amp=0.32, twist=22)
+        mb.band(S, r * 1.02, z, 0.5, 12, mat=GLASS, lobes=3, amp=0.32, twist=14)
+        mb.band(S, r * 1.02 + 0.02, z + 0.15, 0.18, 12, lobes=3, amp=0.32, twist=14)
     mb.cyl(S, 2.2, 0.6, 12, TRIM, shade(rng, 0.9), smooth=False)
     # dome stadium
     D = T(3.8, 3.6)
@@ -817,6 +836,12 @@ def town_l4_b(mb, rng, smoke):
         house(mb, T(x, y, 0, 15), rng, w, d, h, roof="dome", lit=True)
     for i in range(0, 16, 2):
         lamp_post(mb, T(7.9 * math.cos(TAU * i / 16 + 0.2), 7.9 * math.sin(TAU * i / 16 + 0.2)), 1.4)
+    roads = [(p, 1.2) for p in ring] + [((x, -0.4), 1.2) for x in range(-9, 10, 2)]
+    fill_blocks(mb, rng, 8, roads + [((-2.0, 2.4), 2.6), ((3.8, 3.6), 3.0), ((4.6, -4.8), 2.2), ((1.4, -6.8), 2.0),
+                                     ((-6.4, -3.6), 1.0), ((7.6, 0.6), 1.0), ((-5.0, 5.6), 1.6), ((-4.4, -5.6), 1.4),
+                                     ((-1.6, -4.4), 1.4), ((6.4, -2.2), 1.4)] +
+                [((5.0 * math.cos(3.6 + k * 0.28), 5.0 * math.sin(3.6 + k * 0.28)), 1.3) for k in range(5)],
+                r0=2.0, r1=6.2, h=(1.4, 3.0), roof="dome")
 
 
 # ---------------------------------------------------------------- L5 Early warp
@@ -879,10 +904,10 @@ def town_l5_a(mb, rng, smoke):
     mb.band(F, 1.32, 12.0, 0.3, 10, mat=GLASS, lobes=5, amp=0.1)
     W = T(1.6, 4.6)  # twisted tower
     mb.lathe(W, [(1.2, 0), (1.1, 4.0), (0.9, 8.0), (0.55, 10.0), (0.0, 11.0)], 10, TRIM, shade(rng, 0.95),
-             lobes=2, amp=0.35, twist=30)
+             lobes=2, amp=0.35, twist=20)
     for z in (1.5, 3.3, 5.1, 6.9):
-        mb.band(W, 1.15 - z * 0.03, z, 0.35, 10, mat=GLASS, lobes=2, amp=0.35, twist=30)
-        mb.band(W, 1.15 - z * 0.03 + 0.02, z + 0.1, 0.15, 10, lobes=2, amp=0.35, twist=30)
+        mb.band(W, 1.15 - z * 0.03, z, 0.35, 10, mat=GLASS, lobes=2, amp=0.35, twist=20)
+        mb.band(W, 1.15 - z * 0.03 + 0.02, z + 0.1, 0.15, 10, lobes=2, amp=0.35, twist=20)
     glass_slab(mb, T(5.4, 3.2, 0, -10), rng, 2.4, 1.6, 6.0)
     glass_slab(mb, T(-6.8, 0.0 + 3.0, 0, 15), rng, 1.6, 2.2, 4.2)
     saucer(mb, T(-0.6, 7.6, 2.2), 1.9, 0.9, TRIM, shade(rng, 0.92))
@@ -892,6 +917,12 @@ def town_l5_a(mb, rng, smoke):
         house(mb, T(x, y, 0, 10), rng, w, d, h, roof="dome", lit=True)
     for x in (-7.0, -4.0, -0.6, 2.6, 6.0):
         lamp_post(mb, T(x, 2.2 - 0.07 * x), 1.4)
+    road = [((x, 1.0 - 0.067 * (x + 9)), 1.3) for x in range(-9, 10, 2)] + \
+           [((-1.0 - 0.2 * (y - 1), y), 1.2) for y in range(1, 10, 2)]
+    fill_blocks(mb, rng, 9, road + [((3.4, -4.6), 4.6), ((-1.6, -6.4), 2.2), ((-4.2, -5.2), 1.6), ((-3.6, 4.2), 2.0),
+                                    ((1.6, 4.6), 1.8), ((5.4, 3.2), 1.9), ((-6.8, 3.0), 1.7), ((-0.6, 7.6), 2.2),
+                                    ((-6.2, -2.4), 1.6), ((-6.6, 6.2), 1.4), ((6.6, 6.2), 1.4)],
+                r0=1.5, r1=8.3, h=(1.4, 3.4))
 
 
 # ---------------------------------------------------------------- L6 Spacefaring
@@ -944,7 +975,7 @@ def town_l6_a(mb, rng, smoke):
             mb.cyl(T(*loop[i]), 0.15, 0.65, 4, TRIM, (0.6, 0.6, 0.62), smooth=False)
     for i in range(0, 20, 2):
         mb.box(T(loop[i][0], loop[i][1], 0.85), 0.3, 0.3, 0.06, LIGHT, (0.6, 0.85, 1.0))
-    towers = [((-1.8, 1.4), 30.0, 2.6, 3, 18.0), ((3.4, 3.4), 21.0, 2.0, 4, -24.0), ((-1.0, -4.0), 16.0, 1.8, 3, 30.0)]
+    towers = [((-1.8, 1.4), 30.0, 2.6, 3, 7.0), ((3.4, 3.4), 21.0, 2.0, 4, -10.0), ((-1.0, -4.0), 16.0, 1.8, 3, 13.0)]
     for (x, y), h, r, lobes, tw in towers:
         arcology(mb, T(x, y, 0, rng.random() * 120), rng, h, r, lobes, tw)
     # sky bridges between the towers
@@ -1009,7 +1040,8 @@ def town_l3_far(mb, rng, smoke):
         mb.box(T(x, y), 2.8, 2.0, 1.8, TRIM, WHITE)
     mb.lathe(T(6.0, -6.0), [(1.5, 0), (1.5, 2.4), (0.0, 2.8)], 6, SPECIES, WHITE, smooth=False)
     mb.segment(Matrix(), (-9.0, -2.6), (9.0, -3.6), 1.3, 0.05, GROUND, ROAD)
-    mb.segment(Matrix(), (-6.0, 3.4), (6.0, 3.6), 3.0, 0.03, LIGHT, WHITE, z0=0.06)
+    for (x, y) in [(-5.0, 4.6), (-1.8, 4.6), (4.6, 4.4), (-4.7, -0.6)]:
+        mb.box(T(x, y), 2.86, 2.06, 0.25, LIGHT, WHITE, z0=0.9)
 
 
 def town_l4_far(mb, rng, smoke):
@@ -1018,7 +1050,8 @@ def town_l4_far(mb, rng, smoke):
     mb.lathe(T(-2.4, 3.2, 8.0), [(0.0, -0.3), (2.0, 0.0), (0.0, 0.3)], 6, TRIM, WHITE, smooth=False)
     for (x, y, w, d, h) in [(4.4, 4.0, 2.6, 1.8, 7.5), (5.0, -2.5, 2.2, 2.2, 5.5), (-4.6, -2.5, 3.0, 1.6, 4.6)]:
         mb.box(T(x, y), w, d, h, GLASS, WHITE)
-        mb.box(T(x, y, h * 0.3), w + 0.06, d + 0.06, h * 0.5, LIGHT, WHITE, taper=1.0)
+        for z in (0.35, 0.6):
+            mb.box(T(x, y), w + 0.06, d + 0.06, h * 0.06, LIGHT, WHITE, z0=h * z)
     mb.lathe(T(4.0, -7.0), [(1.7, 0), (1.15, 2.9), (1.2, 4.2)], 6, SPECIES, WHITE, cap_top=True, smooth=False)
     smoke.append(Vector((4.0, -7.0, 4.5)))
 
@@ -1031,9 +1064,10 @@ def town_l5_far(mb, rng, smoke):
     mb.lathe(T(-3.6, 4.2), [(1.4, 0), (0.85, 11.5), (0.0, 13.2)], 5, SPECIES, WHITE, smooth=False)
     mb.lathe(T(1.6, 4.6), [(1.1, 0), (0.0, 11.0)], 5, TRIM, WHITE, smooth=False)
     mb.box(T(5.4, 3.2), 2.4, 1.6, 6.0, GLASS, WHITE)
-    mb.box(T(5.4, 3.2, 1.5), 2.46, 1.66, 3.5, LIGHT, WHITE)
+    for z in (1.8, 3.4):
+        mb.box(T(5.4, 3.2), 2.46, 1.66, 0.35, LIGHT, WHITE, z0=z)
     mb.dome(T(-1.6, -6.4), 1.6, 1.6, 6, GLASS, WHITE, rings=2, smooth=False)
-    mb.disc(T(3.4, -4.6), 3.65, 0.34, 8, LIGHT, (0.6, 0.85, 1.0))
+    mb.lathe(T(3.4, -4.6), [(3.62, 0.3), (3.62, 0.36)], 8, LIGHT, (0.6, 0.85, 1.0), cap_top=False, smooth=False)
 
 
 def town_l6_far(mb, rng, smoke):
@@ -1041,7 +1075,9 @@ def town_l6_far(mb, rng, smoke):
     for (x, y), h, r in [((-1.8, 1.4), 30.0, 2.6), ((3.4, 3.4), 21.0, 2.0), ((-1.0, -4.0), 16.0, 1.8)]:
         mb.lathe(T(x, y), [(r * 1.25, 0), (r * 0.8, h * 0.4), (r * 0.35, h * 0.88), (0.0, h)], 6, SPECIES, WHITE,
                  smooth=False)
-        mb.lathe(T(x, y), [(r * 0.92, h * 0.25), (r * 0.62, h * 0.65)], 6, LIGHT, WHITE, cap_top=False, smooth=False)
+        for z0, z1 in ((0.25, 0.28), (0.45, 0.48)):
+            mb.lathe(T(x, y), [(r * (1.18 - 0.9 * z0) + 0.04, h * z0), (r * (1.18 - 0.9 * z1) + 0.04, h * z1)], 6, LIGHT,
+                     WHITE, cap_top=False, smooth=False)
     for (x, y, h, r) in [(6.0, -3.0, 5.0, 1.9), (-5.8, 4.6, 4.0, 1.7), (-6.0, -3.0, 2.8, 1.6)]:
         mb.cyl(T(x, y), 0.5, h, 4, SPECIES, WHITE, smooth=False)
         mb.cyl(T(x, y, h), r, 0.3, 6, TRIM, WHITE, smooth=False)
@@ -1072,7 +1108,7 @@ def make_materials():
         pbsdf("SpeciesTrim", (0.33, 0.24, 0.2), roughness=0.6),
         pbsdf("CityLight", (0.3, 0.25, 0.18), roughness=0.4, emission=(1.0, 0.72, 0.4), strength=2.0),
         pbsdf("Glass", (0.08, 0.14, 0.18), metallic=0.4, roughness=0.12),
-        pbsdf("Ground", (0.5, 0.43, 0.33), roughness=0.95),
+        pbsdf("Ground", (0.34, 0.28, 0.2), roughness=0.95),
     ]
 
 
@@ -1272,7 +1308,7 @@ def preview(objs, folder):
             tz = min(height * 0.32, 6.0)
             shoot(os.path.join(folder, f"natives-{name}-{when}.png"), (0, 0, tz), dist)
             if name in ("l5_a", "l6_a"):
-                shoot(os.path.join(folder, f"natives-{name}-{when}-close.png"), (0, 0, 2.5), 17.0, yaw=150, elev=24)
+                shoot(os.path.join(folder, f"natives-{name}-{when}-close.png"), (2.0, -2.0, 3.0), 26.0, yaw=145, elev=22)
     # line-up of every town (rows = levels, columns a / b / far)
     for o in objs:
         o.hide_render = False
