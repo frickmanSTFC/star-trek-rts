@@ -130,3 +130,34 @@ public sealed record DebugDataCommand(int Player, IReadOnlyList<DataEdit> Edits)
 
 /// <summary>Replace whole data files for this game (the panel's "reload data files": the new texts travel in the command).</summary>
 public sealed record DebugReloadDataCommand(int Player, IReadOnlyList<DataFile> Files) : DebugCommand(Player);
+
+/// <summary>What <see cref="DebugCivCommand"/> changes (Value meaning in brackets).</summary>
+public enum DebugCivField
+{
+    /// <summary>Put a living civilization on the body (level 1..6), replacing any site there.</summary>
+    SpawnLiving,
+    /// <summary>Put ruins on the body (value ignored).</summary>
+    SpawnRuins,
+    /// <summary>Remove the body's site (value ignored).</summary>
+    Remove,
+    /// <summary>Development level 1..6.</summary>
+    Level,
+    /// <summary>Awareness 0..100.</summary>
+    Awareness,
+    /// <summary>Temperament 1 peaceful, 2 wary, 3 aggressive.</summary>
+    Temperament,
+    /// <summary>Finish the target player's study of the body (value ignored).</summary>
+    FinishStudy,
+    /// <summary>The target player's Starfleet Standing 0..100 (body ignored).</summary>
+    Standing,
+    /// <summary>The target player's post on the body is found now (value ignored).</summary>
+    FindPost,
+    /// <summary>Relations stage 0..4 with the target player (none, contact, trade partner, candidate, allied).</summary>
+    Relations,
+}
+
+/// <summary>Test panel: change a civilization site in the star system (Target = the player for per-player fields).</summary>
+public sealed record DebugCivCommand(int Player, int Target, string BodyId, DebugCivField Field, Fix64 Value) : DebugCommand(Player);
+
+/// <summary>Test panel: add (Add = true) or remove ruins on a surface tile of the colony's world.</summary>
+public sealed record DebugRuinCommand(int Player, int Tile, bool Add) : DebugCommand(Player);

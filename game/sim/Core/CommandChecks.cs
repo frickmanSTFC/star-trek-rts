@@ -49,6 +49,11 @@ public static class CommandChecks
             case StockTargetCommand c: return Id(c.ItemId);
             case JuryRigUnitsCommand c: return Ids(c.UnitIds);
             case ObservationPostCommand c: return Id(c.BodyId);
+            case FirstContactCommand c: return Id(c.BodyId);
+            case ContactChoiceCommand c: return Id(c.BodyId);
+            case MembershipCommand c: return Id(c.BodyId);
+            case AllyShipOrderCommand c: return c.BodyId == null ? null : Id(c.BodyId);
+            case DebugCivCommand c: return Enum.IsDefined(c.Field) ? Id(c.BodyId) : "unknown field";
             case DebugUnitCommand c: return Enum.IsDefined(c.Field) ? null : "unknown field";
             case DebugSpawnUnitCommand c: return Id(c.UnitId);
             case DebugStructureCommand c: return Enum.IsDefined(c.Field) ? null : "unknown field";
@@ -133,6 +138,10 @@ public static class CommandHash
         JuryRigCommand => 28,
         JuryRigUnitsCommand => 29,
         ObservationPostCommand => 30,
+        FirstContactCommand => 31,
+        ContactChoiceCommand => 32,
+        MembershipCommand => 33,
+        AllyShipOrderCommand => 34,
         // Test panel.
         DebugUnitCommand => 101,
         DebugMoveUnitCommand => 102,
@@ -150,6 +159,8 @@ public static class CommandHash
         DebugAddPlayerCommand => 114,
         DebugDataCommand => 115,
         DebugReloadDataCommand => 116,
+        DebugCivCommand => 117,
+        DebugRuinCommand => 118,
         _ => UnknownTag,
     };
 
@@ -190,6 +201,12 @@ public static class CommandHash
             case JuryRigCommand c: h.Add(c.StructureId); break;
             case JuryRigUnitsCommand c: Ids(ref h, c.UnitIds); break;
             case ObservationPostCommand c: Text(ref h, c.BodyId); break;
+            case FirstContactCommand c: Text(ref h, c.BodyId); break;
+            case ContactChoiceCommand c: Text(ref h, c.BodyId); h.Add(c.Choice); break;
+            case MembershipCommand c: Text(ref h, c.BodyId); break;
+            case AllyShipOrderCommand c: h.Add(c.ShipId); h.Add(c.BodyId != null); if (c.BodyId != null) Text(ref h, c.BodyId); break;
+            case DebugCivCommand c: h.Add(c.Target); Text(ref h, c.BodyId); h.Add((int)c.Field); h.Add(c.Value); break;
+            case DebugRuinCommand c: h.Add(c.Tile); h.Add(c.Add); break;
             case DebugUnitCommand c: h.Add(c.UnitId); h.Add((int)c.Field); h.Add(c.Value); break;
             case DebugMoveUnitCommand c: h.Add(c.UnitId); h.Add(c.Tile); break;
             case DebugRemoveUnitCommand c: h.Add(c.UnitId); break;

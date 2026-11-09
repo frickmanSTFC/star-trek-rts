@@ -161,6 +161,8 @@ public sealed partial class PlanetSurface
                 if (!OnMap(c.Tile)) return "off the map";
                 if (Map.DepositResource[c.Tile] < 0) return "no deposit there";
                 return c.Amount >= Fix64.Zero && c.Amount <= Simulation.DebugMaxAmount ? null : "amounts are 0 to 1 000 000 000";
+            case DebugRuinCommand c:
+                return RuinDebugProblem(c); // Excavation.cs
             default:
                 return "not a surface command";
         }
@@ -171,6 +173,9 @@ public sealed partial class PlanetSurface
     {
         switch (command)
         {
+            case DebugRuinCommand ruin:
+                ApplyRuinDebug(ruin); // Excavation.cs
+                break;
             case DebugUnitCommand c:
             {
                 var u = FindUnit(c.UnitId)!;

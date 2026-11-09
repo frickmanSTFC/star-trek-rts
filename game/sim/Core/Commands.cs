@@ -112,3 +112,18 @@ public sealed record SystemSatelliteCommand(int Player, string BodyId) : Command
 /// <summary>Place a hidden observation post ("duck blind") on the body your flagship orbits, from orbit like a satellite
 /// (paid from stock): studies the civilization there fastest and adds research, but each 10 minutes it may be found.</summary>
 public sealed record ObservationPostCommand(int Player, string BodyId) : Command(Player);
+
+// ---- civilizations phase 2 (Space/Contact.cs, Surface/Excavation.cs; docs/civilizations-phase2-contract.md)
+
+/// <summary>Start a first-contact event with the civilization on the body your flagship orbits (L5+; below L5 it
+/// breaks General Order 1 in a Prime Directive era). The event runs ~4 minutes with choices along the way.</summary>
+public sealed record FirstContactCommand(int Player, string BodyId) : Command(Player);
+
+/// <summary>Pick option Choice (0-based) at the current step of your first-contact event at the body.</summary>
+public sealed record ContactChoiceCommand(int Player, string BodyId, int Choice) : Command(Player);
+
+/// <summary>Take relations with a contacted civilization one step further (Trade partner → Candidate → Allied world).</summary>
+public sealed record MembershipCommand(int Player, string BodyId) : Command(Player);
+
+/// <summary>Order an allied native ship: BodyId null = escort your flagship, else fly to that body and scout (chart) it.</summary>
+public sealed record AllyShipOrderCommand(int Player, int ShipId, string? BodyId) : Command(Player);

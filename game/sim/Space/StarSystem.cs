@@ -71,6 +71,13 @@ public sealed class SystemShip
     /// <summary>The body its orbital sensor sweep is charting (started on entering orbit of a body its owner hasn't
     /// Charted), or null; done at <see cref="SweepDoneTick"/>. Leaving orbit calls it off.</summary>
     public string? SweepBody { get; internal set; }
+
+    /// <summary>An allied native ship (phase 2): the player it follows (-1 = not an ally), its home body and task.</summary>
+    public int AllyOf { get; internal set; } = -1;
+    public string? AllyHome { get; internal set; }
+    public AllyTask AllyTask { get; internal set; }
+    /// <summary>Scouting: the body it was sent to chart.</summary>
+    public string? ScoutBody { get; internal set; }
     public long SweepStartTick { get; internal set; }
     public long SweepDoneTick { get; internal set; }
 
@@ -615,6 +622,9 @@ public sealed partial class StarSystemState
             }
             case ObservationPostCommand post:
                 ApplyObservationPost(sim, post); // Civilizations.cs
+                return;
+            case FirstContactCommand or ContactChoiceCommand or MembershipCommand or AllyShipOrderCommand:
+                ApplyContact(sim, command); // Contact.cs
                 return;
         }
     }

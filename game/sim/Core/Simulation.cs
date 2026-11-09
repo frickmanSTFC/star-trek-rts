@@ -272,7 +272,8 @@ public sealed partial class Simulation
             ApplyDebug(debug);
             return;
         }
-        if (command is SetCourseCommand or LongRangeScanCommand or SystemSatelliteCommand or ObservationPostCommand)
+        if (command is SetCourseCommand or LongRangeScanCommand or SystemSatelliteCommand or ObservationPostCommand
+            or FirstContactCommand or ContactChoiceCommand or MembershipCommand or AllyShipOrderCommand)
         {
             if (System == null) Refuse(command, "no star system");
             else System.Apply(this, command);
@@ -364,6 +365,8 @@ public sealed partial class Simulation
                 return DataTuning.Rebuild(Data, data.Edits, Array.Empty<DataFile>(), out _);
             case DebugReloadDataCommand reload:
                 return DataTuning.Rebuild(Data, Array.Empty<DataEdit>(), reload.Files, out _);
+            case DebugCivCommand civ:
+                return System == null ? "no star system" : System.DebugCivProblem(this, civ);
             default:
                 return Surface == null ? "no planet surface" : Surface.DebugProblem(this, command);
         }
@@ -412,6 +415,9 @@ public sealed partial class Simulation
                 break;
             case DebugAddPlayerCommand add:
                 AddPlayer(add.FactionId);
+                break;
+            case DebugCivCommand civ:
+                System!.ApplyDebugCiv(this, civ);
                 break;
             default:
                 Surface!.ApplyDebug(this, command);
