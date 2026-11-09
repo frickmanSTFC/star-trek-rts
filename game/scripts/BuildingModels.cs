@@ -599,9 +599,18 @@ public static partial class BuildingModels
             var t = RelativeTo(node, n);
             node.GetParent().RemoveChild(node);
             node.Transform = t;
+            ClearOwner(node); // its owner was the imported scene's root, which is no longer above it
             n.AddChild(node);
         }
         return n;
+    }
+
+    /// <summary>Drops the scene owner of a node lifted out of an imported scene, and of everything under it (Godot warns
+    /// "will make owner inconsistent" otherwise; the owner only matters for saving scenes).</summary>
+    private static void ClearOwner(Node node)
+    {
+        node.Owner = null;
+        foreach (var child in node.GetChildren()) ClearOwner(child);
     }
 
     /// <summary>The node's transform relative to an ancestor, from the local transforms (works before it's in the tree).</summary>

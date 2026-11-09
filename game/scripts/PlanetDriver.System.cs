@@ -45,7 +45,7 @@ public partial class PlanetDriver
         }
         if (world.Length > 0 && home == null && !Is(world, MatchSetup.DefaultWorld))
         {
-            if (landable.Count > 0) GD.PushWarning($"World '{world}' isn't a landable body of seed {Seed}'s system; the system's own pick is home.");
+            if (landable.Count > 0) GD.Print($"World '{world}' (saved from an earlier game) isn't a landable body of seed {Seed}'s system; starting on the system's own pick.");
             else GD.PushError($"World '{world}' isn't a playable world (try \"tarsis\" or \"veyra\"); starting on {MatchSetup.DefaultWorld}.");
         }
         _sim = MatchSetup.CreateSystemGame(data, Seed, "federation", home?.Id);
