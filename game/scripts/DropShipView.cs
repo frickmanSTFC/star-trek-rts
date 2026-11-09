@@ -12,9 +12,9 @@ namespace FinalFrontier;
 /// blender/build_dropship.py) plays, in seconds from ArriveTick:
 /// <list type="bullet">
 /// <item>-9 → -2: comes down like a rocket lander (<see cref="RocketDescent"/>): from 260 up and 140 back a
-/// near-ballistic fall on idle engines, a full-throttle deceleration burn from ~80 up that kills the approach by
-/// 60 up (so the last stretch is straight down), throttle back into a brief hover ~3 up with a sideways
-/// correction, a gentle settle, touchdown (legs out from -5.5; rocket flames, a ground glow and smoke from
+/// near-ballistic fall on idle engines, leaning back on a quarter throttle to brake the approach, a full-throttle
+/// deceleration burn from ~88 up, the approach gone by 60 up (so the last stretch is straight down), throttle back
+/// into a brief hover ~3 up with a sideways correction, a gentle settle, touchdown (legs out -5.8 → -3.6; rocket flames, a ground glow and smoke from
 /// <see cref="RocketPlume"/>; fine dust blasted out along the ground below 35 up, a dust burst + smoke billow on
 /// touchdown; the engines cut over 0.7 s).</item>
 /// <item>0 → 1.6: the ramp opens (the sim's unit appears in the closed bay at 0); from 1.3 the unit drives down the
@@ -37,7 +37,7 @@ public partial class DropShipView : Node3D
 
     private const float DescentSeconds = 9f;   // starts this long before arrival (sooner if the flight is shorter)
     private const float TouchdownAt = -2f;
-    private const float LegsFrom = -5.5f, LegsTo = -2.9f;
+    private const float LegsFrom = -5.8f, LegsTo = -3.6f; // out during the burn, down by the hover
     private const float RampSeconds = 1.6f;    // opens from ArriveTick, closes after the unit is out
     private const float DriveFrom = 1.3f;      // the unit starts down the ramp
     private const float DriveSpeed = 3.4f;     // world units a second
@@ -84,8 +84,9 @@ public partial class DropShipView : Node3D
     private float _clock;                                    // running seconds (flame flicker)
 
     /// <summary>Where a convoy ship is and how its engines and legs look at a moment (LandingView's flight): Lift = the
-    /// lift thrusters' throttle 0..1 (drives the rocket plume), Impulse = the aft thrusters' 0..1.</summary>
-    public readonly record struct Flight(Transform3D Pose, float Lift, float Impulse, float LegsOut);
+    /// lift thrusters' throttle 0..1 (drives the rocket plume), Impulse = the aft thrusters' 0..1, Cant 0..1 tips the lift
+    /// flames outward (a module slung underneath).</summary>
+    public readonly record struct Flight(Transform3D Pose, float Lift, float Impulse, float LegsOut, float Cant = 0f);
 
     /// <summary>A ship LandingView flies (see the class summary). Times are seconds from <see cref="ArriveTick"/>.</summary>
     public sealed class ConvoyShip
@@ -163,7 +164,7 @@ public partial class DropShipView : Node3D
     public void Update(float alpha, float delta)
     {
         if (_surface == null) return;
-        _clock += delta;
+        _clock = (_clock + delta) % 600f; // the flicker doesn't mind the wrap; keeps the sines precise
         foreach (var d in _surface.Deliveries)
             if (d.Kind == DeliveryKind.Shuttle && !_ships.ContainsKey(d.Id))
                 _ships[d.Id] = Create(d);
@@ -342,7 +343,7 @@ public partial class DropShipView : Node3D
         var forward = -l.Basis.Z.Normalized();
 
         // Where it is: coming down, on the ground, or climbing out.
-        float lift, impulse, legsOut;
+        float lift, impulse, legsOut, cant = 0f;
         Transform3D pose;
         if (ship.Flown)
         {
@@ -351,6 +352,7 @@ public partial class DropShipView : Node3D
             lift = f.Lift;
             impulse = f.Impulse;
             legsOut = f.LegsOut;
+            cant = f.Cant;
         }
         else if (t < TouchdownAt)
         {
@@ -430,7 +432,7 @@ public partial class DropShipView : Node3D
         var ground = _view.GroundAt(pose.Origin);
         var under = pose.Origin with { Y = ground + 0.3f };
         var height = pose.Origin.Y - ground;
-        ship.Plume.Update(pose, lift, impulse, ground, ship.Shown, _clock);
+        ship.Plume.Update(pose, lift, impulse, ground, ship.Shown, _clock, cant);
         ship.Wash.Position = under;
         var wash = ship.Shown && lift > 0.2f && height < WashBelow;
         if (ship.Wash.Emitting != wash) ship.Wash.Emitting = wash;

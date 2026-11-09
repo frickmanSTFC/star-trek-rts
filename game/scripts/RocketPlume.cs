@@ -46,6 +46,8 @@ internal sealed class RocketPlume
     private readonly Vector3[] _at = new Vector3[Count];     // nozzle (model space)
     private readonly Vector2[] _half = new Vector2[Count];   // nozzle half-size across the flame (its local X, Z)
     private readonly float[] _phase = new float[Count];
+    private readonly Vector3[] _cantAxis = new Vector3[LiftCount]; // turning a lift flame about it tips it outward
+    private const float CantDegrees = 35f;
     private readonly StandardMaterial3D _outerMat, _coreMat, _aftMat;
     private readonly OmniLight3D _light;
     private readonly CpuParticles3D _smoke, _billow;
@@ -62,6 +64,12 @@ internal sealed class RocketPlume
         for (var k = 0; k < Count; k++)
         {
             Nozzle(model, k);
+            if (k < LiftCount)
+            {
+                var outward = new Vector3(_at[k].X, 0, _at[k].Z);
+                outward = outward.LengthSquared() > 1e-4f ? outward.Normalized() : Vector3.Forward;
+                _cantAxis[k] = outward.Cross(Vector3.Up).Normalized(); // + angle tips local -Y toward outward
+            }
             rng = rng * 1664525u + 1013904223u;
             _phase[k] = (rng >> 8) / (float)(1 << 24) * Mathf.Tau;
             var lift = k < LiftCount;
@@ -129,9 +137,10 @@ internal sealed class RocketPlume
     /// <summary>
     /// Move and size everything. <paramref name="pose"/> = the ship model's transform (world), <paramref name="throttle"/>
     /// 0..1 for the lift thrusters, <paramref name="aft"/> 0..1 for the aft ones, <paramref name="groundY"/> = the ground
-    /// under the ship, <paramref name="clock"/> = any running time in seconds (the flicker).
+    /// under the ship, <paramref name="clock"/> = any running time in seconds (the flicker), <paramref name="cant"/> 0..1
+    /// tips the lift flames outward (up to 35°) so they clear a module slung under the ship.
     /// </summary>
-    public void Update(Transform3D pose, float throttle, float aft, float groundY, bool shown, float clock)
+    public void Update(Transform3D pose, float throttle, float aft, float groundY, bool shown, float clock, float cant = 0f)
     {
         if (!shown)
         {
@@ -142,8 +151,7 @@ internal sealed class RocketPlume
         _root.Transform = pose;
         var height = pose.Origin.Y - groundY;
         var thin = 1f + 0.6f * S(15f, 180f, height); // thinner air higher up: the plume lengthens and opens
-        var down = -pose.Basis.Y.Normalized();
-        var fall = Mathf.Min(-0.2f, down.Y);
+        var tip = Mathf.DegToRad(CantDegrees) * Mathf.Clamp(cant, 0f, 1f);
         var lit = throttle > 0.02f;
         var t = clock;
 
@@ -162,16 +170,18 @@ internal sealed class RocketPlume
             }
             var want = (1.4f + 7.6f * throttle) * thin * f;
             var nozzleY = (pose * _at[k]).Y;
+            var tilt = new Basis(_cantAxis[k], tip);
+            var fall = Mathf.Min(-0.2f, (pose.Basis * (tilt * Vector3.Down)).Y);
             var clear = (nozzleY - groundY) / -fall;                 // along the flame to the ground
             var length = Mathf.Min(want, Mathf.Max(0.25f, clear + 0.35f));
             var splash = want > length ? Mathf.Min(1f, (want - length) / want * 1.5f) : 0f; // squashed: it spreads
             var width = (0.8f + 0.45f * throttle) * w * (1f + 0.9f * splash) * (0.75f + 0.25f * thin);
             var h = _half[k];
-            outer.Transform = new Transform3D(Basis.FromScale(new Vector3(h.X * width * 1.1f, length, h.Y * width * 1.1f)), _at[k]);
+            outer.Transform = new Transform3D(tilt * Basis.FromScale(new Vector3(h.X * width * 1.1f, length, h.Y * width * 1.1f)), _at[k]);
             if (!outer.Visible) outer.Visible = true;
             var hot = throttle > 0.12f;
             if (hot)
-                core.Transform = new Transform3D(Basis.FromScale(new Vector3(h.X * width * 0.55f, Mathf.Min(length, want * 0.42f), h.Y * width * 0.55f)), _at[k]);
+                core.Transform = new Transform3D(tilt * Basis.FromScale(new Vector3(h.X * width * 0.55f, Mathf.Min(length, want * 0.42f), h.Y * width * 0.55f)), _at[k]);
             if (core.Visible != hot) core.Visible = hot;
         }
         for (var k = LiftCount; k < Count; k++)

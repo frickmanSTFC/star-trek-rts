@@ -319,7 +319,11 @@ public partial class LandingView : Node3D
             Cables(slot);
             slot.Puff = DropShipView.Downwash(haze, burst: true);
             slot.Trail = DropShipView.Downwash(haze, burst: false);
-            slot.Trail.Amount = 120;
+            slot.Trail.Amount = 120;           // a crawling module's skids kick up a gentler stream of grains
+            slot.Trail.InitialVelocityMin = 2f;
+            slot.Trail.InitialVelocityMax = 5f;
+            slot.Trail.RadialAccelMin = 1f;
+            slot.Trail.RadialAccelMax = 3f;
             AddChild(slot.Puff);
             AddChild(slot.Trail);
             slot.Puffed = now > slot.Set + 0.5f;
@@ -529,7 +533,7 @@ public partial class LandingView : Node3D
             var travel = new Quaternion(Basis.LookingAt(-s.Back, Vector3.Up));
             var q = new Quaternion(s.HoverPose.Basis.Orthonormalized()).Slerp(travel, d.TurnAt(tau));
             var basis = DropShipView.Lean(s.Back, d.LeanAt(tau)) * DropShipView.Lean(-side, roll) * new Basis(q);
-            return new DropShipView.Flight(new Transform3D(basis, pos), Mathf.Min(1f, d.Throttle(tau) + 0.05f), 0f, 0f);
+            return new DropShipView.Flight(new Transform3D(basis, pos), Mathf.Min(1f, d.Throttle(tau) + 0.05f), 0f, 0f, 1f);
         }
         var climbFrom = c.Aborted ? Mathf.Max(c.AbortedAt + 0.8f, s.Hover) : s.Lift;
         if (T < climbFrom)
@@ -540,7 +544,8 @@ public partial class LandingView : Node3D
             var bob = Vector3.Up * 0.1f * Mathf.Sin(2.3f * T + s.Index)
                 + s.Back * 0.12f * Mathf.Sin(1.3f * T + 2f * s.Index);
             var hold = 0.66f + 0.04f * Mathf.Sin(5.3f * T + s.Index) + 0.025f * Mathf.Sin(11.7f * T);
-            return new DropShipView.Flight(new Transform3D(s.HoverPose.Basis, s.HoverPose.Origin + bob * calm), hold, 0f, 0f);
+            var slung = c.Aborted ? 1f : 1f - RocketPlume.S(s.Set, s.Set + 0.6f, T); // flames tipped out round the module
+            return new DropShipView.Flight(new Transform3D(s.HoverPose.Basis, s.HoverPose.Origin + bob * calm), hold, 0f, 0f, slung);
         }
         if (!s.Lands || c.Aborted)
         {
@@ -550,7 +555,8 @@ public partial class LandingView : Node3D
             forward = forward.LengthSquared() > 1e-6f ? forward.Normalized() : Vector3.Forward;
             var pos = s.HoverPose.Origin + Vector3.Up * RocketClimb.Up(k) + forward * RocketClimb.Ahead(k);
             var basis = s.HoverPose.Basis * new Basis(Vector3.Right, -Mathf.DegToRad(RocketClimb.Pitch(k)));
-            return new DropShipView.Flight(new Transform3D(basis, pos), Mathf.Max(0.66f, RocketClimb.Throttle(k)), RocketClimb.Aft(k), 0f);
+            return new DropShipView.Flight(new Transform3D(basis, pos), Mathf.Max(0.66f, RocketClimb.Throttle(k)), RocketClimb.Aft(k), 0f,
+                c.Aborted ? 1f : 0f);
         }
         // Hop: pop up to a low cruise on a strong burn, lean into the hop and back to brake it, then drop and brake
         // hard onto the landing spot (straight down for the last part) with the legs coming out.
