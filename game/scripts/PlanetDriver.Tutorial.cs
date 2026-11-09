@@ -24,6 +24,7 @@ public partial class PlanetDriver
     private readonly HashSet<int> _tutorialPodsNow = new();
     private int _tutorialPodArrivals;
     private bool _tutorialKeyHeld;
+    private bool _tutorialWarned;
     private Control? _tutorialAnchorControl;
     private Rect2 _tutorialAnchorExtra; // helm scans: the union of the scan pills (several controls)
     private TutorialAnchor _tutorialAnchorKind = TutorialAnchor.None;
@@ -87,8 +88,16 @@ public partial class PlanetDriver
         if (_tutorialFactsAt < 0 || _clock - _tutorialFactsAt >= 0.2)
         {
             _tutorialFactsAt = _clock;
-            FillTutorialFacts(_tutorialFacts);
-            _tutorial.Update(_tutorialFacts);
+            try
+            {
+                FillTutorialFacts(_tutorialFacts);
+                _tutorial.Update(_tutorialFacts);
+            }
+            catch (System.Exception e) // never let the tutorial break the frame: warn once, keep the last facts
+            {
+                if (!_tutorialWarned) GD.PushWarning($"Tutorial: {e.Message}");
+                _tutorialWarned = true;
+            }
         }
         if (_tutorial.Finished)
         {
@@ -118,7 +127,10 @@ public partial class PlanetDriver
                 _tutorial.StepLabel, new Rect2(), step.NextText));
         }
         _tutorialCard.SetHint(_tutorial.HintFor(_tutorialFacts));
-        _tutorialCard.SetAnchor(TutorialAnchorRect(step));
+        Rect2 anchor;
+        try { anchor = TutorialAnchorRect(step); }
+        catch (System.Exception) { anchor = new Rect2(); } // a HUD field changed shape: no arrow
+        _tutorialCard.SetAnchor(anchor);
         _tutorialCard.SetArea(TutorialArea());
         // Out of the way while a full-screen card or screen is up (the large building card shows PLACE itself).
         _tutorialCard.Visible = !(_bigCard.IsOpen || _inventory.IsOpen || _achScreen.IsOpen || _dossier.IsOpen || _chooser.IsOpen);
