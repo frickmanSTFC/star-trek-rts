@@ -1926,7 +1926,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     /// <summary>Short hints for what's selected (the full list is on F1).</summary>
     private string ContextHints()
     {
-        if (_inOrbit) return (Me.Phase == LandingPhase.Landed ? "O surface  ·  " : "") + "Drag / WASD turn  ·  wheel zoom  ·  Tab scan  ·  1–9 deploy  ·  right-click cancel  ·  F1 controls";
+        if (_inOrbit) return (Me.Phase == LandingPhase.Landed ? "O surface  ·  " : "") + "Drag / WASD turn  ·  wheel zoom  ·  Tab scan  ·  1–9 deploy  ·  C dossier  ·  right-click cancel  ·  F1 controls";
         if (Me.Phase == LandingPhase.Descending) return "F1 controls";
         if (_placing != null) return "R rotate  ·  Shift+click place more  ·  I card  ·  right-click / Esc stop";
         if (IsBuildingCard(_info)) return "Enter or pick it again: place  ·  another key: its card  ·  B drawer  ·  Esc close";
@@ -1947,7 +1947,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (_selectedStructure != 0) return $"U upgrade  ·  M maintain  ·  {jury}P pause  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
         if (_view.SelectedUnits.Count > 0) return $"Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  {jury}V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
-        return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  {(WorkshopAvailable() ? "K workshop  ·  " : "")}I inventory  ·  Tab next base  ·  H home  ·  F1 controls";
+        return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  {(WorkshopAvailable() ? "K workshop  ·  " : "")}I inventory  ·  {(CivWorlds().Count > 0 ? "C civilizations  ·  " : "")}Tab next base  ·  H home  ·  F1 controls";
     }
 
     /// <summary>Top-bar research chip: the active tech's progress, or what to do next.</summary>
