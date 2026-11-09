@@ -29,8 +29,10 @@ public sealed partial class GameData
         }
         var s = r.Obj(rules, "sites", "Civilizations rules");
         var range = r.Ints(s, "nations", "Civilizations sites");
+        var expected = r.Fixes(s, "expected_living_share", "Civilizations sites");
         var sites = new CivSiteRules(
             r.Fix(s, "living_chance", "Civilizations sites"), r.Fix(s, "ruins_chance", "Civilizations sites"),
+            expected.Count > 0 ? expected[0] : Fix64.Zero, expected.Count > 1 ? expected[1] : Fix64.Zero,
             r.Weights(s, "living_weights", "Civilizations sites"), r.Weights(s, "ruins_weights", "Civilizations sites"),
             r.Strings(s, "town_maps", "Civilizations sites"),
             r.Obj(s, "level_weights", "Civilizations sites").ValueKind == JsonValueKind.Object
@@ -216,6 +218,9 @@ public sealed partial class GameData
 
         Share(s.LivingChance, "sites.living_chance");
         Share(s.RuinsChance, "sites.ruins_chance");
+        Share(s.ExpectedLivingMin, "sites.expected_living_share[0]");
+        Share(s.ExpectedLivingMax, "sites.expected_living_share[1]");
+        if (s.ExpectedLivingMax < s.ExpectedLivingMin) problems.Add($"{w}: sites.expected_living_share must be [min, max].");
         foreach (var (list, name) in new[] { (s.LivingWeights, "living_weights"), (s.RuinsWeights, "ruins_weights") })
         {
             if (list.Count == 0 || list.All(x => x.Weight <= 0)) problems.Add($"{w}: sites.{name} needs a class with a positive weight.");

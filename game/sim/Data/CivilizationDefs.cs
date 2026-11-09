@@ -25,6 +25,8 @@ public sealed record CivNameRules(IReadOnlyList<string> Onsets, IReadOnlyList<st
 public sealed record CivSiteRules(
     Fix64 LivingChance,
     Fix64 RuinsChance,
+    Fix64 ExpectedLivingMin,
+    Fix64 ExpectedLivingMax,
     IReadOnlyList<Weighted> LivingWeights,
     IReadOnlyList<Weighted> RuinsWeights,
     IReadOnlyList<(string Class, string Surface)> TownMaps,
