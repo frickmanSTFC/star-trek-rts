@@ -507,6 +507,7 @@ public partial class PlanetDriver
             }).ToList()));
             blocks.Add(new CardText($"One at a time, up to {def.ProductionQueue} orders queued, paid when ordered; each rolls out of the bay door when done.", Dim: true));
         }
+        blocks.AddRange(FabricatorCardBlocks(def)); // the Machine Shop's parts, kits and construction parts (PlanetDriver.Parts.cs)
         if (blocks.Count == 0) blocks.Add(new CardText(def.Effect.Length > 0 ? def.Effect : "It doesn't make anything by itself."));
         return blocks;
     }

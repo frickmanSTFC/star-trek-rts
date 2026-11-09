@@ -155,6 +155,30 @@ public partial class PlanetDriver
         return KitUses.GetValueOrDefault(id, "");
     }
 
+    /// <summary>The large building card's "What it makes" for a Machine Shop: the sim's def may carry a fabricator
+    /// block (read by reflection until it does), else the contract's building id.</summary>
+    private List<CardBlock> FabricatorCardBlocks(BuildingDef def)
+    {
+        var blocks = new List<CardBlock>();
+        var fabricator = typeof(BuildingDef).GetProperty("Fabricator")?.GetValue(def) != null || def.Id == "machine_shop";
+        if (!fabricator) return blocks;
+        var items = Surface.PartItems;
+        if (items.Count > 0)
+        {
+            var pairs = new List<(string, string)>();
+            foreach (var (tier, label) in new[] { ("part", "Parts"), ("spare", "Spare kits"), ("construction", "Construction · phase 4") })
+            {
+                var names = items.Where(i => ItemTier(i) == tier).Select(ItemName).ToList();
+                if (names.Count > 0) pairs.Add((label, string.Join(", ", names)));
+            }
+            blocks.Add(new CardPairs(pairs));
+        }
+        blocks.Add(new CardText("Turns refined metals into parts, and parts into spare kits and construction parts, one order at a time. Queue them at the shop, " +
+                                "or set keep-in-stock targets in the inventory (I): below a target it queues one more by itself. Repairs use the kits."));
+        blocks.Add(new CardText("Needs crew and power while it works, and wears like any building: its crew service it with its own Mechanical and Electrical Spares.", Dim: true));
+        return blocks;
+    }
+
     // ---------------------------------------------------------------- fabricator selection
 
     /// <summary>The fabricator whose panel and recipes show: a selected Machine Shop of ours, or the selected base's core in workshop view.</summary>
@@ -614,7 +638,7 @@ public partial class PlanetDriver
     /// <summary>From UpdateHud: the inventory closes in orbit; the base-tab chips; the workshop view ends when its core goes.</summary>
     private void UpdateParts()
     {
-        if (_inOrbit && _inventory.IsOpen) _inventory.Close();
+        if (_inventory.IsOpen && (_inOrbit || _achScreen.IsOpen)) _inventory.Close(); // F3 opens achievements over it
         if (_workshop && !WorkshopAvailable()) _workshop = false;
         var landed = Me.Phase == LandingPhase.Landed && !_inOrbit;
         _hud.ShowTools(landed, landed && WorkshopAvailable(), WorkshopShown());

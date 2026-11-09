@@ -265,41 +265,39 @@ public partial class PlanetHud : CanvasLayer
     /// <summary>One command-card button (hidden until ShowCommands lists it). Also used for tiles made on demand (EnsureCommand).</summary>
     private void AddCommandButton(string id, string name, string key)
     {
+        var button = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(CommandWidth, 88), ToggleMode = true };
+        StyleButton(button, new Color(0.17f, 0.23f, 0.36f), new Color(0.06f, 0.1f, 0.19f));
+        var box = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        box.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.Minsize, 7);
+        var top = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        var icon = Icon(id, 18);
+        top.AddChild(icon);
+        var keyLabel = MakeLabel(key, 12, Dim);
+        keyLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        keyLabel.HorizontalAlignment = HorizontalAlignment.Right;
+        top.AddChild(keyLabel);
+        box.AddChild(top);
+        var nameLabel = MakeLabel(name, 13, Ink);
+        nameLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        nameLabel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        box.AddChild(nameLabel);
+        // One line, clipped: wrapped costs pushed the second row off the bottom of the screen.
+        var cost = MakeLabel("", 11, Dim);
+        cost.ClipText = true;
+        box.AddChild(cost);
+        var tag = MakeLabel("", 11, Warn);
+        top.AddChild(tag);
+        button.AddChild(box);
+        var captured = id;
+        button.Pressed += () => _onBuild?.Invoke(captured);
+        _commandGrid.AddChild(button);
+        _commands[id] = (button, tag, cost);
+        _commandParts[id] = (box, top, icon, nameLabel, keyLabel); // picture tiles (PlanetHud.BuildStrip.cs)
+        button.MouseEntered += () => HoveredCommand = captured;
+        button.MouseExited += () =>
         {
-            var button = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(CommandWidth, 88), ToggleMode = true };
-            StyleButton(button, new Color(0.17f, 0.23f, 0.36f), new Color(0.06f, 0.1f, 0.19f));
-            var box = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-            box.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.Minsize, 7);
-            var top = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-            var icon = Icon(id, 18);
-            top.AddChild(icon);
-            var keyLabel = MakeLabel(key, 12, Dim);
-            keyLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            keyLabel.HorizontalAlignment = HorizontalAlignment.Right;
-            top.AddChild(keyLabel);
-            box.AddChild(top);
-            var nameLabel = MakeLabel(name, 13, Ink);
-            nameLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            nameLabel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-            box.AddChild(nameLabel);
-            // One line, clipped: wrapped costs pushed the second row off the bottom of the screen.
-            var cost = MakeLabel("", 11, Dim);
-            cost.ClipText = true;
-            box.AddChild(cost);
-            var tag = MakeLabel("", 11, Warn);
-            top.AddChild(tag);
-            button.AddChild(box);
-            var captured = id;
-            button.Pressed += () => _onBuild?.Invoke(captured);
-            _commandGrid.AddChild(button);
-            _commands[id] = (button, tag, cost);
-            _commandParts[id] = (box, top, icon, nameLabel, keyLabel); // picture tiles (PlanetHud.BuildStrip.cs)
-            button.MouseEntered += () => HoveredCommand = captured;
-            button.MouseExited += () =>
-            {
-                if (HoveredCommand == captured) HoveredCommand = null;
-            };
-        }
+            if (HoveredCommand == captured) HoveredCommand = null;
+        };
     }
 
     /// <summary>
