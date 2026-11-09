@@ -13,8 +13,9 @@ namespace FinalFrontier;
 //    look-only map's grid); on a procedural globe (body_globe.gdshader, no lights texture) as a few additive dots whose
 //    brightness follows the night side every frame;
 //  - a faint smog shell over L3–L4 worlds (lit, so it is dark at night);
-//  - the towns themselves (NativeTownsBridge: the model agent's NativeTowns, else primitive stand-ins), at most
-//    MaxTownModels of the biggest, shown only when zoomed in close on the Planet / Orbit displays, lights on at night.
+//  - the towns themselves (NativeTowns.Far: the cheap ≤ 300-triangle stand-ins made for the globe, sized by the
+//    town's size), at most MaxTownModels of the biggest, shown only when zoomed in close on the Planet / Orbit displays,
+//    lights on at night (NativeTowns.SetNight).
 // What is physically there (CivAt / TownsOn), not what the player knows: the globe is what the ship sees.
 public partial class OrbitView
 {
@@ -173,15 +174,15 @@ public partial class OrbitView
         {
             _civTowns = new Node3D { Name = "CivTowns", Visible = false };
             _bodyGlobe.AddChild(_civTowns);
-            var colour = NativeTownsBridge.SpeciesColour(site.Seed);
+            var colour = NativeTowns.SpeciesColour(site.Seed);
             var picked = towns.Select((t, i) => (Town: t, Index: i)).Where(x => x.Town.Tile >= 0 && x.Town.Tile < grid.Count)
                 .OrderByDescending(x => x.Town.Size).ThenBy(x => x.Index).Take(MaxTownModels).ToList();
             foreach (var (town, index) in picked)
             {
                 var dir = TileDirectionOn(grid, town.Tile);
-                var model = NativeTownsBridge.Build(level, index % 2, colour, Mathf.Clamp(town.Size, 1, 3));
-                // a town is ≈ 20 across on the surface; a tile here is ≈ 5 (2πR / 128): about half a tile at size 1
-                var scale = 0.12f * (1f + 0.25f * (Mathf.Clamp(town.Size, 1, 3) - 1));
+                var model = NativeTowns.Far(level, colour, Mathf.Clamp(town.Size, 1, 3)); // Far scales itself up for size 2–3
+                // a town reaches NativeTowns.TownRadius (9.6) on the surface; a tile here is ≈ 5 (2πR / 128): ~half a tile
+                var scale = 1.3f / NativeTowns.TownRadius;
                 var basis = new Basis(new Quaternion(Vector3.Up, dir)) * new Basis(Vector3.Up, (index * 2.399f) % Mathf.Tau) * Basis.FromScale(Vector3.One * scale);
                 var holder = new Node3D { Name = $"Town{index}", Transform = new Transform3D(basis, dir * (Radius + 0.05f)) };
                 holder.AddChild(model);
@@ -229,6 +230,6 @@ public partial class OrbitView
         if (_civNightClock < 0.3f) return;
         _civNightClock = 0f;
         foreach (var (town, dir) in _civTownNodes)
-            if (GodotObject.IsInstanceValid(town)) NativeTownsBridge.SetNight(town, NightAt(dir));
+            if (GodotObject.IsInstanceValid(town)) NativeTowns.SetNight(town, NightAt(dir));
     }
 }
