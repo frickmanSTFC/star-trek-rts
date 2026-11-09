@@ -60,8 +60,25 @@ public partial class SettingsPanel : PanelContainer
         Toggle("Edge scrolling", "Pan when the mouse touches the window's edge", GameSettings.EdgeScroll, v => GameSettings.EdgeScroll = v);
 
         Section("AUDIO");
-        Slider("Master volume", "No sounds in the game yet; sets the master bus",
-            0f, 1f, 0.05f, GameSettings.MasterVolume, v => GameSettings.MasterVolume = v, v => $"{v * 100f:0}%");
+        // Volumes act while the slider moves; a preview plays once it is let go.
+        Slider("Master volume", "Every sound in the game",
+            0f, 1f, 0.05f, GameSettings.MasterVolume, v =>
+            {
+                GameSettings.MasterVolume = v;
+                GameSettings.ApplyAudio();
+            }, v => $"{v * 100f:0}%", () => Sfx.Ui("click"));
+        Slider("Interface", "Menus, buttons, tutorial cards, placing and refusals",
+            0f, 1f, 0.05f, GameSettings.UiVolume, v =>
+            {
+                GameSettings.UiVolume = v;
+                GameSettings.ApplyAudio();
+            }, v => $"{v * 100f:0}%", () => Sfx.Ui("click"));
+        Slider("Effects", "Landings, engines and the hum of what you select",
+            0f, 1f, 0.05f, GameSettings.EffectsVolume, v =>
+            {
+                GameSettings.EffectsVolume = v;
+                GameSettings.ApplyAudio();
+            }, v => $"{v * 100f:0}%", () => Sfx.Preview("select/default_vehicle", Sfx.EffectsBus));
 
         _box.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6 * s), MouseFilter = MouseFilterEnum.Ignore });
         var bar = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
@@ -165,7 +182,8 @@ public partial class SettingsPanel : PanelContainer
         row.AddChild(tiles);
     }
 
-    private void Slider(string name, string hint, float min, float max, float step, float value, System.Action<float> set, System.Func<float, string> show)
+    private void Slider(string name, string hint, float min, float max, float step, float value, System.Action<float> set, System.Func<float, string> show,
+        System.Action? committed = null)
     {
         var row = Row(name, hint);
         var slider = new HSlider
@@ -201,10 +219,13 @@ public partial class SettingsPanel : PanelContainer
         {
             dragging = false;
             Changed();
+            committed?.Invoke();
         };
         slider.ValueChanged += _ =>
         {
-            if (!dragging) Changed();
+            if (dragging) return;
+            Changed();
+            committed?.Invoke();
         };
         row.AddChild(slider);
         row.AddChild(label);

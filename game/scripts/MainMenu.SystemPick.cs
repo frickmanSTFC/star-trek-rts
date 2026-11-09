@@ -128,6 +128,7 @@ public partial class MainMenu
         reroll.TooltipText = "Chart another star system";
         bar.AddChild(reroll);
         _landButton = Action("LAND HERE  ›", true, Land, 190f);
+        Sfx.Tag(_landButton, "confirm");
         bar.AddChild(_landButton);
         return root;
     }
@@ -376,6 +377,7 @@ public partial class MainMenu
             default:
                 _pickerTutorialDone = true;
                 CloseTutorial();
+                Sfx.Ui("tutorial_done");
                 break;
         }
     }
@@ -513,6 +515,7 @@ public partial class SystemMap : Control
                 {
                     _hovered = h;
                     MouseDefaultCursorShape = h != null ? CursorShape.PointingHand : CursorShape.Arrow;
+                    if (h != null) Sfx.Ui("hover");
                     TooltipText = h != null && _system?.Body(h) is { } hb ? hb.Name : "";
                 }
                 break;
@@ -521,6 +524,7 @@ public partial class SystemMap : Control
                 {
                     Selected = id;
                     BodyPicked?.Invoke(id);
+                    Sfx.Ui("click");
                     AcceptEvent();
                 }
                 break;

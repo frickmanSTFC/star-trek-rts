@@ -36,6 +36,7 @@ public partial class PauseMenu : Control
         Visible = true;
         _settings = false;
         GetTree().Paused = true;
+        Sfx.Ui("open"); // the UI players run while paused (Sfx host: ProcessMode Always)
         Build();
     }
 
@@ -43,6 +44,7 @@ public partial class PauseMenu : Control
     {
         if (!Visible) return;
         Visible = false;
+        Sfx.Ui("close");
         if (IsInsideTree()) GetTree().Paused = false;
         // Freed a frame later: RESUME's own pressed signal is what got us here.
         Callable.From(() =>
@@ -62,7 +64,11 @@ public partial class PauseMenu : Control
         if (!Visible) return;
         if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
         {
-            if (_settings) ShowButtons();
+            if (_settings)
+            {
+                Sfx.Ui("back");
+                ShowButtons();
+            }
             else Close();
         }
         // While open, no key reaches the game (it is paused anyway; this keeps hotkeys out of other Always nodes).
@@ -131,7 +137,9 @@ public partial class PauseMenu : Control
             box.AddChild(sub);
         }
         box.AddChild(new Control { CustomMinimumSize = new Vector2(0, 4 * s), MouseFilter = MouseFilterEnum.Ignore });
-        box.AddChild(Button("RESUME", true, s, Close));
+        var resume = Button("RESUME", true, s, Close);
+        Sfx.Tag(resume, "none"); // Close plays "close"
+        box.AddChild(resume);
         box.AddChild(Button("SETTINGS", false, s, ShowSettings));
         box.AddChild(Button("MAIN MENU", false, s, ToMenu));
         box.AddChild(Button("QUIT", false, s, () => GetTree().Quit()));

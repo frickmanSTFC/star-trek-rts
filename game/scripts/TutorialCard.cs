@@ -60,6 +60,16 @@ public partial class TutorialCard : Control
     public void Show(TutorialStep step)
     {
         var fresh = _step == null || _step.Id != step.Id;
+        if (fresh)
+        {
+            // A new step on a card that showed one: the last step is done, then the next card pops up.
+            if (_step == null) Sfx.Ui("tutorial");
+            else
+            {
+                Sfx.Ui("tutorial_done");
+                Sfx.UiLater("tutorial", 0.45f, -3f);
+            }
+        }
         _step = step;
         _anchor = step.Anchor;
         if (fresh)

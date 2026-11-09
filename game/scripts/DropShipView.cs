@@ -26,6 +26,11 @@ namespace FinalFrontier;
 /// The ship lands beside the unit's tile centre with its ramp toward it, turned to whichever of 12 headings keeps
 /// its footprint off buildings, water and mountains and on the flattest ground, then tilted to the ground under its
 /// pads. Another player's ship only shows while its tile is in sight (fog); your own always shows.
+/// <para>Sounds (docs/sound-contract.md; <see cref="Sound"/>): each ship carries a landing/burn_loop player
+/// (<see cref="Sfx.Loop"/>) whose volume (linear-to-dB of the throttle) and pitch (0.85–1.15) follow the engines;
+/// burn_ignite / engine_cut on the throttle crossing ~0.15 in flight, touchdown, ramp_open, vehicle_roll as the unit
+/// starts down the ramp, ramp_close, liftoff as the engines light on the ground. Only while the ship is shown and the
+/// surface is (not in orbit); the player goes with the model.</para>
 /// <para>The first landing's three ships (<see cref="LandingView"/>) are convoy ships: LandingView flies them
 /// (<see cref="ConvoyShip.Approach"/>: down from orbit with an outpost module slung underneath, set it down, hop over
 /// to their landing spot) and names the unit each one carries; from touchdown on they unload and leave like any other.
@@ -82,6 +87,7 @@ public partial class DropShipView : Node3D
     private readonly Dictionary<int, Ship> _byUnit = new();  // by the id of the unit it carries
     private readonly List<int> _done = new();
     private float _clock;                                    // running seconds (flame flicker)
+    private bool _heard;                                     // the surface is on screen (not in orbit): ships may sound
 
     /// <summary>Where a convoy ship is and how its engines and legs look at a moment (LandingView's flight): Lift = the
     /// lift thrusters' throttle 0..1 (drives the rocket plume), Impulse = the aft thrusters' 0..1, Cant 0..1 tips the lift
@@ -131,6 +137,8 @@ public partial class DropShipView : Node3D
         public Vector3[]? Path;     // the unit's wheel path: bay, hinge, toe, ground, end (world)
         public float PathLength, DriveSeconds;
         public bool TouchedDown, LiftedOff, Lit, Shown;
+        public AudioStreamPlayer3D? Burn;   // landing/burn_loop, driven by the throttle (Sound)
+        public bool Burning, RampOpened, RampClosed, Rolled;
         public float Time;          // this frame, seconds from ArriveTick
         public ConvoyShip? Convoy;  // flown by LandingView until touchdown
 
@@ -165,6 +173,7 @@ public partial class DropShipView : Node3D
     {
         if (_surface == null) return;
         _clock = (_clock + delta) % 600f; // the flicker doesn't mind the wrap; keeps the sines precise
+        _heard = IsVisibleInTree();
         foreach (var d in _surface.Deliveries)
             if (d.Kind == DeliveryKind.Shuttle && !_ships.ContainsKey(d.Id))
                 _ships[d.Id] = Create(d);
@@ -190,6 +199,7 @@ public partial class DropShipView : Node3D
         foreach (var id in done)
         {
             var ship = _ships[id];
+            ship.Burn?.Stop(); // freed with the model
             ship.Model.QueueFree();
             ship.Wash.QueueFree();
             ship.Burst.QueueFree();
@@ -441,18 +451,80 @@ public partial class DropShipView : Node3D
         {
             ship.TouchedDown = true;
             if (ship.Shown) Burst(ship, under);
+            if (ship.Shown && _heard && t < TouchdownAt + 0.5f) Sfx.At("landing/touchdown", ToGlobal(under), 0f, Pitch(ship, 0.06f));
         }
         if (!ship.Lit && t >= ship.LiftFrom - SpoolSeconds + 0.25f && lands)
         {
             ship.Lit = true;
             if (ship.Shown) ship.Plume.Billow(under);
+            if (ship.Shown && _heard && t < ship.LiftFrom - SpoolSeconds + 0.75f) Sfx.At("landing/liftoff", ToGlobal(under));
         }
         if (!ship.LiftedOff && t >= ship.LiftFrom && lands)
         {
             ship.LiftedOff = true;
             if (ship.Shown) Burst(ship, under);
         }
+        Sound(ship, t, lift, impulse, lands);
     }
+
+    // ---------------------------------------------------------------- sounds
+
+    /// <summary>The engine roar and the ship's one-shots this frame (no allocation: the paths are constants).</summary>
+    private void Sound(Ship ship, float t, float lift, float impulse, bool lands)
+    {
+        var heard = ship.Shown && _heard;
+        var throttle = Mathf.Clamp(Mathf.Max(lift, 0.7f * impulse), 0f, 1f);
+        if (ship.Burn is { } burn)
+        {
+            if (heard && throttle > 0.02f)
+            {
+                burn.VolumeDb = Mathf.LinearToDb(Mathf.Max(throttle, 0.03f));
+                burn.PitchScale = 0.85f + 0.3f * throttle;
+                if (!burn.Playing)
+                {
+                    // Start somewhere along the loop, different per ship, so three ships don't phase.
+                    var length = (float)(burn.Stream?.GetLength() ?? 0.0);
+                    burn.Play(length > 0.5f ? length * ((ship.DeliveryId & 7) / 8f) : 0f);
+                }
+            }
+            else if (burn.Playing) burn.Stop();
+        }
+
+        // Ignition / cut-off edges in flight (with some hysteresis). On the ground the engines lighting for take-off are
+        // the lift-off sound instead (played as they light, above).
+        var onGround = lands && t >= TouchdownAt && t < ship.LiftFrom;
+        if (!ship.Burning && throttle > 0.18f)
+        {
+            ship.Burning = true;
+            if (heard && !onGround) Sfx.At("landing/burn_ignite", ship.Model.GlobalPosition, 0f, Pitch(ship, 0.05f));
+        }
+        else if (ship.Burning && throttle < 0.12f)
+        {
+            ship.Burning = false;
+            if (heard) Sfx.At("landing/engine_cut", ship.Model.GlobalPosition, 0f, Pitch(ship, 0.05f));
+        }
+
+        if (!lands) return;
+        // Ramp down, the unit rolling off, ramp up (each once; not replayed when first seen part-way through).
+        if (!ship.RampOpened && t >= 0f)
+        {
+            ship.RampOpened = true;
+            if (heard && t < 0.5f) Sfx.At("landing/ramp_open", ship.Model.ToGlobal(ship.Hinge));
+        }
+        if (!ship.Rolled && ship.UnitId > 0 && t >= DriveFrom)
+        {
+            ship.Rolled = true;
+            if (heard && t < DriveFrom + 0.5f) Sfx.At("landing/vehicle_roll", ship.Model.ToGlobal(ship.Hinge), 0f, Pitch(ship, 0.08f));
+        }
+        if (!ship.RampClosed && t >= ship.CloseFrom)
+        {
+            ship.RampClosed = true;
+            if (heard && t < ship.CloseFrom + 0.5f) Sfx.At("landing/ramp_close", ship.Model.ToGlobal(ship.Hinge));
+        }
+    }
+
+    /// <summary>A small fixed pitch offset per ship (± spread), so a convoy doesn't sound like one sample three times.</summary>
+    private static float Pitch(Ship ship, float spread) => 1f + spread * ((((ship.DeliveryId % 5) + 5) % 5) - 2) / 2f;
 
     private static void Burst(Ship ship, Vector3 at)
     {
@@ -572,6 +644,7 @@ public partial class DropShipView : Node3D
         ship.Plume = new RocketPlume(this, model, haze, key);
         ship.Descent = new RocketDescent(TouchdownAt - ship.DescentFrom, StartHeight, ApproachDistance);
         ship.Side = (key & 1) == 0 ? 1f : -1f;
+        ship.Burn = Sfx.Loop(model, "landing/burn_loop"); // null while the file is missing: silent
 
         // Seen for the first time part-way through (e.g. after a test-panel speed-up): don't replay old bursts.
         var t = (_sim.Tick - arriveTick) / (float)Simulation.TickRate;

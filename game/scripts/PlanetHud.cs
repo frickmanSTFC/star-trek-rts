@@ -622,8 +622,18 @@ public partial class PlanetHud : CanvasLayer
     }
 
     /// <summary>Adds a line to the event feed (newest at the bottom; old ones fade out).</summary>
+    /// <summary>An event line that answers an order with "no" (the orange "Can't …" lines and their kin), as opposed
+    /// to a colony report in the same colour ("idle: can't pay upkeep", "Low power at …").</summary>
+    private static bool IsRefusal(string text, Color dot)
+    {
+        if (!dot.IsEqualApprox(Warn) || text.Contains("idle")) return false;
+        return text.StartsWith("Can't") || text.Contains(" can't ") || text.StartsWith("No ") || text.StartsWith("None of")
+            || text.StartsWith("Nothing ") || text.Contains(": research ");
+    }
+
     public void PushEvent(string text, Color dot)
     {
+        if (IsRefusal(text, dot)) Sfx.Refused(); // "error", rate-limited
         var item = Panel(new Color(0.02f, 0.03f, 0.063f, 0.88f), Line, 8);
         var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         row.AddThemeConstantOverride("separation", 10);

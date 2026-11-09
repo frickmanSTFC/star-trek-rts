@@ -66,6 +66,7 @@ public partial class BuildDrawer : PanelContainer
 
     public void SetOpen(bool open)
     {
+        if (open != IsOpen) Sfx.Ui(open ? "open" : "close");
         IsOpen = open;
         if (!open) HoveredId = null;
     }

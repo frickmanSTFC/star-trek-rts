@@ -95,6 +95,7 @@ public partial class BuildingCard : Control
     public void Open(CardView view)
     {
         _view = view;
+        if (!Visible) Sfx.Ui("open");
         Visible = true;
         Build();
         _thumbs?.ShowHero(view.ModelKey);
@@ -104,6 +105,7 @@ public partial class BuildingCard : Control
     public void Close()
     {
         if (!Visible) return;
+        Sfx.Ui("close");
         Visible = false;
         _view = null;
         _live = null;
@@ -248,6 +250,7 @@ public partial class BuildingCard : Control
         var buttons = new HBoxContainer { MouseFilter = MouseFilterEnum.Pass };
         buttons.AddThemeConstantOverride("separation", Mathf.RoundToInt(8 * s));
         _action = HudKit.ActionButton("", true, s);
+        Sfx.Tag(_action, "confirm"); // PLACE / ORDER / RESEARCH
         _action.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         _action.Pressed += () => ActionPressed?.Invoke();
         buttons.AddChild(_action);
@@ -554,6 +557,7 @@ public partial class PlacingStrip : PanelContainer
         close.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(16 * s));
         HudKit.StyleTile(close, 6 * s);
         close.Pressed += () => CloseRequested?.Invoke();
+        Sfx.Tag(close, "cancel"); // stops placing
         side.AddChild(close);
         var card = new Button { Text = "CARD [I]", FocusMode = FocusModeEnum.None, CustomMinimumSize = new Vector2(64 * s, 26 * s), TooltipText = "The building's card" };
         card.AddThemeFontOverride("font", HudKit.Condensed(true));
