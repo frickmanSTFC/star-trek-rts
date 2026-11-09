@@ -122,6 +122,18 @@ public sealed record AggressiveRules(int FromAwareness, int ShootFromLevel, Fix6
 /// <summary>contact.json advance: an L4 world reaching L5 (warp) during a match.</summary>
 public sealed record AdvanceRules(Fix64 ChancePerMin, Fix64 PerAwareness, int WreckSpike, Fix64 WreckChance);
 
+/// <summary>contact.json unrest: after a culture shock, once trade starts the world pays TradeShare of its trade for Minutes,
+/// and its natives stay unsettled until then (awareness held at AwarenessFloor or above).</summary>
+public sealed record UnrestRules(Fix64 TradeShare, int Minutes, int AwarenessFloor);
+
+/// <summary>contact.json freighter: the native trade freighter that flies each trade route (ClassId "native.&lt;ClassIdPart&gt;").</summary>
+public sealed record FreighterRules(string ClassId, string ClassName, string Role, int IntervalMinutes, int DwellSeconds, Fix64 TravelScale,
+    IReadOnlyList<string> Names);
+
+/// <summary>contact.json spacefaring: civilizations of FromLevel or more (L6) are stronger partners but wary of a low Standing.</summary>
+public sealed record SpacefaringRules(int FromLevel, Fix64 TradeMultiplier, int AllyShips, int PartnerMinutes, int CandidateMinutes, int LowStanding,
+    int LowStandingShock, Fix64 LowStandingRefuseChance);
+
 /// <summary>contact.json: first contact and what follows.</summary>
 public sealed record ContactRules(
     IReadOnlyList<string> Factions,
@@ -149,8 +161,14 @@ public sealed record ContactRules(
     AllyRules Ally,
     AggressiveRules Aggressive,
     int RefuseAfterIncidentMinutes,
-    AdvanceRules Advance)
+    AdvanceRules Advance,
+    UnrestRules Unrest,
+    FreighterRules Freighter,
+    SpacefaringRules Spacefaring)
 {
+    /// <summary>A civilization of this level is spacefaring (contact.json spacefaring.from_level).</summary>
+    public bool IsSpacefaring(int level) => level >= Spacefaring.FromLevel;
+
     /// <summary>The shock shift of a temperament id ("peaceful", "wary", "aggressive"); 0 when not listed.</summary>
     public int ShockFor(string temperament) => ShockByTemperament.FirstOrDefault(w => w.Id == temperament).Weight;
 

@@ -57,6 +57,10 @@ public sealed partial class StarSystemState
         public string? Tech;
         /// <summary>Research points the event's choices added to the boost.</summary>
         public int ResearchExtra;
+        /// <summary>The first contact ended in culture shock (unrest follows once trade starts).</summary>
+        public bool Shocked;
+        /// <summary>Unrest after a culture shock: trade pays contact.json unrest.trade_share until this tick (0 = none).</summary>
+        public long UnrestTradeUntilTick;
 
         public void AddToHash(ref StateHasher h)
         {
@@ -69,6 +73,8 @@ public sealed partial class StarSystemState
             h.Add(Rewarded);
             SystemShip.Text(ref h, Tech);
             h.Add(ResearchExtra);
+            h.Add(Shocked);
+            h.Add(UnrestTradeUntilTick);
         }
     }
 
@@ -96,10 +102,13 @@ public sealed partial class StarSystemState
         }
     }
 
-    private const ulong TechSalt = 0xC0A7_0001UL, AllySalt = 0xC0A7_0002UL, DebugSalt = 0xC0A7_0003UL;
+    private const ulong TechSalt = 0xC0A7_0001UL, AllySalt = 0xC0A7_0002UL, DebugSalt = 0xC0A7_0003UL, FreighterSalt = 0xC0A7_0004UL;
 
     /// <summary>Ally ships made so far (names and classes are picked by this count).</summary>
     private int _alliesMade;
+
+    /// <summary>Trade freighters made so far (names are picked by this count).</summary>
+    private int _freightersMade;
 
     private ContactRules? ContactData => CivData?.Contact;
 
@@ -119,7 +128,7 @@ public sealed partial class StarSystemState
         var step = System.Math.Min(run.Step, steps - 1);
         var choices = c.Steps[step].Choices.Select(x => new ContactChoice(x.Text, x.Hint, x.Shock)).ToList();
         var end = run.StepEndTick + (steps - 1 - run.Step) * StepTicks;
-        return new ContactEvent(bodyId, player, run.StartTick, end, run.Step, steps, choices, run.Chosen.ToList(), ShockChance(run, site),
+        return new ContactEvent(bodyId, player, run.StartTick, end, run.Step, steps, choices, run.Chosen.ToList(), ShockChance(player, run, site),
             run.StepEndTick) { StepTitle = c.Steps[step].Title, Violation = run.Violation };
     }
 
@@ -148,13 +157,13 @@ public sealed partial class StarSystemState
                     : $"the {site.Species} are not trade partners yet";
             case ContactStage.TradePartner:
             {
-                var ready = rel!.StageTick + (long)c.Membership.PartnerMinutes * Simulation.TicksPerMinute;
+                var ready = rel!.StageTick + (long)PartnerMinutes(c, bodyId) * Simulation.TicksPerMinute;
                 if (Now < ready) return $"trade partners for {SecondsUntil(ready)} s more before they talk membership";
                 break;
             }
             case ContactStage.Candidate:
             {
-                var ready = rel!.StageTick + (long)c.Membership.CandidateMinutes * Simulation.TicksPerMinute;
+                var ready = rel!.StageTick + (long)CandidateMinutes(c, bodyId) * Simulation.TicksPerMinute;
                 if (Now < ready) return $"membership talks with the {site.Species} take {SecondsUntil(ready)} s more";
                 break;
             }
@@ -242,6 +251,61 @@ public sealed partial class StarSystemState
 
     /// <summary>Nations of a fractured world that walked out of the player's membership talks.</summary>
     public int WalkedOut(int player, string bodyId) => Rel(player, bodyId)?.WalkedOut ?? 0;
+
+    /// <summary>Seconds left of the unrest after a culture shock during which the world pays the player only
+    /// contact.json unrest.trade_share of its trade (0 = full trade, or trade hasn't started yet).</summary>
+    public int UnrestTradeSecondsLeft(int player, string bodyId) => Rel(player, bodyId) is { } r ? SecondsUntil(r.UnrestTradeUntilTick) : 0;
+
+    /// <summary>The natives of a body are unsettled after a culture shock (awareness held high; see <see cref="CultureShockSecondsLeft"/>).</summary>
+    public bool Unsettled(string bodyId) => CultureShockSecondsLeft(bodyId) > 0;
+
+    /// <summary>The body's civilization is spacefaring (contact.json spacefaring.from_level, L6): a stronger partner.</summary>
+    public bool IsSpacefaring(string bodyId) => Spacefaring(bodyId);
+
+    /// <summary>What a first contact with the body risks for the player beyond the usual (null = nothing): spacefaring
+    /// natives turn away a captain with a low Starfleet Standing.</summary>
+    public string? ContactRisk(int player, string bodyId)
+    {
+        if (!LowStandingWith(player, bodyId) || ContactData is not { } c || CivAt(bodyId) is not { } site) return null;
+        var sf = c.Spacefaring;
+        return $"the {site.Species} fly their own starships and judge us by our Standing ({StandingOf(player)} < {sf.LowStanding}): "
+            + $"{Pct(sf.LowStandingRefuseChance)} they turn us away, +{sf.LowStandingShock}% culture shock";
+    }
+
+    /// <summary>The civilization that shared a unique tech (contact.json unique_techs id) with the player, or null.</summary>
+    public CivSite? SharedTechSite(int player, string techId)
+    {
+        if (player < 0 || player >= _civPlayers.Count) return null;
+        foreach (var r in _civPlayers[player].Relations)
+            if (r.Rewarded && r.Tech == techId && CivAt(r.Body) is { } site) return site;
+        return null;
+    }
+
+    /// <summary>The native trade freighters flying the player's trade routes (SystemShip.TradeFor == player).</summary>
+    public IReadOnlyList<SystemShip> TradeFreightersOf(int player) => _ships.Where(s => s.TradeFor == player && player >= 0).ToList();
+
+    // ---------------------------------------------------------------- spacefaring partners, ally counts
+
+    private bool Spacefaring(string? bodyId) =>
+        bodyId != null && ContactData is { } c && CivAt(bodyId) is { Living: true } site && c.IsSpacefaring((int)site.Level);
+
+    /// <summary>A spacefaring world and a player whose Starfleet Standing is below spacefaring.low_standing.</summary>
+    private bool LowStandingWith(int player, string bodyId) =>
+        Spacefaring(bodyId) && StandingOf(player) is { } standing && standing < ContactData!.Spacefaring.LowStanding;
+
+    private int PartnerMinutes(ContactRules c, string bodyId) => Spacefaring(bodyId) ? c.Spacefaring.PartnerMinutes : c.Membership.PartnerMinutes;
+
+    private int CandidateMinutes(ContactRules c, string bodyId) => Spacefaring(bodyId) ? c.Spacefaring.CandidateMinutes : c.Membership.CandidateMinutes;
+
+    /// <summary>Ally ships a relations stage brings from that world (spacefaring worlds at least spacefaring.ally_ships).</summary>
+    private int ShipsWanted(ContactRules c, int stage, string bodyId)
+    {
+        var n = c.Ally.ShipsFor(stage);
+        if (stage >= (int)ContactStage.TradePartner && Spacefaring(bodyId)) n = System.Math.Max(n, c.Spacefaring.AllyShips);
+        return n;
+    }
+
+    private static string Pct(Fix64 share) => $"{(share * Fix64.FromInt(100)).FloorToInt()}%";
 
     // ---------------------------------------------------------------- problems
 
@@ -353,6 +417,14 @@ public sealed partial class StarSystemState
         var c = ContactData!;
         var site = CivAt(bodyId)!;
         var p = _civPlayers[player];
+        if (LowStandingWith(player, bodyId) && sim.Rng.NextFix() < c.Spacefaring.LowStandingRefuseChance)
+        {
+            // Spacefaring natives check who is calling: a captain with a low Starfleet Standing is turned away.
+            Event(player, bodyId, "contact_refused",
+                $"The {site.Species} of {Body(bodyId)!.Name} turned our hail away: they know our Starfleet Standing ({StandingOf(player)}) and refuse contact for {c.RefuseAfterIncidentMinutes} min");
+            RefuseContact(player, bodyId, c.RefuseAfterIncidentMinutes);
+            return;
+        }
         var run = new ContactRun
         {
             Body = bodyId, StartTick = sim.Tick, StepEndTick = sim.Tick + StepTicks, Violation = BreaksGeneralOrder(player, bodyId),
@@ -384,12 +456,13 @@ public sealed partial class StarSystemState
     }
 
     /// <summary>The culture-shock chance (%) of a running event now.</summary>
-    private int ShockChance(ContactRun run, CivSite site)
+    private int ShockChance(int player, ContactRun run, CivSite site)
     {
         var c = ContactData!;
         if (run.Violation) return 100;
         var chance = c.BaseShock + c.ShockFor(TemperamentId(site.Temperament)) + (c.ShockPerAwareness * AwarenessOf(site.BodyId)).FloorToInt();
         if (run.PreWarp) chance += c.PreWarpShock;
+        if (LowStandingWith(player, site.BodyId)) chance += c.Spacefaring.LowStandingShock; // spacefaring natives judge a low Standing
         for (var k = 0; k < run.Chosen.Count && k < c.Steps.Count; k++)
             if (run.Chosen[k] >= 0 && run.Chosen[k] < c.Steps[k].Choices.Count) chance += c.Steps[k].Choices[run.Chosen[k]].Shock;
         return System.Math.Clamp(chance, c.ShockMin, c.ShockMax);
@@ -410,7 +483,7 @@ public sealed partial class StarSystemState
         p.Runs.Remove(run);
         var site = CivAt(run.Body);
         if (site is not { Living: true }) return;
-        var chance = ShockChance(run, site);
+        var chance = ShockChance(player, run, site);
         var shock = run.Violation || sim.Rng.NextInt(100) < chance;
         var rel = RelFor(player, run.Body);
         int research = 0, standing = 0, wait = c.ShockWaitMinutes;
@@ -430,12 +503,13 @@ public sealed partial class StarSystemState
             return;
         }
         SetStage(sim, player, run.Body, ContactStage.Contact);
+        rel.Shocked = true;
         rel.TradeAfterTick = sim.Tick + System.Math.Max(0, wait) * (long)Simulation.TicksPerMinute;
         var i = CivIndex(run.Body);
         _shockUntil[i] = sim.Tick + (long)c.CultureShockMinutes * Simulation.TicksPerMinute;
         if (c.CultureShockAwareness > 0) RaiseAwareness(i, Fix64.FromInt(c.CultureShockAwareness));
         Event(player, run.Body, "culture_shock",
-            $"Culture shock among the {site.Species} of {name}: talks go on, trade in {System.Math.Max(0, wait)} min");
+            $"Culture shock among the {site.Species} of {name}: talks go on, trade in {System.Math.Max(0, wait)} min (at {Pct(c.Unrest.TradeShare)} for {c.Unrest.Minutes} min while the unrest lasts)");
         if (standing != 0) ChangeStanding(sim, player, standing);
     }
 
@@ -481,7 +555,7 @@ public sealed partial class StarSystemState
             if (sim.Surface is { } surface && player < surface.Players.Count) surface.ShareTech(player, tech);
             Event(player, bodyId, "unique_tech", $"The {site.Species} shared {tech.Name}: {tech.Effect} (+{boost} research)");
         }
-        var want = c.Ally.ShipsFor((int)stage);
+        var want = ShipsWanted(c, (int)stage, bodyId);
         var have = _ships.Count(s => s.AllyOf == player && s.AllyHome == bodyId);
         for (var k = have; k < want; k++) MakeAlly(sim, player, bodyId);
     }
@@ -562,13 +636,30 @@ public sealed partial class StarSystemState
                 var rel = p.Relations[k];
                 if (rel.Stage == ContactStage.Contact && rel.TradeAfterTick >= 0 && tick >= rel.TradeAfterTick && CivAt(rel.Body) is { Living: true } site)
                 {
-                    Event(player, rel.Body, "trade_partner", $"The {site.Species} of {Body(rel.Body)!.Name} are ready to trade: trade partners");
+                    var unrest = rel.Shocked && c.Unrest.Minutes > 0;
+                    Event(player, rel.Body, "trade_partner", $"The {site.Species} of {Body(rel.Body)!.Name} are ready to trade: trade partners"
+                        + (unrest ? $" (still unsettled: {Pct(c.Unrest.TradeShare)} trade for {c.Unrest.Minutes} min)" : ""));
+                    if (unrest)
+                    {
+                        // Culture shock has teeth: half trade (unrest.trade_share) and unrest for unrest.minutes once trade starts.
+                        rel.UnrestTradeUntilTick = tick + (long)c.Unrest.Minutes * Simulation.TicksPerMinute;
+                        var i = CivIndex(rel.Body);
+                        if (i >= 0) _shockUntil[i] = System.Math.Max(_shockUntil[i], rel.UnrestTradeUntilTick);
+                    }
                     SetStage(sim, player, rel.Body, ContactStage.TradePartner);
                 }
+                if (rel.UnrestTradeUntilTick > 0 && tick == rel.UnrestTradeUntilTick && CivAt(rel.Body) is { Living: true } calm)
+                    Event(player, rel.Body, "unrest_over", $"The {calm.Species} of {Body(rel.Body)!.Name} have settled down: full trade again");
             }
         }
 
         StepAllies(tick, c);
+        StepFreighters(tick, c);
+
+        // Unrest after a culture shock: their awareness can't fall below unrest.awareness_floor while it lasts.
+        for (var i = 0; i < _civs.Count; i++)
+            if (_civs[i].Living && _shockUntil[i] > tick && _awareness[i] < Fix64.FromInt(c.Unrest.AwarenessFloor))
+                RaiseAwareness(i, Fix64.FromInt(c.Unrest.AwarenessFloor) - _awareness[i]);
 
         if (tick <= 0 || tick % Simulation.TicksPerMinute != 0) return;
         PayTrade(sim, c);
@@ -577,10 +668,12 @@ public sealed partial class StarSystemState
         for (var i = 0; i < _civs.Count; i++) _awarenessMark[i] = _awareness[i];
     }
 
-    private static Fix64 TradeShare(ContactRules c, Relation r)
+    private Fix64 TradeShare(ContactRules c, Relation r)
     {
         if (r.Stage < ContactStage.TradePartner) return Fix64.Zero;
         var share = c.MultiplierFor((int)r.Stage) * Fix64.Max(Fix64.Zero, Fix64.One - c.Membership.WalkoutIncomeCut * r.WalkedOut);
+        if (Spacefaring(r.Body)) share *= c.Spacefaring.TradeMultiplier; // L6: a stronger partner
+        if (Now < r.UnrestTradeUntilTick) share *= c.Unrest.TradeShare; // unrest after a culture shock
         return share;
     }
 
@@ -747,6 +840,91 @@ public sealed partial class StarSystemState
         }
     }
 
+    // ---------------------------------------------------------------- trade freighters
+
+    /// <summary>Trade freighters: one per trade route (a trade partner or better of a player, never the colony's own body),
+    /// made when the route opens and retired when it closes; each waits at home, leaves in time to reach the colony body on
+    /// a whole minute (when trade is paid), stays freighter.dwell_seconds and flies home; every freighter.interval_minutes.</summary>
+    private void StepFreighters(long tick, ContactRules c)
+    {
+        var colony = SurfaceBody;
+        for (var k = _ships.Count - 1; k >= 0; k--)
+        {
+            var s = _ships[k];
+            if (s.TradeFor < 0) continue;
+            if (colony != null && Rel(s.TradeFor, s.TradeHome) is { Stage: >= ContactStage.TradePartner } && CivAt(s.TradeHome!) is { Living: true }) continue;
+            _ships.RemoveAt(k);
+            Version++;
+        }
+        if (colony == null) return;
+        for (var player = 0; player < _civPlayers.Count; player++)
+            foreach (var rel in _civPlayers[player].Relations)
+                if (rel.Stage >= ContactStage.TradePartner && rel.Body != colony && CivAt(rel.Body) is { Living: true } site && !HasFreighter(player, rel.Body))
+                    MakeFreighter(player, site, colony, tick, c);
+        var f = c.Freighter;
+        var interval = (long)f.IntervalMinutes * Simulation.TicksPerMinute;
+        foreach (var ship in _ships)
+        {
+            if (ship.TradeFor < 0 || ship.InFlight) continue;
+            var home = ship.TradeHome!;
+            if (ship.AtBody == colony)
+            {
+                if (tick < ship.TradeArriveTick + (long)f.DwellSeconds * Simulation.TickRate) continue;
+                var back = FreighterTravel(colony, home, c);
+                Depart(ship, home, tick, back);
+                ship.TradeArriveTick = WholeMinuteFrom(System.Math.Max(ship.TradeArriveTick + interval, tick + back + FreighterTravel(home, colony, c)));
+                continue;
+            }
+            if (ship.AtBody != home)
+            {
+                Depart(ship, home, tick, FreighterTravel(ship.AtBody!, home, c));
+                continue;
+            }
+            if (ship.TradeArriveTick - tick <= FreighterTravel(home, colony, c))
+                Depart(ship, colony, tick, System.Math.Max(1L, ship.TradeArriveTick - tick));
+        }
+    }
+
+    private bool HasFreighter(int player, string bodyId)
+    {
+        foreach (var s in _ships)
+            if (s.TradeFor == player && s.TradeHome == bodyId) return true;
+        return false;
+    }
+
+    private void MakeFreighter(int player, CivSite site, string colony, long tick, ContactRules c)
+    {
+        var f = c.Freighter;
+        var name = f.Names[(int)(Hash(FreighterSalt, _freightersMade) % (ulong)f.Names.Count)];
+        if (_ships.Any(s => s.Name == name)) name += $" {_freightersMade + 1}";
+        _freightersMade++;
+        var cargo = Data is { } data
+            ? string.Join("/", c.TradeIncome.Where(x => x.Resource >= 0 && x.Resource < data.Resources.Count).Select(x => data.Resources[x.Resource].Name.ToLowerInvariant()))
+            : null;
+        var ship = new SystemShip
+        {
+            Id = _nextShipId++, Owner = -1, ClassId = "native." + f.ClassId, Name = name, Faction = "native", Role = f.Role, AtBody = site.BodyId,
+            Registry = site.Species, Cargo = string.IsNullOrEmpty(cargo) ? null : cargo,
+        };
+        ship.TradeFor = player;
+        ship.TradeHome = site.BodyId;
+        ship.TradeArriveTick = WholeMinuteFrom(tick + FreighterTravel(site.BodyId, colony, c));
+        _ships.Add(ship);
+        Version++;
+        Event(player, site.BodyId, "trade_route",
+            $"The {site.Species} of {Body(site.BodyId)?.Name ?? site.BodyId} opened a trade route: the freighter {name} flies to {Body(colony)?.Name ?? colony} every {f.IntervalMinutes} min");
+    }
+
+    private long FreighterTravel(string from, string to, ContactRules c) =>
+        System.Math.Max(1L, (Fix64.FromInt((int)TravelTicks(from, to)) * c.Freighter.TravelScale).FloorToInt());
+
+    /// <summary>The first whole minute of game time at or after a tick (when trade is paid).</summary>
+    private static long WholeMinuteFrom(long tick)
+    {
+        var m = (long)Simulation.TicksPerMinute;
+        return System.Math.Max(m, (tick + m - 1) / m * m);
+    }
+
     private void ScoutDone(SystemShip ship)
     {
         ship.AllyTask = AllyTask.Escort;
@@ -784,7 +962,11 @@ public sealed partial class StarSystemState
         return null;
     }
 
-    private void AddContactToHash(ref StateHasher h) => h.Add(_alliesMade);
+    private void AddContactToHash(ref StateHasher h)
+    {
+        h.Add(_alliesMade);
+        h.Add(_freightersMade);
+    }
 
     // ---------------------------------------------------------------- test panel
 
@@ -904,7 +1086,7 @@ public sealed partial class StarSystemState
                 var rel = RelFor(command.Target, command.BodyId);
                 if (stage == ContactStage.Contact) rel.TradeAfterTick = sim.Tick + (long)ContactData!.ShockWaitMinutes * Simulation.TicksPerMinute;
                 // Lowering the stage sends the extra ally ships home for good (test panel only: they are never lost in play).
-                var keep = stage >= ContactStage.TradePartner ? ContactData!.Ally.ShipsFor((int)stage) : 0;
+                var keep = stage >= ContactStage.TradePartner ? ShipsWanted(ContactData!, (int)stage, command.BodyId) : 0;
                 var mine = _ships.Where(s => s.AllyOf == command.Target && s.AllyHome == command.BodyId).ToList();
                 for (var k = keep; k < mine.Count; k++) _ships.Remove(mine[k]);
                 break;

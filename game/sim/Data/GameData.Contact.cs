@@ -81,13 +81,27 @@ public sealed partial class GameData
         var advance = new AdvanceRules(r.Fix(adv, "chance_per_min", $"{w} advance"), r.Fix(adv, "per_awareness", $"{w} advance"),
             r.Int(adv, "wreck_spike", $"{w} advance"), r.Fix(adv, "wreck_chance", $"{w} advance"));
 
+        var un = r.Obj(c, "unrest", w);
+        var unrest = new UnrestRules(r.Fix(un, "trade_share", $"{w} unrest"), r.Int(un, "minutes", $"{w} unrest"), r.Int(un, "awareness_floor", $"{w} unrest"));
+        var fr = r.Obj(c, "freighter", w);
+        var fc = r.Obj(fr, "class", $"{w} freighter");
+        var freighter = new FreighterRules(r.Str(fc, "id", $"{w} freighter.class"), r.Str(fc, "name", $"{w} freighter.class"), r.Str(fc, "role", $"{w} freighter.class"),
+            r.Int(fr, "interval_minutes", $"{w} freighter"), r.Int(fr, "dwell_seconds", $"{w} freighter"), r.Fix(fr, "travel_scale", $"{w} freighter"),
+            r.StringList(fr, "names", $"{w} freighter"));
+        var sf = r.Obj(c, "spacefaring", w);
+        const string sfw = w + " spacefaring";
+        var spacefaring = new SpacefaringRules(r.Int(sf, "from_level", sfw), r.Fix(sf, "trade_multiplier", sfw), r.Int(sf, "ally_ships", sfw),
+            r.Int(sf, "partner_minutes", sfw), r.Int(sf, "candidate_minutes", sfw), r.Int(sf, "low_standing", sfw), r.Int(sf, "low_standing_shock", sfw),
+            r.Fix(sf, "low_standing_refuse_chance", sfw));
+
         return new ContactRules(r.StringList(c, "factions", w), r.Int(c, "min_level", w), r.Bool(c, "needs_study", w), r.Int(c, "step_seconds", w),
             r.Int(c, "base_shock", w), r.Weights(c, "shock_by_temperament", w), r.Fix(c, "shock_per_awareness", w), r.Int(c, "pre_warp_shock", w),
             r.Int(c, "shock_min", w), r.Int(c, "shock_max", w), steps, r.Int(violation, "standing", $"{w} violation"), r.Int(c, "shock_wait_minutes", w),
             r.Int(c, "culture_shock_awareness", w), r.Int(c, "culture_shock_minutes", w), r.Int(c, "research_boost", w),
             trade.ValueKind == JsonValueKind.Object && trade.TryGetProperty("income_per_min", out _) ? amounts(trade, "income_per_min", $"{w} trade") : new List<ResourceAmount>(),
             r.Fix(mult, "trade_partner", $"{w} trade.stage_multiplier"), r.Fix(mult, "candidate", $"{w} trade.stage_multiplier"),
-            r.Fix(mult, "allied", $"{w} trade.stage_multiplier"), membership, techs, ally, aggressive, r.Int(c, "refuse_after_incident_minutes", w), advance);
+            r.Fix(mult, "allied", $"{w} trade.stage_multiplier"), membership, techs, ally, aggressive, r.Int(c, "refuse_after_incident_minutes", w), advance,
+            unrest, freighter, spacefaring);
     }
 
     private void ValidateContact(CivilizationData civ, List<string> problems)
@@ -169,5 +183,24 @@ public sealed partial class GameData
         if (d.PerAwareness < Fix64.Zero || d.PerAwareness > Fix64.Ratio(1, 100)) problems.Add($"{w}: advance.per_awareness must be 0..0.01.");
         if (d.WreckSpike < 1 || d.WreckSpike > 100) problems.Add($"{w}: advance.wreck_spike must be 1..100.");
         Share(d.WreckChance, "advance.wreck_chance");
+        var ur = c.Unrest;
+        Share(ur.TradeShare, "unrest.trade_share");
+        if (ur.Minutes < 0 || ur.Minutes > 120) problems.Add($"{w}: unrest.minutes must be 0..120.");
+        if (ur.AwarenessFloor < 0 || ur.AwarenessFloor > 100) problems.Add($"{w}: unrest.awareness_floor must be 0..100.");
+        var fr = c.Freighter;
+        if (fr.ClassId.Length == 0 || fr.ClassName.Length == 0) problems.Add($"{w}: freighter.class needs an id and a name.");
+        if (c.Ally.Classes.Any(x => x.Id == fr.ClassId)) problems.Add($"{w}: freighter.class id '{fr.ClassId}' is an ally class'sp.");
+        if (fr.IntervalMinutes < 1 || fr.IntervalMinutes > 60) problems.Add($"{w}: freighter.interval_minutes must be 1..60.");
+        if (fr.DwellSeconds < 0 || fr.DwellSeconds > 600) problems.Add($"{w}: freighter.dwell_seconds must be 0..600.");
+        if (fr.TravelScale < Fix64.Ratio(1, 2) || fr.TravelScale > Fix64.FromInt(5)) problems.Add($"{w}: freighter.travel_scale must be 0.5..5.");
+        if (fr.Names.Count == 0) problems.Add($"{w}: freighter.names needs a name.");
+        var sp = c.Spacefaring;
+        if (sp.FromLevel < 1 || sp.FromLevel > CivLevels + 1) problems.Add($"{w}: spacefaring.from_level must be 1..{CivLevels + 1}.");
+        if (sp.TradeMultiplier < Fix64.Zero || sp.TradeMultiplier > Fix64.FromInt(10)) problems.Add($"{w}: spacefaring.trade_multiplier must be 0..10.");
+        if (sp.AllyShips < 0 || sp.AllyShips > 6) problems.Add($"{w}: spacefaring.ally_ships must be 0..6.");
+        if (sp.PartnerMinutes < 0 || sp.CandidateMinutes < 0) problems.Add($"{w}: spacefaring minutes must not be negative.");
+        if (sp.LowStanding < 0 || sp.LowStanding > 100) problems.Add($"{w}: spacefaring.low_standing must be 0..100.");
+        if (sp.LowStandingShock < 0 || sp.LowStandingShock > 100) problems.Add($"{w}: spacefaring.low_standing_shock must be 0..100.");
+        Share(sp.LowStandingRefuseChance, "spacefaring.low_standing_refuse_chance");
     }
 }
