@@ -428,7 +428,9 @@ public partial class PlanetDriver
         var buttons = new List<HelmAction>();
         if (s.Owner == LocalPlayer) buttons.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null));
         AllyCard(s, rows, buttons); // an allied native ship: ALLY / TASK rows, ESCORT / SCOUT (PlanetDriver.Contact.cs)
+        TradeCard(s, rows); // a native trade freighter: TRADE / ROUTE / RUN rows (PlanetDriver.Contact.cs)
         var colour = s.AllyOf >= 0 ? (s.AllyOf == LocalPlayer ? HelmScreen.Green : PlanetDriver.ColorOf(s.AllyOf))
+            : s.TradeFor >= 0 ? (s.TradeFor == LocalPlayer ? HelmScreen.Cyan : PlanetDriver.ColorOf(s.TradeFor))
             : s.Owner == LocalPlayer ? HelmScreen.Peach : s.Owner < 0 ? HelmScreen.Lavender : PlanetDriver.ColorOf(s.Owner);
         return (rows, buttons, colour);
     }

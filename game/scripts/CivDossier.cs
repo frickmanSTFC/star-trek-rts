@@ -163,7 +163,7 @@ public sealed record DossierView(
 
 /// <summary>The dossier's relations strip (phase 2): the stage, trade income, their shared tech, the refusal countdown
 /// (seconds), the running talks and what the next step needs. Empty strings = nothing to show.</summary>
-public sealed record DossierContact(ContactStage Stage, string Income, string Tech, int RefusesSeconds, string Talks, string Next);
+public sealed record DossierContact(ContactStage Stage, string Income, string Tech, int RefusesSeconds, string Talks, string Next, string Extra = "");
 
 /// <summary>
 /// The civilization dossier (docs/mockups/first-contact "Dossier", in the helm's look: black panels, flat colour title
@@ -348,6 +348,8 @@ public partial class CivDossier : Control
         parts.Add(c.Next);
         var line = Para(string.Join("  ·  ", parts), c.RefusesSeconds > 0 ? HelmScreen.Red : c.Stage == ContactStage.None ? HelmScreen.Ink : CivText.StageColour(c.Stage));
         box.AddChild(line);
+        // Unrest after a culture shock, an L6 partner's terms, a low-Standing risk (phase 2 follow-ups).
+        if (c.Extra.Length > 0) box.AddChild(Para(c.Extra, c.Extra.StartsWith("unsettled") ? HelmScreen.Red : HelmScreen.Sky));
         return box;
     }
 

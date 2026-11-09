@@ -135,6 +135,9 @@ public sealed class SystemSource
     /// <summary>An allied native ship of the local player (SystemShip.AllyOf).</summary>
     public bool IsOurAlly(SystemShip ship) => ship.AllyOf >= 0 && ship.AllyOf == _player;
 
+    /// <summary>A native trade freighter flying one of the local player's trade routes (SystemShip.TradeFor).</summary>
+    public bool IsOurTrade(SystemShip ship) => ship.TradeFor >= 0 && ship.TradeFor == _player;
+
     public SystemShip? Ship(int id)
     {
         foreach (var s in Ships)
@@ -232,13 +235,25 @@ public sealed class SystemSource
     public string ShipClassText(SystemShip ship)
     {
         var c = ShipClass(ship.ClassId);
-        if (c == null) return ship.ClassId;
+        if (c == null) return NativeClassText(ship) ?? ship.ClassId;
         return c.Role is GameData.CombatRole or "" ? $"{c.Name} class" : $"{c.Name} class {c.Role}";
     }
 
-    /// <summary>Who flies a ship: "Neutral traffic", "Ours (Federation)", or the owner's faction.</summary>
+    /// <summary>A native ship's class (contact.json ally classes / the trade freighter): "Cutter (native)", or null.</summary>
+    private string? NativeClassText(SystemShip ship)
+    {
+        if (!ship.ClassId.StartsWith("native.")) return null;
+        if (State?.AllyClass(ship) is { } ally) return $"{ally.Name} (native)";
+        if (_sim.Data.Civilizations?.Contact?.Freighter is { } f && ship.ClassId == "native." + f.ClassId) return $"{f.ClassName} (native)";
+        return null;
+    }
+
+    /// <summary>Who flies a ship: "Neutral traffic", "Ours (Federation)", natives (allies, trade freighters), or the owner's faction.</summary>
     public string OwnerText(SystemShip ship)
     {
+        var natives = ship.Registry.Length > 0 ? $"Natives ({ship.Registry})" : "Natives";
+        if (ship.TradeFor >= 0) return ship.TradeFor == _player ? $"{natives} · our trade route" : $"{natives} · another power's trade route";
+        if (ship.AllyOf >= 0) return ship.AllyOf == _player ? $"{natives} · our ally" : $"{natives} · another power's ally";
         if (ship.Owner < 0) return "Neutral traffic (civilian)";
         var faction = ship.Owner < _sim.Players.Count ? _sim.Players[ship.Owner].FactionId : null;
         var name = faction;

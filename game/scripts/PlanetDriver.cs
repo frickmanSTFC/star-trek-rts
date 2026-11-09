@@ -181,6 +181,9 @@ public partial class PlanetDriver : Node3D, ITestHost
             commands.Add(($"unit:{unit}", _data.GroundVehicleNames.GetValueOrDefault(unit, unit), $"[{key + 1}]"));
         }
         foreach (var t in _data.Techs) commands.Add(($"tech:{t.Id}", t.Name, $"[{t.Index + 1}]"));
+        // Unique techs a trade partner may share (civilizations phase 2): listed in the lab as known, never researched.
+        foreach (var t in _data.Civilizations?.Contact?.UniqueTechs ?? (IReadOnlyList<UniqueTechDef>)System.Array.Empty<UniqueTechDef>())
+            commands.Add(($"{SharedPrefix}{t.Id}", t.Name, ""));
         commands.Add((FoundCard, "Found Outpost", "[F]")); // a selected construction rover's card (PlanetDriver.Founding.cs)
         var orbitCards = OrbitCards();
         for (var i = 0; i < orbitCards.Count; i++) commands.Add((orbitCards[i].Id, orbitCards[i].Name, $"[{i + 1}]"));
@@ -1459,7 +1462,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             Fabricate(id[4..], Input.IsKeyPressed(Key.Shift) ? 5 : 1); // a recipe tile: +1, Shift+click +5
             return;
         }
-        if (id.StartsWith("unit:") || id.StartsWith("tech:"))
+        if (id.StartsWith("unit:") || id.StartsWith("tech:") || id.StartsWith(SharedPrefix))
         {
             if (_info == id) InfoAction();
             else _info = id;
@@ -1715,9 +1718,10 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (!_inOrbit)
         {
             if (_info != null && _info.StartsWith("orbit:")) _info = null; // orbit cards belong to the orbit view
-            if (_info != null && (_info == FoundCard ? _founding == 0 : _info.StartsWith("tech:") ? SelectedLab() == null : _info.StartsWith("unit:") ? SelectedBay() == null : !IsBuildingCard(_info))) _info = null;
+            if (_info != null && (_info == FoundCard ? _founding == 0 : _info.StartsWith("tech:") || _info.StartsWith(SharedPrefix) ? SelectedLab() == null : _info.StartsWith("unit:") ? SelectedBay() == null : !IsBuildingCard(_info))) _info = null;
             // Founding and research keep the compact card; buildings and vehicle orders get the large card (UpdateBuildMenu).
-            _hud.ShowInfo(_info == FoundCard ? FoundInfo() : _info != null && _info.StartsWith("tech:") ? TechInfo(_data.Tech(_info[5..])) : null);
+            _hud.ShowInfo(_info == FoundCard ? FoundInfo() : _info != null && _info.StartsWith("tech:") ? TechInfo(_data.Tech(_info[5..]))
+                : _info != null && _info.StartsWith(SharedPrefix) ? SharedTechInfo(_info[SharedPrefix.Length..]) : null);
         }
 
         var supply = 0f;
@@ -1792,7 +1796,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                     var done = me.ResearchProgress[t.Index].ToFloat() / t.Cost.ToFloat();
                     var tag = known ? "DONE" : active ? $"{Mathf.FloorToInt(done * 100)}%" : locked ? "LOCKED" : done > 0 ? $"{Mathf.FloorToInt(done * 100)}%" : "";
                     return new CommandView($"tech:{t.Id}", "", "", $"{Hud.Whole(t.Cost)} RP", !locked, active || _info == $"tech:{t.Id}", tag, false);
-                }).ToList(), true);
+                }).Concat(SharedTechTiles(me)).ToList(), true);
             return;
         }
         if (SelectedFounder() is { } founder)
@@ -1929,6 +1933,44 @@ public partial class PlanetDriver : Node3D, ITestHost
             t.Description.Length > 0 ? t.Description : t.Effect, rows,
             progress > Fix64.Zero || active ? (progress / t.Cost).ToFloat() : -1f,
             $"{Hud.Whole(progress)} / {Hud.Whole(t.Cost)} points", action, enabled, "");
+    }
+
+    // ---------------------------------------------------------------- shared techs (civilizations phase 2)
+
+    /// <summary>Command id prefix of a unique tech a trade partner shared ("shared:native_metallurgy").</summary>
+    private const string SharedPrefix = "shared:";
+
+    /// <summary>"the Veth" for the civilization that shared a tech with us (the sim's SharedTechSite), or "a trade partner".</summary>
+    private string SharedBy(string techId)
+    {
+        var site = _sim.System?.SharedTechSite(LocalPlayer, techId);
+        return site?.Species is { Length: > 0 } species ? $"the {species}" : "a trade partner";
+    }
+
+    /// <summary>The lab's tiles for SurfacePlayer.SharedTechs: known ("SHARED"), marked "shared by …", never researchable.</summary>
+    private IEnumerable<CommandView> SharedTechTiles(SurfacePlayer me) =>
+        me.SharedTechs.Select(t => new CommandView($"{SharedPrefix}{t.Id}", "", "", $"shared by {SharedBy(t.Id)}", true, _info == $"{SharedPrefix}{t.Id}", "SHARED", false));
+
+    /// <summary>Card for a shared tech: what it does, who shared it; no research button.</summary>
+    private InfoView? SharedTechInfo(string techId)
+    {
+        var t = Surface.Players[LocalPlayer].SharedTechs.FirstOrDefault(x => x.Id == techId)
+            ?? _data.Civilizations?.Contact?.UniqueTechs.FirstOrDefault(x => x.Id == techId);
+        if (t == null) return null;
+        var known = Surface.Players[LocalPlayer].SharedTechs.Any(x => x.Id == techId);
+        var by = SharedBy(techId);
+        var rows = new List<(string, string)> { ("Effect", t.Effect) };
+        var affects = new List<string>();
+        foreach (var m in t.Modifiers)
+        {
+            var what = m.Units.Count > 0 ? string.Join(", ", m.Units.Select(u => _data.GroundVehicleNames.GetValueOrDefault(u, u)))
+                : m.Buildings.Count > 0 ? string.Join(", ", m.Buildings.Select(BuildingName)) : "every building";
+            affects.Add($"{what}: {ModifierText(m)}");
+        }
+        if (affects.Count > 0) rows.Add(("Changes", string.Join("\n", affects)));
+        rows.Add(("From", known ? $"shared by {by} at first contact (a trade partner's local technology)" : "not shared with us"));
+        return new InfoView("tech", t.Name, known ? $"Known · shared by {by}" : "Not known", "Not researchable: a gift from a trade partner, it works like a researched tech",
+            true, t.Effect, rows, -1f, "", known ? "SHARED" : "NOT SHARED", false, "");
     }
 
     /// <summary>Short hints for what's selected (the full list is on F1).</summary>

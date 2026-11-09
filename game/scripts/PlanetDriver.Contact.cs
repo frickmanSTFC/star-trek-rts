@@ -59,6 +59,30 @@ public partial class PlanetDriver
         if (sys.RefusesContactSeconds(LocalPlayer, b.Id) is var refuse and > 0) rows.Add(new HelmRow("REFUSES", $"they refuse contact · {Clock(refuse)} left", HelmScreen.Red));
         if (stage >= ContactStage.TradePartner && _tradeLine.Length > 0) rows.Add(new HelmRow("TRADE", TradeShort(), HelmScreen.Cyan));
         if (sys.UniqueTechFrom(LocalPlayer, b.Id) is { Length: > 0 } tech) rows.Add(new HelmRow("THEIR TECH", tech, HelmScreen.Green));
+        if (UnrestText(b.Id) is { } unrest) rows.Add(new HelmRow("UNREST", unrest, HelmScreen.Red));
+        if (CivText.Studied(r) && sys.IsSpacefaring(b.Id)) rows.Add(new HelmRow("SPACEFARING", SpacefaringText(), HelmScreen.Sky));
+        if (stage == ContactStage.None && CivText.Studied(r) && sys.ContactRisk(LocalPlayer, b.Id) is { } risk) rows.Add(new HelmRow("RISK", risk, HelmScreen.Rust));
+    }
+
+    /// <summary>"unsettled after culture shock · 9:12 left · trade at 50% for 7:40" while the natives are unsettled, else null.</summary>
+    private string? UnrestText(string bodyId)
+    {
+        if (_sim.System is not { } sys || !sys.Unsettled(bodyId)) return null;
+        var text = $"unsettled after culture shock · {Clock(sys.CultureShockSecondsLeft(bodyId))} left";
+        var share = _data.Civilizations?.Contact?.Unrest.TradeShare.ToFloat() ?? 0.5f;
+        var half = sys.UnrestTradeSecondsLeft(LocalPlayer, bodyId);
+        if (half > 0) text += $" · trade at {Mathf.RoundToInt(share * 100)}% for {Clock(half)}";
+        else if (StageOf(bodyId) == ContactStage.Contact) text += $" · trade starts at {Mathf.RoundToInt(share * 100)}%";
+        return text;
+    }
+
+    /// <summary>What an L6 partner gives (contact.json spacefaring).</summary>
+    private string SpacefaringText()
+    {
+        if (_data.Civilizations?.Contact is not { } c) return "a stronger partner";
+        var sf = c.Spacefaring;
+        return $"a stronger partner: trade ×{sf.TradeMultiplier.ToFloat():0.##}, {sf.AllyShips} ally ships, membership in {sf.PartnerMinutes} + {sf.CandidateMinutes} min; "
+            + $"wary of a Standing below {sf.LowStanding}";
     }
 
     /// <summary>FIRST CONTACT (flagship in orbit, no relations yet) or MEMBERSHIP (contacted, not allied yet).</summary>
@@ -164,7 +188,12 @@ public partial class PlanetDriver
         else if (stage >= ContactStage.Allied) next = "allied: nothing further";
         else next = sys.MembershipProblem(LocalPlayer, bodyId) is { } why ? $"next step: {why}" : "next step ready: MEMBERSHIP";
         var talks = ev == null ? "" : $"first contact · step {ev.Step + 1} of {ev.Steps} · shock risk {ev.ShockChance} %";
-        return new DossierContact(stage, stage >= ContactStage.TradePartner ? TradeShort() : "", sys.UniqueTechFrom(LocalPlayer, bodyId) ?? "", refuse, talks, next);
+        var extra = new List<string>();
+        if (UnrestText(bodyId) is { } unrest) extra.Add(unrest);
+        if (CivText.Studied(r) && sys.IsSpacefaring(bodyId)) extra.Add("spacefaring: " + SpacefaringText());
+        if (stage == ContactStage.None && CivText.Studied(r) && sys.ContactRisk(LocalPlayer, bodyId) is { } risk) extra.Add("risk: " + risk);
+        return new DossierContact(stage, stage >= ContactStage.TradePartner ? TradeShort() : "", sys.UniqueTechFrom(LocalPlayer, bodyId) ?? "", refuse, talks, next,
+            string.Join("  ·  ", extra));
     }
 
     // ---------------------------------------------------------------- trade
@@ -258,7 +287,7 @@ public partial class PlanetDriver
         (string, Color) result = stage switch
         {
             >= ContactStage.TradePartner => ($"A smooth start: {who} welcome us. They are a trade partner now (resources and latinum every minute, a unique tech shared).", HelmScreen.Green),
-            ContactStage.Contact => ($"Culture shock: {who} are shaken. Talks go on, trade comes after a wait.", HelmScreen.Red),
+            ContactStage.Contact => ($"Culture shock: {who} are shaken. Talks go on; trade comes after a wait, at {Mathf.RoundToInt((_data.Civilizations?.Contact?.Unrest.TradeShare.ToFloat() ?? 0.5f) * 100)}% while the unrest lasts.", HelmScreen.Red),
             _ when !finished => ("First contact called off: the flagship left orbit.", HelmScreen.Peach),
             _ => ($"The talks with {who} ended without relations.", HelmScreen.Peach),
         };
@@ -319,6 +348,28 @@ public partial class PlanetDriver
         buttons.Add(new HelmAction($"sys:ally:escort:{s.Id}", "", s.AllyTask == AllyTask.Escort ? "ESCORT ✓" : "ESCORT",
             s.AllyTask != AllyTask.Escort && _sim.System?.AllyOrderProblem(LocalPlayer, s.Id, null) == null, Colour: HelmScreen.Green));
         buttons.Add(new HelmAction($"sys:ally:scout:{s.Id}", "", _allyScout == s.Id ? "SCOUT: PICK A BODY" : "SCOUT…", true, _allyScout == s.Id, HelmScreen.Cyan));
+    }
+
+    // ---------------------------------------------------------------- native trade freighters
+
+    /// <summary>A trade freighter's card (SystemShip.TradeFor): "Trade freighter · species · carrying …", its route and timing.</summary>
+    private void TradeCard(SystemShip s, List<HelmRow> rows)
+    {
+        if (s.TradeFor < 0) return;
+        string Name(string? id) => _system.Body(id) is { } b ? _system.KnownName(b) : "?";
+        var civ = CivOf(s.TradeHome);
+        var species = civ?.Species is { Length: > 0 } sp ? sp : s.Registry;
+        rows.RemoveAll(r => r.Label == "CARGO");
+        rows.Insert(0, new HelmRow("TRADE", $"Trade freighter · {species} · carrying {(string.IsNullOrEmpty(s.Cargo) ? "trade goods" : s.Cargo)}",
+            s.TradeFor == LocalPlayer ? HelmScreen.Cyan : PlanetDriver.ColorOf(s.TradeFor)));
+        var colony = _sim.System?.SurfaceBody;
+        var every = _data.Civilizations?.Contact?.Freighter.IntervalMinutes ?? 3;
+        rows.Insert(1, new HelmRow("ROUTE", $"{Name(s.TradeHome)} ⇄ {Name(colony)} · every {every} min{(s.TradeFor == LocalPlayer ? "" : $" · for {PlayerName(s.TradeFor)}")}"));
+        var left = (int)Mathf.Max(0, (s.TradeArriveTick - _sim.Tick) / Simulation.TickRate);
+        var status = SystemSource.InFlight(s)
+            ? s.ToBody == colony ? $"inbound with the trade · docks in {Clock((int)_system.SecondsToArrival(s))} (trade is paid then)" : $"flying home to {Name(s.TradeHome)}"
+            : s.AtBody == colony ? "unloading at the colony" : $"loading at {Name(s.TradeHome)} · next delivery in {Clock(left)}";
+        rows.Insert(2, new HelmRow("RUN", status));
     }
 
     private string PlayerName(int player) =>
