@@ -1934,6 +1934,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     /// <summary>Short hints for what's selected (the full list is on F1).</summary>
     private string ContextHints()
     {
+        if (_inOrbit && _allyScout != null) return "Click a body (or one in the list on the left) to send the ally to scout it  ·  Esc / right-click cancel  ·  F1 controls";
         if (_inOrbit) return (Me.Phase == LandingPhase.Landed ? "O surface  ·  " : "") + "Drag / WASD turn  ·  wheel zoom  ·  Tab scan  ·  1–9 deploy  ·  C dossier  ·  right-click cancel  ·  F1 controls";
         if (Me.Phase == LandingPhase.Descending) return "F1 controls";
         if (_placing != null) return "R rotate  ·  Shift+click place more  ·  I card  ·  right-click / Esc stop";

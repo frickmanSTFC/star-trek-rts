@@ -198,7 +198,7 @@ public partial class TestPanel
     private void BuildStandingRow(StarSystemState sys)
     {
         _content.AddChild(Section("STARFLEET STANDING (YOU)"));
-        var bodyId = CivPicked()?.Id ?? sys.SurfaceBody;
+        var bodyId = CivPicked()?.Id ?? sys.SurfaceBody ?? "";
         var row = Row();
         var value = Text("", 14, Ink);
         value.CustomMinimumSize = new Vector2(110, 0);

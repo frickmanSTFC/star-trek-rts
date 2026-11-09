@@ -423,7 +423,7 @@ public partial class CivDossier : Control
                 new("WORLD", v.BodyName),
                 new("SITES", "ruin fields seen from orbit"),
             }, CivText.Rust));
-            box.AddChild(Para("Nobody is left to notice us: no Prime Directive here. Excavating the ruins (artefacts, data cores, tech fragments, dangers) comes in a later phase.", Grey));
+            box.AddChild(Para("Nobody is left to notice us: no Prime Directive here. Digging ruins (artefacts, data cores, tech fragments, dangers) works on your own colony world with an Excavation Site; ruins on other worlds come later.", Grey));
             return box;
         }
         var studied = CivText.Studied(r);
