@@ -112,6 +112,26 @@ public static class CivText
         _ => new Color(0.75f, 0.22f, 0.2f),
     };
 
+    /// <summary>The relations track (phase 2): Contact → Trade partner → Candidate → Allied world (index = ContactStage − 1).</summary>
+    public static readonly (string Name, string About)[] Stages =
+    {
+        ("Contact", "talks under way; trade comes after a wait"),
+        ("Trade partner", "a trickle of resources and latinum, a trade route"),
+        ("Candidate", "applying for membership (needs Standing 60+)"),
+        ("Allied world", "more trade, their ships stay with you; the world stays theirs"),
+    };
+
+    public static string StageName(ContactStage s) => s == ContactStage.None ? "no contact" : Stages[Mathf.Clamp((int)s - 1, 0, 3)].Name;
+
+    public static Color StageColour(ContactStage s) => s switch
+    {
+        ContactStage.Contact => HelmScreen.Sky,
+        ContactStage.TradePartner => HelmScreen.Cyan,
+        ContactStage.Candidate => HelmScreen.Lavender,
+        ContactStage.Allied => HelmScreen.Green,
+        _ => new Color(0.62f, 0.64f, 0.68f),
+    };
+
     /// <summary>The tooltip of a Standing chip: the five steps, the current one marked.</summary>
     public static string StandingTooltip(int standing, int rung)
     {
@@ -138,7 +158,12 @@ public sealed record DossierView(
     int Incidents,
     float ResearchPerMinute,
     IReadOnlyList<(string BodyId, string Name)> Worlds,
-    IReadOnlyList<HelmAction> Actions);
+    IReadOnlyList<HelmAction> Actions,
+    DossierContact? Contact = null);
+
+/// <summary>The dossier's relations strip (phase 2): the stage, trade income, their shared tech, the refusal countdown
+/// (seconds), the running talks and what the next step needs. Empty strings = nothing to show.</summary>
+public sealed record DossierContact(ContactStage Stage, string Income, string Tech, int RefusesSeconds, string Talks, string Next);
 
 /// <summary>
 /// The civilization dossier (docs/mockups/first-contact "Dossier", in the helm's look: black panels, flat colour title
@@ -209,7 +234,7 @@ public partial class CivDossier : Control
         return string.Join("|", r.BodyId, r.Signals, r.Charted, r.Living, r.Species, r.LevelMin, r.LevelMax, r.Temperament, r.Unity, r.Nations,
             r.Population, r.Awareness, Mathf.RoundToInt(r.Study.ToFloat() * 100), r.Live, r.PostHere, r.PostFound, v.BodyName, v.ClassName,
             v.StudySource, v.StudyEta, v.Standing, v.Rung, v.Incidents, Mathf.RoundToInt(v.ResearchPerMinute * 10),
-            string.Join(",", v.Worlds.Select(w => w.BodyId + w.Name)), string.Join(",", v.Actions.Select(a => a.Id + a.Label + a.Enabled)));
+            string.Join(",", v.Worlds.Select(w => w.BodyId + w.Name)), string.Join(",", v.Actions.Select(a => a.Id + a.Label + a.Enabled)), v.Contact);
     }
 
     // ------------------------------------------------------------------ build
@@ -227,7 +252,7 @@ public partial class CivDossier : Control
         var colour = !r.Charted ? HelmScreen.Peach : r.Living ? HelmScreen.Peach : CivText.Rust;
 
         var width = Mathf.Min(P(1000), screen.X - 32);
-        var height = Mathf.Min(P(590), screen.Y - 32);
+        var height = Mathf.Min(P(v.Contact != null ? 650 : 590), screen.Y - 32);
         var style = new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0.92f), BorderColor = colour };
         style.SetBorderWidthAll(1);
         style.BorderWidthLeft = P(5);
@@ -278,6 +303,7 @@ public partial class CivDossier : Control
         middle.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         cols.AddChild(middle);
         cols.AddChild(Side(v));
+        if (v.Contact != null) root.AddChild(Relations(v.Contact));
 
         // Actions (HIDDEN POST while the flagship orbits it) and the footer.
         var foot = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
@@ -292,6 +318,37 @@ public partial class CivDossier : Control
         hint.HorizontalAlignment = HorizontalAlignment.Right;
         foot.AddChild(hint);
         root.AddChild(foot);
+    }
+
+    /// <summary>The relations track (Contact → Trade partner → Candidate → Allied world; reached steps filled, the current
+    /// one outlined bright) and one line of details: trade income, their tech, the refusal countdown, the talks, the next step.</summary>
+    private Control Relations(DossierContact c)
+    {
+        var box = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        box.AddThemeConstantOverride("separation", P(4));
+        var track = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        track.AddThemeConstantOverride("separation", P(4));
+        track.AddChild(Bar(CivText.StageColour(c.Stage == ContactStage.None ? ContactStage.Contact : c.Stage), "RELATIONS", F(14)));
+        for (var i = 0; i < CivText.Stages.Length; i++)
+        {
+            var stage = (ContactStage)(i + 1);
+            var reached = c.Stage >= stage;
+            var chip = Chip(CivText.Stages[i].Name.ToUpperInvariant(), reached ? CivText.StageColour(stage) : Dim, !reached);
+            chip.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            chip.TooltipText = CivText.Stages[i].About;
+            track.AddChild(chip);
+            if (i < CivText.Stages.Length - 1) track.AddChild(Text("→", F(13), reached && c.Stage > stage ? HelmScreen.Ink : Grey, true));
+        }
+        box.AddChild(track);
+        var parts = new List<string>();
+        if (c.Talks.Length > 0) parts.Add(c.Talks);
+        if (c.RefusesSeconds > 0) parts.Add($"they refuse contact · {c.RefusesSeconds / 60}:{c.RefusesSeconds % 60:00} left");
+        if (c.Income.Length > 0) parts.Add($"trade {c.Income}");
+        if (c.Tech.Length > 0) parts.Add($"their tech: {c.Tech}");
+        parts.Add(c.Next);
+        var line = Para(string.Join("  ·  ", parts), c.RefusesSeconds > 0 ? HelmScreen.Red : c.Stage == ContactStage.None ? HelmScreen.Ink : CivText.StageColour(c.Stage));
+        box.AddChild(line);
+        return box;
     }
 
     /// <summary>L6 at the top down to L1. Known range outlined, the exact level filled, below the range dim.</summary>
@@ -366,7 +423,7 @@ public partial class CivDossier : Control
                 new("WORLD", v.BodyName),
                 new("SITES", "ruin fields seen from orbit"),
             }, CivText.Rust));
-            box.AddChild(Para("Nobody is left to notice us: no Prime Directive here. Excavating the ruins (artefacts, data cores, tech fragments, dangers) comes in a later phase.", Grey));
+            box.AddChild(Para("Nobody is left to notice us: no Prime Directive here. Digging ruins (artefacts, data cores, tech fragments, dangers) works on your own colony world with an Excavation Site; ruins on other worlds come later.", Grey));
             return box;
         }
         var studied = CivText.Studied(r);

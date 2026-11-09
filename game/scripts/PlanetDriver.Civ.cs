@@ -41,6 +41,7 @@ public partial class PlanetDriver
         layer.AddChild(_dossier);
         _dossier.ActionPicked += OnDossierAction;
         _hud.StandingPressed += () => OpenDossier(null);
+        SetupContact(layer); // the first-contact event panel (PlanetDriver.Contact.cs)
     }
 
     /// <summary>What the local player knows about a body's civilization (null = none known).</summary>
@@ -100,6 +101,7 @@ public partial class PlanetDriver
         else if (r.PostHere) rows.Add(new HelmRow("POST", "hidden observation post", HelmScreen.Green));
         if (_sim.System?.StandingOf(LocalPlayer) != null && _sim.System.IncidentsOn(LocalPlayer, b.Id) is var n and > 0)
             rows.Add(new HelmRow("INCIDENTS", $"{n} of 3 on this world", HelmScreen.Red));
+        AddContactRows(b, r, rows); // relations, talks, refusal, trade, their tech (PlanetDriver.Contact.cs)
         return rows;
     }
 
@@ -129,7 +131,9 @@ public partial class PlanetDriver
         if (CivOf(b.Id) is not { } r) return;
         var f = _system.Flagship;
         var here = f != null && f.AtBody == b.Id && !SystemSource.InFlight(f);
-        if (here && MaybeLiving(r)) buttons.Add(PostButton(b.Id, r));
+        // the post is for studying them unseen: not once they know us
+        if (here && MaybeLiving(r) && StageOf(b.Id) == ContactStage.None) buttons.Add(PostButton(b.Id, r));
+        AddContactButtons(b, r, buttons); // FIRST CONTACT / MEMBERSHIP (PlanetDriver.Contact.cs)
         buttons.Add(new HelmAction($"civ:dossier:{b.Id}", "", "DOSSIER", Colour: HelmScreen.Sky));
     }
 
@@ -142,7 +146,8 @@ public partial class PlanetDriver
     private void AddCivStripActions(string bodyId, List<HelmAction> actions)
     {
         if (CivOf(bodyId) is not { } r) return;
-        if (MaybeLiving(r)) actions.Add(PostButton(bodyId, r));
+        if (MaybeLiving(r) && StageOf(bodyId) == ContactStage.None) actions.Add(PostButton(bodyId, r));
+        if (ContactAction(bodyId, r) is { } contact) actions.Add(contact); // FIRST CONTACT / MEMBERSHIP (PlanetDriver.Contact.cs)
         actions.Add(new HelmAction($"civ:dossier:{bodyId}", "C", "DOSSIER", Colour: HelmScreen.Sky));
     }
 
@@ -170,6 +175,7 @@ public partial class PlanetDriver
 
     private void OnCivAction(string id)
     {
+        if (OnContactAction(id)) return; // civ:contact:<body>, civ:member:<body> (PlanetDriver.Contact.cs)
         if (id == "civ:dossier") OpenDossier(null);
         else if (id.StartsWith("civ:dossier:")) OpenDossier(id[12..]);
     }
@@ -222,7 +228,7 @@ public partial class PlanetDriver
         return true;
     }
 
-    private bool CivBlocksMouse(Vector2 mouse) => _dossier.IsOpen;
+    private bool CivBlocksMouse(Vector2 mouse) => _dossier.IsOpen || ContactBlocksMouse(mouse);
 
     private void RefreshDossier()
     {
@@ -238,12 +244,17 @@ public partial class PlanetDriver
         var f = _system.Flagship;
         if (f != null && f.AtBody == b.Id && !SystemSource.InFlight(f))
         {
-            if (MaybeLiving(r)) actions.Add(PostButton(b.Id, r));
+            if (MaybeLiving(r) && StageOf(b.Id) == ContactStage.None) actions.Add(PostButton(b.Id, r));
+            if (ContactAction(b.Id, r) is { } contact) actions.Add(contact);
         }
-        else if (f != null) actions.Add(new HelmAction($"sys:course:{b.Id}", "", "SET COURSE", CourseProblem(b.Id) == null, Colour: HelmScreen.Peach));
+        else
+        {
+            if (f != null) actions.Add(new HelmAction($"sys:course:{b.Id}", "", "SET COURSE", CourseProblem(b.Id) == null, Colour: HelmScreen.Peach));
+            if (ContactAction(b.Id, r) is { } member) actions.Add(member); // MEMBERSHIP needs no ship there (the sim decides)
+        }
         _dossier.Show(new DossierView(r, _system.KnownName(b), _system.Identified(b.Id) ? _system.ClassName(b.ClassId) : "unidentified", CivText.Studied(r) ? "study complete" : source,
             StudyEta(b.Id, r), sys.StandingOf(LocalPlayer), sys.StandingRung(LocalPlayer), sys.IncidentsOn(LocalPlayer, b.Id),
-            sys.ObservationResearchPerMinute(LocalPlayer).ToFloat(), CivWorlds(), actions));
+            sys.ObservationResearchPerMinute(LocalPlayer).ToFloat(), CivWorlds(), actions, ContactFor(b.Id, r)));
     }
 
     // ---------------------------------------------------------------- per frame: chips, events, dossier
@@ -258,8 +269,10 @@ public partial class PlanetDriver
         _hud.ShowStanding(standing, rung, tip);
         _helm.SetStanding(standing is { } s2 ? $"STANDING {s2}" : null, CivText.RungColour(rung), tip);
         RefreshDossier();
+        UpdateContact(); // the first-contact panel (PlanetDriver.Contact.cs)
         if (_clock - _civPollAt < 1.0 && _civPollAt >= 0) return;
         _civPollAt = _clock;
+        RefreshTrade();
         if (sys == null) return;
         if (CivEventsProperty != null) SimCivEvents(sys);
         else DiffCivEvents(sys, standing, rung);

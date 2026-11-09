@@ -39,7 +39,7 @@ public interface ITestHost
 /// <summary>
 /// The in-game test panel (F9, dev builds only; owner 2026-11-04: "allow for setup changes in the game for testing ...
 /// allowing us to increase/decrease all values"; mockup claude.ai/artifact/SCdjcY4gKUYcE1QRqMqp14). Docked on the right
-/// of the surface view; tabs SELECTED, RESOURCES, RESEARCH, MAP, DATA, SKY. Everything that changes the game goes through the
+/// of the surface view; tabs SELECTED, RESOURCES, RESEARCH, MAP, DATA, SKY, CIV. Everything that changes the game goes through the
 /// sim's Debug*Command family (validated, in replays and the state hash); dirt, fog-off and game speed are render-side
 /// only. Each edit remembers how to undo itself (the inverse commands, built from the values before the edit): the footer
 /// shows the last edit, Undo / Ctrl+Z reverts the most recent undoable one.
@@ -69,7 +69,7 @@ public partial class TestPanel : PanelContainer
     private static readonly Tint Yellow = new(new Color(0.165f, 0.141f, 0.071f), new Color(0.953f, 0.796f, 0.357f), new Color(0.361f, 0.298f, 0.118f));
     private static readonly Tint Red = new(new Color(0.173f, 0.086f, 0.094f), new Color(0.941f, 0.627f, 0.635f), new Color(0.416f, 0.18f, 0.196f));
 
-    private static readonly string[] TabNames = { "SELECTED", "RESOURCES", "RESEARCH", "MAP", "DATA", "SKY" };
+    private static readonly string[] TabNames = { "SELECTED", "RESOURCES", "RESEARCH", "MAP", "DATA", "SKY", "CIV" };
 
     private ITestHost _host = null!;
     private Font _caps = null!;
@@ -264,6 +264,8 @@ public partial class TestPanel : PanelContainer
                 return $"map|{Sim.Players.Count}";
             case 4:
                 return $"data|{Identity(Data)}";
+            case 6:
+                return CivShape(); // TestPanel.Civ.cs
             default:
                 return $"tab{_tab}";
         }
@@ -288,6 +290,7 @@ public partial class TestPanel : PanelContainer
             case 3: BuildMap(); break;
             case 4: BuildData(); break;
             case 5: BuildSky(); break; // TestPanel.Sky.cs
+            case 6: BuildCiv(); break; // TestPanel.Civ.cs
         }
     }
 

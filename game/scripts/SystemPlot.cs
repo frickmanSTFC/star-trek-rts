@@ -321,8 +321,15 @@ public partial class SystemPlot : Node3D
         _shipLayer.AddChild(_courses);
     }
 
+    /// <summary>Our allied native ships (civilizations phase 2) on the plot.</summary>
+    public static readonly Color AllyGreen = new(0.608f, 0.89f, 0.478f); // HelmScreen.Green
+
     private static Color ShipColour(SystemShip s, int localPlayer, Func<int, Color> ownerColour) =>
-        s.Owner < 0 ? Neutral : ownerColour(s.Owner);
+        s.AllyOf >= 0 ? (s.AllyOf == localPlayer ? AllyGreen : ownerColour(s.AllyOf).Lerp(AllyGreen, 0.35f))
+        : s.Owner < 0 ? Neutral : ownerColour(s.Owner);
+
+    // AllyOf as each chevron was built: a ship that becomes (or stops being) an ally is rebuilt in its new colour.
+    private readonly Dictionary<int, int> _shipAlly = new();
 
     /// <summary>Puts every ship where it is now: in flight on its course, else parked round the body it orbits.</summary>
     private void MoveShips(SystemSource source, float alpha, Func<int, Color> ownerColour)
@@ -334,16 +341,23 @@ public partial class SystemPlot : Node3D
         foreach (var s in source.Ships)
         {
             var ours = s.Owner == source.Player;
+            var ally = source.IsOurAlly(s);
             var flying = SystemSource.InFlight(s);
             alive.Add(s.Id);
+            if (_ships.TryGetValue(s.Id, out var stale) && _shipAlly.GetValueOrDefault(s.Id, -1) != s.AllyOf)
+            {
+                stale.Node.QueueFree();
+                _ships.Remove(s.Id);
+            }
             if (!_ships.TryGetValue(s.Id, out var entry))
             {
+                _shipAlly[s.Id] = s.AllyOf;
                 var colour = ShipColour(s, source.Player, ownerColour);
                 var node = new Node3D { Name = $"Ship{s.Id}" };
                 node.AddChild(new MeshInstance3D
                 {
                     Mesh = Chevron(),
-                    Scale = Vector3.One * (ours ? 1.25f : 0.9f),
+                    Scale = Vector3.One * (ours ? 1.25f : ally ? 0.8f : 0.9f),
                     CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
                     MaterialOverride = new StandardMaterial3D
                     {
@@ -352,13 +366,13 @@ public partial class SystemPlot : Node3D
                         CullMode = BaseMaterial3D.CullModeEnum.Disabled,
                         EmissionEnabled = true,
                         Emission = colour,
-                        EmissionEnergyMultiplier = ours ? 1.6f : 0.8f,
+                        EmissionEnergyMultiplier = ours ? 1.6f : ally ? 1.3f : 0.8f,
                     },
                 });
                 Label3D? label = null;
-                if (ours)
+                if (ours || ally)
                 {
-                    label = Label("", new Vector3(0, 2.5f, 0), colour, 18);
+                    label = Label("", new Vector3(0, 2.5f, 0), colour, ally ? 15 : 18);
                     node.AddChild(label);
                 }
                 _shipLayer.AddChild(node);
@@ -394,6 +408,7 @@ public partial class SystemPlot : Node3D
             if (entry.Label != null)
             {
                 var text = s.Name.ToUpperInvariant();
+                if (ally) text += $" · {PlanetDriver.AllyTag(s, source)}"; // ESCORT / SCOUT <BODY> / HOME
                 if (flying) text += $" · ETA {source.SecondsToArrival(s)} S";
                 if (text != entry.Text)
                 {
@@ -410,6 +425,7 @@ public partial class SystemPlot : Node3D
             if (alive.Contains(id)) continue;
             _ships[id].Node.QueueFree();
             _ships.Remove(id);
+            _shipAlly.Remove(id);
         }
     }
 

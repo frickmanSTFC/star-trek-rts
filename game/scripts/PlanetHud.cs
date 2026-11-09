@@ -325,7 +325,7 @@ public partial class PlanetHud : CanvasLayer
     /// <summary>True when the mouse is over the HUD (so the world shouldn't react to it).</summary>
     public bool BlocksMouse(Vector2 mouse) =>
         (_topBar.Visible && _topBar.GetGlobalRect().HasPoint(mouse)) || (_bottom.Visible && _bottom.GetGlobalRect().HasPoint(mouse)) ||
-        (_info.Visible && _info.GetGlobalRect().HasPoint(mouse)) || (_help.Visible && _help.GetGlobalRect().HasPoint(mouse));
+        (_info.Visible && _info.GetGlobalRect().HasPoint(mouse)) || (_help.Visible && _help.GetGlobalRect().HasPoint(mouse)) || RuinsBlockMouse(mouse);
 
     /// <summary>Hooks for the info card's action button and its close button.</summary>
     public void SetInfoHandlers(Action onAction, Action onClose)
@@ -479,7 +479,8 @@ public partial class PlanetHud : CanvasLayer
             chip.Rate.Text = perMin == 0 ? ShortName(r.Name) : $"{ShortName(r.Name)} {(perMin > 0 ? "+" : "−")}{Mathf.Abs(perMin)}";
             chip.Rate.AddThemeColorOverride("font_color", perMin > 0 ? Good : perMin < 0 ? Warn : Dim);
             if (chip.Amount.GetParent()?.GetParent() is Control box)
-                box.TooltipText = $"{r.Name}: {Hud.Whole(p.Stock[r.Index])}" + (perMin == 0 ? "" : $"  ({(perMin > 0 ? "+" : "−")}{Mathf.Abs(perMin)} a minute)");
+                box.TooltipText = $"{r.Name}: {Hud.Whole(p.Stock[r.Index])}" + (perMin == 0 ? "" : $"  ({(perMin > 0 ? "+" : "−")}{Mathf.Abs(perMin)} a minute)")
+                    + (TradeTipLine.Length > 0 ? "\n" + TradeTipLine : ""); // trade partners' income (PlanetHud.Ruins.cs)
         }
         _researchChip.Text = research;
         _researchSub.Text = researchSub;
@@ -564,6 +565,8 @@ public partial class PlanetHud : CanvasLayer
                 ("Tab", "next base (in orbit: next scan)"), ("Esc", "stop placing / close the card / close the drawer / back to the base"),
                 ("O", "orbit view and back"), ("Orbit", "drag or WASD turn the planet, wheel zoom, 1–9 deploy, click to send"),
                 ("Sky (top bar)", "day, season, local time and weather at the view's centre; hover for wind and ground"),
+                ("Ruins", "rust diamond on the minimap: an Excavation Site on the hex digs it, layer by layer"),
+                ("Crew sick", "chip by the base tabs: a dig pathogen slows the crew; vehicles can carry it"),
             },
             new[]
             {
@@ -579,6 +582,10 @@ public partial class PlanetHud : CanvasLayer
                 ("C", "civilization dossier: level ladder, awareness, study, Starfleet Standing (Esc closes)"),
                 ("Hidden post", "orbiting a native world: HIDDEN POST on the strip or its card studies them ×4, may be found"),
                 ("Standing (top bar)", "Starfleet Standing (Prime Directive eras); hover for the ladder, click for the dossier"),
+                ("First contact", "FIRST CONTACT on a living world's card (below L5: click twice); pick before each step ends"),
+                ("Membership", "dossier: Contact → Trade partner → Candidate → Allied world; trade in the top bar tooltips"),
+                ("Ally ships", "green chevrons on the plot: ESCORT follows the flagship, SCOUT + click a body charts it"),
+                ("F9 › CIV", "spawn / edit a civilization, Standing, relations, ruins on the colony map"),
             },
         };
         foreach (var g in groups)
