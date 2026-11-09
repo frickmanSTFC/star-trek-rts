@@ -324,8 +324,12 @@ public partial class SystemPlot : Node3D
     /// <summary>Our allied native ships (civilizations phase 2) on the plot.</summary>
     public static readonly Color AllyGreen = new(0.608f, 0.89f, 0.478f); // HelmScreen.Green
 
+    /// <summary>Native trade freighters on our trade routes (civilizations phase 2 follow-up) = HelmScreen.Cyan, the TRADE rows' colour.</summary>
+    public static readonly Color TradeCyan = new(0.373f, 0.949f, 0.902f);
+
     private static Color ShipColour(SystemShip s, int localPlayer, Func<int, Color> ownerColour) =>
         s.AllyOf >= 0 ? (s.AllyOf == localPlayer ? AllyGreen : ownerColour(s.AllyOf).Lerp(AllyGreen, 0.35f))
+        : s.TradeFor >= 0 ? (s.TradeFor == localPlayer ? TradeCyan : ownerColour(s.TradeFor).Lerp(TradeCyan, 0.35f))
         : s.Owner < 0 ? Neutral : ownerColour(s.Owner);
 
     // AllyOf as each chevron was built: a ship that becomes (or stops being) an ally is rebuilt in its new colour.
@@ -342,6 +346,7 @@ public partial class SystemPlot : Node3D
         {
             var ours = s.Owner == source.Player;
             var ally = source.IsOurAlly(s);
+            var trade = source.IsOurTrade(s);
             var flying = SystemSource.InFlight(s);
             alive.Add(s.Id);
             if (_ships.TryGetValue(s.Id, out var stale) && _shipAlly.GetValueOrDefault(s.Id, -1) != s.AllyOf)
@@ -357,7 +362,7 @@ public partial class SystemPlot : Node3D
                 node.AddChild(new MeshInstance3D
                 {
                     Mesh = Chevron(),
-                    Scale = Vector3.One * (ours ? 1.25f : ally ? 0.8f : 0.9f),
+                    Scale = Vector3.One * (ours ? 1.25f : ally ? 0.8f : trade ? 0.75f : 0.9f),
                     CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
                     MaterialOverride = new StandardMaterial3D
                     {
@@ -366,13 +371,13 @@ public partial class SystemPlot : Node3D
                         CullMode = BaseMaterial3D.CullModeEnum.Disabled,
                         EmissionEnabled = true,
                         Emission = colour,
-                        EmissionEnergyMultiplier = ours ? 1.6f : ally ? 1.3f : 0.8f,
+                        EmissionEnergyMultiplier = ours ? 1.6f : ally || trade ? 1.3f : 0.8f,
                     },
                 });
                 Label3D? label = null;
-                if (ours || ally)
+                if (ours || ally || trade)
                 {
-                    label = Label("", new Vector3(0, 2.5f, 0), colour, ally ? 15 : 18);
+                    label = Label("", new Vector3(0, 2.5f, 0), colour, ally || trade ? 15 : 18);
                     node.AddChild(label);
                 }
                 _shipLayer.AddChild(node);
@@ -409,6 +414,7 @@ public partial class SystemPlot : Node3D
             {
                 var text = s.Name.ToUpperInvariant();
                 if (ally) text += $" · {PlanetDriver.AllyTag(s, source)}"; // ESCORT / SCOUT <BODY> / HOME
+                if (trade) text += " · TRADE"; // a native trade freighter on one of our routes
                 if (flying) text += $" · ETA {source.SecondsToArrival(s)} S";
                 if (text != entry.Text)
                 {

@@ -293,8 +293,9 @@ public partial class PlanetDriver
             var text = (type.GetProperty("Text") ?? type.GetProperty("Message"))?.GetValue(e) as string;
             if (string.IsNullOrEmpty(text)) continue;
             var lower = text.ToLowerInvariant();
-            var bad = lower.Contains("found") || lower.Contains("incident") || lower.Contains("fell") || lower.Contains("recall") || lower.Contains("sanction");
-            var good = lower.Contains("complete") || lower.Contains("recover");
+            var bad = lower.Contains("found") || lower.Contains("incident") || lower.Contains("fell") || lower.Contains("recall") || lower.Contains("sanction")
+                || lower.Contains("refuse") || lower.Contains("turned our hail away") || lower.Contains("culture shock");
+            var good = lower.Contains("complete") || lower.Contains("recover") || lower.Contains("settled down") || lower.Contains("trade route");
             _hud.PushEvent(text, bad ? HelmScreen.Red : good ? HelmScreen.Green : HelmScreen.Peach);
         }
         _civEventsSeen = items.Count;

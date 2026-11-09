@@ -168,8 +168,7 @@ Stub signatures are unchanged (bodies filled in `game/sim/Space/Contact.cs`). De
 - **Hash** (system games only): relations, running events, per-site culture shock / awareness mark / hostility, the sites'
   living/level/temperament/seed (they can change now), ally fields + `FollowTick`, posts' `ShotDown`, the ally counter; the
   surface's shared techs only once there is one (planet-only and balance hashes unchanged).
-- Tests `ContactTests` (17). Not yet: culture shock/unrest has no gameplay effect beyond the wait; no trade-route object
-  (the view draws one per `TradePartners` body); a small outpost on an allied world (no landing elsewhere yet); allies have
+- Tests `ContactTests` (17). Not yet: (unrest and trade freighters came later, see "Follow-ups"); a small outpost on an allied world (no landing elsewhere yet); allies have
   no combat; other powers can't make contact.
 
 ## Surface sim side, filled in (2026-11-09)
@@ -239,3 +238,42 @@ orbital region hint).
   longer applies to the edited data and still passes.
 - Tests `ExcavationTests` (21). Not yet: the view (Excavation Site panel, find lines, sick chip, carrier marker, orbit
   findings line), the bot never digs, sickness doesn't spread between players, a find of a dug-out ruin can't be re-dug.
+
+## Follow-ups (2026-11-09)
+
+Owner's four follow-ups after the ruins merge; placeholder numbers in `data/civilizations/contact.json` (`_notes_contact`
+explains each). Tests `ContactFollowUpTests` (8; 558 total). All new state is in `StarSystemState` (system games only).
+
+- **Culture shock has teeth** (`unrest`: `trade_share` 0.5, `minutes` 10, `awareness_floor` 50). A first contact that
+  ends in culture shock marks the relation (`Relation.Shocked`); when trade starts after the shock wait, that world pays
+  `trade_share` of its trade to that player until `Relation.UnrestTradeUntilTick` (= trade start + 10 min; both hashed),
+  and the site's culture-shock clock (`CultureShockSecondsLeft`) runs on at least that long. While it runs the natives'
+  awareness is held at `awareness_floor` or above (raised back each tick, so the CIV tab's awareness slider can't lower
+  it then). Events: the `trade_partner` line says "still unsettled", `unrest_over` when full trade returns. API:
+  `UnrestTradeSecondsLeft(player, body)`, `Unsettled(body)`.
+- **Trade freighters** (`freighter`: class `freighter` "Trade freighter" role freighter, `interval_minutes` 3,
+  `dwell_seconds` 20, `travel_scale` 1.25, names). One `SystemShip` per trade route (relation ≥ trade partner, living
+  site, not the colony body): Owner -1, ClassId `native.freighter`, Faction `native`, Registry = species, Cargo
+  "duranium/tritanium/latinum" (the trade resources' names), new `TradeFor` = player / `TradeHome` = their world /
+  `TradeArriveTick` (hashed when TradeFor ≥ 0; `TradeFor` always). `IsNeutral` is false for it, `IsAlly` too; new
+  `IsTradeFreighter`. Made when the route opens (event `trade_route`, counter `_freightersMade` hashed), retired when it
+  closes (relations lowered, site gone). It waits at home, leaves so that it reaches the colony body exactly on a whole
+  minute (when trade is paid), stays `dwell_seconds`, flies home; next arrival = max(last + interval, the earliest whole
+  minute it can make). Purely deterministic (no `sim.Rng`). `TradeFreightersOf(player)`.
+- **Shared techs in the lab:** `SharedTechSite(player, techId)` = the civilization that shared it. View: the Research
+  Lab's tech list ends with every `SurfacePlayer.SharedTechs` entry (`shared:<id>` tiles, tag SHARED, "shared by the
+  <species>"), its card says "Known · shared by …" with no research button.
+- **L6 = a stronger partner** (`spacefaring`: `from_level` 6, `trade_multiplier` 1.5, `ally_ships` 2, `partner_minutes`
+  1, `candidate_minutes` 2, `low_standing` 50, `low_standing_shock` 20, `low_standing_refuse_chance` 0.3): trade ×1.5
+  (on top of the stage multiplier), at least 2 ally ships at every trade stage, membership after 1 / 2 min instead of 3 /
+  5; but a player with Standing below 50 gets +20 culture shock and is turned away when the contact starts with 30%
+  (`sim.Rng`, only then; event `contact_refused`, refusal for `refuse_after_incident_minutes`; the command itself is
+  accepted). `IsSpacefaring(body)`, `ContactRisk(player, body)` (the warning text, null when there is none).
+- **View:** body card rows UNREST (red: time left, trade share and its countdown), SPACEFARING (studied L6: the partner's
+  terms), RISK (no relations yet, low Standing); the dossier's relations strip gets the same as a second line
+  (`DossierContact.Extra`); the culture-shock result line mentions the half trade. Trade freighters: cyan chevrons
+  (`SystemPlot.TradeCyan`; others' routes tinted toward their owner), label NAME · TRADE (· ETA); ship card rows TRADE
+  "Trade freighter · <species> · carrying duranium/tritanium/latinum", ROUTE (home ⇄ colony · every n min), RUN
+  (inbound / unloading / flying home / next delivery m:ss); CLASS reads "Trade freighter (native)" / ally "Cutter
+  (native)", OWNER "Natives (<species>) · our trade route / our ally" (was "Neutral traffic" for allies). Event-line
+  colours: refusals and culture shock red, "settled down" and "trade route" green.

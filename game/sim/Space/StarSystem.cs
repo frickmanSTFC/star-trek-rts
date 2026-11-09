@@ -53,7 +53,7 @@ public sealed class SystemShip
     public string Role { get; init; } = "";
 
     /// <summary>Neutral traffic: true.</summary>
-    public bool IsNeutral => Owner < 0 && AllyOf < 0;
+    public bool IsNeutral => Owner < 0 && AllyOf < 0 && TradeFor < 0;
 
     /// <summary>An allied native ship (<see cref="AllyOf"/> ≥ 0): Owner -1, follows its player's orders.</summary>
     public bool IsAlly => AllyOf >= 0;
@@ -85,6 +85,16 @@ public sealed class SystemShip
     public long FollowTick { get; internal set; } = -1;
     public long SweepStartTick { get; internal set; }
     public long SweepDoneTick { get; internal set; }
+
+    /// <summary>A native trade freighter (phase 2 follow-up): the player whose trade route it flies (-1 = not one), its
+    /// home world, and when it next reaches the colony (a whole minute, when trade is paid). Owner -1, not an ally, not
+    /// neutral traffic.</summary>
+    public int TradeFor { get; internal set; } = -1;
+    public string? TradeHome { get; internal set; }
+    public long TradeArriveTick { get; internal set; }
+
+    /// <summary>A native trade freighter (<see cref="TradeFor"/> ≥ 0).</summary>
+    public bool IsTradeFreighter => TradeFor >= 0;
 
     /// <summary>A sensor sweep is running.</summary>
     public bool Sweeping => SweepBody != null;
@@ -118,6 +128,12 @@ public sealed class SystemShip
             h.Add((int)AllyTask);
             Text(ref h, ScoutBody);
             h.Add(FollowTick);
+        }
+        h.Add(TradeFor);
+        if (TradeFor >= 0)
+        {
+            Text(ref h, TradeHome);
+            h.Add(TradeArriveTick);
         }
     }
 

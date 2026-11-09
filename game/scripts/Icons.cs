@@ -120,7 +120,7 @@ public static class Icons
         var key = id + "|" + c.ToHtml();
         if (Cache.TryGetValue(key, out var cached)) return cached;
 
-        if (id.StartsWith("tech:")) id = "tech";
+        if (id.StartsWith("tech:") || id.StartsWith("shared:")) id = "tech";
         if (id.StartsWith("orbit:")) id = id.Split(':')[1] switch { "land" or "outpost" => "orbit_drop", "shuttle" => "orbit_shuttle", "beam" => "orbit_beam", _ => "orbit_satellite" };
         var body = Paths.TryGetValue(id, out var p) ? p
             : id.StartsWith("colonial") || id.StartsWith("planetary") ? Paths["colony_hub"] : Paths["generic"];
