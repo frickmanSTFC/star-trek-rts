@@ -45,6 +45,9 @@ public static class CommandChecks
             case ResearchCommand c: return Id(c.TechId);
             case SetCourseCommand c: return Id(c.BodyId);
             case SystemSatelliteCommand c: return Id(c.BodyId);
+            case FabricateCommand c: return Id(c.RecipeId);
+            case StockTargetCommand c: return Id(c.ItemId);
+            case JuryRigUnitsCommand c: return Ids(c.UnitIds);
             case DebugUnitCommand c: return Enum.IsDefined(c.Field) ? null : "unknown field";
             case DebugSpawnUnitCommand c: return Id(c.UnitId);
             case DebugStructureCommand c: return Enum.IsDefined(c.Field) ? null : "unknown field";
@@ -123,6 +126,11 @@ public static class CommandHash
         SetCourseCommand => 22,
         LongRangeScanCommand => 23,
         SystemSatelliteCommand => 24,
+        FabricateCommand => 25,
+        CancelFabricateCommand => 26,
+        StockTargetCommand => 27,
+        JuryRigCommand => 28,
+        JuryRigUnitsCommand => 29,
         // Test panel.
         DebugUnitCommand => 101,
         DebugMoveUnitCommand => 102,
@@ -174,6 +182,11 @@ public static class CommandHash
             case SetCourseCommand c: h.Add(c.ShipId); Text(ref h, c.BodyId); break;
             case LongRangeScanCommand c: h.Add(c.ShipId); break;
             case SystemSatelliteCommand c: Text(ref h, c.BodyId); break;
+            case FabricateCommand c: h.Add(c.StructureId); Text(ref h, c.RecipeId); h.Add(c.Count); break;
+            case CancelFabricateCommand c: h.Add(c.StructureId); h.Add(c.OrderId); break;
+            case StockTargetCommand c: Text(ref h, c.ItemId); h.Add(c.Target); break;
+            case JuryRigCommand c: h.Add(c.StructureId); break;
+            case JuryRigUnitsCommand c: Ids(ref h, c.UnitIds); break;
             case DebugUnitCommand c: h.Add(c.UnitId); h.Add((int)c.Field); h.Add(c.Value); break;
             case DebugMoveUnitCommand c: h.Add(c.UnitId); h.Add(c.Tile); break;
             case DebugRemoveUnitCommand c: h.Add(c.UnitId); break;

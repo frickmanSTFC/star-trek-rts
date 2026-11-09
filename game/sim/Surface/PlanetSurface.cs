@@ -1300,6 +1300,9 @@ public sealed partial class PlanetSurface
             case PauseCommand pause:
                 return ApplyPause(sim, pause); // Pause.cs
 
+            case FabricateCommand or CancelFabricateCommand or StockTargetCommand or JuryRigCommand or JuryRigUnitsCommand:
+                return ApplyFabrication(sim, command); // Fabrication.cs
+
             case MaintainCommand maintain:
             {
                 var job = FindStructure(maintain.StructureId);

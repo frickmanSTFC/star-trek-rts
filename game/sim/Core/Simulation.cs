@@ -221,7 +221,8 @@ public sealed partial class Simulation
     /// ship or debug commands): in a star-system game they are relayed with the signal delay while the flagship is away.</summary>
     public static bool IsColonyOrder(Command command) => command is MoveUnitsCommand or PlaceBuildingCommand or CancelBuildingCommand
         or UpgradeCommand or MineCommand or PackUpCommand or SalvageCommand or RepairCommand or ChangeTyreCommand or BuildUnitCommand
-        or CancelUnitCommand or ResearchCommand or MaintainCommand or PauseCommand or FoundOutpostCommand;
+        or CancelUnitCommand or ResearchCommand or MaintainCommand or PauseCommand or FoundOutpostCommand
+        or FabricateCommand or CancelFabricateCommand or StockTargetCommand or JuryRigCommand or JuryRigUnitsCommand;
 
     /// <summary>Advance one tick.</summary>
     public void Step()
@@ -314,6 +315,11 @@ public sealed partial class Simulation
             case BeamCommand:
             case SatelliteCommand:
             case FoundOutpostCommand:
+            case FabricateCommand:
+            case CancelFabricateCommand:
+            case StockTargetCommand:
+            case JuryRigCommand:
+            case JuryRigUnitsCommand:
                 Refuse(command, "no planet surface"); // surface commands with no surface loaded
                 break;
             default:

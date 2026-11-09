@@ -74,6 +74,27 @@ public sealed record SalvageCommand(int Player, int StructureId) : Command(Playe
 /// cost) and is used up as a new Colony Hub under construction (or starts at once if it is on the tile).</summary>
 public sealed record FoundOutpostCommand(int Player, int UnitId, int Tile) : Command(Player);
 
+// ---- parts economy (Surface/Fabrication.cs; docs/parts-contract.md)
+
+/// <summary>Queue Count orders of a recipe (its id = the item it makes) at a finished Machine Shop, or at a finished colony
+/// core's small workshop (the four spare kits only). Inputs are taken when an order starts, not when it is queued.</summary>
+public sealed record FabricateCommand(int Player, int StructureId, string RecipeId, int Count) : Command(Player);
+
+/// <summary>Cancel one order (FabOrder.Id) in a fabricator's queue; a started order gives its inputs back.</summary>
+public sealed record CancelFabricateCommand(int Player, int StructureId, int OrderId) : Command(Player);
+
+/// <summary>Keep-in-stock target for one part, kit or construction part (0 = none): the player's fabricators queue
+/// more on their own whenever stock + queued falls below it (Machine Shops first, else a core's workshop for kits).</summary>
+public sealed record StockTargetCommand(int Player, string ItemId, int Target) : Command(Player);
+
+/// <summary>Repair a building without spare kits: the crew patch it up to jury_rig.max_condition, slower, and it wears
+/// faster until it gets a proper repair. Again to cancel before the crew start.</summary>
+public sealed record JuryRigCommand(int Player, int StructureId) : Command(Player);
+
+/// <summary>Repair these vehicles on their repair pad without spare kits (integrity up to jury_rig.max_condition, slower;
+/// breakdowns and wear more likely until a proper repair).</summary>
+public sealed record JuryRigUnitsCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
+
 // ---- the star system (Space/StarSystem.cs; refused in games without one)
 
 /// <summary>Send one of your ships from the body it orbits to another body (impulse, 20-90 s by distance; it arrives in

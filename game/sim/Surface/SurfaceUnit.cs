@@ -113,6 +113,13 @@ public sealed class SurfaceUnit
     /// <summary>On the pad but the player can't pay for the next repair step.</summary>
     public bool RepairWaiting { get; internal set; }
 
+    /// <summary>Patched up on the pad without spare kits (<see cref="JuryRigUnitsCommand"/>): capped at
+    /// jury_rig.max_condition, breakdowns/wear more likely until a proper repair. Hashed by the sim branch.</summary>
+    public bool JuryRigged { get; internal set; }
+
+    /// <summary>Ordered to jury-rig on the pad (used when spare kits are short).</summary>
+    public bool JuryRigOrdered { get; internal set; }
+
     // Rover damage and flat tyres (RoverDamage.cs). For a rover, Broken means disabled (0 integrity).
 
     /// <summary>Flat tyres, one bit per wheel (see <see cref="Wheels"/> for the order; 0 = none).</summary>
@@ -486,6 +493,14 @@ public sealed class SurfaceStructure
 
     /// <summary>Switched off by the player (<see cref="PauseCommand"/>): idle with status Paused until switched back on.</summary>
     public bool Paused { get; internal set; }
+
+    /// <summary>Fabrication queue (Machine Shop, or a colony core's workshop), first = next to run. Empty for other buildings.</summary>
+    public IReadOnlyList<FabOrder> Fabrication => _fabrication;
+    internal readonly List<FabOrder> _fabrication = new();
+
+    /// <summary>Patched up without spare kits (<see cref="JuryRigCommand"/>): capped at jury_rig.max_condition and wearing
+    /// faster until a proper repair. Hashed by the sim branch.</summary>
+    public bool JuryRigged { get; internal set; }
 
     /// <summary>A base's core on a Domes world (Habitability.cs): ticks in a row its base has had no life support at all.</summary>
     public int AirlessTicks { get; internal set; }
