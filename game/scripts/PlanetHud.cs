@@ -68,7 +68,8 @@ public sealed record StructureView(
     float Progress,
     string ProgressLabel,
     string ProgressText,
-    IReadOnlyList<ActionView> Actions);
+    IReadOnlyList<ActionView> Actions,
+    FabView? Fab = null); // a fabricator's queue in place of the condition / progress column (PlanetHud.Parts.cs)
 
 /// <summary>
 /// Planet-surface HUD (layout from the mockup): resource bar with icons across the top, event feed,
@@ -258,7 +259,12 @@ public partial class PlanetHud : CanvasLayer
         _onBuild = onBuild;
         _onSelectBase = onSelectBase;
         _onUpgrade = onUpgrade;
-        foreach (var (id, name, key) in buildMenu)
+        foreach (var (id, name, key) in buildMenu) AddCommandButton(id, name, key);
+    }
+
+    /// <summary>One command-card button (hidden until ShowCommands lists it). Also used for tiles made on demand (EnsureCommand).</summary>
+    private void AddCommandButton(string id, string name, string key)
+    {
         {
             var button = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(CommandWidth, 88), ToggleMode = true };
             StyleButton(button, new Color(0.17f, 0.23f, 0.36f), new Color(0.06f, 0.1f, 0.19f));
@@ -552,6 +558,10 @@ public partial class PlanetHud : CanvasLayer
                 ("Left-click", "select a building, vehicle, base or tile"), ("Shift+click", "add vehicles to the selection"), ("A", "select all vehicles"),
                 ("Right-click", "drive there (a crawler on a deposit mines it)"), ("F", "crawler: unfurl / pack up / send for repair (in orbit: outpost video feed)"), ("V", "rovers: wipers auto / on / off"), ("L", "vehicles: headlights auto / on / off"),
                 ("R", "send damaged vehicles to the repair pad"), ("T", "rovers: change a flat tyre (uses a spare)"),
+                ("I", "inventory: parts, spare kits, construction parts, keep-in-stock targets"),
+                ("J", "jury-rig the selected building or vehicles: no kits, capped, wears faster"),
+                ("1–9, 0", "Machine Shop / workshop: queue a recipe (Shift +5); Backspace cancels the last order"),
+                ("K", "selected base: its colony core's workshop (spare kits), K again: the base"),
                 ("F / 1", "construction rover: found an outpost (pick a site 8+ tiles from your bases)"),
                 ("Tab", "next base (in orbit: next scan)"), ("Esc", "stop placing / close the card / close the drawer / back to the base"),
                 ("O", "orbit view and back"), ("Orbit", "drag or WASD turn the planet, wheel zoom, 1–9 deploy, click to send"),
@@ -562,9 +572,9 @@ public partial class PlanetHud : CanvasLayer
                 ("B", "build drawer: every building with its picture, cost and key"),
                 ("1–9", "a building's card (again or Enter: place it; Shift+key: place at once); a bay's / lab's card when one is selected"),
                 ("Enter", "the card's button: place the building, order the vehicle, start the research"),
-                ("I", "while placing: the building's card again"), ("R / Shift+R", "rotate while placing"),
+                ("I (placing)", "while placing: the building's card again"), ("R / Shift+R", "rotate while placing"),
                 ("U", "upgrade the selected building or base"), ("M", "maintain the selected building"), ("P", "pause / resume the selected building (no input, no power)"), ("X", "cancel a build or upgrade / salvage (an unfinished founded hub: the rover comes back)"),
-                ("Backspace", "cancel the bay's last order"), ("WASD, middle-drag", "pan"), ("Q / E", "turn the view"), ("Wheel", "zoom"), ("H", "fly home"), ("F1", "this list"),
+                ("Backspace", "cancel the bay's / shop's last order"), ("WASD, middle-drag", "pan"), ("Q / E", "turn the view"), ("Wheel", "zoom"), ("H", "fly home"), ("F1", "this list"),
                 ("F9", "test panel (dev builds): edit anything for testing"), ("Ctrl+Z", "undo the last test-panel edit"), ("Space", "pause / resume while the test panel is open"),
                 ("F9 › SKY", "force time of day, season, weather and wind (look only)"),
                 ("F3", "achievements, and the HANGAR for the cosmetics they unlock"),
@@ -628,6 +638,13 @@ public partial class PlanetHud : CanvasLayer
         _tooltip.Visible = text.Length > 0;
         if (!_tooltip.Visible) return;
         _tooltipText.Text = text.Replace("\r", ""); // AppendLine writes \r\n on Windows; Godot shows \r as a blank line
+        if (_tooltipRich != null && _tooltipRich.Visible) _tooltipRich.Visible = false; // ShowRichTooltip (PlanetHud.Parts.cs)
+        if (!_tooltipText.Visible) _tooltipText.Visible = true;
+        PlaceTooltip(mouse);
+    }
+
+    private void PlaceTooltip(Vector2 mouse)
+    {
         _tooltip.ResetSize();
         var screen = GetViewport().GetVisibleRect().Size;
         var size = _tooltip.GetCombinedMinimumSize();
@@ -661,6 +678,7 @@ public partial class PlanetHud : CanvasLayer
         }
         for (var i = 0; i < _tabButtons.Count; i++) _tabButtons[i].SetPressedNoSignal(_tabIds[i] == selected);
         _tabs.Visible = bases.Count > 0;
+        UpdateTabRow();
     }
 
     public void ShowBase(BaseView v)
@@ -739,7 +757,8 @@ public partial class PlanetHud : CanvasLayer
             _structRows[i].Value.Text = v.Rows[i].Value;
         }
 
-        _conditionBox.Visible = v.Condition >= 0;
+        ShowFab(v.Fab); // PlanetHud.Parts.cs: a Machine Shop's / core workshop's queue
+        _conditionBox.Visible = v.Condition >= 0 && v.Fab == null;
         if (v.Condition >= 0)
         {
             _conditionBar.Fraction = v.Condition / 100f;
@@ -747,7 +766,7 @@ public partial class PlanetHud : CanvasLayer
             _conditionText.Text = v.ConditionText;
             _maintenanceText.Text = v.MaintenanceText;
         }
-        _progressBox.Visible = v.Progress >= 0;
+        _progressBox.Visible = v.Progress >= 0 && v.Fab == null;
         if (v.Progress >= 0)
         {
             _progressLabel.Text = v.ProgressLabel.ToUpperInvariant();
@@ -767,13 +786,19 @@ public partial class PlanetHud : CanvasLayer
         }
     }
 
-    public void ShowCommands(string title, IReadOnlyList<CommandView> items, bool enabled)
+    /// <param name="columns">Tiles per row: 5 (100 px) as always; more makes them narrower in the same card width (a
+    /// Machine Shop's 12 recipes fit two rows of 6).</param>
+    public void ShowCommands(string title, IReadOnlyList<CommandView> items, bool enabled, int columns = CommandColumns)
     {
         HideBuildStrip(); // the build menu is the strip + drawer now (PlanetHud.BuildStrip.cs)
         _commandTitle.Text = title;
+        columns = Mathf.Max(CommandColumns, columns);
+        if (_commandGrid.Columns != columns) _commandGrid.Columns = columns;
+        var tileWidth = (CommandColumns * CommandWidth - (columns - CommandColumns) * 5) / columns;
         foreach (var c in items)
         {
             if (!_commands.TryGetValue(c.Id, out var ui)) continue;
+            if (!Mathf.IsEqualApprox(ui.Button.CustomMinimumSize.X, tileWidth)) ui.Button.CustomMinimumSize = new Vector2(tileWidth, ui.Button.CustomMinimumSize.Y);
             ui.Button.SetPressedNoSignal(c.Active);
             ui.Button.Disabled = !enabled || c.Disabled;
             ui.Cost.Text = c.Cost;
@@ -893,7 +918,7 @@ public partial class PlanetHud : CanvasLayer
         centre.AddThemeConstantOverride("separation", 10);
         _tabs = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         _tabs.AddThemeConstantOverride("separation", 6);
-        centre.AddChild(_tabs);
+        centre.AddChild(BuildTabRow(_tabs)); // base tabs + WORKSHOP / INVENTORY chips on the right (PlanetHud.Parts.cs)
         _baseView = BuildBaseView();
         centre.AddChild(_baseView);
         _detailView = BuildDetailView();
@@ -1061,6 +1086,7 @@ public partial class PlanetHud : CanvasLayer
         prog.AddChild(_progressText);
         _progressBox = prog;
         side.AddChild(prog);
+        side.AddChild(BuildFabBox()); // PlanetHud.Parts.cs, hidden unless a fabricator is shown
         grid.AddChild(side);
         return grid;
     }

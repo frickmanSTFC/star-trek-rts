@@ -153,6 +153,31 @@ public static class HudKit
         private bool _first = true;
     }
 
+    /// <summary>A parts-economy code chip ("MS" on amber): the item's two-letter code on its tier colour.</summary>
+    public sealed class CodeChip
+    {
+        public readonly PanelContainer Root;
+        private readonly Label _text;
+        private readonly StyleBoxFlat _box;
+
+        public CodeChip(float size)
+        {
+            Root = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(size * 1.9f, size * 1.35f), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+            _box = Box(Icons.PartColour, new Color(0, 0, 0, 0), size * 0.25f, size * 0.2f, 0, 0);
+            Root.AddThemeStyleboxOverride("panel", _box);
+            _text = Label("", size * 0.82f, new Color(0.02f, 0.03f, 0.07f), condensed: true, bold: true);
+            _text.HorizontalAlignment = HorizontalAlignment.Center;
+            _text.VerticalAlignment = VerticalAlignment.Center;
+            Root.AddChild(_text);
+        }
+
+        public void Set(string code, Color colour)
+        {
+            if (_text.Text != code) _text.Text = code;
+            if (_box.BgColor != colour) _box.BgColor = colour;
+        }
+    }
+
     /// <summary>Removes and frees every child of a container.</summary>
     public static void Clear(Node n)
     {

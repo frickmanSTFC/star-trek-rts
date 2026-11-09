@@ -223,6 +223,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         chooserLayer.AddChild(_chooser);
         _chooser.Setup(data, worldBody, Seed);
         SetupAchievements(); // toast, screen, trophy chip (PlanetDriver.Achievements.cs)
+        SetupParts(); // inventory screen, fabricator queue / workshop / inventory hooks (PlanetDriver.Parts.cs)
         SetupSky(); // day/night, seasons and weather from Climate (PlanetDriver.Sky.cs); before EnterOrbit changes the environment
 
         // The test panel exists only in debug builds (editor runs); release exports never get it.
@@ -1069,6 +1070,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         }
         RoverEvents(); // hazards, flat tyres, disabled, repaired (PlanetDriver.RoverDamage.cs)
         FounderEvents(); // construction rovers founding outposts (PlanetDriver.Founding.cs)
+        PartsEvents(); // waiting for kits, jury-rigged, fabricator orders done (PlanetDriver.Parts.cs)
 
         foreach (var u in Surface.Units.Where(u => u.Owner == LocalPlayer))
         {
@@ -1140,6 +1142,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (@event is InputEventKey && GetViewport().GuiGetFocusOwner() is LineEdit) return;
         if (@event is InputEventMouseButton { Pressed: true }) GetViewport().GuiReleaseFocus(); // clicking the map ends typing
         if (AchievementInput(@event)) return; // F3, and Esc / other keys while the achievements screen is open
+        if (InventoryInput(@event)) return; // I / Esc close the inventory; other keys wait (PlanetDriver.Parts.cs)
         if (_test != null && @event is InputEventKey { Pressed: true, Echo: false } testKey)
         {
             if (testKey.Keycode == Key.F9)
@@ -1243,6 +1246,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 else if (_founding != 0) StopFounding();
                 else if (_info != null) _info = null; // close the card first, keep the selection
                 else if (_drawer.IsOpen) CloseDrawer();
+                else if (WorkshopShown()) _workshop = false; // the core's workshop → back to the base panel
                 else ClearSelection();
                 break;
             case Key.B when landed:
@@ -1250,6 +1254,21 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case Key.I when _placing != null:
                 ReopenCard();
+                break;
+            case Key.I when landed:
+                ToggleInventory(); // PlanetDriver.Parts.cs
+                break;
+            case Key.J when landed:
+                JuryRig();
+                break;
+            case Key.K when landed:
+                ToggleWorkshop();
+                break;
+            case Key.Key0 when landed && !BuildingKeysActive && SelectedFabricator() != null:
+                FabricateByKey(SelectedFabricator()!, 9, key.ShiftPressed);
+                break;
+            case Key.Backspace when landed && SelectedFabricator() != null:
+                CancelLastOrder(SelectedFabricator()!);
                 break;
             case Key.Enter or Key.KpEnter when _info != null:
                 InfoAction();
@@ -1318,6 +1337,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             case >= Key.Key1 and <= Key.Key9 when landed:
                 var index = (int)(key.Keycode - Key.Key1);
                 if (BuildingKeysActive) PickBuildingByKey(index, key.ShiftPressed); // drawer, building card or placing
+                else if (SelectedFabricator() is { } fab) FabricateByKey(fab, index, key.ShiftPressed); // +1, Shift +5
                 else if (SelectedFounder() != null)
                 {
                     if (index == 0) OnCommand(FoundCard);
@@ -1421,6 +1441,11 @@ public partial class PlanetDriver : Node3D, ITestHost
             ArmFounding();
             return;
         }
+        if (id.StartsWith("fab:"))
+        {
+            Fabricate(id[4..], Input.IsKeyPressed(Key.Shift) ? 5 : 1); // a recipe tile: +1, Shift+click +5
+            return;
+        }
         if (id.StartsWith("unit:") || id.StartsWith("tech:"))
         {
             if (_info == id) InfoAction();
@@ -1493,6 +1518,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void ClearSelection()
     {
         _info = null;
+        _workshop = false;
         _view.SelectedUnits.Clear();
         _selectedTile = -1;
         _selectedStructure = 0;
@@ -1631,7 +1657,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void UpdateHover()
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen;
         _hoverTile = -1;
         if (!_mouseOverUi)
         {
@@ -1698,6 +1724,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             capacity, research, researchSub, $"{seconds / 60:00}:{seconds % 60:00}");
 
         var landed = Me.Phase == LandingPhase.Landed;
+        UpdateParts(); // inventory / workshop chips, workshop view (PlanetDriver.Parts.cs)
         _hud.ShowHints(ContextHints());
         UpdateBuildMenu(); // drawer, large card, placing strip (PlanetDriver.BuildMenu.cs)
         if (_inOrbit)
@@ -1720,8 +1747,12 @@ public partial class PlanetDriver : Node3D, ITestHost
         });
 
         // Tooltip: what's under the mouse (or why the building can't go there).
-        _hud.ShowTooltip(_hoverTile < 0 ? "" : _placing != null ? DescribePlacement(_placing, _hoverTile) : _founding != 0 ? FoundTooltip(_hoverTile) : DescribeTile(_hoverTile), GetViewport().GetMousePosition());
-        if (BuildTooltip() is { } buildTip) _hud.ShowTooltip(buildTip, GetViewport().GetMousePosition()); // a drawer / recent tile under the mouse
+        if (FabTooltip() is { } fabTip) _hud.ShowRichTooltip(fabTip, GetViewport().GetMousePosition()); // a recipe tile: inputs red when short
+        else
+        {
+            _hud.ShowTooltip(_hoverTile < 0 ? "" : _placing != null ? DescribePlacement(_placing, _hoverTile) : _founding != 0 ? FoundTooltip(_hoverTile) : DescribeTile(_hoverTile), GetViewport().GetMousePosition());
+            if (BuildTooltip() is { } buildTip) _hud.ShowTooltip(buildTip, GetViewport().GetMousePosition()); // a drawer / recent tile under the mouse
+        }
 
         // Bottom centre.
         var bases = Surface.Bases(LocalPlayer);
@@ -1731,6 +1762,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         else if (_selectedStructure != 0) ShowStructure(Surface.FindStructure(_selectedStructure)!);
         else if (_view.SelectedUnits.Count > 0) ShowUnits();
         else if (_selectedTile >= 0) _hud.ShowDetail(Surface.Map.Terrain(_selectedTile).Name, "Tile", DescribeTile(_selectedTile));
+        else if (_selectedBase != 0 && WorkshopShown()) ShowStructure(Surface.FindStructure(_selectedBase)!); // its core's workshop (K)
         else if (_selectedBase != 0) ShowBase(Surface.FindStructure(_selectedBase)!);
 
         var stock = _sim.Players[LocalPlayer].Stock;
@@ -1754,6 +1786,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             ShowFoundCommands(founder); // PlanetDriver.Founding.cs
             return;
         }
+        if (ShowFabCommands()) return; // a Machine Shop's recipes or a core workshop's kits (PlanetDriver.Parts.cs)
         if (SelectedBay() is { } bay)
         {
             var bayDef = _data.Building(bay.DefId);
@@ -1895,11 +1928,20 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (_drawer.IsOpen) return $"1–{Mathf.Min(9, MenuBuildings().Count)} building card  ·  Shift+pick place at once  ·  B / Esc close  ·  F1 controls";
         if (_founding != 0) return "Click a site  ·  Shift+click keep picking  ·  right-click / Esc stop  ·  F1 controls";
         if (SelectedFounder() != null) return "F / 1 found outpost (pick a site)  ·  right-click drive  ·  R repair  ·  T change tyre  ·  V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
+        var jury = JuryRelevant() ? "J jury-rig  ·  " : "";
+        if (SelectedFabricator() is { } fabAt)
+        {
+            var n = Surface.RecipesAt(fabAt).Count;
+            var keys = n == 0 ? "" : n == 1 ? "1 queue it (Shift +5)  ·  " : $"1–{Mathf.Min(9, n)}{(n >= 10 ? ", 0" : "")} queue a recipe (Shift +5)  ·  ";
+            return Surface.IsHubWorkshop(fabAt)
+                ? $"{keys}Backspace cancel last  ·  {jury}K / Esc back to the base  ·  I inventory  ·  F1 controls"
+                : $"{keys}Backspace cancel last  ·  U upgrade  ·  M maintain  ·  {jury}P pause  ·  X salvage  ·  I inventory  ·  Esc back  ·  F1 controls";
+        }
         if (SelectedBay() != null) return $"1–{_data.Building(SelectedBay()!.DefId).Produces.Count} vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
-        if (_selectedStructure != 0) return "U upgrade  ·  M maintain  ·  P pause  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
-        if (_view.SelectedUnits.Count > 0) return "Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
-        return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  Tab next base  ·  H home  ·  F1 controls";
+        if (_selectedStructure != 0) return $"U upgrade  ·  M maintain  ·  {jury}P pause  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
+        if (_view.SelectedUnits.Count > 0) return $"Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  {jury}V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
+        return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  {(WorkshopAvailable() ? "K workshop  ·  " : "")}I inventory  ·  Tab next base  ·  H home  ·  F1 controls";
     }
 
     /// <summary>Top-bar research chip: the active tech's progress, or what to do next.</summary>
@@ -1949,7 +1991,9 @@ public partial class PlanetDriver : Node3D, ITestHost
         var map = Surface.Map;
         var depositName = map.DepositResource[u.Tile] >= 0 ? _data.Resources[map.DepositResource[u.Tile]].Name : "";
         var repairing = Surface.IsRepairing(u);
-        var status = u.Broken && repairing
+        var (kitRow, kitWait) = RepairInfo(u); // spare kits (PlanetDriver.Parts.cs)
+        var status = u.Broken && repairing && kitWait != null ? "Repair waiting for kits"
+            : u.Broken && repairing
             ? u.RepairWaiting ? "Repair waiting: not enough resources"
                 : Surface.CrewOut(u) < Fix64.One ? "Repair crew on the way" : $"Repairing: {Mathf.FloorToInt(u.Integrity.ToFloat())}%"
             : u.Broken && u.Path.Count > 0 ? "Broken down: driving to the repair pad"
@@ -1970,10 +2014,12 @@ public partial class PlanetDriver : Node3D, ITestHost
         };
         var sb = new StringBuilder();
         sb.Append("Integrity ").Append(Mathf.FloorToInt(u.Integrity.ToFloat())).Append('%');
+        if (u.JuryRigged) sb.Append("  ·  jury-rigged");
         if (u.Broken)
         {
             var cost = Surface.RepairCost(u);
-            sb.Append("  ·  repair costs ").Append(cost.Count == 0 ? "nothing" : Amounts(cost, false));
+            if (kitRow != null) sb.Append("  ·  repair: ").Append(kitRow);
+            else sb.Append("  ·  repair costs ").Append(cost.Count == 0 ? "nothing" : Amounts(cost, false));
             sb.Append("  ·  drives at ").Append(Mathf.RoundToInt(Surface.SpeedPerTick(u).ToFloat() / u.SpeedPerTick.ToFloat() * 100)).Append("% speed");
         }
         sb.AppendLine();
@@ -1990,6 +2036,8 @@ public partial class PlanetDriver : Node3D, ITestHost
             var flight = Mathf.Max(1, Mathf.CeilToInt(tiles / def.PodSpeed.ToFloat()));
             sb.Append("Loads fly to ").Append(_data.Building(depot.DefId).Name).Append(" (").Append(tiles).Append(" tiles, ~").Append(flight).AppendLine(" s by cargo pod)");
         }
+        if (kitWait != null) sb.AppendLine(kitWait);
+        else if (JuryAction(u) is { Enabled: true }) sb.AppendLine("J: jury-rig it now, no kits (capped, wears faster)");
         if (u.Broken) sb.Append(repairing ? "The repair crew fix it on the pad beside the Colony Hub" : "F: drive to the Colony Hub's repair pad (or right-click the hub)");
         else sb.Append("Right-click a deposit: drive there and unfurl  ·  F ").Append(u.Mode == UnitMode.Mobile ? "unfurl here" : "pack up");
         _hud.ShowDetail(UnitName(u), status, sb.ToString());
@@ -2128,6 +2176,12 @@ public partial class PlanetDriver : Node3D, ITestHost
                 : "Manual: press M to send the crew";
         }
 
+        // Spare kits (PlanetDriver.Parts.cs): what a repair takes, a repair stuck waiting for kits, jury-rigged.
+        var (kitRow, kitWait) = RepairInfo(s);
+        if (kitWait != null) maintenance = kitWait;
+        if (kitRow != null) rows.Insert(System.Math.Min(rows.Count, 2), ("Kits", kitRow));
+        if (s.JuryRigged && complete) status += "  ·  jury-rigged";
+
         // Progress: construction, upgrade, assembly or research.
         var progress = -1f;
         var progressLabel = "";
@@ -2191,16 +2245,25 @@ public partial class PlanetDriver : Node3D, ITestHost
                 var why = Surface.MaintenanceProblem(LocalPlayer, s.Id);
                 actions.Add(ordered
                     ? new ActionView("maintain", "CANCEL MAINTENANCE [M]", "", true)
-                    : new ActionView("maintain", "MAINTAIN [M]", why ?? $"~{Amounts(Surface.MaintenanceCost(s), false, shortNames: true)}", why == null && !s.MaintenanceOrdered));
+                    : new ActionView("maintain", "MAINTAIN [M]", why ?? MaintainDetail(s), why == null && !s.MaintenanceOrdered));
             }
             if (Surface.CanPause(s.DefId))
                 actions.Add(s.Paused ? new ActionView("pause", "RESUME [P]", "back to work", true) : new ActionView("pause", "PAUSE [P]", "stop: no input, no power", true));
             if (!def.IsCore && s.UpgradingLevel == 0) actions.Add(new ActionView("salvage", "SALVAGE [X]", $"+{Amounts(Surface.SalvageValue(s), false, shortNames: true)}", true));
+            AddJuryAction(s, actions); // JURY-RIG [J] while it can be, or while its repair waits for kits (replaces SALVAGE in a full row)
         }
 
         var subtitle = def.Levels.Count > 0 ? $"{Surface.LevelName(s)} of {def.MaxLevel switch { 2 => "Mk II", 3 => "Mk III", _ => $"{def.MaxLevel}" }}" : def.Category.Replace('_', ' ');
-        _hud.ShowStructure(new StructureView(def.Name, subtitle, s.DefId, status, statusColour, rows.Take(6).ToList(),
-            condition, conditionText, maintenance, progress, progressLabel, progressText, actions));
+        // A Machine Shop or a core's workshop: its queue takes the right column, its rows go first (PlanetDriver.Parts.cs).
+        var fab = FabPanel(s, rows, ref status, ref statusColour, conditionText, maintenance);
+        var title = def.Name;
+        if (fab != null && Surface.IsHubWorkshop(s))
+        {
+            title = $"{BaseName(s.BaseId)} workshop";
+            subtitle = $"{def.Name} · spare kits · K back to the base";
+        }
+        _hud.ShowStructure(new StructureView(title, subtitle, s.DefId, status, statusColour, rows.Take(6).ToList(),
+            condition, conditionText, maintenance, progress, progressLabel, progressText, actions, fab));
     }
 
     private string DescribeTile(int tile)

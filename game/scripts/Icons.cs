@@ -9,6 +9,12 @@ namespace FinalFrontier;
 /// </summary>
 public static class Icons
 {
+    // Tier colours of the parts economy (resources with tier part / spare / construction). Declared before
+    // ResourceColors: static fields initialise in text order.
+    public static readonly Color PartColour = new(0.42f, 0.77f, 1f);
+    public static readonly Color SpareColour = new(0.96f, 0.65f, 0.14f);
+    public static readonly Color ConstructionColour = new(0.56f, 0.83f, 0.69f);
+
     public static readonly Dictionary<string, Color> ResourceColors = new()
     {
         ["duranium"] = new(0.79f, 0.82f, 0.86f),
@@ -25,6 +31,30 @@ public static class Icons
         ["energy"] = new(0.96f, 0.65f, 0.14f),
         ["topaline"] = new(1f, 0.85f, 0.3f),
         ["cormaline"] = new(0.5f, 1f, 0.55f),
+        // parts economy (docs/parts-contract.md): parts blue, spare kits amber, construction parts green (the parts mockup's colours)
+        ["structural_frame"] = PartColour,
+        ["hull_plating"] = PartColour,
+        ["mechanism"] = PartColour,
+        ["power_coupling"] = PartColour,
+        ["control_module"] = PartColour,
+        ["seal_kit"] = PartColour,
+        ["mechanical_spares"] = SpareColour,
+        ["electrical_spares"] = SpareColour,
+        ["rover_spares"] = SpareColour,
+        ["environmental_spares"] = SpareColour,
+        ["prefab_module"] = ConstructionColour,
+        ["machinery_set"] = ConstructionColour,
+        ["parts"] = PartColour,
+        ["machine_shop"] = PartColour,
+    };
+
+    /// <summary>The colour of a parts-economy tier ("part", "spare", "construction"); null for any other tier.</summary>
+    public static Color? TierColour(string tier) => tier switch
+    {
+        "part" => PartColour,
+        "spare" => SpareColour,
+        "construction" => ConstructionColour,
+        _ => null,
     };
 
     private static readonly Dictionary<string, string> Paths = new()
@@ -62,6 +92,21 @@ public static class Icons
         ["fusion_reactor"] = "<ellipse cx='12' cy='12' rx='9' ry='4'/><circle cx='12' cy='12' r='2.5'/><path d='M12 3v3M12 18v3'/>",
         ["prefab_habitat"] = "<path d='M2 19h20M4 19a3.5 3.5 0 0 1 7 0M11 19a5 5 0 0 1 10 0'/>",
         ["rover"] = "<rect x='4' y='8' width='16' height='7' rx='2'/><circle cx='8' cy='17.5' r='2'/><circle cx='16' cy='17.5' r='2'/><path d='M14 8V5h3'/>",
+        // parts economy: six parts, four spare kits, two construction parts, the Machine Shop, the inventory button
+        ["structural_frame"] = "<path d='M3 18h18M3 6h18M3 18L7.5 6 12 18 16.5 6 21 18'/>",
+        ["hull_plating"] = "<path d='M4 5h16v14H4z'/><path d='M4 12h16M12 5v14'/><path d='M7 8.5h.01M17 8.5h.01M7 15.5h.01M17 15.5h.01'/>",
+        ["mechanism"] = "<circle cx='12' cy='12' r='5'/><circle cx='12' cy='12' r='1.8'/><path d='M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8'/>",
+        ["power_coupling"] = "<path d='M8 3v5M16 3v5M6 8h12v3a6 6 0 0 1-12 0z'/><path d='M12 17v4'/>",
+        ["control_module"] = "<rect x='7' y='7' width='10' height='10' rx='1'/><path d='M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4'/>",
+        ["seal_kit"] = "<circle cx='12' cy='12' r='8'/><circle cx='12' cy='12' r='4.5'/>",
+        ["mechanical_spares"] = "<rect x='3' y='9' width='18' height='11' rx='1.5'/><path d='M9 9V6h6v3M3 14h18M11 14v2h2v-2'/>",
+        ["electrical_spares"] = "<rect x='3' y='6' width='18' height='14' rx='1.5'/><path d='M13 8.5l-4 5h4l-2 4.5'/>",
+        ["rover_spares"] = "<circle cx='12' cy='12' r='8.5'/><circle cx='12' cy='12' r='3'/><path d='M12 3.5V9M12 15v5.5M3.5 12H9M15 12h5.5'/>",
+        ["environmental_spares"] = "<rect x='3' y='6' width='18' height='14' rx='1.5'/><path d='M8 17c0-4.5 3-7.5 8-7.5-.6 5-3.6 8-8 7.5zM8 17l4.5-4.5'/>",
+        ["prefab_module"] = "<path d='M3 9l9-5 9 5v11H3z'/><path d='M3 9h18M9 20v-6h6v6'/>",
+        ["machinery_set"] = "<circle cx='8.5' cy='14.5' r='4'/><circle cx='8.5' cy='14.5' r='1.2'/><circle cx='17' cy='8' r='3'/><path d='M3 21h18M11.5 11.5l3-1.5'/>",
+        ["machine_shop"] = "<path d='M3 20V9h18v11M3 9l4-4h10l4 4'/><circle cx='12' cy='15' r='2.6'/><path d='M12 10.6v1.6M12 17.8v1.6M7.6 15h1.6M14.8 15h1.6'/>",
+        ["parts"] = "<rect x='3' y='9' width='18' height='11' rx='1.5'/><path d='M9 9V6h6v3M3 14h18M11 14v2h2v-2'/>",
         ["generic"] = "<rect x='5' y='7' width='14' height='12' rx='1.5'/><path d='M9 7V4h6v3'/>",
     };
 
@@ -70,6 +115,7 @@ public static class Icons
     /// <summary>Icon for a resource or building id (falls back to a generic box). Colour defaults to the resource colour.</summary>
     public static Texture2D Get(string id, Color? colour = null)
     {
+        if (id.StartsWith("fab:")) id = id[4..]; // a fabricator's recipe tile = the item it makes
         var c = colour ?? (ResourceColors.TryGetValue(id, out var rc) ? rc : new Color(0.9f, 0.92f, 0.96f));
         var key = id + "|" + c.ToHtml();
         if (Cache.TryGetValue(key, out var cached)) return cached;

@@ -120,6 +120,9 @@ public partial class PlanetDriver
             case "found":
                 ArmFounding(); // a construction rover's FOUND OUTPOST (PlanetDriver.Founding.cs)
                 return true;
+            case "juryrig":
+                JuryRig(); // the building on the panel, else the selected vehicles (PlanetDriver.Parts.cs)
+                return true;
         }
         return false;
     }
@@ -136,8 +139,10 @@ public partial class PlanetDriver
         var changing = Surface.ChangingTyre(u);
         var share = Surface.DriveShare(u).ToFloat();
 
+        var (kitRow, kitWait) = RepairInfo(u); // spare kits (PlanetDriver.Parts.cs)
         var (status, colour) =
-            repairing ? (u.RepairWaiting ? "Repair waiting: not enough resources" : Surface.CrewOut(u) < Fix64.One ? "Repair crew on the way" : "Repairing on the pad", RoverGood)
+            repairing && kitWait != null ? ("Repair waiting for kits", RoverWarn)
+            : repairing ? (u.RepairWaiting ? "Repair waiting: not enough resources" : Surface.CrewOut(u) < Fix64.One ? "Repair crew on the way" : "Repairing on the pad", RoverGood)
             : u.Broken ? (u.Path.Count > 0 ? "Disabled: limping to the repair pad" : "Disabled: press R to limp to the repair pad", RoverBad)
             : changing ? ("Changing a tyre", new Color(0.62f, 0.82f, 1f))
             : flats >= 2 ? ($"{flats} flat tyres: barely crawling", RoverBad)
@@ -168,13 +173,14 @@ public partial class PlanetDriver
         if (dangers.Count > 0) rows.Add(("Danger", string.Join(" · ", dangers)));
         if (rows.Count < 5) rows.Add(("Lights", _view.HeadlightText(u.Id) + "  [L]"));
         var cost = Surface.RepairCost(u);
-        rows.Add(("Repair", Surface.NeedsRepair(u) ? $"on a colony core's pad: {(cost.Count == 0 ? "free" : Amounts(cost, false))}" : "not needed"));
+        rows.Add(("Repair", kitRow ?? (Surface.NeedsRepair(u) ? $"on a colony core's pad: {(cost.Count == 0 ? "free" : Amounts(cost, false))}" : "not needed")));
+        if (u.JuryRigged) status += "  ·  jury-rigged";
 
         var conditionText = $"{Mathf.FloorToInt(integrity)}%  ·  " + (u.Broken ? "disabled"
             : integrity < d.SensorsBelow.ToFloat() ? "slower, sensors damaged"
             : integrity < d.SlowBelow.ToFloat() ? $"slower below {Mathf.RoundToInt(d.SlowBelow.ToFloat())}%"
             : "sound");
-        var maintenance = repairing ? "the repair crew are on it" : u.Broken ? "at 0 it stops: R limps it home" : $"wear: rough ground, hazards, flats";
+        var maintenance = kitWait ?? (repairing ? "the repair crew are on it" : u.Broken ? "at 0 it stops: R limps it home" : $"wear: rough ground, hazards, flats");
 
         var progress = -1f;
         var progressLabel = "";
@@ -214,6 +220,8 @@ public partial class PlanetDriver
                 progressText = $"{Mathf.RoundToInt(progress * 100)}%  ·  {def.DeploySeconds} s, then it becomes the new hub  ·  a move order folds it up (refunded)";
             }
         }
+
+        if (JuryAction(u) is { } jury && actions.Count < 4) actions.Add(jury); // PlanetDriver.Parts.cs
 
         _hud.ShowStructure(new StructureView(UnitName(u), $"{TypeName(u)}  ·  {Surface.Map.Terrain(u.Tile).Name.ToLowerInvariant()}", "rover", status, colour,
             rows.Take(6).ToList(), integrity, conditionText, maintenance, progress, progressLabel, progressText, actions));
