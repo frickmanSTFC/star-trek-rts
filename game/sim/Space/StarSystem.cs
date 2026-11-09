@@ -605,6 +605,9 @@ public sealed partial class StarSystemState
                 Version++;
                 return;
             }
+            case ObservationPostCommand post:
+                ApplyObservationPost(sim, post); // Civilizations.cs
+                return;
         }
     }
 

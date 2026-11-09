@@ -272,7 +272,7 @@ public sealed partial class Simulation
             ApplyDebug(debug);
             return;
         }
-        if (command is SetCourseCommand or LongRangeScanCommand or SystemSatelliteCommand)
+        if (command is SetCourseCommand or LongRangeScanCommand or SystemSatelliteCommand or ObservationPostCommand)
         {
             if (System == null) Refuse(command, "no star system");
             else System.Apply(this, command);

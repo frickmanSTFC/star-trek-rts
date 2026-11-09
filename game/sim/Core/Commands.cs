@@ -106,3 +106,9 @@ public sealed record LongRangeScanCommand(int Player, int ShipId) : Command(Play
 
 /// <summary>Leave a satellite at the body your flagship orbits (paid from stock): live readings there for good.</summary>
 public sealed record SystemSatelliteCommand(int Player, string BodyId) : Command(Player);
+
+// ---- civilizations (Space/Civilizations.cs; docs/civilizations-contract.md)
+
+/// <summary>Place a hidden observation post ("duck blind") on the body your flagship orbits, from orbit like a satellite
+/// (paid from stock): studies the civilization there fastest and adds research, but each 10 minutes it may be found.</summary>
+public sealed record ObservationPostCommand(int Player, string BodyId) : Command(Player);
