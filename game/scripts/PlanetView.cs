@@ -241,6 +241,7 @@ public partial class PlanetView : Node3D
         UpdateStructures(delta);
         UpdateRefineries(delta); // PlanetView.Refinery.cs: the refinery's machinery, furnace and lamps by status
         UpdateDetailedBuildings(delta); // PlanetView.Detailed.cs: mine hoist, storage crane + fill gauge, reactor core
+        UpdateMachineShops(delta); // PlanetView.MachineShop.cs: robot arms, press, belt, door and status board by fabricator status
         UpdateScatter();
         UpdateVeyra(delta); // PlanetView.Veyra.cs: class L dust devils and CO₂ haze (nothing on class M)
         UpdateDomes(delta); // PlanetView.Domes.cs: glass domes and containment fields on a Domes world
