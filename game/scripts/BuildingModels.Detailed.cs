@@ -157,6 +157,9 @@ public static partial class BuildingModels
             case "machine_shop":
                 PaintMachineShopSigns(n, number);
                 break;
+            case "excavation_site":
+                PaintExcavationSigns(n, number);
+                break;
         }
     }
 
