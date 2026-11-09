@@ -1,0 +1,13 @@
+{
+  "_notes_ruins": "Ruin kinds a dead civilization can leave (phase 2 digs; phase 1 only names them in the body card and dossier). species = a canon precursor's name, or null for an invented species (a generated name); weight = how often it is picked (canon precursors very rare, owner 2026-11-09); canon = from the shows.",
+  "ruins": [
+    { "id": "buried_city", "name": "Buried city", "species": null, "weight": 30, "canon": false, "notes": "Streets and foundations under dust or forest." },
+    { "id": "temple_complex", "name": "Temple complex", "species": null, "weight": 20, "canon": false, "notes": "Terraces, stairs and carved halls on a hill." },
+    { "id": "underground_vaults", "name": "Underground vaults", "species": null, "weight": 15, "canon": false, "notes": "Sealed chambers below a collapsed surface town." },
+    { "id": "crashed_ship", "name": "Crashed starship", "species": null, "weight": 12, "canon": false, "notes": "A hull broken open across a valley, long overgrown." },
+    { "id": "glassed_plain", "name": "Glassed plain", "species": null, "weight": 10, "canon": false, "notes": "A war's end: fused ground round a ring of shattered towers." },
+    { "id": "iconian_gateway", "name": "Iconian gateway", "species": "Iconians", "weight": 1, "canon": true, "notes": "Very rare canon precursor site." },
+    { "id": "tkon_outpost", "name": "T'Kon outpost", "species": "T'Kon", "weight": 1, "canon": true, "notes": "Very rare canon precursor site." },
+    { "id": "preserver_obelisk", "name": "Preserver obelisk", "species": "Preservers", "weight": 1, "canon": true, "notes": "Very rare canon precursor site." }
+  ]
+}

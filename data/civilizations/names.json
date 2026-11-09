@@ -1,0 +1,12 @@
+{
+  "_notes_names": "Generated species and nation names (invented, never canon). A species root = syllables[0]..syllables[1] syllables of onset + vowel, the last one with a coda (may be empty); the species name = root + an ending. Nations: a nation_forms entry with {root} replaced by a fresh root (a unified world has one nation, named from the species' own root).",
+  "names": {
+    "onsets": ["K", "V", "T", "Z", "M", "R", "S", "N", "D", "Th", "Kr", "Br", "Q", "X", "L", "Gh", "Vr", "Ch", "P", "Sh", "Y", "H"],
+    "vowels": ["a", "e", "i", "o", "u", "ae", "ai", "ou", "y", "ee"],
+    "codas": ["n", "r", "th", "k", "l", "s", "x", "m", "sh", "", "", ""],
+    "endings": ["i", "ari", "eth", "on", "ans", "ites", "ri", "ul", "ese", "ani", "ar", "en"],
+    "syllables": [2, 3],
+    "nation_forms": ["{root} Union", "Kingdom of {root}", "{root} Confederacy", "Free States of {root}", "{root} Hegemony", "Republic of {root}",
+      "Clans of {root}", "{root} Concord", "Theocracy of {root}", "{root} Commonwealth", "{root} League", "Principality of {root}"]
+  }
+}

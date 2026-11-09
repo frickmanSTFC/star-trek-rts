@@ -1,0 +1,66 @@
+{
+  "_notes_rules": "sites: living_chance = chance per generated system of one living civilization, ruins_chance = of one ruins site (owner: about half / most while a match is one system; back to 1 in 6 / 1 in 4 with a galaxy map). The body is a weighted pick among the system's bodies whose class has a weight (living_weights / ruins_weights), never the colony's landing body, at most one site per body. Living classes need a surface of their own (surfaces.json planets) or a town_maps stand-in (the surface class whose look-only map holds their towns: K and H use Veyra's class L, N uses class M), because only class M and L have surfaces today and ~85% of systems have just one landable body. level_weights: L1..L6 weights per body class (default = the rest); ruins_levels: the level a dead civilization had reached; level_range: how many levels wide the range is before study (the true level is somewhere inside, by the site's seed; clamped to L1..L6). temperament_weights; unified_chance per level (else fractured into nations[0]..nations[1] nations). town_terrain: weights for picking town tiles on the look-only map (coastal_bonus added next to water), town_spacing: the tiles kept between towns (lowered when the map has no room). awareness (0..100, shared by every visitor, only rises): bands (from, id, name), start per level, a satellite seen by L satellite_seen_from_level+ adds satellite_per_min, a ship in orbit seen by L ship_seen_from_level+ ship_per_min, each hidden post post_per_min, a post found post_found at once. study: seconds to finish with only a ship in orbit / a satellite / a post (rates add up). research: points a minute while studying (orbit/satellite, until Study = 1) by level and per hidden post (always), into the player's active surface research (with none active they wait in a bank and go into the next tech). post: factions that may place one (Federation only for now), cost (from the player's stock, like a satellite), max per player, a discovery roll every discovery_minutes of game time at discovery_chance (doubled while awareness is above double_above_awareness); found = awareness + post_found, an incident, Standing + standing_change. standing (Federation players in eras with the Prime Directive only: eras starting at or after prime_directive_from_year): start, max, thresholds of the steps warning / inquiry / relieved / sanctions, recovery_per_min with no incident in the last recovery_after_minutes (up to start), recalled for good at 0 or the recalled_incidents-th incident on one world; inquiry holds the ship for inquiry_hold_seconds, sanctions cut observation research to sanctions_research for sanctions_seconds.",
+  "rules": {
+    "sites": {
+      "living_chance": 0.5,
+      "ruins_chance": 0.8,
+      "living_weights": { "class_m": 10, "class_l": 4, "class_k": 3, "class_h": 2, "class_n": 3 },
+      "ruins_weights": { "class_m": 3, "class_l": 4, "class_k": 4, "class_h": 3, "class_n": 2, "class_d": 2 },
+      "town_maps": { "class_k": "class_l", "class_h": "class_l", "class_n": "class_m" },
+      "level_weights": {
+        "class_m": [18, 22, 20, 18, 12, 10],
+        "default": [30, 28, 20, 12, 6, 4]
+      },
+      "ruins_levels": [10, 20, 25, 20, 15, 10],
+      "level_range": 2,
+      "temperament_weights": { "peaceful": 4, "wary": 4, "aggressive": 2 },
+      "unified_chance": [0.2, 0.25, 0.3, 0.35, 0.5, 0.7],
+      "nations": [2, 7],
+      "town_terrain": { "plains": 5, "forest": 3, "desert": 1, "hills": 2 },
+      "coastal_bonus": 3,
+      "town_spacing": 10
+    },
+    "awareness": {
+      "bands": [
+        { "from": 0, "id": "unaware", "name": "Unaware" },
+        { "from": 20, "id": "rumours", "name": "Rumours" },
+        { "from": 50, "id": "suspicious", "name": "Suspicious" },
+        { "from": 80, "id": "aware", "name": "Aware" }
+      ],
+      "start": [0, 0, 2, 5, 10, 20],
+      "satellite_seen_from_level": 4,
+      "satellite_per_min": 1,
+      "ship_seen_from_level": 5,
+      "ship_per_min": 2,
+      "post_per_min": 0.2,
+      "post_found": 35
+    },
+    "study": { "orbit_seconds": 120, "satellite_seconds": 60, "post_seconds": 30 },
+    "research": {
+      "observe_per_min": [2, 3, 4, 5, 6, 8],
+      "post_per_min": [1, 1.5, 2, 2.5, 3, 4]
+    },
+    "post": {
+      "factions": ["federation", "earth_uec"],
+      "cost": { "duranium": 80, "tritanium": 40 },
+      "max": 3,
+      "discovery_minutes": 10,
+      "discovery_chance": 0.1,
+      "double_above_awareness": 40,
+      "standing_change": -20
+    },
+    "standing": {
+      "factions": ["federation"],
+      "prime_directive_from_year": 2168,
+      "start": 80,
+      "max": 100,
+      "thresholds": [70, 50, 30, 10],
+      "recovery_per_min": 1,
+      "recovery_after_minutes": 10,
+      "recalled_incidents": 3,
+      "inquiry_hold_seconds": 300,
+      "sanctions_seconds": 900,
+      "sanctions_research": 0.75
+    }
+  }
+}

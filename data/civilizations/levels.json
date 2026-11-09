@@ -1,0 +1,17 @@
+{
+  "_notes_levels": "Development levels L1..L6 (CivLevel), in order. population = the range a civilization of this level is rolled in; towns = how many towns its world shows on the look-only map (TownsOn), town_size = their size range (1..3; the view scales or clusters bigger ones); lit = towns show lights at night from orbit; signals = it gives off artificial signals a Detected/Scanned body shows as \"possible civilization\" (radio from L3); orbital_signs = what a sensor sweep picks up (text for the dossier).",
+  "levels": [
+    { "level": 1, "id": "stone_bronze", "name": "Stone / Bronze Age", "population": [50000, 2000000], "towns": [3, 6], "town_size": [1, 1], "lit": false, "signals": false,
+      "orbital_signs": ["cleared fields", "cooking smoke"] },
+    { "level": 2, "id": "iron_medieval", "name": "Iron / Medieval", "population": [1000000, 40000000], "towns": [4, 7], "town_size": [1, 2], "lit": false, "signals": false,
+      "orbital_signs": ["walled towns", "roads", "farmland"] },
+    { "level": 3, "id": "industrial", "name": "Industrial", "population": [50000000, 600000000], "towns": [5, 8], "town_size": [1, 3], "lit": true, "signals": true,
+      "orbital_signs": ["city lights", "smog", "railways", "radio"] },
+    { "level": 4, "id": "atomic", "name": "Atomic Age", "population": [300000000, 3000000000], "towns": [6, 9], "town_size": [2, 3], "lit": true, "signals": true,
+      "orbital_signs": ["city lights", "radio and television", "artificial satellites", "test sites"] },
+    { "level": 5, "id": "early_warp", "name": "Early Warp", "population": [1000000000, 6000000000], "towns": [6, 10], "town_size": [2, 3], "lit": true, "signals": true,
+      "orbital_signs": ["city lights", "orbital stations", "warp test signatures"] },
+    { "level": 6, "id": "spacefaring", "name": "Spacefaring", "population": [2000000000, 12000000000], "towns": [7, 10], "town_size": [2, 3], "lit": true, "signals": true,
+      "orbital_signs": ["arcologies", "orbital traffic", "warp traffic"] }
+  ]
+}

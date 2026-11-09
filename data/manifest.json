@@ -187,6 +187,13 @@
       "achievements/comms.json",
       "achievements/challenge.json",
       "achievements/research.json"
+    ],
+    "civilizations": [
+      "civilizations/notes.json",
+      "civilizations/rules.json",
+      "civilizations/levels.json",
+      "civilizations/names.json",
+      "civilizations/ruins.json"
     ]
   }
 }
