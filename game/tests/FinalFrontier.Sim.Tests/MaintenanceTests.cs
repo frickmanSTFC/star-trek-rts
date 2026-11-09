@@ -27,6 +27,7 @@ public class MaintenanceTests
         stock.Add(data.Resource("duranium").Index, Fix64.FromInt(1500));
         stock.Add(data.Resource("tritanium").Index, Fix64.FromInt(500));
         stock.Add(data.Resource("parasteel").Index, Fix64.FromInt(100));
+        stock.Add(data.Resource("mechanical_spares").Index, Fix64.FromInt(20)); // repairs take spare kits
         return sim;
     }
 
@@ -124,7 +125,7 @@ public class MaintenanceTests
     // ---------------------------------------------------------------- crew maintenance
 
     [Fact]
-    public void TheCrewWalksOutFixesItForAPriceAndWalksBack()
+    public void TheCrewWalksOutFixesItForSpareKitsAndWalksBack()
     {
         var data = FastWear(breaks: true);
         var sim = Landed(data, out var hub);
@@ -146,14 +147,17 @@ public class MaintenanceTests
         StepUntil(sim, () => core.CrewPhase == CrewPhase.Working, core.CrewWalkTicks + 2);
         Assert.Equal(condition, refinery.Condition); // nothing fixed while walking
 
-        var duranium = data.Resource("duranium").Index;
-        var before = sim.Players[0].Stock[duranium];
+        var kit = data.Resource(s.KitOf(refinery)!).Index;
+        Assert.Equal("mechanical_spares", s.KitOf(refinery));
+        var before = sim.Players[0].Stock[kit];
+        var expected = (int)System.Math.Ceiling((Hundred - condition).ToDouble() / data.Fabrication!.KitPoints.ToDouble());
+        Assert.Equal(expected, s.KitsNeeded(refinery));
+        Assert.Equal(new[] { new ResourceAmount(kit, Fix64.FromInt(expected)) }, s.MaintenanceCost(refinery));
         StepUntil(sim, () => !refinery.Broken, Sec(30));
         Assert.Equal(Hundred, refinery.Condition);
         Assert.False(refinery.MaintenanceOrdered);
-        var paid = (before - sim.Players[0].Stock[duranium]).ToDouble();
-        var expected = (Hundred - condition).ToDouble() * rules.CostPerPoint.Single(c => c.Resource == duranium).Amount.ToDouble();
-        Assert.InRange(paid, expected - 1, expected + 1); // the hub trickle adds a little meanwhile
+        Assert.Equal(before - Fix64.FromInt(expected), sim.Players[0].Stock[kit]); // all taken when the crew started
+        Assert.False(refinery.RepairPaid);
 
         Assert.Equal(CrewPhase.Back, core.CrewPhase);
         StepUntil(sim, () => core.CrewPhase == CrewPhase.None, core.CrewWalkTicks + 2);
@@ -197,24 +201,28 @@ public class MaintenanceTests
     }
 
     [Fact]
-    public void MaintenanceWaitsWhenThePlayerCanNotPay()
+    public void MaintenanceWaitsForSpareKits()
     {
         var data = FastWear();
         var sim = Landed(data, out var hub);
         var s = sim.Surface!;
         var refinery = BusyRefinery(sim, hub, data);
+        var kit = data.Resource("mechanical_spares").Index;
+        var stock = sim.Players[0].Stock;
+        stock.Add(kit, -stock[kit]); // no kits
         StepUntil(sim, () => refinery.Condition < Fix64.FromInt(40), Sec(60));
         Do(sim, new MaintainCommand(0, refinery.Id));
         var core = s.StructureAt(hub)!;
         StepUntil(sim, () => core.CrewPhase == CrewPhase.Working, Sec(30));
-        var duranium = data.Resource("duranium").Index;
-        var stock = sim.Players[0].Stock;
-        StepUntil(sim, () =>
-        {
-            stock.TrySpend(new[] { new ResourceAmount(duranium, stock[duranium]) });
-            return refinery.MaintenanceWaiting;
-        }, Sec(5));
+        StepUntil(sim, () => refinery.MaintenanceWaiting, Sec(5));
         Assert.Equal(CrewPhase.Working, core.CrewPhase);
+        Assert.StartsWith("needs ", s.RepairWaitReason(refinery));
+        var condition = refinery.Condition;
+        for (var i = 0; i < Sec(2); i++) sim.Step();
+        Assert.True(refinery.Condition <= condition); // nothing fixed while waiting
+        stock.Add(kit, Fix64.FromInt(10));
+        StepUntil(sim, () => !refinery.MaintenanceOrdered, Sec(30));
+        Assert.Equal(Hundred, refinery.Condition);
     }
 
     // ---------------------------------------------------------------- levels

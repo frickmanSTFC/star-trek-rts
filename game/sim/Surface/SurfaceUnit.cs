@@ -114,11 +114,14 @@ public sealed class SurfaceUnit
     public bool RepairWaiting { get; internal set; }
 
     /// <summary>Patched up on the pad without spare kits (<see cref="JuryRigUnitsCommand"/>): capped at
-    /// jury_rig.max_condition, breakdowns/wear more likely until a proper repair. Hashed by the sim branch.</summary>
+    /// jury_rig.max_condition, breakdowns/wear more likely until a proper repair. Hashed.</summary>
     public bool JuryRigged { get; internal set; }
 
-    /// <summary>Ordered to jury-rig on the pad (used when spare kits are short).</summary>
+    /// <summary>Ordered to jury-rig on the pad (used when spare kits are short); cleared when done or when it drives off.</summary>
     public bool JuryRigOrdered { get; internal set; }
+
+    /// <summary>The pad crew have taken the spare kits for the repair under way (Fabrication.cs); it now needs no more.</summary>
+    public bool RepairPaid { get; internal set; }
 
     // Rover damage and flat tyres (RoverDamage.cs). For a rover, Broken means disabled (0 integrity).
 
@@ -226,6 +229,9 @@ public sealed class SurfaceUnit
         h.Add(FoundTile);
         h.Add(FoundFailedTick);
         h.Add((int)FoundFailure);
+        h.Add(JuryRigged);
+        h.Add(JuryRigOrdered);
+        h.Add(RepairPaid);
     }
 }
 
@@ -499,8 +505,19 @@ public sealed class SurfaceStructure
     internal readonly List<FabOrder> _fabrication = new();
 
     /// <summary>Patched up without spare kits (<see cref="JuryRigCommand"/>): capped at jury_rig.max_condition and wearing
-    /// faster until a proper repair. Hashed by the sim branch.</summary>
+    /// faster until a proper repair. Hashed.</summary>
     public bool JuryRigged { get; internal set; }
+
+    /// <summary>The player asked for a jury-rig (no kits) instead of a proper repair; the crew (or the drones) do it.</summary>
+    public bool JuryRigOrdered { get; internal set; }
+
+    /// <summary>The crew (or the drones) have taken the spare kits for the repair under way; it needs no more.</summary>
+    public bool RepairPaid { get; internal set; }
+
+    /// <summary>The item the fabrication queue last finished ("" = none yet) and when (-1 = never), for the event feed.</summary>
+    public string LastFabricated { get; internal set; } = "";
+
+    public long FabricatedAtTick { get; internal set; } = -1;
 
     /// <summary>A base's core on a Domes world (Habitability.cs): ticks in a row its base has had no life support at all.</summary>
     public int AirlessTicks { get; internal set; }
@@ -571,6 +588,20 @@ public sealed class SurfaceStructure
         h.Add(Paused);
         h.Add(Founder != null);
         Founder?.AddToHash(ref h);
+        h.Add(_fabrication.Count);
+        foreach (var o in _fabrication)
+        {
+            h.Add(o.Id);
+            h.Add(o.RecipeId);
+            h.Add(o.Auto);
+            h.Add(o.Started);
+            h.Add(o.Progress);
+        }
+        h.Add(JuryRigged);
+        h.Add(JuryRigOrdered);
+        h.Add(RepairPaid);
+        h.Add(LastFabricated);
+        h.Add(FabricatedAtTick);
     }
 }
 
@@ -666,8 +697,14 @@ public sealed class SurfacePlayer
     /// <summary>Construction and upgrades finish at once.</summary>
     public bool InstantBuild { get; internal set; }
 
+    /// <summary>Keep-in-stock targets the player has set, by resource index (-1 = not set: the default applies; see
+    /// PlanetSurface.StockTarget).</summary>
+    internal readonly int[] _stockTargets;
+
     internal SurfacePlayer(int tileCount, int techCount, int resourceCount)
     {
+        _stockTargets = new int[resourceCount];
+        System.Array.Fill(_stockTargets, -1);
         Surveyed = new bool[tileCount];
         Seen = new bool[tileCount];
         Known = new bool[techCount];
@@ -701,6 +738,7 @@ public sealed class SurfacePlayer
         h.Add(UnlimitedPower);
         h.Add(FreeBuilding);
         h.Add(InstantBuild);
+        foreach (var x in _stockTargets) h.Add(x);
         if (_extraNames.Count > 0 || _extraNumbers.Count > 0) // only with cosmetics, so other games hash as before
         {
             h.Add(_extraNames.Count);

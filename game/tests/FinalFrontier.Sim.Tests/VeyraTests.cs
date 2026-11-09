@@ -77,10 +77,10 @@ public class VeyraTests
         Assert.All(s.Map.Grid.Neighbours(site), n => Assert.True(s.Covered(0, n)));
         Assert.Equal(Fix64.One, s.LifeSupportOf(hub.Id));
         // A few minutes on, nothing fails and the hub works.
-        var duranium = sim.Players[0].Stock[Data.Resource("duranium").Index];
         for (var i = 0; i < Simulation.TickRate * 120; i++) sim.Step();
         Assert.False(hub.LifeSupportFailing);
-        Assert.True(sim.Players[0].Stock[Data.Resource("duranium").Index] > duranium);
+        Assert.Equal(StructureStatus.Working, hub.Status);
+        Assert.True(sim.IncomePerMinute(0)[Data.Resource("duranium").Index] > Fix64.Zero);
     }
 
     [Fact]

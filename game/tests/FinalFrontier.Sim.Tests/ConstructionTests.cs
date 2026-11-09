@@ -18,6 +18,7 @@ public class ConstructionTests
     private static Simulation Landed(out int hub, out int deposit, ulong seed = 1701)
     {
         var sim = MatchSetup.CreatePlanetLanding(Data, seed);
+        TestData.NoStockTargets(sim); // no spare kits made from the stock (stock is checked exactly)
         var map = sim.Surface!.Map;
         var reveal = Data.Landing.RevealRadius;
         foreach (var site in Enumerable.Range(0, map.Grid.Count).Where(t => sim.Surface.CanLand(0, t)))

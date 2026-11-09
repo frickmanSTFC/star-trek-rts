@@ -12,6 +12,15 @@ internal static class TestData
     /// step through `i &lt;= ReadyTicks` and the hub is Complete.</summary>
     public static int ReadyTicks(GameData d) => (d.Landing.DescentSeconds + d.Landing.AssembleSeconds) * Simulation.TickRate;
 
+    /// <summary>Sets every player's keep-in-stock targets to 0 (scheduled for the current tick), so the colony core's
+    /// workshop doesn't start making spare kits from the stock: for tests that check stock amounts exactly.</summary>
+    public static void NoStockTargets(Simulation sim)
+    {
+        if (sim.Surface == null || sim.Data.Fabrication == null) return;
+        for (var p = 0; p < sim.Players.Count; p++)
+            foreach (var id in sim.Surface.PartItems) sim.Schedule(sim.Tick, new StockTargetCommand(p, id, 0));
+    }
+
     /// <summary>The real design data from the repo's data/ folder.</summary>
     public static GameData Real => Cached.Value;
 

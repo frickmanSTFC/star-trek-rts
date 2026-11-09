@@ -187,13 +187,14 @@ public sealed partial class PlanetSurface
         return cap;
     }
 
-    /// <summary>How much of the player's stock takes storage space.</summary>
+    /// <summary>How much of the player's stock takes storage space: each stored resource × its volume (1 for materials,
+    /// 1 a part, 2 a spare kit or construction part).</summary>
     public Fix64 Stored(Simulation sim, int player)
     {
         var stock = sim.Players[player].Stock;
         var total = Fix64.Zero;
         for (var r = 0; r < stock.Count; r++)
-            if (_data.IsStored(r)) total += stock[r];
+            if (_data.IsStored(r) && stock[r] != Fix64.Zero) total += stock[r] * _data.VolumeOf(r);
         return total;
     }
 
@@ -202,7 +203,7 @@ public sealed partial class PlanetSurface
     {
         var total = Fix64.Zero;
         foreach (var p in _pods)
-            if (p.Owner == player && _data.IsStored(p.Resource)) total += p.Amount;
+            if (p.Owner == player && _data.IsStored(p.Resource)) total += p.Amount * _data.VolumeOf(p.Resource);
         return total;
     }
 
@@ -214,7 +215,11 @@ public sealed partial class PlanetSurface
     /// <summary>Adds what fits (resources that take no space always fit); returns how much went in.</summary>
     private Fix64 Store(Simulation sim, int player, int resource, Fix64 amount)
     {
-        if (_data.IsStored(resource)) amount = Fix64.Min(amount, FreeStorage(sim, player));
+        if (_data.IsStored(resource))
+        {
+            var volume = _data.VolumeOf(resource);
+            if (volume > Fix64.Zero) amount = Fix64.Min(amount, FreeStorage(sim, player) / volume);
+        }
         if (amount <= Fix64.Zero) return Fix64.Zero;
         sim.Players[player].Stock.Add(resource, amount);
         return amount;
@@ -342,7 +347,8 @@ public sealed partial class PlanetSurface
         return total <= 0 ? Fix64.One : Fix64.Min(Fix64.One, Fix64.Ratio(unit.RepairTicks, total));
     }
 
-    /// <summary>What it would cost to repair the unit back to 100 from here.</summary>
+    /// <summary>What it would cost to repair the unit back to 100 from here: its spare kits (KitsNeeded), plus any old
+    /// per-point metal cost the data still lists.</summary>
     public IReadOnlyList<ResourceAmount> RepairCost(SurfaceUnit unit)
     {
         var def = _data.SurfaceUnit(unit.DefId);
@@ -352,13 +358,18 @@ public sealed partial class PlanetSurface
         var tyres = PadTyreCount(unit);
         if (tyres > 0 && def.Tyres is { } t)
             foreach (var c in t.PadCost)
-            {
-                var i = cost.FindIndex(x => x.Resource == c.Resource);
-                if (i >= 0) cost[i] = new ResourceAmount(c.Resource, cost[i].Amount + c.Amount * tyres);
-                else cost.Add(new ResourceAmount(c.Resource, c.Amount * tyres));
-            }
+                Merge(cost, new ResourceAmount(c.Resource, c.Amount * tyres));
+        if (KitOf(unit) is { } kit && KitsNeeded(unit) is var kits and > 0)
+            Merge(cost, new ResourceAmount(_data.Resource(kit).Index, Fix64.FromInt(kits)));
         cost.Sort((a, b) => a.Resource.CompareTo(b.Resource));
         return cost;
+    }
+
+    private static void Merge(List<ResourceAmount> cost, ResourceAmount add)
+    {
+        var i = cost.FindIndex(x => x.Resource == add.Resource);
+        if (i >= 0) cost[i] = new ResourceAmount(add.Resource, cost[i].Amount + add.Amount);
+        else cost.Add(add);
     }
 
     /// <summary>The player's nearest finished colony core a unit can drive to (for repair), or null.</summary>
@@ -411,30 +422,12 @@ public sealed partial class PlanetSurface
         Tracker?.Report(unit.Owner); // an SOS if the flagship is away
     }
 
-    /// <summary>On a repair pad: the crew walk out, then each tick restores integrity while the player can pay for it.</summary>
+    /// <summary>On a repair pad: the crew walk out, then the repair (with kits, or a jury-rig) goes on (Fabrication.cs).</summary>
     private void RepairStep(Simulation sim, SurfaceUnit unit, RepairRules repair)
     {
         unit.RepairTicks++;
         if (unit.RepairTicks <= repair.CrewSeconds * Simulation.TickRate) return;
-        if (!PadTyres(sim, unit)) // rovers: new tyres on every flat and the spares restocked first
-        {
-            unit.RepairWaiting = true;
-            return;
-        }
-        var heal = Fix64.Min(repair.PerSecond * Gravity.CrewWork / Simulation.TickRate, Hundred - unit.Integrity);
-        var cost = repair.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * heal)).ToList();
-        var stock = sim.Players[unit.Owner].Stock;
-        if (!stock.TrySpend(cost))
-        {
-            unit.RepairWaiting = true;
-            return;
-        }
-        unit.RepairWaiting = false;
-        unit.Integrity += heal;
-        if (unit.Integrity < Hundred) return;
-        unit.Integrity = Hundred;
-        unit.Broken = false;
-        unit.RepairTicks = 0;
+        RepairWork(sim, unit, repair);
     }
 
     // ---------------------------------------------------------------- orbit: drops, shuttle, transporter, satellites
@@ -779,7 +772,7 @@ public sealed partial class PlanetSurface
     }
 
     /// <summary>Condition lost per minute while it works, after level and research.</summary>
-    public Fix64 WearPerMinute(SurfaceStructure s) => _data.Building(s.DefId).WearPerMinute * WearMultiplier(s);
+    public Fix64 WearPerMinute(SurfaceStructure s) => _data.Building(s.DefId).WearPerMinute * WearMultiplier(s) * JuryWear(s.JuryRigged);
 
     /// <summary>Chance per minute that it breaks down now (0 above decline_below).</summary>
     public Fix64 BreakdownChancePerMinute(SurfaceStructure s)
@@ -803,13 +796,18 @@ public sealed partial class PlanetSurface
         return s.Level - 1 < def.Levels.Count ? def.Levels[s.Level - 1] : null;
     }
 
-    /// <summary>What a full repair from here would cost (condition back to 100).</summary>
+    /// <summary>What a full repair from here would cost (condition back to 100): its spare kits (KitsNeeded), plus any
+    /// old per-point metal cost the data still lists.</summary>
     public IReadOnlyList<ResourceAmount> MaintenanceCost(SurfaceStructure s)
     {
         var rules = _data.Maintenance;
         if (rules == null) return System.Array.Empty<ResourceAmount>();
         var missing = Full - s.Condition;
-        return rules.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * missing)).ToList();
+        var cost = rules.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * missing)).ToList();
+        if (KitOf(s) is { } kit && KitsNeeded(s) is var kits and > 0)
+            Merge(cost, new ResourceAmount(_data.Resource(kit).Index, Fix64.FromInt(kits)));
+        cost.Sort((a, b) => a.Resource.CompareTo(b.Resource));
+        return cost;
     }
 
     /// <summary>The colony core whose crew looks after this building (its base's core).</summary>
@@ -827,21 +825,6 @@ public sealed partial class PlanetSurface
         return null;
     }
 
-    /// <summary>Restores up to one tick of repair, paying for it; false (and MaintenanceWaiting) if the player can't pay.</summary>
-    private bool RepairTick(Simulation sim, SurfaceStructure s, MaintenanceRules rules)
-    {
-        var heal = Fix64.Min(rules.RepairPerSecond * Gravity.CrewWork / Simulation.TickRate, Full - s.Condition);
-        var cost = rules.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * heal)).ToList();
-        if (!sim.Players[s.Owner].Stock.TrySpend(cost))
-        {
-            s.MaintenanceWaiting = true;
-            return false;
-        }
-        s.MaintenanceWaiting = false;
-        s.Condition += heal;
-        return true;
-    }
-
     private bool Fixed(SurfaceStructure s)
     {
         if (s.Condition < Full) return false;
@@ -849,6 +832,8 @@ public sealed partial class PlanetSurface
         s.Broken = false;
         s.MaintenanceOrdered = false;
         s.MaintenanceWaiting = false;
+        s.RepairPaid = false;
+        s.JuryRigged = false; // a proper repair
         return true;
     }
 
@@ -869,8 +854,8 @@ public sealed partial class PlanetSurface
                 if (core == null || core.CrewJob != s.Id) s.AutoRepairing = true; // don't take a job the crew is already on
             }
             if (!s.AutoRepairing) continue;
-            s.MaintenanceOrdered = false;
-            if (RepairTick(sim, s, rules) && Fixed(s)) s.AutoRepairing = false;
+            if (!s.JuryRigOrdered) s.MaintenanceOrdered = false; // the drones took it over
+            if (RepairTick(sim, s, rules) == RepairResult.Done) s.AutoRepairing = false;
         }
 
         foreach (var core in _structures)
@@ -907,7 +892,7 @@ public sealed partial class PlanetSurface
                         break;
                     }
                     core.CrewTicks++;
-                    if (RepairTick(sim, job, rules) && Fixed(job))
+                    if (RepairTick(sim, job, rules) == RepairResult.Done)
                     {
                         core.CrewPhase = CrewPhase.Back;
                         core.CrewTicks = 0;
@@ -1313,6 +1298,7 @@ public sealed partial class PlanetSurface
                     // Cancel, unless the crew are already on it.
                     if (crewCore != null && crewCore.CrewJob == job.Id) return sim.Refuse(maintain, "the crew are already on it");
                     job.MaintenanceOrdered = false;
+                    job.JuryRigOrdered = false;
                     return true;
                 }
                 if (MaintenanceProblem(maintain.Player, maintain.StructureId) is { } maintainProblem) return sim.Refuse(maintain, maintainProblem);
@@ -1407,6 +1393,7 @@ public sealed partial class PlanetSurface
                     foreach (var c in LevelCostOf(def.Levels[salvaged.UpgradingLevel - 2])) bag.Add(c.Resource, c.Amount);
                 foreach (var queued in salvaged._production) // unbuilt orders come back in full
                     foreach (var c in _data.SurfaceUnit(queued).Cost) bag.Add(c.Resource, c.Amount);
+                RefundFabrication(sim, salvaged); // a Machine Shop's started orders give their inputs back
                 _structures.Remove(salvaged);
                 _structureAt[salvaged.Tile] = 0;
                 return true;
@@ -1522,11 +1509,13 @@ public sealed partial class PlanetSurface
         LandDeliveries(sim);
         SweepSatellites(sim);
         Economy(sim);
+        HubWorkshops(sim); // Fabrication.cs: colony cores' small workshops (Machine Shops run in Economy)
         LifeSupport(sim); // Habitability.cs: Domes worlds only
         Maintenance(sim);
         Crawlers(sim);
         Founders(sim);
         RoverWear(sim);
+        AutoOrders(sim); // Fabrication.cs: keep-in-stock and kits for waiting repairs, once a second
         MoveUnits(sim);
         FinishAssembly(sim.Tick + 1);
         UpdateSight(sim.Tick); // Visibility.cs: fog of war memory, after everything has moved
@@ -1609,6 +1598,10 @@ public sealed partial class PlanetSurface
         s.Condition = Full;
         s.Broken = false;
         s.MaintenanceOrdered = false;
+        s.MaintenanceWaiting = false;
+        s.JuryRigOrdered = false;
+        s.JuryRigged = false;
+        s.RepairPaid = false;
     }
 
     /// <summary>A colony core becomes the next building of its line (Colony Hub → Colonial Administration → ...).</summary>
@@ -1669,6 +1662,11 @@ public sealed partial class PlanetSurface
                 s.Status = StructureStatus.NoInput;
                 continue;
             }
+            if (def.Fabricator != null && (Fab == null ? StructureStatus.NoInput : ShopIdle(sim, s)) is { } idle) // Fabrication.cs
+            {
+                s.Status = idle;
+                continue;
+            }
 
             var affordable = true;
             foreach (var u in def.UpkeepPerMinute)
@@ -1723,6 +1721,7 @@ public sealed partial class PlanetSurface
                 var unitDef = _data.SurfaceUnit(s._production[0]);
                 if (s.ProductionProgress >= Fix64.FromInt(unitDef.BuildSeconds * Simulation.TickRate)) FinishOrder(sim, s);
             }
+            if (def.Fabricator != null && Fab != null) FabStep(sim, s, speed); // a Machine Shop (Fabrication.cs)
             if (def.IsLab)
             {
                 var p = _players[s.Owner];
@@ -1780,10 +1779,12 @@ public sealed partial class PlanetSurface
         {
             var def = _data.SurfaceUnit(unit.DefId);
             if (def.Repair != null && IsRepairing(unit)) RepairStep(sim, unit, def.Repair);
-            else if (unit.RepairTicks > 0 || unit.RepairWaiting)
+            else if (unit.RepairTicks > 0 || unit.RepairWaiting || unit.RepairPaid || unit.JuryRigOrdered)
             {
-                unit.RepairTicks = 0; // drove off the pad: the crew go back in
+                unit.RepairTicks = 0; // drove off the pad: the crew go back in (kits already taken are used up)
                 unit.RepairWaiting = false;
+                unit.RepairPaid = false;
+                unit.JuryRigOrdered = false;
             }
             switch (unit.Mode)
             {
@@ -1819,7 +1820,7 @@ public sealed partial class PlanetSurface
             return;
         }
         if (def.Breakdown is { } rules && rules.ChancePerMinute > Fix64.Zero &&
-            sim.Rng.NextFix() < rules.ChancePerMinute * Fix64.Max(Fix64.Zero, Fix64.One + UnitResearchBonus(unit.Owner, unit.DefId, Modifier.Breakdown)) / Simulation.TicksPerMinute)
+            sim.Rng.NextFix() < rules.ChancePerMinute * Fix64.Max(Fix64.Zero, Fix64.One + UnitResearchBonus(unit.Owner, unit.DefId, Modifier.Breakdown)) * JuryBreakdown(unit.JuryRigged) / Simulation.TicksPerMinute)
         {
             Break(sim, unit, rules);
             return;
@@ -1941,6 +1942,7 @@ public sealed partial class PlanetSurface
         h.Add(_nextDeliveryId);
         h.Add(_nextSatelliteId);
         AddLifeSupportToHash(ref h); // Domes worlds only (Habitability.cs)
+        AddFabricationToHash(ref h); // Fabrication.cs
         // Not hashed because they follow from what is hashed: _structureAt (each structure's Tile; the fuzz test checks
         // they agree), _weatherTick (sim.Tick at the top of Step), _data (Simulation hashes each change of data), and
         // each unit's SpeedPerTick / SurveyRadius (its def in that data).

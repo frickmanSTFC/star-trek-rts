@@ -163,7 +163,8 @@ public sealed partial class PlanetSurface
         Tracker?.Report(u.Owner); // an SOS if the flagship is away (achievements)
     }
 
-    /// <summary>At the pad: every flat fixed and the spares restocked, paying pad_cost a tyre. False if the player can't pay.</summary>
+    /// <summary>At the pad: every flat fixed and the spares restocked (the kits for them are taken with the repair's,
+    /// Fabrication.cs; an old pad_cost a tyre is still paid if the data lists one). False if the player can't pay.</summary>
     private bool PadTyres(Simulation sim, SurfaceUnit u)
     {
         if (TyresOf(u) is not { } t) return true;
@@ -209,13 +210,13 @@ public sealed partial class PlanetSurface
             }
 
             var weather = WeatherDamage(u); // storms, mud, blowing sand (PlanetSurface.Climate.cs)
-            var chances = Fix64.Max(Fix64.Zero, Fix64.One + UnitResearchBonus(u.Owner, u.DefId, Modifier.Breakdown)) * weather;
+            var chances = Fix64.Max(Fix64.Zero, Fix64.One + UnitResearchBonus(u.Owner, u.DefId, Modifier.Breakdown)) * weather * JuryBreakdown(u.JuryRigged);
             var driving = u.Mode == UnitMode.Mobile && u._path.Count > 0 && u.TyreChangeTicks == 0;
             var terrain = Map.Terrain(u.Tile);
             if (driving && d.On(terrain.Id) is { } ground)
             {
                 var flats = t == null ? 0 : Wheels.Count(u.FlatTyres, t.Wheels);
-                var wear = ground.Wear * (Fix64.One + (t?.FlatWear ?? Fix64.Zero) * flats) * weather * Gravity.RoverWear; // lighter load, less wear
+                var wear = ground.Wear * (Fix64.One + (t?.FlatWear ?? Fix64.Zero) * flats) * weather * Gravity.RoverWear * JuryWear(u.JuryRigged); // lighter load, less wear; jury-rigged: more
                 u.Integrity = Fix64.Max(Fix64.Zero, u.Integrity - wear / Simulation.TicksPerMinute);
 
                 if (ground.Hazard > Fix64.Zero && sim.Rng.NextFix() < ground.Hazard * chances / Simulation.TicksPerMinute)

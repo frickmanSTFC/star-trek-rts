@@ -17,6 +17,7 @@ public class OrbitTests
     {
         data ??= Data;
         var sim = MatchSetup.CreatePlanetLanding(data, 1701, faction);
+        TestData.NoStockTargets(sim); // no spare kits made from the stock (stock is checked exactly)
         var site = Enumerable.Range(0, sim.Surface!.Map.Grid.Count).First(t => sim.Surface.CanLand(0, t));
         sim.Schedule(0, new LandColonyCommand(0, site));
         for (var i = 0; i <= TestData.ReadyTicks(data); i++) sim.Step();
