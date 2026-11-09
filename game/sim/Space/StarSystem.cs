@@ -53,7 +53,10 @@ public sealed class SystemShip
     public string Role { get; init; } = "";
 
     /// <summary>Neutral traffic: true.</summary>
-    public bool IsNeutral => Owner < 0;
+    public bool IsNeutral => Owner < 0 && AllyOf < 0;
+
+    /// <summary>An allied native ship (<see cref="AllyOf"/> ≥ 0): Owner -1, follows its player's orders.</summary>
+    public bool IsAlly => AllyOf >= 0;
 
     /// <summary>In flight (not in orbit of anything).</summary>
     public bool InFlight => AtBody == null;
@@ -78,6 +81,8 @@ public sealed class SystemShip
     public AllyTask AllyTask { get; internal set; }
     /// <summary>Scouting: the body it was sent to chart.</summary>
     public string? ScoutBody { get; internal set; }
+    /// <summary>Escorting: when it sets off after the flagship (-1 = not waiting to follow).</summary>
+    public long FollowTick { get; internal set; } = -1;
     public long SweepStartTick { get; internal set; }
     public long SweepDoneTick { get; internal set; }
 
@@ -106,6 +111,14 @@ public sealed class SystemShip
         Text(ref h, SweepBody);
         h.Add(SweepStartTick);
         h.Add(SweepDoneTick);
+        h.Add(AllyOf);
+        if (AllyOf >= 0)
+        {
+            Text(ref h, AllyHome);
+            h.Add((int)AllyTask);
+            Text(ref h, ScoutBody);
+            h.Add(FollowTick);
+        }
     }
 
     internal static void Text(ref StateHasher h, string? s)
@@ -646,7 +659,7 @@ public sealed partial class StarSystemState
                 if (ship.IsNeutral && sim.Data.SystemRules is { } r)
                     ship.LeaveTick = tick + (long)SystemGenerator.Int(Hash(TripSalt, ship.Id * 1024L + ship.Trips), r.DwellMinSeconds, r.DwellMaxSeconds) * Simulation.TickRate;
             }
-            if (ship.SweepBody != null && ship.AtBody == ship.SweepBody && tick >= ship.SweepDoneTick)
+            if (ship.SweepBody != null && ship.AtBody == ship.SweepBody && tick >= ship.SweepDoneTick && !ship.IsAlly) // allies: Contact.cs
             {
                 Chart(ship.Owner, ship.SweepBody);
                 ship.SweepBody = null;
@@ -665,6 +678,7 @@ public sealed partial class StarSystemState
             }
         }
         StepCivilizations(sim); // Civilizations.cs
+        StepContact(sim); // Contact.cs
     }
 
     internal void AddToHash(ref StateHasher h)
