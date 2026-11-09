@@ -10,8 +10,10 @@ shaping), modal "metal" resonators, Schroeder reverb and soft clipping. numpy + 
 seeds (crc32 of the sound name), so a rerun writes identical files. 16-bit PCM mono 44.1 kHz. Loops are built
 circularly (FFT-shaped noise, whole-cycle tones, wrapped impulses), so the last sample runs into the first.
 
-Loudness: each group has an RMS target (UI < selection hums < landing) and every file is capped at -3 dBFS peak.
-The script prints a check table: duration, peak, RMS, spectral centroid, DC, edge samples and loop seams.
+Loudness: each group has a target for K-weighted loudness (UI < selection hums < landing); every file is capped at
+-3 dBFS peak (a look-ahead limiter takes up to 5 dB off transients). The script prints a check table: duration, peak,
+RMS, weighted loudness, power-weighted spectral centroid, energy per band, DC, edge samples and loop seams, and exits 1
+if a file clips, has DC, starts/ends off zero or a loop seam jumps.
 """
 from __future__ import annotations
 
@@ -31,7 +33,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "game" / "sounds"
 PAGE = ROOT / "docs" / "sounds" / "index.html"
 PEAK_CAP = 10 ** (-3 / 20)          # -3 dBFS
-TARGET_RMS = {"ui": -25.0, "select": -21.0, "landing": -17.0}
+TARGET_LOUDNESS = {"ui": -25.0, "select": -21.0, "landing": -17.0}
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1263,7 +1265,7 @@ def finish(x: np.ndarray, group: str, name: str, loop: bool) -> np.ndarray:
         x = x - np.mean(x)
         x = fade(onepole_hp(x, 18), 0.005 if x[:ns(0.005)].any() else 0.0, 0.01)
         x = fade(x, 0.0, 0.005)
-    target = TARGET_RMS[group] - (8.0 if name == "hover" else 0.0)
+    target = TARGET_LOUDNESS[group] - (8.0 if name == "hover" else 0.0)
     g = 10 ** (target / 20) / max(loudness(x), 1e-9)
     # up to 5 dB of transient limiting (cracks, thumps); beyond that the whole sound comes down instead
     g = min(g, PEAK_CAP * 10 ** (5 / 20) / max(np.max(np.abs(x)), 1e-9))
