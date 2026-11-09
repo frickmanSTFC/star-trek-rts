@@ -1,0 +1,254 @@
+<title>Final Frontier Test Run</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a tester's run sheet. Header with the build and a progress strip, then one section per feature area;
+   each check is a row: what to do, what to look for, Pass / Fail / Skip, a note, and everyone else's result chips. */
+:root {
+  --bg: #f3f4f7; --panel: #ffffff; --ink: #161b28; --dim: #586178; --rule: #d8dce6;
+  --accent: #b5620d; --accent-soft: #f6e6d3;
+  --pass: #1f7a4d; --pass-soft: #dcefe4; --fail: #b3261e; --fail-soft: #f7dedb; --skip: #6b7289; --skip-soft: #e7e9ef;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f18; --panel: #121827; --ink: #e5e9f2; --dim: #96a0b8; --rule: #252d42;
+    --accent: #f2a54a; --accent-soft: #33240f;
+    --pass: #7fd3a6; --pass-soft: #12301f; --fail: #ff8a80; --fail-soft: #3a1513; --skip: #a3abc0; --skip-soft: #1c2233;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f18; --panel: #121827; --ink: #e5e9f2; --dim: #96a0b8; --rule: #252d42;
+  --accent: #f2a54a; --accent-soft: #33240f;
+  --pass: #7fd3a6; --pass-soft: #12301f; --fail: #ff8a80; --fail-soft: #3a1513; --skip: #a3abc0; --skip-soft: #1c2233;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; display: grid; gap: 28px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font: 600 13px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+h1 { margin: 0; font: 700 clamp(30px, 5vw, 44px)/1.05 var(--display); letter-spacing: .01em; text-wrap: balance; }
+.lede { margin: 0; color: var(--dim); max-width: 66ch; }
+.update { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px; }
+.update b { font: 600 13px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.update code { font: 13px/1.6 var(--mono); white-space: pre-wrap; word-break: break-word; }
+.status { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 14px; color: var(--dim); }
+.status .who { color: var(--ink); font-weight: 600; }
+.strip { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--skip-soft); }
+.strip i { display: block; height: 100%; }
+.tally { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 500 14px/1.3 var(--body); font-variant-numeric: tabular-nums; }
+.tally span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 0; background: var(--c); }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filters button, .st button { font: 600 13px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
+.filters button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { display: grid; gap: 10px; }
+h2 { margin: 0; font: 700 22px/1.1 var(--display); letter-spacing: .02em; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+h2 small { font: 500 14px/1 var(--body); color: var(--dim); }
+.rows { display: grid; gap: 8px; }
+.row { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; }
+.row.pass { border-left: 4px solid var(--pass); }
+.row.fail { border-left: 4px solid var(--fail); }
+.row.skip { border-left: 4px solid var(--skip); }
+.row h3 { margin: 0; font: 600 16px/1.3 var(--body); }
+.row p { margin: 0; font-size: 14px; color: var(--dim); }
+.row p em { font-style: normal; color: var(--ink); }
+.kbd { font: 500 12px/1 var(--mono); border: 1px solid var(--rule); border-radius: 4px; padding: 2px 5px; background: var(--bg); color: var(--ink); }
+.st { display: flex; gap: 6px; align-self: start; }
+.st button[data-s="pass"][aria-pressed="true"] { background: var(--pass-soft); border-color: var(--pass); color: var(--pass); }
+.st button[data-s="fail"][aria-pressed="true"] { background: var(--fail-soft); border-color: var(--fail); color: var(--fail); }
+.st button[data-s="skip"][aria-pressed="true"] { background: var(--skip-soft); border-color: var(--skip); color: var(--skip); }
+.st button:disabled { opacity: .5; cursor: not-allowed; }
+.foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.foot input { flex: 1 1 260px; min-width: 0; font: 400 14px/1.3 var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 7px 9px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font: 600 12px/1 var(--display); letter-spacing: .06em; padding: 4px 7px; border-radius: 10px; border: 1px solid var(--rule); color: var(--dim); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.chip.pass { background: var(--pass-soft); color: var(--pass); border-color: transparent; }
+.chip.fail { background: var(--fail-soft); color: var(--fail); border-color: transparent; }
+.chip.skip { background: var(--skip-soft); color: var(--skip); border-color: transparent; }
+.note { margin: 0; font-size: 13px; color: var(--dim); grid-column: 1 / -1; }
+.note b { color: var(--ink); font-weight: 600; }
+.empty { color: var(--dim); font-size: 14px; }
+@media (max-width: 640px) { .row { grid-template-columns: minmax(0, 1fr); } .st { justify-self: start; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Test + fix pass · parts economy · civilizations 1 + 2</div>
+    <h1>Final Frontier Test Run</h1>
+    <p class="lede">Work down the list in Godot. Mark each check Pass, Fail or Skip and add a short note when something looks wrong. Results save as you go and everyone testing sees each other's, so Michael and Craig can split the list. After the session, send the <span class="kbd">godot.log</span> file too.</p>
+    <div class="update"><b>Update first</b><code>Close Godot, discard changes to game/project.godot (and Planet.tscn), pull main.
+Open Godot, let it import, Build, then F5. Log file: %APPDATA%\Godot\app_userdata\Final Frontier\logs\godot.log</code></div>
+    <div class="status" id="status">Loading saved results…</div>
+    <div class="strip" id="strip" aria-hidden="true"></div>
+    <div class="tally" id="tally"></div>
+    <div class="filters" role="group" aria-label="Show">
+      <button type="button" data-f="all" aria-pressed="true">All checks</button>
+      <button type="button" data-f="todo" aria-pressed="false">Not done by me</button>
+      <button type="button" data-f="fail" aria-pressed="false">Failed by anyone</button>
+    </div>
+  </header>
+  <main id="list" class="wrap" style="padding:0;gap:28px"></main>
+</div>
+
+<script>
+(function () {
+"use strict";
+// Every check: id (stable, stored), area, what to do, what to look for.
+var AREAS = [
+  { id: "start", name: "Start-up", sub: "every session", checks: [
+    ["s-log", "Open the Output panel and start a game (F5)", "No red lines. Note any yellow warning you haven't seen before."],
+    ["s-chooser", "Press F2, pick another world or seed, START NEW GAME", "The new world loads cleanly; the helm subtitle shows its class."]
+  ]},
+  { id: "parts", name: "Parts economy", sub: "Machine Shop, kits, repairs", checks: [
+    ["p-hub", "Select a base and press <span class=\"kbd\">K</span> (or the WORKSHOP chip)", "Four spare-kit tiles; the hub starts making kits on its own (keep-in-stock targets)."],
+    ["p-shop", "Build a Machine Shop (Industry, last in the build menu) and queue a few recipes", "Door rolls up, arms weld, press strokes, belt and crates run while it works."],
+    ["p-fit", "Look at the recipe tiles and the queue column at your screen size", "Everything fits in the bottom panel; tooltips show inputs in red when short."],
+    ["p-inv", "Press <span class=\"kbd\">I</span> (or the INVENTORY chip)", "Stock, keep targets (− / +), queued, storage bar. Clicks don't hit the map; Esc or I closes."],
+    ["p-wait", "Let a building wear down or a crawler break with no kits in stock (F9 can zero stock)", "\"Waiting for kits\" on its panel and a red KITS SHORT chip on the top bar."],
+    ["p-jury", "Select the waiting building or vehicle and press <span class=\"kbd\">J</span>", "Repairs to 60% only, slower, and shows \"jury-rigged\"."]
+  ]},
+  { id: "civ1", name: "Civilizations", sub: "scan, study, posts", checks: [
+    ["c-plot", "Orbit (O), open the SYSTEM display", "Peach signal arcs on a living civilization's body, broken pillars on ruins. (No civ? F2 → other seeds, or F9 › CIV.)"],
+    ["c-card", "Fly there (SET COURSE) and wait for the sensor sweep", "CIVILIZATION section: species, level range, population, awareness, a study bar that finishes with the exact level."],
+    ["c-post", "Press HIDDEN POST on the card while in orbit", "The post appears; study speeds up. (F9 › CIV › post is found now: Standing drops, event line.)"],
+    ["c-dossier", "Press <span class=\"kbd\">C</span>", "Dossier with the level ladder, awareness bands, Standing; fits the screen, clicks stay off the map."],
+    ["c-standing", "Look at the top bar (Federation)", "STANDING chip with the five-step ladder in its tooltip."],
+    ["c-globe", "Orbit the civilization's world and zoom in close", "Town models, city lights on the night side, smog on industrial worlds."]
+  ]},
+  { id: "civ2", name: "First contact", sub: "phase 2", checks: [
+    ["f-contact", "On a fully studied L5/L6 world (F9 › CIV: level 5, finish study) press FIRST CONTACT", "Event panel: 3 steps with a countdown each, 2–3 choices with hints, shock-chance meter, a result line at the end."],
+    ["f-go1", "Try FIRST CONTACT on a pre-warp (L1–L4) world", "General Order 1 warning, a second click to contact anyway; Standing drops and it ends in culture shock."],
+    ["f-member", "After a smooth contact, open the dossier", "Relations track and MEMBERSHIP button; trade income line in the top-bar resource tooltips."],
+    ["f-allies", "Open the system plot after contact", "Green ally chevrons; their card's ESCORT and SCOUT work (SCOUT: click a body)."]
+  ]},
+  { id: "ruins", name: "Ruins and digs", sub: "colony world", checks: [
+    ["r-hint", "Before landing on a world with ruins (F9 › CIV › ruins row can add one), check the orbit findings", "\"Artificial structures detected\" over a region."],
+    ["r-marker", "Survey near the ruin", "Ruin model on the hex, a rust diamond on the minimap, tooltip \"Ruins of the … · N layers\"."],
+    ["r-dig", "Build an Excavation Site on the ruin hex", "Crane trips, sieves shake; the panel shows layer progress and finds."],
+    ["r-finds", "Let a few layers finish (F9 speed helps)", "Find lines in the event feed and in the finds list; research or resources arrive."],
+    ["r-danger", "Keep digging until a defence or pathogen comes up", "Defence: nearby damage, dig locked 3 min (red status). Pathogen: CREW SICK chip; a vehicle visiting another base can carry it."]
+  ]},
+  { id: "tools", name: "Test panel", sub: "F9", checks: [
+    ["t-civ", "F9 › CIV: pick a body, spawn a living civ, change level, awareness, Standing, relations", "Each change shows on the card and dossier; TEST MODE tag appears."],
+    ["t-ruin", "F9 › CIV › ruins row: add ruins at a picked tile, then remove them", "The ruin appears and disappears on the map."]
+  ]}
+];
+
+var state = { me: null, mine: {}, all: {}, names: {}, filter: "all", db: null, user: null, writable: false };
+var list = document.getElementById("list");
+
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+function key(id) { return "c_" + id.replace(/-/g, "_"); }
+function resultOf(doc, id) { var r = doc && doc[key(id)]; return r && typeof r === "object" ? r : null; }
+
+function render() {
+  var html = "";
+  AREAS.forEach(function (a) {
+    var rows = "";
+    a.checks.forEach(function (c) {
+      var id = c[0], mine = resultOf(state.mine, id), s = mine ? mine.s : "";
+      var others = Object.keys(state.all).filter(function (u) { return u !== state.me; });
+      var anyFail = (s === "fail") || others.some(function (u) { var r = resultOf(state.all[u], id); return r && r.s === "fail"; });
+      if (state.filter === "todo" && s) return;
+      if (state.filter === "fail" && !anyFail) return;
+      var chips = others.map(function (u) {
+        var r = resultOf(state.all[u], id); if (!r || !r.s) return "";
+        var who = state.names[u] || "Someone";
+        return '<span class="chip ' + esc(r.s) + '" title="' + esc(who + ": " + r.s + (r.n ? " — " + r.n : "")) + '">' + esc(who.split(" ")[0]) + " · " + esc(r.s) + "</span>";
+      }).join("");
+      var notes = others.map(function (u) { var r = resultOf(state.all[u], id); return r && r.n ? '<p class="note"><b>' + esc(state.names[u] || "Someone") + ":</b> " + esc(r.n) + "</p>" : ""; }).join("");
+      var dis = state.writable ? "" : " disabled";
+      rows += '<div class="row ' + esc(s) + '" data-id="' + id + '"><div><h3>' + c[1] + "</h3><p><em>Look for:</em> " + c[2] + "</p></div>" +
+        '<div class="st" role="group" aria-label="Result">' + ["pass", "fail", "skip"].map(function (k) {
+          return '<button type="button" data-s="' + k + '" aria-pressed="' + (s === k) + '"' + dis + ">" + k + "</button>"; }).join("") + "</div>" +
+        '<div class="foot"><input id="n-' + id + '" type="text" placeholder="' + (state.writable ? "Note (what went wrong, or anything odd)" : "Sign in to save results") + '" value="' + esc(mine && mine.n || "") + '"' + dis + ">" +
+        '<div class="chips">' + chips + "</div></div>" + notes + "</div>";
+    });
+    if (!rows) return;
+    html += '<section><h2>' + esc(a.name) + " <small>" + esc(a.sub) + '</small></h2><div class="rows">' + rows + "</div></section>";
+  });
+  list.innerHTML = html || '<p class="empty">Nothing to show for this filter.</p>';
+  tally();
+}
+
+function tally() {
+  var total = 0, n = { pass: 0, fail: 0, skip: 0 };
+  AREAS.forEach(function (a) { a.checks.forEach(function (c) { total++; var r = resultOf(state.mine, c[0]); if (r && n[r.s] !== undefined) n[r.s]++; }); });
+  var done = n.pass + n.fail + n.skip;
+  document.getElementById("strip").innerHTML = ["pass", "fail", "skip"].map(function (k) { return '<i style="width:' + (n[k] / total * 100) + '%;background:var(--' + k + ')"></i>'; }).join("");
+  document.getElementById("tally").innerHTML = '<span style="--c:var(--pass)">' + n.pass + ' passed</span><span style="--c:var(--fail)">' + n.fail + ' failed</span><span style="--c:var(--skip)">' + n.skip + ' skipped</span><span style="--c:var(--rule)">' + (total - done) + " to go of " + total + "</span>";
+}
+
+function setStatus(text) { document.getElementById("status").innerHTML = text; }
+
+// Writes: one at a time per doc, only on change.
+var queue = Promise.resolve();
+function save(id, patch) {
+  if (!state.writable || !state.db || !state.me) return;
+  var cur = resultOf(state.mine, id) || {};
+  var next = { s: patch.s !== undefined ? patch.s : (cur.s || ""), n: patch.n !== undefined ? patch.n : (cur.n || ""), t: new Date().toISOString() };
+  if (next.s === (cur.s || "") && next.n === (cur.n || "")) return;
+  state.mine[key(id)] = next;
+  render();
+  var data = {}; data[key(id)] = next; data.updated = next.t;
+  var ref = state.db.collection("results").doc(state.me);
+  queue = queue.then(function () { return ref.set(Object.assign({}, state.mine, { updated: next.t })); }).catch(function (e) {
+    setStatus('<span style="color:var(--fail)">Couldn\'t save: ' + esc(e && e.message || "try again") + "</span>");
+  });
+}
+
+list.addEventListener("click", function (e) {
+  var b = e.target.closest(".st button"); if (!b || b.disabled) return;
+  var id = b.closest(".row").getAttribute("data-id"), s = b.getAttribute("data-s");
+  var cur = resultOf(state.mine, id);
+  save(id, { s: cur && cur.s === s ? "" : s });
+});
+list.addEventListener("change", function (e) {
+  var inp = e.target.closest(".foot input"); if (!inp) return;
+  save(inp.id.slice(2), { n: inp.value.trim().slice(0, 400) });
+});
+document.querySelector(".filters").addEventListener("click", function (e) {
+  var b = e.target.closest("button"); if (!b) return;
+  state.filter = b.getAttribute("data-f");
+  document.querySelectorAll(".filters button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+  render();
+});
+
+render();
+
+(async function connect() {
+  var timer = setTimeout(function () { setStatus("Saved results didn't load. You can still read the checks; reopen the page to try again."); }, 10000);
+  try {
+    var user = window.claude && await window.claude.use("user");
+    var db = window.claude && await window.claude.use("db");
+    if (!db || !user) { clearTimeout(timer); setStatus("Sign in to claude.ai to save results. The checks are below."); return; }
+    state.db = db; state.user = user;
+    state.me = await user.id();
+    var canWrite = await user.can("data.write");
+    state.writable = !!state.me && canWrite !== false;
+    var meName = (await user.me()).name || "you";
+    db.collection("results").onSnapshot(async function (snap) {
+      clearTimeout(timer);
+      var all = {};
+      snap.docs.forEach(function (d) { if (d.exists) all[d.id] = d.data() || {}; });
+      state.all = all;
+      if (state.me && all[state.me]) state.mine = Object.assign({}, all[state.me]);
+      var ids = Object.keys(all);
+      if (ids.length) { var ps = await user.profiles(ids); ids.forEach(function (i) { state.names[i] = (ps[i] && ps[i].name) || "Someone"; }); }
+      var testers = ids.filter(function (i) { return i !== state.me; }).map(function (i) { return state.names[i]; });
+      setStatus('Testing as <span class="who">' + esc(meName) + "</span>" + (testers.length ? " · also testing: " + esc(testers.join(", ")) : " · nobody else has results yet") +
+        (state.writable ? "" : ' · <span style="color:var(--fail)">read-only: ask Michael for access to save</span>'));
+      render();
+    }, function () { clearTimeout(timer); setStatus("Saved results couldn't load. Reopen the page to try again."); });
+  } catch (e) { clearTimeout(timer); setStatus("Saved results couldn't load. The checks are below."); }
+})();
+})();
+</script>
