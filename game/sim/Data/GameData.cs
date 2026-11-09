@@ -535,7 +535,8 @@ public sealed partial class GameData
                 ? rs.EnumerateArray().Select((t, i) => new TechDef(i, Str(t, "id"), Str(t, "name"), Num(t.GetProperty("cost")),
                     t.GetProperty("requires").EnumerateArray().Select(x => x.GetString()!).ToList(),
                     t.TryGetProperty("effect", out var te) ? te.GetString() ?? "" : "", Modifiers(t, $"Tech {Str(t, "id")}"),
-                    t.TryGetProperty("description", out var td) ? td.GetString() ?? "" : "")).ToList()
+                    t.TryGetProperty("description", out var td) ? td.GetString() ?? "" : "")
+                    { Optional = t.TryGetProperty("optional", out var to) && to.ValueKind == JsonValueKind.True }).ToList()
                 : new List<TechDef>(),
             surfacesRoot.TryGetProperty("orbit", out var ob) ? ReadOrbit(ob, Amounts) : null,
             groundVehicles, problems)

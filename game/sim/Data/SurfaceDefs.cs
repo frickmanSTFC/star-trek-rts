@@ -147,7 +147,11 @@ public sealed record MaintenanceRules(Fix64 DeclineBelow, Fix64 SlowestOutput, F
     Fix64 CrewWalkSeconds, Fix64 CrewSecondsPerTile, Fix64 RepairPerSecond, IReadOnlyList<ResourceAmount> CostPerPoint);
 
 /// <summary>A surface tech a Research Lab works on. Index = position in the list (stable order for state).</summary>
-public sealed record TechDef(int Index, string Id, string Name, Fix64 Cost, IReadOnlyList<string> Requires, string Effect, IReadOnlyList<Modifier> Modifiers, string Description);
+public sealed record TechDef(int Index, string Id, string Name, Fix64 Cost, IReadOnlyList<string> Requires, string Effect, IReadOnlyList<Modifier> Modifiers, string Description)
+{
+    /// <summary>Situational (e.g. only useful with ruins): not part of the core list the balance runner's research_all counts.</summary>
+    public bool Optional { get; init; }
+}
 
 /// <summary>One kind of breakdown: picked by Weight, knocks DamageMin..DamageMax off integrity; LosesLoad empties the hopper.</summary>
 public sealed record BreakdownSeverity(string Id, string Name, int Weight, int DamageMin, int DamageMax, bool LosesLoad);

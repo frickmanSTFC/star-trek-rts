@@ -21,10 +21,10 @@
     { "id": "deep_core_mining", "name": "Deep-Core Mining", "cost": 100, "requires": [], "effect": "Unlocks the Deep-Core Mine: reopen a used-up deposit once at 50%.",
       "description": "Drilling techniques that reach past the depleted upper layers of a deposit. Unlocks the Deep-Core Mine, which reopens a used-up deposit once at half its original size.",
       "modifiers": [] },
-    { "id": "artifact_analysis", "name": "Artifact Analysis", "cost": 90, "requires": [], "effect": "Ruin defence systems woken by a dig are found disarmed more often and do less damage.",
+    { "id": "artifact_analysis", "optional": true, "name": "Artifact Analysis", "cost": 90, "requires": [], "effect": "Ruin defence systems woken by a dig are found disarmed more often and do less damage.",
       "description": "Study of the dead species' machines from what the digs bring up. A defence system a dig layer wakes is found disarmed far more often, and one that does fire does half the damage (numbers in surfaces/excavation.json).",
       "modifiers": [] },
-    { "id": "xenomedicine", "name": "Xenomedicine", "cost": 80, "requires": [], "effect": "Crew sickness from a ruin pathogen lasts much shorter.",
+    { "id": "xenomedicine", "optional": true, "name": "Xenomedicine", "cost": 80, "requires": [], "effect": "Crew sickness from a ruin pathogen lasts much shorter.",
       "description": "Field medicine for alien pathogens: isolation tents, broad-spectrum antivirals and biofilters. A pathogen released by a dig keeps the base's crew sick for a much shorter time (numbers in surfaces/excavation.json).",
       "modifiers": [] } ]
 }

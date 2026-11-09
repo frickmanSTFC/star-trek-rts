@@ -241,7 +241,7 @@ public sealed class Recorder
         }
         foreach (var t in Data.Techs)
             if (me.Known[t.Index]) Milestone("research:" + t.Id);
-        if (Data.Techs.Count > 0 && Data.Techs.All(t => me.Known[t.Index])) Milestone("research_all");
+        if (Data.Techs.Count > 0 && Data.Techs.All(t => t.Optional || me.Known[t.Index])) Milestone("research_all");
         var parasteel = Data.Resources.FirstOrDefault(r => r.Id == "parasteel");
         if (parasteel != null && _sim.Players[_p].Stock[parasteel.Index] > Fix64.Zero) Milestone("first_parasteel");
         if (_bot.StepIndex >= Result.StepsTotal && Result.StepsTotal > 0) Milestone("order_done");

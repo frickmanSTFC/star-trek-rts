@@ -44,7 +44,7 @@ public static class Aggregate
         ["storage_full"] = "Storage first full",
         ["storage_80"] = "Storage first 80% full",
         ["power_needed"] = "Power needed beyond the core",
-        ["research_all"] = "Every surface tech known",
+        ["research_all"] = "Every core surface tech known (optional ones aside)",
         ["order_done"] = "Build order finished",
         ["landed"] = "Touchdown",
     };
