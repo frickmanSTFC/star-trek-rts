@@ -90,6 +90,18 @@ public class CommandFuzzTests
         private int StructureId() =>
             S.Structures.Count > 0 && Chance(80) ? Pick(S.Structures).Id : AnyInt();
 
+        private int FabricatorId()
+        {
+            var fabs = S.Structures.Where(S.IsFabricator).ToList();
+            return fabs.Count > 0 ? Pick(fabs).Id : StructureId();
+        }
+
+        private int OrderId()
+        {
+            var orders = S.Structures.SelectMany(s => s.Fabrication).ToList();
+            return orders.Count > 0 && Chance(80) ? Pick(orders).Id : AnyInt();
+        }
+
         private IReadOnlyList<int> UnitIds()
         {
             if (Chance(5)) return null!; // a broken decoder
@@ -139,6 +151,7 @@ public class CommandFuzzTests
             5, 5, 60, 80, 8, 20, 30, 10, 40, 10, 10, 10, 10, 5, 15, 15, 15, 10, 6, 15, 5, 5, // 0..21 player commands
             40, 15, 4, 20, 50, 4, 50, 15, 25, 15, 15, 3, 10, 2, 1, 1, // 22..37 test panel
             15, // 38 pause / resume a building
+            30, 10, 10, 10, 10, // 39..43 parts economy: fabricate, cancel an order, stock target, jury-rig a building / vehicles
         };
 
         private static readonly int TotalWeight = Weights.Sum();
@@ -193,7 +206,13 @@ public class CommandFuzzTests
                 case 35: return new DebugAddPlayerCommand(p, Text(Data.Factions.Select(f => f.Id).ToList())!);
                 case 36: return new DebugDataCommand(p, Chance(10) ? null! : new[] { DataEdit() }); // slow (reloads the data): rare
                 case 37: return new DebugReloadDataCommand(p, Chance(30) ? null! : new[] { new DataFile(Pick(_numbers).File, Chance(50) ? "{ nonsense" : null!) });
-                default: return new PauseCommand(p, StructureId(), Chance(50));
+                case 38: return new PauseCommand(p, StructureId(), Chance(50));
+                // Parts economy.
+                case 39: return new FabricateCommand(p, Chance(30) ? FabricatorId() : StructureId(), Text(S.PartItems)!, Chance(80) ? 1 + N(6) : AnyInt());
+                case 40: return new CancelFabricateCommand(p, StructureId(), OrderId());
+                case 41: return new StockTargetCommand(p, Text(S.PartItems)!, Chance(80) ? N(8) : AnyInt());
+                case 42: return new JuryRigCommand(p, StructureId());
+                default: return new JuryRigUnitsCommand(p, UnitIds());
             }
         }
 
@@ -255,6 +274,14 @@ public class CommandFuzzTests
             if (s.FindStructure(st.BaseId) == null) problems.Add($"structure {st.Id} belongs to missing base {st.BaseId}");
             foreach (var order in st.Production)
                 if (sim.Data.SurfaceUnits.All(d => d.Id != order)) problems.Add($"bay {st.Id} builds unknown {order}");
+            if (st.Fabrication.Count > PlanetSurface.MaxFabQueue) problems.Add($"fabricator {st.Id} queue {st.Fabrication.Count}");
+            if (st.Fabrication.Count > 0 && !s.HasFabricator(st)) problems.Add($"structure {st.Id} has orders but no fabricator");
+            foreach (var o in st.Fabrication)
+            {
+                if (!s.RecipesAt(st).Contains(o.RecipeId)) problems.Add($"fabricator {st.Id} makes {o.RecipeId}, not one of its recipes");
+                if (o.Progress < Fix64.Zero || o.Progress > Fix64.One) problems.Add($"order {o.Id} progress {o.Progress}");
+                if (!o.Started && o.Progress != Fix64.Zero) problems.Add($"order {o.Id} moved before it started");
+            }
         }
         for (var t = 0; t < grid.Count; t++)
         {
@@ -262,6 +289,8 @@ public class CommandFuzzTests
             if (at != null && at.Tile != t) problems.Add($"tile {t} points at structure {at.Id} on {at.Tile}");
             if (s.Map.DepositAmount[t] < Fix64.Zero) problems.Add($"deposit {t} is {s.Map.DepositAmount[t]}");
         }
+        var orderIds = s.Structures.SelectMany(st => st.Fabrication).Select(o => o.Id).ToList();
+        if (orderIds.Distinct().Count() != orderIds.Count) problems.Add("two fabrication orders with one id");
         foreach (var d in s.Deliveries)
             if (d.Tile < 0 || d.Tile >= grid.Count) problems.Add($"delivery {d.Id} to {d.Tile}");
         foreach (var pod in s.Pods)

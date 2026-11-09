@@ -269,12 +269,15 @@ public class MaintenanceTests
         StepUntil(sim, () => refinery.Level == 3, Sec(60));
         Assert.True(s.AutoMaintained(refinery));
 
-        // Drones take over below auto_below; no crew needed.
+        // Drones take over below auto_below; no crew needed. They take spare kits like the crew.
+        var kit = data.Resource("mechanical_spares").Index;
+        var kits = sim.Players[0].Stock[kit];
         StepUntil(sim, () => refinery.AutoRepairing, Sec(200));
         Assert.True(refinery.Condition < data.Maintenance!.AutoBelow + Fix64.One);
         Assert.Equal(CrewPhase.None, core.CrewPhase);
         StepUntil(sim, () => !refinery.AutoRepairing, Sec(60));
         Assert.InRange(refinery.Condition.ToDouble(), 99.9, 100);
+        Assert.True(sim.Players[0].Stock[kit] < kits, "the drones used kits");
     }
 
     [Fact]

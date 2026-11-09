@@ -50,7 +50,7 @@ public sealed partial class PlanetSurface
 
     /// <summary>Whether this kind of structure has a fabrication queue once finished (a Machine Shop, or a colony core when
     /// the data has a hub workshop).</summary>
-    private bool HasFabricator(SurfaceStructure s)
+    public bool HasFabricator(SurfaceStructure s)
     {
         if (Fab == null) return false;
         var def = _data.Building(s.DefId);
