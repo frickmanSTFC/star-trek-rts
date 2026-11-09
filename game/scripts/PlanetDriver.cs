@@ -153,6 +153,7 @@ public partial class PlanetDriver : Node3D, ITestHost
 
     public override void _Ready()
     {
+        Sfx.Wire(this); // hover / click / locked on every button under the driver, now and later (Sfx.cs)
         // JSON folders + draft in debug builds, res://gamedata.pack in release exports (GameDataLoader).
         // A campaign start (main menu) adds its era's layer and plays its faction; DEBUG (and an F6 run) as before.
         var campaign = GameSetup.Mode == GameMode.Campaign;
@@ -389,6 +390,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         }
         var when = _sim.Tick + InputDelayTicks;
         var a = _orbitAction;
+        Sfx.Ui("confirm");
         if (a == "land") _sim.Schedule(when, new LandColonyCommand(LocalPlayer, tile));
         else if (a == "outpost") _sim.Schedule(when, new OutpostDropCommand(LocalPlayer, tile));
         else if (a == "satellite") _sim.Schedule(when, new SatelliteCommand(LocalPlayer, Surface.Map.Grid.Row(tile)));
@@ -997,6 +999,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (!_inOrbit) _hud.Minimap.Refresh(_camera);
         UpdateHud();
         UpdateTutorial(delta); // tutorial cards follow the game state (PlanetDriver.Tutorial.cs)
+        UpdateSelectionSound(); // the hum of what the player just selected (PlanetDriver.Sounds.cs)
     }
 
     private void OnPhaseChange()
@@ -1225,6 +1228,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 LeftClick(click.ShiftPressed);
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
+                if (_placing != null || _founding != 0) Sfx.Ui("cancel");
                 if (_placing != null) StopPlacing();
                 else if (_founding != 0) StopFounding();
                 else RightClick();
@@ -1270,6 +1274,8 @@ public partial class PlanetDriver : Node3D, ITestHost
                 ChangeTyres();
                 break;
             case Key.Escape:
+                if (_placing != null || _founding != 0) Sfx.Ui("cancel");
+                else if (_info != null || WorkshopShown()) Sfx.Ui("back");
                 if (_placing != null) StopPlacing();
                 else if (_founding != 0) StopFounding();
                 else if (_info != null) _info = null; // close the card first, keep the selection
@@ -1353,6 +1359,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case Key.A when landed && _placing == null:
                 ClearSelection();
+                ArmSelectionSound();
                 _view.SelectedUnits.UnionWith(Surface.Units.Where(u => u.Owner == LocalPlayer).Select(u => u.Id));
                 break;
             case Key.H:
@@ -1557,6 +1564,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     {
         ClearSelection();
         _selectedBase = baseId;
+        ArmSelectionSound();
         var core = Surface.FindStructure(baseId);
         if (core != null) FlyTo(core.Tile, Mathf.Min(_distanceTarget, 360f));
     }
@@ -1614,6 +1622,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             if (Surface.CheckPlacement(_sim, LocalPlayer, _placing, _hoverTile) == PlacementProblem.None)
             {
                 _sim.Schedule(_sim.Tick + InputDelayTicks, new PlaceBuildingCommand(LocalPlayer, _placing, _hoverTile, _facing));
+                Sfx.Ui("place");
                 NoteRecent(_placing); // the command card's recent tiles
                 if (!shift) StopPlacing(); // Shift keeps placing the same building
             }
@@ -1625,6 +1634,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         {
             if (!shift) ClearSelection();
             _view.SelectedUnits.Add(unit.Id);
+            ArmSelectionSound();
             return;
         }
 
@@ -1634,6 +1644,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         {
             if (structure.Id == structure.BaseId) _selectedBase = structure.Id; // clicking a core selects its base
             else _selectedStructure = structure.Id;
+            ArmSelectionSound();
             return;
         }
         _selectedTile = _hoverTile;

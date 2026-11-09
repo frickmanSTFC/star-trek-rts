@@ -131,6 +131,7 @@ public partial class PlanetDriver
             return;
         }
         _sim.Schedule(_sim.Tick + InputDelayTicks, new FoundOutpostCommand(LocalPlayer, rover.Id, _hoverTile));
+        Sfx.Ui("place");
         var tiles = Surface.Map.Grid.Distance(rover.Tile, _hoverTile);
         _hud.PushEvent(tiles == 0 ? $"{UnitName(rover)} unfolding here to found an outpost"
             : $"{UnitName(rover)} heading out to found an outpost ({tiles} tiles): {Amounts(rules.Cost, false)} is paid when it gets there", FoundBlue);

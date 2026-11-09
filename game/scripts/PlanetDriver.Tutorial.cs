@@ -101,6 +101,7 @@ public partial class PlanetDriver
         }
         if (_tutorial.Finished)
         {
+            Sfx.Ui("tutorial_done");
             EndTutorial(false);
             return;
         }

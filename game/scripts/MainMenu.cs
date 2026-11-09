@@ -55,6 +55,7 @@ public partial class MainMenu : Node3D
         _overlay = new Control { Name = "Overlay", MouseFilter = Control.MouseFilterEnum.Ignore };
         _overlay.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _ui.AddChild(_overlay);
+        Sfx.Wire(_ui); // hover / click / locked on every button of every page (Sfx.cs)
         ShowPage(Page.Title);
     }
 
@@ -89,6 +90,7 @@ public partial class MainMenu : Node3D
             case Page.Settings: ShowPage(_settingsBack); break;
             default: return;
         }
+        Sfx.Ui("back");
         GetViewport().SetInputAsHandled();
     }
 
