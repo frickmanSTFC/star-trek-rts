@@ -305,7 +305,10 @@ public partial class HelmScreen : Control
         ApplyReadout();
     }
 
-    /// <summary>A popup card next to an object (S3): coloured header, rows, up to 3 buttons. Title null hides it.</summary>
+    /// <summary>Most buttons a card shows (they wrap onto a second line).</summary>
+    public const int MaxCardButtons = 5;
+
+    /// <summary>A popup card next to an object (S3): coloured header, rows, up to <see cref="MaxCardButtons"/> buttons. Title null hides it.</summary>
     public void ShowCard(string? title, IReadOnlyList<HelmRow> rows, IReadOnlyList<HelmAction> buttons, Vector2 screenPos, Color colour)
     {
         _cardPos = screenPos;
@@ -316,7 +319,7 @@ public partial class HelmScreen : Control
             return;
         }
         title = Clean(title).ToUpperInvariant();
-        var buttonList = buttons.Count > 3 ? buttons.Take(3).ToList() : buttons;
+        var buttonList = buttons.Count > MaxCardButtons ? buttons.Take(MaxCardButtons).ToList() : buttons;
         var changed = title != _cardTitle || colour != _cardColour || !SameList(rows, _cardRows) || !SameList(buttonList, _cardButtons);
         _cardTitle = title;
         if (changed)
@@ -547,6 +550,7 @@ public partial class HelmScreen : Control
         titleRow.AddChild(_subtitleLabel);
         titleMargin.AddChild(titleRow);
         topBar.AddChild(titleMargin);
+        topBar.AddChild(BuildStandingChip()); // Starfleet Standing, Federation in a Prime Directive era (HelmScreen.Civ.cs)
         foreach (var (display, label) in Displays)
         {
             var button = new HelmPill { Id = label };
@@ -923,6 +927,11 @@ public partial class HelmScreen : Control
         foreach (var row in _cardRows)
         {
             var valueColour = Tone(row.ValueColour ?? Ink);
+            if (row.Heading)
+            {
+                _cardBox.AddChild(SubHeading(row, colour, F(13)));
+                continue;
+            }
             if (row.Label.Length == 0)
             {
                 var line = Text(row.Value, F(14), valueColour);
@@ -935,17 +944,16 @@ public partial class HelmScreen : Control
             var name = Text(Clean(row.Label).ToUpperInvariant(), F(14), colour);
             name.CustomMinimumSize = new Vector2(P(70), 0);
             name.VerticalAlignment = VerticalAlignment.Top;
-            var value = Text(row.Value, F(14), valueColour);
-            value.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            value.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             h.AddChild(name);
-            h.AddChild(value);
+            h.AddChild(ValueCell(row, F(14), valueColour));
             _cardBox.AddChild(h);
         }
         if (_cardButtons.Count > 0)
         {
-            var buttons = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-            buttons.AddThemeConstantOverride("separation", P(4));
+            // a flow, so a card with more buttons (a civilization's HIDDEN POST, DOSSIER) wraps onto a second line
+            var buttons = new HFlowContainer { MouseFilter = MouseFilterEnum.Ignore };
+            buttons.AddThemeConstantOverride("h_separation", P(4));
+            buttons.AddThemeConstantOverride("v_separation", P(4));
             for (var i = 0; i < _cardButtons.Count; i++)
             {
                 var item = _cardButtons[i];
@@ -1252,17 +1260,43 @@ public partial class HelmScreen : Control
         grid.AddThemeConstantOverride("v_separation", P(3));
         foreach (var row in rows)
         {
-            var name = Text(Clean(row.Label).ToUpperInvariant(), size, colour);
+            var name = Text(Clean(row.Label).ToUpperInvariant(), size, row.Heading ? Tone(Peach) : colour, row.Heading);
             name.CustomMinimumSize = new Vector2(labelWidth, 0);
             name.VerticalAlignment = VerticalAlignment.Top;
-            var value = Text(row.Value, size, Tone(row.ValueColour ?? Ink));
-            value.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            value.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             grid.AddChild(name);
-            grid.AddChild(value);
+            grid.AddChild(ValueCell(row, size, Tone(row.ValueColour ?? Ink)));
         }
         block.AddChild(grid);
         return block;
+    }
+
+    /// <summary>A row's value: wrapped text, with a thin meter under it when the row has a Bar.</summary>
+    private Control ValueCell(HelmRow row, int size, Color colour)
+    {
+        var value = Text(row.Value, size, colour);
+        value.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        value.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        if (row.Bar is not { } fraction) return value;
+        var box = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        box.AddThemeConstantOverride("separation", P(2));
+        if (row.Value.Length > 0) box.AddChild(value);
+        box.AddChild(new Bar { Fraction = fraction, Colour = colour, CustomMinimumSize = new Vector2(0, P(5)), SizeFlagsHorizontal = SizeFlags.ExpandFill });
+        return box;
+    }
+
+    /// <summary>A sub-heading inside a card: a thin rule, bold caps in the card colour and an optional note on the right.</summary>
+    private Control SubHeading(HelmRow row, Color colour, int size)
+    {
+        var box = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        box.AddThemeConstantOverride("separation", P(2));
+        box.AddChild(new ColorRect { Color = colour with { A = 0.55f }, CustomMinimumSize = new Vector2(0, Mathf.Max(1, P(1))), MouseFilter = MouseFilterEnum.Ignore });
+        var h = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        var title = Text(Clean(row.Label).ToUpperInvariant(), size, Tone(row.ValueColour ?? colour), true);
+        title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        h.AddChild(title);
+        if (row.Value.Length > 0) h.AddChild(Text(Clean(row.Value).ToUpperInvariant(), size, Tone(GreyText)));
+        box.AddChild(h);
+        return box;
     }
 
     private HelmTab Tab(Color colour, int height)
