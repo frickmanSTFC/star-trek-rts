@@ -93,3 +93,19 @@ child bends about local X), `Press` (moves down local −Y while working), `Spar
 - Repairs: a building or vehicle waiting for kits shows `RepairWaitReason` + ETA and a **JURY-RIG** button
   (`JuryRigProblem`); jury-rigged ones are labelled; event lines for "waiting for kits", "order done", "jury-rigged".
 - Build drawer: Machine Shop tile under Industry (render, card, description from data).
+
+## Sim branch notes (phases 1–2 built)
+
+- Added to the API (nothing in the stubs changed): `HasFabricator(s)` (the kind of structure has a queue, finished or
+  not), `FabStatus.StorageFull` (last: a done order waits for room), `PlanetSurface.MaxFabQueue` / `MaxFabCount` (50),
+  `SurfaceStructure.JuryRigOrdered`, `RepairPaid`, `LastFabricated` + `FabricatedAtTick` (for "order done" events),
+  `SurfaceUnit.RepairPaid`, `ResourceDef.Volume` / `IsPartItem`, `BuildingDef.Fabricator` (`FabricatorDef(Lines, Speed)`),
+  `GameData.Fabrication` (`FabricationRules`: `Recipes`, `Recipe(id)`, `Hub` (Recipes, Speed, TimeFactor), `KitPoints`,
+  `JuryRig` (MaxCondition, Speed, WearMultiplier, BreakdownMultiplier), `DefaultTarget`, `PadTyreKit(s)`,
+  `KitsForBreakdown`), `GameData.KitOfBuilding` / `KitOfUnit` / `Flattened(id)` / `VolumeOf` / `MaxStockTarget` (999).
+- Hub time: `SecondsAt` at a core = time_factor × the tree's summed shop seconds (Mechanical Spares 130 s, the owner's
+  "2× the summed shop time"); hub.speed 0.5 is the same thing and is not applied a second time.
+- `MaintenanceCost(s)` / `RepairCost(u)` now return the kits (kit × KitsNeeded); `MaintenanceWaiting` / `RepairWaiting`
+  mean "waiting for kits" (the UI's "waiting for duranium" texts should use `RepairWaitReason`).
+- `JuryRigProblem(player, id)` returns "a jury-rig is already ordered (again to cancel)" while one is ordered: the
+  button can turn into a cancel there. A unit can only be jury-rigged while it is on its repair pad (`IsRepairing`).
