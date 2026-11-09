@@ -369,6 +369,9 @@ public sealed partial class PlanetSurface
         s.MaintenanceOrdered = false;
         s.MaintenanceWaiting = false;
         s.AutoRepairing = false;
+        s.JuryRigOrdered = false;
+        s.RepairPaid = false;
+        if (!keepCondition) s.JuryRigged = false;
     }
 
     /// <summary>The Vehicle Bay's current order is done: the unit rolls out and the next order starts from zero.</summary>

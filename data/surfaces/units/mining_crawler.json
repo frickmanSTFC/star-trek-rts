@@ -6,6 +6,6 @@
         { "id": "minor", "name": "Minor fault", "weight": 70, "damage": [10, 25] },
         { "id": "major", "name": "Major breakdown", "weight": 22, "damage": [30, 55] },
         { "id": "explosion", "name": "Explosion", "weight": 8, "damage": [60, 90], "loses_load": true } ] },
-      "repair": { "per_second": 5, "crew_seconds": 3, "cost_per_point": { "duranium": 1 } } }
+      "repair": { "per_second": 5, "crew_seconds": 3 } }
   ]
 }

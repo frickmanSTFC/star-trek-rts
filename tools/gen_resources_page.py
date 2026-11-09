@@ -25,6 +25,7 @@ def load(name):
 RJ = load("resources.json")
 R = {r["id"]: r for r in RJ["resources"]}
 B = load("buildings.json")
+FAB = load("surfaces.json").get("fabrication", {})
 T = load("tech_tree.json")["techs"]
 H = load("hazards.json")["hazards"]
 P = {p["id"]: p["name"].split(" — ")[0] for p in load("planet_classes.json")["classes"]}
@@ -34,7 +35,10 @@ TIERS = [("raw", "Raw ore", "Dug up by surface mines and mining crawlers; refine
          ("exotic", "Exotic", "Late-game and dangerous: huge power with a real chance of disaster."),
          ("refined", "Refined", "Produced from other resources, never mined."),
          ("faction", "Faction", "Belong to one faction and drive its signature mechanics."),
-         ("trade_good", "Trade goods", "Bought and sold for latinum and morale; contraband in some places.")]
+         ("trade_good", "Trade goods", "Bought and sold for latinum and morale; contraband in some places."),
+         ("part", "Parts", "Made at a Machine Shop from refined metals; go into spare kits and construction parts. Take storage space."),
+         ("spare", "Spare kits", "What repairs take: one kit per 25 points of condition. A Machine Shop makes them from parts, a colony core's small workshop slowly from metal."),
+         ("construction", "Construction parts", "Made at a Machine Shop from parts, for building costs (coming later).")]
 # names a building's effect text uses for a resource it produces
 ALIASES = {"ketracel_white": ["White"], "singularity_core": ["Singularity"], "nanoprobes": ["nanoprobe"], "honor": ["Honor"],
            "verterium_cortenide": ["Verterium"], "bloodwine": ["Bloodwine", "bloodwine"]}
@@ -91,6 +95,17 @@ for b in shared:
         for o in rc["out"]:
             if b["name"] not in producers[o]: producers[o] = sorted(producers[o] + [b["name"]])[:4]
 
+# the parts economy (surfaces/fabrication.json): Machine Shop recipes make parts, kits and construction parts; the colony
+# core's workshop makes the kits; repairs spend the kits
+fab_inputs = {rc["id"]: rc["in"] for rc in FAB.get("recipes", [])}
+for rc in FAB.get("recipes", []):
+    for i in rc["in"]:
+        if rc["id"] in R and R[rc["id"]]["name"] not in feeds.setdefault(i, []): feeds[i].append(R[rc["id"]]["name"])
+    makers = ["Machine Shop"] + (["Colony Hub workshop"] if rc["id"] in FAB.get("hub", {}).get("recipes", []) else [])
+    if rc["id"] in producers: producers[rc["id"]] = sorted(set(producers[rc["id"]] + makers))[:4]
+repair_kits = set(FAB.get("kits", {}).get("buildings", {}).values()) | set(FAB.get("kits", {}).get("units", {}).values())
+if FAB.get("kits", {}).get("default"): repair_kits.add(FAB["kits"]["default"])
+
 resources = []
 for r in RJ["resources"]:
     rid = r["id"]
@@ -98,7 +113,7 @@ for r in RJ["resources"]:
         "id": rid, "name": r["name"], "tier": r["tier"], "source": r["source"], "lore": r.get("lore", ""),
         "uses": [words(u) for u in r.get("uses", [])],
         "found": [P.get(x, words(x)) for x in r.get("found_on", [])],
-        "inputs": [[R[k]["name"], v] for k, v in r.get("inputs", {}).items()],
+        "inputs": [[R[k]["name"], v] for k, v in (r.get("inputs") or fab_inputs.get(rid, {})).items() if k in R],
         "mechanics": [f"{words(k)}: {words(str(v)) if not isinstance(v, list) else ', '.join(words(x) for x in v)}" for k, v in r.get("mechanics", {}).items()],
         "faction": NAMES.get(r.get("faction"), r.get("faction", "")), "factionId": r.get("faction", ""),
         "eras": r.get("eras", []) or ([f"from {r['eras_from']}"] if r.get("eras_from") else []),
@@ -116,6 +131,8 @@ for f, rule in load("tech_tree.json").get("faction_rules", {}).items():
 
 chains = [{"id": r["id"], "name": r["name"], "tier": r["tier"], "inputs": [{"id": k, "name": R[k]["name"], "tier": R[k]["tier"], "amount": v} for k, v in r["inputs"].items()]}
           for r in RJ["resources"] if r.get("inputs")]
+chains += [{"id": r["id"], "name": r["name"], "tier": r["tier"], "inputs": [{"id": k, "name": R[k]["name"], "tier": R[k]["tier"], "amount": v} for k, v in fab_inputs[r["id"]].items() if k in R]}
+           for r in RJ["resources"] if not r.get("inputs") and r["id"] in fab_inputs]
 
 factions = []
 for f in FACTIONS:
@@ -128,7 +145,9 @@ for f in FACTIONS:
 # ---- data checks
 checks = []
 consumed = set(k for f in FACTIONS for k in demand[f]) | {k for b in shared for k in (b.get("cost") or {})}
-consumed |= set(needed_by_tech) | set(feeds) | set(harvest)
+consumed |= set(needed_by_tech) | set(feeds) | set(harvest) | repair_kits
+# construction parts go into building costs in phase 4 of the parts economy (docs/parts-contract.md): not spent yet
+consumed |= {k for k in R if R[k]["tier"] == "construction"}
 # trade goods are sold for latinum, not spent, so they only need a market
 unused = [R[k]["name"] for k in R if k not in consumed and not (R[k]["tier"] == "trade_good" and "trade" in R[k].get("found_on", []))]
 if unused:
@@ -136,7 +155,10 @@ if unused:
 recipe = [r["name"] for r in RJ["resources"] if "synthesized" in r.get("found_on", []) and not r.get("inputs") and not producers[r["id"]]]
 if recipe:
     checks.append(f"Listed as synthesized but with no recipe (inputs) or producing building: {', '.join(recipe)}.")
-nosrc = [r["name"] for r in RJ["resources"] if not r.get("found_on") and not r.get("inputs") and not producers[r["id"]] and r["tier"] != "trade_good"]
+nosrc = [r["name"] for r in RJ["resources"] if not r.get("found_on") and not r.get("inputs") and r["id"] not in fab_inputs and not producers[r["id"]] and r["tier"] != "trade_good"]
+fab_unknown = sorted({k for ins in fab_inputs.values() for k in ins if k not in R} | {k for k in fab_inputs if k not in R})
+if fab_unknown:
+    checks.append(f"surfaces fabrication recipes name unknown resources: {', '.join(fab_unknown)}.")
 if nosrc:
     checks.append(f"No source at all (not found anywhere, no recipe, no producing building): {', '.join(nosrc)}.")
 tiers_in_notes = re.search(r"tier: ([^.]*)\.", RJ["_notes"])

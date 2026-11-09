@@ -230,7 +230,7 @@ The number in brackets is how many levels the line has. The Federation command l
 | Faction | Line | Level | Building | Cost | Stats | Effect |
 |---|---|---|---|---|---|---|
 | Federation | habitation | L1 | Prefab Habitat | 60 duranium | pop cap 1 | Sealed modules on Class K/M/L/H. |
-|  |  | L2 | Pressure Domes | 40 transp. aluminum, 10 topaline | pop cap 2 | Domes on any solid body; breach risk. |
+|  |  | L2 | Pressure Domes | 160 duranium, 60 tritanium | pop cap 2 | Domes on any solid body; breach risk. |
 |  |  | L3 | Arcology | 300 parasteel | pop cap 8 | Terraced megastructure; needs industrial replicators. |
 | Klingon | habitation | L1 | Clan Longhouse | 70 duranium | pop cap 1 | Stone hall; +1 militia strength; +1 Bloodwine per cycle. |
 |  |  | L2 | Fortified Settlement | 160 duranium, 60 tritanium | pop cap 3 | Walled compound; +2 vs invasion. |

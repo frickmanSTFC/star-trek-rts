@@ -139,8 +139,9 @@ public sealed record UnitNameRules(IReadOnlyList<string> Pool, int NumbersFrom, 
 /// <summary>
 /// Building wear and maintenance (surfaces.json maintenance). Below DeclineBelow condition, output falls toward
 /// SlowestOutput at 0, and a breakdown becomes possible (chance per minute rising to BreakChanceAtZero at 0).
-/// Crew walk CrewWalkSeconds + CrewSecondsPerTile per tile from the core, then restore RepairPerSecond, paying
-/// CostPerPoint. Auto-maintained buildings fix themselves below AutoBelow.
+/// Crew walk CrewWalkSeconds + CrewSecondsPerTile per tile from the core, take the spare kits the repair needs
+/// (GameData.Fabrication), then restore RepairPerSecond. CostPerPoint is the old per-point metal cost: empty since the
+/// parts economy (2026-11-09), kept for old data. Auto-maintained buildings fix themselves below AutoBelow.
 /// </summary>
 public sealed record MaintenanceRules(Fix64 DeclineBelow, Fix64 SlowestOutput, Fix64 BreakChanceAtZero, Fix64 AutoBelow,
     Fix64 CrewWalkSeconds, Fix64 CrewSecondsPerTile, Fix64 RepairPerSecond, IReadOnlyList<ResourceAmount> CostPerPoint);
@@ -157,7 +158,8 @@ public sealed record BreakdownSeverity(string Id, string Name, int Weight, int D
 /// </summary>
 public sealed record BreakdownRules(Fix64 ChancePerMinute, Fix64 SlowestDrive, IReadOnlyList<BreakdownSeverity> Severities);
 
-/// <summary>Repair at a colony core: crew walk out for CrewSeconds, then PerSecond integrity a second, paying CostPerPoint for each point.</summary>
+/// <summary>Repair at a colony core: crew walk out for CrewSeconds, take the spare kits it needs, then PerSecond integrity a second.
+/// CostPerPoint (metal a point) is empty since the parts economy (kits instead).</summary>
 public sealed record RepairRules(Fix64 PerSecond, int CrewSeconds, IReadOnlyList<ResourceAmount> CostPerPoint);
 
 
@@ -190,7 +192,8 @@ public sealed record DamageRules(IReadOnlyList<TerrainWear> Terrain, IReadOnlyLi
 /// Flat tyres (surfaces.json units' tyres): Wheels on the rover (4 or 6), Spares carried. The flat chance from the
 /// terrain is raised by LowIntegrity × the share of integrity lost. One flat drives at FlatSpeed, two or more at
 /// TwoFlatSpeed, and each flat adds FlatWear (a share) to the terrain wear. The crew change a tyre in ChangeSeconds
-/// parked (uses a spare); a repair pad fixes every flat and restocks the spares for PadCost a tyre.
+/// parked (uses a spare); a repair pad fixes every flat and restocks the spares for spare kits (GameData.Fabrication
+/// pad_tyre_kits a tyre; PadCost is the old metal cost, empty since the parts economy).
 /// </summary>
 public sealed record TyreRules(int Wheels, int Spares, Fix64 LowIntegrity, Fix64 FlatSpeed, Fix64 TwoFlatSpeed, Fix64 FlatWear, int ChangeSeconds,
     IReadOnlyList<ResourceAmount> PadCost);

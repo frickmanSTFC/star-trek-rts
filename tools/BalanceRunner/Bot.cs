@@ -41,6 +41,7 @@ public sealed class Bot
     private readonly List<string> _research = new();
     private readonly Dictionary<int, int> _roverGoal = new(); // rover id → goal tile
     private readonly Dictionary<int, long> _repairSent = new(); // unit id → tick a repair order went out
+    private readonly Dictionary<int, long> _waitingSince = new(); // unit / structure id (structures negative) → tick it started waiting for kits
     private readonly Dictionary<int, (int Tile, long Tick)> _mineSent = new();
     private readonly HashSet<(int Unit, int Tile)> _badMine = new();
     private readonly HashSet<int> _homeSent = new();
@@ -77,6 +78,7 @@ public sealed class Bot
         if (Me.Phase != LandingPhase.Landed) return;
         Vehicles();
         Maintain();
+        JuryRigs();
         PauseRules();
         Research();
         Steps();
@@ -196,7 +198,9 @@ public sealed class Bot
         var def = Data.SurfaceUnit(u.DefId);
         if (_repairSent.TryGetValue(u.Id, out var sent))
         {
-            if (!S.NeedsRepair(u) || (!u.Broken && u.Integrity >= Fix64.FromInt(100) && S.FlatCount(u) == 0))
+            // Jury-rigged back to working order while the pad waits for kits: back to work (it comes in again when it needs to).
+            var patched = u.JuryRigged && !u.JuryRigOrdered && !u.Broken && S.FlatCount(u) == 0 && u.Integrity >= Fix64.FromInt(_order.RepairBelow);
+            if (!S.NeedsRepair(u) || patched || (!u.Broken && u.Integrity >= Fix64.FromInt(100) && S.FlatCount(u) == 0))
             {
                 _repairSent.Remove(u.Id);
                 return;
@@ -366,6 +370,40 @@ public sealed class Bot
             if (s.MaintenanceOrdered || s.AutoRepairing || !(s.Broken || s.Condition < below)) continue;
             if (S.MaintenanceProblem(_p, s.Id) != null) continue;
             Send(new MaintainCommand(_p, s.Id)); // a toggle: only ever sent when not ordered
+        }
+    }
+
+    /// <summary>Repairs that have waited upkeep.jury_rig_after seconds for spare kits are jury-rigged instead.</summary>
+    private void JuryRigs()
+    {
+        if (_order.JuryRigAfter <= 0) return;
+        var after = (long)_order.JuryRigAfter * Simulation.TickRate;
+        foreach (var u in Mine())
+        {
+            if (!u.RepairWaiting || u.JuryRigOrdered)
+            {
+                _waitingSince.Remove(u.Id);
+                continue;
+            }
+            if (!_waitingSince.TryGetValue(u.Id, out var since)) _waitingSince[u.Id] = since = _sim.Tick;
+            if (_sim.Tick - since < after || S.JuryRigProblem(u) != null) continue;
+            Say($"{u.Name} {u.Number} waited {_order.JuryRigAfter} s for spare kits: jury-rigged");
+            Send(new JuryRigUnitsCommand(_p, new[] { u.Id }));
+            _waitingSince.Remove(u.Id);
+        }
+        foreach (var s in S.Structures)
+        {
+            if (s.Owner != _p) continue;
+            if (!s.MaintenanceWaiting || s.JuryRigOrdered)
+            {
+                _waitingSince.Remove(-s.Id);
+                continue;
+            }
+            if (!_waitingSince.TryGetValue(-s.Id, out var since)) _waitingSince[-s.Id] = since = _sim.Tick;
+            if (_sim.Tick - since < after || S.JuryRigProblem(_p, s.Id) != null) continue;
+            Say($"{Data.Building(s.DefId).Name} waited {_order.JuryRigAfter} s for spare kits: jury-rigged");
+            Send(new JuryRigCommand(_p, s.Id));
+            _waitingSince.Remove(-s.Id);
         }
     }
 

@@ -40,6 +40,10 @@ public sealed class BuildOrder
     /// <summary>Send a rover to the repair pad below this integrity.</summary>
     public int RepairBelow { get; init; } = 45;
 
+    /// <summary>upkeep.jury_rig_after: a repair (building or vehicle) that has waited this many seconds for spare kits is
+    /// jury-rigged instead (no kits, up to jury_rig.max_condition); 0 = never.</summary>
+    public int JuryRigAfter { get; init; } = 60;
+
     /// <summary>Techs to research, in order (whenever a lab is free; a tech whose prerequisite is missing waits).</summary>
     public IReadOnlyList<string> Research { get; init; } = Array.Empty<string>();
 
@@ -93,6 +97,7 @@ public sealed class BuildOrder
                 ? new Refuel(Str(rf, "resource") ?? "deuterium", Int(rf, "below") ?? 60, Int(rf, "until") ?? 200) : null,
             MaintainBelow = Int(upkeep, "maintain_below") ?? 55,
             RepairBelow = Int(upkeep, "repair_below") ?? 45,
+            JuryRigAfter = Int(upkeep, "jury_rig_after") ?? 60,
             Research = Strings(r, "research") ?? Array.Empty<string>(),
             Steps = steps,
             Pauses = pauses,

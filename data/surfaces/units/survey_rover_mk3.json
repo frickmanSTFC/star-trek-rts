@@ -12,7 +12,7 @@
           { "id": "ice", "name": "Sharp ice", "weight": 40, "damage": [4, 10], "terrain": ["ice"], "flat": true } ],
         "toxic_per_min": 3, "wildlife": { "chance_per_min": 0.4, "damage": [5, 14] },
         "slow_below": 40, "slowest_drive": 0.55, "sensors_below": 25, "sensor_loss": 1, "crawl": 0.15 },
-      "tyres": { "wheels": 6, "spares": 2, "low_integrity": 2, "flat_speed": 0.7, "two_flat_speed": 0.3, "flat_wear": 0.5, "change_seconds": 40, "pad_cost": { "duranium": 8 } },
-      "repair": { "per_second": 5, "crew_seconds": 3, "cost_per_point": { "duranium": 0.5 } } }
+      "tyres": { "wheels": 6, "spares": 2, "low_integrity": 2, "flat_speed": 0.7, "two_flat_speed": 0.3, "flat_wear": 0.5, "change_seconds": 40 },
+      "repair": { "per_second": 5, "crew_seconds": 3 } }
   ]
 }

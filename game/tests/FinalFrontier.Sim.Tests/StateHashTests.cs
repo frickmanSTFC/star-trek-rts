@@ -36,7 +36,7 @@ public class StateHashTests
                 Assert.Equal(before, sim.StateHash());
                 checkedNames.Add(f.Name);
             }
-        Assert.Equal(new[] { "_nextBuildingId", "_nextColonyId", "_nextDeliveryId", "_nextPodId", "_nextSatelliteId", "_nextShipId",
+        Assert.Equal(new[] { "_nextBuildingId", "_nextColonyId", "_nextDeliveryId", "_nextFabOrderId", "_nextPodId", "_nextSatelliteId", "_nextShipId",
             "_nextStructureId", "_nextUnitId" }, checkedNames.OrderBy(n => n, StringComparer.Ordinal));
 
         // The star system's counter, in a game that has one.

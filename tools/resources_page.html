@@ -29,6 +29,9 @@
   --r-refined: #9aa3ff;
   --r-faction: #ff9c5b;
   --r-trade_good: #8fd3b0;
+  --r-part: #d8c48a;
+  --r-spare: #7fd6cc;
+  --r-construction: #e0a3b4;
   --f-federation: #7fc4e8;
   --f-klingon: #e2787a;
   --f-cardassian: #f3cb5b;
@@ -243,7 +246,8 @@ $("tiers-list").innerHTML = D.tiers.map((t) => `<div class="tier" style="${rc(t.
 // ---- production chains (inputs on the left, refined goods on the right, links scaled by amount)
 const inputs = [];
 D.chains.forEach((c) => c.inputs.forEach((i) => { if (!inputs.find((x) => x.id === i.id)) inputs.push(i); }));
-inputs.sort((a, b) => ["flow", "strategic", "refined", "exotic"].indexOf(a.tier) - ["flow", "strategic", "refined", "exotic"].indexOf(b.tier));
+const tierOrder = ["flow", "strategic", "refined", "exotic", "part", "spare"];
+inputs.sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier));
 $("flow").innerHTML = `<svg id="flowsvg" aria-hidden="true"></svg>
   <div class="col"><span class="colhead">Inputs</span>${inputs.map((i) => `<div class="in" id="in-${i.id}" style="${rc(i.tier)}">${esc(i.name)}<small>${esc(tierLabel[i.tier])}</small></div>`).join("")}</div>
   <div></div>
