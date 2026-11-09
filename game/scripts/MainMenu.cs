@@ -424,9 +424,8 @@ render_mode unshaded, blend_add, depth_draw_never, cull_back;
 uniform vec4 rim_colour : source_color = vec4(0.32, 0.58, 1.0, 1.0);
 void fragment() {
 	float f = 1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0);
-	f = pow(f, 3.5);
-	ALBEDO = rim_colour.rgb * f * 1.4;
-	ALPHA = clamp(f, 0.0, 1.0);
+	f = pow(f, 3.0);
+	ALBEDO = rim_colour.rgb * f * 1.3; // additive: no ALPHA needed
 }
 ";
 
@@ -450,7 +449,7 @@ void fragment() {
             var r = Mathf.Sqrt(1f - z * z);
             var dir = new Vector3(r * Mathf.Cos(t), z, r * Mathf.Sin(t));
             dir = dir.Rotated(Vector3.Right, 0.9f);
-            var size = 0.35f + Mathf.Pow(rng.Randf(), 6f) * 1.4f;
+            var size = 0.9f + Mathf.Pow(rng.Randf(), 6f) * 2.6f; // ~1-3 px at 900 units
             mm.SetInstanceTransform(i, new Transform3D(Basis.Identity.Scaled(Vector3.One * size), dir * 900f));
             var warmth = rng.Randf();
             var tint = warmth < 0.2f ? new Color(1f, 0.82f, 0.65f) : warmth > 0.85f ? new Color(0.7f, 0.82f, 1f) : new Color(1f, 1f, 1f);
