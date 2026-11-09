@@ -87,7 +87,7 @@ public partial class SystemPlot : Node3D
     /// <param name="ownerColour">A player's colour (PlanetDriver.ColorOf).</param>
     public void Refresh(SystemSource source, float alpha, Func<int, Color> ownerColour)
     {
-        var stamp = source.PlotStamp();
+        var stamp = source.PlotStamp() ^ CivStamp(source); // civilization glyphs (SystemPlot.Civ.cs)
         if (stamp != _plotStamp)
         {
             _plotStamp = stamp;
@@ -221,6 +221,8 @@ public partial class SystemPlot : Node3D
             if (isCurrent)
                 node.AddChild(new MeshInstance3D { Mesh = new TorusMesh { InnerRadius = radius + 2.4f, OuterRadius = radius + 3.1f, Rings = 48, RingSegments = 6 }, MaterialOverride = Glow(Peach, 1.6f) });
             if (live) node.AddChild(SatelliteGlyph(radius));
+            var civ = CivGlyph(source, b.Id, radius); // signal arcs or ruin pillars (SystemPlot.Civ.cs)
+            if (civ.Glyph != null) node.AddChild(civ.Glyph);
 
             var moons = 0;
             foreach (var m in bodies)
@@ -232,6 +234,7 @@ public partial class SystemPlot : Node3D
             else if (charted && moons > 0) tags.Add($"{moons} MOON{(moons > 1 ? "S" : "")}");
             if (knowledge == BodyKnowledge.Scanned) tags.Add(source.State?.SweepingShip(source.Player, b.Id) != null ? "SWEEPING" : "UNCHARTED");
             if (live) tags.Add("LIVE");
+            if (civ.Tag != null) tags.Add(civ.Tag);
             var text = string.Join(" · ", tags);
             var textColour = isCurrent ? Peach : !charted ? new Color(0.62f, 0.64f, 0.68f) : IsRocks(b.ClassId) ? Cyan : new Color(0.95f, 0.9f, 0.85f);
             if (b.Parent == null) node.AddChild(Label(text, new Vector3(0, radius + 3f, 0), textColour, 24));
