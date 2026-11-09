@@ -45,6 +45,7 @@ public static partial class BuildingModels
         "prefab_habitat" => Habitat(owner, v),
         "pressure_dome" => PressureDome(owner, v),
         "life_support_plant" => LifeSupportPlant(owner, v),
+        "machine_shop" => MachineShop(owner, v),
         _ => Generic(owner),
     };
 

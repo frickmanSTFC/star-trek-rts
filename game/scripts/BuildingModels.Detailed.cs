@@ -154,6 +154,9 @@ public static partial class BuildingModels
             case "pressure_dome" or "life_support_plant":
                 PaintHostileSigns(n, defId, number);
                 break;
+            case "machine_shop":
+                PaintMachineShopSigns(n, number);
+                break;
         }
     }
 
