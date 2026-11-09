@@ -71,3 +71,70 @@ names), `SpeciesColour(seed)`.
 - Orbit globe of a civ body: city lights on the night side at `TownsOn` tiles (L3+ lit), small structures visible
   when zoomed in (towns from `NativeTowns`), smog tint for L3–L4. A look-only feed of the towns from a satellite or
   post is a stretch goal (report if not done).
+
+## Sim side, filled in (2026-11-09, sim branch)
+
+Names and signatures above are unchanged. Decisions and additions for the view:
+
+- **Data** `data/civilizations/` (manifest document `civilizations`, optional like achievements: a data set without it has no
+  natives; `GameData.Civilizations` → `CivilizationData` with `Sites`, `Awareness`, `Study`, `Post`, `Standing`, `Levels`,
+  `Names`, `Ruins`; `GameData.CivLevels` = 6; read + `ValidateCivilizations` in `sim/Data/GameData.Civilizations.cs`, records
+  in `CivilizationDefs.cs`). `DataChecks.CivilizationProblems` (in `DataChecks.All`): seeds 1/1701/99999 with every landable
+  body as the landing world → no site on it, none twice on a body, every living site has a town map with towns; seeds 1..200
+  → the share of systems with a living civ inside `sites.expected_living_share` [0.35, 0.65].
+- **Body classes.** Only class M and L have surfaces, and ~85% of generated systems have just one landable body (the landing
+  world), so "landable classes only" would have given ~15% of systems a civ. Living civs may also sit on K, H and N
+  (`sites.living_weights`), whose towns go on a stand-in look-only map (`sites.town_maps`: K/H → class_l, N → class_m);
+  ruins may also be on D (`ruins_weights`). `living_chance` is 0.58 so that about half of all systems end up with one
+  (measured 42% at 0.5; ~49% at 0.58); ruins_chance 0.8 → ~78%. One living site and one ruins site per system at most.
+- **Generation** `CivGenerator` (pure, SplitMix via `SystemGenerator.H`): `Roll(data, bodies, seed, excludeBody)`,
+  `NationNames(data, site)`, `LevelRange(data, site)`, `Towns(data, site, map)`, `Root(names, h)`. `StarSystemState` rolls
+  the sites once when the system joins the game (`Attach`), excluding `SurfaceBody`. `CivSite` gained init properties
+  `Ruin` (ruins.json kind id, ruins only) and `Root` (the species' name root). Ruins: `Level` = how far they got,
+  `Temperament`/`Unity` Unknown, no nations/population; canon precursors (Iconians, T'Kon, Preservers) are weight 1 of 90 each.
+- **Level range** before study is `sites.level_range` (2) levels wide with the true level inside (where: by the site seed;
+  owner's "L3–L4" example), not ±1 (which would give the level away as the middle).
+- **Knowledge** (`CivView`): Detected/Scanned → `Signals` only for living L3+ (`levels.json signals`); L1–L2 and ruins → null
+  until Charted. Charted → species, range, population, awareness (+ `AwarenessBand` name), `OrbitalSigns`, `Incidents`;
+  ruins → `Living` false, species, `RuinName`. Study = 1 → exact level, temperament, unity, nations + `NationNames`.
+  `Live` = `HasLiveData` or a working post there. `CivReport` gained init properties `RuinName`, `AwarenessBand`,
+  `NationNames`, `OrbitalSigns`, `Incidents`.
+- **Study** only once the body is Charted: per tick 1/(120 s) for any own ship in orbit + 1/(60 s) satellite + 1/(30 s)
+  working post (they add up; ship alone ≈ 1801 ticks). `StudyOf(player, body)`.
+- **Observation research** (chosen): `observe_per_min[level]` while a ship/satellite studies (until Study = 1) + `post_per_min
+  [level]` per working post, always; goes into the player's **active surface tech** (`SurfacePlayer.ActiveTech` /
+  `ResearchProgress`, completing it like a lab); with no tech active it waits in a per-player bank
+  (`ObservationBank(player)`, hashed) and is paid into the next tech. Sanctions × 0.75; 0 once recalled.
+- **Towns** `TownsOn(body)` / `TownMap(body)` (the `SurfaceMap` the tiles are on: own class or the stand-in;
+  `SurfaceMap.Generate(data, data.Surface(cls), SystemGenerator.SurfaceSeed(seed, id), id, Generated.Climate)`), both cached,
+  not hashed. Count `levels.towns`, size `town_size` (first town = largest, the capital), weighted land tiles
+  (`town_terrain` plains 5 / forest 3 / hills 2 / desert 1, +3 coastal), ≥ `town_spacing` 10 tiles apart (lowered by 2 when
+  the map has no room). The view converts tiles to lat/long with that map's grid (same as the look-only globes).
+- **Awareness** (0..100, only rises; deterministic accumulation, no `sim.Rng`): start by level (`awareness.start`), + ship in
+  orbit ×2/min if the civ is L5+, + satellite ×1/min if L4+, + 0.2/min per working post, + 35 when a post is found.
+  `AwarenessOf`. Bands in `awareness.bands` (Unaware / Rumours / Suspicious / Aware).
+- **Post** (`ObservationPostCommand`): `PostProblem` order: no such player → no civilizations data → "only the Federation can
+  place hidden observation posts for now" (`post.factions`: federation, earth_uec) → "recalled to Starfleet" → no such body →
+  "no ship in orbit" / "the ship is not in orbit of X" → "finish the sensor sweep of X first" → "no civilization on X to
+  observe" / "only ruins on X: nobody to observe" → "a post is already hidden on X" → "all N observation posts are out" →
+  "not enough resources". Cost 80 duranium + 40 tritanium from `sim.Players[p].Stock` (like the satellite). `Posts`
+  (`ObservationPost`: Owner, BodyId, PlacedTick, NextRollTick, Found, FoundTick), `SecondsToNextRoll(post)`. Rolls on
+  `sim.Rng` every 10 min of game time from placement, chance 0.1 (× 2 above awareness 40). Found → stops working, stays
+  listed (`PostFound` in the report), awareness +35, incident, Standing −20; a new post may be placed there again.
+- **Standing** (`StandingOf`, `StandingRung`, `RungName(rung)`, `PrimeDirective`): Federation players (`standing.factions`)
+  only, in eras whose first year ≥ `standing.prime_directive_from_year` 2168 (a year, not an era id: `tos` starts 2256 so
+  "from tos" would have cut out Kelvin 2233; ENT 2151 and a future Dawn of Warp have none; an era not in the data counts as
+  having it). Fixed when the player joins. Start 80, recovery +1/min after 10 min with no incident, up to the start.
+  Steps when newly reached: 1 warning (event), 2 inquiry (`InquirySecondsLeft`: `CourseProblem`/`ScanProblem` say "held for a
+  Starfleet inquiry (N s)" for 300 s), 3 captain relieved (event only for now), 4 sanctions (`SanctionsSecondsLeft`:
+  observation research × 0.75 for 900 s; lab research and reinforcements are not touched yet), 5 recalled for good at 0 or
+  the 3rd incident on one world (`Recalled`: course, scan, satellite and post orders refused "recalled to Starfleet"; no
+  recovery). Re-crossing a step after recovering applies it again.
+- **Incidents** `IncidentsOn(player, body)`: post discoveries only in phase 1 (counted in every era).
+- **Events** `CivEvents` (`CivEvent(Tick, Player, BodyId, Kind, Text)`, each addressed to one player): `post_placed`,
+  `post_found`, `incident`, `standing` (Text names the step), `recalled` (BodyId = the colony's body), `study_complete`,
+  `awareness` (a band reached; only to players who have Charted the body). `Version` goes up on every event, each 5% of
+  study, each whole point of awareness or Standing and each step.
+- **Hash**: sites, awareness, every player's study/Standing/steps/hold/sanctions/bank/incidents, posts and events, inside
+  `StarSystemState.AddToHash` (system games only; planet-only and balance-runner hashes unchanged, tested).
+- Tests `CivilizationTests` (18).
