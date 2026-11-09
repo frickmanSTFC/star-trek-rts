@@ -243,6 +243,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _orbitAction = "land";
         _info = "orbit:land";
         foreach (var m in dataMessages) _hud.PushEvent($"Data refused: {m}", new Color(1f, 0.45f, 0.4f));
+        BeginTutorial(); // the guided start when GameSetup.Tutorial is on (PlanetDriver.Tutorial.cs)
     }
 
     // ---------------------------------------------------------------- orbit
@@ -502,7 +503,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void OrbitHover(float delta)
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _chooser.IsOverUi(mouse) || AchievementsBlockMouse(mouse) || CivBlocksMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _chooser.IsOverUi(mouse) || AchievementsBlockMouse(mouse) || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse);
         if (_helm.ViewRect.Size.X > 32f && _helm.ViewRect.Size.Y > 32f) _orbit.SetViewRect(_helm.ViewRect, GetViewport().GetVisibleRect().Size);
         _orbitHover = _mouseOverUi ? -1 : _orbit.PickTile(mouse);
         var colour = _orbitAction == null ? new Color(1f, 1f, 1f, 0.6f)
@@ -985,6 +986,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         UpdateUplink((float)delta);
         if (!_inOrbit) _hud.Minimap.Refresh(_camera);
         UpdateHud();
+        UpdateTutorial(delta); // tutorial cards follow the game state (PlanetDriver.Tutorial.cs)
     }
 
     private void OnPhaseChange()
@@ -1673,7 +1675,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void UpdateHover()
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen || CivBlocksMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse);
         _hoverTile = -1;
         if (!_mouseOverUi)
         {
