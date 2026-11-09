@@ -5,7 +5,7 @@ namespace FinalFrontier;
 
 /// <summary>
 /// The one place the view sends star-system orders from (docs/system-contract.md): <c>SetCourseCommand</c>,
-/// <c>LongRangeScanCommand</c>, <c>SystemSatelliteCommand</c>. Each asks the sim's own check first (so the helm shows the
+/// <c>LongRangeScanCommand</c>, <c>SystemSatelliteCommand</c>, <c>ObservationPostCommand</c>. Each asks the sim's own check first (so the helm shows the
 /// sim's reason) and returns null when the order was scheduled, else a short reason for the event feed.
 /// </summary>
 public static class SystemOrders
@@ -30,6 +30,16 @@ public static class SystemOrders
         if (sim.System is not { } system) return NoSystem;
         if (system.ScanProblem(player, shipId) is { } why) return why;
         sim.Schedule(when, new LongRangeScanCommand(player, shipId));
+        return null;
+    }
+
+    /// <summary>A hidden observation post on a civilization's world (civilizations phase 1): placed from orbit like a
+    /// satellite; studies them ×4 but may be found.</summary>
+    public static string? ObservationPost(Simulation sim, int player, string bodyId, long when)
+    {
+        if (sim.System is not { } system) return NoSystem;
+        if (system.PostProblem(player, bodyId) is { } why) return why;
+        sim.Schedule(when, new ObservationPostCommand(player, bodyId));
         return null;
     }
 
