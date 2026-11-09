@@ -216,7 +216,7 @@ public partial class MainMenu : Node3D
         column.AddChild(buttons);
         MenuRow(buttons, "CAMPAIGN", "Start with the Federation at the dawn of warp", true, false, () => ShowPage(Page.Faction));
         MenuRow(buttons, "MULTIPLAYER", "Coming later", false, true, null);
-        MenuRow(buttons, "SETTINGS", "Display, controls, tutorial hints", false, false, () =>
+        MenuRow(buttons, "SETTINGS", "Display, controls, sound, tutorial hints", false, false, () =>
         {
             _settingsBack = Page.Title;
             ShowPage(Page.Settings);

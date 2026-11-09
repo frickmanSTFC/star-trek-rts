@@ -18,6 +18,8 @@ public static class GameSettings
 
     private static bool _tutorialHints = true;
     private static float _masterVolume = 0.8f;
+    private static float _uiVolume = 0.8f;
+    private static float _effectsVolume = 1f;
     private static WindowChoice _window = WindowChoice.Windowed;
     private static bool _vsync = true;
     private static float _uiScale = 1f;
@@ -30,8 +32,14 @@ public static class GameSettings
     /// <summary>Tutorial cards in a campaign start (and on the menu's star-system picker).</summary>
     public static bool TutorialHints { get { Load(); return _tutorialHints; } set { Load(); _tutorialHints = value; } }
 
-    /// <summary>Master bus volume 0..1 (the game has no sounds yet; anything added later goes through the master bus).</summary>
+    /// <summary>Master bus volume 0..1 (every sound goes through it; <see cref="ApplyAudio"/> sets the bus).</summary>
     public static float MasterVolume { get { Load(); return _masterVolume; } set { Load(); _masterVolume = Mathf.Clamp(value, 0f, 1f); } }
+
+    /// <summary>The UI bus 0..1 (menu hover/click, tutorial cards, placing, refusals).</summary>
+    public static float UiVolume { get { Load(); return _uiVolume; } set { Load(); _uiVolume = Mathf.Clamp(value, 0f, 1f); } }
+
+    /// <summary>The Effects bus 0..1 (landings, selection hums; the Ambience bus follows it).</summary>
+    public static float EffectsVolume { get { Load(); return _effectsVolume; } set { Load(); _effectsVolume = Mathf.Clamp(value, 0f, 1f); } }
 
     public static WindowChoice WindowMode { get { Load(); return _window; } set { Load(); _window = value; } }
 
@@ -56,6 +64,8 @@ public static class GameSettings
         if (cfg.Load(File) != Error.Ok) return;
         _tutorialHints = cfg.GetValue("game", "tutorial_hints", _tutorialHints).AsBool();
         _masterVolume = Mathf.Clamp((float)cfg.GetValue("audio", "master_volume", _masterVolume).AsDouble(), 0f, 1f);
+        _uiVolume = Mathf.Clamp((float)cfg.GetValue("audio", "ui_volume", _uiVolume).AsDouble(), 0f, 1f);
+        _effectsVolume = Mathf.Clamp((float)cfg.GetValue("audio", "effects_volume", _effectsVolume).AsDouble(), 0f, 1f);
         var w = cfg.GetValue("display", "window_mode", (int)_window).AsInt32();
         _window = w is >= 0 and <= (int)WindowChoice.Exclusive ? (WindowChoice)w : WindowChoice.Windowed;
         _vsync = cfg.GetValue("display", "vsync", _vsync).AsBool();
@@ -70,6 +80,8 @@ public static class GameSettings
         _loaded = true;
         _tutorialHints = true;
         _masterVolume = 0.8f;
+        _uiVolume = 0.8f;
+        _effectsVolume = 1f;
         _window = WindowChoice.Windowed;
         _vsync = true;
         _uiScale = 1f;
@@ -83,6 +95,8 @@ public static class GameSettings
         var cfg = new ConfigFile();
         cfg.SetValue("game", "tutorial_hints", _tutorialHints);
         cfg.SetValue("audio", "master_volume", _masterVolume);
+        cfg.SetValue("audio", "ui_volume", _uiVolume);
+        cfg.SetValue("audio", "effects_volume", _effectsVolume);
         cfg.SetValue("display", "window_mode", (int)_window);
         cfg.SetValue("display", "vsync", _vsync);
         cfg.SetValue("display", "ui_scale", _uiScale);
@@ -92,16 +106,30 @@ public static class GameSettings
         if (err != Error.Ok) GD.PushWarning($"Settings: couldn't save {File} ({err}).");
     }
 
-    /// <summary>Window mode, VSync and the master volume to the engine (only what differs, so it is cheap to call often).</summary>
-    public static void Apply()
+    /// <summary>The volumes to the buses: Master, UI, Effects and Ambience (= Effects); creates the game's buses if the
+    /// project has none (Sfx). Cheap: the settings card calls it on every slider step.</summary>
+    public static void ApplyAudio()
     {
         Load();
-        var bus = AudioServer.GetBusIndex("Master");
-        if (bus >= 0)
+        Sfx.EnsureBuses();
+        SetBus("Master", _masterVolume);
+        SetBus(Sfx.UiBus, _uiVolume);
+        SetBus(Sfx.EffectsBus, _effectsVolume);
+        SetBus(Sfx.AmbienceBus, _effectsVolume);
+
+        static void SetBus(string name, float volume)
         {
-            AudioServer.SetBusVolumeDb(bus, _masterVolume <= 0.001f ? -80f : Mathf.LinearToDb(_masterVolume));
-            AudioServer.SetBusMute(bus, _masterVolume <= 0.001f);
+            var bus = AudioServer.GetBusIndex(name);
+            if (bus < 0) return;
+            AudioServer.SetBusVolumeDb(bus, volume <= 0.001f ? -80f : Mathf.LinearToDb(volume));
+            AudioServer.SetBusMute(bus, volume <= 0.001f);
         }
+    }
+
+    /// <summary>Window mode, VSync and the volumes to the engine (only what differs, so it is cheap to call often).</summary>
+    public static void Apply()
+    {
+        ApplyAudio();
         var vsync = _vsync ? DisplayServer.VSyncMode.Enabled : DisplayServer.VSyncMode.Disabled;
         if (DisplayServer.WindowGetVsyncMode() != vsync) DisplayServer.WindowSetVsyncMode(vsync);
         var mode = _window switch
