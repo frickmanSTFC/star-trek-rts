@@ -13,6 +13,8 @@ namespace FinalFrontier;
 /// Static, so it outlives the scene reload that starts the new game, and saved to user://game_setup.cfg so the choice
 /// is kept between runs. PlanetDriver reads it in _Ready before its own [Export] World / Seed defaults.
 /// </summary>
+public enum GameMode { Debug, Campaign }
+
 public static class GameSetup
 {
     private const string File = "user://game_setup.cfg";
@@ -22,6 +24,36 @@ public static class GameSetup
 
     public static string? World { get { Load(); return _world; } }
     public static ulong? Seed { get { Load(); return _seed; } }
+
+    // Main menu (docs/menu-contract.md; agent A fills these in). Debug = today's sandbox (saved world/seed above).
+    public static GameMode Mode { get; private set; } = GameMode.Debug;
+    public static string Faction { get; private set; } = "federation";
+    public static string? Era { get; private set; }
+    public static ulong? CampaignSeed { get; private set; }
+    public static string? HomeBody { get; private set; }
+
+    /// <summary>Tutorial cards on: a campaign start with tutorial hints on in the settings.</summary>
+    public static bool Tutorial => Mode == GameMode.Campaign && GameSettings.TutorialHints;
+
+    /// <summary>The main menu's campaign start (not saved: chosen in the menu each time).</summary>
+    public static void StartCampaign(string faction, string era, ulong seed, string homeBodyId)
+    {
+        Mode = GameMode.Campaign;
+        Faction = faction;
+        Era = era;
+        CampaignSeed = seed;
+        HomeBody = homeBodyId;
+    }
+
+    /// <summary>The main menu's DEBUG start: the sandbox as before.</summary>
+    public static void StartDebug()
+    {
+        Mode = GameMode.Debug;
+        Faction = "federation";
+        Era = null;
+        CampaignSeed = null;
+        HomeBody = null;
+    }
 
     public static void Choose(string world, ulong seed)
     {
