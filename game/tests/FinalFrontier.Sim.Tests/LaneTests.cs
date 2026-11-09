@@ -160,7 +160,7 @@ public class LaneTests
         var spots = BaseTiles(sim, hub);
         var bay = spots[0];
         Do(sim, new DebugPlaceBuildingCommand(0, 0, "vehicle_bay", bay, 2));
-        var habitat = spots.First(t => t != bay && sim.Surface.Map.Grid.Distance(t, bay) > 1);
+        var habitat = spots.First(t => t != bay && s.Map.Grid.Distance(t, bay) > 1);
         Do(sim, new DebugPlaceBuildingCommand(0, 0, "prefab_habitat", habitat, 0));
         var rover = s.Units.First(u => u.DefId == "survey_rover");
 
