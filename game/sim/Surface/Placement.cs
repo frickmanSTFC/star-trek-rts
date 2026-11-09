@@ -35,4 +35,10 @@ public enum PlacementProblem
     /// <summary>A crewed building on a Domes world outside every finished dome and containment field
     /// (text: <see cref="PlanetSurface.NeedsDomeProblem"/>).</summary>
     NeedsDome,
+
+    /// <summary>An Excavation Site off a ruin site, or on one that is dug out (text: <see cref="PlanetSurface.RuinPlacementText"/>).</summary>
+    NeedsRuin,
+
+    /// <summary>Any other building on a ruin site that isn't dug out (text: <see cref="PlanetSurface.RuinPlacementText"/>).</summary>
+    RuinInTheWay,
 }

@@ -91,6 +91,9 @@ public sealed record BuildingDef(
     /// <summary>A Machine Shop's fabrication queue (buildings.json fabricator), or null.</summary>
     public FabricatorDef? Fabricator { get; init; }
 
+    /// <summary>Only goes on a ruin site (buildings.json requires_ruin: the Excavation Site, Surface/Excavation.cs).</summary>
+    public bool RequiresRuin { get; init; }
+
     /// <summary>Digs the deposit under it (a mine, or a deep-core mine once it has reopened the deposit).</summary>
     public bool IsMine => ExtractPerMinute > Fix64.Zero;
 

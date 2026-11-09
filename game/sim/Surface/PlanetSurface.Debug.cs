@@ -132,6 +132,7 @@ public sealed partial class PlanetSurface
                 if (PodLandingNear(c.Tile)) return "a colony is landing there";
                 if (_units.Any(u => u.Tile == c.Tile && u.Mode != UnitMode.Mobile)) return "a crawler is mining there";
                 if (!def.IsCore && BaseFor(c.Owner, c.Tile) == 0) return "out of that player's build range (place a Colony Hub first)";
+                if (RuinPlacementText(RuinPlacement(c.BuildingId, c.Tile)) is { } ruinText) return ruinText; // Excavation.cs
                 return null;
             }
             case DebugBaseCommand c:

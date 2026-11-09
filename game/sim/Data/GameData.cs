@@ -406,6 +406,7 @@ public sealed partial class GameData
                 {
                     Crewed = b.TryGetProperty("crewed", out var cw) && cw.ValueKind == JsonValueKind.True,
                     Fabricator = ReadFabricator(b),
+                    RequiresRuin = b.TryGetProperty("requires_ruin", out var rr) && rr.ValueKind == JsonValueKind.True,
                 };
             })
             .ToList();
@@ -551,6 +552,7 @@ public sealed partial class GameData
             StartingSetRefs = ReadStartingSetRefs(buildingsRoot, Amounts),
             Lanes = ReadLanes(surfacesRoot),
             Fabrication = ReadFabrication(surfacesRoot, Amounts, problems),
+            Excavation = ReadExcavation(surfacesRoot, Modifiers, problems),
             BuildingFootprints = ReadBuildingFootprints(buildingsRoot, problems),
             UnitFootprints = ReadUnitFootprints(surfacesRoot),
             Gravity = ReadGravity(surfacesRoot, problems),
@@ -631,6 +633,7 @@ public sealed partial class GameData
         ValidateClimate(problems);
         ValidateFounding(problems);
         ValidateFabrication(problems);
+        ValidateExcavation(problems);
         ValidateLanes(problems);
         ValidateWorlds(problems);
         ValidateSystem(problems);

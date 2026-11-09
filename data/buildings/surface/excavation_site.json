@@ -1,0 +1,7 @@
+{
+  "buildings": [
+    { "id": "excavation_site", "name": "Excavation Site", "layer": "surface", "category": "research", "crewed": true, "requires_ruin": true, "source": "original",
+      "cost": { "duranium": 90, "tritanium": 30 }, "effect": "Digs a ruin site layer by layer; each layer turns up research, resources or danger (a defence system, a pathogen).", "description": "A dig over the ruins of a dead species: trenches, scaffolding, a gantry crane and sifting screens. Only it can stand on a ruin hex. Its crew dig one layer at a time, and every layer turns something up: artifacts and data cores for research, a fragment of their technology, a cache of metal, dilithium or latinum, or trouble. A woken defence system damages everything nearby and locks the dig for a while (Artifact Analysis finds more of them disarmed); a released pathogen makes the base's crew sick and slow (Xenomedicine shortens it). Needs crew and a little power, and wears like any machine. Once the last layer is dug, salvage it.",
+      "build_seconds": 40, "power_use": 4, "wear_per_min": 2, "footprint_radius": 7, "access": [0, 9] }
+  ]
+}

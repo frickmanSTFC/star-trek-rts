@@ -1,0 +1,50 @@
+{
+  "_notes_excavation": "Ruins on the colony's own world and digging them (civilizations phase 2, docs/civilizations-phase2-contract.md; game/sim/Surface/Excavation.cs). chance: share of colony maps that get ruins at all; sites: how many ruin sites such a map gets [min, max]. Ruins are rolled from the map seed after the map is made (their own hash, never the game's dice), and change no terrain: only on terrain listed here that is buildable and not landing ground (so a colony can never land on them), with no deposit, not toxic, no predators, outside the natives' land, at least edge_rows from the top and bottom rows and min_distance tiles from each other. species: the invented dead species a site belongs to, together weighing weight; precursors: the canon precursors, each with its own weight against that (very rare), more layers, danger (x the defence and pathogen weights on their sites) and a reward given once when the last layer is dug (a find of kind precursor): research points, modifiers (like a surface tech's: speed / yield / wear / auto_maintain / breakdown for the listed buildings or units, kept for the rest of the game) and shuttle_turnaround (x the time the drop ship needs before it can fly again; 1 = no change). building: the building that digs (buildings.json requires_ruin; only it can go on a ruin tile, and nothing else can until the ruins are dug out). A dug-out (exhausted) site stops and can be salvaged like any building (salvage_refund); the ruin stays on the map, marked dug out. layers: how many layers a site has [min, max]; seconds_per_layer: how long one layer takes at full speed (x power share x condition x speed bonuses x the crew's health: a sick crew digs at pathogen.work_multiplier). Each finished layer rolls one find by weight: artifact and data_core give research points (a range; into the player's active surface tech, else banked until one is started), tech_fragment one of tech_fragments (research points or a modifier for the rest of the game), resources one of caches (each resource's range goes into storage like any income: what doesn't fit is lost; latinum takes no space), defence wakes a defence system: with disarmed_chance it is found disarmed (nothing happens), else it hits every building (condition) and vehicle (integrity) within radius tiles of the site for damage (a range, rolled once) and locks the dig for lock_seconds (a blast never wrecks anything outright: condition and integrity stay at least 1 and nothing breaks from it); with tech known (artifact_analysis) it is found disarmed with tech_disarmed_chance instead and does tech_damage_multiplier x the damage. pathogen releases a pathogen: the site's base's crew are sick for sick_seconds (with tech known, xenomedicine: x tech_seconds_multiplier), and while sick its crewed buildings (the site too), its building repairs (crew and drones), vehicle repairs on its pad and its construction work at work_multiplier; a second pathogen while sick starts the clock again. Vehicles spread it: a vehicle on the core tile (the repair pad) of a sick base carries it for as long as that base stays sick; when a carrier reaches the core tile of another of its owner's bases that isn't sick or immune, that base is sick for spread_share of the time the carrier has left. A base that has been sick can't catch it again for immunity_seconds after it recovers. The orbital scan reports \"artificial structures detected\" over the region (the same regions as the deposit hints) of every ruin site; surveying finds the hex. Names are only for the find lines. All numbers are placeholders.",
+  "excavation": {
+    "chance": 0.25,
+    "sites": [1, 1],
+    "terrain": ["hills"],
+    "edge_rows": 3,
+    "min_distance": 6,
+    "building": "excavation_site",
+    "layers": [3, 5],
+    "seconds_per_layer": 120,
+    "finds": [
+      { "kind": "artifact", "weight": 26 },
+      { "kind": "data_core", "weight": 14 },
+      { "kind": "tech_fragment", "weight": 10 },
+      { "kind": "resources", "weight": 26 },
+      { "kind": "defence", "weight": 14 },
+      { "kind": "pathogen", "weight": 10 }
+    ],
+    "artifact": { "research": [20, 45], "names": ["a carved figurine", "a bronze-like tool head", "a glazed tablet", "a cracked lens", "a set of game pieces", "a sealed jar of pigment"] },
+    "data_core": { "research": [60, 110], "names": ["a crystalline data core", "a spool of etched filament", "a memory lattice", "a star chart in a metal sleeve"] },
+    "tech_fragments": [
+      { "id": "smelter_schematics", "name": "smelter schematics", "weight": 3, "research": 0, "modifiers": [ { "stat": "yield", "buildings": ["refinery"], "add": 0.1 } ] },
+      { "id": "bearing_alloy", "name": "a self-lubricating bearing alloy", "weight": 3, "research": 0, "modifiers": [ { "stat": "wear", "add": -0.1 } ] },
+      { "id": "field_theory", "name": "fragments of field theory", "weight": 4, "research": 120, "modifiers": [] }
+    ],
+    "caches": [
+      { "name": "a sealed metal store", "weight": 4, "give": { "duranium": [60, 140], "tritanium": [20, 60] } },
+      { "name": "a dilithium cache", "weight": 2, "give": { "dilithium": [8, 24] } },
+      { "name": "a vault of latinum", "weight": 2, "give": { "latinum": [4, 15] } }
+    ],
+    "defence": { "damage": [20, 40], "radius": 1, "lock_seconds": 180, "disarmed_chance": 0.15,
+      "tech": "artifact_analysis", "tech_disarmed_chance": 0.6, "tech_damage_multiplier": 0.5,
+      "names": ["a buried sentry turret", "a plasma mine field", "a sonic ward", "an automated guardian"] },
+    "pathogen": { "sick_seconds": 300, "work_multiplier": 0.6, "tech": "xenomedicine", "tech_seconds_multiplier": 0.4, "spread_share": 0.5, "immunity_seconds": 120,
+      "names": ["a dormant spore", "a retrovirus in a burial urn", "a prion dust", "an engineered plague"] },
+    "species": { "weight": 60, "names": ["Vadreni", "Ossuan", "Thel'kar", "Iruvi", "Maskari", "Quorrin", "Belanthi", "Sesh", "Ostrava Builders", "Kelemi"] },
+    "precursors": [
+      { "id": "iconian", "species": "Iconians", "weight": 1, "layers": [5, 7], "danger": 2,
+        "reward": { "name": "an Iconian gateway fragment", "effect": "drop ships turn round in half the time",
+          "research": 60, "modifiers": [], "shuttle_turnaround": 0.5 } },
+      { "id": "tkon", "species": "T'Kon", "weight": 1, "layers": [5, 7], "danger": 2,
+        "reward": { "name": "a T'Kon power lattice", "effect": "mines and deep-core mines work 30% faster",
+          "research": 60, "modifiers": [ { "stat": "speed", "buildings": ["mine", "deep_core_mine"], "add": 0.3 } ], "shuttle_turnaround": 1 } },
+      { "id": "preserver", "species": "Preservers", "weight": 1, "layers": [5, 7], "danger": 1.5,
+        "reward": { "name": "a Preserver archive", "effect": "a vast store of knowledge: 400 research",
+          "research": 400, "modifiers": [], "shuttle_turnaround": 1 } }
+    ]
+  }
+}

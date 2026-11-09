@@ -111,6 +111,7 @@ public sealed partial class PlanetSurface
         _data = data;
         Map = map;
         _structureAt = new int[map.Grid.Count];
+        RollRuins(); // Excavation.cs: from the map seed, after generation
     }
 
     internal void AddPlayer(string factionId)
@@ -450,6 +451,7 @@ public sealed partial class PlanetSurface
         foreach (var d in _deliveries)
             if (d.Owner == player && d.Kind == DeliveryKind.Outpost) return "an outpost is already on its way down";
         if (Map.Safety(tile) == LandingSafety.Unsafe) return Map.NearNatives(tile) ? "that's the natives' land" : "not a safe landing site";
+        if (RuinBlocks(tile)) return "ruins are there";
         foreach (var t in Map.Grid.Within(tile, 1))
             if (_structureAt[t] != 0) return "too close to a building";
         if (PodLandingNear(tile)) return "a colony is landing there";
@@ -725,6 +727,8 @@ public sealed partial class PlanetSurface
             if (known[t.Index])
                 foreach (var m in t.Modifiers)
                     if (m.Stat == stat && AppliesTo(m, buildingId)) sum += m.Add;
+        foreach (var (p, m) in _digModifiers) // tech fragments and precursor rewards from digs (Excavation.cs)
+            if (p == player && m.Stat == stat && AppliesTo(m, buildingId)) sum += m.Add;
         return sum;
     }
 
@@ -737,6 +741,8 @@ public sealed partial class PlanetSurface
             if (known[t.Index])
                 foreach (var m in t.Modifiers)
                     if (m.Stat == stat && m.Units.Contains(unitId)) sum += m.Add;
+        foreach (var (p, m) in _digModifiers)
+            if (p == player && m.Stat == stat && m.Units.Contains(unitId)) sum += m.Add;
         return sum;
     }
 
@@ -760,6 +766,8 @@ public sealed partial class PlanetSurface
             if (known[t.Index])
                 foreach (var m in t.Modifiers)
                     if (m.Stat == Modifier.AutoMaintain && AppliesTo(m, s.DefId)) return true;
+        foreach (var (p, m) in _digModifiers)
+            if (p == s.Owner && m.Stat == Modifier.AutoMaintain && AppliesTo(m, s.DefId)) return true;
         return false;
     }
 
@@ -1000,6 +1008,7 @@ public sealed partial class PlanetSurface
             if (_structureAt[t] != 0) return false;
         foreach (var d in _deliveries)
             if (d.Kind == DeliveryKind.Outpost && Map.Grid.Distance(d.Tile, tile) <= 1) return false; // an outpost is coming down there
+        if (RuinBlocks(tile)) return false; // Excavation.cs (rolled ruins are never on landing ground; the test panel's can be)
         return !PodLandingNear(tile);
     }
 
@@ -1028,6 +1037,7 @@ public sealed partial class PlanetSurface
         if (_structureAt[tile] != 0 || PodLandingNear(tile)) return PlacementProblem.Occupied;
         foreach (var u in _units)
             if (u.Tile == tile && u.Mode != UnitMode.Mobile) return PlacementProblem.Occupied;
+        if (RuinPlacement(buildingId, tile) is var ruin and not PlacementProblem.None) return ruin; // Excavation.cs
         var baseId = BaseFor(player, tile);
         if (baseId == 0)
             return CoreFor(player, tile, StructureState.Assembling) != 0 ? PlacementProblem.CoreAssembling
@@ -1250,7 +1260,9 @@ public sealed partial class PlanetSurface
                 sim.Players[shuttle.Player].Stock.TrySpend(_data.SurfaceUnit(shuttle.UnitId).Cost);
                 sim.Players[shuttle.Player].Stock.TrySpend(ShuttleFuel); // deuterium for the trip (× lift cost)
                 Deliver(shuttle.Player, DeliveryKind.Shuttle, shuttle.Tile, shuttle.UnitId, System.Array.Empty<ResourceAmount>(), sim.Tick, sim.Tick + flight);
-                _players[shuttle.Player].ShuttleBackTick = sim.Tick + flight * 2; // down, then back up to the ship
+                var turnaround = flight * 2; // down, then back up to the ship
+                if (_shuttleFactor.Count > 0) turnaround = System.Math.Max(1, (Fix64.FromInt((int)System.Math.Min(int.MaxValue, turnaround)) * ShuttleTurnaround(shuttle.Player)).FloorToInt()); // an Iconian gateway fragment
+                _players[shuttle.Player].ShuttleBackTick = sim.Tick + turnaround;
                 return true;
             }
 
@@ -1517,6 +1529,7 @@ public sealed partial class PlanetSurface
         RoverWear(sim);
         AutoOrders(sim); // Fabrication.cs: keep-in-stock and kits for waiting repairs, once a second
         MoveUnits(sim);
+        ExcavationStep(sim); // Excavation.cs: sickness, carriers, banked dig research (only on maps with any)
         FinishAssembly(sim.Tick + 1);
         UpdateSight(sim.Tick); // Visibility.cs: fog of war memory, after everything has moved
     }
@@ -1529,6 +1542,7 @@ public sealed partial class PlanetSurface
         {
             // A core founded on the ground has one queue for building itself (nothing else can join an unfinished base).
             var free = core.State == StructureState.Complete ? _data.Building(core.DefId).BuildQueues : core.Founded ? 1 : 0;
+            var works = BuildsThisTick(core.Id); // a sick crew builds slower (Excavation.cs)
             foreach (var s in _structures)
             {
                 if (s.BaseId != core.Id || s.State is StructureState.Complete or StructureState.Assembling) continue;
@@ -1544,6 +1558,7 @@ public sealed partial class PlanetSurface
                 }
                 free--;
                 s.State = StructureState.Building;
+                if (!works) continue;
                 s.BuildTicks++;
                 if (s.BuildTicks >= BuildTicksOf(s.DefId)) finished.Add(s);
             }
@@ -1667,6 +1682,11 @@ public sealed partial class PlanetSurface
                 s.Status = idle;
                 continue;
             }
+            if (def.RequiresRuin && DigIdle(s) is { } digIdle) // an Excavation Site: dug out or locked (Excavation.cs)
+            {
+                s.Status = digIdle;
+                continue;
+            }
 
             var affordable = true;
             foreach (var u in def.UpkeepPerMinute)
@@ -1722,6 +1742,7 @@ public sealed partial class PlanetSurface
                 if (s.ProductionProgress >= Fix64.FromInt(unitDef.BuildSeconds * Simulation.TickRate)) FinishOrder(sim, s);
             }
             if (def.Fabricator != null && Fab != null) FabStep(sim, s, speed); // a Machine Shop (Fabrication.cs)
+            if (def.RequiresRuin) DigStep(sim, s, speed); // an Excavation Site (Excavation.cs)
             if (def.IsLab)
             {
                 var p = _players[s.Owner];
@@ -1943,6 +1964,7 @@ public sealed partial class PlanetSurface
         h.Add(_nextSatelliteId);
         AddLifeSupportToHash(ref h); // Domes worlds only (Habitability.cs)
         AddFabricationToHash(ref h); // Fabrication.cs
+        AddExcavationToHash(ref h); // Excavation.cs: only on maps with ruins, sickness or finds
         // Not hashed because they follow from what is hashed: _structureAt (each structure's Tile; the fuzz test checks
         // they agree), _weatherTick (sim.Tick at the top of Step), _data (Simulation hashes each change of data), and
         // each unit's SpeedPerTick / SurveyRadius (its def in that data).
