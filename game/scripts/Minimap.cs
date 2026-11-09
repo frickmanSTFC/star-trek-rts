@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using FinalFrontier.Sim.Core;
 using FinalFrontier.Sim.Surface;
 using Godot;
@@ -17,6 +18,12 @@ public partial class Minimap : Control
     private ImageTexture? _texture;
     private Image? _image;
     private Vector2[] _frame = Array.Empty<Vector2>();
+
+    /// <summary>Our vehicles carrying a pathogen (civilizations phase 2; the driver fills it once a second).</summary>
+    public IReadOnlySet<int> Carriers { get; set; } = new HashSet<int>();
+
+    private static readonly Color RuinColour = new(0.784f, 0.4f, 0.29f); // HelmScreen.Rust
+    private static readonly Color CarrierColour = new(0.75f, 0.9f, 0.35f);
 
     /// <summary>Called with a world point (y = 0) when the player clicks or drags on the map.</summary>
     public Action<Vector3>? OnJump { get; set; }
@@ -109,6 +116,15 @@ public partial class Minimap : Control
         DrawTextureRect(_texture, new Rect2(Vector2.Zero, Size), false);
 
         var surface = _sim.Surface!;
+        // Ruin sites the player has seen: a rust diamond (grey once dug out).
+        foreach (var r in surface.Ruins)
+        {
+            if (_view.FogAt(r.Tile) == PlanetView.Fog.Unexplored) continue;
+            var c = ToMap(_view.TileCentre(r.Tile));
+            var d = new[] { c + new Vector2(0, -5), c + new Vector2(5, 0), c + new Vector2(0, 5), c + new Vector2(-5, 0) };
+            DrawColoredPolygon(d, r.Exhausted ? new Color(0.45f, 0.45f, 0.48f) : RuinColour);
+            DrawPolyline(new[] { d[0], d[1], d[2], d[3], d[0] }, new Color(0.02f, 0.02f, 0.04f), 1.2f);
+        }
         // Other players' bases you know of (in sight now or remembered: the sim's fog) and their vehicles in sight.
         foreach (var s in surface.Structures)
         {
@@ -126,7 +142,12 @@ public partial class Minimap : Control
             DrawRect(new Rect2(p - new Vector2(5, 5), new Vector2(10, 10)), Colors.White, false, 1.5f);
         }
         foreach (var u in surface.Units)
-            if (u.Owner == _localPlayer) DrawCircle(ToMap(_view.UnitPos(u)), 2.5f, Colors.White);
+        {
+            if (u.Owner != _localPlayer) continue;
+            var at = ToMap(_view.UnitPos(u));
+            DrawCircle(at, 2.5f, Colors.White);
+            if (Carriers.Contains(u.Id)) DrawArc(at, 5f, 0f, Mathf.Tau, 16, CarrierColour, 1.5f); // carrying a pathogen
+        }
 
         if (_frame.Length == 4)
         {

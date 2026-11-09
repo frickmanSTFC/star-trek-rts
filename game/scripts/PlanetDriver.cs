@@ -537,6 +537,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (wild != Wildlife.None) sb.Append(wild == Wildlife.Predators ? "\nLifeforms: predators" : "\nLifeforms: grazing herds");
         if (map.Toxic[tile]) sb.Append("\nBiologics: toxic spores, contaminated ground");
         else if (map.Biomass[tile] > Fix64.Zero) sb.Append($"\nBiomass {Mathf.RoundToInt(map.Biomass[tile].ToFloat() * 100)}%");
+        sb.Append(RuinRegionText(tile)); // the sim's ruins hint over this region (PlanetDriver.Excavation.cs)
         var r = map.DepositResource[tile];
         if (Me.Surveyed[tile]) sb.Append(r < 0 ? "\nNo deposit" : map.IsDepleted(tile) ? $"\n{_data.Resources[r].Name}: used up" : $"\nDeposit: {_data.Resources[r].Name} {Hud.Whole(map.DepositAmount[tile])}");
         else
@@ -639,6 +640,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (herds > 0) list.Add($"Grazing herds on {herds} sectors");
         if (toxic > 0) list.Add($"Toxic ground on {toxic} sectors: no landing there");
         if (surveyed > 0) list.Add($"Surveyed {surveyed} sectors · {deposits} deposits found");
+        if (RuinFinding() is { } ruins) list.Insert(0, ruins); // ruins seen from orbit (PlanetDriver.Excavation.cs)
         list.InsertRange(0, UplinkFindings());
         _findings = list;
         return list;
@@ -1736,6 +1738,7 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         var landed = Me.Phase == LandingPhase.Landed;
         UpdateParts(); // inventory / workshop chips, workshop view (PlanetDriver.Parts.cs)
+        if (landed) UpdateExcavation(); // finds list, sick-crew chip, dig events (PlanetDriver.Excavation.cs)
         _hud.ShowHints(ContextHints());
         UpdateBuildMenu(); // drawer, large card, placing strip (PlanetDriver.BuildMenu.cs)
         if (_inOrbit)
@@ -1829,7 +1832,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var built = members.Where(s => s.State == StructureState.Complete)
             .GroupBy(s => _data.Building(s.DefId).Name)
             .Select(g => g.Count() > 1 ? $"{g.Key} ×{g.Count()}" : g.Key).ToList();
-        var buildings = (built.Count == 0 ? "No buildings yet" : string.Join("  ·  ", built)) + $"  ·  build radius {def.BuildRadius}";
+        var buildings = SickLine(core.Id) + (built.Count == 0 ? "No buildings yet" : string.Join("  ·  ", built)) + $"  ·  build radius {def.BuildRadius}";
         if (power.Efficiency < Fix64.One)
             buildings = $"Low power: buildings run at {Mathf.RoundToInt(power.Efficiency.ToFloat() * 100)}% — build a Fusion Reactor\n" + buildings;
 
@@ -2048,6 +2051,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             sb.Append("Loads fly to ").Append(_data.Building(depot.DefId).Name).Append(" (").Append(tiles).Append(" tiles, ~").Append(flight).AppendLine(" s by cargo pod)");
         }
         if (kitWait != null) sb.AppendLine(kitWait);
+        if (CarrierText(u) is { } carrier) sb.AppendLine(carrier[..1].ToUpperInvariant() + carrier[1..]); // PlanetDriver.Excavation.cs
         else if (JuryAction(u) is { Enabled: true }) sb.AppendLine("J: jury-rig it now, no kits (capped, wears faster)");
         if (u.Broken) sb.Append(repairing ? "The repair crew fix it on the pad beside the Colony Hub" : "F: drive to the Colony Hub's repair pad (or right-click the hub)");
         else sb.Append("Right-click a deposit: drive there and unfurl  ·  F ").Append(u.Mode == UnitMode.Mobile ? "unfurl here" : "pack up");
@@ -2232,6 +2236,9 @@ public partial class PlanetDriver : Node3D, ITestHost
             progressText = $"{Hud.Whole(done)} / {Hud.Whole(t.Cost)} points" + (left >= 0 ? $"  ·  ~{left / 60}:{left % 60:00} left" : "");
         }
 
+        // An Excavation Site's dig; a crewed building's sick crew (PlanetDriver.Excavation.cs).
+        ExcavationPanel(s, complete, rows, ref status, ref statusColour, ref progress, ref progressLabel, ref progressText);
+
         // Buttons.
         var actions = new List<ActionView>();
         if (s.Assembling)
@@ -2291,6 +2298,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             sb.Append('\n').Append(_data.Building(structure.DefId).Name);
             if (structure.Assembling) sb.Append($" · Assembling… {PlanetSurface.AssembleSecondsLeft(structure, _sim.Tick)} s");
         }
+        sb.Append(RuinTooltip(tile)); // "Ruins of the <species> · N layers, M dug" (PlanetDriver.Excavation.cs)
 
         if (Me.Phase == LandingPhase.InOrbit)
         {
@@ -2356,7 +2364,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         PlacementProblem.CoreAssembling => PlanetSurface.AssemblingProblem,
         PlacementProblem.CoreUnderConstruction => "the new outpost is still being built (exocomps)",
         PlacementProblem.NeedsDome => PlanetSurface.NeedsDomeProblem,
-        _ => "not available",
+        _ => OtherReason(p), // e.g. an Excavation Site off a ruin tile (PlanetDriver.Excavation.cs)
     };
 
     // ---------------------------------------------------------------- camera

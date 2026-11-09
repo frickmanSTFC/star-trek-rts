@@ -152,6 +152,11 @@ public partial class PlanetDriver
             : ("Parked", new Color(0.6f, 0.65f, 0.75f));
 
         var rows = new List<(string, string)>();
+        if (CarrierText(u) is { } carrier) // a pathogen from the dig (PlanetDriver.Excavation.cs)
+        {
+            rows.Add(("Pathogen", carrier));
+            status += "  ·  carrier";
+        }
         var radius = Surface.SurveyRadiusOf(u);
         rows.Add(("Speed", $"{Mathf.RoundToInt(share * 100)}%" + (share < 0.999f
             ? $"  ({string.Join(" · ", new[] { u.Broken ? "disabled" : u.Integrity < d.SlowBelow ? "damage" : "", flats > 0 ? (flats == 1 ? "flat tyre" : "flat tyres") : "" }.Where(x => x.Length > 0))})"
