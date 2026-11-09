@@ -38,6 +38,10 @@ namespace FinalFrontier;
 /// <item>comms on 18.6 → 20: dish feed and mast ring glow, the red beacon starts flashing, an uplink beam goes up
 /// 19 → 20 and fades exactly at UplinkTick, when the copy is freed and the real hub shows.</item>
 /// </list>
+/// <para>Sounds (docs/sound-contract.md; the ships' own engines, ramps and touchdowns are DropShipView's): a
+/// landing/winch_loop per module while its cables pay out (and, higher, while they reel in), module_clamp (soft) as a
+/// module sets down and (full) as the three lock, unfurl as the unfurling starts, uplink at the swap. Only while the
+/// convoy is shown and the surface is on screen; each one-shot plays once, not when the convoy is first seen part-way.</para>
 /// </summary>
 public partial class LandingView : Node3D
 {
@@ -137,6 +141,7 @@ public partial class LandingView : Node3D
         public MeshInstance3D[] Cables = System.Array.Empty<MeshInstance3D>();
         public CpuParticles3D Puff = null!, Trail = null!;
         public bool Puffed;
+        public AudioStreamPlayer3D? Winch;        // landing/winch_loop while the cables move
     }
 
     private sealed class Convoy
@@ -164,6 +169,7 @@ public partial class LandingView : Node3D
         public bool Aborted;
         public float AbortedAt;
         public float Time;
+        public bool Locked, Unfurled;             // their sounds played (or skipped)
     }
 
     public LandingView(PlanetView view, Simulation sim, int localPlayer, DropShipView ships)
@@ -208,7 +214,15 @@ public partial class LandingView : Node3D
         foreach (var c in _convoys.Values)
         {
             c.Time = (_sim.Tick - c.TouchTick + alpha) / Simulation.TickRate;
-            if (c.Time >= c.End || Gone(c))
+            if (c.Time >= c.End)
+            {
+                // The swap: the uplink is online (a convoy whose hub went or whose site was taken never gets here).
+                if (!c.Aborted && c.Time < c.End + 0.5f && IsVisibleInTree() && (c.Owner == _localPlayer || _view.Sees(c.Tile)))
+                    Sfx.At("landing/uplink", ToGlobal(c.Hub.Origin + Vector3.Up * 6f));
+                done.Add(c.Key);
+                continue;
+            }
+            if (Gone(c))
             {
                 done.Add(c.Key);
                 continue;
@@ -250,6 +264,7 @@ public partial class LandingView : Node3D
         foreach (var s in c.Slots)
         {
             foreach (var cable in s.Cables) cable.QueueFree();
+            s.Winch?.QueueFree(); // a child of this view, not of the model
             s.Puff.QueueFree();
             s.Trail.QueueFree();
         }
@@ -317,6 +332,7 @@ public partial class LandingView : Node3D
             var setDown = SetPose(hub, slot, SetDistance, slot.SetGround + LowerBy);
             slot.HoverPose = setDown * carry.AffineInverse(); // module = ship * carry
             Cables(slot);
+            slot.Winch = Sfx.Loop(this, "landing/winch_loop"); // null while the file is missing: silent
             slot.Puff = DropShipView.Downwash(haze, burst: true);
             slot.Trail = DropShipView.Downwash(haze, burst: false);
             slot.Trail.Amount = 120;           // a crawling module's skids kick up a gentler stream of grains
@@ -590,6 +606,7 @@ public partial class LandingView : Node3D
         var S = c.Scale;
         var shown = T >= c.ShowFrom && (c.Owner == _localPlayer || _view.Sees(c.Tile));
         c.Model.Visible = shown;
+        var heard = shown && IsVisibleInTree();
         var hubY = c.Hub.Origin.Y;
         var dock = DockAt * S;
         var locked = dock + LockSeconds;
@@ -640,10 +657,26 @@ public partial class LandingView : Node3D
                     {
                         s.Puff.Position = (c.Hub * (s.Dir * (SetDistance + CentroidOut))) with { Y = s.SetGround + 0.3f };
                         s.Puff.Restart();
+                        if (heard && T < s.Set + 0.5f) Sfx.At("landing/module_clamp", ToGlobal(s.Puff.Position), -5f, 0.85f); // set down, clamps let go
                     }
                 }
             }
             s.Module.Transform = (c.Hub * s.ParentHub).AffineInverse() * world;
+
+            // The winch: paying the cables out over the set-down spot, reeling them in after (or reeling the module back
+            // up when the site was taken).
+            if (s.Winch is { } winch)
+            {
+                var paying = !c.Aborted && T >= s.Hover && T < s.Set;
+                var reeling = c.Aborted ? T >= c.AbortedAt && T < c.AbortedAt + 0.8f : T >= s.Set && T < s.Set + CablesIn;
+                if (heard && (paying || reeling))
+                {
+                    winch.Position = world.Origin + Vector3.Up * (LowerBy + 1.5f);
+                    winch.PitchScale = reeling ? 1.25f : 1f;
+                    if (!winch.Playing) winch.Play();
+                }
+                else if (winch.Playing) winch.Stop();
+            }
 
             var crawling = !carried && T >= s.CrawlFrom && T < dock;
             var centroid = world * (s.RestHub.AffineInverse() * (s.Dir * CentroidOut));
@@ -663,6 +696,19 @@ public partial class LandingView : Node3D
             Set(s, "Comms", T < comms ? 0.1f : T < comms + 0.6f * S ? Mathf.Lerp(0.1f, 2.5f, (T - comms) / (0.6f * S))
                 : Mathf.Lerp(2.5f, 1f, Mathf.Clamp((T - comms - 0.6f * S) / Mathf.Max(0.1f, c.End - comms - 0.6f * S), 0f, 1f)));
             Set(s, "Beacon", Beacon(c, T));
+        }
+
+        // The modules lock together; the unfurling starts.
+        if (!c.Locked && T >= locked)
+        {
+            c.Locked = true;
+            if (heard && !c.Aborted && T < locked + 0.5f) Sfx.At("landing/module_clamp", ToGlobal(c.Hub.Origin + Vector3.Up * 2f));
+        }
+        var unfurlFrom = Folds[0].From * S;
+        if (!c.Unfurled && T >= unfurlFrom)
+        {
+            c.Unfurled = true;
+            if (heard && !c.Aborted && T < unfurlFrom + 0.5f) Sfx.At("landing/unfurl", ToGlobal(c.Hub.Origin + Vector3.Up * 4f));
         }
 
         // Unfurl.
