@@ -40,7 +40,7 @@ public partial class PlanetDriver
             var (cls, id) = MatchSetup.ResolveWorld(data, world);
             PlanetName = MapBodyName(data, id) ?? PlanetName;
             GD.Print($"World: {PlanetName} ({id}, {cls}), seed {Seed}, duel-map world (no generated system yet)");
-            _sim = MatchSetup.CreatePlanetLanding(data, Seed, "federation", null, world);
+            _sim = MatchSetup.CreatePlanetLanding(data, Seed, StartFaction, null, world);
             return id;
         }
         if (world.Length > 0 && home == null && !Is(world, MatchSetup.DefaultWorld))
@@ -48,7 +48,7 @@ public partial class PlanetDriver
             if (landable.Count > 0) GD.Print($"World '{world}' (saved from an earlier game) isn't a landable body of seed {Seed}'s system; starting on the system's own pick.");
             else GD.PushError($"World '{world}' isn't a playable world (try \"tarsis\" or \"veyra\"); starting on {MatchSetup.DefaultWorld}.");
         }
-        _sim = MatchSetup.CreateSystemGame(data, Seed, "federation", home?.Id);
+        _sim = MatchSetup.CreateSystemGame(data, Seed, StartFaction, home?.Id);
         var sys = _sim.System;
         var body = sys?.Bodies.FirstOrDefault(b => b.Id == sys.SurfaceBody) ?? home;
         var classId = _sim.Surface?.Map.Def.ClassId ?? "?";

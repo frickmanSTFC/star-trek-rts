@@ -17,6 +17,9 @@ public enum GameMode { Debug, Campaign }
 
 public static class GameSetup
 {
+    public const string MenuScene = "res://scenes/MainMenu.tscn";
+    public const string PlanetScene = "res://scenes/Planet.tscn";
+
     private const string File = "user://game_setup.cfg";
     private static bool _loaded;
     private static string? _world;
@@ -25,7 +28,9 @@ public static class GameSetup
     public static string? World { get { Load(); return _world; } }
     public static ulong? Seed { get { Load(); return _seed; } }
 
-    // Main menu (docs/menu-contract.md; agent A fills these in). Debug = today's sandbox (saved world/seed above).
+    // Main menu (docs/menu-contract.md, scripts/MainMenu*.cs). Debug = today's sandbox (the saved world/seed above, the
+    // world chooser, the test panel); also what an F6 run of Planet.tscn gets. Campaign = the menu's pick: faction, era,
+    // the system seed and the home body (PlanetDriver._Ready reads them; not saved).
     public static GameMode Mode { get; private set; } = GameMode.Debug;
     public static string Faction { get; private set; } = "federation";
     public static string? Era { get; private set; }
