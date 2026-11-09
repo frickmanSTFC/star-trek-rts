@@ -117,6 +117,9 @@ order; a step waits until it can be done (and its conditions hold), then the bot
 - `upkeep.maintain_below`: send the base crew (`MaintainCommand`) to any building below this condition or broken.
   `upkeep.repair_below`: send rovers below this integrity to the repair pad; a flat tyre is changed with the spare
   (`ChangeTyreCommand`), or the rover goes to the pad when there is none; broken crawlers and disabled rovers go to the pad.
+  `upkeep.jury_rig_after` (seconds, default 60; 0 = never): a building or vehicle repair that has waited this long for
+  spare kits is jury-rigged instead (`JuryRigCommand` / `JuryRigUnitsCommand`: no kits, up to 60%); a jury-rigged
+  vehicle then goes back to work and comes in again when it next needs to.
 - `research`: techs to research, in order, whenever a lab is finished and idle (a tech whose prerequisite isn't known yet
   is skipped until it is).
 
@@ -356,7 +359,42 @@ second refinery in the order. **Findings:**
   the dome. Crew loss to failed life support: none with the plant (it is the grace clock: 30 s at zero, then 2 crew a
   minute per crewed building).
 - Class M is untouched: the four shipped orders give the same final state hashes on all three seeds as before the
-  gravity and hostile-worlds work.
+  gravity and hostile-worlds work. (Since the parts economy, 2026-11-09, every final hash is different: see below.)
+
+## Parts economy (2026-11-09, 3 seeds × 30 min, `reports/orders/`, `reports/standard_opener/`, `reports/veyra_opener/`)
+
+Repairs now take spare kits instead of duranium a point (`data/surfaces/fabrication.json`: one kit per 25 points, a
+broken-down crawler 1/2/3 more by severity, a pad tyre 1 Rover Spares), and every player starts with keep-in-stock
+targets of 2 for each kit their buildings and vehicles use, so from touchdown the Colony Hub's small workshop makes
+Mechanical Spares (8 duranium + 3 tritanium, 130 s each) and queues Rover Spares (they need parasteel, so they wait for
+the foundry). None of the orders builds a Machine Shop. The bot jury-rigs a repair that waits 60 s for kits
+(`upkeep.jury_rig_after`). Before = the commit with the contract stubs (699fab4), after = now; same orders and seeds;
+median of seeds 1 / 1701 / 99999:
+
+| Measure | standard_opener | fast_expand | tech_rush | storage_skip |
+|---|---|---|---|---|
+| Targets in window | 11 of 11 → 11 of 11 | 6 of 6 → 6 of 6 | 5 of 5 → 5 of 5 | 4 of 4 → 4 of 4 |
+| Vehicle Bay done | 8:19 → 8:31 | 2:05 → 2:05 | – | 4:52 → 5:18 |
+| Second crawler | 10:37 → 10:49 | 5:54 → 5:54 | – | 8:52 → 9:10 |
+| First parasteel | 16:27 → 16:02 | – | 4:52 → 5:15 | 19:59 → 19:14 |
+| Colonial Administration (2 of 3 seeds) | 23:07 → 21:14 | – | – | 25:52 → 25:13 |
+| Metal made by minute 30 | 2,262 → 2,282 | 1,780 → 1,776 | 1,324 → 1,314 | 1,337 → 1,344 |
+| Crawler time digging | 92.7% → 85.5% | 78.2% → 75.1% | 57.1% → 58.2% | 56.3% → 59.0% |
+| Crawler broken or in repair | 1.7% → 4.0% | 1.6% → 3.2% | 0.6% → 1.7% | 0.9% → 2.4% |
+| Crew maintenance jobs | 3 → 5 | 4 → 6 | same | 3 → 4 |
+
+- **Small moves, every target still in its window.** The kits cost about what the old per-point duranium did (a full
+  repair of a building at 50%: 2 kits = 16 duranium + 6 tritanium at the hub, was 15 duranium), but the hub's 130 s per
+  kit makes repairs wait: crawlers spend 1–2.5 points more of the match broken or on the pad (a breakdown can need up
+  to 7 kits), and jury-rigged buildings (60%, wearing 2× faster) come back for maintenance sooner. Without the jury-rig
+  rule the standard opener lost 20 points of crawler time (92.7% → 72.3%) and one seed never built its foundry.
+- Veyra (`veyra_opener`) is where it was: 3 of 7 targets (bay 20:48 → 19:57, metal at 10 / 20 min 299 / 790 → 302 / 796).
+- **Hashes:** every final state hash changed (the 12 new resources are in every stock, and repairs and the hub workshop
+  change the game from touchdown), so golden hashes of landed games are new; nothing had to be re-recorded (the
+  pre-split golden test stops applying once the data is edited).
+- Next to try: a Machine Shop in the standard opener (65 s a Mechanical Spares kit instead of 130 s, at 12 power and
+  its own wear), and whether default targets of 2 are enough for a crawler explosion (up to 7 kits).
+
 
 ## Writing new measures
 

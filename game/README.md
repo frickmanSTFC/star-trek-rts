@@ -73,11 +73,11 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    (needs the Deep-Core Mining tech).
    The crawler can break down while mining (a minor fault, a major breakdown, or an explosion that loses its load).
    It then folds up and drives slower: press **F** (or right-click the Colony Hub) to send it to the repair pad
-   beside the hub, where two crew members walk out and weld it back to 100% for a little duranium.
+   beside the hub, where two crew members walk out and weld it back to 100% with spare kits (Mechanical Spares; the Colony Hub's small workshop makes them, a Machine Shop faster; short of kits, the repair waits or you jury-rig it to 60%).
    Rovers wear while they drive (hills, ice and forest most), can hit rock strikes, sinkholes or sharp ice, corrode on
    toxic ground and get attacked by predators. Below half integrity they drive slower, badly damaged their sensors see
    less, and at 0 they are disabled. A flat tyre slows a rover (two flats: a crawl): press **T** to have the crew change
-   it with the spare, or **R** to send it to the repair pad, which fixes everything for a little duranium.
+   it with the spare, or **R** to send it to the repair pad, which fixes everything for Rover Spares.
    Day and night sweep across the map (a Tarsis day is 12 minutes, its year 8 days with four seasons), and weather
    drifts over it with the seasons: rain, snow, fog and storms slow vehicles, shorten their surveys and wear rovers
    faster, and storms keep drop ships and outpost drops (and the first landing) from coming down under them.
