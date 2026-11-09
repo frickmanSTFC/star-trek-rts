@@ -1,0 +1,951 @@
+<title>First Contact Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@500;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: a design-review page framing the helm screen at game scale (1280×720): faction picker and stepper on top,
+   the helm frame (HelmScreen.cs colours, slim elbows) in the middle, design notes under it. The page shell follows the
+   viewer's theme (dark first); the game frame always keeps the game's own colours, like the other game mockups. */
+:root {
+  color-scheme: dark;
+  --page: #06080e; --page-2: #0d1322; --ink: #e8ecf5; --dim: #97a3bd; --rule: #252e46; --mark: #f2a65a; --focus: #9ed1ff;
+  /* helm (HelmScreen.cs) — fixed in both themes */
+  --h-bg: #000; --h-panel: #0a0c13; --h-panel-2: #11141d; --h-line: #272b38;
+  --h-peach: #f2a65a; --h-lav: #a9a3e0; --h-sky: #7fb0e8; --h-rust: #c8664a; --h-cyan: #5ff2e6; --h-green: #9be37a;
+  --h-red: #e8645a; --h-amber: #f5c04a; --h-ink: #f2e6d8; --h-grey: #3d404b; --h-greytext: #8d909a;
+  /* factions */
+  --f-federation: #7fb0e8; --f-klingon: #e0574c; --f-romulan: #45b89c; --f-cardassian: #c9a24a;
+  --f-dominion: #a487e0; --f-ferengi: #e8963a; --f-borg: #8fe060;
+  --fc: var(--f-federation);
+  --display: "Antonio", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { color-scheme: light; --page: #eceff5; --page-2: #ffffff; --ink: #151b29; --dim: #4e5970; --rule: #cdd3e0; --mark: #a8561a; --focus: #1f5fbf; }
+}
+:root[data-theme="light"] { color-scheme: light; --page: #eceff5; --page-2: #ffffff; --ink: #151b29; --dim: #4e5970; --rule: #cdd3e0; --mark: #a8561a; --focus: #1f5fbf; }
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 18px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+header.page h1 { font: 700 clamp(34px, 5vw, 52px)/1 var(--display); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 8px; text-wrap: balance; }
+header.page p { margin: 0; color: var(--dim); max-width: 70ch; }
+.eyebrow { display: inline-block; font: 600 13px/1 var(--label); letter-spacing: .16em; text-transform: uppercase; color: var(--mark);
+  border: 1px solid var(--mark); border-radius: 12px; padding: 5px 10px; margin-bottom: 12px; }
+
+/* controls above the frame */
+.controls { display: grid; gap: 12px; }
+.ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.ctl-label { font: 600 12px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); min-width: 64px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.fbtn { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 9px; border-radius: 16px; border: 1px solid var(--rule);
+  background: var(--page-2); font: 600 15px/1 var(--label); letter-spacing: .06em; text-transform: uppercase; }
+.fbtn em { font: 600 10px/1 var(--label); letter-spacing: .12em; color: var(--dim); font-style: normal; border: 1px solid var(--rule); border-radius: 6px; padding: 2px 4px; }
+.playnote { font-size: 13px; color: var(--dim); }
+.pvstrip { background: repeating-linear-gradient(135deg, #2a2210 0 10px, #1d180c 10px 20px); border-left: 8px solid var(--h-amber); border-radius: 0 12px 12px 0; padding: 7px 12px;
+  font: 700 14px/1.2 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--h-amber); }
+.fbtn i { width: 11px; height: 11px; border-radius: 50%; background: var(--c); flex: none; }
+.fbtn[aria-checked="true"] { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); }
+.steps { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; width: fit-content; max-width: 100%; }
+.steps button { display: flex; align-items: center; gap: 8px; border: 0; border-right: 1px solid var(--rule); background: var(--page-2);
+  padding: 9px 14px; font: 600 15px/1 var(--label); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.steps button:last-child { border-right: 0; }
+.steps button b { font: 700 13px/1 var(--display); color: var(--mark); }
+.steps button[aria-current="true"] { color: var(--ink); background: color-mix(in srgb, var(--mark) 16%, var(--page-2)); }
+.screen-cap { display: flex; justify-content: space-between; align-items: center; gap: 12px; font: 600 12px/1 var(--label);
+  letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+.screen-cap button { border: 1px solid var(--rule); background: var(--page-2); border-radius: 6px; padding: 6px 10px; font: 600 12px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; }
+
+/* ---------------------------------------------------------------- helm frame */
+.helm { position: relative; background: var(--h-bg); color: var(--h-ink); border-radius: 12px; aspect-ratio: 16 / 9; max-width: 100%;
+  display: grid; grid-template-columns: 104px minmax(0, 1fr); grid-template-rows: 34px 1fr 28px; gap: 4px;
+  grid-template-areas: "et et" "rail hb" "eb eb"; font: 400 14px/1.4 var(--body); }
+.et { grid-area: et; display: flex; gap: 4px; }
+.et .cap { width: 104px; flex: none; background: var(--h-peach); border-radius: 12px 0 0 0; }
+.et .bar { flex: 1; background: var(--h-lav); color: #000; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px;
+  font: 700 17px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; min-width: 0; white-space: nowrap; overflow: hidden; }
+.et .bar small { font: 600 12px/1 var(--label); letter-spacing: .14em; }
+.et .b2 { flex: none; width: 170px; justify-content: center; background: var(--fc); border-radius: 0 12px 0 0; }
+.rail { grid-area: rail; display: flex; flex-direction: column; gap: 4px; }
+.rail button { border: 0; background: var(--h-grey); color: #000; text-align: right; padding: 22px 9px 5px; font: 600 13px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; }
+.rail button[aria-current="true"] { background: var(--h-peach); }
+.rail button:hover { background: #575b68; } .rail button[aria-current="true"]:hover { background: #f7b874; }
+.rail .fill { flex: 1; background: var(--h-grey); min-height: 20px; }
+.rail .tag { background: var(--fc); color: #000; padding: 18px 9px 5px; text-align: right; font: 600 12px/1 var(--label); letter-spacing: .12em; }
+.eb { grid-area: eb; display: flex; gap: 4px; }
+.eb .cap { width: 104px; flex: none; background: var(--h-lav); border-radius: 0 0 0 12px; }
+.eb .bar { flex: 1; background: var(--h-grey); border-radius: 0 0 12px 0; display: flex; align-items: center; gap: 6px; padding: 0 8px; min-width: 0; overflow-x: auto; }
+.pill { border: 0; background: var(--h-peach); color: #000; border-radius: 11px; padding: 4px 11px; font: 600 12px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+.pill.dis { background: var(--h-greytext); }
+.pill.alt { background: var(--h-sky); }
+.eb .clock { margin-left: auto; color: #000; font: 700 13px/1 var(--display); letter-spacing: .12em; font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: 6px; }
+.hb { grid-area: hb; min-width: 0; padding: 10px 14px 12px 10px; display: grid; align-content: start; gap: 12px; }
+
+/* helm type */
+.h4 { margin: 0; font: 700 26px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--h-peach); }
+.sub { font: 600 12px/1.3 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--h-lav); }
+.k { font: 600 12px/1.4 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--h-lav); }
+.mute { color: var(--h-greytext); }
+.warnc { color: var(--h-amber); } .badc { color: var(--h-red); } .goodc { color: var(--h-green); }
+.kv { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 3px 10px; margin: 0; }
+.kv dt { font: 600 12px/1.6 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--h-lav); }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; min-width: 0; }
+.panel { background: var(--h-panel); border-left: 8px solid var(--h-peach); border-radius: 0 14px 14px 0; padding: 10px 12px; display: grid; gap: 8px; min-width: 0; }
+.panel.lav { border-left-color: var(--h-lav); } .panel.sky { border-left-color: var(--h-sky); } .panel.fc { border-left-color: var(--fc); }
+.panel.red { border-left-color: var(--h-red); }
+.panel h5 { margin: 0; font: 700 17px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--h-peach); display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.panel h5 small { font: 600 11px/1 var(--label); letter-spacing: .14em; color: var(--h-greytext); }
+.hseg { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+.hseg button { border: 0; background: var(--h-grey); color: #000; padding: 5px 10px; font: 600 12px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; }
+.hseg button:first-child { border-radius: 10px 0 0 10px; } .hseg button:last-child { border-radius: 0 10px 10px 0; }
+.hseg button[aria-pressed="true"] { background: var(--h-peach); }
+.meter { position: relative; height: 12px; background: var(--h-panel-2); border: 1px solid var(--h-line); border-radius: 0 6px 6px 0; }
+.meter > i { position: absolute; inset: 0 auto 0 0; background: var(--mc, var(--h-sky)); border-radius: 0 5px 5px 0; transition: width .3s; }
+.meter > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--h-ink); opacity: .55; }
+.meter.big { height: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font: 600 12px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; padding: 4px 8px; border-radius: 9px; border: 1px solid var(--h-line); color: var(--h-greytext); }
+.chip.on { background: var(--h-red); border-color: var(--h-red); color: #000; }
+.chip.on.amber { background: var(--h-amber); border-color: var(--h-amber); }
+.chip.on.fcn { background: var(--fc); border-color: var(--fc); }
+
+/* 1 · scan */
+.scan { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.plotbox { display: grid; gap: 6px; min-width: 0; }
+.plot { width: 100%; height: auto; display: block; background: radial-gradient(60% 60% at 50% 50%, #0b1020 0%, #000 75%); border-radius: 0 16px 16px 0; }
+.plot .body { cursor: pointer; }
+.plot .body:focus-visible circle.hit { stroke: var(--focus); stroke-width: 2; }
+.plot text { font: 600 11px var(--label); letter-spacing: .1em; text-transform: uppercase; }
+.cardcol { display: grid; gap: 8px; min-width: 0; }
+.fogrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ocard .ttl { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.fogtag { font: 700 12px/1 var(--label); letter-spacing: .14em; padding: 4px 8px; border-radius: 9px; color: #000; background: var(--h-greytext); }
+.fogtag.charted { background: var(--h-lav); } .fogtag.live { background: var(--h-green); }
+.civ { border-top: 2px solid var(--h-peach); padding-top: 8px; display: grid; gap: 7px; }
+.civ.past { border-top-color: var(--h-rust); }
+.civ .hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; font: 700 15px/1 var(--display); letter-spacing: .14em; color: var(--h-peach); }
+.civ.past .hd { color: var(--h-rust); }
+.signal { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 1px dashed var(--h-grey); color: var(--h-ink); font: 600 14px/1.3 var(--label); letter-spacing: .04em; }
+.signal svg { flex: none; }
+.cbtns { display: flex; flex-wrap: wrap; gap: 5px; }
+
+/* 2 · dossier */
+.dossier { display: grid; grid-template-columns: 210px minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.ladder { display: grid; gap: 4px; }
+.rung { border: 0; text-align: left; display: grid; grid-template-columns: 34px 1fr; gap: 0 8px; align-items: center; padding: 6px 8px; background: var(--h-panel);
+  border-left: 6px solid var(--h-grey); border-radius: 0 10px 10px 0; color: var(--h-ink); }
+.rung b { font: 700 18px/1 var(--display); color: var(--h-greytext); grid-row: span 2; }
+.rung span { font: 600 14px/1.1 var(--label); letter-spacing: .06em; text-transform: uppercase; }
+.rung small { font-size: 11.5px; color: var(--h-greytext); line-height: 1.25; }
+.rung.below { border-left-color: var(--h-lav); } .rung.below b { color: var(--h-lav); }
+.rung.cur { border-left-color: var(--h-peach); background: #2a1f12; } .rung.cur b { color: var(--h-peach); }
+.rung.warp { box-shadow: inset 0 -1px 0 var(--h-sky); }
+.nations { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; }
+.nation { background: var(--h-panel-2); padding: 8px 10px; border-radius: 0 10px 10px 0; border-left: 4px solid var(--nc, var(--h-lav)); display: grid; gap: 2px; font-size: 13px; }
+.nation b { font: 700 15px/1.1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.bands { display: grid; grid-template-columns: 10fr 30fr 30fr 30fr; font: 600 10.5px/1.2 var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--h-greytext); }
+.bands span { border-left: 1px solid var(--h-line); padding: 3px 4px 0; }
+.bands span.on { color: var(--h-ink); }
+.bignum { font: 700 44px/1 var(--display); color: var(--h-sky); font-variant-numeric: tabular-nums; }
+.bignum small { font-size: 18px; color: var(--h-greytext); }
+
+/* 3 · contact */
+.contact { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.ctx { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.acts { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.act { border: 0; text-align: left; background: var(--h-panel); border-left: 8px solid var(--fc); border-radius: 0 14px 14px 0; padding: 9px 11px; display: grid; gap: 6px; color: var(--h-ink); align-content: start; }
+.act:hover { background: var(--h-panel-2); }
+.act[aria-pressed="true"] { background: #1c1a24; box-shadow: inset 0 0 0 1px var(--fc); }
+.act .an { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; font: 700 17px/1.05 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.tag { font: 700 10.5px/1 var(--label); letter-spacing: .14em; padding: 3px 6px; border-radius: 7px; color: #000; background: var(--h-green); white-space: nowrap; }
+.tag.grey { background: var(--h-amber); } .tag.covert { background: var(--h-sky); } .tag.hostile { background: var(--h-red); } .tag.forbid { background: var(--h-greytext); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.stats div { min-width: 0; font-size: 12.5px; line-height: 1.25; }
+.stats .k { display: block; font-size: 10.5px; }
+.act .cons { font-size: 13px; color: var(--h-greytext); border-top: 1px solid var(--h-line); padding-top: 5px; }
+.act.gated { border-left-color: var(--h-grey); }
+.act.gated .an, .act.gated .stats { opacity: .55; }
+.act .gate { font: 600 13px/1.25 var(--label); letter-spacing: .06em; color: var(--h-red); text-transform: uppercase; }
+.side { display: grid; gap: 10px; min-width: 0; }
+.branch { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.branch > div { background: var(--h-panel-2); padding: 8px 10px; border-radius: 0 10px 10px 0; font-size: 13px; border-left: 4px solid var(--h-green); }
+.branch > div.bad { border-left-color: var(--h-red); }
+.go { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.order { border: 0; background: var(--h-peach); color: #000; border-radius: 14px; padding: 8px 16px; font: 700 15px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; }
+.order.red { background: var(--h-red); }
+.order:disabled { background: var(--h-grey); cursor: not-allowed; }
+.chk { display: inline-flex; gap: 6px; align-items: center; font: 600 12px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--h-greytext); }
+.result { font: 600 14px/1.3 var(--label); letter-spacing: .05em; padding: 6px 10px; border-radius: 0 10px 10px 0; background: var(--h-panel-2); }
+.ladder4 { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.ladder4 li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; padding: 5px 8px; border-radius: 0 9px 9px 0; background: var(--h-panel-2); font-size: 13px; }
+.ladder4 li b { font: 700 15px/1.1 var(--display); color: var(--h-greytext); }
+.ladder4 li strong { font: 600 14px/1.1 var(--label); letter-spacing: .06em; text-transform: uppercase; display: block; }
+.ladder4 li.hit { background: #3a1916; } .ladder4 li.hit b, .ladder4 li.hit strong { color: var(--h-red); }
+.ladder4 li.now { box-shadow: inset 0 0 0 1px var(--h-red); }
+.risk { display: grid; grid-template-columns: minmax(0, 1fr) 90px 38px; gap: 6px; align-items: center; font-size: 12.5px; }
+.risk .meter { height: 8px; }
+.risk span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; counter-reset: st; }
+.track li { counter-increment: st; background: var(--h-panel-2); border-top: 4px solid var(--h-grey); padding: 6px 8px; display: grid; gap: 2px; font-size: 12px; color: var(--h-greytext); min-width: 0; }
+.track li:last-child { border-radius: 0 0 12px 0; }
+.track li b { font: 700 14px/1.1 var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--h-greytext); }
+.track li b::before { content: counter(st) " · "; }
+.track li.done { border-top-color: var(--h-green); } .track li.done b { color: var(--h-green); }
+.track li.now { border-top-color: var(--h-peach); background: #2a1f12; color: var(--h-ink); } .track li.now b { color: var(--h-peach); }
+.gains, .allied { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13px; }
+.gains li { background: var(--h-panel-2); border-left: 4px solid var(--h-green); border-radius: 0 9px 9px 0; padding: 5px 8px; }
+.gains li b { display: block; font: 600 13px/1.2 var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--h-green); }
+.allied li::before { content: "› "; color: var(--h-peach); }
+@media (max-width: 640px) { .track { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.quote { font: 500 15px/1.35 var(--body); font-style: italic; color: var(--h-ink); border-left: 2px solid var(--f-ferengi); padding-left: 10px; }
+
+/* 4 · ruins */
+.ruins { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.dig { width: 100%; height: auto; display: block; border-radius: 0 16px 16px 0; background: #1a120c; }
+.finds { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.finds li { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; font-size: 13px; padding: 5px 8px; background: var(--h-panel-2); border-radius: 0 9px 9px 0; }
+.finds li .k { font-size: 11px; }
+.finds li.danger .k { color: var(--h-red); }
+.finds li.hidden { opacity: .45; }
+.finds li em { font-style: normal; color: var(--h-greytext); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* 5 · log */
+.logv { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; max-height: 470px; overflow-y: auto; }
+.log li { display: grid; grid-template-columns: 54px 8px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 5px 8px; background: var(--h-panel); border-radius: 0 9px 9px 0; font-size: 13.5px; }
+.log li time { font: 700 13px/1 var(--display); letter-spacing: .06em; color: var(--h-greytext); font-variant-numeric: tabular-nums; }
+.log li i { width: 8px; height: 8px; border-radius: 2px; background: var(--sv); align-self: center; }
+.log li small { font: 600 11px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--h-greytext); }
+.sev-info { --sv: var(--h-sky); } .sev-good { --sv: var(--h-green); } .sev-warn { --sv: var(--h-amber); } .sev-bad { --sv: var(--h-red); }
+
+/* toasts */
+.toasts { position: absolute; top: 46px; right: 14px; display: grid; gap: 6px; width: min(380px, calc(100% - 28px)); z-index: 5; pointer-events: none; }
+.toast { pointer-events: auto; display: grid; grid-template-columns: 6px minmax(0, 1fr); gap: 10px; background: #0b0d14f2; border: 1px solid var(--h-line);
+  border-radius: 0 14px 14px 0; padding: 8px 12px 8px 0; box-shadow: 0 8px 24px #000a; animation: tin .3s cubic-bezier(.2,.9,.3,1.2) both; }
+.toast > i { background: var(--sv); }
+.toast .tk { font: 700 11px/1 var(--label); letter-spacing: .16em; text-transform: uppercase; color: var(--sv); }
+.toast .tt { font: 600 15px/1.25 var(--label); letter-spacing: .03em; }
+.toast.out { animation: tout .3s ease-in both; }
+.toast.static { animation: none; box-shadow: none; }
+@keyframes tin { from { transform: translateX(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes tout { to { transform: translateX(16px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast, .toast.out { animation: none; } .meter > i { transition: none; } }
+
+/* notes under the frame */
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 28px; border-top: 1px solid var(--rule); padding-top: 18px; color: var(--dim); font-size: 14px; }
+.notes h3 { margin: 0 0 6px; font: 700 18px/1.1 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+.notes b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 1100px) {
+  .helm { aspect-ratio: auto; }
+  .dossier { grid-template-columns: 200px minmax(0, 1fr); } .dossier > :last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 900px) {
+  .scan, .contact, .ruins, .logv, .dossier { grid-template-columns: minmax(0, 1fr); }
+  .dossier > :last-child { grid-column: auto; }
+  .notes { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .helm { grid-template-columns: 30px minmax(0, 1fr); grid-template-rows: 34px auto auto; }
+  .et .cap, .eb .cap { width: 30px; }
+  .et .b2 { width: auto; padding: 0 10px; }
+  .et .bar small { display: none; }
+  .rail button, .rail .tag { font-size: 0; padding: 16px 0 0; }
+  .hb { padding: 8px 8px 10px 4px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .branch { grid-template-columns: minmax(0, 1fr); }
+  .kv { grid-template-columns: 96px minmax(0, 1fr); }
+  .toasts { top: 42px; right: 8px; }
+}
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <div class="eyebrow">Mockup — placeholder numbers</div>
+    <h1>First Contact</h1>
+    <p>A ship arrives at a body in the star-system view, sweeps it, and may find a civilization, living or long dead. Pick a faction to see what it can do about it and what each choice costs. Click an action to preview its outcome, then order it: the result lands in the consequence log and pops up as an event toast.</p>
+  </header>
+
+  <div class="controls">
+    <div class="ctl"><span class="ctl-label">Faction</span><div class="seg" id="factions" role="radiogroup" aria-label="Faction"></div></div>
+    <div class="ctl"><span class="ctl-label"></span><span class="playnote">Federation is the only playable faction for now. The other six are a design preview, not playable yet.</span></div>
+    <div class="ctl"><span class="ctl-label">Screen</span><nav class="steps" id="steps" aria-label="Screens"></nav></div>
+  </div>
+
+  <div class="screen-cap"><span>Helm screen · 1280 × 720 · system display</span><button type="button" id="reset">Reset the world</button></div>
+
+  <div class="helm" id="helm">
+    <div class="et"><div class="cap"></div><div class="bar" id="title"></div><div class="bar b2" id="ftag"></div></div>
+    <div class="rail" id="rail"></div>
+    <div class="hb" id="view"></div>
+    <div class="eb"><div class="cap"></div><div class="bar" id="pills"></div></div>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+  </div>
+
+  <section class="notes" id="notes" aria-label="Design notes"></section>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+let seed = 1701;
+const rng = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+
+/* ---------------------------------------------------------------- world data (placeholders) */
+const LEVELS = [
+  { k: "L1", n: "Stone / Bronze", d: "Villages, bronze tools, oral history", def: "spears, bows, hill forts", sees: "nothing in orbit", pop: .04 },
+  { k: "L2", n: "Iron / Medieval", d: "Kingdoms, writing, sailing ships", def: "steel, siege engines, castles", sees: "a 'new star' at best", pop: .3 },
+  { k: "L3", n: "Industrial", d: "Railways, steam, telegraph, cities of millions", def: "coastal artillery, early aircraft, no orbital tracking", sees: "telescopes catch a lit hull at dusk", pop: 1.2 },
+  { k: "L4", n: "Atomic / Information", d: "Fission, rockets, radio, computers", def: "missiles, radar, a few nuclear warheads", sees: "radar tracks a ship in low orbit", pop: 3.1 },
+  { k: "L5", n: "Early warp", d: "First warp test flight this decade", def: "orbital platforms, warp prototypes", sees: "sensors find a ship anywhere in the system", pop: 4.4 },
+  { k: "L6", n: "Spacefaring", d: "Warp ships, outposts on their moons", def: "armed warp frigates", sees: "they hail you first", pop: 5 }
+];
+const NATIONS = [
+  { n: "Halvic Union", p: 520, t: "wary", d: "industrial parliament, railways and coal", c: "var(--h-sky)" },
+  { n: "Free Cantons of Oru", p: 310, t: "peaceful", d: "farming leagues, river trade", c: "var(--h-green)" },
+  { n: "Seshet Directorate", p: 370, t: "aggressive", d: "military junta, shipyards", c: "var(--h-red)" }
+];
+const FX = {
+  cult: ["Cargo cult", "They worship the visitors; priests gain power, science stalls"],
+  shock: ["Culture shock", "Institutions wobble: stability falls, a government may fall"],
+  unrest: ["Unrest", "Nations blame each other for the lights in the sky"],
+  arms: ["Arms race", "Nations race to build weapons against what they saw"],
+  subject: ["Subject world", "Ruled from orbit: steady output, low or rising unrest"],
+  assim: ["Assimilated", "The Tenari no longer exist as a culture"],
+  puppet: ["Puppet government", "One nation is run by the Tal Shiar"],
+  ally: ["Allied world", "Stays theirs: a small outpost, their trade and ships, no free mining"]
+};
+const BODIES = [
+  { id: "b1", name: "Ketar I", cls: "Class Y", r: 62, a: 200, s: 6, col: "#c8664a", g: "1.31 g", tier: "Tech", air: "Corrosive, 9 MPa", size: 4 },
+  { id: "b2", name: "Ketar II", cls: "Class D", r: 108, a: 330, s: 7, col: "#8d909a", g: "0.38 g", tier: "Domes", air: "None", size: 3 },
+  { id: "b3", name: "Ketar III", native: "Tenari Prime", cls: "Class M", r: 160, a: 35, s: 11, col: "#5aa6d6", g: "1.04 g", tier: "Open", air: "N₂ 77 % · O₂ 21 %", size: 6, moons: "1 (Ilo)", res: "Duranium present · dilithium possible", civ: "living" },
+  { id: "b4", name: "Ketar Belt", cls: "Asteroid belt", r: 205, belt: true, g: "—", tier: "Tech", air: "None", size: 2, res: "Tritanium present" },
+  { id: "b5", name: "Ketar V", native: "Ossar", cls: "Class K", r: 248, a: 150, s: 9, col: "#b08a68", g: "0.71 g", tier: "Domes", air: "CO₂ 96 %, 4 kPa", size: 5, moons: "none", res: "Tritanium present · deuterium possible", civ: "past" },
+  { id: "b6", name: "Ketar VI", cls: "Class J", r: 282, a: 290, s: 16, col: "#d9b38c", g: "2.4 g", tier: "Impossible", air: "H₂ / He", size: 9, moons: "3" }
+];
+
+/* ---------------------------------------------------------------- factions */
+const tierOf = L => Math.max(1, L - 2);
+const TEMPER = { peaceful: 0, wary: 1, aggressive: 2 };
+const F = {
+  federation: { name: "Federation", short: "UFP", ship: "USS Calloway", cls: "Kestrel class",
+    gauge: { name: "Starfleet Standing", start: 80, max: 100, bad: "low", marks: [70, 50, 30, 10] }, value: S => S.level < 5 ? "Protected by the Prime Directive: observe only" : "Candidate for first contact",
+    actions: [
+      { id: "observe", name: "Observe from orbit", tag: ["safe", "Safe"], time: "2 min", cost: "—", reward: "+40 research · dossier Live while in orbit", pct: 1,
+        risk: S => "1 % a sensor glint is seen", cons: "Nothing changes below. The safest way to learn about them.",
+        ok: { g: 2, log: [["good", "Orbital survey of Tenari Prime complete — +40 research"]] },
+        bad: { g: -5, aw: 3, log: [["warn", "Tenari astronomers log a 'moving star' over Oru — awareness +3"]] } },
+      { id: "post", name: "Hidden observation post", tag: ["covert", "Duck blind"], time: "90 s build, then ongoing", cost: "80 duranium · 20 tritanium · 6 crew",
+        reward: "+12 research/min · Live dossier without the ship", pct: S => S.aware > 40 ? 16 : 8,
+        risk: S => `${S.aware > 40 ? 16 : 8} % per 10 min to be found (doubles above awareness 40)`, cons: "Found: awareness +35, Standing −20, culture shock.",
+        ok: { g: 0, set: { post: true }, log: [["good", "Observation post Blind-7 hidden in the Seshet highlands — +12 research/min"]] },
+        bad: { g: -20, aw: 35, fx: ["shock"], set: { post: false }, log: [["bad", "Contamination incident on Tenari Prime — Starfleet Standing −20"], ["warn", "Seshet hunters find Blind-7; the post is evacuated"]] } },
+      { id: "outpost", name: "Hidden outpost, far from settlements", tag: ["covert", "Remote"], time: "3 min build", cost: "150 duranium · 50 tritanium · 10 crew",
+        reward: "A small base on Tenari Prime: mining + research, +6 research/min", pct: 3,
+        risk: S => "3 % per 10 min an incident; awareness +1 per 10 min while it stands", cons: "Found: incident, Standing −20, awareness +30. Kept far from natives, it is rarely found.",
+        ok: { g: 0, aw: 1, set: { outpost: true }, log: [["good", "Hidden outpost Kestrel Rock built in the uninhabited southern ice fields"], ["info", "Tenari awareness creeps up +1 per 10 min (aircraft sightings, odd radio)"]] },
+        bad: { g: -20, aw: 30, fx: ["shock"], set: { outpost: false }, log: [["bad", "Contamination incident on Tenari Prime — Starfleet Standing −20"], ["warn", "A Seshet polar expedition stumbles on Kestrel Rock"]] } },
+      { id: "survey", name: "Covert survey team", tag: ["covert", "Covert"], time: "3 min", cost: "4 crew · surgical disguise", reward: "+60 research · 2 deposits · nation politics", pct: 12,
+        risk: S => "12 % a team member is caught", cons: "Caught: culture shock in one nation, Standing −15.",
+        ok: { g: 0, log: [["good", "Survey team back from Halvic Union — +60 research, 2 deposits charted"]] },
+        bad: { g: -15, aw: 20, fx: ["shock"], log: [["bad", "Survey officer held in a Halvic hospital — Starfleet Standing −15"], ["warn", "Halvic papers print 'the man with no navel' — awareness +20"]] } },
+      { id: "leave", name: "Leave the system alone", tag: ["safe", "Safe"], time: "—", cost: "—", reward: "Standing +5 · no research", pct: 0,
+        risk: S => "none", cons: "The Tenari develop undisturbed. Check back in 30 min.",
+        ok: { g: 5, log: [["good", "USS Calloway leaves Ketar; Tenari Prime marked 'do not disturb' — Standing +5"]] } },
+      { id: "contact", name: "First contact", tag: ["safe", "Diplomacy"], time: "4 min", cost: "—", reward: "Trade partner · research + a unique tech · ally ships · membership path",
+        gate: S => S.stage > 0 ? `Contact made: they are at stage ${STAGES[S.stage].n}` : S.level < 5 ? `Prime Directive: General Order 1 — no contact with a pre-warp civilization (they are ${LEVELS[S.level - 1].k})` : null,
+        forceWhen: S => S.stage === 0 && S.level < 5, gains: true,
+        force: { label: "Contact anyway: break General Order 1", pct: 100, ok: null,
+          bad: { g: -40, awSet: 100, fx: ["shock", "unrest"], log: [["bad", "General Order 1 broken on Tenari Prime — Starfleet Standing −40"], ["warn", "Three Tenari nations claim the visitors as their own"]] } },
+        pct: S => S.level === 5 ? 10 : 4, risk: S => `${S.level === 5 ? 10 : 4} % culture shock`, cons: "Done right: Standing +10 and the Tenari become a trade partner at once.",
+        ok: { g: 10, awSet: 100, set: { stage: 2 }, log: [["good", "First contact with the Tenari — they become a trade partner"], ["good", "Trade route Ketar III ↔ colony open — +4 duranium/min, +6 latinum/min"], ["good", "Tenari archives shared — +150 research, tech: Tenari thermal lattice"], ["info", "2 Tenari warp scouts join USS Calloway as escorts"]] },
+        bad: { g: 0, awSet: 100, fx: ["shock"], set: { stage: 1 }, log: [["warn", "First contact: the Seshet Directorate panics — culture shock"], ["info", "Talks open; trade waits until the shock passes"]] } },
+      { id: "member", name: S => ["Membership path", "Open trade", "Open membership talks", "Admit as an allied world", "Allied world"][S.stage], tag: ["safe", "Diplomacy"],
+        time: S => ["—", "2 min", "6 min", "8 min", "—"][S.stage], cost: S => ["—", "—", "200 duranium aid package", S.unity === "fractured" ? "every nation must agree" : "—", "—"][S.stage],
+        reward: S => ["Trade, ships, then membership", "Becomes a trade partner (trade, research, ships)", "Becomes a membership candidate", "Allied world: small outpost, their trade + ships", "—"][S.stage],
+        gate: S => S.level < 5 && S.stage === 0 ? "Prime Directive: General Order 1 (needs L5)" : S.stage === 0 ? "Needs first contact first" : S.stage === 4 ? "Done: the Tenari are an allied world" : S.stage === 2 && S.g.federation < 60 ? "Needs Starfleet Standing 60" : null,
+        pct: S => S.stage === 3 && S.unity === "fractured" ? 25 : 5, risk: S => S.stage === 3 && S.unity === "fractured" ? "25 % a nation walks out (try again later)" : "5 % talks stall",
+        cons: "Contact → Trade partner → Candidate → Allied world. An allied world stays theirs: you can't mine it freely.",
+        ok: { g: 2, stage: 1, log: [["good", S => ["", "", "Trade with the Tenari opens: route, research and escorts as at contact", "The Tenari are now a membership candidate", "The Tenari join as an allied world — you may build a small outpost on Tenari Prime"][S.stage]]] },
+        bad: { g: 0, log: [["warn", S => S.stage === 3 ? "The Seshet Directorate walks out of the membership talks" : "Talks with the Tenari stall for 3 min"]] } },
+      { id: "aid", name: "Secret aid during a disaster", tag: ["grey", "Grey area"], time: "2 min", cost: "40 duranium · 2 crew · transporter",
+        reward: "~2 million lives · +20 research · Standing +5 if unseen", pct: 18, note: "Event: volcanic winter in the Free Cantons of Oru",
+        risk: S => "18 % the aid is seen", cons: "Seen: the Tenari worship 'the Sky Visitors', Standing −10.",
+        ok: { g: 5, log: [["good", "Crop seed and heat cells beamed into Oru granaries unseen — Standing +5"]] },
+        bad: { g: -10, aw: 25, fx: ["cult"], log: [["bad", "The Tenari now worship 'the Sky Visitors'"], ["bad", "Contamination incident on Tenari Prime — Starfleet Standing −10"]] } }
+    ] },
+  klingon: { name: "Klingon", short: "KDF", ship: "IKS Gorvak", cls: "Raptor class",
+    gauge: { name: "Honor", start: 50, max: 100, bad: "low", marks: [25] }, value: S => S.level <= 2 ? "Helpless: no glory here" : ["Little glory", "Fair sport", "Worthy foes"][TEMPER[S.temper]],
+    actions: [
+      { id: "conquer", name: "Conquer", tag: ["hostile", "Hostile"], time: "5 min", cost: "150 duranium · 30 warriors",
+        reward: S => `Subject world: +6 duranium/min · Honor ${honor(S) >= 0 ? "+" : "−"}${Math.abs(honor(S))}`,
+        pct: S => [10, 20, 35][TEMPER[S.temper]], risk: S => `${[10, 20, 35][TEMPER[S.temper]]} % heavy losses`,
+        cons: S => S.level <= 2 ? "No glory in crushing people with clubs: Honor −20." : "A worthy fight is sung about. Honor by how hard they fight back.",
+        ok: { g: S => honor(S), fx: ["subject"], log: [["good", S => `Tenari Prime falls to the IKS Gorvak — Honor ${fmt(honor(S))}`]] },
+        bad: { g: S => Math.round(honor(S) / 2), fx: ["subject", "unrest"], log: [["warn", S => `Tenari Prime taken with heavy losses: 30 warriors dead — Honor ${fmt(Math.round(honor(S) / 2))}`]] } },
+      { id: "tribute", name: "Demand tribute", tag: ["hostile", "Threat"], time: "1 min", cost: "—", reward: "+6 duranium/min · Honor +5",
+        pct: S => [15, 40, 70][TEMPER[S.temper]], risk: S => `${[15, 40, 70][TEMPER[S.temper]]} % they refuse`,
+        cons: "Refused: conquer them, or lose Honor −10.",
+        ok: { g: 5, aw: 40, log: [["good", "The Tenari send ore to the IKS Gorvak — +6 duranium/min, Honor +5"]] },
+        bad: { g: -10, aw: 40, fx: ["arms"], log: [["warn", "The Seshet Directorate refuses tribute — Honor −10 until answered"]] } },
+      { id: "champion", name: "Challenge their champion", tag: ["grey", "Duel"], time: "2 min", cost: "—", reward: "Win: Honor +25, the ruler swears fealty",
+        pct: S => S.level <= 2 ? 10 : 40, risk: S => `${S.level <= 2 ? 10 : 40} % to lose the duel`, cons: "Lose: Honor −15, the captain is wounded (ship −20 % for 5 min).",
+        ok: { g: S => S.level <= 2 ? 5 : 25, aw: 30, fx: ["subject"], log: [["good", "Captain Vorek defeats the Seshet champion — Honor +25"]] },
+        bad: { g: -15, aw: 30, log: [["bad", "Captain Vorek falls to the Tenari champion — Honor −15, ship −20 % for 5 min"]] } }
+    ] },
+  romulan: { name: "Romulan", short: "RSE", ship: "IRW Tharel", cls: "Scout class",
+    gauge: { name: "Tal Shiar exposure", start: 0, max: 100, bad: "high", marks: [50] }, value: S => "A board for the Tal Shiar",
+    actions: [
+      { id: "infiltrate", name: "Tal Shiar infiltration", tag: ["covert", "Covert"], time: "6 min", cost: "4 agents · 40 latinum",
+        reward: "Puppet government in one nation · intel on every action here", pct: 15, risk: S => "15 % per 10 min of exposure",
+        cons: "Exposed: the nations unite against 'the hidden ones', awareness +40.",
+        ok: { g: 5, fx: ["puppet"], log: [["good", "The Halvic chancellor now takes orders from the Tal Shiar"]] },
+        bad: { g: 50, aw: 40, set: { unity: "unified" }, log: [["bad", "Tal Shiar cell exposed in the Halvic Union — exposure +50"], ["warn", "The Tenari nations unite against 'the hidden ones'"]] } },
+      { id: "cloak", name: "Cloaked observation", tag: ["safe", "Cloaked"], time: "2 min", cost: "—", reward: "+30 research · Live dossier", pct: 2,
+        risk: S => "2 % a cloak shimmer is seen", cons: "Almost nothing can go wrong. Almost.",
+        ok: { g: 0, log: [["good", "Cloaked pass over Tenari Prime — +30 research"]] },
+        bad: { g: 10, aw: 5, log: [["warn", "Oru farmers report a 'ripple' in the sky — exposure +10"]] } },
+      { id: "withdraw", name: "Withdraw quietly", tag: ["safe", "Safe"], time: "—", cost: "—", reward: "Exposure −10", pct: 0, risk: S => "none",
+        cons: "No trace that you were here.", ok: { g: -10, log: [["info", "IRW Tharel leaves Ketar under cloak — exposure −10"]] } }
+    ] },
+  cardassian: { name: "Cardassian", short: "CU", ship: "Kevrak", cls: "Hideki class",
+    gauge: { name: "Resistance on Tenari Prime", start: 0, max: 100, bad: "high", marks: [60] }, value: S => "Labour and ore",
+    actions: [
+      { id: "annex", name: "Annex and occupy", tag: ["hostile", "Hostile"], time: "4 min", cost: "120 duranium · 25 troops",
+        reward: "Labour: extraction +50 % on Tenari Prime", pct: S => S.temper === "aggressive" ? 30 : 15, risk: S => `${S.temper === "aggressive" ? 30 : 15} % the landings are contested`,
+        cons: "Resistance rises +8/min: sabotage at 60, uprising at 100.",
+        ok: { g: 40, aw: 60, fx: ["subject"], set: { annexed: true }, log: [["good", "Tenari Prime annexed — labour camps raise extraction +50 %"], ["warn", "Tenari resistance cells form — Resistance 40"]] },
+        bad: { g: 65, aw: 60, fx: ["subject", "unrest"], set: { annexed: true }, log: [["bad", "Seshet troops fight the landings — Resistance 65, sabotage begins"]] } },
+      { id: "obsidian", name: "Obsidian Order surveillance", tag: ["covert", "Covert"], time: "2 min", cost: "2 agents", reward: "Live dossier · Resistance −10", pct: 8,
+        risk: S => "8 % an agent is caught", cons: "Caught: Resistance +10.",
+        ok: { g: -10, log: [["good", "Obsidian Order lists the resistance leaders — Resistance −10"]] },
+        bad: { g: 10, aw: 10, log: [["warn", "An Obsidian Order agent is hanged in Oru — Resistance +10"]] } },
+      { id: "garrison", name: "Reinforce the garrison", tag: ["hostile", "Force"], time: "1 min", cost: "10 troops", reward: "Resistance −20 for 5 min", pct: 0, risk: S => "none",
+        cons: "Buys time; the resistance comes back.", ok: { g: -20, log: [["info", "Garrison doubled on Tenari Prime — Resistance −20"]] } }
+    ] },
+  dominion: { name: "Dominion", short: "DOM", ship: "Attack ship 3-12", cls: "Jem'Hadar fighter",
+    gauge: { name: "Founders' favour", start: 50, max: 100, bad: "low", marks: [25] }, value: S => "A world to bring into order",
+    actions: [
+      { id: "envoy", name: "Vorta envoy: offer 'membership'", tag: ["grey", "Diplomacy"], time: "3 min", cost: "—",
+        reward: "Subject world: +5 duranium/min · +2 crew/min · low unrest", pct: S => [30, 60, 90][TEMPER[S.temper]],
+        risk: S => `${[30, 60, 90][TEMPER[S.temper]]} % they refuse${S.unity === "fractured" ? " (each nation decides)" : ""}`,
+        cons: "Membership means subjugation. Refused: the Jem'Hadar come next.",
+        ok: { g: 15, aw: 60, fx: ["subject"], log: [["good", "Vorta Envoy Kesh welcomes the Tenari into the Dominion — favour +15"]] },
+        bad: { g: -5, aw: 60, log: [["warn", "The Seshet Directorate refuses the Dominion's offer"]] } },
+      { id: "conquest", name: "Jem'Hadar conquest", tag: ["hostile", "Hostile"], time: "4 min", cost: "20 Jem'Hadar · 2 white supply",
+        reward: "Subject world · unrest medium 10 min, then low", pct: 15, risk: S => "15 % the white runs short (fighters −20 %)",
+        cons: "Favour +10. The Tenari are 'protected' now.",
+        ok: { g: 10, aw: 70, fx: ["subject"], log: [["good", "Jem'Hadar take Tenari Prime in 4 minutes — favour +10"]] },
+        bad: { g: 5, aw: 70, fx: ["subject", "unrest"], log: [["warn", "White supply short at Tenari Prime: the garrison is restless"]] } },
+      { id: "changeling", name: "Changeling observer", tag: ["covert", "Covert"], time: "2 min", cost: "1 changeling", reward: "Live dossier · +20 research", pct: 3,
+        risk: S => "3 % the changeling is found", cons: "Found: awareness +20.",
+        ok: { g: 0, log: [["good", "A changeling sits in the Halvic parliament — dossier Live"]] },
+        bad: { g: -5, aw: 20, log: [["warn", "A Halvic minister 'melts' on stage — awareness +20"]] } }
+    ] },
+  ferengi: { name: "Ferengi", short: "FA", ship: "Marauder Dav'rek", cls: "Marauder",
+    gauge: { name: "Latinum", start: 500, max: 1000, bad: "low", marks: [] }, value: S => "Customers. Pre-warp customers pay in wonder.",
+    actions: [
+      { id: "trade", name: "Trade deal", tag: ["grey", "Trade"], time: "3 min", cost: "50 latinum in 'gifts'", reward: "+8 latinum/min for 20 min", pct: 20,
+        risk: S => "20 % the partner works out who you are", cons: "A nation gets odd new goods; its rivals want theirs.",
+        ok: { g: -50, log: [["good", "Trade deal with the Halvic Union — +8 latinum/min"]] },
+        bad: { g: -50, aw: 20, fx: ["unrest"], log: [["warn", "Halvic traders brag about 'star goods'; Oru and Seshet want theirs"]] } },
+      { id: "rights", name: "Buy mineral rights", tag: ["grey", "Trade"], time: "2 min", cost: "120 latinum", reward: "Mining claim: 2 deposits for 20 min", pct: 15,
+        risk: S => "15 % the seller's rivals object", cons: "Objection: unrest, the claim holds.",
+        ok: { g: -120, log: [["good", "Mineral rights in the Oru hills bought for 120 latinum"]] },
+        bad: { g: -120, fx: ["unrest"], log: [["warn", "The Seshet Directorate calls the Oru sale treason — unrest"]] } },
+      { id: "miracles", name: "Sell 'miracles' to pre-warp", tag: ["grey", "Swindle"], time: "1 min", cost: "10 latinum of replicated trinkets", reward: "+200 latinum once",
+        gate: S => S.level >= 5 ? "They have warp: they know a replicator when they see one" : null,
+        pct: S => 30 + (S.aware > 20 ? 20 : 0), risk: S => `${30 + (S.aware > 20 ? 20 : 0)} % exposure`,
+        cons: "Swindle found out: revolt, FCA fine −300 latinum.",
+        ok: { g: 190, aw: 10, fx: ["cult"], log: [["good", "Oru temples pay 200 latinum for 'healing stones'"]] },
+        bad: { g: -110, aw: 30, fx: ["cult", "unrest"], set: { fca: 1 }, log: [["bad", "Swindle discovered: Oru revolts against the 'Bright Merchants'"], ["bad", "FCA fine: −300 latinum for unlicensed miracles"]] } }
+    ] },
+  borg: { name: "Borg", short: "BORG", ship: "Cube 291", cls: "Cube",
+    gauge: { name: "Nanoprobes", start: 360, max: 500, bad: "low", marks: [] }, value: S => S.level < 4 ? "Irrelevant: below assimilation value" : `Worth assimilating: ≈ ${drones(S)} drones + techs`,
+    actions: [
+      { id: "assimilate", name: "Assimilate", tag: ["hostile", "Hostile"], time: S => `${2 + S.level} min`, cost: S => `${60 + 20 * S.level} nanoprobes`,
+        reward: S => S.level >= 4 ? `≈ ${drones(S)} drones · ${TECH[S.level - 1]}` : "Drones only, no useful tech",
+        gate: S => S.level < 4 ? `Irrelevant — below assimilation value (${LEVELS[S.level - 1].k})` : null,
+        force: { label: "Force assimilation anyway", pct: S => [5, 15, 25][TEMPER[S.temper]] },
+        pct: S => [5, 15, 25][TEMPER[S.temper]], risk: S => `${[5, 15, 25][TEMPER[S.temper]]} % resistance (drones lost)`,
+        cons: "Their distinctiveness is added. They cease to exist as a culture.",
+        ok: { g: S => -(60 + 20 * S.level), fx: ["assim"], log: [["good", S => `Tenari Prime assimilated — +${drones(S)} drones${S.level >= 4 ? ", " + TECH[S.level - 1] : ""}`]] },
+        bad: { g: S => -(60 + 20 * S.level), fx: ["assim"], log: [["warn", S => `Tenari resistance: 12 % of drones lost — +${Math.round(drones(S) * .88)} drones`]] } },
+      { id: "ignore", name: "Ignore", tag: ["safe", "Catalogue"], time: "—", cost: "—", reward: "Catalogued as Species 6112", pct: 0, risk: S => "none",
+        cons: "Revisit when they reach L4.", ok: { g: 0, log: [["info", "Species 6112 (Tenari) catalogued. Revisit at L4."]] } },
+      { id: "harvest", name: "Harvest specific tech", tag: ["hostile", "Abduction"], time: "90 s", cost: S => `${20 * tierOf(S.level)} nanoprobes (20 × tier ${tierOf(S.level)})`,
+        reward: S => S.level >= 3 ? HARVEST[S.level - 3] : "—", gate: S => S.level < 3 ? "Nothing worth taking below L3" : null,
+        pct: 30, risk: S => "30 % the abductions are seen", cons: "Seen: the Tenari report 'grey machines', awareness +30.",
+        ok: { g: S => -20 * tierOf(S.level), log: [["good", S => `Tech assimilated from Tenari Prime: ${HARVEST[S.level - 3]}`]] },
+        bad: { g: S => -20 * tierOf(S.level), aw: 30, log: [["warn", "The Tenari report abductions by 'grey machines' — awareness +30"]] } }
+    ] }
+};
+const STAGES = [
+  { n: "No contact", d: "General Order 1 until they reach L5" },
+  { n: "Contact", d: "Talks open; trade waits for the shock to pass" },
+  { n: "Trade partner", d: "Resource + latinum trickle, trade route, research, ally ships" },
+  { n: "Candidate", d: "Membership talks; their nations must agree" },
+  { n: "Allied world", d: "Stays theirs: small outpost, their trade and ships, no free mining" }
+];
+const GAINS = [
+  ["Trade partner", "+4 duranium/min · +6 latinum/min · a trade route Ketar III ↔ your colony (freighters on the plot)"],
+  ["Research", "+150 research once · unique local tech: Tenari thermal lattice (reactor output +8 %)"],
+  ["Ally ships", "2 Tenari warp scouts join as weak escorts (hull 40, no shields); direct them like traffic"],
+  ["Membership path", "Opens Candidate → Allied world"]
+];
+const ALLIED = ["The world stays theirs: no annexing, no subject status", "You may land and build one small outpost (core + up to 6 buildings)", "You get its trade and its ships", "No free mining: every deposit needs their licence"];
+const TECH = ["—", "—", "—", "fission piles + data networks", "warp field theory", "deflector lattice"];
+const HARVEST = ["Thermal conversion (tier 1)", "Fission piles (tier 2)", "Warp field theory (tier 3)", "Deflector lattice (tier 4)"];
+const drones = S => Math.round(LEVELS[S.level - 1].pop * 300);
+const honor = S => S.level <= 2 ? -20 : [5, 15, 30][TEMPER[S.temper]];
+const fmt = n => (n >= 0 ? "+" : "−") + Math.abs(n);
+const QUOTES = ["Wonder is a currency: spend it before it loses value.", "A customer without warp is still a customer.", "Never sell a miracle you can't sell twice.", "The best contract is the one they can't read."];
+
+/* ruins */
+const METHOD = {
+  federation: { n: "Careful excavation", speed: 6, sci: 1.5, lat: 0, trig: .1, d: "Slow, layer by layer: more science, dangers found before they wake." },
+  klingon: { n: "Loot the site", speed: 14, sci: .4, lat: 1, trig: .4, d: "Fast and loud: latinum from the finds, little science, dangers wake more often." },
+  ferengi: { n: "Loot and sell", speed: 12, sci: .5, lat: 1.5, trig: .35, d: "Fast, every find priced: the most latinum, little science." },
+  borg: { n: "Assimilate the tech", speed: 20, sci: 0, lat: 0, trig: .25, d: "Drones strip the site: tech fragments become techs directly, no research. The pathogen is adapted to." },
+  romulan: { n: "Tal Shiar covert dig", speed: 8, sci: 1, lat: .3, trig: .2, d: "Quiet night work under a cloaked shuttle." },
+  cardassian: { n: "Forced-labour dig", speed: 12, sci: .7, lat: .6, trig: .3, d: "Fast with conscripted labour; on an occupied world it feeds the Resistance." },
+  dominion: { n: "Vorta curators", speed: 9, sci: 1.1, lat: .4, trig: .2, d: "Catalogued for the Founders, carefully." }
+};
+const FINDS = [
+  { at: 10, kind: "Artefact", name: "Star-chart lens, fused glass", sci: 30, lat: 40 },
+  { at: 22, kind: "Data core", name: "Vel'kesh data core (cracked)", sci: 80, lat: 20 },
+  { at: 36, kind: "Tech fragment", name: "Phase-lattice conduit", sci: 60, lat: 60, tech: true },
+  { at: 50, kind: "Danger", name: "Dormant defence system", danger: "defence" },
+  { at: 64, kind: "Artefact", name: "Funerary mask, ceramic-steel", sci: 20, lat: 90 },
+  { at: 78, kind: "Danger", name: "Sealed vault: ancient pathogen", danger: "pathogen" },
+  { at: 92, kind: "Tech fragment", name: "Gravimetric anchor coil", sci: 90, lat: 70, tech: true }
+];
+const CELLS = (() => { const o = []; for (let i = 0; i < 72; i++) o.push(i); let s = 42; for (let i = o.length - 1; i > 0; i--) { s = (s * 16807) % 2147483647; const j = s % (i + 1); [o[i], o[j]] = [o[j], o[i]]; } return o; })();
+const FIND_CELL = [8, 19, 27, 33, 46, 52, 63];
+
+/* ---------------------------------------------------------------- state */
+const STEPS = [["scan", "Scan"], ["dossier", "Dossier"], ["contact", "Contact"], ["ruins", "Ruins"], ["log", "Log"]];
+let S;
+function fresh() {
+  const g = {}; for (const k in F) g[k] = F[k].gauge.start;
+  const keep = S ? { faction: S.faction, step: S.step } : { faction: "federation", step: "scan" };
+  S = { ...keep, fog: "charted", body: "b3", level: 3, temper: "wary", unity: "fractured", aware: 4, fx: {}, g, sel: null, forceBad: false, last: null,
+    clock: 37 * 60 + 12, post: false, outpost: false, incidents: 0, stage: 0, annexed: false, fca: 0, quote: 0,
+    dig: { prog: 0, found: [], sci: 0, lat: 0, techs: 0, site: "ossar", hurt: 0 },
+    log: [
+      { t: 32 * 60 + 5, sev: "info", f: "", txt: "Long-range scan: artificial signals at Ketar III" },
+      { t: 36 * 60 + 40, sev: "info", f: "", txt: "Ship in orbit of Ketar III — orbital sweep 15 s" },
+      { t: 36 * 60 + 55, sev: "good", f: "", txt: "Ketar III charted: the Tenari, Industrial (L3), 1.2 billion" },
+      { t: 37 * 60 + 2, sev: "info", f: "", txt: "Ketar V: structures, no signals — ruins of the Vel'kesh" }
+    ] };
+  seed = 1701;
+}
+fresh();
+try { const f = localStorage.getItem("fc-faction"); if (f && F[f]) S.faction = f; } catch (e) {}
+
+const fac = () => F[S.faction];
+const v = x => typeof x === "function" ? x(S) : x;
+const clockText = t => `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+const lvl = () => LEVELS[S.level - 1];
+const fcColor = k => `var(--f-${k})`;
+
+/* ---------------------------------------------------------------- log + toasts */
+function addLog(sev, txt, f = S.faction) {
+  S.log.push({ t: S.clock, sev, f, txt });
+  const box = $("#toasts");
+  const el = document.createElement("div");
+  el.className = `toast sev-${sev}`;
+  el.innerHTML = `<i></i><div><div class="tk">${{ info: "Report", good: "Event", warn: "Warning", bad: "Incident" }[sev]} · ${clockText(S.clock)}</div><div class="tt">${txt}</div></div>`;
+  box.prepend(el);
+  while (box.children.length > 3) box.lastChild.remove();
+  setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 300); }, 5200);
+}
+function rungOf(st) { return st >= 70 ? 0 : st >= 50 ? 1 : st >= 30 ? 2 : st >= 10 ? 3 : 4; }
+function fedRung() { return S.g.federation <= 0 || S.incidents >= 3 ? 5 : rungOf(S.g.federation); }
+const RUNGS = [
+  ["Warning", "Logged on the captain's record. Standing recovers +1/min with clean conduct.", "Starfleet warning logged for USS Calloway"],
+  ["Starfleet inquiry", "Captain recalled for 5 min: the ship sits idle in orbit.", "Starfleet inquiry convened — captain recalled 5 min, USS Calloway idle"],
+  ["Captain relieved", "A new captain takes over: the ship loses its veterancy.", "Captain relieved of command — USS Calloway loses veterancy"],
+  ["Admiralty sanctions", "Research −25 % and no reinforcements for 15 min.", "Admiralty sanctions — research −25 %, no reinforcements 15 min"],
+  ["Recalled for good", "The ship is recalled for good. In a scenario: match lost.", "USS Calloway recalled to Starfleet for good — scenario lost"]
+];
+const RUNG_AT = ["below 70", "below 50", "below 30", "below 10", "at 0, or a 3rd incident on the same world"];
+
+function apply(br, isBad) {
+  const before = { ...S.fx }, g0 = S.g[S.faction], fr0 = S.faction === "federation" ? fedRung() : 0;
+  if (br.g !== undefined) { const m = fac().gauge.max; S.g[S.faction] = clamp(S.g[S.faction] + v(br.g), 0, m); }
+  if (br.aw) S.aware = clamp(S.aware + br.aw, 0, 100);
+  if (br.awSet !== undefined) S.aware = Math.max(S.aware, br.awSet);
+  (br.fx || []).forEach(k => S.fx[k] = 1);
+  if (br.set) Object.assign(S, br.set);
+  if (br.stage) S.stage = Math.min(4, S.stage + br.stage);
+  if (S.stage === 4) S.fx.ally = 1;
+  (br.log || []).forEach(([sev, txt]) => addLog(sev, v(txt)));
+  if (S.faction === "federation") {
+    if (isBad && v(br.g) < 0) { S.incidents++; addLog("bad", `Incident ${S.incidents} of 3 on Tenari Prime recorded by Starfleet`); }
+    const r1 = fedRung(), byStanding = Math.min(rungOf(S.g.federation), 4);
+    for (let r = Math.min(fr0, 4) + 1; r <= byStanding; r++) addLog(r >= 3 ? "bad" : "warn", RUNGS[r - 1][2]);
+    if (r1 === 5 && fr0 < 5) addLog("bad", RUNGS[4][2]);
+  }
+  if (S.unity === "fractured" && S.aware >= 30 && !S.fx.unrest) { S.fx.unrest = 1; }
+  if (S.unity === "fractured" && S.level >= 3 && S.level <= 4 && S.aware >= 50 && !S.fx.arms) S.fx.arms = 1;
+  for (const k in S.fx) if (k !== "ally" && !before[k] && !(br.fx || []).includes(k)) addLog("warn", `Tenari Prime: ${FX[k][0].toLowerCase()} — ${FX[k][1].toLowerCase()}`);
+}
+function order(a, force) {
+  if (S.faction === "federation" && fedRung() === 5) return;
+  const src = force ? { ...a, ...a.force, ok: a.force.ok === undefined ? a.ok : a.force.ok, bad: a.force.bad || a.bad } : a;
+  const pct = v(src.pct) || 0;
+  const bad = !!src.bad && (S.forceBad || !src.ok || rng() * 100 < pct);
+  const secs = parseInt(v(a.time)) || 1;
+  S.clock += /s\b/.test(v(a.time)) && !/min/.test(v(a.time)) ? secs : secs * 60;
+  apply(bad ? src.bad : src.ok, bad);
+  S.last = { id: a.id, bad, pct, force };
+  render();
+}
+
+/* ---------------------------------------------------------------- shared bits */
+function meter(val, max, color, marks = [], big) {
+  return `<div class="meter${big ? " big" : ""}" style="--mc:${color}" role="meter" aria-valuemin="0" aria-valuemax="${max}" aria-valuenow="${val}"><i style="width:${val / max * 100}%"></i>${marks.map(m => `<b style="left:${m / max * 100}%"></b>`).join("")}</div>`;
+}
+function fxChips() {
+  return `<div class="chips">${Object.keys(FX).filter(k => ["cult", "shock", "unrest", "arms"].includes(k) || S.fx[k]).map(k => `<span class="chip${S.fx[k] ? " on" + (k === "unrest" || k === "arms" ? " amber" : "") + (["subject", "assim", "puppet", "ally"].includes(k) ? " fcn" : "") : ""}" title="${FX[k][1]}">${FX[k][0]}</span>`).join("")}</div>`;
+}
+function signalIcon(past) {
+  return past
+    ? `<svg width="30" height="26" viewBox="0 0 30 26" aria-hidden="true"><path d="M3 24h24M6 24V10M12 24V7M18 24V12M24 24V9M4 9h10M16 11h10" stroke="var(--h-rust)" stroke-width="2.4" fill="none"/></svg>`
+    : `<svg width="30" height="26" viewBox="0 0 30 26" aria-hidden="true"><circle cx="15" cy="20" r="3" fill="var(--h-peach)"/><path d="M8 14a10 10 0 0 1 14 0M4 10a16 16 0 0 1 22 0" stroke="var(--h-peach)" stroke-width="2.2" fill="none"/></svg>`;
+}
+function liveSource() { return S.faction === "federation" && S.post ? "observation post Blind-7" : "SAT-2 (survey satellite)"; }
+function mood() {
+  if (S.fx.assim) return ["Silent", "no Tenari voices on any band"];
+  if (S.fx.subject) return ["Subdued", "curfews in every city"];
+  if (S.fx.cult) return ["Fervent", "Sky Visitor shrines spread through Oru"];
+  if (S.fx.shock) return ["Shaken", "governments in emergency session"];
+  if (S.fx.unrest) return ["Angry", "riots in two nations over the 'sky lights'"];
+  return ["Uneasy", "Halvic–Seshet border dispute, Oru neutral"];
+}
+
+/* ---------------------------------------------------------------- 1 · scan */
+function plot() {
+  const cx = 300, cy = 210, ry = .48;
+  const pos = b => [cx + b.r * Math.cos(b.a * Math.PI / 180), cy + b.r * ry * Math.sin(b.a * Math.PI / 180)];
+  let s = `<defs><radialGradient id="star"><stop offset="0" stop-color="#fff4d6"/><stop offset=".35" stop-color="#f5c04a"/><stop offset="1" stop-color="#f2a65a" stop-opacity="0"/></radialGradient></defs>`;
+  s += `<circle cx="${cx}" cy="${cy}" r="34" fill="url(#star)"/><circle cx="${cx}" cy="${cy}" r="11" fill="#ffe7a8"/><text x="${cx}" y="${cy + 36}" text-anchor="middle" fill="var(--h-peach)">KETAR · G2</text>`;
+  BODIES.forEach(b => { const on = b.id === S.body; s += `<ellipse cx="${cx}" cy="${cy}" rx="${b.r}" ry="${b.r * ry}" fill="none" stroke="${on ? "var(--h-peach)" : "#2a2e3c"}" stroke-width="${on ? 1.4 : 1}" ${b.belt ? 'stroke-dasharray="2 5"' : ""}/>`; });
+  BODIES.forEach(b => {
+    const on = b.id === S.body, fog = on ? S.fog : "charted";
+    if (b.belt) {
+      let dots = ""; for (let i = 0; i < 70; i++) { const a = i * 5.14 + (i % 3) * 1.7, rr = b.r + ((i * 37) % 11) - 5; dots += `<circle cx="${(cx + rr * Math.cos(a * Math.PI / 180)).toFixed(1)}" cy="${(cy + rr * ry * Math.sin(a * Math.PI / 180)).toFixed(1)}" r="1.3" fill="#7d7468"/>`; }
+      s += `<g class="body" tabindex="0" role="button" aria-label="${b.name}" data-body="${b.id}">${dots}<circle class="hit" cx="${cx + b.r * Math.cos(-0.6)}" cy="${cy + b.r * ry * Math.sin(-0.6)}" r="12" fill="transparent"/><text x="${cx + b.r * Math.cos(-0.6) + 14}" y="${cy + b.r * ry * Math.sin(-0.6) - 4}" fill="${on ? "var(--h-peach)" : "var(--h-greytext)"}">${b.name}</text></g>`;
+      return;
+    }
+    const [x, y] = pos(b), col = fog === "detected" ? "#5a5d66" : b.col;
+    const label = fog === "detected" ? `UNKNOWN BODY · SIZE ~${b.size}` : b.native && fog !== "detected" ? `${b.name} · ${b.native}` : b.name;
+    s += `<g class="body" tabindex="0" role="button" aria-label="${b.name}" data-body="${b.id}">`;
+    if (on) s += `<circle cx="${x}" cy="${y}" r="${b.s + 7}" fill="none" stroke="var(--h-peach)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    s += `<circle class="hit" cx="${x}" cy="${y}" r="${b.s + 6}" fill="transparent"/><circle cx="${x}" cy="${y}" r="${b.s}" fill="${col}"/>`;
+    if (b.id === "b6") s += `<ellipse cx="${x}" cy="${y}" rx="${b.s + 9}" ry="4" fill="none" stroke="#a89070" stroke-width="1.4"/>`;
+    if (b.civ === "living" && S.stage >= 2 && fog !== "detected") s += `<path d="M${x - 30} ${y + 12}l5 -9 5 9 -5 -3z M${x - 42} ${y + 20}l5 -9 5 9 -5 -3z" fill="var(--h-green)"/><text x="${x - 48}" y="${y + 34}" text-anchor="middle" fill="var(--h-green)">TENARI ESCORTS · 2</text><path d="M${x} ${y} L 590 ${y - 40}" stroke="var(--h-green)" stroke-width="1" stroke-dasharray="2 5"/><text x="586" y="${y - 46}" text-anchor="end" fill="var(--h-green)">TRADE ROUTE → COLONY</text>`;
+    if (b.civ === "living") s += `<path d="M${x + b.s + 4} ${y - 4}a7 7 0 0 1 0 8M${x + b.s + 8} ${y - 8}a12 12 0 0 1 0 16" stroke="var(--h-peach)" stroke-width="1.5" fill="none"/>`;
+    if (b.civ === "past") s += `<path d="M${x - 5} ${y - b.s - 4}v-7M${x} ${y - b.s - 4}v-9M${x + 5} ${y - b.s - 4}v-6" stroke="var(--h-rust)" stroke-width="2"/>`;
+    if (fog === "live" && on) s += `<circle cx="${x - b.s - 6}" cy="${y - b.s}" r="3" fill="var(--h-green)"/><text x="${x - b.s - 12}" y="${y - b.s - 6}" text-anchor="end" fill="var(--h-green)">LIVE</text>`;
+    s += `<text x="${x}" y="${y + b.s + 15}" text-anchor="middle" fill="${on ? "var(--h-peach)" : fog === "detected" ? "var(--h-greytext)" : "var(--h-ink)"}">${label}</text></g>`;
+  });
+  const sb = BODIES.find(b => b.id === S.body); let [sx, sy] = sb.belt ? [cx + sb.r * Math.cos(-0.6), cy + sb.r * ry * Math.sin(-0.6)] : pos(sb);
+  sx += 22; sy -= 16;
+  s += `<path d="M${sx - 7} ${sy + 5}L${sx} ${sy - 8}L${sx + 7} ${sy + 5}L${sx} ${sy + 1}Z" fill="${fcColor(S.faction)}"/><text x="${sx + 11}" y="${sy}" fill="${fcColor(S.faction)}">${fac().ship}</text>`;
+  s += `<path d="M120 380 C 200 395, 360 365, 470 350" stroke="#9aa0ad" stroke-width="1" stroke-dasharray="3 4" fill="none"/><path d="M466 345l9 4-8 6z" fill="#9aa0ad"/><text x="122" y="398" fill="var(--h-greytext)">FREIGHTER SARRO · NEUTRAL</text>`;
+  return `<svg class="plot" viewBox="0 0 600 420" role="group" aria-label="Ketar system plot">${s}</svg>`;
+}
+function bodyCard() {
+  const b = BODIES.find(x => x.id === S.body), fog = S.fog;
+  const name = fog === "detected" ? "Unknown body" : b.native ? `${b.name} <span class="mute" style="font-size:16px">· ${b.native}</span>` : b.name;
+  let rows = fog === "detected"
+    ? `<dt>Size</dt><dd>~${b.size} (rough)</dd><dt>Distance</dt><dd>${(b.r * 2.1).toFixed(0)} map units</dd><dt>ETA</dt><dd>${Math.round(20 + b.r / 8)} s at impulse</dd>`
+    : `<dt>Class</dt><dd>${b.cls}</dd><dt>Gravity</dt><dd>${b.g}</dd><dt>Tier</dt><dd>${b.tier}</dd><dt>Air</dt><dd>${b.air}</dd>${b.moons ? `<dt>Moons</dt><dd>${b.moons}</dd>` : ""}${b.res ? `<dt>Resources</dt><dd>${b.res}</dd>` : ""}`;
+  if (fog === "live") rows += `<dt>Source</dt><dd class="goodc">Live · ${liveSource()}</dd>`;
+  let civ = "";
+  if (b.civ === "living") {
+    if (fog === "detected") civ = `<div class="signal">${signalIcon()}<span>Artificial signals / structures — possible civilization</span></div><div class="mute" style="font-size:13px">Arrive and sweep (15 s) to chart it.</div>`;
+    else {
+      const L = lvl();
+      civ = `<dl class="kv"><dt>Who</dt><dd><b>The Tenari</b> (living)</dd><dt>Development</dt><dd>${L.k} ${L.n}</dd><dt>Population</dt><dd>${L.pop >= 1 ? L.pop.toFixed(1) + " billion" : Math.round(L.pop * 1000) + " million"}</dd><dt>Temperament</dt><dd>${S.temper}</dd><dt>Unity</dt><dd>${S.unity === "fractured" ? "fractured · 3 nations" : "unified"}</dd>${S.stage ? `<dt>Relations</dt><dd class="goodc">${STAGES[S.stage].n}</dd>` : ""}<dt>Aware of aliens</dt><dd>${fog === "live" ? "" : `${S.aware} / 100 <span class="mute">(at last scan)</span>`}</dd></dl>`;
+      if (fog === "live") {
+        const [m, md] = mood();
+        civ = civ.replace(`<dt>Aware of aliens</dt><dd></dd>`, "") + `<div class="k">Awareness of aliens · live</div>${meter(S.aware, 100, "var(--h-sky)", [10, 40, 70])}<dl class="kv"><dt>Mood now</dt><dd><b>${m}</b> — ${md}</dd><dt>Defences</dt><dd>${L.def}</dd><dt>Can they see us</dt><dd>${L.sees}</dd></dl>`;
+      } else civ += `<div class="mute" style="font-size:13px">Mood, live awareness and defences need a satellite or an observation post.</div>`;
+    }
+    civ = `<div class="civ"><div class="hd">CIVILIZATION ${signalIcon()}</div>${civ}<div class="cbtns">${fog !== "detected" ? `<button class="pill" data-go="dossier">Open dossier</button><button class="pill alt" data-go="contact">Contact options</button>` : `<button class="pill">Set course</button>`}</div></div>`;
+  } else if (b.civ === "past") {
+    if (fog === "detected") civ = `<div class="signal">${signalIcon(true)}<span>Artificial structures, no signals — possible civilization</span></div>`;
+    else civ = `<dl class="kv"><dt>Who</dt><dd><b>The Vel'kesh</b> (extinct ~40,000 years)</dd><dt>Sites</dt><dd>3 ruin fields; 1 surveyed</dd><dt>Readings</dt><dd>${fog === "live" ? `dormant power source 0.4 GW · dig ${S.dig.prog}%` : "faint power source under the main site"}</dd></dl>`;
+    civ = `<div class="civ past"><div class="hd">PAST CIVILIZATION ${signalIcon(true)}</div>${civ}<div class="cbtns">${fog !== "detected" ? `<button class="pill" data-go="ruins">Excavation</button>` : `<button class="pill">Set course</button>`}</div></div>`;
+  } else civ = `<div class="civ" style="border-top-color:var(--h-grey)"><div class="hd" style="color:var(--h-greytext)">CIVILIZATION</div><div class="mute">${fog === "detected" ? "No artificial signals at this range." : "No signs of life, living or past."}</div></div>`;
+  return `<article class="panel ocard"><div class="ttl"><h4 class="h4" style="font-size:22px">${name}</h4><span class="fogtag ${fog}">${fog.toUpperCase()}</span></div><dl class="kv">${rows}</dl>${civ}</article>`;
+}
+function viewScan() {
+  return `<div class="scan"><div class="plotbox"><div><h4 class="h4">Ketar system</h4><div class="sub">6 bodies · ${fac().ship} · ${fac().cls}</div></div>${plot()}<div class="mute" style="font-size:12.5px">Click a body. Signals mark a living civilization, pillars a past one.</div></div>
+    <div class="cardcol"><div class="fogrow"><span class="k">Fog level</span><div class="hseg" role="group" aria-label="Fog level">${["detected", "charted", "live"].map(f => `<button data-fog="${f}" aria-pressed="${S.fog === f}">${f}</button>`).join("")}</div></div>${bodyCard()}</div></div>`;
+}
+
+/* ---------------------------------------------------------------- 2 · dossier */
+function viewDossier() {
+  const L = lvl();
+  const ladder = LEVELS.map((x, i) => i).reverse().map(i => { const x = LEVELS[i], n = i + 1; return `<button class="rung ${n === S.level ? "cur" : n < S.level ? "below" : ""}${n === 5 ? " warp" : ""}" data-level="${n}" aria-pressed="${n === S.level}"><b>${x.k}</b><span>${x.n}</span><small>${x.d}</small></button>`; }).join("");
+  const nations = S.unity === "fractured" ? NATIONS.map(n => `<div class="nation" style="--nc:${n.c}"><b>${n.n}</b><span>${n.p} million · ${n.t}</span><span class="mute">${n.d}</span></div>`).join("")
+    : `<div class="nation"><b>Tenari Concord</b><span>${L.pop.toFixed(1)} billion · ${S.temper}</span><span class="mute">one world government</span></div>`;
+  const band = S.aware < 10 ? 0 : S.aware < 40 ? 1 : S.aware < 70 ? 2 : 3;
+  const seg = (key, opts) => `<div class="hseg" role="group" aria-label="${key}">${opts.map(o => `<button data-${key}="${o}" aria-pressed="${S[key] === o}">${o}</button>`).join("")}</div>`;
+  return `<div class="dossier">
+    <div class="ladder"><div class="k">Development · click to preview</div>${ladder}<div class="mute" style="font-size:12px">Blue line: warp. Federation first contact from L5.</div>
+      <div class="panel sky" style="padding:8px 10px"><div class="k">Warp watch</div><div style="font-size:12.5px">An L4 world can reach L5 mid-match: 2 % a minute (placeholder) that they fly their first warp ship. General Order 1 then allows first contact.</div>${S.level === 4 ? `<div><button class="pill alt" data-warp="1">Test: they fly</button></div>` : ""}</div></div>
+    <div class="panel"><div><h4 class="h4">The Tenari</h4><div class="sub">Ketar III · they call it Tenari Prime · living civilization</div></div>
+      <dl class="kv"><dt>Development</dt><dd><b>${L.k} ${L.n}</b> — ${L.d}</dd><dt>Population</dt><dd>${L.pop >= 1 ? L.pop.toFixed(1) + " billion" : Math.round(L.pop * 1000) + " million"}</dd>
+      <dt>Temperament</dt><dd>${seg("temper", ["peaceful", "wary", "aggressive"])}</dd><dt>Unity</dt><dd>${seg("unity", ["unified", "fractured"])}</dd>
+      <dt>Defences</dt><dd>${L.def}</dd><dt>Sees ships</dt><dd>${L.sees}</dd></dl>
+      <div class="k">${S.unity === "fractured" ? "Fractured into 3 nations" : "Unified"}</div><div class="nations">${nations}</div></div>
+    <div class="side">
+      <div class="panel sky"><h5>Awareness of aliens <small>0–100</small></h5><div class="bignum">${S.aware}<small> / 100</small></div>${meter(S.aware, 100, "var(--h-sky)", [10, 40, 70], 1)}
+        <div class="bands">${["Unaware", "Rumours", "Suspect", "They know"].map((t, i) => `<span class="${i === band ? "on" : ""}">${t}</span>`).join("")}</div>
+        <div class="mute" style="font-size:12.5px">Goes up when they see something: a glint, a caught agent, a miracle. It never goes down by itself.</div></div>
+      ${S.faction === "federation" ? stageTrack() : ""}
+      <div class="panel lav"><h5>World status</h5>${fxChips()}<div class="mute" style="font-size:12.5px">Unrest starts on its own once a fractured world passes awareness 30; an arms race at 50 for L3–L4. Natives react only through awareness, unrest and events: there is no ground combat with natives.</div></div>
+      <div class="panel fc"><h5>Value to the ${fac().name} <small>${fac().short}</small></h5><div>${v(fac().value)}</div></div>
+    </div></div>`;
+}
+
+/* ---------------------------------------------------------------- 3 · contact */
+function actCard(a) {
+  const gate = v(a.gate);
+  return `<button class="act${gate ? " gated" : ""}" data-act="${a.id}" aria-pressed="${S.sel === a.id}">
+    <span class="an"><span>${v(a.name)}</span><span class="tag ${gate ? "forbid" : a.tag[0]}">${gate ? "Locked" : a.tag[1]}</span></span>
+    ${gate ? `<span class="gate">${gate}</span>` : ""}${a.note ? `<span class="warnc" style="font:600 12.5px/1.2 var(--label);letter-spacing:.05em">${a.note}</span>` : ""}
+    <span class="stats"><div><span class="k">Time</span>${v(a.time)}</div><div><span class="k">Cost</span>${v(a.cost)}</div><div><span class="k">Reward</span>${v(a.reward)}</div><div><span class="k">Risk</span>${v(a.risk)}</div></span>
+    <span class="cons">${v(a.cons)}</span></button>`;
+}
+function describe(br) {
+  if (!br) return "—";
+  const g = fac().gauge, parts = [];
+  if (br.g !== undefined && v(br.g) !== 0) parts.push(`${g.name} ${fmt(v(br.g))}`);
+  if (br.aw) parts.push(`awareness +${br.aw}`);
+  if (br.awSet) parts.push(`awareness → ${br.awSet}`);
+  (br.fx || []).forEach(k => parts.push(FX[k][0].toLowerCase()));
+  const first = br.log && br.log[0] ? v(br.log[0][1]) : "";
+  return `${first}${parts.length ? `<div class="mute" style="margin-top:4px">${parts.join(" · ")}</div>` : ""}`;
+}
+const canForce = a => !!a.force && (!a.forceWhen || a.forceWhen(S));
+function stageTrack() {
+  const locked = S.stage === 0 && S.level < 5;
+  return `<div class="panel ${S.stage === 4 ? "fc" : "sky"}"><h5>Relations with the Tenari <small>${locked ? "locked · General Order 1" : `stage ${S.stage} of 4`}</small></h5>
+    <ol class="track">${STAGES.slice(1).map((x, i) => `<li class="${i + 1 < S.stage ? "done" : i + 1 === S.stage ? "now" : ""}"><b>${x.n}</b><span>${x.d}</span></li>`).join("")}</ol>
+    ${S.stage === 4 ? `<ul class="allied">${ALLIED.map(t => `<li>${t}</li>`).join("")}</ul>` : `<div class="mute" style="font-size:12.5px">${locked ? "First contact opens at L5 (they may fly mid-match from L4)." : S.stage === 0 ? "First contact puts them straight at Trade partner." : "Next: " + v(fac().actions.find(a => a.id === "member").name) + " (Contact options)."}</div>`}</div>`;
+}
+function gainsBlock() {
+  return `<div class="k">First contact gives all of this</div><ul class="gains">${GAINS.map(([h, t]) => `<li><b>${h}</b>${t}</li>`).join("")}</ul>
+    <div class="k">Membership ends at an allied world</div><ul class="allied">${ALLIED.map(t => `<li>${t}</li>`).join("")}</ul>`;
+}
+function preview() {
+  const a = fac().actions.find(x => x.id === S.sel);
+  if (!a) return `<div class="panel"><h5>Outcome preview</h5><div class="mute">Pick an action on the left to see what happens if it goes well and if it goes wrong.</div></div>`;
+  const gate = v(a.gate), pct = v(a.pct) || 0, last = S.last && S.last.id === a.id ? S.last : null;
+  let res = last ? `<div class="result ${last.bad ? "badc" : "goodc"}">${last.force ? "Forced. " : ""}Rolled against ${last.pct} %: ${last.bad ? "it went wrong" : "it went well"}. See the log.</div>` : "";
+  let go;
+  if (gate) {
+    go = `<div class="result ${S.stage > 0 && a.id === "contact" || S.stage === 4 ? "goodc" : "badc"}">${gate}</div>${canForce(a) ? `<div class="branch"><div class="bad"><span class="k">If you do it anyway</span><br>${describe(a.force.bad || a.bad)}</div><div><span class="k">Risk</span><br>${v(a.force.pct)} %</div></div><div class="go"><button class="order red" data-order="force" ${S.faction === "federation" && fedRung() === 5 ? "disabled" : ""}>${a.force.label}</button></div>` : ""}`;
+  } else {
+    go = `<div class="branch"><div><span class="k">If it goes well</span><br>${describe(a.ok)}</div><div class="bad"><span class="k">If it goes wrong · ${pct} %</span><br>${a.bad ? describe(a.bad) : "Nothing can go wrong."}</div></div>
+      <div class="go"><button class="order" data-order="go" ${S.faction === "federation" && fedRung() === 5 ? "disabled" : ""}>Order · ${v(a.time)}</button><label class="chk"><input type="checkbox" id="forceBad" ${S.forceBad ? "checked" : ""}> Mockup: force the bad roll</label></div>`;
+  }
+  return `<div class="panel"><h5>${v(a.name)} <small>${fac().ship}</small></h5><dl class="kv"><dt>Time</dt><dd>${v(a.time)}</dd><dt>Cost</dt><dd>${v(a.cost)}</dd><dt>Reward</dt><dd>${v(a.reward)}</dd><dt>Risk</dt><dd>${v(a.risk)}</dd></dl>${a.gains ? gainsBlock() : ""}${go}${res}</div>`;
+}
+function gaugePanel() {
+  const f = fac(), g = f.gauge, val = S.g[S.faction];
+  const color = g.bad === "high" ? (val >= (g.marks[0] || 60) ? "var(--h-red)" : "var(--h-amber)") : (val < (g.marks[1] ?? g.marks[0] ?? 0) ? "var(--h-red)" : "var(--fc)");
+  let extra = "";
+  if (S.faction === "federation") {
+    const r = fedRung();
+    extra = `${r === 5 ? `<div class="result badc" style="font-size:16px">MATCH LOST · USS Calloway recalled for good</div>` : ""}<dl class="kv"><dt>Incidents</dt><dd class="${S.incidents ? "badc" : ""}">${S.incidents} of 3 on Tenari Prime</dd></dl>
+      <div class="k">Breaking it: consequences ladder (harsh)</div><ol class="ladder4">${RUNGS.map((x, i) => `<li class="${i < r ? "hit" : ""}${i === r - 1 ? " now" : ""}"><b>${i + 1}</b><div><strong>${x[0]} <span class="mute" style="font-size:12px">${RUNG_AT[i]}</span></strong>${x[1]}</div></li>`).join("")}</ol>
+      <div class="k">Contamination risk per action</div>${f.actions.map(a => { const p = v(a.gate) ? (canForce(a) ? 100 : 0) : (v(a.pct) || 0); return `<div class="risk"><span>${v(a.name)}</span>${meter(p, 100, p >= 50 ? "var(--h-red)" : p >= 10 ? "var(--h-amber)" : "var(--h-green)")}<span>${p} %</span></div>`; }).join("")}
+      <div class="k">On the Tenari side</div>${fxChips()}`;
+  } else if (S.faction === "borg") {
+    extra = `<div class="k">Assimilation value by level</div>${LEVELS.map((x, i) => `<div class="risk"><span>${x.k} ${x.n}</span>${meter(i < 3 ? 8 : [55, 80, 100][i - 3], 100, i < 3 ? "var(--h-grey)" : "var(--fc)")}<span>${i < 3 ? "none" : ["worth", "high", "prime"][i - 3]}</span></div>`).join("")}<div class="mute" style="font-size:12.5px">The Borg never research: techs come by assimilation, 20 nanoprobes × tier.</div>`;
+  } else if (S.faction === "ferengi") {
+    extra = `<div class="k">Rule of Acquisition (invented for the mockup)</div><div class="quote">"${QUOTES[S.quote % QUOTES.length]}"</div><div><button class="pill alt" data-quote="1">Another rule</button></div><dl class="kv"><dt>FCA record</dt><dd class="${S.fca ? "badc" : "goodc"}">${S.fca ? "1 fine (−300 latinum)" : "clean"}</dd></dl>`;
+  } else if (S.faction === "klingon") {
+    extra = `<div class="k">Honor from conquest</div>${["peaceful", "wary", "aggressive"].map(t => `<div class="risk"><span>${t} L3+</span>${meter([5, 15, 30][TEMPER[t]], 40, "var(--fc)")}<span>+${[5, 15, 30][TEMPER[t]]}</span></div>`).join("")}<div class="risk"><span>helpless L1–L2</span>${meter(20, 40, "var(--h-red)")}<span>−20</span></div>`;
+  } else if (S.faction === "dominion") {
+    extra = `<div class="k">Chance they accept membership</div>${["peaceful", "wary", "aggressive"].map(t => `<div class="risk"><span>${t}</span>${meter([70, 40, 10][TEMPER[t]], 100, "var(--fc)")}<span>${[70, 40, 10][TEMPER[t]]} %</span></div>`).join("")}<div class="mute" style="font-size:12.5px">A subject world gives steady resources with low unrest.</div>`;
+  } else if (S.faction === "cardassian") {
+    extra = `<dl class="kv"><dt>Occupied</dt><dd>${S.annexed ? "yes · extraction +50 %" : "no"}</dd><dt>Trend</dt><dd>${S.annexed ? "+8 / min" : "—"}</dd></dl><div class="mute" style="font-size:12.5px">Mark: sabotage at 60. At 100 an uprising throws the garrison off the world.</div>`;
+  } else if (S.faction === "romulan") {
+    extra = `<dl class="kv"><dt>Puppet</dt><dd>${S.fx.puppet ? "Halvic Union" : "none"}</dd><dt>Intel</dt><dd>${S.fx.puppet ? "every action at Tenari Prime is visible to you" : "—"}</dd></dl><div class="mute" style="font-size:12.5px">Mark: past 50 rival powers learn the Tal Shiar works here.</div>`;
+  }
+  const title = S.faction === "federation" ? "Prime Directive" : g.name;
+  return `<div class="panel ${S.faction === "federation" ? "sky" : "fc"}"><h5>${title} <small>${S.faction === "federation" ? "General Order 1" : (g.bad === "high" ? "higher is worse" : "")}</small></h5>
+    ${S.faction === "federation" ? `<div class="k">Starfleet Standing</div>` : ""}<div style="display:flex;align-items:baseline;gap:8px"><span class="bignum" style="font-size:34px;color:${color}">${val}</span><span class="mute">/ ${g.max}</span></div>${meter(val, g.max, color, g.marks)}${extra}</div>`;
+}
+function viewContact() {
+  const L = lvl();
+  return `<div class="contact"><div style="display:grid;gap:10px;min-width:0">
+      <div><h4 class="h4">Contact options · the Tenari</h4><div class="sub">${L.k} ${L.n} · ${S.temper} · ${S.unity} · awareness ${S.aware}</div></div>
+      <div class="ctx"><span class="k">Preview their level</span><div class="hseg" role="group" aria-label="Development level">${LEVELS.map((x, i) => `<button data-level="${i + 1}" aria-pressed="${S.level === i + 1}">${x.k}</button>`).join("")}</div></div>
+      ${S.faction === "federation" ? stageTrack() : ""}
+      <div class="acts">${fac().actions.map(actCard).join("")}</div></div>
+    <div class="side">${preview()}${gaugePanel()}</div></div>`;
+}
+
+/* ---------------------------------------------------------------- 4 · ruins */
+function digSvg() {
+  const dug = Math.round(S.dig.prog / 100 * 72), set = new Set(CELLS.slice(0, dug));
+  let s = `<rect width="600" height="330" fill="#22170f"/>`;
+  for (let i = 0; i < 26; i++) s += `<ellipse cx="${(i * 97) % 600}" cy="${(i * 53) % 330}" rx="${20 + (i % 5) * 9}" ry="${8 + (i % 4) * 4}" fill="#2c1e13" opacity=".8"/>`;
+  s += `<rect x="78" y="52" width="444" height="226" fill="none" stroke="#f2a65a" stroke-dasharray="6 4" stroke-width="1.4"/>`;
+  for (let i = 0; i < 72; i++) {
+    const c = i % 12, r = Math.floor(i / 12), x = 84 + c * 36.4, y = 58 + r * 36.4;
+    s += `<rect x="${x}" y="${y}" width="33" height="33" fill="${set.has(i) ? "#4a3322" : "#2f2116"}" stroke="${set.has(i) ? "#7a5a3c" : "#3a2a1c"}"/>`;
+    if (set.has(i)) s += `<path d="M${x + 4} ${y + 22}h25M${x + 4} ${y + 12}h18" stroke="#5e4330" stroke-width="1.5"/>`;
+  }
+  FINDS.forEach((f, k) => {
+    const i = FIND_CELL[k], c = i % 12, r = Math.floor(i / 12), x = 84 + c * 36.4 + 16.5, y = 58 + r * 36.4 + 16.5;
+    if (S.dig.found.includes(k)) s += f.danger ? `<path d="M${x} ${y - 11}L${x + 11} ${y + 9}H${x - 11}Z" fill="var(--h-red)"/><text x="${x}" y="${y + 6}" text-anchor="middle" fill="#000" style="font:700 12px var(--display)">!</text>`
+      : `<circle cx="${x}" cy="${y}" r="9" fill="${f.tech ? "var(--h-cyan)" : f.kind === "Data core" ? "var(--h-lav)" : "var(--h-peach)"}"/>`;
+  });
+  s += `<g transform="translate(540 250)"><rect x="-22" y="-10" width="44" height="22" fill="#5a5d66"/><rect x="-8" y="-40" width="6" height="32" fill="#8d909a"/><circle cx="-5" cy="-44" r="5" fill="var(--h-amber)"/></g>`;
+  s += `<text x="80" y="38" fill="var(--h-peach)" style="font:600 12px var(--label);letter-spacing:.12em">${S.dig.site === "ossar" ? "OSSAR · MAIN RUIN FIELD · SITE A" : "TENARI PRIME · SESHET HIGHLANDS · SITE B"}</text>`;
+  s += `<text x="80" y="306" fill="var(--h-greytext)" style="font:600 11px var(--label);letter-spacing:.1em">GRID 12 × 6 · ${dug} OF 72 SQUARES OPEN</text>`;
+  return `<svg class="dig" viewBox="0 0 600 330" role="img" aria-label="Excavation site, ${S.dig.prog} percent dug">${s}</svg>`;
+}
+function digBlocked() {
+  if (S.dig.prog >= 100) return "Site exhausted";
+  if (S.dig.site === "tenari" && S.faction === "federation") return "Prime Directive applies: this is Tenari heritage. Observe only.";
+  return null;
+}
+function digCycle() {
+  const m = METHOD[S.faction], d = S.dig, p0 = d.prog;
+  d.prog = Math.min(100, d.prog + m.speed);
+  S.clock += 60;
+  FINDS.forEach((f, k) => {
+    if (f.at > p0 && f.at <= d.prog) {
+      d.found.push(k);
+      if (f.danger === "defence") {
+        if (rng() < m.trig) { d.hurt += 3; addLog("bad", "Vel'kesh defence grid wakes on Ossar: excavator destroyed, 3 crew hurt"); }
+        else { d.sci += Math.round(40 * Math.max(m.sci, .5)); addLog("good", "Dormant Vel'kesh defence system found and disarmed"); }
+      } else if (f.danger === "pathogen") {
+        if (S.faction === "borg") addLog("info", "Ancient pathogen released; nanoprobes adapt — no effect");
+        else if (rng() < m.trig) addLog("bad", "Ancient pathogen released: dig site quarantined 3 min");
+        else addLog("good", "Pathogen vault sealed and catalogued");
+      } else {
+        if (S.faction === "borg" && f.tech) { d.techs++; addLog("good", `${f.name} assimilated directly — new tech`); }
+        else { const sc = Math.round(f.sci * m.sci), la = Math.round(f.lat * m.lat); d.sci += sc; d.lat += la; addLog("good", `Find: ${f.name}${sc ? ` — +${sc} research` : ""}${la ? ` · +${la} latinum` : ""}`); }
+      }
+    }
+  });
+  if (S.dig.site === "tenari") { S.aware = clamp(S.aware + 8, 0, 100); addLog("warn", "Tenari pilgrims see strangers at the ancestors' hill — awareness +8"); if (S.faction === "cardassian" && S.annexed) S.g.cardassian = clamp(S.g.cardassian + 10, 0, 100); }
+  if (d.prog >= 100) addLog("info", "Excavation complete: site exhausted");
+  render();
+}
+function viewRuins() {
+  const m = METHOD[S.faction], d = S.dig, blocked = digBlocked();
+  return `<div class="ruins"><div style="display:grid;gap:8px;min-width:0">
+      <div><h4 class="h4">Ancient ruins of the Vel'kesh</h4><div class="sub">extinct ~40,000 years · ${d.site === "ossar" ? "Ketar V (Ossar), no living descendants" : "Tenari Prime: the Tenari descend from the Vel'kesh"}</div></div>
+      <div class="fogrow"><span class="k">Site</span><div class="hseg" role="group" aria-label="Dig site"><button data-site="ossar" aria-pressed="${d.site === "ossar"}">Ossar · dead world</button><button data-site="tenari" aria-pressed="${d.site === "tenari"}">Tenari Prime · heritage</button></div></div>
+      ${digSvg()}
+      <div class="k">Dig progress · ${d.prog} %</div>${meter(d.prog, 100, "var(--h-peach)", FINDS.map(f => f.at))}
+    </div>
+    <div class="side">
+      <div class="panel fc"><h5>${m.n} <small>${fac().name}</small></h5><div style="font-size:13.5px">${m.d}</div>
+        <dl class="kv"><dt>Speed</dt><dd>${m.speed} % a cycle (1 min)</dd><dt>Science</dt><dd>× ${m.sci}${S.faction === "borg" ? " (techs instead)" : ""}</dd><dt>Latinum</dt><dd>× ${m.lat}</dd><dt>Dangers wake</dt><dd>${Math.round(m.trig * 100)} %</dd></dl>
+        ${d.site === "tenari" ? `<div class="result ${S.faction === "federation" ? "badc" : "warnc"}">${S.faction === "federation" ? "Ruins on a world with living descendants are their heritage: the Prime Directive applies." : "Their heritage: every cycle here raises Tenari awareness +8."}</div>` : ""}
+        <div class="go"><button class="order" data-dig="1" ${blocked ? "disabled" : ""}>${blocked ? "Dig" : "Dig one cycle"}</button>${blocked ? `<span class="badc" style="font:600 13px var(--label);letter-spacing:.05em">${blocked}</span>` : ""}</div>
+        <dl class="kv"><dt>Research</dt><dd>+${d.sci}</dd><dt>Latinum</dt><dd>+${d.lat}</dd>${S.faction === "borg" ? `<dt>Techs</dt><dd>+${d.techs}</dd>` : ""}<dt>Crew hurt</dt><dd>${d.hurt}</dd></dl></div>
+      <div class="panel" style="border-left-color:var(--h-rust)"><h5>Who built it <small>ruin roll</small></h5><div style="font-size:13px">Ruins are mostly invented species like the Vel'kesh. Canon precursors (Iconians, T'Kon, Preservers) are very rare finds, with bigger rewards and bigger dangers.</div></div>
+      <div class="panel lav"><h5>Finds <small>${d.found.length} of ${FINDS.length}</small></h5><ul class="finds">${FINDS.map((f, k) => { const got = d.found.includes(k); return `<li class="${f.danger ? "danger" : ""}${got ? "" : " hidden"}"><span class="k">${f.kind}</span><span>${got ? f.name : "unknown"}</span><em>${f.at} %</em></li>`; }).join("")}</ul></div>
+    </div></div>`;
+}
+
+/* ---------------------------------------------------------------- 5 · log */
+function viewLog() {
+  const rows = S.log.slice().reverse().map(e => `<li class="sev-${e.sev}"><time>${clockText(e.t)}</time><i></i><span>${e.txt}</span><small>${e.f ? F[e.f].short : "sys"}</small></li>`).join("");
+  const ex = [["bad", "Incident", "Contamination incident on Tenari Prime — Starfleet Standing −20"], ["warn", "Warning", "Starfleet inquiry convened — captain recalled 5 min, USS Calloway idle"], ["bad", "Incident", "The Tenari now worship 'the Sky Visitors'"], ["good", "Event", "Tenari Prime assimilated — +360 drones"]];
+  return `<div class="logv"><div style="display:grid;gap:8px;min-width:0"><div><h4 class="h4">Consequence log</h4><div class="sub">${S.log.length} entries · newest first · game clock</div></div><ul class="log">${rows}</ul></div>
+    <div class="side"><div class="panel"><h5>Event toasts <small>top right · 5 s · stack of 3</small></h5>${ex.map(([s, k, t]) => `<div class="toast static sev-${s}"><i></i><div><div class="tk">${k}</div><div class="tt">${t}</div></div></div>`).join("")}
+      <div class="mute" style="font-size:12.5px">Colour by severity: blue report, green event, amber warning, red incident. Each also goes to the event feed with the signal delay of the colony's reports.</div></div>
+      <div class="panel lav"><h5>World status</h5>${fxChips()}<dl class="kv"><dt>Awareness</dt><dd>${S.aware} / 100</dd><dt>${fac().gauge.name}</dt><dd>${S.g[S.faction]}</dd></dl></div></div></div>`;
+}
+
+/* ---------------------------------------------------------------- notes */
+const NOTES = {
+  scan: [["On this screen", ["The system display plot with the selected body's card beside it, as in the game's star-system view.", "Fog toggle: <b>Detected</b> shows only signals or structures, <b>Charted</b> (kept after the 15 s orbital sweep) the dossier summary, <b>Live</b> the mood, live awareness and defences.", "Ketar V shows a past civilization: structures but no signals."]],
+    ["Rules (placeholders)", ["Live civilization data needs a satellite or an observation post; a ship in orbit only refreshes the Charted summary.", "The civilization roll happens at system generation: inhabited worlds come from the habitable zone, ruins from any rocky body."]],
+    ["Open questions", ["How rare is a living civilization per system?", "Should the long-range scan already tell signals from structures?"]]],
+  dossier: [["On this screen", ["The development ladder L1–L6 (click a rung to preview another level), temperament, unity with the nations, the awareness meter and the world's status chips.", "Example civ: the Tenari, L3 Industrial, 1.2 billion, wary, fractured into 3 nations, awareness 4."]],
+    ["Rules (placeholders)", ["Awareness 0–100: 0–9 unaware, 10–39 rumours, 40–69 suspect, 70+ they know. It only rises.", "Fractured worlds pass unrest at awareness 30 and an arms race at 50 (L3–L4)."]],
+    ["Open questions", ["An L4 world can reach L5 mid-match (2 % a minute, placeholder). Should other levels advance too?", "Should nations act on their own, e.g. one invites you in?"]]],
+  contact: [["On this screen", ["Actions for the picked faction, each with time, cost, reward, risk and a one-line consequence. Pick one for the outcome preview, then order it.", "Federation: the Prime Directive panel with Starfleet Standing, the consequences ladder, contamination risk per action and the native-side effects."]],
+    ["Rules (placeholders)", ["Each order rolls against its risk once (the checkbox forces the bad roll). Results go to the log and a toast.", "The Prime Directive is harsh: at 0 Standing, or a third incident on the same world, the ship is recalled for good (scenario: match lost).", "Natives never fight on the ground: they react through awareness, unrest and events. The conquest options of the preview factions resolve as timed events.", "Federation first contact with an L5/L6 world gives all four: trade partner, research + a unique tech, ally ships, a membership path (Contact → Trade partner → Candidate → Allied world). An allied world stays theirs: a small outpost, their trade and ships, no free mining.", "Locked actions show why; some can be forced anyway at a price (Federation contact below L5, Borg assimilation below L4)."]],
+    ["Open questions", ["Only the Federation is playable for now; the other six factions are a design preview.", "Should Standing recover over time, and how fast?", "Should other factions see your contamination (intel, diplomacy)?"]]],
+  ruins: [["On this screen", ["The Vel'kesh excavation on Ossar: a 12 × 6 dig grid, progress with the find marks, and the finds list (artefact, data core, tech fragment, and two dangers).", "Each faction digs its own way; switch the site to Tenari Prime to see heritage rules."]],
+    ["Rules (placeholders)", ["Federation digs slowly for 1.5× science; Klingon and Ferengi loot fast for latinum; Borg assimilate tech fragments directly.", "Ruins on a world with living descendants are their heritage: the Federation may not dig there."]],
+    ["Open questions", ["Mostly invented species; canon precursors (Iconians, T'Kon, Preservers) are very rare finds. How rare?", "Do finds unlock techs, buildings, or both?", "Should a woken defence system be a combat encounter?"]]],
+  log: [["On this screen", ["Every consequence, newest first, with the game clock and the faction that caused it.", "Example toasts in the four severities."]],
+    ["Rules (placeholders)", ["Toasts stay 5 s, up to 3 at a time; the log keeps everything for the match.", "Lines about the colony's own world arrive with the signal delay while the ship is away."]],
+    ["Open questions", ["Should incidents also pause the game or flash the helm alert mode?"]]]
+};
+
+/* ---------------------------------------------------------------- render */
+function render() {
+  document.documentElement.style.setProperty("--fc", fcColor(S.faction));
+  $("#factions").innerHTML = Object.keys(F).map(k => `<button class="fbtn" role="radio" aria-checked="${S.faction === k}" data-faction="${k}" style="--c:${fcColor(k)}"><i></i>${F[k].name}${k === "federation" ? "" : "<em>Preview</em>"}</button>`).join("");
+  $("#steps").innerHTML = STEPS.map(([k, n], i) => `<button data-step="${k}" aria-current="${S.step === k}"><b>${i + 1}</b>${n}</button>`).join("");
+  $("#rail").innerHTML = STEPS.map(([k, n]) => `<button data-step="${k}" aria-current="${S.step === k}">${n}</button>`).join("") + `<div class="fill"></div><div class="tag">${fac().short}</div>`;
+  const titles = { scan: "Ketar system", dossier: "Civilization dossier", contact: "Contact decision", ruins: "Excavation", log: "Consequences" };
+  $("#title").innerHTML = `<span>${titles[S.step]}</span><small>${fac().ship} · ${S.body === "b5" ? "orbit of Ketar V" : "orbit of Ketar III"}</small>`;
+  $("#ftag").textContent = S.faction === "federation" ? fac().name : `${fac().name} · preview`;
+  const views = { scan: viewScan, dossier: viewDossier, contact: viewContact, ruins: viewRuins, log: viewLog };
+  $("#view").innerHTML = (S.faction === "federation" ? "" : `<div class="pvstrip">${fac().name} · Design preview — not playable yet</div>`) + views[S.step]();
+  const pills = {
+    scan: `<button class="pill" data-fog="live">Deploy satellite</button><button class="pill dis">Long-range scan · 90 s</button><button class="pill alt" data-go="dossier">Dossier</button>`,
+    dossier: `<button class="pill alt" data-go="contact">Contact options</button><button class="pill" data-go="scan">Back to plot</button>`,
+    contact: `<button class="pill alt" data-go="dossier">Dossier</button><button class="pill" data-go="log">Log</button>`,
+    ruins: `<button class="pill" data-dig="1">Dig</button><button class="pill alt" data-go="scan">Back to plot</button>`,
+    log: `<button class="pill" data-go="contact">Contact options</button><button class="pill dis" data-clear="1">Clear log</button>`
+  };
+  $("#pills").innerHTML = pills[S.step] + `<span class="clock">T+${clockText(S.clock)}</span>`;
+  $("#notes").innerHTML = NOTES[S.step].map(([h, items]) => `<div><h3>${h}</h3><ul>${items.map(i => `<li>${i}</li>`).join("")}</ul></div>`).join("");
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("button, [data-body]");
+  if (!t) return;
+  const d = t.dataset;
+  if (d.faction) { S.faction = d.faction; S.sel = null; S.last = null; try { localStorage.setItem("fc-faction", d.faction); } catch (er) {} }
+  else if (d.step) S.step = d.step;
+  else if (d.go) S.step = d.go;
+  else if (d.fog) S.fog = d.fog;
+  else if (d.body) { S.body = d.body; }
+  else if (d.level) { S.level = +d.level; S.last = null; }
+  else if (d.temper) S.temper = d.temper;
+  else if (d.unity) S.unity = d.unity;
+  else if (d.act) { S.sel = d.act; S.last = null; }
+  else if (d.order) { const a = fac().actions.find(x => x.id === S.sel); if (a) return order(a, d.order === "force"); }
+  else if (d.dig) { if (S.step !== "ruins") S.step = "ruins"; else if (!digBlocked()) return digCycle(); }
+  else if (d.site) S.dig.site = d.site;
+  else if (d.quote) S.quote++;
+  else if (d.warp) { S.level = 5; S.last = null; addLog("good", "The Tenari fly their first warp ship — they are L5, first contact is allowed"); }
+  else if (d.clear) S.log = [];
+  else if (t.id === "reset") fresh();
+  else return;
+  render();
+});
+document.addEventListener("keydown", e => { const t = e.target.closest && e.target.closest("[data-body]"); if (t && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); S.body = t.dataset.body; render(); } });
+document.addEventListener("change", e => { if (e.target.id === "forceBad") S.forceBad = e.target.checked; });
+render();
+</script>
