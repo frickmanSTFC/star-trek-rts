@@ -325,7 +325,7 @@ public partial class PlanetHud : CanvasLayer
     /// <summary>True when the mouse is over the HUD (so the world shouldn't react to it).</summary>
     public bool BlocksMouse(Vector2 mouse) =>
         (_topBar.Visible && _topBar.GetGlobalRect().HasPoint(mouse)) || (_bottom.Visible && _bottom.GetGlobalRect().HasPoint(mouse)) ||
-        (_info.Visible && _info.GetGlobalRect().HasPoint(mouse)) || (_help.Visible && _help.GetGlobalRect().HasPoint(mouse));
+        (_info.Visible && _info.GetGlobalRect().HasPoint(mouse)) || (_help.Visible && _help.GetGlobalRect().HasPoint(mouse)) || RuinsBlockMouse(mouse);
 
     /// <summary>Hooks for the info card's action button and its close button.</summary>
     public void SetInfoHandlers(Action onAction, Action onClose)
@@ -479,7 +479,8 @@ public partial class PlanetHud : CanvasLayer
             chip.Rate.Text = perMin == 0 ? ShortName(r.Name) : $"{ShortName(r.Name)} {(perMin > 0 ? "+" : "−")}{Mathf.Abs(perMin)}";
             chip.Rate.AddThemeColorOverride("font_color", perMin > 0 ? Good : perMin < 0 ? Warn : Dim);
             if (chip.Amount.GetParent()?.GetParent() is Control box)
-                box.TooltipText = $"{r.Name}: {Hud.Whole(p.Stock[r.Index])}" + (perMin == 0 ? "" : $"  ({(perMin > 0 ? "+" : "−")}{Mathf.Abs(perMin)} a minute)");
+                box.TooltipText = $"{r.Name}: {Hud.Whole(p.Stock[r.Index])}" + (perMin == 0 ? "" : $"  ({(perMin > 0 ? "+" : "−")}{Mathf.Abs(perMin)} a minute)")
+                    + (TradeTipLine.Length > 0 ? "\n" + TradeTipLine : ""); // trade partners' income (PlanetHud.Ruins.cs)
         }
         _researchChip.Text = research;
         _researchSub.Text = researchSub;

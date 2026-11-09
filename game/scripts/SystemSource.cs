@@ -108,7 +108,32 @@ public sealed class SystemSource
     /// <summary>The local player's flagship, or null (always null on the stand-in).</summary>
     public SystemShip? Flagship => State?.FlagshipOf(_player);
 
-    public IReadOnlyList<SystemShip> Ships => State?.Ships ?? NoShips;
+    /// <summary>Every ship, plus the local player's allied native ships (civilizations phase 2) if the sim keeps them
+    /// outside <c>Ships</c> (merged once a tick; the list is the sim's own while there are none).</summary>
+    public IReadOnlyList<SystemShip> Ships
+    {
+        get
+        {
+            if (State is not { } sys) return NoShips;
+            var allies = sys.AlliesOf(_player);
+            if (allies.Count == 0) return sys.Ships;
+            if (_mergedTick == _sim.Tick && _merged != null && ReferenceEquals(_mergedFrom, sys.Ships)) return _merged;
+            var list = new List<SystemShip>(sys.Ships);
+            foreach (var a in allies)
+                if (!list.Contains(a)) list.Add(a);
+            _merged = list;
+            _mergedFrom = sys.Ships;
+            _mergedTick = _sim.Tick;
+            return list;
+        }
+    }
+
+    private List<SystemShip>? _merged;
+    private IReadOnlyList<SystemShip>? _mergedFrom;
+    private long _mergedTick = -1;
+
+    /// <summary>An allied native ship of the local player (SystemShip.AllyOf).</summary>
+    public bool IsOurAlly(SystemShip ship) => ship.AllyOf >= 0 && ship.AllyOf == _player;
 
     public SystemShip? Ship(int id)
     {

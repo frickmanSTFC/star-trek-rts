@@ -337,6 +337,7 @@ public partial class PlanetDriver
         var bodies = _orbit.SystemBodies();
         var star = _system.Star;
         var known = bodies.Count(b => b.ParentId == null);
+        hint ??= AllyHint(); // SCOUT armed: pick a body (PlanetDriver.Contact.cs)
         _helm.SetTitle(star != null ? $"{star.Name} SYSTEM" : "STAR SYSTEM", hint ?? $"{known} BODIES · {ShipLine()}{(OrbitState() is var state && state != "STANDARD ORBIT" ? $" · {state}" : "")}");
 
         var sections = new List<HelmSection>();
@@ -426,7 +427,9 @@ public partial class PlanetDriver
         if (SystemSource.InFlight(s)) rows.Add(new HelmRow("ETA", $"{_system.SecondsToArrival(s)} s"));
         var buttons = new List<HelmAction>();
         if (s.Owner == LocalPlayer) buttons.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null));
-        var colour = s.Owner == LocalPlayer ? HelmScreen.Peach : s.Owner < 0 ? HelmScreen.Lavender : PlanetDriver.ColorOf(s.Owner);
+        AllyCard(s, rows, buttons); // an allied native ship: ALLY / TASK rows, ESCORT / SCOUT (PlanetDriver.Contact.cs)
+        var colour = s.AllyOf >= 0 ? (s.AllyOf == LocalPlayer ? HelmScreen.Green : PlanetDriver.ColorOf(s.AllyOf))
+            : s.Owner == LocalPlayer ? HelmScreen.Peach : s.Owner < 0 ? HelmScreen.Lavender : PlanetDriver.ColorOf(s.Owner);
         return (rows, buttons, colour);
     }
 
@@ -435,8 +438,9 @@ public partial class PlanetDriver
         var buttons = new List<HelmAction>();
         if (_system.State == null) return buttons; // the stand-in system (no star-system game): nothing to order
         var course = CourseProblem(b.Id);
-        buttons.Add(new HelmAction($"sys:course:{b.Id}", "", "SET COURSE", course == null));
         var f = _system.Flagship;
+        // in orbit here SET COURSE is only ever greyed: its slot goes to the civilization's buttons (5 at most)
+        if (!(f != null && f.AtBody == b.Id && !SystemSource.InFlight(f))) buttons.Add(new HelmAction($"sys:course:{b.Id}", "", "SET COURSE", course == null));
         if (f != null && f.AtBody == b.Id && !SystemSource.InFlight(f))
             buttons.Add(new HelmAction($"sys:sat:{b.Id}", "", "DEPLOY SATELLITE", SatelliteProblem(b.Id) == null));
         AddCivButtons(b, buttons); // HIDDEN POST (flagship there) and DOSSIER (PlanetDriver.Civ.cs)
@@ -482,6 +486,12 @@ public partial class PlanetDriver
     /// <summary>A click on the system plot: a ship (they sit over bodies) or a body opens its card; empty space closes it.</summary>
     private void SystemClick(Vector2 mouse)
     {
+        if (_allyScout != null)
+        {
+            // SCOUT armed: the click picks the body (ships are ignored), empty space keeps it armed
+            if (_orbit.PickBody(mouse) is { } scoutBody) AllyScoutPick(scoutBody);
+            return;
+        }
         if (_orbit.PickShip(mouse) is { } shipId)
         {
             _selectedShip = shipId;
@@ -517,6 +527,7 @@ public partial class PlanetDriver
         var when = _sim.Tick + InputDelayTicks;
         var f = _system.Flagship;
         if (OnPostAction(id, when)) return; // sys:post:<body>: a hidden observation post (PlanetDriver.Civ.cs)
+        if (OnAllyAction(id, when)) return; // sys:ally:escort|scout:<ship> (PlanetDriver.Contact.cs)
         string? problem;
         string done;
         if (id.StartsWith("sys:course:"))

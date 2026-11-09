@@ -428,6 +428,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
                 _orbitAction = null;
+                _allyScout = null;
                 if (_info != null && _info.StartsWith("orbit:")) _info = null;
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
@@ -461,6 +462,9 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case Key.Escape when _chooser.IsOpen:
                 _chooser.Toggle();
+                break;
+            case Key.Escape when _allyScout != null:
+                _allyScout = null;
                 break;
             case Key.Escape when _systemCard != null && _orbit.Display == OrbitDisplay.System:
                 CloseSystemCard();
@@ -553,6 +557,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     {
         if (id.StartsWith("scan:")) _orbit.SetScan((ScanMode)int.Parse(id[5..]));
         else if (id == "grid") _orbit.Grid = !_orbit.Grid;
+        else if (id.StartsWith("body:") && AllyScoutPick(id[5..])) { } // SCOUT armed: the rail is the body list (PlanetDriver.Contact.cs)
         else if (id.StartsWith("body:")) SelectSystemBody(id[5..]); // rail: select it and open its card
         else if (id.StartsWith("sys:")) OnSystemAction(id); // body / ship card buttons (PlanetDriver.System.cs)
         else if (id.StartsWith("civ:")) OnCivAction(id); // the civilization dossier (PlanetDriver.Civ.cs)
