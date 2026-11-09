@@ -1994,7 +1994,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var (kitRow, kitWait) = RepairInfo(u); // spare kits (PlanetDriver.Parts.cs)
         var status = u.Broken && repairing && kitWait != null ? "Repair waiting for kits"
             : u.Broken && repairing
-            ? u.RepairWaiting ? "Repair waiting: not enough resources"
+            ? u.RepairWaiting ? "Repair waiting for kits"
                 : Surface.CrewOut(u) < Fix64.One ? "Repair crew on the way" : $"Repairing: {Mathf.FloorToInt(u.Integrity.ToFloat())}%"
             : u.Broken && u.Path.Count > 0 ? "Broken down: driving to the repair pad"
             : u.Broken ? $"Broken down: {BreakdownName(u)}"
@@ -2162,11 +2162,11 @@ public partial class PlanetDriver : Node3D, ITestHost
             var auto = Surface.AutoMaintained(s);
             var autoWhy = Surface.LevelModifiers(s).Any(m => m.Stat == Modifier.AutoMaintain) ? Surface.LevelName(s) : "research";
             maintenance =
-                s.AutoRepairing ? (s.MaintenanceWaiting ? "Drones waiting for duranium" : "Drones repairing it")
+                s.AutoRepairing ? (s.MaintenanceWaiting ? "Drones waiting for kits" : "Drones repairing it")
                 : s.MaintenanceOrdered && crew?.CrewJob == s.Id ? crew.CrewPhase switch
                 {
                     CrewPhase.Out => "Crew on the way",
-                    CrewPhase.Working => s.MaintenanceWaiting ? "Crew waiting for duranium" : "Crew repairing it",
+                    CrewPhase.Working => s.MaintenanceWaiting ? "Crew waiting for kits" : "Crew repairing it",
                     _ => "Crew heading back",
                 }
                 : s.MaintenanceOrdered ? "Waiting for the crew (busy elsewhere)"

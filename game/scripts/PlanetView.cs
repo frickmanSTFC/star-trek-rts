@@ -1195,7 +1195,7 @@ public partial class PlanetView : Node3D
     private string RepairLabel(SurfaceUnit u)
     {
         if (!_surface.IsRepairing(u)) return "Broken down";
-        if (u.RepairWaiting) return "Repair waiting: not enough resources";
+        if (u.RepairWaiting) return "Repair waiting for kits";
         if (_surface.CrewOut(u) < Fix64.One) return "Repair crew on the way";
         return $"Repairing {Mathf.FloorToInt(u.Integrity.ToFloat())}%";
     }

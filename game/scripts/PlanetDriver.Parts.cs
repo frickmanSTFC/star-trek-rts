@@ -67,6 +67,7 @@ public partial class PlanetDriver
         _hud.FabCancelPressed += CancelOrder;
         _hud.WorkshopPressed += ToggleWorkshop;
         _hud.InventoryPressed += ToggleInventory;
+        _hud.KitsShortPressed += () => { if (!_inventory.IsOpen) ToggleInventory(); };
     }
 
     // ---------------------------------------------------------------- items
@@ -642,5 +643,28 @@ public partial class PlanetDriver
         if (_workshop && !WorkshopAvailable()) _workshop = false;
         var landed = Me.Phase == LandingPhase.Landed && !_inOrbit;
         _hud.ShowTools(landed, landed && WorkshopAvailable(), WorkshopShown());
+        UpdateKitsShort(landed);
+    }
+
+    private double _kitsShortAt;
+
+    /// <summary>Once a second: the red KITS SHORT chip while any of our repairs waits for kits (tooltip = what waits).</summary>
+    private void UpdateKitsShort(bool landed)
+    {
+        var now = Time.GetTicksMsec() / 1000.0;
+        if (now < _kitsShortAt) return;
+        _kitsShortAt = now + 1;
+        if (!landed || Surface.PartItems.Count == 0)
+        {
+            _hud.ShowKitsShort(null, "");
+            return;
+        }
+        var lines = new List<string>();
+        foreach (var s in Surface.Structures)
+            if (s.Owner == LocalPlayer && Surface.RepairWaitReason(s) is { } why) lines.Add($"{BuildingName(s.DefId)}: {why}");
+        foreach (var u in Surface.Units)
+            if (u.Owner == LocalPlayer && Surface.RepairWaitReason(u) is { } why) lines.Add($"{UnitName(u)}: {why}");
+        _hud.ShowKitsShort(lines.Count == 0 ? null : $"KITS SHORT · {lines.Count}",
+            "Repairs waiting for spare kits (click: inventory, J: jury-rig the selected one)\n" + string.Join("\n", lines.Take(8)) + (lines.Count > 8 ? $"\n+ {lines.Count - 8} more" : ""));
     }
 }
