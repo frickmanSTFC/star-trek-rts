@@ -46,6 +46,7 @@ public static partial class BuildingModels
         "pressure_dome" => PressureDome(owner, v),
         "life_support_plant" => LifeSupportPlant(owner, v),
         "machine_shop" => MachineShop(owner, v),
+        "excavation_site" => ExcavationSite(owner, v),
         _ => Generic(owner),
     };
 
