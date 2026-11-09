@@ -123,6 +123,7 @@ public partial class MainMenu
         {
             Roll();
             _dirty = true; // rebuilt next frame (this button goes with the page)
+            if (_tutorialStep == 2 && !Landable(_picked)) ShowTutorialStep(1); // the new system needs a pick again
         }, 130f);
         reroll.TooltipText = "Chart another star system";
         bar.AddChild(reroll);
@@ -562,12 +563,21 @@ public partial class SystemMap : Control
             var r = ScreenOf(b).DistanceTo(_centre);
             if (SystemPlot.IsRocks(b.ClassId))
             {
-                var rng = new RandomNumberGenerator { Seed = (ulong)(b.Id.GetHashCode() & 0x7fffffff) + 7 };
+                // Rubble from a small fixed hash of the body id (same dots every frame, no allocation).
+                var h = 2166136261u;
+                foreach (var ch in b.Id) h = (h ^ ch) * 16777619u;
+                float Next()
+                {
+                    h ^= h << 13;
+                    h ^= h >> 17;
+                    h ^= h << 5;
+                    return (h & 0xffffff) / 16777216f;
+                }
                 for (var i = 0; i < 160; i++)
                 {
-                    var a = rng.RandfRange(0f, Mathf.Tau);
-                    var rr = r + rng.RandfRange(-7f, 7f) * s;
-                    DrawCircle(_centre + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * rr, rng.RandfRange(0.6f, 1.6f) * s, new Color(0.62f, 0.58f, 0.52f, 0.55f));
+                    var a = Next() * Mathf.Tau;
+                    var rr = r + (Next() * 14f - 7f) * s;
+                    DrawCircle(_centre + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * rr, (0.6f + Next()) * s, new Color(0.62f, 0.58f, 0.52f, 0.55f));
                 }
             }
             else DrawArc(_centre, r, 0f, Mathf.Tau, 160, new Color(HudKit.Line, 0.95f), 1f, true);

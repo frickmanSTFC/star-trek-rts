@@ -23,10 +23,10 @@ public partial class SettingsPanel : PanelContainer
         _s = s;
         _inGame = inGame;
         AddThemeStyleboxOverride("panel", HudKit.Box(HudKit.Panel, HudKit.Accent, 10 * s, 22 * s, 18 * s));
-        CustomMinimumSize = new Vector2(560 * s, 0);
+        CustomMinimumSize = new Vector2(640 * s, 0);
         MouseFilter = MouseFilterEnum.Stop;
         _box = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-        _box.AddThemeConstantOverride("separation", Mathf.RoundToInt(8 * s));
+        _box.AddThemeConstantOverride("separation", Mathf.RoundToInt(6 * s));
         AddChild(_box);
         Fill();
     }
@@ -34,27 +34,33 @@ public partial class SettingsPanel : PanelContainer
     private void Fill()
     {
         var s = _s;
-        if (_inGame) _box.AddChild(HudKit.Label("SETTINGS", 24 * s, HudKit.Accent, condensed: true, bold: true));
+        var title = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        title.AddChild(HudKit.Label("SETTINGS", 26 * s, HudKit.Ink, condensed: true, bold: true));
+        title.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore });
+        var note = HudKit.Label("applied at once · saved for the next run", 12 * s, HudKit.Dim, condensed: true);
+        note.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        title.AddChild(note);
+        _box.AddChild(title);
 
         Section("GAME");
-        Toggle("Tutorial hints", "Guided cards when a campaign starts (and on the star-system picker)", GameSettings.TutorialHints,
+        Toggle("Tutorial hints", "Guided cards in a campaign start and on the star-system picker", GameSettings.TutorialHints,
             v => GameSettings.TutorialHints = v);
 
         Section("DISPLAY");
         Choice("Window", new[] { ("WINDOW", WindowChoice.Windowed), ("FULL SCREEN", WindowChoice.Fullscreen), ("EXCLUSIVE", WindowChoice.Exclusive) },
             GameSettings.WindowMode, v => GameSettings.WindowMode = v,
-            "Full screen = borderless window over the whole screen; exclusive = the monitor's own full-screen mode");
-        Toggle("VSync", "Lock the frame rate to the display (off: no cap, may tear)", GameSettings.VSync, v => GameSettings.VSync = v);
-        Slider("UI scale", "Cards, the build drawer, menus, dossier and inventory (the top bar and helm keep their size)",
+            "Full screen: borderless; exclusive: the monitor's own mode");
+        Toggle("VSync", "Frame rate locked to the display (off: no cap)", GameSettings.VSync, v => GameSettings.VSync = v);
+        Slider("UI scale", "Menus, cards, build drawer, dossier, inventory (not the top bar or helm)",
             GameSettings.UiScaleMin, GameSettings.UiScaleMax, 0.05f, GameSettings.UiScale, v => GameSettings.UiScale = v, v => $"{v * 100f:0}%");
 
         Section("CONTROLS");
-        Slider("Camera speed", "Keyboard and edge panning on the surface, globe turning in orbit",
+        Slider("Camera speed", "Panning on the surface, turning the globe in orbit",
             GameSettings.CameraSpeedMin, GameSettings.CameraSpeedMax, 0.1f, GameSettings.CameraSpeed, v => GameSettings.CameraSpeed = v, v => $"×{v:0.0}");
-        Toggle("Edge scrolling", "Pan the surface camera when the mouse touches the window's edge", GameSettings.EdgeScroll, v => GameSettings.EdgeScroll = v);
+        Toggle("Edge scrolling", "Pan when the mouse touches the window's edge", GameSettings.EdgeScroll, v => GameSettings.EdgeScroll = v);
 
         Section("AUDIO");
-        Slider("Master volume", "The game has no sounds yet; this sets the master bus for when it does",
+        Slider("Master volume", "No sounds in the game yet; sets the master bus",
             0f, 1f, 0.05f, GameSettings.MasterVolume, v => GameSettings.MasterVolume = v, v => $"{v * 100f:0}%");
 
         _box.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6 * s), MouseFilter = MouseFilterEnum.Ignore });
@@ -107,7 +113,7 @@ public partial class SettingsPanel : PanelContainer
         text.AddChild(HudKit.Label(name, 16 * _s, HudKit.Ink, condensed: true, bold: true));
         var h = HudKit.Label(hint, 12 * _s, HudKit.Dim);
         h.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        h.CustomMinimumSize = new Vector2(250 * _s, 0);
+        h.CustomMinimumSize = new Vector2(260 * _s, 0);
         text.AddChild(h);
         row.AddChild(text);
         _box.AddChild(row);

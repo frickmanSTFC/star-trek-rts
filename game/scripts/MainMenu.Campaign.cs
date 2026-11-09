@@ -196,7 +196,7 @@ public partial class MainMenu
         {
             FocusMode = Control.FocusModeEnum.None,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(0, (open ? 92 : 64) * _s),
+            CustomMinimumSize = new Vector2(0, (open ? 92 : 80) * _s),
             Disabled = !open,
             TooltipText = open ? "Begin: choose a star system" : "Locked: later in the campaign",
             ClipContents = true,

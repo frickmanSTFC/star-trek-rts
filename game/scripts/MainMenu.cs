@@ -272,7 +272,6 @@ public partial class MainMenu : Node3D
     private Control BuildSettingsPage()
     {
         var (root, column) = NewPage(0.55f);
-        Header(column, "OPTIONS", "SETTINGS", "Applied at once and saved for the next run.");
         var centre = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsVertical = Control.SizeFlags.ExpandFill };
         column.AddChild(centre);
         var panel = new SettingsPanel();
