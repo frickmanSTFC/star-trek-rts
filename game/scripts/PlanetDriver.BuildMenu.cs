@@ -664,9 +664,10 @@ public partial class PlanetDriver
             var toHalf = (100f - m.DeclineBelow.ToFloat()) / Mathf.Max(0.01f, w);
             blocks.Add(new CardText($"Loses {Hud.Whole(def.WearPerMinute)} condition a minute while working (about {Mathf.RoundToInt(toHalf)} min from new to {Hud.Whole(m.DeclineBelow)}%). " +
                 $"Below {Hud.Whole(m.DeclineBelow)}% it slows, down to {Mathf.RoundToInt(m.SlowestOutput.ToFloat() * 100)}% output at 0, where it can break ({Mathf.RoundToInt(m.BreakChanceAtZero.ToFloat() * 100)}% a minute)."));
-            var full = m.CostPerPoint.Select(c => new ResourceAmount(c.Resource, c.Amount * Fix64.FromInt(100))).ToList();
             var drones = def.Levels.FirstOrDefault(l => l.Modifiers.Any(x => x.Stat == Modifier.AutoMaintain));
-            blocks.Add(new CardText($"Press M and a crew walks out from the base's core: {Num(m.RepairPerSecond.ToFloat())} points a second, {Exact(m.CostPerPoint)} a point ({Amounts(full, false)} for a full repair). " +
+            var kit = _data.KitOfBuilding(def.Id) is { } kid ? _data.Resource(kid).Name : null;
+            var kitText = kit != null && _data.Fabrication is { } fab ? $"one {kit} kit per {Hud.Whole(fab.KitPoints)} points repaired (J jury-rigs it without kits, up to {Hud.Whole(fab.JuryRig.MaxCondition)}%)" : "no parts needed";
+            blocks.Add(new CardText($"Press M and a crew walks out from the base's core: {Num(m.RepairPerSecond.ToFloat())} points a second, {kitText}. " +
                 $"Drones keep it above {Hud.Whole(m.AutoBelow)}%{(drones != null ? $" at {drones.Name}" : "")} or with Automated Maintenance research."));
         }
         else blocks.Add(new CardText("Never wears and needs no maintenance."));
@@ -784,7 +785,7 @@ public partial class PlanetDriver
         if (u.Repair is { } r)
             sections.Add(new("Repair", new CardBlock[]
             {
-                new CardText($"R (or right-click the colony core) sends it to the repair pad: after {r.CrewSeconds} s for the crew to walk out it regains {Num(r.PerSecond.ToFloat())} points a second for {Exact(r.CostPerPoint)} a point. Parked on the pad it also gets washed."),
+                new CardText($"R (or right-click the colony core) sends it to the repair pad: after {r.CrewSeconds} s for the crew to walk out it regains {Num(r.PerSecond.ToFloat())} points a second, using {(_data.KitOfUnit(unitId) is { } uk && _data.Fabrication is { } uf ? $"one {_data.Resource(uk).Name} kit per {Hud.Whole(uf.KitPoints)} points" : "no parts")}. Parked on the pad it also gets washed."),
             }));
         var techs = _data.Techs.Where(t => t.Modifiers.Any(m => m.Units.Contains(unitId))).Select(t => ($"{Hud.Whole(t.Cost)} RP", $"{t.Name}{(KnowsTech(t.Id) ? "  (done)" : "")}  ·  {t.Effect}")).ToList();
         sections.Add(new("Research that changes it", techs.Count > 0 ? new CardBlock[] { new CardPairs(techs) } : new CardBlock[] { new CardText("No research changes it yet.", Dim: true) }));

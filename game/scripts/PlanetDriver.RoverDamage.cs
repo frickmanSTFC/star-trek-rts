@@ -142,7 +142,7 @@ public partial class PlanetDriver
         var (kitRow, kitWait) = RepairInfo(u); // spare kits (PlanetDriver.Parts.cs)
         var (status, colour) =
             repairing && kitWait != null ? ("Repair waiting for kits", RoverWarn)
-            : repairing ? (u.RepairWaiting ? "Repair waiting: not enough resources" : Surface.CrewOut(u) < Fix64.One ? "Repair crew on the way" : "Repairing on the pad", RoverGood)
+            : repairing ? (u.RepairWaiting ? "Repair waiting for kits" : Surface.CrewOut(u) < Fix64.One ? "Repair crew on the way" : "Repairing on the pad", RoverGood)
             : u.Broken ? (u.Path.Count > 0 ? "Disabled: limping to the repair pad" : "Disabled: press R to limp to the repair pad", RoverBad)
             : changing ? ("Changing a tyre", new Color(0.62f, 0.82f, 1f))
             : flats >= 2 ? ($"{flats} flat tyres: barely crawling", RoverBad)

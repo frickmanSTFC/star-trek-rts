@@ -18,7 +18,7 @@ public sealed partial class PlanetSurface
         var def = _data.Building(defId);
         if (def.IsCore) return false;
         return def.IsMine || def.IsConverter || def.IsFactory || def.IsLab || def.OutputPerMinute.Count > 0 ||
-               def.UpkeepPerMinute.Count > 0 || def.PowerUse > Fix64.Zero || def.PowerSupply > Fix64.Zero;
+               def.UpkeepPerMinute.Count > 0 || def.PowerUse > Fix64.Zero || def.PowerSupply > Fix64.Zero || def.Fabricator != null;
     }
 
     /// <summary>Why this building can't be paused (pause = true) or resumed (false) now, or null. Unfinished buildings

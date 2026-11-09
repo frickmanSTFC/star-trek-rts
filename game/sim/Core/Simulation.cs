@@ -105,7 +105,7 @@ public sealed partial class Simulation
     {
         if (Surface != null) throw new InvalidOperationException("A surface is already loaded.");
         if (_players.Count > 0) throw new InvalidOperationException("Load the surface before adding players.");
-        Surface = new PlanetSurface(Data, SurfaceMap.Generate(Data, Data.Surface(planetClassId), seed, climateBody, system)) { Tracker = Achievements };
+        Surface = new PlanetSurface(Data, SurfaceMap.Generate(Data, Data.Surface(planetClassId), seed, climateBody, system)) { Tracker = Achievements, Game = this };
     }
 
     /// <summary>Makes this game's star system (MatchSetup.CreateSystemGame). Call once, before adding players.</summary>

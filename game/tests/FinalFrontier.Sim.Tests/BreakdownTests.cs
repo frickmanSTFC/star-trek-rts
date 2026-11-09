@@ -153,14 +153,15 @@ public class BreakdownTests
     }
 
     [Fact]
-    public void TheCrewRepairsItOnTheHubPadForAPricePerPoint()
+    public void TheCrewRepairsItOnTheHubPadForSpareKits()
     {
         var data = Patched("900", "major");
         var sim = Landed(data, out var hub, out var deposit);
         var s = sim.Surface!;
         var crawler = MineUntilBroken(sim, deposit);
         var repair = data.SurfaceUnit("mining_crawler").Repair!;
-        var duranium = data.Resource("duranium").Index;
+        var kit = data.Resource("mechanical_spares").Index;
+        sim.Players[0].Stock.Add(kit, Fix64.FromInt(20));
 
         Do(sim, new RepairCommand(0, new[] { crawler.Id }));
         StepUntil(sim, () => s.IsRepairing(crawler), Sec(240));
@@ -172,23 +173,26 @@ public class BreakdownTests
         Assert.Equal(integrity, crawler.Integrity);
         Assert.True(s.CrewOut(crawler) > Fix64.Zero);
 
-        // Then it heals per_second, paying for each point.
-        var stock = sim.Players[0].Stock[duranium];
-        var cost = s.RepairCost(crawler).Single(c => c.Resource == duranium).Amount;
+        // Then the crew take the kits (damage / kit_points rounded up, + 2 for a major breakdown) and it heals per_second.
+        var stock = sim.Players[0].Stock[kit];
+        var kits = (int)System.Math.Ceiling((100 - integrity.ToDouble()) / data.Fabrication!.KitPoints.ToDouble()) + 2;
+        Assert.Equal(kits, s.KitsNeeded(crawler));
+        Assert.Equal(Fix64.FromInt(kits), s.RepairCost(crawler).Single(c => c.Resource == kit).Amount);
         for (var i = 0; i < Sec(2); i++) sim.Step();
+        Assert.Equal(stock - Fix64.FromInt(kits), sim.Players[0].Stock[kit]);
+        Assert.Equal(0, s.KitsNeeded(crawler)); // taken: the rest of the repair needs no more
         var healed = (crawler.Integrity - integrity).ToDouble();
         Assert.InRange(healed, repair.PerSecond.ToDouble() * 2 - 0.5, repair.PerSecond.ToDouble() * 2 + 0.5);
 
         StepUntil(sim, () => !crawler.Broken, Sec(60));
         Assert.Equal(Fix64.FromInt(100), crawler.Integrity);
         Assert.Equal(0, crawler.RepairTicks);
-        // Paid the repair (the hub trickle adds a little duranium meanwhile).
-        Assert.True(sim.Players[0].Stock[duranium] < stock - cost + Fix64.FromInt(5));
+        Assert.Equal(stock - Fix64.FromInt(kits), sim.Players[0].Stock[kit]);
         Assert.Null(s.MineProblem(0, crawler.Id, deposit));
     }
 
     [Fact]
-    public void RepairWaitsWhenThePlayerCanNotPay()
+    public void RepairWaitsForSpareKits()
     {
         var data = Patched("900", "minor");
         var sim = Landed(data, out _, out var deposit);
@@ -197,23 +201,28 @@ public class BreakdownTests
         Do(sim, new RepairCommand(0, new[] { crawler.Id }));
         StepUntil(sim, () => s.IsRepairing(crawler), Sec(240));
 
-        var duranium = data.Resource("duranium").Index;
+        var kit = data.Resource("mechanical_spares").Index;
         var stock = sim.Players[0].Stock;
-        stock.TrySpend(new[] { new ResourceAmount(duranium, stock[duranium]) });
-        // The hub trickle earns a little; keep taking it away.
+        stock.TrySpend(new[] { new ResourceAmount(kit, stock[kit]) });
+        // The hub workshop may finish a kit; keep taking them away.
         StepUntil(sim, () =>
         {
-            stock.TrySpend(new[] { new ResourceAmount(duranium, stock[duranium]) });
+            stock.TrySpend(new[] { new ResourceAmount(kit, stock[kit]) });
             return crawler.RepairWaiting;
         }, Sec(10));
         var integrity = crawler.Integrity;
         for (var i = 0; i < Sec(3); i++)
         {
-            stock.TrySpend(new[] { new ResourceAmount(duranium, stock[duranium]) });
+            stock.TrySpend(new[] { new ResourceAmount(kit, stock[kit]) });
             sim.Step();
         }
         Assert.True(crawler.Integrity - integrity < Fix64.FromInt(1));
         Assert.True(crawler.Broken);
+        Assert.StartsWith("needs ", s.RepairWaitReason(crawler));
+        // The missing kits are queued at the front of the colony core's workshop.
+        var core = s.Bases(0).Single();
+        Assert.True(s.Queued(0, "mechanical_spares") >= s.KitsNeeded(crawler));
+        Assert.Contains(core.Fabrication, o => o.RecipeId == "mechanical_spares" && o.Auto);
     }
 
     [Fact]

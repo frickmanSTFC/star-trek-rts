@@ -25,6 +25,7 @@ public class RoverDamageTests
         sim.Schedule(0, new LandColonyCommand(0, site));
         for (var i = 0; i <= TestData.ReadyTicks(data); i++) sim.Step();
         hub = site;
+        if (data.Fabrication != null) sim.Players[0].Stock.Add(data.Resource("rover_spares").Index, Fix64.FromInt(20)); // pad repairs take kits
         return sim;
     }
 
@@ -285,26 +286,26 @@ public class RoverDamageTests
         Do(sim, new DebugUnitCommand(0, rover.Id, DebugUnitField.Spares, Fix64.Zero));
         Assert.True(s.NeedsRepair(rover));
         var cost = s.RepairCost(rover);
-        var duranium = R(data, "duranium");
-        // 60 points at cost_per_point, plus two tyres (the flat and the missing spare) at pad_cost.
-        var expected = def.Repair!.CostPerPoint.Single().Amount * 60 + def.Tyres!.PadCost.Single().Amount * 2;
-        Assert.Equal(expected, cost.Single(c => c.Resource == duranium).Amount);
+        var kit = R(data, "rover_spares");
+        // 60 points at one kit per kit_points (rounded up), plus pad_tyre_kits for each of two tyres (the flat and the missing spare).
+        var f = data.Fabrication!;
+        var expected = Fix64.FromInt((int)System.Math.Ceiling(60 / f.KitPoints.ToDouble()) + 2 * f.PadTyreKits);
+        Assert.Equal(expected, cost.Single(c => c.Resource == kit).Amount);
+        Assert.Equal(expected, Fix64.FromInt(s.KitsNeeded(rover)));
 
         Do(sim, new RepairCommand(0, new[] { rover.Id }));
         for (var i = 0; i < Sec(300) && (rover.Tile != hub || rover.Path.Count > 0); i++) sim.Step(); // parked on the pad
         Assert.Equal(hub, rover.Tile);
         Assert.Equal(s.AccessPoint(hub), rover.Pos);
         Assert.True(s.IsRepairing(rover));
-        var stock = sim.Players[0].Stock[duranium];
+        var stock = sim.Players[0].Stock[kit];
         for (var i = 0; i < Sec(60) && s.NeedsRepair(rover); i++) sim.Step();
         Assert.False(s.NeedsRepair(rover));
         Assert.Equal(Hundred, rover.Integrity);
         Assert.Equal(0, rover.FlatTyres);
-        Assert.Equal(def.Tyres.Spares, rover.Spares);
+        Assert.Equal(def.Tyres!.Spares, rover.Spares);
         Assert.False(s.IsRepairing(rover));
-        // Spent about the quoted cost (the hub's trickle adds a little meanwhile).
-        var spent = stock - sim.Players[0].Stock[duranium];
-        Assert.InRange(spent.ToDouble(), expected.ToDouble() - 3, expected.ToDouble() + 0.01);
+        Assert.Equal(stock - expected, sim.Players[0].Stock[kit]); // the quoted kits, taken when the crew started
     }
 
     [Fact]

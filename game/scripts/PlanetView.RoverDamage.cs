@@ -215,7 +215,7 @@ public partial class PlanetView
         UpdateCrew(u, model, alpha, delta);
         if (_surface.IsRepairing(u))
         {
-            if (u.RepairWaiting) return "Repair waiting: not enough resources";
+            if (u.RepairWaiting) return "Repair waiting for kits";
             if (_surface.CrewOut(u) < Fix64.One) return "Repair crew on the way";
             return $"Repairing {Mathf.FloorToInt(u.Integrity.ToFloat())}%";
         }
