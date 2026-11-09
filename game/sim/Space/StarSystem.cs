@@ -194,7 +194,11 @@ public sealed partial class StarSystemState
     private long Now => _sim?.Tick ?? 0;
 
     /// <summary>Joins a game: from then on <c>sim.System</c> is this. Call before adding players.</summary>
-    internal void Attach(Simulation sim) => _sim = sim;
+    internal void Attach(Simulation sim)
+    {
+        _sim = sim;
+        InitCivilizations(sim.Data); // Civilizations.cs: the sites are rolled once, with the system
+    }
 
     // ---------------------------------------------------------------- the contract
 
@@ -327,6 +331,7 @@ public sealed partial class StarSystemState
         var ship = FindShip(shipId);
         if (ship == null) return "no such ship";
         if (ship.Owner != player || player < 0) return "not your ship";
+        if (StarfleetHoldProblem(player) is { } held) return held;
         if (bodyId == null || Body(bodyId) == null || KnowledgeOf(player, bodyId) == BodyKnowledge.Unknown) return "no such body";
         if (ship.AtBody == null)
             return $"in flight to {NameFor(player, ship.ToBody!)} (arrives in {SecondsUntil(ship.ArriveTick)} s)";
@@ -482,6 +487,7 @@ public sealed partial class StarSystemState
         var ship = FindShip(shipId);
         if (ship == null) return "no such ship";
         if (ship.Owner != player || player < 0) return "not your ship";
+        if (StarfleetHoldProblem(player) is { } held) return held;
         if (ship.AtBody == null) return "the ship is in flight (scan from orbit)";
         if (ship.ScanReadyTick > Now) return $"the long-range scanners are recharging ({SecondsUntil(ship.ScanReadyTick)} s)";
         return null;
@@ -501,6 +507,7 @@ public sealed partial class StarSystemState
         if (_sim == null || player < 0 || player >= _sim.Players.Count) return "no such player";
         var body = Body(bodyId);
         if (body == null || KnowledgeOf(player, bodyId) == BodyKnowledge.Unknown) return "no such body";
+        if (Recalled(player)) return "recalled to Starfleet";
         var ship = FlagshipOf(player);
         if (ship == null) return "no ship in orbit";
         if (ship.AtBody != bodyId) return $"the ship is not in orbit of {NameFor(player, bodyId)}";
@@ -533,6 +540,7 @@ public sealed partial class StarSystemState
             AtBody = home,
         });
         if (home != null) Chart(slot, home, report: false); // the home body is known from the start: no achievement event
+        AddCivPlayer(slot, faction); // Civilizations.cs
         Version++;
     }
 
@@ -646,6 +654,7 @@ public sealed partial class StarSystemState
                 Depart(ship, to, tick, System.Math.Max(1, ticks));
             }
         }
+        StepCivilizations(sim); // Civilizations.cs
     }
 
     internal void AddToHash(ref StateHasher h)
@@ -667,6 +676,7 @@ public sealed partial class StarSystemState
             h.Add(s.BodyId);
             h.Add(s.PlacedTick);
         }
+        AddCivsToHash(ref h); // Civilizations.cs
     }
 
     // ---------------------------------------------------------------- helpers

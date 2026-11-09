@@ -202,10 +202,11 @@ public sealed partial class GameData
         "factions", "ships", "resources", "planet_classes", "buildings", "maps", "surfaces", "vehicles", "climate",
         "eras", "tech_tree", // read-only: loaded and checked, not played yet (GameData.Eras.cs)
         "achievements", // optional: a data set without it has no achievements (GameData.Achievements.cs)
+        "civilizations", // optional: a data set without it has no natives or ruins (GameData.Civilizations.cs)
     };
 
     /// <summary>Documents a data set may leave out (the property is then null).</summary>
-    private static readonly IReadOnlyList<string> OptionalDocuments = new[] { "achievements" };
+    private static readonly IReadOnlyList<string> OptionalDocuments = new[] { "achievements", "civilizations" };
 
     /// <summary>
     /// The text of every file this was loaded from, by path under data/ ("manifest.json", "surfaces/orbit.json",
@@ -544,6 +545,7 @@ public sealed partial class GameData
             Telemetry = ReadTelemetry(surfacesRoot),
             Climate = ReadClimate(climateRoot, problems),
             Achievements = roots.TryGetValue("achievements", out var achievementsRoot) ? ReadAchievements(achievementsRoot, problems) : null,
+            Civilizations = roots.TryGetValue("civilizations", out var civRoot) ? ReadCivilizations(civRoot, Amounts, problems) : null,
             Eras = ReadEras(erasRoot),
             TechTree = ReadTechTree(techTreeRoot),
             StartingSetRefs = ReadStartingSetRefs(buildingsRoot, Amounts),
@@ -636,6 +638,7 @@ public sealed partial class GameData
         ValidateTechTree(problems);
         ValidateStartingSets(problems);
         ValidateAchievements(problems);
+        ValidateCivilizations(problems);
         return problems;
     }
 

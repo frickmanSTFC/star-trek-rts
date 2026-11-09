@@ -20,6 +20,66 @@ public static class DataChecks
         foreach (var seed in PlanetSeeds) problems.AddRange(PlanetProblems(data, seed));
         problems.AddRange(SymmetryProblems(data));
         foreach (var seed in PlanetSeeds) problems.AddRange(SystemProblems(data, seed));
+        problems.AddRange(CivilizationProblems(data));
+        return problems;
+    }
+
+    /// <summary>Seeds the civilization odds are measured over (<see cref="CivilizationProblems"/>).</summary>
+    public const int CivilizationRateSeeds = 200;
+
+    /// <summary>Civilizations (data/civilizations/): on seeds 1/1701/99999, with every landable body as the landing world,
+    /// no site sits on the landing world and no body has two; every living site has a town map with towns on it (default
+    /// landing world); and over seeds 1..200 the share of systems with a living civilization is inside rules.json
+    /// sites.expected_living_share (owner: about half while a match is one system).</summary>
+    public static List<string> CivilizationProblems(GameData data)
+    {
+        var problems = new List<string>();
+        if (data.Civilizations is not { } c || data.SystemGenerator == null) return problems;
+        foreach (var seed in PlanetSeeds)
+        {
+            var where = $"Civilizations, system seed {seed}";
+            Space.GeneratedSystem system;
+            try
+            {
+                system = Space.SystemGenerator.Generate(data, seed);
+            }
+            catch (System.Exception)
+            {
+                continue; // SystemProblems reports it
+            }
+            var landable = system.Landable(data);
+            if (landable.Count == 0) continue;
+            foreach (var home in landable)
+            {
+                var sites = Space.CivGenerator.Roll(data, system.Bodies, seed, home.Id);
+                if (sites.Any(x => x.BodyId == home.Id)) problems.Add($"{where}: a site sits on the landing world {home.Id}.");
+                if (sites.Select(x => x.BodyId).Distinct().Count() != sites.Count) problems.Add($"{where}: two sites on one body (landing on {home.Id}).");
+            }
+            var defaultHome = Core.MatchSetup.HomeBody(data, system);
+            foreach (var site in Space.CivGenerator.Roll(data, system.Bodies, seed, defaultHome.Id).Where(x => x.Living))
+            {
+                var body = system.Body(site.BodyId)!;
+                var cls = data.IsLandableClass(body.ClassId) ? body.ClassId : c.Sites.TownMapFor(body.ClassId);
+                if (cls == null || !data.IsLandableClass(cls))
+                {
+                    problems.Add($"{where}: the {site.Species} on {body.Id} ({body.ClassId}) have no town map.");
+                    continue;
+                }
+                var map = Surface.SurfaceMap.Generate(data, data.Surface(cls), Space.SystemGenerator.SurfaceSeed(seed, body.Id), body.Id, system.Climate);
+                if (Space.CivGenerator.Towns(data, site, map).Count == 0) problems.Add($"{where}: the {site.Species} on {body.Id} got no towns.");
+            }
+        }
+        var living = 0;
+        for (ulong seed = 1; seed <= CivilizationRateSeeds; seed++)
+        {
+            var system = Space.SystemGenerator.Generate(data, seed);
+            if (system.Landable(data).Count == 0) continue;
+            if (Space.CivGenerator.Roll(data, system.Bodies, seed, Core.MatchSetup.HomeBody(data, system).Id).Any(x => x.Living)) living++;
+        }
+        var share = Math.Fix64.Ratio(living, CivilizationRateSeeds);
+        if (share < c.Sites.ExpectedLivingMin || share > c.Sites.ExpectedLivingMax)
+            problems.Add($"Civilizations: {living} of {CivilizationRateSeeds} systems have a living civilization ({share}), outside sites.expected_living_share " +
+                         $"[{c.Sites.ExpectedLivingMin}, {c.Sites.ExpectedLivingMax}].");
         return problems;
     }
 
