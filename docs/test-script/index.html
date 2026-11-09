@@ -81,11 +81,11 @@ h2 small { font: 500 14px/1 var(--body); color: var(--dim); }
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Test + fix pass · parts economy · civilizations 1 + 2</div>
+    <div class="eyebrow">Test + fix pass · main menu · rocket landings · tutorial · parts · civilizations</div>
     <h1>Final Frontier Test Run</h1>
     <p class="lede">Work down the list in Godot. Mark each check Pass, Fail or Skip and add a short note when something looks wrong. Results save as you go and everyone testing sees each other's, so Michael and Craig can split the list. After the session, send the <span class="kbd">godot.log</span> file too.</p>
     <div class="update"><b>Update first</b><code>Close Godot, discard changes to game/project.godot (and Planet.tscn), pull main.
-Open Godot, let it import, Build, then F5. Log file: %APPDATA%\Godot\app_userdata\Final Frontier\logs\godot.log</code></div>
+Open Godot, let it import, Build, then F5 (the main menu: CAMPAIGN for the new start, DEBUG for the old sandbox). Log file: %APPDATA%\Godot\app_userdata\Final Frontier\logs\godot.log</code></div>
     <div class="status" id="status">Loading saved results…</div>
     <div class="strip" id="strip" aria-hidden="true"></div>
     <div class="tally" id="tally"></div>
@@ -104,8 +104,26 @@ Open Godot, let it import, Build, then F5. Log file: %APPDATA%\Godot\app_userdat
 // Every check: id (stable, stored), area, what to do, what to look for.
 var AREAS = [
   { id: "start", name: "Start-up", sub: "every session", checks: [
-    ["s-log", "Open the Output panel and start a game (F5)", "No red lines. Note any yellow warning you haven't seen before."],
-    ["s-chooser", "Press F2, pick another world or seed, START NEW GAME", "The new world loads cleanly; the helm subtitle shows its class."]
+    ["s-log", "Open the Output panel and press F5, then DEBUG on the main menu", "No red lines. Note any yellow warning you haven't seen before."],
+    ["s-chooser", "In a DEBUG game press F2, pick another world or seed, START NEW GAME", "The new world loads cleanly; the helm subtitle shows its class."]
+  ]},
+  { id: "menu", name: "Main menu and campaign", sub: "F5 opens the menu", checks: [
+    ["m-title", "F5: look at the title screen", "Turning planet with clouds, rim glow and stars behind CAMPAIGN / MULTIPLAYER (locked) / SETTINGS / DEBUG / QUIT. No shader errors in Output."],
+    ["m-faction", "CAMPAIGN: try every faction card", "Seven powers; only Federation clicks through, the other six show a padlock and NOT PLAYABLE YET."],
+    ["m-era", "Federation: look at the era list", "Dawn of Warp (2063–2150) open with BEGIN; every later era locked."],
+    ["m-pick", "BEGIN: on the star-system map click several bodies, then REROLL", "Landable worlds ring amber, the recommended one green; cards say why others can't be landed on; three tutorial cards explain the screen."],
+    ["m-land", "Pick a world and LAND HERE", "The game starts in orbit over that world; Output prints its name; no WORLD button and F2 does nothing."],
+    ["m-settings", "SETTINGS (menu and in game): change window mode, UI scale, camera speed, edge scroll", "Each applies at once and is kept after restarting the game."],
+    ["m-pause", "In game press Esc until the pause card opens (in orbit and on the surface)", "Esc first closes cards/placing; then the pause card; RESUME continues, MAIN MENU returns cleanly."]
+  ]},
+  { id: "rocket", name: "Rocket landings", sub: "drop ships", checks: [
+    ["k-first", "Land the colony and watch the three drop ships", "Fast fall, hard burn from ~88 up, flames under the four grilles pointing down, hover while the modules lower (flames clear the modules)."],
+    ["k-drop", "Drop a rover from orbit (DROP ROVER) and watch it land and take off", "Straight-down final stretch, orange ground glow and smoke near the ground, rocket climb straight up then tipping away."],
+    ["k-dust", "Watch the dust at touchdown from the landing camera", "Fine small grains rolling outward, no big puffs. Frame rate stays smooth with three ships."]
+  ]},
+  { id: "tut", name: "Tutorial", sub: "campaign start", checks: [
+    ["u-flow", "Start a campaign with tutorial hints on and follow the cards", "Each card moves on by itself as you land, survey, build storage, refinery, mine and build a lab; arrows land on the right buttons."],
+    ["u-ui", "Click on the card, open a building's large card, then SKIP TUTORIAL", "Clicks on the card never reach the map; it hides under the large card; skip closes it with an event line."]
   ]},
   { id: "parts", name: "Parts economy", sub: "Machine Shop, kits, repairs", checks: [
     ["p-hub", "Select a base and press <span class=\"kbd\">K</span> (or the WORKSHOP chip)", "Four spare-kit tiles; the hub starts making kits on its own (keep-in-stock targets)."],
