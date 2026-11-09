@@ -322,7 +322,10 @@ public sealed partial class GameData
             .ToList();
 
         var resources = resourcesRoot.GetProperty("resources").EnumerateArray()
-            .Select((r, i) => new ResourceDef(i, Str(r, "id"), Str(r, "name"), Str(r, "tier")))
+            .Select((r, i) => new ResourceDef(i, Str(r, "id"), Str(r, "name"), Str(r, "tier"))
+            {
+                Volume = r.TryGetProperty("volume", out var vol) ? Num(vol) : Fix64.One,
+            })
             .ToList();
         var resourceIndex = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var r in resources) resourceIndex.TryAdd(r.Id, r.Index);
@@ -401,6 +404,7 @@ public sealed partial class GameData
                     b.TryGetProperty("description", out var ds) ? ds.GetString() ?? "" : "")
                 {
                     Crewed = b.TryGetProperty("crewed", out var cw) && cw.ValueKind == JsonValueKind.True,
+                    Fabricator = ReadFabricator(b),
                 };
             })
             .ToList();
@@ -544,6 +548,7 @@ public sealed partial class GameData
             TechTree = ReadTechTree(techTreeRoot),
             StartingSetRefs = ReadStartingSetRefs(buildingsRoot, Amounts),
             Lanes = ReadLanes(surfacesRoot),
+            Fabrication = ReadFabrication(surfacesRoot, Amounts, problems),
             BuildingFootprints = ReadBuildingFootprints(buildingsRoot, problems),
             UnitFootprints = ReadUnitFootprints(surfacesRoot),
             Gravity = ReadGravity(surfacesRoot, problems),
@@ -623,6 +628,7 @@ public sealed partial class GameData
         ValidateRoverDamage(problems);
         ValidateClimate(problems);
         ValidateFounding(problems);
+        ValidateFabrication(problems);
         ValidateLanes(problems);
         ValidateWorlds(problems);
         ValidateSystem(problems);

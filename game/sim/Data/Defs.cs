@@ -4,7 +4,15 @@ using FinalFrontier.Sim.Math;
 namespace FinalFrontier.Sim.Data;
 
 /// <summary>A resource from resources.json. Index is its position in the file (stable ordering for bags).</summary>
-public sealed record ResourceDef(int Index, string Id, string Name, string Tier);
+public sealed record ResourceDef(int Index, string Id, string Name, string Tier)
+{
+    /// <summary>Storage space one unit takes on a surface (resources.json volume; 1 when not given: parts 1, kits and
+    /// construction parts 2).</summary>
+    public Fix64 Volume { get; init; } = Fix64.One;
+
+    /// <summary>A part, spare kit or construction part (the parts economy's items).</summary>
+    public bool IsPartItem => Tier is "part" or "spare" or "construction";
+}
 
 /// <summary>An amount of one resource, referenced by resource index.</summary>
 public readonly record struct ResourceAmount(int Resource, Fix64 Amount);
@@ -79,6 +87,9 @@ public sealed record BuildingDef(
     /// <summary>People work inside it (buildings.json crewed): on a Domes world it must stand under cover and draws life
     /// support (habitats, labs, the foundry, the bay, cores); automated ones (mines, storage, reactor, refinery) don't.</summary>
     public bool Crewed { get; init; }
+
+    /// <summary>A Machine Shop's fabrication queue (buildings.json fabricator), or null.</summary>
+    public FabricatorDef? Fabricator { get; init; }
 
     /// <summary>Digs the deposit under it (a mine, or a deep-core mine once it has reopened the deposit).</summary>
     public bool IsMine => ExtractPerMinute > Fix64.Zero;

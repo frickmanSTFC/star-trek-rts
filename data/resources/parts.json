@@ -1,0 +1,18 @@
+{
+  "_notes_parts": "Parts economy (docs/parts-contract.md; design doc 'Early Era, Parts & Maintenance'). Made at a Machine Shop (data/surfaces/fabrication.json recipes) from refined metals: parts (tier part) go into spare kits (tier spare: what repairs use) and construction parts (tier construction: building costs, later). They are ordinary resources: they sit in the player's stock and take storage space, volume per unit (1 for a part, 2 for a kit or construction part; every other resource counts 1). The design doc's recipes use plasma conduits, isolinear chips and transparent aluminum; nothing makes those on the surface yet, so the recipes use duranium, tritanium and parasteel only (control modules stand for circuit boards; isolinear later). Stored kits never decay.",
+  "resources": [
+    { "id": "structural_frame", "name": "Structural Frame", "tier": "part", "source": "original", "volume": 1, "uses": ["mechanical_spares", "prefab_module"] },
+    { "id": "hull_plating", "name": "Hull Plating", "tier": "part", "source": "original", "volume": 1, "uses": ["rover_spares", "prefab_module"] },
+    { "id": "mechanism", "name": "Mechanism", "tier": "part", "source": "original", "volume": 1, "uses": ["mechanical_spares", "rover_spares", "machinery_set"] },
+    { "id": "power_coupling", "name": "Power Coupling", "tier": "part", "source": "original", "volume": 1, "uses": ["electrical_spares", "machinery_set"] },
+    { "id": "control_module", "name": "Control Module", "tier": "part", "source": "original", "volume": 1, "uses": ["electrical_spares", "environmental_spares", "machinery_set"],
+      "lore": "Circuit boards for now; isolinear modules later." },
+    { "id": "seal_kit", "name": "Seal Kit", "tier": "part", "source": "original", "volume": 1, "uses": ["environmental_spares"] },
+    { "id": "mechanical_spares", "name": "Mechanical Spares", "tier": "spare", "source": "original", "volume": 2, "uses": ["repairs"] },
+    { "id": "electrical_spares", "name": "Electrical Spares", "tier": "spare", "source": "original", "volume": 2, "uses": ["repairs"] },
+    { "id": "rover_spares", "name": "Rover Spares", "tier": "spare", "source": "original", "volume": 2, "uses": ["repairs", "pad_tyres"] },
+    { "id": "environmental_spares", "name": "Environmental Spares", "tier": "spare", "source": "original", "volume": 2, "uses": ["repairs"] },
+    { "id": "prefab_module", "name": "Prefab Module", "tier": "construction", "source": "original", "volume": 2, "uses": ["building_costs"] },
+    { "id": "machinery_set", "name": "Machinery Set", "tier": "construction", "source": "original", "volume": 2, "uses": ["building_costs"] }
+  ]
+}

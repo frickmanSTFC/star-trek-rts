@@ -40,7 +40,8 @@
       "resources/exotic.json",
       "resources/refined.json",
       "resources/faction.json",
-      "resources/trade_goods.json"
+      "resources/trade_goods.json",
+      "resources/parts.json"
     ],
     "planet_classes": [
       "planet_classes/notes.json",
@@ -58,6 +59,7 @@
       "buildings/surface/vehicle_bay.json",
       "buildings/surface/refinery.json",
       "buildings/surface/foundry.json",
+      "buildings/surface/machine_shop.json",
       "buildings/surface/industry.json",
       "buildings/surface/fusion_reactor.json",
       "buildings/surface/power.json",
@@ -108,6 +110,7 @@
       "surfaces/worlds.json",
       "surfaces/landing.json",
       "surfaces/economy.json",
+      "surfaces/fabrication.json",
       "surfaces/research.json",
       "surfaces/orbit.json",
       "surfaces/lanes.json",

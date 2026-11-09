@@ -1,0 +1,9 @@
+{
+  "buildings": [
+    { "id": "machine_shop", "name": "Machine Shop", "layer": "surface", "category": "industry", "crewed": true, "source": "original",
+      "cost": { "duranium": 140, "tritanium": 40 }, "effect": "Turns metal into parts (frames, plating, mechanisms, couplings, control modules, seal kits), parts into the spare kits repairs use and the construction parts buildings will need; one order at a time.", "description": "A crewed workshop with robot arms and a press. It works through a queue of orders one at a time: metal into parts, parts into spare kits (Mechanical, Electrical, Rover and Environmental Spares) and construction parts. Repairs now take spare kits, and your keep-in-stock targets queue more here on their own whenever stock runs low. It needs crew and power while it works and wears like any machine, so it needs spares of its own. Without one, the Colony Hub's small workshop makes the four kits slowly.",
+      "build_seconds": 60, "power_use": 12, "wear_per_min": 3, "footprint_radius": 7, "access": [0, 9],
+      "fabricator": { "lines": 1, "speed": 1 },
+      "levels": [ { "name": "Mk II", "cost": { "duranium": 120, "tritanium": 50 }, "build_seconds": 40, "modifiers": [ { "stat": "speed", "add": 0.5 }, { "stat": "wear", "add": -0.25 } ] } ] }
+  ]
+}
