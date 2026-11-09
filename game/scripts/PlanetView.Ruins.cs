@@ -81,7 +81,9 @@ public partial class PlanetView
         }
         if (set == _ruinSet) return;
         _ruinSet = set;
-        _clearingSignature = long.MinValue; // UpdateScatter redoes the clearings next frame (bringing back trees where a ruin went), then we cut ours
+        // UpdateScatter redoes the clearings next frame (bringing back trees where a ruin went), then we cut ours
+        _clearingSignature = long.MinValue;
+        _ruinScatterFor = long.MinValue;
     }
 
     private RuinProp MakeRuin(SurfaceRuin r)
