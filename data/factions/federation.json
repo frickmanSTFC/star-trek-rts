@@ -1,7 +1,7 @@
 {
   "factions": [
     { "id": "federation", "name": "United Federation of Planets", "playable": true,
-      "eras": ["tos", "tng", "dominion_war", "picard", "kelvin"],
+      "eras": ["dawn_of_warp", "tos", "tng", "dominion_war", "picard", "kelvin"],
       "playstyle": "Explorer / generalist / diplomacy",
       "signature": { "id": "member_worlds", "desc": "Integrate other species via diplomacy; each member grants a unique bonus (Vulcan: research, Andorian: military, Tellarite: engineering, Bajoran: faith/morale)." },
       "secondary": ["prime_directive_choices", "starfleet_academy_captain_training", "first_contact_bonus"],

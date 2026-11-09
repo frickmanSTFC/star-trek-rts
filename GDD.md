@@ -246,6 +246,7 @@ tribble outbreak (food drain), indigenous pre-warp civilization (Prime Directive
 
 | Era | Years | Stardate style | Tech cap | Playable factions (AI only) | Era twist |
 |---|---|---|---|---|---|
+| **Dawn of Warp** | 2063–2150 | Calendar | 0: pre-warp (below the tree's first tier) | Federation (the campaign's first chapter) | First steps after First Contact; no transporters, no Prime Directive yet; its own content isn't in the game yet |
 | **Enterprise** | 2151–2161 | Calendar (2151.04) | Warp 5, phase cannons, polarized hull, no true shields | Earth/UEC, Vulcan, Andorian, Tellarite, Klingon, Romulan (AI: Xindi, Suliban, Nausicaan, Orion, Tholian, Gorn) | Coalition-building; Temporal Cold War events |
 | **Discovery / TOS** | 2256–2293 | 4-digit (1312.4) | Warp 8, phasers, photon torps, early cloaks | Federation, Klingon, Romulan (AI: Gorn, Tholian, Orion, Nausicaan; Planet Killer event) | Dilithium scarcity; Neutral Zone outposts |
 | **TNG** | 2364–2373 | 5-digit (41153.7) | Warp 9.x, Galaxy-class, industrial replicators | Fed, Klingon, Romulan, Cardassian, Ferengi (AI: Borg as a crisis, Breen, Tholian, Bajor, Maquis, Orion, Nausicaan; Crystalline Entity event) | First Borg contact; Cardassian border |

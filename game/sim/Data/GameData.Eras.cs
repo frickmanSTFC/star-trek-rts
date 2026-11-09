@@ -70,7 +70,8 @@ public sealed partial class GameData
         {
             var where = $"Era {e.Id}";
             if (e.YearTo < e.YearFrom) problems.Add($"{where}: years must run from the earlier to the later year.");
-            if (e.TechCapTier < 1 || e.TechCapTier > maxTier) problems.Add($"{where}: tech_cap_tier {e.TechCapTier} must be 1..{maxTier} (the tech tree's tiers).");
+            // 0 = pre-warp (Dawn of Warp): below the tree's first tier.
+            if (e.TechCapTier < 0 || e.TechCapTier > maxTier) problems.Add($"{where}: tech_cap_tier {e.TechCapTier} must be 0..{maxTier} (0 = pre-warp, else the tech tree's tiers).");
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var f in e.Playable.Concat(e.AiOnly))
             {

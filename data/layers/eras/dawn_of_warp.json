@@ -1,0 +1,6 @@
+{
+  "_notes": "Era layer: the Dawn of Warp (2063–2150), the campaign's first chapter (main menu: Campaign → Federation → Dawn of Warp). Only sets the match era for now, so what already reads it follows: no transporters (surfaces orbit transporter by_era: dawn_of_warp = 0) and no Prime Directive (it starts before civilizations rules standing.prime_directive_from_year 2168), so no Starfleet Standing. The era's own content (pre-warp ships, techs, the ship in orbit) is not in the data yet.",
+  "patches": [
+    { "op": "set", "doc": "surfaces", "path": "orbit/era", "value": "dawn_of_warp" }
+  ]
+}
