@@ -193,7 +193,7 @@ table.inv tr.row.sel td { background: #142039; }
 .sbar { display: inline-block; width: 60px; height: 6px; background: #1a2238; border-radius: 3px; vertical-align: middle; margin-left: 6px; overflow: hidden; }
 .sbar i { display: block; height: 100%; background: var(--hud-bar); }
 .invdetail { padding: 10px 14px; border-top: 1px solid var(--hud-line); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; font: 500 13px/1.35 var(--label); min-height: 78px; }
-.inv-closed { position: absolute; left: 50%; top: 320px; transform: translateX(-50%); font: 600 15px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--hud-dim); background: rgba(6, 9, 18, .9); border: 1px solid var(--hud-line); border-radius: 8px; padding: 12px 18px; }
+.inv-closed { cursor: pointer; position: absolute; left: 50%; top: 320px; transform: translateX(-50%); font: 600 15px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--hud-dim); background: rgba(6, 9, 18, .9); border: 1px solid var(--hud-line); border-radius: 8px; padding: 12px 18px; }
 
 /* Repair screen */
 #minepanel { left: 12px; right: 12px; top: 464px; height: 244px; display: grid; grid-template-columns: 300px 1fr 220px; }
@@ -254,17 +254,17 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
 <header class="mast wrap">
   <div class="eyebrow">Fan-made Star Trek RTS · design mockup</div>
   <h1>Parts Economy</h1>
-  <p class="lede">Ore becomes metal, metal becomes materials, the Machine Shop turns materials into parts, and parts become the spare-part kits that repairs use and the construction parts that new buildings need. Broken buildings now wait on that chain. Hover the diagram, run the shop, open the inventory and try each repair case. The era bar changes the recipes, wear and repair times everywhere on the page.</p>
+  <p class="lede">Ore becomes metal, metal becomes materials, the Machine Shop turns materials into parts, and parts become the spare-part kits that repairs use and the construction parts that new buildings need. Broken buildings now wait on that chain. Hover the diagram, run the shop, open the inventory and try each repair case. Each match has one fixed era; the era bar here only compares them, and changes the recipes, wear and repair times everywhere on the page.</p>
   <p style="margin-top:14px"><span class="ph">Mockup — placeholder numbers</span></p>
 </header>
 
 <div class="erabar">
   <div class="wrap">
-    <span class="lbl">Era</span>
+    <span class="lbl">Era · fixed per match</span>
     <div class="seg" id="eraSeg" role="group" aria-label="Era">
-      <button id="era-dawn" data-era="dawn">Dawn of Warp<small>2063–2150 · proposed new first era</small></button>
-      <button id="era-ent" data-era="ent">Enterprise Era<small>2151–2161</small></button>
-      <button id="era-dw" data-era="dw">Dominion War<small>2373–2379 · current prototype</small></button>
+      <button id="era-dawn" data-era="dawn">Dawn of Warp<small>2063–2150 · new first era · tier 0</small></button>
+      <button id="era-ent" data-era="ent">Enterprise Era<small>2151–2161 · tier 1</small></button>
+      <button id="era-dw" data-era="dw">Dominion War<small>2373–2379 · tier 4 · current prototype</small></button>
     </div>
     <span class="ph">Mockup — placeholder numbers</span>
   </div>
@@ -280,7 +280,7 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
   </div>
   <div class="legend">
     <span><i style="background:var(--c-ore)"></i>Ore</span><span><i style="background:var(--c-metal)"></i>Metals</span><span><i style="background:var(--c-mat)"></i>Materials</span>
-    <span><i style="background:var(--c-part)"></i>Parts</span><span><i style="background:var(--c-spare)"></i>Spare parts kits</span><span><i style="background:var(--c-cons)"></i>Construction parts</span>
+    <span><i style="background:var(--c-part)"></i>Parts</span><span><i style="background:var(--c-spare)"></i>Spare parts kits</span><span><i style="background:var(--c-cons)"></i>Construction parts (phase 4)</span>
     <span id="legRep"><i style="background:var(--c-rep)"></i>Replicator shortcut</span>
   </div>
   <div class="flow-box">
@@ -314,8 +314,9 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
   </div></div></div>
   <div class="notes">
     <p><b>Queue</b>+1 / +5 add to the end, × cancels and refunds the inputs of a started order. One production line at Mk I; Mk II would add a second.</p>
-    <p><b>Keep in stock</b>a target per item. When stock + queued is below it, the shop queues one more (blue AUTO tag). A kit queued this way also queues the parts it is missing.</p>
+    <p><b>Keep in stock</b>on by default: 2 of each kit this base's buildings use (no domes here, so no Environmental Spares). The player can raise, lower or clear any target. Below target, the shop queues one more (blue AUTO tag) and the parts that kit is missing.</p>
     <p><b>Shortages</b>an order without its inputs is skipped (red tag) and named in the warnings with the building that makes the missing input.</p>
+    <p><b>Phases</b>repairs using spare kits ship first. Construction parts (Prefab Module, Machinery Set) are listed but only join building costs in phase 4.</p>
     <p><b>Power</b>the shop draws 8 while working. In the Dominion War era, Replicate mode makes parts from power alone: 40% of the time, +30 power, which overloads this base.</p>
   </div>
 </section>
@@ -329,11 +330,11 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
   <div class="screen-wrap"><div class="sizer"><div class="screen" id="scrInv">
     <div class="topbar" id="topInv"></div>
     <div class="panel" id="inv"></div>
-    <div class="inv-closed" id="invClosed" hidden>Inventory closed · press I</div>
+    <button class="inv-closed" id="invClosed" hidden>Inventory closed · press I or click to open</button>
   </div></div></div>
   <div class="notes">
     <p><b>Lasts</b>stock ÷ (used − made) per hour; only shown while an item is running down. Under 15 minutes is amber, under 5 red.</p>
-    <p><b>Storage</b>parts count against storage like ore does. A Prefab Module takes 12 units, a Control Module 1. The bar shows the parts' share of the base's capacity.</p>
+    <p><b>Storage</b>parts and kits take storage space like ore does: 1 unit per part, 2 per kit or construction part. The bar at the top splits the base's storage into ore and metals vs parts.</p>
     <p><b>Used / made</b>planned rates for this base (placeholders). Spare-kit use scales with the era's wear.</p>
   </div>
 </section>
@@ -376,7 +377,7 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
 <section class="part" id="eras">
   <div class="part-head">
     <h2><span class="tag">E</span>Eras change the economy</h2>
-    <p class="muted">The parts economy matters most in the early eras. By the Dominion War an industrial replicator can turn power into parts, so the limit becomes the power budget. Dawn of Warp is a proposed new first era; Enterprise-era wear and repair numbers are placeholders of mine.</p>
+    <p class="muted">The parts economy matters most in the early eras. By the Dominion War an industrial replicator can turn power into parts, so the limit becomes the power budget. Dawn of Warp (2063–2150, tech tier 0) is confirmed as the new first era, and each match is played in one fixed era. Enterprise-era wear and repair numbers are placeholders.</p>
   </div>
   <div class="era-grid">
     <div class="scroll"><table class="tech" id="techTable"></table></div>
@@ -412,25 +413,25 @@ var IT = {
   plasma_conduits: { n: "Plasma Conduits", c: "mat", by: "Alloy Foundry Mk V", in: { duranium: 1 }, pw: 1, t: 12 },
   isolinear_chips: { n: "Isolinear Chips", c: "mat", by: "Chip Fab (new)", in: { dilithium: 0.1 }, pw: 2, t: 15 },
   circuit_boards: { n: "Circuit Boards", code: "CB", c: "mat", by: "Machine Shop", in: { duranium: 1 }, pw: 6, t: 20, st: 1 },
-  frame: { n: "Structural Frame", code: "SF", c: "part", in: { duranium: 4, tritanium: 1 }, t: 20, st: 4 },
-  plating: { n: "Hull Plating", code: "HP", c: "part", in: { parasteel: 2 }, t: 25, st: 3 },
-  plating_pol: { n: "Polarized Hull Plating", short: "Polarized Plating", code: "HP", c: "part", in: { parasteel: 2, plasma_conduits: 1 }, t: 30, st: 3 },
-  mechanism: { n: "Mechanism", code: "ME", c: "part", in: { duranium: 2, tritanium: 1 }, t: 15, st: 2 },
-  coupling: { n: "Power Coupling", code: "PC", c: "part", in: { plasma_conduits: 1, duranium: 1 }, t: 20, st: 2 },
+  frame: { n: "Structural Frame", code: "SF", c: "part", in: { duranium: 4, tritanium: 1 }, t: 20, st: 1 },
+  plating: { n: "Hull Plating", code: "HP", c: "part", in: { parasteel: 2 }, t: 25, st: 1 },
+  plating_pol: { n: "Polarized Hull Plating", short: "Polarized Plating", code: "HP", c: "part", in: { parasteel: 2, plasma_conduits: 1 }, t: 30, st: 1 },
+  mechanism: { n: "Mechanism", code: "ME", c: "part", in: { duranium: 2, tritanium: 1 }, t: 15, st: 1 },
+  coupling: { n: "Power Coupling", code: "PC", c: "part", in: { plasma_conduits: 1, duranium: 1 }, t: 20, st: 1 },
   control: { n: "Control Module", code: "CM", c: "part", in: { isolinear_chips: 1, tritanium: 1 }, t: 30, st: 1 },
   seal: { n: "Seal Kit", code: "SK", c: "part", in: { transparent_aluminum: 1, parasteel: 1 }, t: 20, st: 1 },
-  mech_sp: { n: "Mechanical Spares", code: "MS", c: "spare", in: { mechanism: 2, frame: 1 }, t: 15, st: 6, use: "mines, crawlers, refinery" },
-  elec_sp: { n: "Electrical Spares", code: "ES", c: "spare", in: { coupling: 1, control: 1 }, t: 15, st: 3, use: "reactors, labs" },
-  rover_sp: { n: "Rover Spares", code: "RS", c: "spare", in: { mechanism: 1, plating: 1 }, t: 12, st: 5, use: "vehicles (tyre + axle)" },
-  env_sp: { n: "Environmental Spares", short: "Environ. Spares", code: "EN", c: "spare", in: { seal: 2, control: 1 }, t: 15, st: 4, use: "domes, life support" },
-  prefab: { n: "Prefab Module", code: "PM", c: "cons", in: { frame: 2, plating: 2 }, t: 30, st: 12, use: "new buildings" },
-  machinery: { n: "Machinery Set", code: "MY", c: "cons", in: { mechanism: 2, coupling: 1, control: 1 }, t: 35, st: 8, use: "new buildings, Mk II/III" },
-  u_build: { n: "New buildings", c: "use", sub: "Prefab + Machinery" },
+  mech_sp: { n: "Mechanical Spares", code: "MS", c: "spare", in: { mechanism: 2, frame: 1 }, t: 15, st: 2, use: "mines, crawlers, refinery" },
+  elec_sp: { n: "Electrical Spares", code: "ES", c: "spare", in: { coupling: 1, control: 1 }, t: 15, st: 2, use: "reactors, labs" },
+  rover_sp: { n: "Rover Spares", code: "RS", c: "spare", in: { mechanism: 1, plating: 1 }, t: 12, st: 2, use: "vehicles (tyre + axle)" },
+  env_sp: { n: "Environmental Spares", short: "Environ. Spares", code: "EN", c: "spare", in: { seal: 2, control: 1 }, t: 15, st: 2, use: "domes, life support" },
+  prefab: { n: "Prefab Module", code: "PM", c: "cons", in: { frame: 2, plating: 2 }, t: 30, st: 2, use: "new buildings" },
+  machinery: { n: "Machinery Set", code: "MY", c: "cons", in: { mechanism: 2, coupling: 1, control: 1 }, t: 35, st: 2, use: "new buildings, Mk II/III" },
+  u_build: { n: "New buildings", c: "use", sub: "phase 4 · building costs" },
   u_mine: { n: "Mines · crawlers", c: "use", sub: "+ Ore Refinery" },
   u_veh: { n: "Rovers · vehicles", c: "use", sub: "tyres, axles" },
   u_dome: { n: "Domes · life support", c: "use", sub: "seals, scrubbers" },
   u_power: { n: "Reactors · labs", c: "use", sub: "couplings, boards" },
-  u_up: { n: "Mk II / III upgrades", c: "use", sub: "Machinery Set" },
+  u_up: { n: "Mk II / III upgrades", c: "use", sub: "phase 4 · Machinery Set" },
   replicator: { n: "Industrial Replicator", c: "rep", sub: "power → parts", by: "Machine Shop (Replicate)" }
 };
 var PARTS = ["frame", "plating", "mechanism", "coupling", "control", "seal"];
@@ -496,7 +497,7 @@ function drawFlow() {
   });
   Object.keys(pos).forEach(function (id) {
     var p = pos[id], it = IT[id], sub = it.sub || (it.by ? it.by : (it.t ? it.t + " s" : ""));
-    if (ALL.indexOf(id) >= 0) { it = IT[rid(id)]; sub = it.t + " s · " + it.st + " storage"; }
+    if (ALL.indexOf(id) >= 0) { it = IT[rid(id)]; sub = (it.c === "cons" ? "phase 4 · " : "") + it.t + " s · " + it.st + " storage"; }
     svg.push('<g class="node" tabindex="0" data-id="' + id + '" transform="translate(' + p.x + "," + p.y + ')">' +
       '<rect width="' + p.w + '" height="' + NH + '" rx="5" stroke="var(' + COL[it.c] + ')"/>' +
       '<rect width="4" height="' + NH + '" rx="1" fill="var(' + COL[it.c] + ')" stroke="none"/>' +
@@ -512,7 +513,7 @@ function drawFlow() {
     g.addEventListener("click", function () { pinned = pinned === id ? null : id; highlight(pinned || id); });
     g.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pinned = pinned === id ? null : id; highlight(pinned || id); } });
   });
-  host.addEventListener("mouseleave", function () { highlight(pinned); });
+  if (!host.__leave) { host.__leave = 1; host.addEventListener("mouseleave", function () { highlight(pinned); }); }
   document.getElementById("legRep").hidden = !E().replicator;
   highlight(pinned || "mech_sp");
 }
@@ -562,7 +563,8 @@ function renderReadout(id) {
     if (c.shop) h.push('<div><div class="k">Machine Shop time</div><div class="v">' + fmtT(c.shop) + " on one line</div></div>");
     if (c.power.length) h.push('<div><div class="k">Needs power for</div><div class="v">' + c.power.join(", ") + "</div></div>");
   }
-  if (it.st) h.push('<div><div class="k">Storage</div><div class="v">' + it.st + " units each</div></div>");
+  if (it.st) h.push('<div><div class="k">Storage</div><div class="v">' + it.st + (it.st === 1 ? " unit" : " units") + " each</div></div>");
+  if (it.c === "cons") h.push("<p style='color:var(--hud-good)'>Phase 4. Repairs using spare kits come first; construction parts join building costs later.</p>");
   if (it.use) h.push('<div><div class="k">Used by</div><div class="v">' + it.use + "</div></div>");
   if (it.c === "ore") h.push("<p class='muted'>Found on " + it.sub + ". Must be refined first.</p>");
   if (id === "control" && E().chips === "circuit_boards") h.push("<p style='color:var(--hud-warn)'>No isolinear chips in this era: the Machine Shop makes circuit boards from duranium and power.</p>");
@@ -577,10 +579,13 @@ var PLAN = { frame: [30, 24], plating: [24, 20], mechanism: [40, 44], coupling: 
   mech_sp: [8], elec_sp: [4], rover_sp: [5], env_sp: [2], prefab: [4], machinery: [2] };            // made/h, used/h (parts)
 var CAP = 2500, BULK = 1680;                                                                        // storage cap, ore + metals stored
 
+// default: 2 of each kit this base's buildings use (mines/refinery, reactor + lab, rovers; no domes on Tarsis)
+var USED_HERE = { mech_sp: 1, elec_sp: 1, rover_sp: 1 };
+function defaults() { var t = {}; ALL.forEach(function (id) { t[id] = USED_HERE[id] ? 2 : 0; }); return t; }
 function fresh() {
   S = { t: 0, stock: { duranium: 420, tritanium: 140, parasteel: 36, plasma_conduits: 0, transparent_aluminum: 10, isolinear_chips: 3, circuit_boards: 2,
       frame: 3, plating: 4, mechanism: 5, coupling: 1, control: 1, seal: 3, mech_sp: 1, elec_sp: 2, rover_sp: 3, env_sp: 0, prefab: 1, machinery: 0 },
-    target: { frame: 2, plating: 2, mechanism: 4, coupling: 0, control: 0, seal: 0, mech_sp: 4, elec_sp: 2, rover_sp: 3, env_sp: 2, prefab: 0, machinery: 0 },
+    target: defaults(),
     queue: [], debt: {}, made: 0, feed: [] };
   ["mech_sp", "coupling", "mechanism", "control", "seal", "rover_sp"].forEach(function (id, i) { S.queue.push({ uid: uid++, id: id, auto: i === 0, p: 0, started: false }); });
   log("Machine Shop online · 6 orders queued", "g");
@@ -654,19 +659,20 @@ function cancel(u) {
 }
 function add(id, n) { for (var i = 0; i < n && S.queue.length < 20; i++) S.queue.push({ uid: uid++, id: id, auto: false, p: 0, started: false }); renderShop(); }
 
+function put(el, html) { if (el.__h !== html) { el.__h = html; el.innerHTML = html; } }
 function topbar(el, extra) {
   var s = S.stock, pu = powerUse(), ps = powerSupply(), used = BULK + partsStorage();
   function r(id, label, cls) { var v = Math.floor(s[id] || 0); return '<div class="r' + (v === 0 ? " bad" : v < 5 ? " low" : "") + '"><i style="background:var(' + COL[IT[id].c] + ')"></i><span>' + label + "</span><b>" + v + "</b></div>"; }
-  el.innerHTML = r("duranium", "DUR") + r("tritanium", "TRI") + r("parasteel", "PARA") + r("plasma_conduits", "PLASMA") + r("transparent_aluminum", "T-ALU") +
+  put(el, r("duranium", "DUR") + r("tritanium", "TRI") + r("parasteel", "PARA") + r("plasma_conduits", "PLASMA") + r("transparent_aluminum", "T-ALU") +
     r(E().chips, E().chips === "isolinear_chips" ? "CHIPS" : "BOARDS") +
     '<div class="r' + (pu > ps ? " bad" : "") + '"><i style="background:var(--hud-sky)"></i><span>POWER</span><b>' + pu + " / " + ps + "</b></div>" +
     '<div class="r"><span>STORAGE</span><b>' + Math.round(used) + " / " + CAP + '</b><div class="meter"><i style="width:' + Math.min(100, used / CAP * 100) + '%"></i></div></div>' +
-    '<div class="sp"></div><div class="r"><span>' + E().name.toUpperCase() + " · DAY 3 · " + fmtT(840 + S.t / 6).replace(":", ":") + "</span></div>" + (extra || "");
+    '<div class="sp"></div><div class="r"><span>' + E().name.toUpperCase() + " · DAY 3 · " + fmtT(840 + S.t / 6) + "</span></div>" + (extra || ""));
 }
 
 function renderShop() {
   topbar(document.getElementById("topShop"));
-  document.getElementById("feed").innerHTML = S.feed.slice(0, 5).map(function (f) { return '<div class="' + f.c + '">' + f.t + "</div>"; }).join("");
+  put(document.getElementById("feed"), S.feed.slice(0, 5).map(function (f) { return '<div class="' + f.c + '">' + f.t + "</div>"; }).join(""));
   // recipes
   var rep = E().replicator, rows = [];
   rows.push('<div class="ph-h"><b>Recipes</b><span class="sp"></span>' + (rep ? '<span>Mode</span><button class="hb' + (mode === "fab" ? " on" : "") + '" data-mode="fab">Fabricate</button><button class="hb' + (mode === "rep" ? " on" : "") + '" data-mode="rep">Replicate</button>' : "<span>" + shopList().length + " recipes</span>") + "</div>");
@@ -682,10 +688,10 @@ function renderShop() {
     });
   }
   if (E().chips === "circuit_boards") grp("Materials (this era)", ["circuit_boards"]);
-  grp("Parts", PARTS); grp("Spare parts kits", KITS); grp("Construction parts", CONS);
+  grp("Parts", PARTS); grp("Spare parts kits", KITS); grp("Construction parts · phase 4", CONS);
   rows.push("</div>");
   var rec = document.getElementById("recipes"), sc = rec.querySelector(".rlist"), keep = sc ? sc.scrollTop : 0;
-  rec.innerHTML = rows.join("");
+  put(rec, rows.join(""));
   rec.querySelector(".rlist").scrollTop = keep;
 
   // bottom: info + warnings | queue | keep in stock
@@ -698,27 +704,26 @@ function renderShop() {
     warns.push('<div>' + nm(q.id, true) + ": needs " + m.need + " " + IT[m.id].n + " (have " + m.have + ") · " + (IT[m.id].by || "Machine Shop") + "</div>"); }); });
   if (pu > ps) warns.unshift('<div class="a">Replicating draws ' + pu + " of " + ps + " power: every building here slows</div>");
   ALL.forEach(function (id) { if (S.target[id] && Math.floor(S.stock[id]) === 0 && KITS.indexOf(id) >= 0) warns.push('<div class="a">No ' + IT[id].n + " in stock</div>"); });
-  var info = '<div><div class="ttl">Machine Shop</div><div class="kv"><span>Mark</span>Mk I · 1 line</div><div class="kv"><span>Status</span>' + status + '</div><div class="kv"><span>Condition</span>88%</div><div class="kv"><span>Power</span>' + (a ? 8 + (a.rep ? 30 : 0) : 0) + '</div><div class="kv"><span>Made this session</span>' + S.made + '</div><div class="hl-lbl" style="margin-top:2px">Warnings</div><div class="warns">' + (warns.slice(0, 3).join("") || '<span class="small">None</span>') + "</div></div>";
+  var info = '<div><div class="kv"><span class="ttl" style="color:var(--hud-ink)">Machine Shop</span><span>Mk I · 1 line</span></div><div class="kv"><span>Status</span>' + status + '</div><div class="kv"><span>Condition · power</span>88% · ' + (a ? 8 + (a.rep ? 30 : 0) : 0) + '</div><div class="kv"><span>Made this session</span>' + S.made + '</div><div class="hl-lbl" style="margin-top:2px">Warnings</div><div class="warns">' + (warns.slice(0, 3).join("") || '<span class="small">None</span>') + "</div></div>";
   var tot = S.queue.reduce(function (s, q) { return s + timeOf({ id: q.id, rep: canRep(q.id) }) * (1 - q.p); }, 0);
   var qh = '<div><div class="kv"><span class="hl-lbl">Production queue · ' + S.queue.length + '</span><span>' + fmtT(tot) + ' total</span></div>';
   if (a) qh += '<div class="qact"><div class="kv"><b>' + code(a.id) + " " + nm(a.id) + (a.rep ? ' <span class="tag rep">replicating</span>' : "") + "</b><span>" + fmtT(timeOf(a) * (1 - a.p)) + '</span></div><div class="bar"><i style="width:' + (a.p * 100).toFixed(1) + '%"></i></div></div>';
   else qh += '<div class="qact small">' + (S.queue.length ? "Nothing can start: every order is short of inputs." : "Queue empty. Add orders with +1 / +5, or set a keep-in-stock target.") + "</div>";
   qh += '<div class="qlist">';
-  S.queue.filter(function (q) { return !q.started; }).slice(0, 6).forEach(function (q, i) {
+  S.queue.filter(function (q) { return !q.started; }).slice(0, 5).forEach(function (q, i) {
     var tags = (q.auto ? '<span class="tag auto">auto' + (q.forId ? " · " + IT[q.forId].code : "") + "</span> " : "") + (q.blocked && q.blocked.length ? '<span class="tag blk">no ' + (IT[q.blocked[0].id].short || IT[q.blocked[0].id].n).split(" ")[0].toLowerCase() + "</span>" : q.rep ? '<span class="tag rep">rep</span>' : "");
     qh += '<div class="qrow"><span class="n">' + (i + 2) + "</span>" + code(q.id) + "<span>" + nm(q.id, true) + "</span><span>" + tags + '</span><button class="x" data-cancel="' + q.uid + '" aria-label="Cancel ' + nm(q.id) + '">×</button></div>';
   });
-  var more = S.queue.filter(function (q) { return !q.started; }).length - 6;
+  var more = S.queue.filter(function (q) { return !q.started; }).length - 5;
   qh += (more > 0 ? '<div class="small" style="padding-left:32px">+ ' + more + " more</div>" : "") + "</div>";
-  if (a) qh = qh.replace('<div class="qact">', '<div class="qact"><button class="x" style="display:none"></button>');
   qh += (a ? '<div style="display:flex;gap:6px;margin-top:auto"><button class="hb" data-cancel="' + a.uid + '">Cancel current</button><button class="hb" id="clearQ">Clear queue</button></div>' : "") + "</div>";
-  var sh = '<div><div class="kv"><span class="hl-lbl">Keep in stock</span><span><button class="hb' + (autoOn ? " on" : "") + '" id="autoBtn">Auto-queue ' + (autoOn ? "on" : "off") + '</button></span></div><div class="stockgrid">';
+  var sh = '<div><div class="kv"><span class="hl-lbl">Keep in stock</span><span style="display:flex;gap:4px"><button class="hb" id="tgDef" title="2 of each kit your buildings use">Defaults</button><button class="hb" id="tgClr">Clear all</button><button class="hb' + (autoOn ? " on" : "") + '" id="autoBtn">Auto-queue ' + (autoOn ? "on" : "off") + '</button></span></div><div class="stockgrid">';
   ALL.forEach(function (id) {
     var have = Math.floor(S.stock[id] || 0), tg = S.target[id], cls = tg && have === 0 ? " low zero" : tg && have < tg ? " low" : "";
     sh += '<div class="scell' + cls + '">' + code(id) + '<div style="min-width:0"><div class="nm">' + nm(id, true) + '</div><div class="st">have <b>' + have + "</b> · keep " + tg + (queued(id) ? " · " + queued(id) + " queued" : "") + '</div></div><div class="step"><button class="hb" data-tg="' + id + '" data-d="-1" aria-label="Lower target">−</button><button class="hb" data-tg="' + id + '" data-d="1" aria-label="Raise target">+</button></div></div>';
   });
   sh += "</div></div>";
-  document.getElementById("shopbottom").innerHTML = info + qh + sh;
+  put(document.getElementById("shopbottom"), info + qh + sh);
 }
 
 // ------------------------------------------------------------------ C: inventory
@@ -728,7 +733,7 @@ function rowsData() {
     var it = IT[rid(id)], stock = Math.floor(S.stock[id] || 0), plan = PLAN[id];
     var made = plan[0] * (canRep(id) ? 2.5 : 1), used = plan.length > 1 ? plan[1] : USE_H[id] * (KITS.indexOf(id) >= 0 ? E().wear : 1);
     var net = made - used, lasts = net < 0 ? stock / (-net) * 60 : Infinity;
-    return { id: id, n: it.n, cat: it.c === "part" ? "Part" : it.c === "spare" ? "Spare kit" : "Construction", catOrder: it.c === "part" ? 0 : it.c === "spare" ? 1 : 2,
+    return { id: id, n: it.n, cat: it.c === "part" ? "Part" : it.c === "spare" ? "Spare kit" : "Constr. · ph 4", catOrder: it.c === "part" ? 0 : it.c === "spare" ? 1 : 2,
       stock: stock, target: S.target[id], made: made, used: used, net: net, lasts: lasts, each: it.st, space: stock * it.st };
   });
 }
@@ -738,30 +743,30 @@ function renderInv() {
   panel.hidden = !invOpen; document.getElementById("invClosed").hidden = invOpen;
   if (!invOpen) return;
   var rows = rowsData().filter(function (r) {
-    return invFilter === "all" || (invFilter === "part" && r.cat === "Part") || (invFilter === "spare" && r.cat === "Spare kit") || (invFilter === "cons" && r.cat === "Construction") || (invFilter === "low" && r.lasts < 15 || invFilter === "low" && r.stock < r.target);
+    return invFilter === "all" || (invFilter === "part" && r.cat === "Part") || (invFilter === "spare" && r.cat === "Spare kit") || (invFilter === "cons" && r.catOrder === 2) || (invFilter === "low" && r.lasts < 15 || invFilter === "low" && r.stock < r.target);
   });
   var k = invSort.k, d = invSort.d;
   rows.sort(function (a, b) { var x = k === "cat" ? a.catOrder - b.catOrder : k === "n" ? a.n.localeCompare(b.n) : a[k] - b[k]; return x * d || a.catOrder - b.catOrder; });
   var ps = partsStorage(), h = [];
-  h.push('<div class="ph-h"><b>Inventory</b><span>[I]</span><span class="sp"></span><span>Base 1 · Colony Hub</span><span style="margin-left:14px">Parts in storage</span><b style="font-size:15px">' + Math.round(ps) + " / " + CAP + '</b><div class="meter" style="width:140px"><i style="width:' + (ps / CAP * 100) + '%;background:var(--c-part)"></i></div><span>' + (ps / CAP * 100).toFixed(1) + '%</span><button class="hb" id="invX" aria-label="Close inventory">× Close</button></div>');
-  h.push('<div class="invtools"><span class="hl-lbl">Show</span>' + [["all", "All"], ["part", "Parts"], ["spare", "Spare kits"], ["cons", "Construction"], ["low", "Running low"]].map(function (f) { return '<button class="hb' + (invFilter === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "</button>"; }).join("") + '<span class="sp"></span><span class="small">' + rows.length + " of 12 items · rates per hour (plan)</span></div>");
+  h.push('<div class="ph-h"><b>Inventory</b><span>[I]</span><span class="sp"></span><span>Base 1 · Colony Hub</span><span style="margin-left:14px">Storage</span><b style="font-size:15px">' + Math.round(BULK + ps) + " / " + CAP + '</b><div class="meter" style="width:180px;display:flex"><i style="width:' + (BULK / CAP * 100) + '%;background:var(--c-metal)"></i><i style="width:' + (ps / CAP * 100) + '%;background:var(--c-part)"></i></div><span>ore + metals ' + BULK + ' · parts ' + Math.round(ps) + '</span><button class="hb" id="invX" aria-label="Close inventory">× Close</button></div>');
+  h.push('<div class="invtools"><span class="hl-lbl">Show</span>' + [["all", "All"], ["part", "Parts"], ["spare", "Spare kits"], ["cons", "Construction · ph 4"], ["low", "Running low"]].map(function (f) { return '<button class="hb' + (invFilter === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "</button>"; }).join("") + '<span class="sp"></span><span class="small">' + rows.length + " of 12 items · rates per hour (plan)</span></div>");
   var cols = [["n", "Item"], ["cat", "Type"], ["stock", "Stock"], ["target", "Keep"], ["made", "Made / h"], ["used", "Used / h"], ["net", "Net / h"], ["lasts", "Lasts"], ["each", "Space each"], ["space", "Storage used"]];
   h.push('<div style="overflow:auto;flex:1"><table class="inv"><thead><tr>' + cols.map(function (c) { return '<th data-k="' + c[0] + '" class="' + (invSort.k === c[0] ? "sorted" : "") + '">' + c[1] + (invSort.k === c[0] ? (invSort.d > 0 ? " ▲" : " ▼") : "") + "</th>"; }).join("") + "</tr></thead><tbody>");
   rows.forEach(function (r) {
     var lasts = r.lasts === Infinity ? '<span class="pos">rising</span>' : r.stock === 0 ? '<span class="bad">empty</span>' : '<span class="' + (r.lasts < 5 ? "bad" : r.lasts < 15 ? "neg" : "") + '">~ ' + Math.round(r.lasts) + " min</span>";
-    h.push('<tr class="row' + (invSel === r.id ? " sel" : "") + '" data-row="' + r.id + '"><td><span class="nmcell">' + code(r.id) + r.n + "</span></td><td class='dimc'>" + r.cat + '</td><td class="' + (r.stock < r.target ? "neg" : "") + '"><b>' + r.stock + "</b></td><td class='dimc'>" + (r.target || "–") + "</td><td>" + r.made.toFixed(1).replace(".0", "") + "</td><td>" + r.used.toFixed(1).replace(".0", "") + '</td><td class="' + (r.net < 0 ? "neg" : "pos") + '">' + (r.net > 0 ? "+" : "") + r.net.toFixed(1).replace(".0", "") + "</td><td>" + lasts + "</td><td class='dimc'>" + r.each + "</td><td>" + r.space + '<span class="sbar"><i style="width:' + Math.min(100, r.space / 60 * 100) + '%"></i></span></td></tr>');
+    h.push('<tr class="row' + (invSel === r.id ? " sel" : "") + '" data-row="' + r.id + '"><td><span class="nmcell">' + code(r.id) + r.n + "</span></td><td class='dimc'>" + r.cat + '</td><td class="' + (r.stock < r.target ? "neg" : "") + '"><b>' + r.stock + "</b></td><td class='dimc'>" + (r.target || "–") + "</td><td>" + r.made.toFixed(1).replace(".0", "") + "</td><td>" + r.used.toFixed(1).replace(".0", "") + '</td><td class="' + (r.net < 0 ? "neg" : "pos") + '">' + (r.net > 0 ? "+" : "") + r.net.toFixed(1).replace(".0", "") + "</td><td>" + lasts + "</td><td class='dimc'>" + r.each + "</td><td>" + r.space + '<span class="sbar"><i style="width:' + Math.min(100, r.space / 20 * 100) + '%"></i></span></td></tr>');
   });
   h.push("</tbody></table></div>");
   var s = IT[rid(invSel)], ins = inputs(invSel), usedIn = ALL.filter(function (x) { return inputs(x)[invSel]; });
   h.push('<div class="invdetail"><div><div class="hl-lbl">' + s.n + '</div><div>Made from ' + Object.keys(ins).map(function (k) { return ins[k] + " " + IT[k].n; }).join(" + ") + " · " + s.t + ' s at the Machine Shop</div></div><div><div class="hl-lbl">Used by</div><div>' + (s.use ? s.use[0].toUpperCase() + s.use.slice(1) : usedIn.map(function (x) { return nm(x); }).join(", ") || "–") + '</div></div><div><div class="hl-lbl">Where</div><div>Colony Hub vault ' + Math.floor(S.stock[invSel] || 0) + " · in queue " + queued(invSel) + " · on rovers " + (invSel === "rover_sp" ? "2 carried tyres" : "0") + "</div></div></div>");
-  panel.innerHTML = h.join("");
+  put(panel, h.join(""));
 }
 
 // ------------------------------------------------------------------ D: repair
 var repCase = "short", tyCase = "carried";
 function renderRepair() {
   var R = E().repair, t = 40 * R, jt = t * 3, have = { ok: 2, short: 1, none: 0 }[repCase], noShop = repCase === "none";
-  var st = Object.assign({}, S.stock); S.stock.mech_sp = have; topbar(document.getElementById("topRep")); S.stock = st;
+  topbar(document.getElementById("topRep"));
   document.getElementById("repShopMark").hidden = noShop;
   var feed = [{ t: "Ore Mine 02 broke down: drive chain jammed", c: "w" }, { t: "Ore Mine 02 output stopped (0 / 80 ore per min)", c: "w" }];
   if (repCase === "short") feed.push({ t: "Machine Shop: Mechanical Spares queued (ETA 1:10)", c: "" });
@@ -771,7 +776,7 @@ function renderRepair() {
   var need = '<div class="need">Repair needs 2 Mechanical Spares <b class="' + (have >= 2 ? "ok" : "no") + '">(have ' + have + ")</b></div>";
   var mid, right, choose = document.getElementById("choose");
   if (repCase === "ok") {
-    mid = '<div>' + need + '<div class="opt pick"><div class="kv"><b>Repair to 100%</b><span>' + fmtT(t) + '</span></div><div class="small">Two engineers walk out from the hub. Uses 2 Mechanical Spares (stock 2 → 0, the shop tops it up to the keep-4 target).</div><div class="bar"><i style="width:0%"></i></div></div><div class="small">Era repair time ×' + R + " · base 40 s</div></div>";
+    mid = '<div>' + need + '<div class="opt pick"><div class="kv"><b>Repair to 100%</b><span>' + fmtT(t) + '</span></div><div class="small">Two engineers walk out from the hub. Uses 2 Mechanical Spares (stock 2 → 0; the default keep-2 target queues 2 more).</div><div class="bar"><i style="width:0%"></i></div></div><div class="small">Era repair time ×' + R + " · base 40 s</div></div>";
     right = '<div><button class="hb big go">Repair [M] · ' + fmtT(t) + '</button><button class="hb">Salvage [X]</button><div class="small">Spares are reserved the moment the crew sets out.</div></div>';
     choose.hidden = true;
   } else if (repCase === "short") {
@@ -795,13 +800,14 @@ function renderRepair() {
   var l = '<div><div class="ttl">Mk I Scout Talus 17</div><div class="kv"><span>Integrity</span>64%</div><div class="kv"><span>Flat tyres</span><b style="color:var(--hud-bad)">' + (tyCase === "carried" ? "front-left" : "front-left, rear-left") + '</b></div><div class="kv"><span>Speed</span>' + (tyCase === "carried" ? "60%" : "20% (two flat)") + '</div><div class="kv"><span>Carried spare</span>' + carried + ' of 1</div><div class="kv"><span>Rover Spares at Base 1</span><b class="' + (stockRS ? "" : "bad") + '">' + stockRS + "</b></div>" + w + "</div>";
   var steps;
   if (tyCase === "carried") steps = '<div><i>1</i><span><b>Change tyre [T]</b> on the spot: ' + ch + ' s parked. Carried spare 1 → 0.</span></div><div class="x"><i>2</i><span>Base stock not touched.</span></div><div><i>3</i><span>Next time it parks on the pad, the pad restocks the carried spare from 1 Rover Spares kit (3 → 2).</span></div>';
-  else if (tyCase === "stock") steps = '<div class="x"><i>1</i><span>No carried spare left.</span></div><div><i>2</i><span><b>Limp to the pad [R]</b> at 20% speed (two flats). About 1:45 from here.</span></div><div><i>3</i><span>The pad fits a tyre and axle for each flat from Rover Spares: 2 kits, ' + pad + ' s each (stock 3 → 1), and restocks the carried spare if a kit is left (1 → 0).</span></div><div><i>4</i><span>Machine Shop keep-3 target queues 3 more kits.</span></div>';
+  else if (tyCase === "stock") steps = '<div class="x"><i>1</i><span>No carried spare left.</span></div><div><i>2</i><span><b>Limp to the pad [R]</b> at 20% speed (two flats). About 1:45 from here.</span></div><div><i>3</i><span>The pad fits a tyre and axle for each flat from Rover Spares: 2 kits, ' + pad + ' s each (stock 3 → 1), and restocks the carried spare from the last kit (1 → 0).</span></div><div><i>4</i><span>The default keep-2 target queues 2 more kits at the Machine Shop.</span></div>';
   else steps = '<div class="x"><i>1</i><span>No carried spare.</span></div><div class="r"><i>!</i><span><b>No Rover Spares at any base.</b> The rover still limps to the pad; the pad waits for the Machine Shop (Rover Spares queued, ETA 0:50 for the first).</span></div><div><i>3</i><span>Without a Machine Shop it stays on the pad: integrity repair still works (duranium), tyres don\'t.</span></div>';
   document.getElementById("rover").innerHTML = l + '<div><div class="hl-lbl">Flat tyre · ' + E().name + " (repairs ×" + R + ')</div><div class="steps">' + steps + '</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"><button class="hb' + (tyCase === "carried" ? " go" : "") + '"' + (tyCase === "carried" ? "" : " disabled") + '>Change tyre [T]</button><button class="hb' + (tyCase !== "carried" ? " warn" : "") + '">Limp to the pad [R]</button></div></div>';
 }
 
 // ------------------------------------------------------------------ E: tech table + recipe comparison
 var TECH = [
+  ["Tech tier cap", ["p", "0 (new era)"], ["p", "1"], ["y", "4"]],
   ["Replicators", ["n", "None"], ["p", "Protein resequencer (food only)"], ["y", "Industrial replicator: parts from power"]],
   ["Transporters", ["n", "None"], ["p", "Early transporter, cargo only"], ["y", "Personnel and cargo"]],
   ["Construction", ["p", "Human crews + cranes, slower"], ["p", "Crews + cranes"], ["y", "Exocomps"]],
@@ -825,7 +831,7 @@ function renderEra() {
       if (id === "circuit_boards" && E().chips !== "circuit_boards") return '<li class="gone">Circuit Boards</li>';
       var ins = inputs(id), txt = Object.keys(ins).map(function (s) { return ins[s] + " " + (IT[s].code || IT[s].n.split(" ")[0].toLowerCase()); }).join(" + ");
       var chg = (id === "plating" && k === "ent") || (id === "control" && E().chips === "circuit_boards") || id === "circuit_boards";
-      return '<li class="' + (chg ? "chg" : "") + '" title="' + nm(id) + ": " + txt + '">' + nm(id, true) + " · " + IT[rid(id)].t + " s</li>";
+      return '<li class="' + (chg ? "chg" : "") + '" title="' + nm(id) + ": " + txt + '">' + nm(id, true) + " · " + IT[rid(id)].t + " s" + (CONS.indexOf(id) >= 0 ? " · ph 4" : "") + "</li>";
     });
     if (E().replicator) items.push('<li class="chg">Replicate mode (6 parts)</li>'); else items.push('<li class="gone">Replicate mode</li>');
     return '<div class="' + (k === save ? "cur" : "") + '"><h4>' + ERAS[k].name + "</h4><ul>" + items.join("") + "</ul></div>";
@@ -848,24 +854,30 @@ document.getElementById("speedSeg").addEventListener("click", function (e) { var
 document.getElementById("resetBtn").addEventListener("click", function () { fresh(); renderShop(); renderInv(); });
 document.getElementById("repSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; repCase = b.getAttribute("data-rep"); setPressed("repSeg", "data-rep", repCase); renderRepair(); });
 document.getElementById("tyreSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; tyCase = b.getAttribute("data-ty"); setPressed("tyreSeg", "data-ty", tyCase); renderRepair(); });
-document.getElementById("scrShop").addEventListener("click", function (e) {
-  var b = e.target.closest("button"); if (!b) return;
+function both(el, fn) {
+  el.addEventListener("pointerdown", function (e) { if (e.button === 0) fn(e); });
+  el.addEventListener("click", function (e) { if (e.detail === 0) fn(e); });
+}
+both(document.getElementById("scrShop"), function (e) {
+  var b = e.target.closest("button"); if (!b || b.disabled) return;
   if (b.dataset.add) add(b.dataset.add, +b.dataset.n);
   else if (b.dataset.cancel) cancel(+b.dataset.cancel);
   else if (b.dataset.tg) { var id = b.dataset.tg; S.target[id] = Math.max(0, Math.min(20, S.target[id] + +b.dataset.d)); renderShop(); renderInv(); }
   else if (b.dataset.mode) { mode = b.dataset.mode; renderShop(); renderInv(); }
   else if (b.id === "autoBtn") { autoOn = !autoOn; renderShop(); }
+  else if (b.id === "tgDef") { S.target = defaults(); renderShop(); renderInv(); }
+  else if (b.id === "tgClr") { ALL.forEach(function (id) { S.target[id] = 0; }); renderShop(); renderInv(); }
   else if (b.id === "clearQ") { S.queue.slice().forEach(function (q) { cancel(q.uid); }); }
 });
-document.getElementById("scrInv").addEventListener("click", function (e) {
+both(document.getElementById("scrInv"), function (e) {
   var b = e.target.closest("button,th,tr.row"); if (!b) return;
   if (b.dataset.f) invFilter = b.dataset.f;
   else if (b.dataset.k) { invSort = { k: b.dataset.k, d: invSort.k === b.dataset.k ? -invSort.d : (b.dataset.k === "n" || b.dataset.k === "cat" ? 1 : -1) }; }
   else if (b.dataset.row) invSel = b.dataset.row;
   else if (b.id === "invX") invOpen = false;
+  else if (b.id === "invClosed") invOpen = true;
   renderInv();
 });
-document.getElementById("scrInv").addEventListener("dblclick", function () { if (!invOpen) { invOpen = true; renderInv(); } });
 document.addEventListener("keydown", function (e) {
   if (e.target.closest && e.target.closest("input,textarea")) return;
   if ((e.key === "i" || e.key === "I") && !e.ctrlKey && !e.metaKey && !e.altKey) { invOpen = !invOpen; renderInv(); }
