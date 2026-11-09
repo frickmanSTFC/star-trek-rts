@@ -187,7 +187,7 @@ public class AchievementTests
         Assert.Equal("%", survey.Unit);
         Assert.Equal(50, survey.Target);
         Assert.InRange(survey.Current, 0, 5);
-        Assert.Equal(new AchievementProgress(0, 7, "techs"), sim.Achievements.Progress(0, "scholar"));
+        Assert.Equal(new AchievementProgress(0, Real.Techs.Count, "techs"), sim.Achievements.Progress(0, "scholar")); // every surface tech (9 since the ruin techs)
         Assert.Null(sim.Achievements.Progress(0, "uncharted_no_more")); // no star system in a planet-only game
         Assert.Null(sim.Achievements.Progress(0, "first_light")); // no bar
         Assert.Null(sim.Achievements.Progress(0, "hailing_frequencies")); // the view counts it

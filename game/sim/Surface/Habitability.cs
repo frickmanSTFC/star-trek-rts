@@ -225,10 +225,12 @@ public sealed partial class PlanetSurface
     /// <summary>How fast a building works for want of air: its base's life support if it is crewed on a Domes world, else 1.</summary>
     private Fix64 CrewShare(SurfaceStructure s, Dictionary<int, Fix64>? cache)
     {
-        if (Domes == null || !_data.IsCrewed(s.DefId)) return Fix64.One;
-        if (cache == null) return LifeSupportOf(s.BaseId);
+        if (!_data.IsCrewed(s.DefId)) return Fix64.One;
+        var health = SickShare(s.BaseId); // a sick crew (a ruin pathogen, Excavation.cs) work slower on any world
+        if (Domes == null) return health;
+        if (cache == null) return LifeSupportOf(s.BaseId) * health;
         if (!cache.TryGetValue(s.BaseId, out var level)) cache[s.BaseId] = level = LifeSupportOf(s.BaseId);
-        return level;
+        return level * health;
     }
 
     /// <summary>Seconds (rounded up) until a base with no life support starts losing crew; 0 when it already is, or has air.</summary>

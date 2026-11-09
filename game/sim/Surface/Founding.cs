@@ -81,7 +81,7 @@ public sealed partial class PlanetSurface
         if (player < 0 || player >= _players.Count || _players[player].Phase != LandingPhase.Landed) return FoundProblem.NotLanded;
         if (!OnMap(tile)) return FoundProblem.OffMap;
         if (!_players[player].Surveyed[tile]) return FoundProblem.NotSurveyed;
-        if (!Map.Terrain(tile).Buildable) return FoundProblem.Unbuildable;
+        if (!Map.Terrain(tile).Buildable || RuinBlocks(tile)) return FoundProblem.Unbuildable; // ruins: only an Excavation Site
         if (Map.NearNatives(tile)) return FoundProblem.NativeLand;
         if (Map.Toxic[tile]) return FoundProblem.Toxic;
         if (Map.WildlifeAt[tile] == Wildlife.Predators) return FoundProblem.Predators;
