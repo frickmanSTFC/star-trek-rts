@@ -53,6 +53,45 @@ public class EraDataTests
     public void AnEraLayerMayChangeTheMatchEra() =>
         Assert.Empty(GameData.Load(TestData.Source, new DataSetup(Era: "ent")).Validate());
 
+    /// <summary>The campaign's first era (main menu: Campaign → Federation → Dawn of Warp): a real record, Federation only,
+    /// tech cap 0; its layer sets the match era, so no transporters and no Prime Directive (no Standing meter).</summary>
+    [Fact]
+    public void DawnOfWarpIsACampaignEraWithoutStanding()
+    {
+        var dawn = TestData.Real.Era("dawn_of_warp");
+        Assert.NotNull(dawn);
+        Assert.Equal((2063, 2150, 0), (dawn!.YearFrom, dawn.YearTo, dawn.TechCapTier));
+        Assert.Equal(new[] { "federation" }, dawn.Playable);
+        Assert.Contains("dawn_of_warp", TestData.Real.Faction("federation").Eras);
+
+        var data = GameData.Load(TestData.Source, new DataSetup(Era: "dawn_of_warp", Factions: new[] { "federation" }));
+        Assert.Empty(data.Validate());
+        Assert.Equal("dawn_of_warp", data.Orbit!.Era);
+        var sim = FinalFrontier.Sim.Core.MatchSetup.CreateSystemGame(data, 1701, "federation");
+        Assert.Equal(0, sim.Surface!.Players[0].TransporterLevel);
+        Assert.False(sim.System!.PrimeDirective);
+        Assert.Null(sim.System.StandingOf(0));
+        for (var i = 0; i < 60; i++) sim.Step();
+    }
+
+    /// <summary>The main menu's star-system picker generates from the campaign's data (era layer on) and the game starts
+    /// CreateSystemGame on the picked body: the era layer mustn't change the system, and every landable body must start.</summary>
+    [Fact]
+    public void TheCampaignPickerSystemIsTheGamesSystem()
+    {
+        var campaign = GameData.Load(TestData.Source, new DataSetup(Era: "dawn_of_warp", Factions: new[] { "federation" }));
+        foreach (var seed in new ulong[] { 7, 4242, 999_999 })
+        {
+            var picked = FinalFrontier.Sim.Space.SystemGenerator.Generate(campaign, seed).Landable(campaign);
+            Assert.NotEmpty(picked);
+            Assert.Equal(FinalFrontier.Sim.Core.MatchSetup.LandableBodies(TestData.Real, seed).Select(b => b.Id), picked.Select(b => b.Id));
+            var home = picked[^1];
+            var sim = FinalFrontier.Sim.Core.MatchSetup.CreateSystemGame(campaign, seed, "federation", home.Id);
+            Assert.Equal(home.Id, sim.System!.SurfaceBody);
+            Assert.Equal(home.ClassId, sim.Surface!.Map.Def.ClassId);
+        }
+    }
+
     [Fact]
     public void TechTreeReferencesMustResolve()
     {

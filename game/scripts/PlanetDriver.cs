@@ -154,12 +154,18 @@ public partial class PlanetDriver : Node3D, ITestHost
     public override void _Ready()
     {
         // JSON folders + draft in debug builds, res://gamedata.pack in release exports (GameDataLoader).
-        var data = GameDataLoader.Load(new DataSetup(Factions: new[] { "federation" }), out _dataDirectory, out var dataMessages);
+        // A campaign start (main menu) adds its era's layer and plays its faction; DEBUG (and an F6 run) as before.
+        var campaign = GameSetup.Mode == GameMode.Campaign;
+        var setup = campaign ? new DataSetup(Era: GameSetup.Era, Factions: new[] { GameSetup.Faction }) : new DataSetup(Factions: new[] { "federation" });
+        var data = GameDataLoader.Load(setup, out _dataDirectory, out var dataMessages);
         foreach (var problem in data.Validate()) GD.PushWarning($"Data check: {problem}");
+        GameSettings.Load();
 
-        // the in-game world chooser's choice (WorldChooser.cs, kept between runs) wins over the Inspector's World / Seed
-        var world = (GameSetup.World ?? World ?? "").Trim();
-        if (GameSetup.Seed is { } chosenSeed) Seed = chosenSeed;
+        // Campaign: the menu's system seed and home body. Debug: the in-game world chooser's choice (WorldChooser.cs,
+        // kept between runs) wins over the Inspector's World / Seed.
+        var world = campaign ? (GameSetup.HomeBody ?? "") : (GameSetup.World ?? World ?? "").Trim();
+        if (campaign && GameSetup.CampaignSeed is { } campaignSeed) Seed = campaignSeed;
+        else if (!campaign && GameSetup.Seed is { } chosenSeed) Seed = chosenSeed;
         var worldBody = StartGame(data, world); // a star-system game on the chosen home body (PlanetDriver.System.cs)
         LocalPlayer = Mathf.Clamp(LocalPlayerSlot, 0, _sim.Players.Count - 1);
         BeginAchievements(); // picked rover names / hull numbers into the sim before the first Step (PlanetDriver.Achievements.cs)
@@ -225,6 +231,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _chooser = new WorldChooser { Name = "WorldChooser" };
         chooserLayer.AddChild(_chooser);
         _chooser.Setup(data, worldBody, Seed);
+        SetupPause(); // Esc pause card: resume / settings / main menu / quit (PlanetDriver.Menu.cs)
         SetupAchievements(); // toast, screen, trophy chip (PlanetDriver.Achievements.cs)
         SetupParts(); // inventory screen, fabricator queue / workshop / inventory hooks (PlanetDriver.Parts.cs)
         SetupCiv(); // civilization dossier, Standing chip hooks (PlanetDriver.Civ.cs)
@@ -273,7 +280,7 @@ public partial class PlanetDriver : Node3D, ITestHost
 
     private static readonly Dictionary<string, string> EraNames = new()
     {
-        ["ent"] = "Enterprise era", ["tos"] = "TOS era", ["kelvin"] = "Kelvin timeline", ["tng"] = "Next Generation era",
+        ["dawn_of_warp"] = "Dawn of Warp", ["ent"] = "Enterprise era", ["tos"] = "TOS era", ["kelvin"] = "Kelvin timeline", ["tng"] = "Next Generation era",
         ["dominion_war"] = "Dominion War", ["voy"] = "Delta Quadrant", ["picard"] = "Picard era", ["far_future"] = "32nd century",
     };
 
@@ -461,7 +468,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             case Key.Tab when _orbit.Display != OrbitDisplay.System && _orbit.AtColony:
                 _orbit.SetScan((ScanMode)(((int)_orbit.Mode + (key.ShiftPressed ? 4 : 1)) % 5));
                 break;
-            case Key.F2:
+            case Key.F2 when GameSetup.Mode == GameMode.Debug: // no chooser in a campaign
                 _chooser.Toggle(); // WorldChooser.cs: pick the world (and seed) for a new game
                 break;
             case Key.Escape when _chooser.IsOpen:
@@ -472,6 +479,9 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case Key.Escape when _systemCard != null && _orbit.Display == OrbitDisplay.System:
                 CloseSystemCard();
+                break;
+            case Key.Escape when _info == null && _orbitAction == null:
+                OpenPause(); // nothing else wants Esc: the pause card
                 break;
             case Key.Escape:
                 if (_info != null) _info = null;
@@ -511,7 +521,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _orbit.SetHover(_orbitHover, colour);
 
         // Keys turn the planet too.
-        var turn = 1.4f * delta;
+        var turn = 1.4f * GameSettings.CameraSpeed * delta;
         if (Input.IsKeyPressed(Key.A) || Input.IsKeyPressed(Key.Left) || Input.IsKeyPressed(Key.Q)) _orbit.Rotate(-turn, 0);
         if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right) || Input.IsKeyPressed(Key.E)) _orbit.Rotate(turn, 0);
         if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) _orbit.Rotate(0, -turn);
@@ -931,7 +941,7 @@ public partial class PlanetDriver : Node3D, ITestHost
 
     public override void _Process(double delta)
     {
-        _chooser.Available = _inOrbit; // the WORLD button shows on the orbit screen
+        _chooser.Available = _inOrbit && GameSetup.Mode == GameMode.Debug; // the WORLD button: orbit screen, debug games only
         // Game speed and pause come from the test panel (render-side pacing; the sim just steps).
         var speed = _test?.Speed ?? 1.0;
         if (!(_test?.Paused ?? false)) _accumulator += delta * speed;
@@ -1265,6 +1275,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 else if (_info != null) _info = null; // close the card first, keep the selection
                 else if (_drawer.IsOpen) CloseDrawer();
                 else if (WorkshopShown()) _workshop = false; // the core's workshop → back to the base panel
+                else if (_view.SelectedUnits.Count == 0 && _selectedStructure == 0 && _selectedTile < 0) OpenPause(); // nothing to close: pause
                 else ClearSelection();
                 break;
             case Key.B when landed:
@@ -2431,7 +2442,8 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (!typing && (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down))) move -= forward;
         if (!typing && (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right))) move += right;
         if (!typing && (Input.IsKeyPressed(Key.Left) || (Input.IsKeyPressed(Key.A) && Me.Phase != LandingPhase.Landed))) move -= right;
-        if (move != Vector3.Zero) _focusTarget += move.Normalized() * _distance * 0.9f * delta;
+        if (!typing && GameSettings.EdgeScroll) move += EdgeScroll(forward, right); // PlanetDriver.Menu.cs
+        if (move != Vector3.Zero) _focusTarget += move.Normalized() * _distance * 0.9f * GameSettings.CameraSpeed * delta;
 
         var k = 1f - Mathf.Exp(-4f * delta);
         _focus = _focus.Lerp(_focusTarget, k);

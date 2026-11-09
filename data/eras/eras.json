@@ -1,6 +1,12 @@
 {
   "_notes": "playable / ai_only: faction ids from factions.json. Only factions with \"playable\": true can be playable in an era; minor, pirate, insurgent and crisis factions are ai_only. A faction's eras list (factions.json) names exactly the eras that list it here (checked by GameData.Validate). Monsters and one-off threats are events (hazards.json ids where one exists), not factions.",
   "eras": [
+    { "id": "dawn_of_warp", "name": "Dawn of Warp", "years": [2063, 2150], "stardate_format": "calendar",
+      "tech_cap_tier": 0,
+      "playable": ["federation"],
+      "ai_only": [],
+      "events": [],
+      "notes": "Pre-warp: from First Contact (2063) to the year before the Enterprise era. The campaign's first chapter (main menu); tech_cap_tier 0 = below the first tier of the strategic tree (no warp-era techs). The colony game itself doesn't play this era's content yet; its layer (layers/eras/dawn_of_warp.json) only sets the match era (no Prime Directive before 2168, so no Starfleet Standing; no transporters)." },
     { "id": "ent", "name": "Enterprise Era", "years": [2151, 2161], "stardate_format": "calendar",
       "tech_cap_tier": 1,
       "playable": ["earth_uec", "vulcan", "andorian", "tellarite", "klingon", "romulan"],

@@ -35,8 +35,8 @@ public static class HudKit
         return bold ? _condensedBold : _condensed;
     }
 
-    /// <summary>UI scale for a screen: 1 at 1280×720 (clamped 0.75–3).</summary>
-    public static float ScaleFor(Vector2 screen) => Mathf.Clamp(Mathf.Min(screen.X / 1280f, screen.Y / 720f), 0.75f, 3f);
+    /// <summary>UI scale for a screen: 1 at 1280×720 (clamped 0.75–3), times the player's UI SCALE setting.</summary>
+    public static float ScaleFor(Vector2 screen) => Mathf.Clamp(Mathf.Min(screen.X / 1280f, screen.Y / 720f) * GameSettings.UiScale, 0.75f, 3f);
 
     public static Label Label(string text, float size, Color colour, bool condensed = false, bool bold = false)
     {
