@@ -70,6 +70,8 @@ public sealed class ObservationPost
     public long NextRollTick { get; internal set; }
     public bool Found { get; internal set; }
     public long FoundTick { get; internal set; } = -1;
+    /// <summary>Phase 2: aggressive natives shot it down (it is also Found: it stops working).</summary>
+    public bool ShotDown { get; internal set; }
 }
 
 /// <summary>A line for the view's feed. Player = whose it is (every event is addressed to one player). Kind: "study_complete",
@@ -144,10 +146,17 @@ public static class CivGenerator
         return weights.Count - 1;
     }
 
-    private static CivSite Living(GameData data, CivilizationData c, BodyDef body, ulong h)
+    /// <summary>Test panel: a living civilization (level 1..6) or ruins on the body, with a generated species, from the hash.</summary>
+    internal static CivSite DebugSite(GameData data, BodyDef body, ulong h, bool living, int level)
+    {
+        var c = data.Civilizations!;
+        return living ? Living(data, c, body, h, level) : Ruins(c, body, h);
+    }
+
+    private static CivSite Living(GameData data, CivilizationData c, BodyDef body, ulong h, int forceLevel = 0)
     {
         var s = c.Sites;
-        var level = PickIndex(s.LevelWeightsFor(body.ClassId), SystemGenerator.H(h, SiteSalt, 1)) + 1;
+        var level = forceLevel > 0 ? forceLevel : PickIndex(s.LevelWeightsFor(body.ClassId), SystemGenerator.H(h, SiteSalt, 1)) + 1;
         var temperament = SystemGenerator.Pick(s.TemperamentWeights, SystemGenerator.H(h, SiteSalt, 2)) switch
         {
             "peaceful" => Temperament.Peaceful,
@@ -311,10 +320,18 @@ public sealed partial class StarSystemState
         public Fix64 Bank;
         /// <summary>Incidents per body, in the order they first happened.</summary>
         public readonly List<(string Body, int Count)> Incidents = new();
+        /// <summary>Phase 2 (Contact.cs): relations per body, in the order they began; running first-contact events.</summary>
+        public readonly List<Relation> Relations = new();
+        public readonly List<ContactRun> Runs = new();
     }
 
     private List<CivSite> _civs = new();
-    private Fix64[] _awareness = System.Array.Empty<Fix64>();
+    private List<Fix64> _awareness = new();
+    // Phase 2, per site like _awareness (Contact.cs): culture shock until, awareness at the last whole minute (spikes), the
+    // aggressive natives' hostility mark reached.
+    private List<long> _shockUntil = new();
+    private List<Fix64> _awarenessMark = new();
+    private List<bool> _hostile = new();
     private readonly List<CivPlayer> _civPlayers = new();
     private readonly List<ObservationPost> _posts = new();
     private readonly List<CivEvent> _civEvents = new();
@@ -397,7 +414,7 @@ public sealed partial class StarSystemState
     public int AwarenessOf(string bodyId)
     {
         var i = CivIndex(bodyId);
-        return i < 0 || i >= _awareness.Length ? 0 : System.Math.Clamp(_awareness[i].FloorToInt(), 0, 100);
+        return i < 0 || i >= _awareness.Count ? 0 : System.Math.Clamp(_awareness[i].FloorToInt(), 0, 100);
     }
 
     /// <summary>The look-only surface map a civilization's towns sit on: the body's own class's surface, or the rules.json
@@ -589,12 +606,23 @@ public sealed partial class StarSystemState
     private void InitCivilizations(GameData data)
     {
         _civs = CivGenerator.Roll(data, Bodies, Seed, SurfaceBody);
-        _awareness = new Fix64[_civs.Count];
-        if (data.Civilizations is { } c)
-            for (var i = 0; i < _civs.Count; i++)
-                if (_civs[i].Living && (int)_civs[i].Level - 1 < c.Awareness.Start.Count)
-                    _awareness[i] = Fix64.FromInt(c.Awareness.Start[(int)_civs[i].Level - 1]);
+        _awareness = new List<Fix64>();
+        _shockUntil = new List<long>();
+        _awarenessMark = new List<Fix64>();
+        _hostile = new List<bool>();
+        foreach (var site in _civs)
+        {
+            var a = StartAwareness(data, site);
+            _awareness.Add(a);
+            _shockUntil.Add(0);
+            _awarenessMark.Add(a);
+            _hostile.Add(false);
+        }
     }
+
+    private static Fix64 StartAwareness(GameData data, CivSite site) =>
+        data.Civilizations is { } c && site.Living && (int)site.Level - 1 < c.Awareness.Start.Count
+            ? Fix64.FromInt(c.Awareness.Start[(int)site.Level - 1]) : Fix64.Zero;
 
     /// <summary>A player joins: no study yet; Starfleet Standing at its start for a Federation player in a Prime Directive era.</summary>
     private void AddCivPlayer(int slot, string faction)
@@ -714,18 +742,29 @@ public sealed partial class StarSystemState
         if (i >= 0) RaiseAwareness(i, Fix64.FromInt(c.Awareness.PostFound));
         var name = Body(post.BodyId)?.Name ?? post.BodyId;
         Event(post.Owner, post.BodyId, "post_found", $"The natives of {name} found our hidden observation post");
-        if (post.Owner < 0 || post.Owner >= _civPlayers.Count) return;
-        var p = _civPlayers[post.Owner];
-        var k = p.Incidents.FindIndex(x => x.Body == post.BodyId);
-        if (k < 0) p.Incidents.Add((post.BodyId, 1));
-        else p.Incidents[k] = (post.BodyId, p.Incidents[k].Count + 1);
-        var count = IncidentsOn(post.Owner, post.BodyId);
+        AddIncident(sim, post.Owner, post.BodyId, c.Post.StandingChange);
+    }
+
+    /// <summary>A contamination incident on a body: counted, Standing + change, recalled at Standing 0 or the
+    /// recalled_incidents-th on one world; the natives refuse contact with the player a while (contact.json
+    /// refuse_after_incident_minutes).</summary>
+    private void AddIncident(Simulation sim, int player, string bodyId, int standingChange)
+    {
+        var c = CivData!;
+        if (player < 0 || player >= _civPlayers.Count) return;
+        var name = Body(bodyId)?.Name ?? bodyId;
+        var p = _civPlayers[player];
+        var k = p.Incidents.FindIndex(x => x.Body == bodyId);
+        if (k < 0) p.Incidents.Add((bodyId, 1));
+        else p.Incidents[k] = (bodyId, p.Incidents[k].Count + 1);
+        var count = IncidentsOn(player, bodyId);
         p.LastIncidentTick = sim.Tick;
-        Event(post.Owner, post.BodyId, "incident", $"Contamination incident on {name} ({count} there)");
+        Event(player, bodyId, "incident", $"Contamination incident on {name} ({count} there)");
+        if (c.Contact is { } contact && contact.RefuseAfterIncidentMinutes > 0) RefuseContact(player, bodyId, contact.RefuseAfterIncidentMinutes);
         if (!p.HasStanding || p.Recalled) return;
-        p.Standing = Fix64.Max(Fix64.Zero, p.Standing + Fix64.FromInt(c.Post.StandingChange));
+        p.Standing = Fix64.Max(Fix64.Zero, p.Standing + Fix64.FromInt(standingChange));
         if (p.Standing <= Fix64.Zero || count >= c.Standing.RecalledIncidents) p.Recalled = true;
-        UpdateRung(sim, post.Owner, p);
+        UpdateRung(sim, player, p);
     }
 
     /// <summary>Applies each step newly reached (inquiry: ship held; sanctions: research cut; 5: recalled) and notes it.</summary>
@@ -818,8 +857,18 @@ public sealed partial class StarSystemState
     private void AddCivsToHash(ref StateHasher h)
     {
         h.Add(_civs.Count);
-        foreach (var c in _civs) h.Add(c.BodyId);
+        foreach (var c in _civs)
+        {
+            h.Add(c.BodyId);
+            h.Add(c.Living);
+            h.Add((int)c.Level);
+            h.Add((int)c.Temperament);
+            h.Add(c.Seed);
+        }
         foreach (var a in _awareness) h.Add(a);
+        foreach (var x in _shockUntil) h.Add(x);
+        foreach (var x in _awarenessMark) h.Add(x);
+        foreach (var x in _hostile) h.Add(x);
         h.Add(_civPlayers.Count);
         foreach (var p in _civPlayers)
         {
@@ -839,7 +888,12 @@ public sealed partial class StarSystemState
                 h.Add(body);
                 h.Add(count);
             }
+            h.Add(p.Relations.Count);
+            foreach (var r in p.Relations) r.AddToHash(ref h);
+            h.Add(p.Runs.Count);
+            foreach (var r in p.Runs) r.AddToHash(ref h);
         }
+        AddContactToHash(ref h); // Contact.cs
         h.Add(_posts.Count);
         foreach (var p in _posts)
         {
@@ -849,6 +903,7 @@ public sealed partial class StarSystemState
             h.Add(p.NextRollTick);
             h.Add(p.Found);
             h.Add(p.FoundTick);
+            h.Add(p.ShotDown);
         }
         h.Add(_civEvents.Count);
         foreach (var e in _civEvents)

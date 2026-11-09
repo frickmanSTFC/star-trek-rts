@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using FinalFrontier.Sim.Data;
 using FinalFrontier.Sim.Math;
 
 namespace FinalFrontier.Sim.Surface;
@@ -683,6 +684,12 @@ public sealed class SurfacePlayer
     /// extra are skipped). Without extras the pools are read at the used count, as always.</summary>
     internal int NamePoolNext, NumberPoolNext;
 
+    /// <summary>Unique local techs shared by contacted civilizations (Space/Contact.cs), in the order they came: their
+    /// modifiers count like a researched surface tech's (never researched in a lab).</summary>
+    public IReadOnlyList<UniqueTechDef> SharedTechs => _sharedTechs;
+
+    internal readonly List<UniqueTechDef> _sharedTechs = new();
+
     // Test-panel limits (DebugFlagCommand).
 
     /// <summary>Storage never fills.</summary>
@@ -739,6 +746,11 @@ public sealed class SurfacePlayer
         h.Add(FreeBuilding);
         h.Add(InstantBuild);
         foreach (var x in _stockTargets) h.Add(x);
+        if (_sharedTechs.Count > 0) // only once a civilization shared one, so other games hash as before
+        {
+            h.Add(_sharedTechs.Count);
+            foreach (var t in _sharedTechs) h.Add(t.Id);
+        }
         if (_extraNames.Count > 0 || _extraNumbers.Count > 0) // only with cosmetics, so other games hash as before
         {
             h.Add(_extraNames.Count);

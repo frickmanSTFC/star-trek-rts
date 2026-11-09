@@ -1,0 +1,88 @@
+{
+  "_notes_contact": "Civilizations phase 2 (docs/civilizations-phase2-contract.md; played by game/sim/Space/Contact.cs). factions: who may make first contact (Federation only for now). min_level: warp-capable worlds (L5+) may be contacted; below it the contact breaks General Order 1 in a Prime Directive era (rules.json standing) and is a violation: Standing + violation.standing, an incident, and the outcome is always culture shock; before the Prime Directive (ENT, Dawn of Warp) there is no rule, only pre_warp_shock more shock. needs_study: the civilization must be studied (Study = 1) first. The event: the steps below one after the other, each lasting step_seconds (3 x 80 = 4 min); a pick moves to the next step at once, a step whose time runs out takes its first choice (the default). The flagship must stay in orbit: leaving calls it off. Shock chance (%) = base_shock + shock_by_temperament + awareness x shock_per_awareness + pre_warp_shock (below min_level) + every chosen choice's shock, clamped to shock_min..shock_max; rolled on sim.Rng when the last step ends. A choice: shock (percentage points), research (points added to the one-off research boost), standing_if_shock (Starfleet Standing change if it ends in culture shock: the risk of sharing too much), wait_minutes (added to the shock wait). Smooth start: trade partner at once. Culture shock: relations stay at Contact for shock_wait_minutes (then trade partner), the natives' awareness + culture_shock_awareness, culture_shock_minutes of unrest. Trade partner: research_boost points once (into the active surface tech, like observation research), a unique local tech (unique_techs: a pick by the site's seed; its modifiers apply to the player's surface like a researched tech's, never researched in a lab), ally ships (ally.ships_by_stage) and trade income each whole minute (trade.income_per_min x trade.stage_multiplier; allied worlds pay double; into the colony player's stock through the surface's storage: what doesn't fit is lost, latinum always fits; with no surface straight into the stock). membership: trade partner -> candidate needs Standing >= min_standing (players with a Standing meter) and partner_minutes as a trade partner; a fractured world rolls walkout_chance (sim.Rng) that a nation walks out (each walk-out cuts its trade by walkout_income_cut); candidate -> allied after candidate_minutes, Standing >= min_standing again. Allied worlds stay theirs. ally: native ships (SystemShip with AllyOf = the player, Owner -1), weak, never land, never destroyed for now; classes by weight, names, travel_scale x the flagship's flight time, escort_delay_seconds after the flagship leaves, scout_sweep_seconds to chart a body. aggressive: natives with an aggressive temperament at awareness >= from_awareness refuse contact with every player who has Charted them for refuse_minutes (again after each shoot-down), and from shoot_from_level shoot down a player's satellites and working posts over their world (shoot_chance a minute each, sim.Rng): lost, and shoot_down_standing on Starfleet Standing (Prime Directive eras). Any incident on a world (a post found, a forced contact) makes its natives refuse contact with that player for refuse_after_incident_minutes. advance: an L4 world reaches L5 (warp) with chance_per_min (owner: rare, about 1 in 10 over a 30-minute game) + awareness x per_awareness each minute (sim.Rng); if its awareness rose by wreck_spike or more in that minute the attempt is wrecked with wreck_chance (the level stays).",
+  "contact": {
+    "factions": ["federation"],
+    "min_level": 5,
+    "needs_study": true,
+    "step_seconds": 80,
+    "base_shock": 30,
+    "shock_by_temperament": { "peaceful": -10, "wary": 0, "aggressive": 15 },
+    "shock_per_awareness": 0.1,
+    "pre_warp_shock": 30,
+    "shock_min": 5,
+    "shock_max": 95,
+    "steps": [
+      { "id": "envoy", "title": "Who goes down",
+        "choices": [
+          { "text": "The captain beams down", "hint": "a personal touch: they meet who is in charge", "shock": 0, "research": 0, "standing_if_shock": 0, "wait_minutes": 0 },
+          { "text": "Send an envoy team", "hint": "trained contact specialists: steadier, a little slower", "shock": -8, "research": 0, "standing_if_shock": 0, "wait_minutes": 0 },
+          { "text": "A message only", "hint": "no one at risk, but it feels cold to them", "shock": 6, "research": -10, "standing_if_shock": 0, "wait_minutes": -1 }
+        ] },
+      { "id": "offer", "title": "What to offer",
+        "choices": [
+          { "text": "Medicine", "hint": "a gift that saves lives: goodwill and a calmer welcome", "shock": -10, "research": 0, "standing_if_shock": 0, "wait_minutes": 0 },
+          { "text": "Cultural exchange", "hint": "art, music, history: they learn about us, we learn about them", "shock": -4, "research": 20, "standing_if_shock": 0, "wait_minutes": 0 },
+          { "text": "Nothing", "hint": "no strings: nothing to misread, nothing to win them over", "shock": 4, "research": 0, "standing_if_shock": 0, "wait_minutes": 0 }
+        ] },
+      { "id": "technology", "title": "Share technology",
+        "choices": [
+          { "text": "None", "hint": "keep to what they already have", "shock": 0, "research": 0, "standing_if_shock": 0, "wait_minutes": 0 },
+          { "text": "Limited", "hint": "a few safe things: more to talk about", "shock": 4, "research": 25, "standing_if_shock": -3, "wait_minutes": -1 },
+          { "text": "Help with their warp drive", "hint": "big research and closer ties, but Starfleet will not like it if it goes wrong", "shock": 12, "research": 60, "standing_if_shock": -10, "wait_minutes": -2 }
+        ] }
+    ],
+    "violation": { "standing": -10 },
+    "shock_wait_minutes": 5,
+    "culture_shock_awareness": 20,
+    "culture_shock_minutes": 10,
+    "research_boost": 80,
+    "trade": {
+      "income_per_min": { "duranium": 6, "tritanium": 3, "latinum": 1 },
+      "stage_multiplier": { "trade_partner": 1, "candidate": 1, "allied": 2 }
+    },
+    "membership": {
+      "min_standing": 60,
+      "partner_minutes": 3,
+      "candidate_minutes": 5,
+      "walkout_chance": 0.3,
+      "walkout_income_cut": 0.25
+    },
+    "unique_techs": [
+      { "id": "native_metallurgy", "name": "Native Metallurgy", "effect": "Refineries get 15% more metal.",
+        "modifiers": [ { "stat": "yield", "buildings": ["refinery"], "add": 0.15 } ] },
+      { "id": "resonance_drilling", "name": "Resonance Drilling", "effect": "Mines and deep-core mines work 15% faster.",
+        "modifiers": [ { "stat": "speed", "buildings": ["mine", "deep_core_mine"], "add": 0.15 } ] },
+      { "id": "lattice_alloys", "name": "Lattice Alloys", "effect": "Every building wears 15% slower.",
+        "modifiers": [ { "stat": "wear", "add": -0.15 } ] },
+      { "id": "adaptive_suspension", "name": "Adaptive Suspension", "effect": "Mining crawlers break down 30% less often.",
+        "modifiers": [ { "stat": "breakdown", "units": ["mining_crawler"], "add": -0.3 } ] },
+      { "id": "harmonic_fabrication", "name": "Harmonic Fabrication", "effect": "Machine Shops and Research Labs work 15% faster.",
+        "modifiers": [ { "stat": "speed", "buildings": ["machine_shop", "science_lab"], "add": 0.15 } ] }
+    ],
+    "ally": {
+      "ships_by_stage": { "trade_partner": 1, "candidate": 1, "allied": 2 },
+      "classes": [
+        { "id": "cutter", "name": "Cutter", "role": "escort", "weight": 3 },
+        { "id": "courier", "name": "Courier", "role": "scout", "weight": 2 }
+      ],
+      "names": ["Dawnrunner", "Far Lantern", "Kestrel", "First Light", "Wayfinder", "Seedling", "Long Watch", "Amber Wake"],
+      "travel_scale": 1.2,
+      "escort_delay_seconds": 5,
+      "scout_sweep_seconds": 20
+    },
+    "aggressive": {
+      "from_awareness": 80,
+      "shoot_from_level": 4,
+      "shoot_chance": 0.25,
+      "shoot_down_standing": -5,
+      "refuse_minutes": 10
+    },
+    "refuse_after_incident_minutes": 10,
+    "advance": {
+      "chance_per_min": 0.0035,
+      "per_awareness": 0.0001,
+      "wreck_spike": 10,
+      "wreck_chance": 0.75
+    }
+  }
+}

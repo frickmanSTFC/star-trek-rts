@@ -103,7 +103,7 @@ public sealed partial class GameData
             }
         else problems.Add("Civilizations: ruins.json needs a \"ruins\" list.");
 
-        return new CivilizationData(sites, awareness, study, post, standing, levels, names, ruins);
+        return new CivilizationData(sites, awareness, study, post, standing, levels, names, ruins) { Contact = ReadContact(root, amounts, r, problems) };
     }
 
     /// <summary>Tolerant field reads for the civilizations document: a missing or wrongly typed field is a problem, not an exception.</summary>
@@ -343,5 +343,6 @@ public sealed partial class GameData
             if (r.Canon && r.Species == null) problems.Add($"Ruin {r.Id}: a canon ruin names its species.");
         }
         if (c.Ruins.Select(r => r.Id).Distinct().Count() != c.Ruins.Count) problems.Add($"{w}: ruin ids repeat.");
+        ValidateContact(c, problems); // GameData.Contact.cs
     }
 }

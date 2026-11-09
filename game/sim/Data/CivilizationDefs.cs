@@ -83,4 +83,83 @@ public sealed record CivilizationData(CivSiteRules Sites, CivAwarenessRules Awar
     public CivLevelDef Level(int level) => Levels[System.Math.Clamp(level, 1, Levels.Count) - 1];
 
     public RuinDef? Ruin(string? id) => id == null ? null : Ruins.FirstOrDefault(r => r.Id == id);
+
+    /// <summary>contact.json (phase 2: first contact, relations, trade, ally ships, aggressive natives, L4 → L5), or null
+    /// when the data set has none (then nobody can make contact).</summary>
+    public ContactRules? Contact { get; init; }
+}
+
+// ---- phase 2 (contact.json; docs/civilizations-phase2-contract.md; played by game/sim/Space/Contact.cs)
+
+/// <summary>One option at a first-contact step. Shock = percentage points on the culture-shock chance; Research = points
+/// added to the one-off research boost; StandingIfShock = Starfleet Standing change if the event ends in culture shock;
+/// WaitMinutes = added to the shock wait before trade.</summary>
+public sealed record ContactChoiceDef(string Text, string Hint, int Shock, int Research, int StandingIfShock, int WaitMinutes);
+
+/// <summary>A step of the first-contact event; its first choice is the default.</summary>
+public sealed record ContactStepDef(string Id, string Title, IReadOnlyList<ContactChoiceDef> Choices);
+
+/// <summary>A unique local tech a trade partner shares: modifiers like a surface tech's, applied to the player's surface.</summary>
+public sealed record UniqueTechDef(string Id, string Name, string Effect, IReadOnlyList<Modifier> Modifiers);
+
+/// <summary>A native ship class for ally ships (not in ships.json: ClassId is "native.&lt;id&gt;").</summary>
+public sealed record AllyClassDef(string Id, string Name, string Role, int Weight);
+
+/// <summary>contact.json membership: the steps Trade partner → Candidate → Allied world.</summary>
+public sealed record MembershipRules(int MinStanding, int PartnerMinutes, int CandidateMinutes, Fix64 WalkoutChance, Fix64 WalkoutIncomeCut);
+
+/// <summary>contact.json ally: native ships that escort the flagship or scout a body.</summary>
+public sealed record AllyRules(int ShipsTradePartner, int ShipsCandidate, int ShipsAllied, IReadOnlyList<AllyClassDef> Classes, IReadOnlyList<string> Names,
+    Fix64 TravelScale, int EscortDelaySeconds, int ScoutSweepSeconds)
+{
+    /// <summary>How many ally ships a relations stage brings (2 trade partner, 3 candidate, 4 allied; 0 below).</summary>
+    public int ShipsFor(int stage) => stage switch { 2 => ShipsTradePartner, 3 => ShipsCandidate, >= 4 => ShipsAllied, _ => 0 };
+}
+
+/// <summary>contact.json aggressive: natives with an aggressive temperament past an awareness mark.</summary>
+public sealed record AggressiveRules(int FromAwareness, int ShootFromLevel, Fix64 ShootChance, int ShootDownStanding, int RefuseMinutes);
+
+/// <summary>contact.json advance: an L4 world reaching L5 (warp) during a match.</summary>
+public sealed record AdvanceRules(Fix64 ChancePerMin, Fix64 PerAwareness, int WreckSpike, Fix64 WreckChance);
+
+/// <summary>contact.json: first contact and what follows.</summary>
+public sealed record ContactRules(
+    IReadOnlyList<string> Factions,
+    int MinLevel,
+    bool NeedsStudy,
+    int StepSeconds,
+    int BaseShock,
+    IReadOnlyList<Weighted> ShockByTemperament,
+    Fix64 ShockPerAwareness,
+    int PreWarpShock,
+    int ShockMin,
+    int ShockMax,
+    IReadOnlyList<ContactStepDef> Steps,
+    int ViolationStanding,
+    int ShockWaitMinutes,
+    int CultureShockAwareness,
+    int CultureShockMinutes,
+    int ResearchBoost,
+    IReadOnlyList<ResourceAmount> TradeIncome,
+    Fix64 TradePartnerMultiplier,
+    Fix64 CandidateMultiplier,
+    Fix64 AlliedMultiplier,
+    MembershipRules Membership,
+    IReadOnlyList<UniqueTechDef> UniqueTechs,
+    AllyRules Ally,
+    AggressiveRules Aggressive,
+    int RefuseAfterIncidentMinutes,
+    AdvanceRules Advance)
+{
+    /// <summary>The shock shift of a temperament id ("peaceful", "wary", "aggressive"); 0 when not listed.</summary>
+    public int ShockFor(string temperament) => ShockByTemperament.FirstOrDefault(w => w.Id == temperament).Weight;
+
+    /// <summary>Trade multiplier of a relations stage (2 trade partner, 3 candidate, 4 allied; 0 below).</summary>
+    public Fix64 MultiplierFor(int stage) => stage switch
+    {
+        2 => TradePartnerMultiplier,
+        3 => CandidateMultiplier,
+        >= 4 => AlliedMultiplier,
+        _ => Fix64.Zero,
+    };
 }

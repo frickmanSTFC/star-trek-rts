@@ -196,7 +196,8 @@
       "civilizations/rules.json",
       "civilizations/levels.json",
       "civilizations/names.json",
-      "civilizations/ruins.json"
+      "civilizations/ruins.json",
+      "civilizations/contact.json"
     ]
   }
 }

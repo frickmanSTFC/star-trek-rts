@@ -725,6 +725,9 @@ public sealed partial class PlanetSurface
             if (known[t.Index])
                 foreach (var m in t.Modifiers)
                     if (m.Stat == stat && AppliesTo(m, buildingId)) sum += m.Add;
+        foreach (var t in _players[player]._sharedTechs) // unique techs from contacted civilizations (Space/Contact.cs)
+            foreach (var m in t.Modifiers)
+                if (m.Stat == stat && AppliesTo(m, buildingId)) sum += m.Add;
         return sum;
     }
 
@@ -737,6 +740,9 @@ public sealed partial class PlanetSurface
             if (known[t.Index])
                 foreach (var m in t.Modifiers)
                     if (m.Stat == stat && m.Units.Contains(unitId)) sum += m.Add;
+        foreach (var t in _players[player]._sharedTechs)
+            foreach (var m in t.Modifiers)
+                if (m.Stat == stat && m.Units.Contains(unitId)) sum += m.Add;
         return sum;
     }
 
@@ -760,6 +766,9 @@ public sealed partial class PlanetSurface
             if (known[t.Index])
                 foreach (var m in t.Modifiers)
                     if (m.Stat == Modifier.AutoMaintain && AppliesTo(m, s.DefId)) return true;
+        foreach (var t in _players[s.Owner]._sharedTechs)
+            foreach (var m in t.Modifiers)
+                if (m.Stat == Modifier.AutoMaintain && AppliesTo(m, s.DefId)) return true;
         return false;
     }
 
