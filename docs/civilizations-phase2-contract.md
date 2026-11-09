@@ -90,3 +90,71 @@ state (ruins only when the map has one, so other maps' hashes stay; say what mov
   awareness, temperament, finish study, Standing, force post discovery, relations stage (target = local player), and a
   ruins row (add/remove ruins at a picked tile) — all through `DebugCivCommand` / `DebugRuinCommand` with
   `Simulation.DebugProblem` first, like the other tabs; marks TEST MODE.
+
+## Surface sim side, filled in (2026-11-09)
+
+Branch of the surface sim agent; placeholder numbers, owner's answers of 2026-11-09 folded in (3–5 layers of 120 s,
+salvage an exhausted site, moderate defences that never wreck, precursor rewards, pathogens spread by vehicles, an
+orbital region hint).
+
+- **Data:** `data/surfaces/excavation.json` (a part of the surfaces document, `_notes_excavation` explains every field;
+  manifest after `fabrication.json`): `chance` 0.25, `sites` [1, 1], `terrain` ["hills"] (must be buildable and not landing
+  ground, so a colony never lands on a ruin), `edge_rows` 3, `min_distance` 6, `building` excavation_site, `layers` [3, 5],
+  `seconds_per_layer` 120, `finds` weights (artifact 26, data_core 14, tech_fragment 10, resources 26, defence 14,
+  pathogen 10), `artifact`/`data_core` research ranges + names, `tech_fragments` (smelter schematics: refinery yield +10%;
+  bearing alloy: wear −10%; field theory: 120 research), `caches` (metal store, dilithium cache, latinum vault),
+  `defence` (damage [20, 40], radius 1, lock 180 s, disarmed 0.15; `artifact_analysis` → disarmed 0.6, damage × 0.5),
+  `pathogen` (300 s, work × 0.6; `xenomedicine` → × 0.4; `spread_share` 0.5, `immunity_seconds` 120), `species` (weight 60,
+  ten invented names), `precursors` iconian / tkon / preserver (weight 1 each, layers [5, 7], danger 2 / 2 / 1.5 × the
+  defence and pathogen weights, `reward`: Iconian gateway fragment = drop ship turnaround × 0.5 + 60 research; T'Kon power
+  lattice = mine + deep-core mine speed +30% + 60 research; Preserver archive = 400 research). Building
+  `data/buildings/surface/excavation_site.json` (90 dur + 30 tri, 40 s, crewed, power 4, wear 2, footprint 7, access [0, 9],
+  `requires_ruin`; last in `build_menu`; default kit mechanical_spares). Techs `artifact_analysis` (90) and `xenomedicine`
+  (80) at the end of `surfaces/research.json` (no modifiers: their effects are the excavation numbers).
+- **Loader/checks:** `sim/Data/GameData.Excavation.cs` (`GameData.Excavation` = `ExcavationRules` + `DigFindWeight`,
+  `DigResearchFind`, `TechFragmentDef`, `ResourceCacheDef`, `DigDefenceRules`, `DigPathogenRules`, `PrecursorDef`,
+  `PrecursorReward`; tolerant reader, `ValidateExcavation`: ranges, every kind once, terrain buildable and not landing
+  ground, the building has `requires_ruin` and is in the build menu, techs exist, resources known, modifiers name known
+  buildings/units, rewards give something). `BuildingDef.RequiresRuin`.
+- **Ruins** (`sim/Surface/Excavation.cs`): rolled in the `PlanetSurface` constructor (after map generation; own SplitMix
+  stream from the map seed, never `sim.Rng`; terrain untouched, so `PlanetsArePlayable` / `DataChecks.PlanetProblems` are
+  unchanged): hills only, no deposit, not toxic, no predators, outside the natives' land, 3 rows from the poles. 100 seeds:
+  12–40 maps with ruins (test); of the balance seeds only 99999 has one. Precursor ~5% of sites.
+- **Placement:** `PlacementProblem.NeedsRuin` (an Excavation Site off a ruin or on a dug-out one) and `RuinInTheWay`
+  (anything else on a ruin that isn't dug out); text `PlanetSurface.RuinPlacementText(p)`. Also: `CanLand` false, outpost
+  drop "ruins are there", founding `FoundProblem.Unbuildable`, test-panel placement refused, on a ruin that isn't dug out.
+- **Dig:** in `Economy`: an Excavation Site with no ruin / a dug-out one is `Depleted`, a locked one `NoInput` (no power);
+  working, progress += WorkRate (power × condition × speed) × crew share (Domes life support × crew health); each
+  `seconds_per_layer` × 15 a layer is dug and one find rolled on `sim.Rng` (`Finds`). Research goes into the active surface
+  tech, the rest (or all with none) into `DigResearchBank(player)`, paid when a tech starts. Resources go through `Store`
+  (what doesn't fit is lost, said in the line). Defence: maybe "found disarmed"; else every building (condition) and
+  vehicle (integrity) within the radius, any owner, the site too, loses the damage but stays ≥ 1 and is never broken by
+  it; the ruin's `LockedUntilTick` = now + 180 s. Pathogen: the site's base sick (`CrewSickSeconds`), a second one restarts
+  the clock. Precursor reward: an extra find of kind `precursor` on the last layer. An exhausted site sits `Depleted`
+  ("site exhausted: every layer is dug"), salvage refunds 50%, the ruin stays (Exhausted) and other buildings may then use
+  the tile.
+- **Sickness:** `CrewHealth(baseId)` = work_multiplier while sick: × crewed buildings' work and output (`CrewShare`, every
+  world), × building repairs (crew and drones, `RepairTick`), × vehicle repairs on that base's pad (`RepairWork`), and
+  construction at that base advances on a carried share of ticks (`BuildsThisTick`). **Carriers:** a vehicle on the core
+  tile of its owner's sick base carries it until that base is well (`Carrier(u)`, `CarrierSeconds(u)`); on the core tile
+  of another of its owner's bases that is neither sick nor immune it makes it sick for spread_share × the carried time
+  left; a base can't catch it again until immunity_seconds after its sickness (`ImmuneSeconds(baseId)`).
+- **Orbit hint:** `RuinRegionHint(tile)` (any ruin in that tile's `SurfaceMap.Region`), `RuinHintRegions`,
+  `PlanetSurface.RuinHintText` = "artificial structures detected".
+- **API added beyond the stubs** (stub signatures unchanged): `SurfaceRuin.Precursor`; `DigFind` kind `precursor`;
+  `Carrier`, `CarrierSeconds`, `ImmuneSeconds`, `CrewHealth`, `RuinRegionHint`, `RuinHintRegions`, `RuinHintText`,
+  `DigResearchBank`, `DigModifiers(player)`, `ShuttleTurnaround(player)`, `RuinPlacementText`; `PlacementProblem.NeedsRuin`
+  / `RuinInTheWay`; `BuildingDef.RequiresRuin`; `GameData.Excavation`. Dig modifiers count in `ResearchBonus`,
+  `UnitResearchBonus` and `AutoMaintained`; the turnaround in `ShuttleCommand`'s `ShuttleBackTick`.
+- **Test panel:** `DebugRuinCommand(player, tile, add)`: add refused off the map, on unbuildable ground, on a building, a
+  deposit, natives' land, a landing pod's site, an unfolded vehicle, or existing ruins (species and layers from a SplitMix of
+  seed + tile); remove refused with no ruins there or a building on them.
+- **Hash:** `AddExcavationToHash` adds nothing while there are no ruins, finds, sickness, immunity, carriers, build carry,
+  bank, dig modifiers or turnaround factors (test: add + remove a ruin = the same hash as an untouched game with as many
+  test-panel edits). Hash moves: the two new techs grow every player's `Known`/`ResearchProgress` arrays, so **every**
+  state hash moved (all 12 balance finals; on seeds 1 and 1701 that is the only change); seed 99999 has a rolled ruin, so its
+  three finals moved again, with identical bot play (no measure changed; the bot never placed on that hill). The balance
+  measure `ms:research_all` is gone from the reports (nobody researches the two ruin techs). The golden `presplit` test no
+  longer applies to the edited data and still passes.
+- Tests `ExcavationTests` (21). Not yet: the view (Excavation Site panel, find lines, sick chip, carrier marker, orbit
+  findings line), the bot never digs, sickness doesn't spread between players, a find of a dug-out ruin can't be re-dug.
