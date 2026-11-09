@@ -146,6 +146,14 @@ section.part { padding-block: 40px; border-top: 1px solid var(--rule); display: 
 .rrow .tm { color: var(--hud-dim); text-align: right; }
 .rrow .bt { display: flex; gap: 3px; justify-content: flex-end; }
 .rrow.new .nm::after { content: " ERA"; color: var(--hud-sky); font-size: 10px; letter-spacing: .1em; }
+#hubws { left: 14px; top: 196px; width: 412px; height: 260px; display: flex; flex-direction: column; }
+#hubws .rrow { grid-template-columns: 26px 118px 1fr 40px 30px; }
+.hubq { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 4px 10px 8px; font: 500 12px/1.2 var(--label); }
+.hubq .chip button { background: none; border: 0; color: var(--hud-dim); cursor: pointer; padding: 0 0 0 3px; font-size: 13px; line-height: 1; }
+.hubq .chip button:hover { color: var(--hud-bad); }
+.mapmark.ghost .blk { background: transparent; border: 1px dashed #56627e; }
+.noshop { padding: 18px 16px; display: grid; gap: 10px; font: 500 14px/1.4 var(--label); color: var(--hud-dim); }
+.noshop b { color: var(--hud-ink); }
 #shopbottom { left: 12px; right: 12px; top: 464px; height: 244px; display: grid; grid-template-columns: 250px 370px 1fr; }
 #shopbottom > div { padding: 10px 12px; min-width: 0; border-right: 1px solid var(--hud-line); display: flex; flex-direction: column; gap: 7px; }
 #shopbottom > div:last-child { border-right: 0; }
@@ -192,6 +200,10 @@ table.inv tr.row.sel td { background: #142039; }
 .neg { color: var(--hud-warn); } .bad { color: var(--hud-bad); } .pos { color: var(--hud-good); } .dimc { color: var(--hud-dim); }
 .sbar { display: inline-block; width: 60px; height: 6px; background: #1a2238; border-radius: 3px; vertical-align: middle; margin-left: 6px; overflow: hidden; }
 .sbar i { display: block; height: 100%; background: var(--hud-bar); }
+.shipstrip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 14px; border-top: 1px solid var(--hud-line); background: #120e06; font: 500 13px/1.2 var(--label); }
+.shipstrip > b { font: 700 18px/1 var(--display); color: var(--hud-ink); }
+.req { display: inline-flex; align-items: center; gap: 4px; }
+.req .hb { padding: 2px 6px; }
 .invdetail { padding: 10px 14px; border-top: 1px solid var(--hud-line); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; font: 500 13px/1.35 var(--label); min-height: 78px; }
 .inv-closed { cursor: pointer; position: absolute; left: 50%; top: 320px; transform: translateX(-50%); font: 600 15px var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--hud-dim); background: rgba(6, 9, 18, .9); border: 1px solid var(--hud-line); border-radius: 8px; padding: 12px 18px; }
 
@@ -247,6 +259,24 @@ table.tech th.cur { color: var(--mark); }
 .cmp li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cmp li.chg { color: var(--mark); font-weight: 600; }
 .cmp li.gone { color: var(--dim); text-decoration: line-through; }
+/* start-system picker (Dawn of Warp set-up) */
+.start { background: var(--hud-panel); color: var(--hud-ink); border: 1px solid var(--hud-line); border-radius: 10px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 0; overflow: hidden; }
+@media (max-width: 860px) { .start { grid-template-columns: minmax(0, 1fr); } }
+.start > div { padding: 14px 16px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.start > div:first-child { border-right: 1px solid var(--hud-line); }
+.start svg { width: 100%; max-width: 240px; height: auto; display: block; font-family: var(--label); }
+.start.off { opacity: .55; }
+.syscards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.sys { text-align: left; color: var(--hud-ink); background: #0b1324; border: 1px solid var(--hud-line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 5px; cursor: pointer; font: 500 13px/1.3 var(--label); }
+.sys:hover { border-color: var(--hud-hover); }
+.sys[aria-pressed="true"] { border-color: var(--hud-accent); background: #1a1508; }
+.sys .sn { font: 700 19px/1 var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.sys .row { display: flex; justify-content: space-between; gap: 8px; }
+.sys .row span:first-child { color: var(--hud-dim); }
+.sys ul { margin: 0; padding-left: 16px; }
+.hz { display: flex; flex-wrap: wrap; gap: 4px; }
+.hz span { background: #2a1014; color: #ffc2c2; border-radius: 3px; padding: 0 5px; font: 600 11px/1.6 var(--label); letter-spacing: .04em; }
+.diff { font: 700 11px/1.5 var(--label); letter-spacing: .1em; text-transform: uppercase; }
 footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var(--dim); font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -281,7 +311,7 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
   <div class="legend">
     <span><i style="background:var(--c-ore)"></i>Ore</span><span><i style="background:var(--c-metal)"></i>Metals</span><span><i style="background:var(--c-mat)"></i>Materials</span>
     <span><i style="background:var(--c-part)"></i>Parts</span><span><i style="background:var(--c-spare)"></i>Spare parts kits</span><span><i style="background:var(--c-cons)"></i>Construction parts (phase 4)</span>
-    <span id="legRep"><i style="background:var(--c-rep)"></i>Replicator shortcut</span>
+    <span id="legRep"><i style="background:var(--c-rep)"></i>Replicator upgrade (speeds the shop)</span>
   </div>
   <div class="flow-box">
     <div class="flow scroll" id="flow"></div>
@@ -300,15 +330,20 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
     <div class="seg" id="speedSeg" role="group" aria-label="Game speed">
       <button id="sp0" data-sp="0">Pause</button><button id="sp1" data-sp="1">×1</button><button id="sp5" data-sp="5">×5</button><button id="sp20" data-sp="20">×20</button>
     </div>
+    <span class="lbl">Machine Shop</span>
+    <div class="seg" id="shopSeg" role="group" aria-label="Machine Shop">
+      <button id="shop-yes" data-shop="1">Built</button><button id="shop-no" data-shop="0">Not built yet</button>
+    </div>
     <button class="btn" id="resetBtn">Reset stock</button>
     <span class="muted" id="clock" style="font-size:14px"></span>
   </div>
   <div class="screen-wrap"><div class="sizer"><div class="screen" id="scrShop">
     <div class="topbar" id="topShop"></div>
     <div class="feed" id="feed"></div>
-    <div class="mapmark sel" style="left:520px;top:250px"><div class="blk"></div>Machine Shop</div>
-    <div class="mapmark" style="left:360px;top:330px"><div class="blk" style="width:60px;height:40px"></div>Alloy Foundry</div>
-    <div class="mapmark" style="left:640px;top:360px"><div class="blk" style="width:90px;height:60px"></div>Colony Hub</div>
+    <div class="mapmark sel" id="shopMark" style="left:540px;top:240px"><div class="blk"></div>Machine Shop</div>
+    <div class="mapmark" style="left:470px;top:350px"><div class="blk" style="width:60px;height:40px"></div>Alloy Foundry</div>
+    <div class="mapmark" style="left:640px;top:350px"><div class="blk" style="width:90px;height:60px"></div>Colony Hub</div>
+    <div class="panel" id="hubws"></div>
     <div class="panel" id="recipes"></div>
     <div class="panel" id="shopbottom"></div>
   </div></div></div>
@@ -317,7 +352,9 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
     <p><b>Keep in stock</b>on by default: 2 of each kit this base's buildings use (no domes here, so no Environmental Spares). The player can raise, lower or clear any target. Below target, the shop queues one more (blue AUTO tag) and the parts that kit is missing.</p>
     <p><b>Shortages</b>an order without its inputs is skipped (red tag) and named in the warnings with the building that makes the missing input.</p>
     <p><b>Phases</b>repairs using spare kits ship first. Construction parts (Prefab Module, Machinery Set) are listed but only join building costs in phase 4.</p>
-    <p><b>Power</b>the shop draws 8 while working. In the Dominion War era, Replicate mode makes parts from power alone: 40% of the time, +30 power, which overloads this base.</p>
+    <p><b>Hub workshop</b>the Colony Hub has a small built-in workshop. It makes the four spare kits only, straight from materials, at half speed and one at a time. Parts and construction parts need a Machine Shop. Without a shop, keep-in-stock targets go to the hub.</p>
+    <p><b>Crew and wear</b>the shop needs 3 crew and a moderate 12 power while working, and wears like any building: at 70% its crew services it with 1 Mechanical + 1 Electrical Spares, so it needs its own kits too. Below 50% it slows.</p>
+    <p><b>Power</b>in the Dominion War era the shop can take an Industrial Replicator upgrade: parts 3× faster from power plus 1 duranium each, +30 power, which overloads this base. It speeds the shop up; it does not replace it.</p>
   </div>
 </section>
 
@@ -335,6 +372,7 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
   <div class="notes">
     <p><b>Lasts</b>stock ÷ (used − made) per hour; only shown while an item is running down. Under 15 minutes is amber, under 5 red.</p>
     <p><b>Storage</b>parts and kits take storage space like ore does: 1 unit per part, 2 per kit or construction part. The bar at the top splits the base's storage into ore and metals vs parts.</p>
+    <p><b>Supply ship</b>Dawn of Warp only: a slow ship from Earth lands about every 15 minutes with 4 colonists and up to 4 spare kits. The player picks which kits go on the next one in the strip under the table.</p>
     <p><b>Used / made</b>planned rates for this base (placeholders). Spare-kit use scales with the era's wear.</p>
   </div>
 </section>
@@ -348,7 +386,7 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
   <div class="controls">
     <span class="lbl">Case</span>
     <div class="seg" id="repSeg" role="group" aria-label="Repair case">
-      <button id="rep-ok" data-rep="ok">Enough spares</button><button id="rep-short" data-rep="short">Short by one</button><button id="rep-none" data-rep="none">None, no Machine Shop</button>
+      <button id="rep-ok" data-rep="ok">Enough spares</button><button id="rep-short" data-rep="short">Short by one</button><button id="rep-none" data-rep="none">No kits, no Machine Shop</button>
     </div>
   </div>
   <div class="screen-wrap"><div class="sizer"><div class="screen" id="scrRep">
@@ -377,7 +415,7 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
 <section class="part" id="eras">
   <div class="part-head">
     <h2><span class="tag">E</span>Eras change the economy</h2>
-    <p class="muted">The parts economy matters most in the early eras. By the Dominion War an industrial replicator can turn power into parts, so the limit becomes the power budget. Dawn of Warp (2063–2150, tech tier 0) is confirmed as the new first era, and each match is played in one fixed era. Enterprise-era wear and repair numbers are placeholders.</p>
+    <p class="muted">The parts economy matters most in the early eras. By the Dominion War the Machine Shop can take an industrial replicator upgrade that makes parts 3× faster from power and a little metal, so the limit becomes the power budget. Dawn of Warp (2063–2150, tech tier 0) is confirmed as the new first era, and each match is played in one fixed era. Enterprise-era wear and repair numbers are placeholders.</p>
   </div>
   <div class="era-grid">
     <div class="scroll"><table class="tech" id="techTable"></table></div>
@@ -387,6 +425,11 @@ footer { padding-block: 30px 50px; border-top: 1px solid var(--rule); color: var
       <p class="muted" style="font-size:14px">Amber: the recipe differs from the Dominion War list. Struck through: not available in that era.</p>
     </div>
   </div>
+  <div class="part-head" style="margin-top:12px">
+    <h3 style="font:700 24px/1 var(--display);text-transform:uppercase;margin:0">Pick your start system <span class="muted" style="font-size:.7em">Dawn of Warp set-up</span></h3>
+    <p class="muted">In Dawn of Warp you lead a human expedition sent from Earth. The set-up generates 3–5 candidate systems within about 20 light-years of Sol from the match seed; each card names a real nearby star with invented worlds.</p>
+  </div>
+  <div class="start" id="startsys"></div>
 </section>
 </main>
 <footer><div class="wrap">Mockup — placeholder numbers. Ore and material ids follow <code>data/resources/raw.json</code> and <code>refined.json</code>; the Machine Shop, parts and kits do not exist in the data yet.</div></footer>
@@ -432,7 +475,7 @@ var IT = {
   u_dome: { n: "Domes · life support", c: "use", sub: "seals, scrubbers" },
   u_power: { n: "Reactors · labs", c: "use", sub: "couplings, boards" },
   u_up: { n: "Mk II / III upgrades", c: "use", sub: "phase 4 · Machinery Set" },
-  replicator: { n: "Industrial Replicator", c: "rep", sub: "power → parts", by: "Machine Shop (Replicate)" }
+  replicator: { n: "Industrial Replicator", c: "rep", sub: "shop upgrade · parts 3×", by: "Machine Shop upgrade", in: { duranium: 1 } }
 };
 var PARTS = ["frame", "plating", "mechanism", "coupling", "control", "seal"];
 var KITS = ["mech_sp", "elec_sp", "rover_sp", "env_sp"];
@@ -474,7 +517,7 @@ function graphEdges() {
     Object.keys(ins).forEach(function (src) { e.push({ a: src, b: key, q: ins[src] }); });
     if (USES[id]) USES[id].forEach(function (u) { e.push({ a: id, b: u, q: "" }); });
   }); });
-  if (E().replicator) PARTS.forEach(function (p) { e.push({ a: "replicator", b: p, q: "", rep: true }); });
+  if (E().replicator) { e.push({ a: "duranium", b: "replicator", q: 1, rep: true }); PARTS.forEach(function (p) { e.push({ a: "replicator", b: p, q: "", rep: true }); }); }
   return e;
 }
 
@@ -552,8 +595,8 @@ function renderReadout(id) {
   var el = document.getElementById("readout");
   if (!id) { el.innerHTML = '<div class="k">Parts chain</div><h3>Hover a box</h3><p class="muted">Each kit traces back to two ores and a few minutes of Machine Shop time.</p>'; return; }
   var real = ALL.indexOf(id) >= 0 ? rid(id) : id, it = IT[real], h = [];
-  h.push('<div class="k">' + ({ ore: "Ore", metal: "Metal", mat: "Material", part: "Part", spare: "Spare parts kit", cons: "Construction part", use: "Consumer", rep: "Era shortcut" })[it.c] + "</div><h3>" + it.n + "</h3>");
-  if (it.c === "rep") { h.push("<p>The Machine Shop's Replicate mode makes any of the six parts from power alone: 40% of the fabricate time and +30 power while running. Kits are still assembled by hand.</p>"); el.innerHTML = h.join(""); return; }
+  h.push('<div class="k">' + ({ ore: "Ore", metal: "Metal", mat: "Material", part: "Part", spare: "Spare parts kit", cons: "Construction part", use: "Consumer", rep: "Machine Shop upgrade" })[it.c] + "</div><h3>" + it.n + "</h3>");
+  if (it.c === "rep") { h.push("<p>An upgrade to the Machine Shop, not a replacement. With it on, the shop makes any of the six parts 3× faster from power plus 1 duranium each, drawing +30 power while it runs. Kits and construction parts are still assembled by hand.</p>"); el.innerHTML = h.join(""); return; }
   if (it.c === "use") { h.push("<p>" + it.sub + ". Repairs here wait for spares if the base has none.</p>"); el.innerHTML = h.join(""); return; }
   var ins = ALL.indexOf(id) >= 0 ? inputs(id) : (it.in || {});
   if (Object.keys(ins).length) h.push('<div><div class="k">Recipe · ' + (it.by || "Machine Shop") + '</div><div class="v">' + Object.keys(ins).map(function (s) { return ins[s] + " " + (IT[s].n); }).join(" + ") + (it.pw ? " + " + it.pw + " power" : "") + (it.t ? " · " + it.t + " s" : "") + "</div></div>");
@@ -564,6 +607,7 @@ function renderReadout(id) {
     if (c.power.length) h.push('<div><div class="k">Needs power for</div><div class="v">' + c.power.join(", ") + "</div></div>");
   }
   if (it.st) h.push('<div><div class="k">Storage</div><div class="v">' + it.st + (it.st === 1 ? " unit" : " units") + " each</div></div>");
+  if (it.c === "spare") h.push('<div><div class="k">Also at the Colony Hub workshop</div><div class="v">' + flatText(id) + " · " + fmtT(hubTime(id)) + " (half speed, one at a time)</div></div>");
   if (it.c === "cons") h.push("<p style='color:var(--hud-good)'>Phase 4. Repairs using spare kits come first; construction parts join building costs later.</p>");
   if (it.use) h.push('<div><div class="k">Used by</div><div class="v">' + it.use + "</div></div>");
   if (it.c === "ore") h.push("<p class='muted'>Found on " + it.sub + ". Must be refined first.</p>");
@@ -572,7 +616,7 @@ function renderReadout(id) {
 }
 
 // ------------------------------------------------------------------ B/C: live shop + inventory state
-var S, speed = 5, uid = 1, autoOn = true, mode = "fab";
+var S, speed = 5, uid = 1, autoOn = true, mode = "fab", shopBuilt = true;
 var INCOME = { duranium: 50, tritanium: 16, parasteel: 6, plasma_conduits: 1.5, transparent_aluminum: 2, isolinear_chips: 1 }; // per minute
 var USE_H = { mech_sp: 9, elec_sp: 3, rover_sp: 4, env_sp: 1.2, prefab: 4, machinery: 2.5 };          // per hour, ×era wear for spares
 var PLAN = { frame: [30, 24], plating: [24, 20], mechanism: [40, 44], coupling: [18, 16], control: [14, 18], seal: [12, 8],
@@ -586,20 +630,39 @@ function fresh() {
   S = { t: 0, stock: { duranium: 420, tritanium: 140, parasteel: 36, plasma_conduits: 0, transparent_aluminum: 10, isolinear_chips: 3, circuit_boards: 2,
       frame: 3, plating: 4, mechanism: 5, coupling: 1, control: 1, seal: 3, mech_sp: 1, elec_sp: 2, rover_sp: 3, env_sp: 0, prefab: 1, machinery: 0 },
     target: defaults(),
-    queue: [], debt: {}, made: 0, feed: [] };
+    queue: [], hub: [], debt: {}, made: 0, feed: [], cond: 88, ship: { left: 680, req: { mech_sp: 1, elec_sp: 1, rover_sp: 1, env_sp: 0 } } };
   ["mech_sp", "coupling", "mechanism", "control", "seal", "rover_sp"].forEach(function (id, i) { S.queue.push({ uid: uid++, id: id, auto: i === 0, p: 0, started: false }); });
   log("Machine Shop online · 6 orders queued", "g");
 }
 function log(t, cls) { S.feed.unshift({ t: t, c: cls || "" }); S.feed.length = Math.min(S.feed.length, 6); }
 function queued(id) { return S.queue.filter(function (q) { return q.id === id; }).length; }
 function canRep(id) { return E().replicator && mode === "rep" && PARTS.indexOf(id) >= 0; }
-function timeOf(q) { var t = IT[rid(q.id)].t; return q.rep ? t * 0.4 : t; }
-function missing(id) {
-  var ins = inputs(id), m = [];
+function timeOf(q) { var t = IT[rid(q.id)].t; return q.rep ? t / 3 : t; }
+// with the replicator upgrade a part costs power plus 1 duranium
+function shopInputs(id, rep) { return rep ? { duranium: 1 } : inputs(id); }
+// hub workshop: a kit straight from materials, at half speed
+function flat(id, mult, acc) {
+  acc = acc || {}; mult = mult || 1;
+  var ins = inputs(id);
+  Object.keys(ins).forEach(function (s) { if (ALL.indexOf(s) >= 0 || s === "circuit_boards") flat(s, ins[s] * mult, acc); else acc[s] = (acc[s] || 0) + ins[s] * mult; });
+  return acc;
+}
+function hubTime(id) {
+  var t = 0; (function walk(x, m) { t += IT[rid(x)].t * m; var ins = inputs(x); Object.keys(ins).forEach(function (s) { if (ALL.indexOf(s) >= 0 || s === "circuit_boards") walk(s, ins[s] * m); }); })(id, 1);
+  return t * 2;
+}
+function flatText(id) { var f = flat(id); return Object.keys(f).map(function (k) { return f[k] + " " + IT[k].n; }).join(" + "); }
+function missingIn(ins) {
+  var m = [];
   Object.keys(ins).forEach(function (s) { if ((S.stock[s] || 0) < ins[s]) m.push({ id: s, need: ins[s], have: Math.floor(S.stock[s] || 0) }); });
   return m;
 }
-function powerUse() { var a = active(); return 34 + (a ? 8 + (a.rep ? 30 : 0) + (IT[rid(a.id)].pw || 0) : 0); }
+function missing(id, rep) {
+  var ins = shopInputs(id, rep), m = [];
+  Object.keys(ins).forEach(function (s) { if ((S.stock[s] || 0) < ins[s]) m.push({ id: s, need: ins[s], have: Math.floor(S.stock[s] || 0) }); });
+  return m;
+}
+function powerUse() { var a = shopBuilt && active(), h = S.hub.find(function (q) { return q.started; }); return 34 + (a ? 12 + (a.rep ? 30 : 0) + (IT[rid(a.id)].pw || 0) : 0) + (h ? 3 : 0); }
 function powerSupply() { return 48; }
 function active() { return S.queue.find(function (q) { return q.started; }); }
 function partsStorage() { var s = 0; ALL.concat(["circuit_boards"]).forEach(function (id) { s += (S.stock[id] || 0) * IT[rid(id)].st; }); return s; }
@@ -615,7 +678,16 @@ function step(dt) {
       log(({ mech_sp: "Ore Mine 01 serviced", elec_sp: "Fusion Reactor serviced", rover_sp: "Talus 17: tyre changed at the pad", env_sp: "Habitat seals replaced", prefab: "Storage Container placed", machinery: "Refinery Mk II upgrade started" })[k] + " · used 1 " + IT[k].n); }
     if (S.debt[k] > 2) S.debt[k] = 2;
   });
-  // auto-queue for keep-in-stock targets
+  // auto-queue for keep-in-stock targets: the Machine Shop, or the hub workshop (kits only) without one
+  if (autoOn && !shopBuilt) KITS.forEach(function (id) {
+    if (S.hub.length < 4 && Math.floor(S.stock[id]) + hubQueued(id) < S.target[id]) S.hub.push({ uid: uid++, id: id, auto: true, p: 0, started: false });
+  });
+  stepHub(dt);
+  stepShip(dt);
+  if (!shopBuilt) return;
+  // the shop wears like any building; at 70% its crew services it with 1 Mechanical + 1 Electrical Spares
+  if (active()) S.cond = Math.max(0, S.cond - 0.6 * E().wear * dt / 60);
+  if (S.cond < 70 && S.stock.mech_sp >= 1 && S.stock.elec_sp >= 1) { S.stock.mech_sp -= 1; S.stock.elec_sp -= 1; S.cond = 100; log("Machine Shop serviced · used 1 Mechanical + 1 Electrical Spares", "g"); }
   if (autoOn) ALL.forEach(function (id) {
     if (S.queue.length >= 14) return;
     if (Math.floor(S.stock[id]) + queued(id) < S.target[id]) {
@@ -634,26 +706,61 @@ function step(dt) {
     for (var i = 0; i < S.queue.length; i++) {
       var q = S.queue[i];
       q.rep = canRep(q.id);
-      q.blocked = q.rep ? [] : missing(q.id);
+      q.blocked = missing(q.id, q.rep);
       if (!q.blocked.length) {
-        if (!q.rep) { var ins = inputs(q.id); Object.keys(ins).forEach(function (s) { S.stock[s] -= ins[s]; }); }
+        var ins = shopInputs(q.id, q.rep); Object.keys(ins).forEach(function (s) { S.stock[s] -= ins[s]; });
         q.started = true; a = q; break;
       }
     }
   }
-  S.queue.forEach(function (q) { if (!q.started) { q.rep = canRep(q.id); q.blocked = q.rep ? [] : missing(q.id); } });
+  S.queue.forEach(function (q) { if (!q.started) { q.rep = canRep(q.id); q.blocked = missing(q.id, q.rep); } });
   if (a) {
-    var eff = Math.min(1, powerSupply() / powerUse());
+    var eff = Math.min(1, powerSupply() / powerUse()) * (S.cond < 50 ? 0.5 + S.cond / 100 : 1);
     a.p += dt * eff / timeOf(a);
     if (a.p >= 1) { S.stock[a.id] = (S.stock[a.id] || 0) + 1; S.queue.splice(S.queue.indexOf(a), 1); S.made++;
-      log("Machine Shop: " + nm(a.id) + " done" + (a.rep ? " (replicated)" : ""), "g"); }
+      log("Machine Shop: " + nm(a.id) + " done" + (a.rep ? " (replicator)" : ""), "g"); }
   }
+}
+var SHIP_EVERY = 900, SHIP_CAP = 4;
+function stepShip(dt) {
+  if (era !== "dawn") return;
+  S.ship.left -= dt;
+  if (S.ship.left <= 0) {
+    var got = []; KITS.forEach(function (k) { var n = S.ship.req[k]; if (n) { S.stock[k] += n; got.push(n + " " + IT[k].n); } });
+    log("Earth supply ship landed: 4 colonists" + (got.length ? " + " + got.join(", ") : ""), "g");
+    S.ship.left += SHIP_EVERY;
+  }
+}
+function shipStrip() {
+  if (era !== "dawn") return "";
+  var used = KITS.reduce(function (n, k) { return n + S.ship.req[k]; }, 0);
+  return '<div class="shipstrip"><span class="hl-lbl" style="color:var(--hud-accent)">Next Earth supply ship</span><b>' + fmtT(S.ship.left) + '</b><span class="small">every ~15 min · 4 colonists + up to ' + SHIP_CAP + ' kits</span><span class="hl-lbl" style="margin-left:6px">Request</span>' +
+    KITS.map(function (k) { return '<span class="req">' + code(k) + '<b>' + S.ship.req[k] + '</b><button class="hb" data-req="' + k + '" data-d="-1" aria-label="Fewer ' + IT[k].n + '">−</button><button class="hb" data-req="' + k + '" data-d="1" aria-label="More ' + IT[k].n + '"' + (used >= SHIP_CAP ? " disabled" : "") + '>+</button></span>'; }).join("") +
+    '<span class="small">' + used + " / " + SHIP_CAP + "</span></div>";
+}
+function hubQueued(id) { return S.hub.filter(function (q) { return q.id === id; }).length; }
+function stepHub(dt) {
+  var a = S.hub.find(function (q) { return q.started; });
+  if (!a) for (var i = 0; i < S.hub.length; i++) {
+    var q = S.hub[i], ins = flat(q.id); q.blocked = missingIn(ins);
+    if (!q.blocked.length) { Object.keys(ins).forEach(function (s) { S.stock[s] -= ins[s]; }); q.started = true; a = q; break; }
+  }
+  S.hub.forEach(function (q) { if (!q.started) q.blocked = missingIn(flat(q.id)); });
+  if (!a) return;
+  a.p += dt * Math.min(1, powerSupply() / powerUse()) / hubTime(a.id);
+  if (a.p >= 1) { S.stock[a.id] += 1; S.hub.splice(S.hub.indexOf(a), 1); S.made++; log("Hub workshop: " + IT[a.id].n + " done", "g"); }
+}
+function hubCancel(u) {
+  var i = S.hub.findIndex(function (q) { return q.uid === u; }); if (i < 0) return;
+  var q = S.hub[i];
+  if (q.started) { var ins = flat(q.id); Object.keys(ins).forEach(function (s) { S.stock[s] += ins[s]; }); }
+  S.hub.splice(i, 1); log("Hub order cancelled: " + IT[q.id].n); renderShop(); renderInv();
 }
 
 function cancel(u) {
   var i = S.queue.findIndex(function (q) { return q.uid === u; }); if (i < 0) return;
   var q = S.queue[i];
-  if (q.started && !q.rep) { var ins = inputs(q.id); Object.keys(ins).forEach(function (s) { S.stock[s] += ins[s]; }); }
+  if (q.started) { var ins = shopInputs(q.id, q.rep); Object.keys(ins).forEach(function (s) { S.stock[s] += ins[s]; }); }
   S.queue.splice(i, 1); log("Order cancelled: " + nm(q.id) + (q.started ? " · inputs refunded" : ""));
   renderShop(); renderInv();
 }
@@ -674,17 +781,22 @@ function renderShop() {
   topbar(document.getElementById("topShop"));
   put(document.getElementById("feed"), S.feed.slice(0, 5).map(function (f) { return '<div class="' + f.c + '">' + f.t + "</div>"; }).join(""));
   // recipes
+  renderHub();
+  document.getElementById("shopMark").className = "mapmark " + (shopBuilt ? "sel" : "ghost");
   var rep = E().replicator, rows = [];
-  rows.push('<div class="ph-h"><b>Recipes</b><span class="sp"></span>' + (rep ? '<span>Mode</span><button class="hb' + (mode === "fab" ? " on" : "") + '" data-mode="fab">Fabricate</button><button class="hb' + (mode === "rep" ? " on" : "") + '" data-mode="rep">Replicate</button>' : "<span>" + shopList().length + " recipes</span>") + "</div>");
+  if (!shopBuilt) {
+    put(document.getElementById("recipes"), '<div class="ph-h"><b>Machine Shop</b><span class="sp"></span><span>not built</span></div><div class="noshop"><p><b>No Machine Shop at this base.</b> Parts (frames, plating, mechanisms, couplings, control modules, seal kits) and construction parts can only be made in one.</p><p>The Colony Hub workshop still makes the four spare kits from materials, at half speed and one at a time (left).</p><p>Build: Industry · 140 duranium + 40 tritanium · 60 s. Needs 3 crew and 12 power while working, and wears like any building (serviced with Mechanical + Electrical Spares).</p><button class="hb big" id="buildShop">Build Machine Shop [B]</button></div>');
+  } else {
+  rows.push('<div class="ph-h"><b>Recipes</b><span class="sp"></span>' + (rep ? '<span>Replicator upgrade</span><button class="hb' + (mode === "fab" ? " on" : "") + '" data-mode="fab">Off</button><button class="hb' + (mode === "rep" ? " on" : "") + '" data-mode="rep">On · parts 3×</button>' : "<span>" + shopList().length + " recipes</span>") + "</div>");
   rows.push('<div class="rlist">');
   function grp(t, ids) {
     rows.push('<div class="rgrp">' + t + "</div>");
     ids.forEach(function (id) {
-      var it = IT[rid(id)], ins = inputs(id), r = canRep(id);
-      var chips = r ? '<span class="chip pw">+30 power · no materials</span>' : Object.keys(ins).map(function (s) {
-        var short = (S.stock[s] || 0) < ins[s]; return '<span class="chip' + (short ? " short" : "") + '">' + ins[s] + " " + (IT[s].short || IT[s].n).replace("Structural ", "").replace("Isolinear ", "Iso. ") + "</span>"; }).join("") + (it.pw ? '<span class="chip pw">+' + it.pw + " pw</span>" : "");
+      var it = IT[rid(id)], r = canRep(id), ins = shopInputs(id, r);
+      var chips = Object.keys(ins).map(function (s) {
+        var short = (S.stock[s] || 0) < ins[s]; return '<span class="chip' + (short ? " short" : "") + '">' + ins[s] + " " + (IT[s].short || IT[s].n).replace("Structural ", "").replace("Isolinear ", "Iso. ") + "</span>"; }).join("") + (r ? '<span class="chip pw">+30 pw</span>' : it.pw ? '<span class="chip pw">+' + it.pw + " pw</span>" : "");
       var isNew = (id === "circuit_boards") || (id === "plating" && era === "ent") || (id === "control" && E().chips === "circuit_boards");
-      rows.push('<div class="rrow' + (isNew ? " new" : "") + '">' + code(id) + '<span class="nm" title="' + it.n + '">' + (it.short || it.n) + '</span><span class="ins">' + chips + '</span><span class="tm">' + Math.round(r ? it.t * 0.4 : it.t) + ' s</span><span class="bt"><button class="hb" data-add="' + id + '" data-n="1" aria-label="Queue 1 ' + it.n + '">+1</button><button class="hb" data-add="' + id + '" data-n="5" aria-label="Queue 5 ' + it.n + '">+5</button></span></div>');
+      rows.push('<div class="rrow' + (isNew ? " new" : "") + '">' + code(id) + '<span class="nm" title="' + it.n + '">' + (it.short || it.n) + '</span><span class="ins">' + chips + '</span><span class="tm">' + Math.round(r ? it.t / 3 : it.t) + ' s</span><span class="bt"><button class="hb" data-add="' + id + '" data-n="1" aria-label="Queue 1 ' + it.n + '">+1</button><button class="hb" data-add="' + id + '" data-n="5" aria-label="Queue 5 ' + it.n + '">+5</button></span></div>');
     });
   }
   if (E().chips === "circuit_boards") grp("Materials (this era)", ["circuit_boards"]);
@@ -693,37 +805,56 @@ function renderShop() {
   var rec = document.getElementById("recipes"), sc = rec.querySelector(".rlist"), keep = sc ? sc.scrollTop : 0;
   put(rec, rows.join(""));
   rec.querySelector(".rlist").scrollTop = keep;
+  }
 
   // bottom: info + warnings | queue | keep in stock
-  var a = active(), pu = powerUse(), ps = powerSupply(), status, warns = [];
+  var a = shopBuilt && active(), pu = powerUse(), ps = powerSupply(), status, warns = [];
   var blocked = S.queue.filter(function (q) { return !q.started && q.blocked && q.blocked.length; });
-  status = a ? (pu > ps ? '<span class="pill wait">Low power ×' + (ps / pu).toFixed(2) + "</span>" : '<span class="pill ok">Working</span>') : (S.queue.length ? '<span class="pill bad">No input</span>' : '<span class="pill idle">Idle</span>');
+  status = !shopBuilt ? '<span class="pill idle">Not built</span>' : a ? (pu > ps ? '<span class="pill wait">Low power ×' + (ps / pu).toFixed(2) + "</span>" : '<span class="pill ok">Working</span>') : (S.queue.length ? '<span class="pill bad">No input</span>' : '<span class="pill idle">Idle</span>');
   var seen = {};
   blocked.forEach(function (q) { q.blocked.forEach(function (m) {
     var k = q.id + m.id; if (seen[k]) return; seen[k] = 1;
     warns.push('<div>' + nm(q.id, true) + ": needs " + m.need + " " + IT[m.id].n + " (have " + m.have + ") · " + (IT[m.id].by || "Machine Shop") + "</div>"); }); });
-  if (pu > ps) warns.unshift('<div class="a">Replicating draws ' + pu + " of " + ps + " power: every building here slows</div>");
+  if (!shopBuilt) warns.push('<div class="a">No Machine Shop: parts can\'t be made; kits come from the hub workshop</div>');
+  if (pu > ps) warns.unshift('<div class="a">The replicator upgrade draws ' + pu + " of " + ps + " power: every building here slows</div>");
   ALL.forEach(function (id) { if (S.target[id] && Math.floor(S.stock[id]) === 0 && KITS.indexOf(id) >= 0) warns.push('<div class="a">No ' + IT[id].n + " in stock</div>"); });
-  var info = '<div><div class="kv"><span class="ttl" style="color:var(--hud-ink)">Machine Shop</span><span>Mk I · 1 line</span></div><div class="kv"><span>Status</span>' + status + '</div><div class="kv"><span>Condition · power</span>88% · ' + (a ? 8 + (a.rep ? 30 : 0) : 0) + '</div><div class="kv"><span>Made this session</span>' + S.made + '</div><div class="hl-lbl" style="margin-top:2px">Warnings</div><div class="warns">' + (warns.slice(0, 3).join("") || '<span class="small">None</span>') + "</div></div>";
+  var cc = Math.round(S.cond), ccol = cc < 50 ? "var(--hud-bad)" : cc < 70 ? "var(--hud-warn)" : "var(--hud-good)";
+  if (shopBuilt && S.cond < 70) warns.unshift('<div>Needs service: 1 Mechanical + 1 Electrical Spares (have ' + Math.floor(S.stock.mech_sp) + " + " + Math.floor(S.stock.elec_sp) + ")</div>");
+  var info = '<div><div class="kv"><span class="ttl" style="color:var(--hud-ink)">Machine Shop</span><span>Mk I · 1 line</span></div><div class="kv"><span>Status</span>' + status + '</div><div class="kv"><span>Crew · power</span>' + (shopBuilt ? "3 / 3 crew · " + (a ? 12 + (a.rep ? 30 : 0) : 0) + " power" : "–") + '</div><div class="kv"><span>Condition</span><b style="color:' + ccol + '">' + (shopBuilt ? cc + "%" : "–") + '</b></div><div class="bar" style="height:5px"><i style="width:' + (shopBuilt ? cc : 0) + '%;background:' + ccol + '"></i></div><div class="small">Wears ' + (0.6 * E().wear).toFixed(1) + '%/min working · service at 70% uses 1 MS + 1 ES</div><div class="warns">' + (warns.slice(0, 2).join("") || '<span class="small">No warnings</span>') + "</div></div>";
   var tot = S.queue.reduce(function (s, q) { return s + timeOf({ id: q.id, rep: canRep(q.id) }) * (1 - q.p); }, 0);
   var qh = '<div><div class="kv"><span class="hl-lbl">Production queue · ' + S.queue.length + '</span><span>' + fmtT(tot) + ' total</span></div>';
-  if (a) qh += '<div class="qact"><div class="kv"><b>' + code(a.id) + " " + nm(a.id) + (a.rep ? ' <span class="tag rep">replicating</span>' : "") + "</b><span>" + fmtT(timeOf(a) * (1 - a.p)) + '</span></div><div class="bar"><i style="width:' + (a.p * 100).toFixed(1) + '%"></i></div></div>';
+  if (a) qh += '<div class="qact"><div class="kv"><b>' + code(a.id) + " " + nm(a.id) + (a.rep ? ' <span class="tag rep">replicator</span>' : "") + "</b><span>" + fmtT(timeOf(a) * (1 - a.p)) + '</span></div><div class="bar"><i style="width:' + (a.p * 100).toFixed(1) + '%"></i></div></div>';
+  else if (!shopBuilt) qh += '<div class="qact small">No Machine Shop. Its queue and recipes appear once it is built; the hub workshop takes kit orders meanwhile.</div>';
   else qh += '<div class="qact small">' + (S.queue.length ? "Nothing can start: every order is short of inputs." : "Queue empty. Add orders with +1 / +5, or set a keep-in-stock target.") + "</div>";
   qh += '<div class="qlist">';
-  S.queue.filter(function (q) { return !q.started; }).slice(0, 5).forEach(function (q, i) {
-    var tags = (q.auto ? '<span class="tag auto">auto' + (q.forId ? " · " + IT[q.forId].code : "") + "</span> " : "") + (q.blocked && q.blocked.length ? '<span class="tag blk">no ' + (IT[q.blocked[0].id].short || IT[q.blocked[0].id].n).split(" ")[0].toLowerCase() + "</span>" : q.rep ? '<span class="tag rep">rep</span>' : "");
+  if (shopBuilt) S.queue.filter(function (q) { return !q.started; }).slice(0, 5).forEach(function (q, i) {
+    var tags = (q.auto ? '<span class="tag auto">auto' + (q.forId ? " · " + IT[q.forId].code : "") + "</span> " : "") + (q.blocked && q.blocked.length ? '<span class="tag blk">no ' + (IT[q.blocked[0].id].short || IT[q.blocked[0].id].n).split(" ")[0].toLowerCase() + "</span>" : q.rep ? '<span class="tag rep">replicator</span>' : "");
     qh += '<div class="qrow"><span class="n">' + (i + 2) + "</span>" + code(q.id) + "<span>" + nm(q.id, true) + "</span><span>" + tags + '</span><button class="x" data-cancel="' + q.uid + '" aria-label="Cancel ' + nm(q.id) + '">×</button></div>';
   });
-  var more = S.queue.filter(function (q) { return !q.started; }).length - 5;
+  var more = shopBuilt ? S.queue.filter(function (q) { return !q.started; }).length - 5 : 0;
   qh += (more > 0 ? '<div class="small" style="padding-left:32px">+ ' + more + " more</div>" : "") + "</div>";
   qh += (a ? '<div style="display:flex;gap:6px;margin-top:auto"><button class="hb" data-cancel="' + a.uid + '">Cancel current</button><button class="hb" id="clearQ">Clear queue</button></div>' : "") + "</div>";
   var sh = '<div><div class="kv"><span class="hl-lbl">Keep in stock</span><span style="display:flex;gap:4px"><button class="hb" id="tgDef" title="2 of each kit your buildings use">Defaults</button><button class="hb" id="tgClr">Clear all</button><button class="hb' + (autoOn ? " on" : "") + '" id="autoBtn">Auto-queue ' + (autoOn ? "on" : "off") + '</button></span></div><div class="stockgrid">';
   ALL.forEach(function (id) {
     var have = Math.floor(S.stock[id] || 0), tg = S.target[id], cls = tg && have === 0 ? " low zero" : tg && have < tg ? " low" : "";
-    sh += '<div class="scell' + cls + '">' + code(id) + '<div style="min-width:0"><div class="nm">' + nm(id, true) + '</div><div class="st">have <b>' + have + "</b> · keep " + tg + (queued(id) ? " · " + queued(id) + " queued" : "") + '</div></div><div class="step"><button class="hb" data-tg="' + id + '" data-d="-1" aria-label="Lower target">−</button><button class="hb" data-tg="' + id + '" data-d="1" aria-label="Raise target">+</button></div></div>';
+    var qn = shopBuilt ? queued(id) : hubQueued(id), note = !shopBuilt && KITS.indexOf(id) < 0 ? " · needs shop" : qn ? " · " + qn + (shopBuilt ? "" : " at hub") + " queued" : "";
+    sh += '<div class="scell' + cls + '">' + code(id) + '<div style="min-width:0"><div class="nm">' + nm(id, true) + '</div><div class="st">have <b>' + have + "</b> · keep " + tg + note + '</div></div><div class="step"><button class="hb" data-tg="' + id + '" data-d="-1" aria-label="Lower target">−</button><button class="hb" data-tg="' + id + '" data-d="1" aria-label="Raise target">+</button></div></div>';
   });
   sh += "</div></div>";
   put(document.getElementById("shopbottom"), info + qh + sh);
+}
+function renderHub() {
+  var a = S.hub.find(function (q) { return q.started; }), h = [];
+  h.push('<div class="ph-h"><b>Hub workshop</b><span class="sp"></span><span>kits only · ½ speed · 1 at a time</span></div><div class="rlist" style="overflow:hidden">');
+  KITS.forEach(function (id) {
+    var f = flat(id);
+    h.push('<div class="rrow">' + code(id) + '<span class="nm">' + nm(id, true) + '</span><span class="ins">' + Object.keys(f).map(function (k) { return '<span class="chip' + ((S.stock[k] || 0) < f[k] ? " short" : "") + '">' + f[k] + " " + (IT[k].short || IT[k].n).split(" ")[0] + "</span>"; }).join("") + '</span><span class="tm">' + fmtT(hubTime(id)) + '</span><span class="bt"><button class="hb" data-hub="' + id + '" aria-label="Queue 1 ' + IT[id].n + ' at the hub">+1</button></span></div>');
+  });
+  h.push("</div>");
+  if (a) h.push('<div style="padding:0 10px"><div class="kv"><span>' + IT[a.id].n + (a.auto ? " · auto" : "") + "</span><span>" + fmtT(hubTime(a.id) * (1 - a.p)) + '</span></div><div class="bar"><i style="width:' + (a.p * 100).toFixed(1) + '%;background:var(--c-spare)"></i></div></div>');
+  var rest = S.hub.filter(function (q) { return !q.started; });
+  h.push('<div class="hubq"><span class="hl-lbl">' + (a ? "Next" : S.hub.length ? "Waiting for materials" : "Idle") + "</span>" + rest.map(function (q) { return '<span class="chip' + (q.blocked && q.blocked.length ? " short" : "") + '">' + IT[q.id].code + (q.auto ? " auto" : "") + '<button data-hubx="' + q.uid + '" aria-label="Cancel">×</button></span>'; }).join("") + (a ? '<button class="hb" data-hubx="' + a.uid + '">Cancel current</button>' : "") + (shopBuilt ? '<span class="small">Machine Shop built: hub takes manual orders only</span>' : '<span class="small">Keep-in-stock targets go here</span>') + "</div>");
+  put(document.getElementById("hubws"), h.join(""));
 }
 
 // ------------------------------------------------------------------ C: inventory
@@ -731,7 +862,7 @@ var invOpen = true, invFilter = "all", invSort = { k: "cat", d: 1 }, invSel = "m
 function rowsData() {
   return ALL.map(function (id) {
     var it = IT[rid(id)], stock = Math.floor(S.stock[id] || 0), plan = PLAN[id];
-    var made = plan[0] * (canRep(id) ? 2.5 : 1), used = plan.length > 1 ? plan[1] : USE_H[id] * (KITS.indexOf(id) >= 0 ? E().wear : 1);
+    var made = !shopBuilt ? (KITS.indexOf(id) >= 0 ? plan[0] / 2 : 0) : plan[0] * (canRep(id) ? 3 : 1), used = plan.length > 1 ? plan[1] : USE_H[id] * (KITS.indexOf(id) >= 0 ? E().wear : 1);
     var net = made - used, lasts = net < 0 ? stock / (-net) * 60 : Infinity;
     return { id: id, n: it.n, cat: it.c === "part" ? "Part" : it.c === "spare" ? "Spare kit" : "Constr. · ph 4", catOrder: it.c === "part" ? 0 : it.c === "spare" ? 1 : 2,
       stock: stock, target: S.target[id], made: made, used: used, net: net, lasts: lasts, each: it.st, space: stock * it.st };
@@ -757,6 +888,7 @@ function renderInv() {
     h.push('<tr class="row' + (invSel === r.id ? " sel" : "") + '" data-row="' + r.id + '"><td><span class="nmcell">' + code(r.id) + r.n + "</span></td><td class='dimc'>" + r.cat + '</td><td class="' + (r.stock < r.target ? "neg" : "") + '"><b>' + r.stock + "</b></td><td class='dimc'>" + (r.target || "–") + "</td><td>" + r.made.toFixed(1).replace(".0", "") + "</td><td>" + r.used.toFixed(1).replace(".0", "") + '</td><td class="' + (r.net < 0 ? "neg" : "pos") + '">' + (r.net > 0 ? "+" : "") + r.net.toFixed(1).replace(".0", "") + "</td><td>" + lasts + "</td><td class='dimc'>" + r.each + "</td><td>" + r.space + '<span class="sbar"><i style="width:' + Math.min(100, r.space / 20 * 100) + '%"></i></span></td></tr>');
   });
   h.push("</tbody></table></div>");
+  h.push(shipStrip());
   var s = IT[rid(invSel)], ins = inputs(invSel), usedIn = ALL.filter(function (x) { return inputs(x)[invSel]; });
   h.push('<div class="invdetail"><div><div class="hl-lbl">' + s.n + '</div><div>Made from ' + Object.keys(ins).map(function (k) { return ins[k] + " " + IT[k].n; }).join(" + ") + " · " + s.t + ' s at the Machine Shop</div></div><div><div class="hl-lbl">Used by</div><div>' + (s.use ? s.use[0].toUpperCase() + s.use.slice(1) : usedIn.map(function (x) { return nm(x); }).join(", ") || "–") + '</div></div><div><div class="hl-lbl">Where</div><div>Colony Hub vault ' + Math.floor(S.stock[invSel] || 0) + " · in queue " + queued(invSel) + " · on rovers " + (invSel === "rover_sp" ? "2 carried tyres" : "0") + "</div></div></div>");
   put(panel, h.join(""));
@@ -769,6 +901,7 @@ function renderRepair() {
   topbar(document.getElementById("topRep"));
   document.getElementById("repShopMark").hidden = noShop;
   var feed = [{ t: "Ore Mine 02 broke down: drive chain jammed", c: "w" }, { t: "Ore Mine 02 output stopped (0 / 80 ore per min)", c: "w" }];
+  if (noShop) feed.push({ t: "Hub workshop busy: Rover Spares, 1:05 left", c: "" });
   if (repCase === "short") feed.push({ t: "Machine Shop: Mechanical Spares queued (ETA 1:10)", c: "" });
   document.getElementById("feedRep").innerHTML = feed.map(function (f) { return '<div class="' + f.c + '">' + f.t + "</div>"; }).join("");
   var cond = '<div class="cond"><i style="width:22%;background:var(--hud-bad)"></i><span class="m" style="left:50%"></span><span class="m" style="left:70%"></span></div><div class="small">Below 50% it slows; this one broke at 22%. Auto-repair starts below 70%.</div>';
@@ -787,8 +920,9 @@ function renderRepair() {
       '<div class="opt pick"><div class="kv"><b>Wait for Machine Shop</b><span>ETA 1:10</span></div><div class="small">The repair is queued and starts when the second kit is made. Full repair to 100% in ' + fmtT(t) + '. Total about ' + fmtT(70 + t) + '.</div><button class="hb go">Queue repair</button></div>' +
       '<div class="opt"><div class="kv"><b>Jury-rig</b><span>' + fmtT(jt) + '</span></div><div class="small">Starts now with the 1 spare. Restores only to <b>60%</b>, 3× slower, and the mine breaks down twice as often until it gets a proper repair.</div><button class="hb warn">Jury-rig now</button></div></div>';
   } else {
-    mid = '<div>' + need + '<div class="opt red"><b style="color:var(--hud-bad)">Can\'t repair</b><div class="small" style="color:#ffc2c2">No Mechanical Spares in any base and no Machine Shop to make them. Build a Machine Shop (Industry, 140 duranium + 40 tritanium) or bring spares down by ' + (era === "dawn" ? "cargo lander" : era === "ent" ? "cargo transporter" : "drop ship") + '.</div></div><div class="small">Jury-rig needs at least 1 spare.</div></div>';
-    right = '<div><button class="hb big" disabled>Repair [M]</button><button class="hb" disabled>Jury-rig</button><button class="hb">Build Machine Shop [B]</button><button class="hb">Salvage [X] · 50%</button></div>';
+    var kt = hubTime("mech_sp"), busy = 65, eta = busy + 2 * kt;
+    mid = '<div>' + need + '<div class="opt red"><b style="color:var(--hud-bad)">No kits · hub workshop busy and slow</b><div class="small" style="color:#ffc2c2">No Mechanical Spares in stock and no Machine Shop. The Colony Hub workshop can make them, but at half speed and one at a time: it is finishing Rover Spares (' + fmtT(busy) + ' left), then 2 × Mechanical Spares at ' + fmtT(kt) + ' each. Ready in about ' + fmtT(eta) + ', then a ' + fmtT(t) + ' repair. A Machine Shop makes a kit in ' + fmtT(IT.mech_sp.t + 2 * IT.mechanism.t + IT.frame.t) + (era === "dawn" ? ", or request kits on the next Earth supply ship." : ", or bring spares down by " + (era === "ent" ? "cargo transporter" : "drop ship") + ".") + '</div></div><div class="small">Jury-rig needs at least 1 spare.</div></div>';
+    right = '<div><button class="hb big warn">Queue at hub · ' + fmtT(eta + t) + '</button><button class="hb" disabled>Jury-rig</button><button class="hb">Build Machine Shop [B]</button><button class="hb">Salvage [X] · 50%</button></div>';
     choose.hidden = true;
   }
   document.getElementById("minepanel").innerHTML = left + mid + right;
@@ -801,14 +935,14 @@ function renderRepair() {
   var steps;
   if (tyCase === "carried") steps = '<div><i>1</i><span><b>Change tyre [T]</b> on the spot: ' + ch + ' s parked. Carried spare 1 → 0.</span></div><div class="x"><i>2</i><span>Base stock not touched.</span></div><div><i>3</i><span>Next time it parks on the pad, the pad restocks the carried spare from 1 Rover Spares kit (3 → 2).</span></div>';
   else if (tyCase === "stock") steps = '<div class="x"><i>1</i><span>No carried spare left.</span></div><div><i>2</i><span><b>Limp to the pad [R]</b> at 20% speed (two flats). About 1:45 from here.</span></div><div><i>3</i><span>The pad fits a tyre and axle for each flat from Rover Spares: 2 kits, ' + pad + ' s each (stock 3 → 1), and restocks the carried spare from the last kit (1 → 0).</span></div><div><i>4</i><span>The default keep-2 target queues 2 more kits at the Machine Shop.</span></div>';
-  else steps = '<div class="x"><i>1</i><span>No carried spare.</span></div><div class="r"><i>!</i><span><b>No Rover Spares at any base.</b> The rover still limps to the pad; the pad waits for the Machine Shop (Rover Spares queued, ETA 0:50 for the first).</span></div><div><i>3</i><span>Without a Machine Shop it stays on the pad: integrity repair still works (duranium), tyres don\'t.</span></div>';
+  else steps = '<div class="x"><i>1</i><span>No carried spare.</span></div><div class="r"><i>!</i><span><b>No Rover Spares at any base.</b> The rover still limps to the pad; the pad waits for new kits (Machine Shop: ETA 0:50 for the first).</span></div><div><i>3</i><span>Without a Machine Shop the Colony Hub workshop makes Rover Spares at half speed, ' + fmtT(hubTime("rover_sp")) + ' a kit, one at a time. Integrity repair at the pad still works meanwhile (duranium).</span></div>';
   document.getElementById("rover").innerHTML = l + '<div><div class="hl-lbl">Flat tyre · ' + E().name + " (repairs ×" + R + ')</div><div class="steps">' + steps + '</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"><button class="hb' + (tyCase === "carried" ? " go" : "") + '"' + (tyCase === "carried" ? "" : " disabled") + '>Change tyre [T]</button><button class="hb' + (tyCase !== "carried" ? " warn" : "") + '">Limp to the pad [R]</button></div></div>';
 }
 
 // ------------------------------------------------------------------ E: tech table + recipe comparison
 var TECH = [
   ["Tech tier cap", ["p", "0 (new era)"], ["p", "1"], ["y", "4"]],
-  ["Replicators", ["n", "None"], ["p", "Protein resequencer (food only)"], ["y", "Industrial replicator: parts from power"]],
+  ["Replicators", ["n", "None"], ["p", "Protein resequencer (food only)"], ["y", "Industrial replicator: Machine Shop upgrade, parts 3× faster"]],
   ["Transporters", ["n", "None"], ["p", "Early transporter, cargo only"], ["y", "Personnel and cargo"]],
   ["Construction", ["p", "Human crews + cranes, slower"], ["p", "Crews + cranes"], ["y", "Exocomps"]],
   ["Computers", ["n", "No isolinear chips: circuit boards"], ["n", "Circuit boards (isolinear from 2364 in data)"], ["y", "Isolinear chips"]],
@@ -818,7 +952,9 @@ var TECH = [
   ["Landing", ["p", "Chemical-rocket cargo landers"], ["p", "Shuttlepods + cargo beam"], ["y", "Drop ships"]],
   ["Wear", ["n", "×1.5"], ["p", "×1.25"], ["y", "×1.0"]],
   ["Repair time", ["n", "×1.5 (40 s → 60 s)"], ["p", "×1.2 (48 s)"], ["y", "×1.0 (40 s)"]],
-  ["Parts economy", ["y", "Everything is made by hand"], ["y", "Most things made by hand"], ["p", "Replicator shortcut, power-bound"]]
+  ["Parts economy", ["y", "Everything is made by hand"], ["y", "Most things made by hand"], ["p", "Replicator speeds the shop up; power-bound"]],
+  ["Supply", ["p", "Earth supply ship every ~15 min: colonists + requested kits"], ["p", "Occasional supply runs"], ["y", "Drop-ship deliveries from orbit"]],
+  ["Start", ["p", "Expedition from Earth: pick 1 of 3–5 systems within ~20 ly"], ["y", "Fixed scenario systems"], ["y", "Generated system"]]
 ];
 function renderEra() {
   var keys = ["dawn", "ent", "dw"], ci = keys.indexOf(era) + 1;
@@ -833,12 +969,55 @@ function renderEra() {
       var chg = (id === "plating" && k === "ent") || (id === "control" && E().chips === "circuit_boards") || id === "circuit_boards";
       return '<li class="' + (chg ? "chg" : "") + '" title="' + nm(id) + ": " + txt + '">' + nm(id, true) + " · " + IT[rid(id)].t + " s" + (CONS.indexOf(id) >= 0 ? " · ph 4" : "") + "</li>";
     });
-    if (E().replicator) items.push('<li class="chg">Replicate mode (6 parts)</li>'); else items.push('<li class="gone">Replicate mode</li>');
+    if (E().replicator) items.push('<li class="chg">Replicator upgrade: parts 3×</li>'); else items.push('<li class="gone">Replicator upgrade</li>');
     return '<div class="' + (k === save ? "cur" : "") + '"><h4>' + ERAS[k].name + "</h4><ul>" + items.join("") + "</ul></div>";
   });
   era = save;
   document.getElementById("cmp").innerHTML = cols.join("");
 }
+
+// ------------------------------------------------------------------ E: Dawn of Warp start-system picker (invented worlds, real nearby stars)
+var SYS = [
+  { n: "Alpha Centauri", ly: 4.4, star: "G2V + K1V binary, Proxima flare star", worlds: ["Centauri B III · Class L · Domes", "Rigil Belt · asteroids, rich duranium ore"], hz: ["Proxima flares", "binary eclipses"], diff: "Moderate", a: 40 },
+  { n: "Barnard's Star", ly: 6.0, star: "M4V red dwarf, old and quiet", worlds: ["Barnard II · Class K · Domes, tidally locked"], hz: ["−90 °C night side", "weak sunlight (solar ×0.3)"], diff: "Hard", a: 110 },
+  { n: "Wolf 359", ly: 7.9, star: "M6V flare star", worlds: ["Wolf 359 c · Class H · Masks", "tritanium-rich hills"], hz: ["frequent flares (radiation)", "dust storms"], diff: "Hard", a: 200 },
+  { n: "Lalande 21185", ly: 8.3, star: "M2V red dwarf", worlds: ["Lalande b · Class L · Domes", "Lalande c I · Class D moon"], hz: ["thin air", "frost nights"], diff: "Moderate", a: 250 },
+  { n: "Sirius", ly: 8.6, star: "A1V + white dwarf", worlds: ["Sirius Ib · Class K · Domes, hot days"], hz: ["high UV + radiation", "heat"], diff: "Very hard", a: 300 },
+  { n: "Epsilon Eridani", ly: 10.5, star: "K2V, young", worlds: ["Eridani III · Class M · Open (a rare roll)", "Eridani belt · ice + ore"], hz: ["meteor showers (debris disk)", "high UV"], diff: "Easy", a: 345 },
+  { n: "Ross 128", ly: 11.0, star: "M4V, quiet", worlds: ["Ross 128 b · Class L · Domes, mild"], hz: ["metal-poor (ore ×0.8)"], diff: "Easy", a: 160 },
+  { n: "Tau Ceti", ly: 11.9, star: "G8V, old and stable", worlds: ["Tau Ceti e · Class H · Masks", "Tau Ceti f · Class L · Domes"], hz: ["debris-disk impacts", "metal-poor (ore ×0.8)"], diff: "Moderate", a: 75 }
+];
+var startSeed = 1701, startPick = 0, startPicks = [0, 2, 5, 7], launched = "";
+function rollStart() {
+  var x = startSeed >>> 0, idx = SYS.map(function (_, i) { return i; }), n = 3 + (startSeed % 3);
+  for (var i = idx.length - 1; i > 0; i--) { x = (x * 1103515245 + 12345) >>> 0; var j = x % (i + 1), t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+  startPicks = idx.slice(0, n).sort(function (a, b) { return SYS[a].ly - SYS[b].ly; }); startPick = startPicks[0]; launched = "";
+}
+function months(ly) { return Math.round(ly / 8 * 12); } // warp 2 = 8c on the Cochrane scale
+function renderStart() {
+  var el = document.getElementById("startsys"), on = era === "dawn";
+  el.className = "start" + (on ? "" : " off");
+  var sc = 92 / 20, m = ['<svg viewBox="0 0 200 200" role="img" aria-label="Candidate systems within 20 light-years of Sol">'];
+  [5, 10, 15, 20].forEach(function (r) { m.push('<circle cx="100" cy="100" r="' + r * sc + '" fill="none" stroke="#263049"/><text x="' + (100 + r * sc * 0.71 + 2) + '" y="' + (100 - r * sc * 0.71) + '" fill="#99a6bf" font-size="8">' + r + " ly</text>"); });
+  m.push('<circle cx="100" cy="100" r="4" fill="#f5a624"/><text x="106" y="97" fill="#e6ebf5" font-size="9" font-weight="600">SOL</text>');
+  startPicks.forEach(function (i) { var c = SYS[i], th = c.a * Math.PI / 180, x = 100 + Math.cos(th) * c.ly * sc, y = 100 - Math.sin(th) * c.ly * sc, sel = i === startPick, right = x < 140;
+    m.push('<line x1="100" y1="100" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + (sel ? "#f5a624" : "#2b3a5c") + '" stroke-dasharray="2 3"/><circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (sel ? 5 : 3.5) + '" fill="' + (sel ? "#f5a624" : "#9ed1ff") + '"/><text x="' + (right ? x + 6 : x - 6).toFixed(1) + '" y="' + (y + 3).toFixed(1) + '" text-anchor="' + (right ? "start" : "end") + '" fill="#e6ebf5" font-size="8.5">' + c.n + "</text>"); });
+  m.push("</svg>");
+  var s = SYS[startPick];
+  var left = '<div><div class="hl-lbl">Expedition from Earth · ' + (on ? "Dawn of Warp" : "Dawn of Warp only") + '</div>' + m.join("") +
+    '<div class="kv"><span>Match seed</span><b>' + startSeed + '</b></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="hb" id="reroll">New seed</button><button class="hb go" id="launch"' + (on ? "" : " disabled") + '>Launch expedition</button></div>' +
+    '<div class="small" aria-live="polite">' + (launched || (on ? "Selected: " + s.n + " · voyage about " + months(s.ly) + " months at warp 2" : "Other eras start in their usual system. Switch the era bar to Dawn of Warp to pick.")) + "</div></div>";
+  var cards = startPicks.map(function (i) { var c = SYS[i], col = { Easy: "var(--hud-good)", Moderate: "var(--hud-sky)", Hard: "var(--hud-warn)", "Very hard": "var(--hud-bad)" }[c.diff];
+    return '<button class="sys" data-sys="' + i + '" aria-pressed="' + (i === startPick) + '"><span class="row"><span class="sn" style="color:var(--hud-ink)">' + c.n + '</span><span class="diff" style="color:' + col + '">' + c.diff + '</span></span><span class="row"><span>Distance</span><span>' + c.ly + " ly · ~" + months(c.ly) + ' months</span></span><span class="row"><span>Star</span><span style="text-align:right">' + c.star + '</span></span><span class="hl-lbl">Landable worlds</span><ul>' + c.worlds.map(function (w) { return "<li>" + w + "</li>"; }).join("") + '</ul><span class="hl-lbl">Hazards</span><span class="hz">' + c.hz.map(function (h) { return "<span>" + h + "</span>"; }).join("") + "</span></button>"; }).join("");
+  el.innerHTML = left + '<div><div class="kv"><span class="hl-lbl">' + startPicks.length + ' candidate systems from this seed</span><span class="small">real stars · invented worlds · placeholder numbers</span></div><div class="syscards">' + cards + "</div></div>";
+}
+document.getElementById("startsys").addEventListener("click", function (e) {
+  var b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.dataset.sys) { startPick = +b.dataset.sys; launched = ""; }
+  else if (b.id === "reroll") { startSeed = 1000 + Math.floor(Math.random() * 99000); rollStart(); }
+  else if (b.id === "launch") { var c = SYS[startPick]; launched = "Expedition set for " + c.n + ": the colony ship lands on " + c.worlds[0].split(" · ")[0] + " after about " + months(c.ly) + " months. (Mockup: the real set-up generates this system from the seed.)"; }
+  renderStart();
+});
 
 // ------------------------------------------------------------------ wiring
 function setPressed(segId, attr, val) { document.querySelectorAll("#" + segId + " button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute(attr) === String(val))); }); }
@@ -847,11 +1026,13 @@ function setEra(k) {
   S.queue.forEach(function (q) { if (!q.started) q.rep = false; });
   setPressed("eraSeg", "data-era", k);
   try { localStorage.setItem("parts-era", k); } catch (e) {}
-  drawFlow(); renderShop(); renderInv(); renderRepair(); renderEra();
+  drawFlow(); renderShop(); renderInv(); renderRepair(); renderEra(); renderStart();
 }
 document.getElementById("eraSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) setEra(b.getAttribute("data-era")); });
 document.getElementById("speedSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; speed = +b.getAttribute("data-sp"); setPressed("speedSeg", "data-sp", speed); });
 document.getElementById("resetBtn").addEventListener("click", function () { fresh(); renderShop(); renderInv(); });
+function setShop(on) { shopBuilt = on; setPressed("shopSeg", "data-shop", on ? 1 : 0); renderShop(); renderInv(); }
+document.getElementById("shopSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) setShop(b.getAttribute("data-shop") === "1"); });
 document.getElementById("repSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; repCase = b.getAttribute("data-rep"); setPressed("repSeg", "data-rep", repCase); renderRepair(); });
 document.getElementById("tyreSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; tyCase = b.getAttribute("data-ty"); setPressed("tyreSeg", "data-ty", tyCase); renderRepair(); });
 function both(el, fn) {
@@ -864,6 +1045,9 @@ both(document.getElementById("scrShop"), function (e) {
   else if (b.dataset.cancel) cancel(+b.dataset.cancel);
   else if (b.dataset.tg) { var id = b.dataset.tg; S.target[id] = Math.max(0, Math.min(20, S.target[id] + +b.dataset.d)); renderShop(); renderInv(); }
   else if (b.dataset.mode) { mode = b.dataset.mode; renderShop(); renderInv(); }
+  else if (b.dataset.hub) { if (S.hub.length < 6) S.hub.push({ uid: uid++, id: b.dataset.hub, auto: false, p: 0, started: false }); renderShop(); }
+  else if (b.dataset.hubx) hubCancel(+b.dataset.hubx);
+  else if (b.id === "buildShop") setShop(true);
   else if (b.id === "autoBtn") { autoOn = !autoOn; renderShop(); }
   else if (b.id === "tgDef") { S.target = defaults(); renderShop(); renderInv(); }
   else if (b.id === "tgClr") { ALL.forEach(function (id) { S.target[id] = 0; }); renderShop(); renderInv(); }
@@ -876,6 +1060,7 @@ both(document.getElementById("scrInv"), function (e) {
   else if (b.dataset.row) invSel = b.dataset.row;
   else if (b.id === "invX") invOpen = false;
   else if (b.id === "invClosed") invOpen = true;
+  else if (b.dataset.req) { var k = b.dataset.req, tot = KITS.reduce(function (n, x) { return n + S.ship.req[x]; }, 0), d = +b.dataset.d; if (d < 0 || tot < SHIP_CAP) S.ship.req[k] = Math.max(0, S.ship.req[k] + d); }
   renderInv();
 });
 document.addEventListener("keydown", function (e) {
@@ -895,7 +1080,7 @@ window.addEventListener("resize", fit);
 
 fresh();
 var saved = null; try { saved = localStorage.getItem("parts-era"); } catch (e) {}
-setPressed("speedSeg", "data-sp", speed); setPressed("repSeg", "data-rep", repCase); setPressed("tyreSeg", "data-ty", tyCase);
+setPressed("speedSeg", "data-sp", speed); setPressed("shopSeg", "data-shop", 1); setPressed("repSeg", "data-rep", repCase); setPressed("tyreSeg", "data-ty", tyCase);
 setEra(ERAS[saved] ? saved : "dawn");
 fit();
 var last = performance.now(), acc = 0;
