@@ -221,6 +221,7 @@ public partial class PlanetDriver
             rows.Add(new HelmRow("MAY HOLD", res.Count == 0 ? "nothing known" : string.Join(", ", res)));
             rows.AddRange(StructureRows(b));
         }
+        rows.AddRange(CivRows(b)); // signals / civilization / ruins (PlanetDriver.Civ.cs)
         if (withDistance)
         {
             if (_system.DistanceTo(b) is { } d && b.Id != _system.Flagship?.AtBody) rows.Add(new HelmRow("DISTANCE", DistanceText(d)));
@@ -438,6 +439,7 @@ public partial class PlanetDriver
         var f = _system.Flagship;
         if (f != null && f.AtBody == b.Id && !SystemSource.InFlight(f))
             buttons.Add(new HelmAction($"sys:sat:{b.Id}", "", "DEPLOY SATELLITE", SatelliteProblem(b.Id) == null));
+        AddCivButtons(b, buttons); // HIDDEN POST (flagship there) and DOSSIER (PlanetDriver.Civ.cs)
         buttons.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null, Colour: HelmScreen.Lavender));
         return buttons;
     }
@@ -514,6 +516,7 @@ public partial class PlanetDriver
     {
         var when = _sim.Tick + InputDelayTicks;
         var f = _system.Flagship;
+        if (OnPostAction(id, when)) return; // sys:post:<body>: a hidden observation post (PlanetDriver.Civ.cs)
         string? problem;
         string done;
         if (id.StartsWith("sys:course:"))

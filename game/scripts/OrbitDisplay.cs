@@ -17,8 +17,10 @@ public enum OrbitDisplay
     Atmosphere,
 }
 
-/// <summary>One labelled value in a helm panel ("GRAVITY" / "0.97 g"), with an optional value colour.</summary>
-public sealed record HelmRow(string Label, string Value, Color? ValueColour = null);
+/// <summary>One labelled value in a helm panel ("GRAVITY" / "0.97 g"), with an optional value colour. Bar (0..1) draws a
+/// meter under the value in the value colour (study, awareness); Heading = a sub-heading line across the card / section
+/// (Label is its text, Value an optional note on the right), e.g. the body card's CIVILIZATION block.</summary>
+public sealed record HelmRow(string Label, string Value, Color? ValueColour = null, float? Bar = null, bool Heading = false);
 
 /// <summary>A titled block of rows in the helm's data panel.</summary>
 public sealed record HelmSection(string Title, Color Colour, IReadOnlyList<HelmRow> Rows);

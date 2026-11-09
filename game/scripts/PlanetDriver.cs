@@ -224,6 +224,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _chooser.Setup(data, worldBody, Seed);
         SetupAchievements(); // toast, screen, trophy chip (PlanetDriver.Achievements.cs)
         SetupParts(); // inventory screen, fabricator queue / workshop / inventory hooks (PlanetDriver.Parts.cs)
+        SetupCiv(); // civilization dossier, Standing chip hooks (PlanetDriver.Civ.cs)
         SetupSky(); // day/night, seasons and weather from Climate (PlanetDriver.Sky.cs); before EnterOrbit changes the environment
 
         // The test panel exists only in debug builds (editor runs); release exports never get it.
@@ -494,7 +495,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void OrbitHover(float delta)
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _chooser.IsOverUi(mouse) || AchievementsBlockMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _chooser.IsOverUi(mouse) || AchievementsBlockMouse(mouse) || CivBlocksMouse(mouse);
         if (_helm.ViewRect.Size.X > 32f && _helm.ViewRect.Size.Y > 32f) _orbit.SetViewRect(_helm.ViewRect, GetViewport().GetVisibleRect().Size);
         _orbitHover = _mouseOverUi ? -1 : _orbit.PickTile(mouse);
         var colour = _orbitAction == null ? new Color(1f, 1f, 1f, 0.6f)
@@ -554,6 +555,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         else if (id == "grid") _orbit.Grid = !_orbit.Grid;
         else if (id.StartsWith("body:")) SelectSystemBody(id[5..]); // rail: select it and open its card
         else if (id.StartsWith("sys:")) OnSystemAction(id); // body / ship card buttons (PlanetDriver.System.cs)
+        else if (id.StartsWith("civ:")) OnCivAction(id); // the civilization dossier (PlanetDriver.Civ.cs)
         else if (id.StartsWith("orbit:")) ArmOrbit(id);
         else if (id == "surface") LeaveOrbit();
         else if (id == "display:planet") SetOrbitDisplay(OrbitDisplay.Planet);
@@ -748,6 +750,8 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (!AtColony && _system.State != null && !_system.FlagshipInFlight && _system.OrbitBodyId is { } here)
             actions.Add(new HelmAction($"sys:sat:{here}", "", _system.HasLive(here) ? "SATELLITE ✓" : "DEPLOY SATELLITE",
                 SatelliteProblem(here) == null, Colour: HelmScreen.Cyan));
+        if (!AtColony && _system.State != null && !_system.FlagshipInFlight && _system.OrbitBodyId is { } civHere)
+            AddCivStripActions(civHere, actions); // HIDDEN POST, DOSSIER [C] at a civilization's world (PlanetDriver.Civ.cs)
         var cards = AtColony ? OrbitCards() : new List<(string Id, string Name)>();
         for (var i = 0; i < cards.Count; i++)
         {
@@ -942,6 +946,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         OnPhaseChange();
         DetectEvents();
         UpdateComms(); // PlanetDriver.Comms.cs: relayed colony reports, SIGNAL DELAY, sensor sweeps
+        UpdateCiv(); // PlanetDriver.Civ.cs: Standing chips, civ event lines, the dossier
         UpdateAchievements(); // new unlocks -> profile + toast; trophy chip (PlanetDriver.Achievements.cs)
         if (_selectedStructure != 0 && Surface.FindStructure(_selectedStructure) == null) _selectedStructure = 0;
         if (Me.Phase == LandingPhase.Landed && Surface.FindStructure(_selectedBase) == null)
@@ -1143,6 +1148,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (@event is InputEventMouseButton { Pressed: true }) GetViewport().GuiReleaseFocus(); // clicking the map ends typing
         if (AchievementInput(@event)) return; // F3, and Esc / other keys while the achievements screen is open
         if (InventoryInput(@event)) return; // I / Esc close the inventory; other keys wait (PlanetDriver.Parts.cs)
+        if (CivInput(@event)) return; // C toggles the civilization dossier; Esc closes it (PlanetDriver.Civ.cs)
         if (_test != null && @event is InputEventKey { Pressed: true, Echo: false } testKey)
         {
             if (testKey.Keycode == Key.F9)
@@ -1657,7 +1663,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void UpdateHover()
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen;
+        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen || CivBlocksMouse(mouse);
         _hoverTile = -1;
         if (!_mouseOverUi)
         {
@@ -1920,7 +1926,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     /// <summary>Short hints for what's selected (the full list is on F1).</summary>
     private string ContextHints()
     {
-        if (_inOrbit) return (Me.Phase == LandingPhase.Landed ? "O surface  ·  " : "") + "Drag / WASD turn  ·  wheel zoom  ·  Tab scan  ·  1–9 deploy  ·  right-click cancel  ·  F1 controls";
+        if (_inOrbit) return (Me.Phase == LandingPhase.Landed ? "O surface  ·  " : "") + "Drag / WASD turn  ·  wheel zoom  ·  Tab scan  ·  1–9 deploy  ·  C dossier  ·  right-click cancel  ·  F1 controls";
         if (Me.Phase == LandingPhase.Descending) return "F1 controls";
         if (_placing != null) return "R rotate  ·  Shift+click place more  ·  I card  ·  right-click / Esc stop";
         if (IsBuildingCard(_info)) return "Enter or pick it again: place  ·  another key: its card  ·  B drawer  ·  Esc close";
@@ -1941,7 +1947,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (_selectedStructure != 0) return $"U upgrade  ·  M maintain  ·  {jury}P pause  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
         if (_view.SelectedUnits.Count > 0) return $"Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  {jury}V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
-        return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  {(WorkshopAvailable() ? "K workshop  ·  " : "")}I inventory  ·  Tab next base  ·  H home  ·  F1 controls";
+        return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  {(WorkshopAvailable() ? "K workshop  ·  " : "")}I inventory  ·  {(CivWorlds().Count > 0 ? "C civilizations  ·  " : "")}Tab next base  ·  H home  ·  F1 controls";
     }
 
     /// <summary>Top-bar research chip: the active tech's progress, or what to do next.</summary>
