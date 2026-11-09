@@ -58,6 +58,11 @@ After changing data, regenerate the pages (`python3 tools/gen_*_page.py`), then 
 - Survey rover variants (marks, names, wear, damage): https://claude.ai/artifact/Rz3Hkh4cXu497PnWtUkwbP
 - Test panel mockup: https://claude.ai/artifact/SCdjcY4gKUYcE1QRqMqp14
 - Ground kit mockups (all factions; Federation miner, drop ship, outpost levels 1-10): https://claude.ai/artifact/StNcu8UNbSTbBLFvydqmew
+- Civilizations & First Contact (design doc): https://claude.ai/artifact/A8NZp9KCb7pft9mo7xLbYB
+- Early Era, Parts & Maintenance (design doc): https://claude.ai/artifact/UX7xT6yVWHZPingVsUErCH
+- First contact mockup (`docs/mockups/first-contact/`): https://claude.ai/artifact/H6Y5rVyMDZYUTe2jREiVvY
+- Parts economy mockup (`docs/mockups/parts/`): https://claude.ai/artifact/5Uo4yRzX4b6eCZvXm5jHs9
+- Final Frontier Test Run (tickable shared test checklist, `docs/test-script/`): https://claude.ai/artifact/NV2J3FPfPQrhiYhKv9v3k2
 
 These links only open for people the owner has shared them with (Share menu on each page).
 
