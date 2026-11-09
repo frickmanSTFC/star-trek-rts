@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using FinalFrontier.Sim.Data;
+using FinalFrontier.Sim.Space;
 using FinalFrontier.Sim.Surface;
 using Godot;
 
@@ -9,7 +10,8 @@ namespace FinalFrontier;
 // the body the flagship is at (SystemSource.OrbitBodyId). The colony's body keeps the real globe (_globe: the surface's
 // painted map, scans, markers). Any other body gets _bodyGlobe instead, turned with the same drag:
 //  - a landable class with a surface generator (class M, class L): a look-only globe painted by OrbitPainter from a
-//    SurfaceMap generated for that class and body (seed = the game seed mixed with the body id). It never touches the
+//    SurfaceMap generated for that class and body (seed = SystemGenerator.SurfaceSeed in a star-system game, so native
+//    towns line up; else the game seed mixed with the body id). It never touches the
 //    game's PlanetSurface; the maps are kept per body, the painted textures only for the body shown.
 //  - asteroid fields: a field of tumbling rocks instead of a globe.
 //  - everything else: shaders/body_globe.gdshader, one mode per kind (gas giant, airless rock, ice, K, H, Y, N).
@@ -54,6 +56,7 @@ public partial class OrbitView
     private void RefreshBodyGlobe(float delta)
     {
         if (_rockField != null && _rockField.Visible) _rockField.RotateY(delta * 0.01f);
+        RefreshCivilization(delta); // a civilization's lights and towns (OrbitView.Civ.cs)
     }
 
     /// <summary>
@@ -74,8 +77,13 @@ public partial class OrbitView
             _cloudsOn = _airOn = _bodySolid = true;
             _lookGround.Visible = _procGround.Visible = false;
             if (_rockField != null) _rockField.Visible = false;
+            ClearCivilization();
         }
-        else ShowOther(body!, gameSeed);
+        else
+        {
+            ShowOther(body!, gameSeed);
+            ShowCivilization(body!); // city lights, smog and towns of a living civilization (OrbitView.Civ.cs)
+        }
         _hover.Visible = false;
         RebuildSystem(); // the moon of the new body, then ApplyDisplay
     }
@@ -98,7 +106,10 @@ public partial class OrbitView
             return;
         }
 
-        if (LookOnlyClasses.Contains(body.ClassId) && ShowLookOnly(body, seed))
+        // In a star-system game the look-only map uses the sim's own surface seed for the body, so the natives' towns
+        // (StarSystemState.TownsOn, tiles on that map) land on the same ground.
+        var mapSeed = _source.State != null ? SystemGenerator.SurfaceSeed(gameSeed, body.Id) : seed;
+        if (LookOnlyClasses.Contains(body.ClassId) && ShowLookOnly(body, mapSeed))
         {
             _cloudsOn = _airOn = true;
             _lookGround.Visible = true;
@@ -157,9 +168,8 @@ public partial class OrbitView
         material.SetShaderParameter("splat_b", ImageTexture.CreateFromImage(painted.SplatB));
         material.SetShaderParameter("photo_mix", PlanetLook.For(body.ClassId).PhotoMix);
         material.SetShaderParameter("sun_dir", _sunDir);
-        var dark = Image.CreateEmpty(4, 2, false, Image.Format.Rgba8);
-        dark.Fill(Colors.Black);
-        material.SetShaderParameter("lights_tex", ImageTexture.CreateFromImage(dark)); // nobody lives there: no city lights
+        // the natives' city lights at their lit towns (black where nobody lives), as on the colony's globe (OrbitView.Civ.cs)
+        material.SetShaderParameter("lights_tex", ImageTexture.CreateFromImage(CivLightsImage(body, map)));
         _lookMaterial = material;
         _lookGround.MaterialOverride = material;
         _lookShownFor = body.Id;
