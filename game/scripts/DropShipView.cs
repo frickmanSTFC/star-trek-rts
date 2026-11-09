@@ -11,12 +11,17 @@ namespace FinalFrontier;
 /// set). For every shuttle delivery, own or another player's, one ship (models/vehicles/dropship.glb, Halyard 07 from
 /// blender/build_dropship.py) plays, in seconds from ArriveTick:
 /// <list type="bullet">
-/// <item>-9 → -2: descends from 260 up and 140 back onto its landing spot (thrusters lit, legs out from -5.5, a
-/// downwash of the tile's dust below 26 up, a dust burst on touchdown).</item>
+/// <item>-9 → -2: comes down like a rocket lander (<see cref="RocketDescent"/>): from 260 up and 140 back a
+/// near-ballistic fall on idle engines, a full-throttle deceleration burn from ~80 up that kills the approach by
+/// 60 up (so the last stretch is straight down), throttle back into a brief hover ~3 up with a sideways
+/// correction, a gentle settle, touchdown (legs out from -5.5; rocket flames, a ground glow and smoke from
+/// <see cref="RocketPlume"/>; fine dust blasted out along the ground below 35 up, a dust burst + smoke billow on
+/// touchdown; the engines cut over 0.7 s).</item>
 /// <item>0 → 1.6: the ramp opens (the sim's unit appears in the closed bay at 0); from 1.3 the unit drives down the
 /// ramp and on to its tile centre (<see cref="Unloading"/> places it), ~3–4 s.</item>
-/// <item>then the ramp closes (1.6 s), the thrusters spool up (1.1 s) and the ship climbs out of sight (7 s) and is
-/// freed.</item>
+/// <item>then the ramp closes (1.6 s), the engines light on the ground (1.1 s spool to 85%, a smoke billow) and the
+/// ship climbs straight up, accelerating, its plume growing, pitches over toward its nose from 2.2 s
+/// (<see cref="RocketClimb"/>) and is out of sight and freed after 7 s.</item>
 /// </list>
 /// The ship lands beside the unit's tile centre with its ramp toward it, turned to whichever of 12 headings keeps
 /// its footprint off buildings, water and mountains and on the flattest ground, then tilted to the ground under its
@@ -65,7 +70,9 @@ public partial class DropShipView : Node3D
     private static readonly (string Name, string Number)[] Hulls =
         { ("HALYARD", "07"), ("BOWLINE", "12"), ("LANYARD", "23"), ("CAPSTAN", "31"), ("GANTLINE", "46"), ("TOPMAST", "58") };
 
-    private static readonly Color LiftColour = new(0.55f, 0.8f, 1f), ImpulseColour = new(1f, 0.32f, 0.08f);
+    private const float WashBelow = 35f; // fine dust blasted out along the ground below this height on a burn
+
+    private static readonly Color LiftColour = new(1f, 0.74f, 0.46f), ImpulseColour = new(1f, 0.32f, 0.08f); // hot orange-white rocket throats
 
     private readonly PlanetView _view = null!;
     private readonly Simulation _sim = null!;
@@ -73,8 +80,11 @@ public partial class DropShipView : Node3D
     private readonly int _localPlayer;
     private readonly Dictionary<int, Ship> _ships = new();   // by delivery id
     private readonly Dictionary<int, Ship> _byUnit = new();  // by the id of the unit it carries
+    private readonly List<int> _done = new();
+    private float _clock;                                    // running seconds (flame flicker)
 
-    /// <summary>Where a convoy ship is and how its engines and legs look at a moment (LandingView's flight).</summary>
+    /// <summary>Where a convoy ship is and how its engines and legs look at a moment (LandingView's flight): Lift = the
+    /// lift thrusters' throttle 0..1 (drives the rocket plume), Impulse = the aft thrusters' 0..1.</summary>
     public readonly record struct Flight(Transform3D Pose, float Lift, float Impulse, float LegsOut);
 
     /// <summary>A ship LandingView flies (see the class summary). Times are seconds from <see cref="ArriveTick"/>.</summary>
@@ -111,12 +121,15 @@ public partial class DropShipView : Node3D
         public BaseMaterial3D? Nacelle, Bay;
         public RoverLook.Lamps? Lamps;
         public VehicleLights.Rig? Lights; // landing lights + belly flood (VehicleLights, budgeted by PlanetView.Headlights)
-        public OmniLight3D Glow = null!, BayLamp = null!;
+        public OmniLight3D BayLamp = null!;
         public CpuParticles3D Wash = null!, Burst = null!;
+        public RocketPlume Plume = null!;
+        public RocketDescent Descent;   // deliveries: the way down from DescentFrom to TouchdownAt
+        public float Side;              // which way its hover correction slides (±1)
         public int UnitId;          // 0 = not down yet, -1 = gave up looking
         public Vector3[]? Path;     // the unit's wheel path: bay, hinge, toe, ground, end (world)
         public float PathLength, DriveSeconds;
-        public bool TouchedDown, LiftedOff, Shown;
+        public bool TouchedDown, LiftedOff, Lit, Shown;
         public float Time;          // this frame, seconds from ArriveTick
         public ConvoyShip? Convoy;  // flown by LandingView until touchdown
 
@@ -150,11 +163,13 @@ public partial class DropShipView : Node3D
     public void Update(float alpha, float delta)
     {
         if (_surface == null) return;
+        _clock += delta;
         foreach (var d in _surface.Deliveries)
             if (d.Kind == DeliveryKind.Shuttle && !_ships.ContainsKey(d.Id))
                 _ships[d.Id] = Create(d);
 
-        var done = new List<int>();
+        var done = _done;
+        done.Clear();
         foreach (var ship in _ships.Values)
         {
             ship.Time = (_sim.Tick - ship.ArriveTick + alpha) / Simulation.TickRate;
@@ -177,6 +192,7 @@ public partial class DropShipView : Node3D
             ship.Model.QueueFree();
             ship.Wash.QueueFree();
             ship.Burst.QueueFree();
+            ship.Plume.Free();
             if (ship.Lights != null) _view.RemoveLightRig(ship.Lights);
             if (ship.UnitId > 0) _byUnit.Remove(ship.UnitId);
             _ships.Remove(id);
@@ -327,45 +343,53 @@ public partial class DropShipView : Node3D
 
         // Where it is: coming down, on the ground, or climbing out.
         float lift, impulse, legsOut;
-        var offset = Vector3.Zero;
-        var turn = Basis.Identity;
-        Transform3D? flown = null;
+        Transform3D pose;
         if (ship.Flown)
         {
             var f = ship.Convoy!.Approach(t);
-            flown = f.Pose;
+            pose = f.Pose;
             lift = f.Lift;
             impulse = f.Impulse;
             legsOut = f.LegsOut;
         }
         else if (t < TouchdownAt)
         {
-            var f = Mathf.Clamp((t - from) / (TouchdownAt - from), 0f, 1f);
-            var h = Mathf.Min(1f, f / 0.8f);
-            offset = Vector3.Up * StartHeight * (1f - f) * (1f - f) - forward * ApproachDistance * (1f - h) * (1f - h);
-            turn = new Basis(Vector3.Up, Mathf.DegToRad(35f) * (1f - h) * (1f - h)) * new Basis(Vector3.Right, Mathf.DegToRad(8f) * Mathf.Sin(Mathf.Pi * h));
-            lift = 1f;
-            impulse = 0.4f * (1f - h);
-            legsOut = Mathf.SmoothStep(0f, 1f, (t - LegsFrom) / (LegsTo - LegsFrom));
+            // A rocket lander: fall, suicide burn, hover-correct, settle (RocketDescent). It comes in over its tail.
+            var d = ship.Descent;
+            var tau = TouchdownAt - t;
+            var back = Flat(l.Basis.Z).Normalized();
+            var side = Flat(l.Basis.X).Normalized() * ship.Side;
+            var slide = d.SideAt(tau, out var roll);
+            var turn = d.TurnAt(tau);
+            var origin = l.Origin + Vector3.Up * d.HeightAt(tau) + back * d.ReachAt(tau) + side * slide;
+            var basis = Lean(back, d.LeanAt(tau)) * Lean(-side, roll) * l.Basis * new Basis(Vector3.Up, Mathf.DegToRad(35f) * turn * turn);
+            pose = new Transform3D(basis, origin);
+            lift = d.Throttle(tau);
+            impulse = 0f;
+            legsOut = RocketPlume.S(LegsFrom, LegsTo, t);
         }
         else if (t < ship.LiftFrom)
         {
-            var spool = (t - (ship.LiftFrom - SpoolSeconds)) / SpoolSeconds;
-            lift = Mathf.Max(Mathf.Clamp(1f - (t - TouchdownAt) / 1f, 0.06f, 1f), Mathf.Clamp(spool, 0f, 1f));
+            // The engines cut after touchdown; before take-off they light on the ground and spool up.
+            var spoolFrom = ship.LiftFrom - SpoolSeconds;
+            var cut = 0.45f * (1f - RocketPlume.S(TouchdownAt, TouchdownAt + 0.7f, t));
+            var spool = t >= spoolFrom ? 0.85f * RocketPlume.S(spoolFrom, ship.LiftFrom, t) : 0f;
+            pose = l;
+            lift = Mathf.Max(cut, spool);
             impulse = 0f;
             legsOut = 1f;
         }
         else
         {
+            // Straight up, accelerating, then it pitches over toward its nose and away (RocketClimb).
             var c = t - ship.LiftFrom;
-            var ahead = Mathf.Max(0f, c - 2f);
-            offset = Vector3.Up * (2f * c + 5f * c * c) + forward * 6f * ahead * ahead;
-            turn = new Basis(Vector3.Right, Mathf.DegToRad(8f) * Mathf.SmoothStep(0f, 1f, (c - 1.5f) / 2.5f));
-            lift = 1f;
-            impulse = Mathf.SmoothStep(0f, 1f, (c - 1.5f) / 2f);
-            legsOut = 1f - Mathf.SmoothStep(0f, 1f, (c - 1f) / 2f);
+            pose = new Transform3D(l.Basis * new Basis(Vector3.Right, -Mathf.DegToRad(RocketClimb.Pitch(c))),
+                l.Origin + Vector3.Up * RocketClimb.Up(c) + Flat(forward).Normalized() * RocketClimb.Ahead(c));
+            lift = RocketClimb.Throttle(c);
+            impulse = RocketClimb.Aft(c);
+            legsOut = 1f - RocketPlume.S(1f, 3f, c);
         }
-        ship.Model.Transform = flown ?? new Transform3D(l.Basis * turn, l.Origin + offset);
+        ship.Model.Transform = pose;
 
         // Legs fold under the pods for flight: front ones aft (-90°), rear ones forward (+90°); feet stay level.
         for (var k = 0; k < 4; k++)
@@ -379,12 +403,12 @@ public partial class DropShipView : Node3D
         var open = ship.Convoy is { FliesAway: true } ? 0f : Mathf.SmoothStep(0f, 1f, t / RampSeconds) * (1f - Mathf.SmoothStep(0f, 1f, (t - ship.CloseFrom) / RampSeconds));
         if (ship.Ramp != null) ship.Ramp.Basis = ship.RampRest * new Basis(Vector3.Right, Mathf.DegToRad(RampOpenDegrees) * open);
 
-        // Glow: lift grilles blue, aft impulse exhausts orange, the bay lit while the ramp is down.
+        // Glow: the lift thrusters' throats hot orange-white by throttle, the aft exhausts small, the bay lit while the
+        // ramp is down.
         for (var k = 0; k < 6; k++)
-            if (ship.Thrusters[k] is { } m) m.EmissionEnergyMultiplier = k < 4 ? 0.4f + 11f * lift : 0.3f + 9f * impulse;
-        if (ship.Nacelle != null) ship.Nacelle.EmissionEnergyMultiplier = 1.2f + 3f * Mathf.Max(lift, impulse);
+            if (ship.Thrusters[k] is { } m) m.EmissionEnergyMultiplier = k < 4 ? 0.3f + 14f * lift : 0.3f + 5f * impulse;
+        if (ship.Nacelle != null) ship.Nacelle.EmissionEnergyMultiplier = 1.2f + 2f * Mathf.Max(lift, impulse);
         if (ship.Bay != null) ship.Bay.EmissionEnergyMultiplier = 0.4f + 4.5f * open;
-        ship.Glow.LightEnergy = 3.5f * lift;
         ship.BayLamp.LightEnergy = 1.6f * open;
         ship.Lamps?.Update(true, false, false, delta); // the beacon flashes the whole time
         if (ship.Lights is { } lights)
@@ -401,19 +425,27 @@ public partial class DropShipView : Node3D
             lights.Hidden = !ship.Shown;
         }
 
-        // Dust: a downwash while it hovers low, a burst as it touches down and as it lifts off.
-        var under = ship.Model.Position;
-        under.Y = _view.GroundAt(under) + 0.3f;
-        var height = ship.Model.Position.Y - under.Y;
+        // Exhaust: flames, ground glow and smoke (RocketPlume); fine dust blasted out while the burn is low, a burst of
+        // dust and a billow of smoke as it touches down and as it lifts off, a billow as the engines light on the ground.
+        var ground = _view.GroundAt(pose.Origin);
+        var under = pose.Origin with { Y = ground + 0.3f };
+        var height = pose.Origin.Y - ground;
+        ship.Plume.Update(pose, lift, impulse, ground, ship.Shown, _clock);
         ship.Wash.Position = under;
-        var wash = ship.Shown && lift > 0.3f && height < 26f;
+        var wash = ship.Shown && lift > 0.2f && height < WashBelow;
         if (ship.Wash.Emitting != wash) ship.Wash.Emitting = wash;
-        if (!ship.TouchedDown && t >= TouchdownAt && ship.Convoy is not { FliesAway: true })
+        var lands = ship.Convoy is not { FliesAway: true };
+        if (!ship.TouchedDown && t >= TouchdownAt && lands)
         {
             ship.TouchedDown = true;
             if (ship.Shown) Burst(ship, under);
         }
-        if (!ship.LiftedOff && t >= ship.LiftFrom && ship.Convoy is not { FliesAway: true })
+        if (!ship.Lit && t >= ship.LiftFrom - SpoolSeconds + 0.25f && lands)
+        {
+            ship.Lit = true;
+            if (ship.Shown) ship.Plume.Billow(under);
+        }
+        if (!ship.LiftedOff && t >= ship.LiftFrom && lands)
         {
             ship.LiftedOff = true;
             if (ship.Shown) Burst(ship, under);
@@ -424,6 +456,16 @@ public partial class DropShipView : Node3D
     {
         ship.Burst.Position = at;
         ship.Burst.Restart();
+        ship.Plume.Billow(at);
+    }
+
+    /// <summary>A world-space tilt that leans "up" <paramref name="degrees"/> toward the horizontal direction
+    /// <paramref name="toward"/> (a rocket leans its thrust the way it wants to accelerate).</summary>
+    internal static Basis Lean(Vector3 toward, float degrees)
+    {
+        var axis = Vector3.Up.Cross(toward with { Y = 0 });
+        if (Mathf.Abs(degrees) < 1e-3f || axis.LengthSquared() < 1e-8f) return Basis.Identity;
+        return new Basis(axis.Normalized(), Mathf.DegToRad(degrees));
     }
 
     // ---------------------------------------------------------------- building a ship
@@ -499,7 +541,10 @@ public partial class DropShipView : Node3D
         }
         for (var k = 0; k < 6; k++)
             if (model.FindChild($"Thruster{k}", true, false) is MeshInstance3D mi)
+            {
                 ship.Thrusters[k] = OwnGlow(mi, k < 4 ? LiftColour : ImpulseColour);
+                ship.Thrusters[k]?.SetMeta(VehicleLights.NoBoostMeta, true); // driven by the throttle every frame
+            }
         BaseMaterial3D? nacelle = null;
         for (var k = 0; k < 2; k++)
             if (model.FindChild($"NacelleGlow{k}", true, false) is MeshInstance3D mi)
@@ -513,8 +558,6 @@ public partial class DropShipView : Node3D
         ship.Lights = VehicleLights.Rig.Attach(model, VehicleLights.Kind.DropShip, key & 0xffff);
         _view.AddLightRig(ship.Lights);
 
-        ship.Glow = new OmniLight3D { LightColor = LiftColour, OmniRange = 18f, LightEnergy = 0f, ShadowEnabled = false, Position = new Vector3(0, 0.2f, 0.5f) };
-        model.AddChild(ship.Glow);
         ship.BayLamp = new OmniLight3D { LightColor = new Color(1f, 0.93f, 0.8f), OmniRange = 9f, LightEnergy = 0f, ShadowEnabled = false, Position = new Vector3(0, 3.8f, 2.6f) };
         model.AddChild(ship.BayLamp);
 
@@ -524,6 +567,9 @@ public partial class DropShipView : Node3D
         ship.Burst = Downwash(haze, burst: true);
         AddChild(ship.Wash);
         AddChild(ship.Burst);
+        ship.Plume = new RocketPlume(this, model, haze, key);
+        ship.Descent = new RocketDescent(TouchdownAt - ship.DescentFrom, StartHeight, ApproachDistance);
+        ship.Side = (key & 1) == 0 ? 1f : -1f;
 
         // Seen for the first time part-way through (e.g. after a test-panel speed-up): don't replay old bursts.
         var t = (_sim.Tick - arriveTick) / (float)Simulation.TickRate;
@@ -644,44 +690,48 @@ public partial class DropShipView : Node3D
         Roughness = 1f,
     };
 
-    /// <summary>Soft puffs of the ground's haze (SprayRig's colours) streaming out along the ground from under the ship;
-    /// world-space, so they stay behind as it climbs. The burst version throws a thick ring out at once.</summary>
+    /// <summary>Fine grains of the ground's dust (SprayRig's haze colour) blasted out low along the ground from under the
+    /// ship's burn (owner 2026-11-09: "the dust particles need to be much smaller"): tiny 0.1-radius specks at a fifth
+    /// of the old puffs' size, many of them, fast outward, kept flat and low; world-space, so they stay behind as it
+    /// climbs. The burst version throws a ring of them out at once. The soft cloud is RocketPlume's smoke.</summary>
     internal static CpuParticles3D Downwash(Color haze, bool burst)
     {
-        var ramp = new Gradient { Offsets = new[] { 0f, 0.15f, 1f }, Colors = new[] { haze with { A = 0f }, haze, haze with { A = 0f } } };
+        var grain = haze with { A = Mathf.Max(haze.A, 0.6f) };
+        var ramp = new Gradient { Offsets = new[] { 0f, 0.08f, 0.55f, 1f }, Colors = new[] { grain with { A = 0f }, grain, grain with { A = grain.A * 0.6f }, grain with { A = 0f } } };
         var grow = new Curve();
-        grow.AddPoint(new Vector2(0f, 0.4f));
+        grow.AddPoint(new Vector2(0f, 0.5f));
         grow.AddPoint(new Vector2(1f, 1f));
         return new CpuParticles3D
         {
             Name = burst ? "DropShipBurst" : "DropShipWash",
-            Amount = burst ? 90 : 70,
-            Lifetime = burst ? 2.8f : 2.2f,
+            Amount = burst ? 300 : 220,
+            Lifetime = burst ? 1.9f : 1.4f,
             OneShot = burst,
-            Explosiveness = burst ? 0.9f : 0f,
+            Explosiveness = burst ? 0.92f : 0f,
+            Randomness = 0.3f,
             Emitting = false,
             LocalCoords = false,
             EmissionShape = CpuParticles3D.EmissionShapeEnum.Ring,
             EmissionRingAxis = Vector3.Up,
-            EmissionRingRadius = burst ? 5f : 4.5f,
-            EmissionRingInnerRadius = burst ? 1f : 2f,
-            EmissionRingHeight = 0.3f,
-            Direction = new Vector3(1f, 0.15f, 0f),
+            EmissionRingRadius = burst ? 4f : 4f,
+            EmissionRingInnerRadius = burst ? 1f : 1.5f,
+            EmissionRingHeight = 0.2f,
+            Direction = new Vector3(1f, 0.06f, 0f),
             Spread = 180f,
-            Flatness = 0.9f,
-            InitialVelocityMin = burst ? 8f : 2f,
-            InitialVelocityMax = burst ? 18f : 5f,
-            RadialAccelMin = burst ? 0f : 6f,
-            RadialAccelMax = burst ? 2f : 12f,
-            Gravity = new Vector3(0, 0.5f, 0),
-            DampingMin = burst ? 3f : 1f,
-            DampingMax = burst ? 5f : 2f,
-            ScaleAmountMin = burst ? 1.6f : 1.4f,
-            ScaleAmountMax = burst ? 3.4f : 2.8f,
+            Flatness = 0.95f,
+            InitialVelocityMin = burst ? 14f : 7f,
+            InitialVelocityMax = burst ? 28f : 14f,
+            RadialAccelMin = burst ? 0f : 8f,
+            RadialAccelMax = burst ? 3f : 16f,
+            Gravity = new Vector3(0, -0.6f, 0),
+            DampingMin = burst ? 6f : 3f,
+            DampingMax = burst ? 9f : 5f,
+            ScaleAmountMin = 1.4f,
+            ScaleAmountMax = 3.4f,
             ScaleAmountCurve = grow,
             ColorRamp = ramp,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-            Mesh = new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 8, Rings = 4, Material = Puff },
+            Mesh = new SphereMesh { Radius = 0.1f, Height = 0.2f, RadialSegments = 4, Rings = 2, Material = Puff },
         };
     }
 

@@ -21,12 +21,16 @@ namespace FinalFrontier;
 /// <para>Timeline in seconds from touchdown T (ship times fixed; assembly times are for assemble_seconds 20 and scale
 /// with it):</para>
 /// <list type="bullet">
-/// <item>ships k = 0, 1, 2 come down from 260 up and 140 out (staggered 0.35 s, approach headings 11° apart) from
-/// -descent_seconds to a hover at -1.6 + 0.45k, the module hanging on four cables 3 above the ground, nose outward
+/// <item>ships k = 0, 1, 2 come down like rocket landers (<see cref="RocketDescent"/>: a near-ballistic fall from 260 up
+/// and 140 out, a full-throttle deceleration burn, straight down for the last ~60, a brief hover correction;
+/// staggered 0.35 s, approach headings 11° apart) from -descent_seconds to a rocket hover at -1.6 + 0.45k (throttle
+/// ~0.66, flickering, a slight bob and drift), the module hanging on four cables 3 above the ground, nose outward
 /// over its set-down spot (module origin 8.5 out along its wedge's centre line);</item>
-/// <item>the cables pay out for 1.6 s: module k touches down at 0.45k (dust), the clamps let go, the cables reel in;
-/// the ship lifts at +0.6 and hops (4–7 s) to its landing spot beside the tile the sim gave its unit; from there
-/// <see cref="DropShipView"/> unloads it (ramp, drive-off, climb out). Empty ships just climb away;</item>
+/// <item>the cables pay out for 1.6 s: module k touches down at 0.45k (fine dust), the clamps let go, the cables reel
+/// in; the ship lifts at +0.6 and hops (4–7 s: pops up 8 on a strong burn, leans over into the hop and back to brake,
+/// drops and brakes hard onto its spot) to its landing spot beside the tile the sim gave its unit; from there
+/// <see cref="DropShipView"/> unloads it (ramp, drive-off, climb out). Empty ships climb straight up and pitch away
+/// (<see cref="RocketClimb"/>);</item>
 /// <item>modules crawl in on their glowing skids from set-down + 1.6 to 8.2, lock at 8.7 (seams flash);</item>
 /// <item>unfurl 9.4 → 15.2 (<see cref="Folds"/>: mast up, telescopes, dish opens; solar wings out, outer leaves open;
 /// radiators up; floodlight arm up); the repair pad rolls out 10.5 → 14.5;</item>
@@ -97,6 +101,7 @@ public partial class LandingView : Node3D
     private readonly int _localPlayer;
     private readonly Dictionary<int, Convoy> _convoys = new();   // key: -(player + 1) for a landing, delivery id for a drop
     private readonly HashSet<int> _finished = new();
+    private readonly List<int> _done = new();
 
     private static CylinderMesh? _cableMesh;
     private static StandardMaterial3D? _cableMaterial;
@@ -118,6 +123,7 @@ public partial class LandingView : Node3D
         public required Vector3 Back;             // where its ship comes in from (world, horizontal)
         public required float SetGround;          // ground height under the set-down spot
         public float Start, Hover, Set, Lift, Touch, CrawlFrom;
+        public RocketDescent Descent;             // the way down from Start to the hover
         public Transform3D HoverPose;             // the ship's
         public Transform3D Landed;                // the ship's landing spot (Lands only)
         public bool Lands;
@@ -145,6 +151,7 @@ public partial class LandingView : Node3D
         public required Node3D Model;
         public required Transform3D Hub;
         public required Slot[] Slots;
+        public required float ShowFrom;           // the first ship's Start
         public readonly List<(Node3D Node, Transform3D Home, Fold Fold)> Parts = new();
         public Node3D? Pad;
         public Transform3D PadRest;
@@ -196,7 +203,8 @@ public partial class LandingView : Node3D
             if (d.Kind == DeliveryKind.Outpost && !_convoys.ContainsKey(d.Id) && !_finished.Contains(d.Id))
                 Start(d.Id, d.Owner, d.Tile, d.ArriveTick, (d.ArriveTick - d.LaunchTick) / (float)Simulation.TickRate, assemble, d.Payload, false);
 
-        var done = new List<int>();
+        var done = _done;
+        done.Clear();
         foreach (var c in _convoys.Values)
         {
             c.Time = (_sim.Tick - c.TouchTick + alpha) / Simulation.TickRate;
@@ -302,6 +310,7 @@ public partial class LandingView : Node3D
             slot.Hover = HoverAt + HoverStagger * k;
             slot.Start = Mathf.Min(slot.Hover - 2.5f, -descent + StartStagger * k);
             slot.Set = slot.Hover + LowerSeconds;
+            slot.Descent = new RocketDescent(slot.Hover - slot.Start, StartHeight, ApproachDistance);
             slot.Lift = slot.Set + LiftAfter;
             slot.CrawlFrom = Mathf.Min(slot.Set + CrawlAfter, DockAt * scale - 0.5f);
             // The ship hovers so the module's base is LowerBy above the ground at its set-down spot.
@@ -310,7 +319,7 @@ public partial class LandingView : Node3D
             Cables(slot);
             slot.Puff = DropShipView.Downwash(haze, burst: true);
             slot.Trail = DropShipView.Downwash(haze, burst: false);
-            slot.Trail.Amount = 40;
+            slot.Trail.Amount = 120;
             AddChild(slot.Puff);
             AddChild(slot.Trail);
             slot.Puffed = now > slot.Set + 0.5f;
@@ -330,6 +339,7 @@ public partial class LandingView : Node3D
             Model = model,
             Hub = hub,
             Slots = slots,
+            ShowFrom = slots.Min(s => s.Start),
         };
         foreach (var f in Folds)
             if (model.FindChild(f.Part, true, false) is Node3D node)
@@ -510,48 +520,60 @@ public partial class LandingView : Node3D
     {
         if (T < s.Hover)
         {
-            var f = Mathf.Clamp((T - s.Start) / (s.Hover - s.Start), 0f, 1f);
-            var h = Mathf.Min(1f, f / 0.8f);
-            var pos = s.HoverPose.Origin + Vector3.Up * StartHeight * (1f - f) * (1f - f) + s.Back * ApproachDistance * (1f - h) * (1f - h);
+            // A rocket lander's way down (RocketDescent), ending in the hover instead of a touchdown.
+            var d = s.Descent;
+            var tau = s.Hover - T;
+            var side = Vector3.Up.Cross(s.Back).Normalized() * (s.Index % 2 == 0 ? 1f : -1f);
+            var slide = d.SideAt(tau, out var roll);
+            var pos = s.HoverPose.Origin + Vector3.Up * d.HeightAt(tau) + s.Back * d.ReachAt(tau) + side * slide;
             var travel = new Quaternion(Basis.LookingAt(-s.Back, Vector3.Up));
-            var q = travel.Slerp(new Quaternion(s.HoverPose.Basis.Orthonormalized()), Mathf.SmoothStep(0.3f, 1f, h));
-            var basis = new Basis(q) * new Basis(Vector3.Right, Mathf.DegToRad(8f) * Mathf.Sin(Mathf.Pi * h));
-            return new DropShipView.Flight(new Transform3D(basis, pos), 1f, 0.4f * (1f - h), 0f);
+            var q = new Quaternion(s.HoverPose.Basis.Orthonormalized()).Slerp(travel, d.TurnAt(tau));
+            var basis = DropShipView.Lean(s.Back, d.LeanAt(tau)) * DropShipView.Lean(-side, roll) * new Basis(q);
+            return new DropShipView.Flight(new Transform3D(basis, pos), Mathf.Min(1f, d.Throttle(tau) + 0.05f), 0f, 0f);
         }
         var climbFrom = c.Aborted ? Mathf.Max(c.AbortedAt + 0.8f, s.Hover) : s.Lift;
         if (T < climbFrom)
         {
-            var bob = Vector3.Up * 0.08f * Mathf.Sin(2.3f * T + s.Index) * (1f - Mathf.SmoothStep(s.Hover, s.Set, T));
-            return new DropShipView.Flight(new Transform3D(s.HoverPose.Basis, s.HoverPose.Origin + bob), 1f, 0f, 0f);
+            // A rocket hover with a module on the cables: the burn flickers round two thirds, a slight bob and drift
+            // that die out as the module is set down.
+            var calm = 1f - RocketPlume.S(s.Hover, s.Set, T);
+            var bob = Vector3.Up * 0.1f * Mathf.Sin(2.3f * T + s.Index)
+                + s.Back * 0.12f * Mathf.Sin(1.3f * T + 2f * s.Index);
+            var hold = 0.66f + 0.04f * Mathf.Sin(5.3f * T + s.Index) + 0.025f * Mathf.Sin(11.7f * T);
+            return new DropShipView.Flight(new Transform3D(s.HoverPose.Basis, s.HoverPose.Origin + bob * calm), hold, 0f, 0f);
         }
         if (!s.Lands || c.Aborted)
         {
+            // Straight up on a growing burn, accelerating, then it pitches over toward its nose and away.
             var k = T - climbFrom;
-            var ahead = Mathf.Max(0f, k - 2f);
-            var forward = -s.HoverPose.Basis.Z.Normalized();
-            var pos = s.HoverPose.Origin + Vector3.Up * (2f * k + 5f * k * k) + forward * 6f * ahead * ahead;
-            var basis = s.HoverPose.Basis * new Basis(Vector3.Right, Mathf.DegToRad(8f) * Mathf.SmoothStep(1.5f, 4f, k));
-            return new DropShipView.Flight(new Transform3D(basis, pos), 1f, Mathf.SmoothStep(1.5f, 3.5f, k), 0f);
+            var forward = (-s.HoverPose.Basis.Z) with { Y = 0 };
+            forward = forward.LengthSquared() > 1e-6f ? forward.Normalized() : Vector3.Forward;
+            var pos = s.HoverPose.Origin + Vector3.Up * RocketClimb.Up(k) + forward * RocketClimb.Ahead(k);
+            var basis = s.HoverPose.Basis * new Basis(Vector3.Right, -Mathf.DegToRad(RocketClimb.Pitch(k)));
+            return new DropShipView.Flight(new Transform3D(basis, pos), Mathf.Max(0.66f, RocketClimb.Throttle(k)), RocketClimb.Aft(k), 0f);
         }
-        // Hop: up to a low cruise, across, and down onto the landing spot with the legs coming out.
+        // Hop: pop up to a low cruise on a strong burn, lean into the hop and back to brake it, then drop and brake
+        // hard onto the landing spot (straight down for the last part) with the legs coming out.
         var u = Mathf.Clamp((T - s.Lift) / Mathf.Max(0.1f, s.Touch - s.Lift), 0f, 1f);
         var from = s.HoverPose.Origin;
         var to = s.Landed.Origin;
-        var cruise = Mathf.Max(from.Y, to.Y) + 6f;
-        var across = from.Lerp(to, Mathf.SmoothStep(0.05f, 0.8f, u));
+        var cruise = Mathf.Max(from.Y, to.Y) + 8f;
+        var x = (u - 0.15f) / 0.6f;
+        var across = from.Lerp(to, RocketPlume.S(0.15f, 0.75f, u));
         float y;
-        if (u < 0.35f) y = Mathf.Lerp(from.Y, cruise, Mathf.SmoothStep(0f, 0.35f, u));
+        if (u < 0.35f) y = Mathf.Lerp(from.Y, cruise, RocketPlume.S(0f, 0.35f, u));
         else if (u < 0.55f) y = cruise;
-        else
-        {
-            var v = (u - 0.55f) / 0.45f;
-            y = to.Y + (cruise - to.Y) * (1f - v) * (1f - v);
-        }
-        var turn = new Quaternion(s.HoverPose.Basis.Orthonormalized()).Slerp(new Quaternion(s.Landed.Basis.Orthonormalized()), Mathf.SmoothStep(0.1f, 0.75f, u));
-        var flare = Mathf.DegToRad(6f) * Mathf.Sin(Mathf.Pi * Mathf.Clamp((u - 0.55f) / 0.45f, 0f, 1f));
-        var hopBasis = new Basis(turn) * new Basis(Vector3.Right, flare);
-        return new DropShipView.Flight(new Transform3D(hopBasis, across with { Y = y }), 1f, 0.5f * Mathf.Sin(Mathf.Pi * u),
-            Mathf.SmoothStep(0.6f, 0.92f, u));
+        else y = Mathf.Lerp(cruise, to.Y, RocketPlume.S(0.55f, 1f, u));
+        var lean = x > 0f && x < 1f ? 12f * Mathf.Sin(Mathf.Tau * x) : 0f; // into the hop, then back against it
+        var turn = new Quaternion(s.HoverPose.Basis.Orthonormalized()).Slerp(new Quaternion(s.Landed.Basis.Orthonormalized()), RocketPlume.S(0.1f, 0.75f, u));
+        var hopBasis = DropShipView.Lean(to - from, lean) * new Basis(turn);
+        var throttle = 0.9f;
+        throttle = Mathf.Lerp(throttle, 0.6f, RocketPlume.S(0.25f, 0.35f, u));   // cruising across
+        throttle = Mathf.Lerp(throttle, 0.35f, RocketPlume.S(0.55f, 0.62f, u));  // dropping
+        throttle = Mathf.Lerp(throttle, 0.95f, RocketPlume.S(0.72f, 0.78f, u));  // the braking burn
+        throttle = Mathf.Lerp(throttle, 0.55f, RocketPlume.S(0.92f, 0.98f, u));  // settle
+        return new DropShipView.Flight(new Transform3D(hopBasis, across with { Y = y }), throttle, 0f,
+            RocketPlume.S(0.6f, 0.92f, u));
     }
 
     // ---------------------------------------------------------------- the assembly
@@ -560,7 +582,7 @@ public partial class LandingView : Node3D
     {
         var T = c.Time;
         var S = c.Scale;
-        var shown = T >= c.Slots.Min(s => s.Start) && (c.Owner == _localPlayer || _view.Sees(c.Tile));
+        var shown = T >= c.ShowFrom && (c.Owner == _localPlayer || _view.Sees(c.Tile));
         c.Model.Visible = shown;
         var hubY = c.Hub.Origin.Y;
         var dock = DockAt * S;
