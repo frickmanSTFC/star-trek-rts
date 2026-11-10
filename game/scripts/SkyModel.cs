@@ -75,7 +75,7 @@ public static class SkyModel
         var sunOn = Mathf.SmoothStep(0f, 0.08f, d);
         var warm = Warm(d);
         var a = Mathf.SmoothStep(0f, 0.3f, d);
-        var ambient = new Vector3(Mathf.Lerp(0.05f, 0.22f, a), Mathf.Lerp(0.065f, 0.23f, a), Mathf.Lerp(0.12f, 0.25f, a));
+        var ambient = new Vector3(Mathf.Lerp(0.065f, 0.22f, a), Mathf.Lerp(0.0845f, 0.23f, a), Mathf.Lerp(0.156f, 0.25f, a)); // = sky_shade (night floor +30%, 2026-11-10)
         return new Vector3(warm.R, warm.G, warm.B) * Mathf.Sqrt(d) * sunOn + ambient;
     }
 

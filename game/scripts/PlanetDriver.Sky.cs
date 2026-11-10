@@ -356,7 +356,7 @@ public partial class PlanetDriver
             var on = sunEnergy > 0.005f;
             if (_sun.Visible != on) _sun.Visible = on;
         }
-        var moonEnergy = 0.2f * (1f - Mathf.SmoothStep(0f, 0.08f, dayRef)) * (1f - 0.6f * _cloudEased);
+        var moonEnergy = 0.26f * (1f - Mathf.SmoothStep(0f, 0.08f, dayRef)) * (1f - 0.6f * _cloudEased); // night +30% (owner 2026-11-10; was 0.2)
         _moonLight.LightEnergy = moonEnergy;
         _moonLight.Basis = Basis.LookingAt(-SkyModel.SunDirection(50f, azimuth + 180f), Vector3.Up);
         var moonOn = moonEnergy > 0.003f;
@@ -377,7 +377,7 @@ public partial class PlanetDriver
         if (_environment != null)
         {
             var a = Mathf.SmoothStep(0f, 0.3f, dayRef);
-            _environment.AmbientLightEnergy = Mathf.Lerp(0.1f, _baseAmbientEnergy, a) * (1f + 0.25f * _cloudEased * a) + flash * 0.8f;
+            _environment.AmbientLightEnergy = Mathf.Lerp(0.13f, _baseAmbientEnergy, a) /* night floor +30% (2026-11-10; was 0.1) */ * (1f + 0.25f * _cloudEased * a) + flash * 0.8f;
             _environment.AmbientLightColor = NightAmbient.Lerp(_baseAmbientColour, a).Lerp(grey, 0.3f * _cloudEased);
             // MoveCamera set this frame's haze for the zoom; thicken it for the weather (less so from high above).
             _environment.FogDensity *= 1f + (5f * _look.Fog + 3f * _look.Dust + 0.8f * _look.Rain + 1.2f * _look.Snow) * (1f - 0.6f * wide);
