@@ -588,6 +588,10 @@ public sealed partial class GameData
             tr.TryGetProperty("factions", out var tf) ? tf.EnumerateObject().Select(p => (p.Name, p.Value.GetInt32())).ToList() : new List<(string, int)>())
         {
             ShuttleFuel = amounts(shuttle, "fuel", "Drop ship fuel"),
+            SatelliteDeploySeconds = sat.TryGetProperty("deploy_seconds", out var sd) ? sd.GetInt32() : 8,
+            SatelliteRetaskSeconds = sat.TryGetProperty("retask_seconds", out var sr) ? sr.GetInt32() : 6,
+            SatelliteLog = sat.TryGetProperty("log", out var sl) ? sl.GetInt32() : 40,
+            SatelliteCallSigns = sat.TryGetProperty("call_signs", out var sc) ? sc.EnumerateArray().Select(x => x.GetString() ?? "").ToList() : new List<string>(),
         };
     }
 
@@ -811,6 +815,9 @@ public sealed partial class GameData
             foreach (var (_, level) in orbit.TransporterByEra.Concat(orbit.TransporterFactions))
                 if (level < 0 || level > orbit.TransporterLevels.Count) problems.Add($"Orbit transporter: level {level} doesn't exist.");
             if (orbit.SatelliteMax < 1 || orbit.SatelliteBandRows < 1 || orbit.SatelliteSweepSeconds < 1) problems.Add("Orbit satellite: needs max, band_rows and sweep_seconds of at least 1.");
+            if (orbit.SatelliteDeploySeconds < 0 || orbit.SatelliteRetaskSeconds < 0) problems.Add("Orbit satellite: deploy_seconds and retask_seconds can't be negative.");
+            if (orbit.SatelliteLog < 1 || orbit.SatelliteLog > 500) problems.Add("Orbit satellite: log must be 1 to 500 findings.");
+            if (orbit.SatelliteCallSigns.Any(string.IsNullOrWhiteSpace)) problems.Add("Orbit satellite: call_signs can't be empty.");
         }
         if (SalvageRefund < Fix64.Zero || SalvageRefund > Fix64.One) problems.Add("salvage_refund must be between 0 and 1.");
         if (!seen.Any(c => _buildings[c].Storage > Fix64.Zero)) problems.Add($"Landing: hub '{Landing.HubBuilding}' has no storage, so nothing could be stockpiled.");

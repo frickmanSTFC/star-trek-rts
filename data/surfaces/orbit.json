@@ -12,7 +12,9 @@
     "hold": { "duranium": 400, "tritanium": 200, "deuterium": 100 },
     "outpost_drop": { "building": "colony_hub", "cost": { "duranium": 250, "tritanium": 100, "crew": 40 }, "descent_seconds": 8, "min_distance": 10 },
     "shuttle": { "flight_seconds": 12, "payloads": ["survey_rover", "mining_crawler", "survey_team"], "fuel": { "deuterium": 5 } },
-    "satellite": { "cost": { "duranium": 80, "tritanium": 40 }, "max": 3, "band_rows": 9, "sweep_seconds": 60 },
+    "satellite": { "cost": { "duranium": 80, "tritanium": 40 }, "max": 3, "band_rows": 9, "sweep_seconds": 60, "deploy_seconds": 8, "retask_seconds": 6, "log": 40,
+      "call_signs": ["KESTREL", "OSPREY", "MERLIN", "HERON", "PETREL", "CURLEW", "TERN", "KITE", "SHRIKE", "PLOVER", "EGRET", "GANNET",
+        "HARRIER", "SANDPIPER", "IBIS", "WREN", "LARK", "SWIFT", "FALCON", "CORMORANT", "NIGHTJAR", "STARLING", "ALBATROSS", "KINGFISHER"] },
     "transporter": {
       "levels": [
         { "name": "Early transporter", "payloads": ["survey_team"], "range": 6, "cargo": 0, "cooldown_seconds": 30 },

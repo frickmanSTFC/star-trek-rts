@@ -51,6 +51,9 @@ public sealed record BeamCommand(int Player, int Tile, string Payload) : Command
 /// <summary>Put a survey satellite into orbit over the band of rows centred on Row.</summary>
 public sealed record SatelliteCommand(int Player, int Row) : Command(Player);
 
+/// <summary>Move one of your survey satellites to the band centred on Row (refused while it is deploying or manoeuvring).</summary>
+public sealed record RetaskSatelliteCommand(int Player, int SatelliteId, int Row) : Command(Player);
+
 /// <summary>Pick the surface tech the Research Labs work on (progress on others is kept).</summary>
 public sealed record ResearchCommand(int Player, string TechId) : Command(Player);
 
