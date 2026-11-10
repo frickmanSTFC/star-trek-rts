@@ -10,8 +10,9 @@ shaping), modal "metal" resonators, Schroeder reverb and soft clipping. numpy + 
 seeds (crc32 of the sound name), so a rerun writes identical files. 16-bit PCM mono 44.1 kHz. Loops are built
 circularly (FFT-shaped noise, whole-cycle tones, wrapped impulses), so the last sample runs into the first.
 
-Loudness: each group has a target for K-weighted loudness (UI < selection hums < landing); every file is capped at
--3 dBFS peak (a look-ahead limiter takes up to 5 dB off transients). The script prints a check table: duration, peak,
+Loudness: each group has a target for K-weighted loudness (UI < selection hums < landing; the vehicle, ground and
+weather beds sit between, since the game scales them again by speed, distance and weather; LOUDNESS_OFFSET nudges single
+sounds such as hover, the wipers and thunder); every file is capped at -3 dBFS peak (a look-ahead limiter takes up to 5 dB off transients). The script prints a check table: duration, peak,
 RMS, weighted loudness, power-weighted spectral centroid, energy per band, DC, edge samples and loop seams, and exits 1
 if a file clips, has DC, starts/ends off zero or a loop seam jumps.
 """
@@ -33,7 +34,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "game" / "sounds"
 PAGE = ROOT / "docs" / "sounds" / "index.html"
 PEAK_CAP = 10 ** (-3 / 20)          # -3 dBFS
-TARGET_LOUDNESS = {"ui": -25.0, "select": -21.0, "landing": -17.0}
+TARGET_LOUDNESS = {"ui": -25.0, "select": -21.0, "landing": -17.0, "vehicle": -22.0, "ground": -23.0, "ambience": -24.0}
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1143,6 +1144,447 @@ def sel_default_vehicle(rng):
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Loop helpers (everything below that loops repeats seamlessly: whole-cycle tones, FFT-shaped noise, wrapped events)
+
+def whole(f: float, n: int) -> float:
+    """f rounded to a whole number of cycles over n samples (at least one)."""
+    return max(1, round(f * n / SR)) * SR / n
+
+
+def loop_phase(f0: float, n: int, rng=None, wander: float = 0.0, fc: float = 3.0) -> np.ndarray:
+    """Running phase of a tone that loops: f0 is rounded to whole cycles over the loop and the speed wander (a share of
+    f0) is zero-mean circular noise, so the phase comes back to where it started."""
+    f0 = whole(f0, n)
+    p = 2 * np.pi * f0 * np.arange(n) / SR
+    if wander and rng is not None:
+        w = slow_noise(n, rng, fc)
+        p = p + 2 * np.pi * np.cumsum(f0 * wander * (w - w.mean())) / SR
+    return p
+
+
+def ptone(p: np.ndarray, partials) -> np.ndarray:
+    """Harmonic stack on a running phase (whole orders keep a looping phase looping)."""
+    return sum(a * np.sin(k * p) for k, a in partials)
+
+
+def cfilt(x: np.ndarray, mag) -> np.ndarray:
+    """Zero-phase magnitude filter applied circularly (for loops)."""
+    return fft_filter(x, mag, circular_=True)
+
+
+def lsin(f: float, n: int, ph: float = 0.0) -> np.ndarray:
+    """A sine with whole cycles over the loop (loop-safe modulation)."""
+    return np.sin(2 * np.pi * whole(f, n) * np.arange(n) / SR + ph)
+
+
+def band(f, lo, hi, order=2):
+    return hp_mag(f, lo, order) * lp_mag(f, hi, order)
+
+
+def grains(n: int, rate, rng, kernels, heavy: float = 3.0) -> np.ndarray:
+    """Random impulses (rate per second, may vary per sample), each rung through one of several kernels and wrapped round
+    the loop: crunch, patter, crackle."""
+    imp = impulses(n, rate, rng, heavy=heavy)
+    which = rng.integers(0, len(kernels), n)
+    y = np.zeros(n)
+    for i, k in enumerate(kernels):
+        y += convolve(np.where(which == i, imp, 0.0), k, circ=True)
+    return y
+
+
+def grain_kernels(rng, count, lo, hi, tau):
+    dur = max(0.004, tau * 8)
+    return [burst(dur, rng, lo * rng.uniform(0.8, 1.25), hi * rng.uniform(0.8, 1.2), tau * rng.uniform(0.6, 1.5), 0.0002)
+            for _ in range(count)]
+
+
+def bubble(rng, f0, tau=0.012, rise=1.6) -> np.ndarray:
+    """A small water bubble / drip: a sine that glides up as it decays."""
+    n = ns(tau * 6)
+    t = tline(n)
+    return np.sin(phase(f0 * (1 + rise * t / (tau * 6)), n)) * expdec(n, tau, 0.0008)
+
+
+def events_circ(n: int, rng, rate: float, make, gain=(0.5, 1.0), jitter: float = 0.35) -> np.ndarray:
+    """Roughly evenly spaced events round a loop (rate per second, each slot jittered), each a fresh make(rng)."""
+    y = np.zeros(n)
+    count = max(1, int(round(rate * n / SR)))
+    for i in range(count):
+        at = int((i + rng.uniform(-jitter, jitter)) * n / count) % n
+        place_circ(y, make(rng), at, rng.uniform(*gain))
+    return y
+
+
+def scatter_circ(n: int, rng, rate: float, make, gain=(0.2, 1.0)) -> np.ndarray:
+    """Events at random places round a loop (rate per second)."""
+    y = np.zeros(n)
+    for _ in range(max(1, int(rate * n / SR))):
+        place_circ(y, make(rng), int(rng.integers(0, n)), rng.uniform(*gain))
+    return y
+
+
+def roll_bed(n, rng, lp=600.0, hp=40.0, slope=-0.8, rev_hz=5.3, rev=0.12, wander=0.18):
+    """Rolling tyre noise: dark coloured noise with a little once-a-turn swell and a slow wander."""
+    x = shaped_noise(n, rng, lambda f: tilt(f, slope) * lp_mag(f, lp, 2) * hp_mag(f, hp, 2))
+    return x * (1 + rev * lsin(rev_hz, n, rng.uniform(0, 6.28)) + wander * slow_noise(n, rng, 1.5))
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Vehicles (driving loops; the game sets pitch and volume by the speed)
+
+def veh_ev_loop(rng):
+    """Soft electric drive: motor orders, a faint gear-mesh whine, the inverter's 100 Hz hum and PWM carrier, air."""
+    n = ns(3.0)
+    p = loop_phase(440, n, rng, 0.004, 4)
+    whine = ptone(p, ((1, 1), (2, 0.3), (3, 0.45), (4, 0.1), (6, 0.07)))
+    whine *= 1 + 0.08 * slow_noise(n, rng, 3)
+    mesh = np.sin(9 * p) * (0.7 + 0.3 * np.sin(p))                                  # reduction gear mesh
+    hum = ptone(loop_phase(100, n), ((1, 1), (2, 0.55), (3, 0.35), (4, 0.2), (6, 0.12)))
+    pwm = np.sin(loop_phase(7800, n)) * (0.55 + 0.45 * np.sin(2 * p))               # inverter carrier + sidebands
+    air = shaped_noise(n, rng, lambda f: tilt(f, -0.5) * band(f, 250, 2500)) * (1 + 0.2 * slow_noise(n, rng, 2))
+    y = 0.42 * whine + 0.05 * mesh + 0.2 * hum + 0.012 * pwm + 0.16 * air
+    return cfilt(y, lambda f: lp_mag(f, 6000, 1))
+
+
+def veh_crawler_loop(rng):
+    """Heavy electric tracks: a low traction motor with a growl, reduction gears, ground rumble and a slow clank of
+    track links over the sprocket (10 in 4 s) with a light rattle."""
+    n = ns(4.0)
+    p = loop_phase(62, n, rng, 0.006, 3)
+    mot = ptone(p, ((1, 1), (2, 0.7), (3, 0.45), (4, 0.3), (5, 0.2), (6, 0.12), (8, 0.08)))
+    mot *= 1 + 0.15 * lsin(17, n) + 0.1 * slow_noise(n, rng, 4)
+    gear = ptone(loop_phase(310, n, rng, 0.004, 4), ((1, 1), (2, 0.3), (3, 0.15)))
+    hum = ptone(loop_phase(100, n), ((1, 1), (3, 0.4)))
+    rumble = shaped_noise(n, rng, lambda f: tilt(f, -1.0) * lp_mag(f, 180, 2) * hp_mag(f, 25, 2))
+    rumble *= 1 + 0.2 * slow_noise(n, rng, 2)
+    clanks = np.zeros(n)
+    for i in range(10):
+        k = clunk(rng, rng.uniform(380, 520), 0.25, 110, 0.5, 0.35, 0.08)
+        place_circ(clanks, k, int((i + rng.uniform(-0.06, 0.06)) * n / 10), 1.0 if i % 2 == 0 else 0.7)
+    rattle = grains(n, 50 * (1 + 0.6 * lsin(2.5, n)), rng, grain_kernels(rng, 3, 1200, 4500, 0.0015), 2.5)
+    y = 0.38 * mot + 0.08 * gear + 0.06 * hum + 0.5 * rumble + 0.3 * clanks + 0.05 * rattle
+    return cfilt(y, lambda f: lp_mag(f, 7000, 1))
+
+
+WIPE_T = 1.3   # RoverLook.Lamps.WipeSeconds: one stroke, up across the glass and back
+
+
+def _wiper(rng, dry: bool):
+    """One wiper stroke as the view animates it (angle = 0.5 - 0.5 cos over WIPE_T): a rubber swish loudest at the
+    fastest point of each half, a tiny motor whirr following the blade speed, a tick at the top, a soft thunk as it
+    parks. dry = the rubber squeaks on dry glass."""
+    dur = WIPE_T + 0.2
+    n = ns(dur)
+    t = tline(n)
+    s = np.clip(t / WIPE_T, 0, 1)
+    speed = np.abs(np.sin(2 * np.pi * s)) * (t < WIPE_T)                          # blade speed 0..1
+    swish = shaped_noise(n, rng, lambda f: tilt(f, -0.3) * band(f, 1400, 6500) * bell_mag(f, 2600, 1.5, 1.8))
+    squee = shaped_noise(n, rng, lambda f: band(f, 500, 1300) * bell_mag(f, 820, 3, 2.5))
+    y = (0.5 * swish + 0.3 * squee) * speed ** 1.4
+    mot = motor(150 + 110 * speed, n, rng, ((1, 1), (2, 0.5), (3, 0.3), (5, 0.15)), 7, 0.25, 0.004, 9)
+    y += 0.12 * mot * np.clip(speed * 3, 0, 1)
+    if dry:
+        cr = creak(n, rng, [(0, 70), (WIPE_T * 0.25, 140), (WIPE_T * 0.5, 30), (WIPE_T * 0.75, 140), (WIPE_T, 60),
+                            (dur, 0)], (1250, 1890, 2620), 34, 0.5)
+        y += 0.06 * rmsn(cr) * speed ** 0.8
+    place(y, tick(rng, 2900, 0.03, 0.004, 0.4), WIPE_T * 0.5, 0.1)                  # turns at the top
+    place(y, thump(0.15, 170, 110, 0.025, rng, 0.006, 0.3, 900), WIPE_T - 0.03, 0.35)  # parks on its rest
+    place(y, tick(rng, 2100, 0.03, 0.004, 0.3), WIPE_T - 0.02, 0.15)
+    return fade(y, 0.004, 0.05)
+
+
+def veh_wiper(rng):
+    return _wiper(rng, False)
+
+
+def veh_wiper_squeak(rng):
+    return _wiper(rng, True)
+
+
+def veh_flat_loop(rng):
+    """A flat tyre: a soft rubber flap and thump once a turn (4 in 2 s at pitch 1; the game speeds it up with the
+    vehicle)."""
+    n = ns(2.0)
+    y = np.zeros(n)
+    for i in range(4):
+        k = thump(0.18, 120, 62, 0.04, rng, 0.012, 0.6, 600) + 0.3 * burst(0.18, rng, 300, 1800, 0.02, 0.003)
+        place_circ(y, k, int((i + rng.uniform(-0.03, 0.03)) * n / 4), rng.uniform(0.8, 1.0))
+    return y + 0.05 * shaped_noise(n, rng, lambda f: tilt(f, -0.8) * band(f, 60, 700))
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Ground under the tyres (one loop per SprayKind in scripts/SprayRig.cs)
+
+def gnd_dirt_loop(rng):
+    """Packed dirt (plains; Veyra's lowlands): rolling rumble, a soft crumbly crunch, now and then a pebble."""
+    n = ns(3.0)
+    roll = roll_bed(n, rng, 650)
+    crunch = grains(n, 180 * (1 + 0.4 * slow_noise(n, rng, 6)), rng, grain_kernels(rng, 4, 250, 2200, 0.003), 3)
+    pops = grains(n, 6, rng, grain_kernels(rng, 3, 500, 3500, 0.006), 1.5)
+    soil = shaped_noise(n, rng, lambda f: band(f, 700, 2800)) * (0.5 + 0.5 * np.abs(slow_noise(n, rng, 8)))
+    return roll + 0.45 * rmsn(crunch) + 0.25 * rmsn(pops) + 0.08 * soil
+
+
+def _stone(rng):
+    k = modal(0.03, rng.uniform(1800, 4200), BAR[:3], (1, 0.5, 0.25), (0.006, 0.004, 0.002), rng)
+    return k + 0.5 * burst(0.03, rng, 1500, 8000, 0.0008)
+
+
+def gnd_gravel_loop(rng):
+    """Grit and gravel (hills): a denser, brighter crunch with stones clacking."""
+    n = ns(3.0)
+    roll = roll_bed(n, rng, 900, slope=-0.7)
+    crunch = grains(n, 900 * (1 + 0.35 * slow_noise(n, rng, 7)), rng, grain_kernels(rng, 5, 900, 6000, 0.0015), 2.5)
+    stones = scatter_circ(n, rng, 25, _stone)
+    return 0.9 * roll + 0.55 * rmsn(crunch) + 0.22 * rmsn(stones)
+
+
+def gnd_sand_loop(rng):
+    """Loose sand and dust (desert): a soft swishing hiss over a dull rumble, fine grains."""
+    n = ns(3.0)
+    roll = roll_bed(n, rng, 450, slope=-0.9, rev=0.08)
+    hiss = shaped_noise(n, rng, lambda f: tilt(f, -0.3) * band(f, 1200, 6500)) * (1 + 0.35 * slow_noise(n, rng, 2.5))
+    fine = grains(n, 1500, rng, grain_kernels(rng, 3, 2000, 8000, 0.0004), 2)
+    return 0.8 * roll + 0.3 * hiss + 0.12 * rmsn(fine)
+
+
+def gnd_rust_loop(rng):
+    """Rust dust (class L tundra, flats and hills): coarser and lower than sand, with sparse grit."""
+    n = ns(3.0)
+    roll = roll_bed(n, rng, 520, slope=-0.85)
+    hiss = shaped_noise(n, rng, lambda f: tilt(f, -0.5) * band(f, 700, 3800) * bell_mag(f, 1500, 1.5, 1.5))
+    hiss *= 1 + 0.3 * slow_noise(n, rng, 3)
+    grit = grains(n, 400, rng, grain_kernels(rng, 4, 900, 4000, 0.0008), 2.5)
+    pops = grains(n, 9, rng, grain_kernels(rng, 2, 600, 3000, 0.004), 1.5)
+    return 0.85 * roll + 0.28 * hiss + 0.25 * rmsn(grit) + 0.15 * rmsn(pops)
+
+
+def _squelch(rng):
+    """One squelch: noise through a resonance that gulps up and back down, and a wet pop."""
+    dur = rng.uniform(0.14, 0.26)
+    n = ns(dur)
+    f0 = rng.uniform(300, 450)
+    fc = curve(n, [(0, f0), (dur * 0.4, f0 * rng.uniform(1.9, 2.6)), (dur, f0 * 1.2)])
+    x = rng.standard_normal(n) * curve(n, [(0, 0), (0.015, 1), (dur * 0.5, 0.7), (dur, 0)])
+    y = biquad(x, "bp", fc, 4.0) * 1.6
+    pop = bubble(rng, rng.uniform(160, 300), 0.018, 0.8)
+    m = min(len(pop), n)
+    y[:m] += 0.5 * pop[:m]
+    return y
+
+
+def _mud_bubble(rng):
+    return bubble(rng, rng.uniform(300, 900), rng.uniform(0.006, 0.014), 1.2)
+
+
+def gnd_mud_loop(rng):
+    """Mud (forest floor; Veyra's lowlands by water): a low wet roll, squelches as the treads pull out, small bubbles and sucks."""
+    n = ns(3.0)
+    roll = roll_bed(n, rng, 380, slope=-1.0, rev=0.2)
+    sq = events_circ(n, rng, 3.5, _squelch, (0.5, 1.0), 0.3)
+    bubbles = scatter_circ(n, rng, 14, _mud_bubble)
+    wet = shaped_noise(n, rng, lambda f: band(f, 400, 2500)) * (0.4 + 0.6 * np.abs(slow_noise(n, rng, 5)))
+    return 0.9 * roll + 0.4 * rmsn(sq) + 0.18 * rmsn(bubbles) + 0.07 * wet
+
+
+def _snow_crunch(rng):
+    """One crunch of packed snow under a tread: a cluster of tiny crackles, a soft compaction thud, a little squeak."""
+    dur = rng.uniform(0.08, 0.13)
+    n = ns(dur + 0.05)
+    env = curve(n, [(0, 0), (0.01, 1), (dur * 0.6, 0.7), (dur, 0), (dur + 0.05, 0)])
+    imp = impulses(n, 3500, rng, heavy=2) * env
+    y = convolve(imp, burst(0.003, rng, 1500, 7000, 0.0006))
+    y += 0.25 * thump(dur + 0.05, 130, 75, 0.02, rng, 0.006, 0.3, 500)
+    sq = shaped_noise(n, rng, lambda f: band(f, 1600, 2500) * bell_mag(f, 2000, 4, 3)) * env
+    return y + 0.12 * sq
+
+
+def gnd_snow_loop(rng):
+    """Snow (polar ice): a soft rumble under a steady train of crisp crunches."""
+    n = ns(3.0)
+    roll = roll_bed(n, rng, 500, slope=-0.9, rev=0.08)
+    cr = events_circ(n, rng, 4.2, _snow_crunch, (0.6, 1.0), 0.25)
+    cr += 0.5 * events_circ(n, rng, 3.1, _snow_crunch, (0.3, 0.7), 0.4)              # the other side's track
+    hush = shaped_noise(n, rng, lambda f: band(f, 1500, 6000))
+    return 0.6 * roll + 0.45 * rmsn(cr) + 0.01 * hush
+
+
+def _drip(rng):
+    return bubble(rng, rng.uniform(500, 2400), rng.uniform(0.004, 0.012), 1.8)
+
+
+def gnd_water_loop(rng):
+    """Water (plains and forest beside rivers and lakes): a washing slosh, spray hiss in surges, bubbles and drips."""
+    n = ns(3.0)
+    slosh = shaped_noise(n, rng, lambda f: tilt(f, -0.6) * band(f, 150, 1400)) * (1 + 0.5 * slow_noise(n, rng, 1.5))
+    wash = shaped_noise(n, rng, lambda f: tilt(f, -0.3) * band(f, 400, 3000))
+    wash *= np.clip(1 + 0.8 * slow_noise(n, rng, 6), 0.1, None)
+    spray = shaped_noise(n, rng, lambda f: band(f, 2200, 9000)) * np.clip(0.6 + 0.6 * slow_noise(n, rng, 4), 0.05, None)
+    drops = scatter_circ(n, rng, 40, _drip, (0.1, 1.0))
+    roll = roll_bed(n, rng, 300, slope=-1.0, rev=0.1)
+    return 0.4 * roll + 0.5 * slosh + 0.35 * wash + 0.14 * spray + 0.15 * rmsn(drops)
+
+
+def _tinkle(rng):
+    return modal(0.05, rng.uniform(3800, 7500), PLATE[:4], (1, 0.6, 0.4, 0.3), (0.01, 0.007, 0.005, 0.004), rng, 0.01)
+
+
+def gnd_frost_loop(rng):
+    """Frost grit (frozen ground, Veyra's night frost): thin grit with an icy crackle and glassy tinkles."""
+    n = ns(3.0)
+    roll = roll_bed(n, rng, 600, slope=-0.85)
+    grit = grains(n, 500, rng, grain_kernels(rng, 4, 1000, 5000, 0.0008), 2.5)
+    crackle = grains(n, 90 * (1 + 0.5 * slow_noise(n, rng, 5)), rng, grain_kernels(rng, 4, 3000, 10000, 0.0003), 2)
+    tinkle = scatter_circ(n, rng, 18, _tinkle, (0.1, 1.0))
+    return 0.65 * roll + 0.25 * rmsn(grit) + 0.25 * rmsn(crackle) + 0.12 * rmsn(tinkle)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Weather at the site (flat, bus Ambience; the game crossfades the loops by the weather)
+
+def _wind_bed(n, rng, lp=800.0, bands=((170, 1.6), (300, 2.2), (520, 2.8), (850, 3.5)), am_fc=0.2, depth=0.6):
+    """Wind: dark noise plus a few resonant bands that swell and fade on their own, under a slow overall swell."""
+    y = 0.6 * shaped_noise(n, rng, lambda f: tilt(f, -0.9) * lp_mag(f, lp, 2) * hp_mag(f, 35, 2))
+    for fc, q in bands:
+        b = shaped_noise(n, rng, lambda f, fc=fc, q=q: np.exp(-0.5 * (np.log2(np.maximum(f, 1) / fc) * q) ** 2)
+                         * hp_mag(f, 30, 2))
+        y += 0.5 * b * np.clip(0.55 + depth * slow_noise(n, rng, am_fc * 1.6), 0.05, None)
+    return y * np.clip(1 + 0.35 * slow_noise(n, rng, am_fc), 0.3, None)
+
+
+def amb_wind_loop(rng):
+    """Low steady wind (8 s): dark air with drifting resonances; the game raises it with the wind speed."""
+    return _wind_bed(ns(8.0), rng)
+
+
+def _gust(rng, dur, f_lo, f_hi, peak, whistle):
+    """A gust: the air swells and its pitch rises with it, then falls away; maybe a thin whistle on top."""
+    n = ns(dur)
+    env = curve(n, [(0, 0), (peak * 0.6, 0.6), (peak, 1.0), (peak + (dur - peak) * 0.4, 0.55), (dur, 0)])
+    x = shaped_noise(n, rng, lambda f: tilt(f, -0.7) * hp_mag(f, 40, 2) * lp_mag(f, 2500, 2))
+    fc = curve(n, [(0, f_lo), (peak, f_hi), (dur, f_lo * 0.9)])
+    y = biquad(x, "bp", fc, 1.1) * 1.4 + 0.35 * biquad(x, "lp", fc * 0.6, 0.7)
+    if whistle:
+        y += 0.75 * biquad(x, "bp", fc * whistle, 30) * env
+    y *= env * (1 + 0.25 * slow_noise(n, rng, 3))
+    return fade(y, 0.05, 0.3)
+
+
+def amb_wind_gust_a(rng):
+    return _gust(rng, 3.2, 220, 620, 1.2, 1.9)
+
+
+def amb_wind_gust_b(rng):
+    return _gust(rng, 2.6, 260, 760, 0.8, 0.0)
+
+
+def amb_wind_gust_c(rng):
+    return _gust(rng, 3.6, 180, 520, 1.6, 2.4)
+
+
+def _splat(rng):
+    y = burst(0.05, rng, 400, 5000, 0.008)
+    b = bubble(rng, rng.uniform(900, 2200), 0.006, 1.2)[:len(y)]
+    y[:len(b)] += 0.4 * b
+    return y
+
+
+def _rain(n, rng, rate, heavy):
+    """Rain: drops ticking on the ground and leaves (several drop sounds), a few fat splats, and the hiss of rain
+    further off."""
+    drops = grains(n, rate * (1 + 0.25 * slow_noise(n, rng, 0.8)), rng,
+                   grain_kernels(rng, 4, 1600, 9000, 0.0012) + grain_kernels(rng, 2, 700, 3000, 0.0025), 2.5)
+    splats = scatter_circ(n, rng, 60 if heavy else 14, _splat)
+    hiss = shaped_noise(n, rng, lambda f: tilt(f, -0.3) * band(f, 1000, 8000)) * (1 + 0.15 * slow_noise(n, rng, 0.6))
+    low = shaped_noise(n, rng, lambda f: tilt(f, -0.6) * band(f, 60, 600))
+    if heavy:
+        return 0.35 * rmsn(drops) + 0.25 * rmsn(splats) + 0.75 * hiss + 0.4 * low
+    return 0.55 * rmsn(drops) + 0.2 * rmsn(splats) + 0.22 * hiss + 0.08 * low
+
+
+def amb_rain_light_loop(rng):
+    """Light rain (4 s): a soft patter of drops on the ground, a faint far-off hiss."""
+    return _rain(ns(4.0), rng, 260, False)
+
+
+def amb_rain_heavy_loop(rng):
+    """Heavy rain (4 s): a dense roar of drops and splats with a full hiss and a low wash under it."""
+    return _rain(ns(4.0), rng, 2600, True)
+
+
+def _rumble(n, rng, swells, lp, mid=0.0):
+    """Thunder's roll: brown noise under an envelope of overlapping swells (each a lump at time at, width w, height a)."""
+    t = tline(n)
+    env = np.zeros(n)
+    for at, w, a in swells:
+        env += a * np.exp(-0.5 * ((t - at) / w) ** 2)
+    low = shaped_noise(n, rng, lambda f: tilt(f, -1.0) * lp_mag(f, lp, 3) * hp_mag(f, 22, 2))
+    y = low * env * (1 + 0.3 * slow_noise(n, rng, 6))
+    if mid:
+        y += mid * shaped_noise(n, rng, lambda f: tilt(f, -0.6) * band(f, 150, 1200)) * env ** 1.5
+    return y
+
+
+def amb_thunder_a(rng):
+    """Distant thunder (6.5 s): a soft-edged roll that rises twice and dies away, all low."""
+    n = ns(6.5)
+    y = _rumble(n, rng, [(0.6, 0.35, 0.6), (1.4, 0.5, 1.0), (2.4, 0.6, 0.8), (3.4, 0.7, 0.55), (4.6, 0.8, 0.3)], 170)
+    y = reverb(y, 0.3, 2.4, 1.6, 900, tail=0.0)[:n]
+    return fade(y, 0.2, 1.0)
+
+
+def amb_thunder_b(rng):
+    """Thunder a few km off (5.5 s): a muffled crack, then a rolling rumble with a little mid-range grit."""
+    n = ns(5.5)
+    y = _rumble(n, rng, [(0.25, 0.15, 0.7), (0.8, 0.35, 1.0), (1.6, 0.5, 0.75), (2.6, 0.6, 0.5), (3.7, 0.7, 0.25)], 240,
+                mid=0.25)
+    m = ns(0.12)
+    crack = convolve(impulses(m, 300, rng, heavy=1.5), burst(0.006, rng, 200, 1600, 0.0015))
+    place(y, 0.6 * rmsn(crack) * expdec(m, 0.05, 0.002), 0.18)
+    y = reverb(y, 0.3, 2.2, 1.5, 1500, tail=0.0)[:n]
+    return fade(y, 0.05, 1.0)
+
+
+def amb_thunder_close(rng):
+    """A close strike (5.5 s): a ripping crack (sharp snaps over ~40 ms and a torn hiss), the boom, a long roll."""
+    n = ns(5.5)
+    y = np.zeros(n)
+    snaps = np.zeros(ns(0.25))
+    for _ in range(26):
+        place(snaps, burst(0.02, rng, 300, 12000, 0.0015, 0.0001), rng.uniform(0, 1) ** 1.6 * 0.045, rng.uniform(0.3, 1.0))
+    place(y, snaps, 0.0, 1.0)
+    m = ns(0.4)
+    place(y, shaped_noise(m, rng, lambda f: tilt(f, -0.3) * band(f, 500, 9000)) * expdec(m, 0.07, 0.002), 0.01, 0.6)
+    place(y, thump(1.2, 80, 34, 0.35, rng, 0.05, 0.9, 200), 0.03, 1.2)
+    y += 0.9 * _rumble(n, rng, [(0.35, 0.2, 0.9), (0.9, 0.4, 1.0), (1.8, 0.55, 0.7), (2.9, 0.7, 0.45), (4.0, 0.7, 0.2)],
+                       280, mid=0.3)
+    y = reverb(y, 0.35, 2.8, 1.7, 3500, tail=0.0)[:n]
+    return fade(y, 0.0005, 1.0)
+
+
+def amb_dust_storm_loop(rng):
+    """Dust storm (5 s): sand hissing and scouring in gusts over a strong, brighter wind."""
+    n = ns(5.0)
+    gust = np.clip(1 + 0.55 * slow_noise(n, rng, 1.2), 0.15, None)
+    grit = grains(n, 4000 * gust, rng, grain_kernels(rng, 4, 2000, 9000, 0.0003), 2) * gust
+    hiss = shaped_noise(n, rng, lambda f: tilt(f, -0.3) * band(f, 1500, 8000)) * gust
+    wind = _wind_bed(n, rng, 1200, ((220, 1.4), (420, 2.0), (700, 2.6), (1100, 3.2)), 0.5, 0.7)
+    roar = shaped_noise(n, rng, lambda f: tilt(f, -1.0) * lp_mag(f, 300, 2) * hp_mag(f, 30, 2)) * gust
+    return 0.3 * rmsn(grit) + 0.35 * hiss + 0.8 * wind + 0.4 * roar
+
+
+def amb_snowfall_loop(rng):
+    """Snowfall (6 s): a very soft, muffled hush of air; snow damps everything."""
+    n = ns(6.0)
+    low = shaped_noise(n, rng, lambda f: tilt(f, -1.0) * lp_mag(f, 350, 2) * hp_mag(f, 30, 2))
+    mid = shaped_noise(n, rng, lambda f: np.exp(-0.5 * (np.log2(np.maximum(f, 1) / 380) * 1.4) ** 2))
+    hush = shaped_noise(n, rng, lambda f: band(f, 600, 2500))
+    y = 0.8 * low * np.clip(1 + 0.3 * slow_noise(n, rng, 0.2), 0.3, None)
+    y += 0.35 * mid * np.clip(0.6 + 0.5 * slow_noise(n, rng, 0.35), 0.05, None)
+    return y + 0.08 * hush * (1 + 0.3 * slow_noise(n, rng, 0.5))
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Registry: (group, name, description, maker, loop)
 
 SOUNDS = [
@@ -1207,6 +1649,41 @@ SOUNDS = [
      sel_construction_rover, False),
     ("select", "default_building", "Fallback for other buildings: plain machine hum.", sel_default_building, False),
     ("select", "default_vehicle", "Fallback for other vehicles: plain drive whine.", sel_default_vehicle, False),
+
+    ("vehicle", "ev_loop", "Rover drive (loop): soft electric whine, gear mesh, inverter hum; pitch follows the speed "
+                           "and mark in game.", veh_ev_loop, True),
+    ("vehicle", "crawler_loop", "Crawler and construction rover drive (loop): low traction motor, ground rumble, slow "
+                                "track clank.", veh_crawler_loop, True),
+    ("vehicle", "wiper", "One wiper stroke on wet glass (1.3 s up and back): rubber swish, tiny motor whirr, soft thunk "
+                         "as it parks.", veh_wiper, False),
+    ("vehicle", "wiper_squeak", "The same stroke on dry glass: the rubber squeaks.", veh_wiper_squeak, False),
+    ("vehicle", "flat_loop", "Driving on a flat tyre (loop): a soft flap and thump once a turn.", veh_flat_loop, True),
+
+    ("ground", "dirt_loop", "Packed dirt (plains; Veyra's lowlands): rolling rumble, crumbly crunch, the odd pebble.",
+     gnd_dirt_loop, True),
+    ("ground", "gravel_loop", "Grit and gravel (hills): denser, brighter crunch, stones clacking.", gnd_gravel_loop, True),
+    ("ground", "sand_loop", "Sand and dust (desert): soft swishing hiss over a dull rumble.", gnd_sand_loop, True),
+    ("ground", "rust_loop", "Rust dust (Veyra): coarser and lower than sand, sparse grit.", gnd_rust_loop, True),
+    ("ground", "mud_loop", "Mud (forest floor): wet roll, squelches, bubbles.", gnd_mud_loop, True),
+    ("ground", "snow_loop", "Snow (polar ice): crisp crunches over a soft rumble.", gnd_snow_loop, True),
+    ("ground", "water_loop", "Water (plains and forest beside water): washing slosh, spray in surges, drips.", gnd_water_loop, True),
+    ("ground", "frost_loop", "Frost grit (frozen ground): thin grit, icy crackle, glassy tinkles.", gnd_frost_loop, True),
+
+    ("ambience", "wind_loop", "Low steady wind (loop, 8 s): dark air with drifting resonances; louder with the wind "
+                              "speed.", amb_wind_loop, True),
+    ("ambience", "wind_gust_a", "A gust swells and falls, with a thin whistle.", amb_wind_gust_a, False),
+    ("ambience", "wind_gust_b", "A shorter, brighter gust.", amb_wind_gust_b, False),
+    ("ambience", "wind_gust_c", "A long low gust with a high whistle.", amb_wind_gust_c, False),
+    ("ambience", "rain_light_loop", "Light rain (loop): soft patter on the ground, faint hiss.", amb_rain_light_loop,
+     True),
+    ("ambience", "rain_heavy_loop", "Heavy rain (loop): dense drops and splats, full hiss, low wash.",
+     amb_rain_heavy_loop, True),
+    ("ambience", "thunder_a", "Distant thunder: a low roll that rises twice and dies away.", amb_thunder_a, False),
+    ("ambience", "thunder_b", "Thunder a few km off: muffled crack, rolling rumble.", amb_thunder_b, False),
+    ("ambience", "thunder_close", "A close strike: ripping crack, boom, long roll.", amb_thunder_close, False),
+    ("ambience", "dust_storm_loop", "Dust storm (loop): sand scouring in gusts over a strong wind.",
+     amb_dust_storm_loop, True),
+    ("ambience", "snowfall_loop", "Snowfall (loop): a very soft, muffled hush.", amb_snowfall_loop, True),
 ]
 
 GROUPS = {
@@ -1214,6 +1691,26 @@ GROUPS = {
     "landing": ("Landing", "Drop ships coming down, unloading and the outpost unfurling. Loudest group; "
                            "the two loops repeat seamlessly."),
     "select": ("Selection hums", "Played once when a building or a kind of vehicle is selected."),
+    "vehicle": ("Vehicles", "Moving vehicles near the camera: the electric drive loops (pitch and volume follow the "
+                            "speed in game), wiper strokes in time with the wipers, a flat tyre."),
+    "ground": ("Ground", "Tyre-on-ground loops under a moving vehicle, one per kind of wheel spray; the game "
+                         "crossfades them as the ground changes. Previews at 16 kHz."),
+    "ambience": ("Weather", "The weather at the site on the Ambience bus: wind by its speed, gusts, rain light to heavy, "
+                            "snowfall, dust storms, thunder after each lightning flash. Previews at 8–16 kHz (the dark ones lower)."),
+}
+
+# Page previews: 22 kHz; the long ground and weather beds at 16 kHz, and the dark ones (wind, snowfall, thunder: next to
+# nothing above 3 kHz) lower still, which keeps the page under 8 MB. By name first, then by group.
+PREVIEW_SR = {"ground": 16000, "ambience": 16000, "wind_loop": 11025, "wind_gust_a": 11025, "wind_gust_b": 11025,
+              "wind_gust_c": 11025, "snowfall_loop": 8000, "thunder_a": 8000, "thunder_b": 11025, "thunder_close": 16000}
+
+# Per-sound loudness offsets from the group's target (dB).
+LOUDNESS_OFFSET = {
+    "hover": -8.0,
+    "wiper": -4.0, "wiper_squeak": -4.0, "flat_loop": -4.0,
+    "wind_gust_a": 1.0, "wind_gust_b": 1.0, "wind_gust_c": 1.0,
+    "rain_light_loop": -3.0, "rain_heavy_loop": 2.0, "dust_storm_loop": 2.0, "snowfall_loop": -6.0,
+    "thunder_a": 4.0, "thunder_b": 5.0, "thunder_close": 8.0,
 }
 
 
@@ -1257,15 +1754,27 @@ def limit(x: np.ndarray, ceiling: float, look: float = 0.0015, release: float = 
     return x * gd
 
 
+def quiet_seam(x: np.ndarray) -> np.ndarray:
+    """Turn a loop so its seam falls on a quiet, small step (a circular shift: the loop itself is unchanged). The seam
+    check compares the wrap step with a typical step, so a loop shouldn't wrap in the middle of a clank."""
+    d = np.abs(np.diff(np.concatenate([x, x[:1]])))         # d[i] = step from x[i] to x[i + 1], circularly
+    w = ns(0.01)
+    local = np.convolve(np.concatenate([d[-w:], d, d[:w]]), np.ones(2 * w + 1) / (2 * w + 1), "valid")
+    i = int(np.argmin(d + 2 * local))
+    return np.roll(x, -(i + 1))
+
+
 def finish(x: np.ndarray, group: str, name: str, loop: bool) -> np.ndarray:
     x = np.asarray(x, float)
     if loop:
         x = x - x.mean()
+        if group != "landing":                               # (the landing loops predate this and pass as they are)
+            x = quiet_seam(x)
     else:
         x = x - np.mean(x)
         x = fade(onepole_hp(x, 18), 0.005 if x[:ns(0.005)].any() else 0.0, 0.01)
         x = fade(x, 0.0, 0.005)
-    target = TARGET_LOUDNESS[group] - (8.0 if name == "hover" else 0.0)
+    target = TARGET_LOUDNESS[group] + LOUDNESS_OFFSET.get(name, 0.0)
     g = 10 ** (target / 20) / max(loudness(x), 1e-9)
     # up to 5 dB of transient limiting (cracks, thumps); beyond that the whole sound comes down instead
     g = min(g, PEAK_CAP * 10 ** (5 / 20) / max(np.max(np.abs(x)), 1e-9))
@@ -1312,6 +1821,21 @@ def downsample2(x: np.ndarray, loop: bool) -> np.ndarray:
     return np.fft.irfft(Y, m)[:n // 2] * 0.5
 
 
+def resample(x: np.ndarray, sr_out: int, loop: bool) -> np.ndarray:
+    """Band-limited rate change by truncating the spectrum (top 8% tapered; circular for loops)."""
+    if sr_out * 2 == SR:
+        return downsample2(x, loop)
+    pad = 0 if loop else 2048
+    m = len(x) + pad
+    m_out = int(round(m * sr_out / SR))
+    X = np.fft.rfft(np.concatenate([x, np.zeros(pad)]))
+    k = m_out // 2 + 1
+    Y = X[:k].copy()
+    taper = max(1, int(k * 0.08))
+    Y[-taper:] *= 0.5 + 0.5 * np.cos(np.pi * np.arange(1, taper + 1) / taper)
+    return np.fft.irfft(Y, m_out)[:int(round(len(x) * sr_out / SR))] * (m_out / m)
+
+
 def spectrum(x: np.ndarray):
     """Spectral centroid (power-weighted, Hz) and the share of energy in four bands."""
     P = np.abs(np.fft.rfft(x * np.hanning(len(x)))) ** 2
@@ -1332,6 +1856,9 @@ def check(x: np.ndarray, loop: bool) -> dict:
         seam = abs(x[0] - x[-1])
         info["seam"] = seam / max(np.median(d), 1e-12)        # seam step in units of a typical sample step
         info["seam_max"] = seam / max(np.max(d), 1e-12)
+        w = ns(0.01)                                           # and against the steps right round the seam
+        near = np.concatenate([d[-w:], d[:w]])
+        info["seam_local"] = seam / max(np.percentile(near, 90), 1e-12)
     return info
 
 
@@ -1358,9 +1885,9 @@ def report(results) -> bool:
             bad.append("DC")
         if not loop and c["edge"] > 1e-3:
             bad.append("EDGE")
-        if loop and c["seam"] > 4:
+        if loop and (c["seam"] > 4 or c["seam_local"] > 2):
             bad.append("SEAM")
-        seam = f"{c['seam']:.2f}x median step, {c['seam_max']:.2f}x max" if loop else ""
+        seam = f"{c['seam']:.2f}x median step, {c['seam_max']:.2f}x max, {c['seam_local']:.2f}x near" if loop else ""
         print(f"{group + '/' + name:34} {c['dur']:6.2f} {c['peak']:6.1f} {c['rms']:6.1f} {c['loud']:6.1f} {c['cent']:8.0f} "
               f"{' / '.join(f'{100 * b:3.0f}' for b in c['bands']):>24} {c['dc']:8.1e} {c['edge']:7.1e}  {seam} {' '.join(bad)}")
         ok &= not bad
@@ -1447,7 +1974,9 @@ audio { width: 100%; height: 36px; display: block; }
   <h1>Final Frontier Sound Board</h1>
   <p class="lede">Every sound in the game, synthesised from numbers by <code>tools/gen_sounds.py</code> (no
   recordings). Files live in <code>game/sounds/&lt;group&gt;/&lt;name&gt;.wav</code>; a real recording with the same
-  name replaces one. Previews here are 22 kHz copies of the 44.1 kHz game files. Loops repeat on their own.</p>
+  name replaces one. Previews here are 22 kHz copies of the 44.1 kHz game files (8–16 kHz for the ground and weather
+  beds). Loops repeat on their own; in the game the vehicle, ground and weather loops are mixed by speed, ground and
+  weather.</p>
   <div class="tools"><button type="button" id="stop">Stop all</button>
   <button type="button" id="auto" aria-pressed="false">Play group in turn</button></div>
 </header>
@@ -1494,7 +2023,8 @@ def write_page(results) -> int:
         out.append(f'<section id="{g}">\n<h2>{html.escape(title)} <small>{html.escape(blurb)} '
                    f'<code>game/sounds/{g}/</code></small></h2>\n<div class="rows">\n')
         for _, name, desc, loop, x, _, c in rows:
-            data = base64.b64encode(wav_bytes(downsample2(x, loop), SR // 2)).decode()
+            rate = PREVIEW_SR.get(name, PREVIEW_SR.get(g, SR // 2))
+            data = base64.b64encode(wav_bytes(resample(x, rate, loop), rate)).decode()
             tag = '<span class="tag">loop</span>' if loop else ""
             out.append(
                 f'<div class="row{" loop" if loop else ""}"><div class="top"><h3>{name}</h3>'
@@ -1511,7 +2041,7 @@ def write_page(results) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--only", help="one group (ui, landing, select) or one sound name")
+    ap.add_argument("--only", help="one group (ui, landing, select, vehicle, ground, ambience) or one sound name")
     ap.add_argument("--no-page", action="store_true", help="don't write docs/sounds/index.html")
     a = ap.parse_args()
     results = build(a.only)
