@@ -266,7 +266,7 @@ public partial class PlanetDriver
 
         // The weather's sound (WeatherAudio): from the same eased weather, so the SKY tab's forced weather counts; full
         // close to the ground, quieter from far up, very quiet in orbit with the outpost feed open, off otherwise.
-        _view.RainNow = _inOrbit ? 0f : _look.Rain;
+        _view.RainNow = _inOrbit ? 0f : Mathf.Max(_look.Rain, _look.Snow); // rain or snowfall: auto wipers + wet glass
         var presence = !_inOrbit ? 1f : landed && _feed.CameraPosition != null ? 0.18f : 0f;
         _weatherAudio.Update(_look, _windEased.Length(), gust, _distance, presence, _weatherView.Bolts, delta);
 

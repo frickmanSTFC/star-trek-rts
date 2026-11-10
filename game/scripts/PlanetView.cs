@@ -1090,8 +1090,8 @@ public partial class PlanetView : Node3D
             }
             if (_lamps.TryGetValue(u.Id, out var lamps))
             {
-                // Wipers run on wet, muddy, snowy or dusty ground, and while the pad washes a dirty vehicle.
-                var wipe = ((moving || rolling) && ground is SprayKind.Water or SprayKind.Mud or SprayKind.Snow or SprayKind.Dust or SprayKind.RustDust) || (onPad && dirty);
+                // Wipers run on wet, muddy, snowy or dusty ground, in rain or snowfall (RainNow), and while the pad washes a dirty vehicle.
+                var wipe = ((moving || rolling) && (RainNow > 0.15f || ground is SprayKind.Water or SprayKind.Mud or SprayKind.Snow or SprayKind.Dust or SprayKind.RustDust)) || (onPad && dirty);
                 lamps.Update(moving || rolling, u.Broken || u.Integrity < Fix64.FromInt(50), wipe, delta);
             }
             UnitHeadlights(u, def); // PlanetView.Headlights.cs: broken / damaged / out of sight / crawler deployed

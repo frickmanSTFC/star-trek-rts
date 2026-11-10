@@ -26,7 +26,7 @@ public partial class PlanetView
     /// <summary>Set by the driver every frame: false in orbit (feed or not), where the vehicles go quiet.</summary>
     public bool Heard { get; set; } = true;
 
-    /// <summary>Rain at the view's centre 0..1 (the driver's eased weather): wipers on rained-on glass swish, not squeak.</summary>
+    /// <summary>Rain or snowfall at the view's centre 0..1 (the driver's eased weather): auto wipers run in it, and wipers on wet glass swish, not squeak.</summary>
     public float RainNow { get; set; }
 
     private const int DriveSlots = 6;           // vehicles heard driving at once: the nearest moving ones
