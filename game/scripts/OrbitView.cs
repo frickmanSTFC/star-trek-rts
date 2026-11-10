@@ -95,7 +95,6 @@ public partial class OrbitView : Node3D
     private readonly Dictionary<int, Node3D> _baseMarkers = new();
     private readonly Dictionary<int, MeshInstance3D> _unitMarkers = new();
     private readonly Dictionary<int, Node3D> _deliveryMarkers = new();
-    private readonly Dictionary<int, (Node3D Sat, MeshInstance3D Band, MeshInstance3D Track)> _satMarkers = new();
 
     private float _yaw, _pitch, _yawTarget, _pitchTarget;
     private float _distance = 330f, _distanceTarget = 330f;
@@ -794,6 +793,7 @@ public partial class OrbitView : Node3D
         }
         _yawTarget += yaw;
         _pitchTarget = Mathf.Clamp(_pitchTarget + pitch, -1.25f, 1.25f);
+        if (yaw != 0f || pitch != 0f) FollowSatellite = null; // turning the globe by hand stops FOLLOW
     }
 
     /// <summary>Zoom: factor below 1 moves in (the System plot keeps its own zoom).</summary>
@@ -877,7 +877,7 @@ public partial class OrbitView : Node3D
         UpdateBases();
         UpdateUnits();
         UpdateDeliveries(alpha);
-        UpdateSatellites(alpha);
+        UpdateSatellites(alpha, delta); // OrbitView.Satellites.cs
     }
 
     private static StandardMaterial3D GlowMaterial(Color c, float energy = 2.5f) => new()
@@ -994,58 +994,6 @@ public partial class OrbitView : Node3D
         }
     }
 
-    /// <summary>Each satellite circles over its band (a faint ring at that latitude), at the column its sweep has reached.</summary>
-    private void UpdateSatellites(float alpha)
-    {
-        var orbit = _sim.Data.Orbit;
-        if (orbit == null) return;
-        var g = _surface.Map.Grid;
-        var alive = new HashSet<int>();
-        foreach (var sat in _surface.Satellites)
-        {
-            if (sat.Owner != _localPlayer) continue;
-            alive.Add(sat.Id);
-            var v = VTop + (sat.Row + 0.5f) / g.Height * (VBottom - VTop);
-            var theta = v * Mathf.Pi;
-            if (!_satMarkers.TryGetValue(sat.Id, out var m))
-            {
-                var model = new Node3D();
-                var body = GlowMaterial(new Color(0.85f, 0.88f, 0.95f), 0.4f);
-                model.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(1.2f, 1.2f, 1.6f) }, MaterialOverride = body });
-                foreach (var x in new[] { -2.2f, 2.2f })
-                    model.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(2.6f, 0.08f, 1.2f) }, Position = new Vector3(x, 0, 0), MaterialOverride = GlowMaterial(new Color(0.25f, 0.4f, 0.9f), 0.8f) });
-                model.AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.3f, Height = 0.6f }, Position = new Vector3(0, 0.9f, 0), MaterialOverride = GlowMaterial(new Color(0.5f, 1f, 0.9f), 4f) });
-                _globe.AddChild(model);
-                // The band it covers: a faint ring at its latitude (TorusMesh rings lie round Y, like latitudes).
-                var bandMat = new StandardMaterial3D { AlbedoColor = new Color(0.5f, 1f, 0.9f, 0.35f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded };
-                var ringRadius = (Radius + 0.6f) * Mathf.Sin(theta);
-                var band = new MeshInstance3D { Mesh = new TorusMesh { InnerRadius = ringRadius - 0.25f, OuterRadius = ringRadius + 0.25f, Rings = 128, RingSegments = 4 },
-                    Position = new Vector3(0, (Radius + 0.6f) * Mathf.Cos(theta), 0), MaterialOverride = bandMat };
-                _globe.AddChild(band);
-                // Its track (Orbit display): the circle it flies, at its altitude over that latitude.
-                var track = OrbitLines.Instance(OrbitLines.Circle(SatelliteOrbit * Mathf.Sin(theta), 160), SkyBlue with { A = 0.75f }, 3);
-                track.Position = new Vector3(0f, SatelliteOrbit * Mathf.Cos(theta), 0f);
-                track.Visible = Display == OrbitDisplay.Orbit;
-                _globe.AddChild(track);
-                m = (model, band, track);
-                _satMarkers[sat.Id] = m;
-            }
-            var cols = (_sim.Tick - sat.LaunchTick + alpha) * g.Width / (orbit.SatelliteSweepSeconds * Simulation.TickRate);
-            var phi = (cols % g.Width) / g.Width * Mathf.Tau;
-            var dir = new Vector3(Mathf.Sin(theta) * Mathf.Sin(phi), Mathf.Cos(theta), Mathf.Sin(theta) * Mathf.Cos(phi));
-            m.Sat.Position = dir * SatelliteOrbit;
-            m.Sat.LookAt(_globe.GlobalTransform * Vector3.Zero, Vector3.Up);
-        }
-        foreach (var id in new List<int>(_satMarkers.Keys))
-        {
-            if (alive.Contains(id)) continue;
-            _satMarkers[id].Sat.QueueFree();
-            _satMarkers[id].Band.QueueFree();
-            _satMarkers[id].Track.QueueFree();
-            _satMarkers.Remove(id);
-        }
-    }
-
     // ---------------------------------------------------------------- displays
 
     /// <summary>Camera elevation above the equator plane per display (radians): Orbit looks down a little on the tracks, System well down on the plot.</summary>
@@ -1083,7 +1031,7 @@ public partial class OrbitView : Node3D
         _grid.Visible = Display == OrbitDisplay.Planet && _gridOn;
         _system.Visible = !globe;
         if (!globe) _sweep.Visible = false;
-        foreach (var m in _satMarkers.Values) m.Track.Visible = Display == OrbitDisplay.Orbit;
+        ApplySatelliteDisplay(); // OrbitView.Satellites.cs
         RefreshOverlay(force: true);
     }
 
@@ -1212,17 +1160,14 @@ public partial class OrbitView : Node3D
         }
 
         var g = _surface.Map.Grid;
-        var n = 0;
         foreach (var sat in _surface.Satellites)
         {
             if (sat.Owner != _localPlayer) continue;
-            n++;
-            var v = VTop + (sat.Row + 0.5f) / g.Height * (VBottom - VTop);
-            var lat = Mathf.RoundToInt(90f - v * 180f);
+            var lat = Mathf.RoundToInt(RowLatitude(sat.Row));
             var where = $"{Mathf.Abs(lat)}° {(lat >= 0 ? "N" : "S")}";
-            var pass = sat.Swept / g.Width;
-            var sweep = pass == 0 ? $"first pass, {sat.Swept * 100 / g.Width} % swept" : $"pass {pass + 1}, band surveyed";
-            list.Add((new OrbitObject($"SAT-{n}", "Satellite", $"Lat {where} · {sweep}", SkyBlue), _satMarkers.TryGetValue(sat.Id, out var m) ? m.Sat : null));
+            var sweep = sat.Deploying(_sim.Tick) ? (sat.Retasks == 0 ? "deploying" : "manoeuvring to its new band")
+                : sat.Passes == 0 ? $"first pass, {sat.Swept * 100 / g.Width} % swept" : $"pass {sat.Passes + 1}, {sat.Swept % g.Width * 100 / g.Width} %";
+            list.Add((new OrbitObject(sat.CallSign, "Satellite", $"Lat {where} · {sweep}", SkyBlue), SatelliteNode(sat.Id)));
         }
 
         if (_moonBody != null) list.Add((MoonObject(_moonBody), _moonRock));

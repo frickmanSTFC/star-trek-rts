@@ -44,6 +44,14 @@ public partial class SurfaceFeed : Control
     /// <summary>Folded to its title bar (the camera stops rendering).</summary>
     public bool Minimised { get; private set; }
 
+    /// <summary>Someone else wants the surface on <see cref="FeedLayer"/> in orbit even with the feed window closed (the
+    /// satellite photo camera, SatellitePhotos): the layers are shifted while this is set, the feed's own port only
+    /// renders while the window shows.</summary>
+    public bool HoldSurface { get; set; }
+
+    /// <summary>The surface is on <see cref="FeedLayer"/> and shown (a camera with that cull mask sees it now).</summary>
+    public bool SurfaceShown => _active;
+
     private bool _large;
 
     // ------------------------------------------------------------------ 3D
@@ -219,7 +227,8 @@ public partial class SurfaceFeed : Control
     {
         if (!_setUp) return;
         Visible = show;
-        SetActive(show && !Minimised, inOrbit);
+        SetActive((show && !Minimised) || (HoldSurface && inOrbit), inOrbit);
+        _port.RenderTargetUpdateMode = _active && show && !Minimised ? SubViewport.UpdateMode.Always : SubViewport.UpdateMode.Disabled;
         if (!show) return;
 
         if (!Mathf.IsEqualApprox(scale, _s) || _large != _builtLarge || Minimised != _builtMinimised || _frame == null) Build(scale);
@@ -258,7 +267,6 @@ public partial class SurfaceFeed : Control
                 _sun.DirectionalShadowMaxDistance = 450f;
                 _sun.Visible = true;
             }
-            _port.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
             _snap = true;
             _skyDaylight = -1f;
         }
