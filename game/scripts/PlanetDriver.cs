@@ -227,6 +227,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _helm.DisplayPicked += SetOrbitDisplay;
         _helm.SetInfoHandlers(InfoAction, () => _info = null);
         SetupUplink(helmLayer); // the outpost's surface feed window, over the helm
+        SetupSatellites(helmLayer); // the SATELLITES window and the satellite camera (PlanetDriver.Satellites.cs)
         var chooserLayer = new CanvasLayer { Name = "WorldChooserLayer", Layer = 3 };
         AddChild(chooserLayer);
         _chooser = new WorldChooser { Name = "WorldChooser" };
@@ -375,10 +376,12 @@ public partial class PlanetDriver : Node3D, ITestHost
             SystemClick(GetViewport().GetMousePosition()); // a ship or body opens its card (PlanetDriver.System.cs)
             return;
         }
+        if (SatelliteClick()) return; // a satellite under the mouse, or RETASK armed (PlanetDriver.Satellites.cs)
         var tile = _orbitHover;
         if (tile < 0) return;
         if (_orbitAction == null)
         {
+            _orbit.FollowSatellite = null;
             _orbit.Focus(tile, Mathf.Min(260f, 330f));
             return;
         }
@@ -441,6 +444,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
                 _orbitAction = null;
+                _retasking = false;
                 _allyScout = null;
                 if (_info != null && _info.StartsWith("orbit:")) _info = null;
                 break;
@@ -482,6 +486,12 @@ public partial class PlanetDriver : Node3D, ITestHost
             case Key.Escape when _systemCard != null && _orbit.Display == OrbitDisplay.System:
                 CloseSystemCard();
                 break;
+            case Key.Escape when _retasking:
+                _retasking = false;
+                break;
+            case Key.Escape when _satPanelOpen && _info == null && _orbitAction == null:
+                _satPanelOpen = false;
+                break;
             case Key.Escape when _info == null && _orbitAction == null:
                 OpenPause(); // nothing else wants Esc: the pause card
                 break;
@@ -515,11 +525,12 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void OrbitHover(float delta)
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _chooser.IsOverUi(mouse) || AchievementsBlockMouse(mouse) || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _satCard.IsOverUi(mouse) || _chooser.IsOverUi(mouse) || AchievementsBlockMouse(mouse) || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse);
         if (_helm.ViewRect.Size.X > 32f && _helm.ViewRect.Size.Y > 32f) _orbit.SetViewRect(_helm.ViewRect, GetViewport().GetVisibleRect().Size);
         _orbitHover = _mouseOverUi ? -1 : _orbit.PickTile(mouse);
-        var colour = _orbitAction == null ? new Color(1f, 1f, 1f, 0.6f)
-            : OrbitProblem(_orbitAction, _orbitHover) == null ? new Color(0.3f, 1f, 0.4f, 0.95f) : new Color(1f, 0.3f, 0.25f, 0.9f);
+        SatelliteHover(mouse); // a satellite under the mouse takes the hover (PlanetDriver.Satellites.cs)
+        var colour = RetaskHoverColour() ?? (_orbitAction == null ? new Color(1f, 1f, 1f, 0.6f)
+            : OrbitProblem(_orbitAction, _orbitHover) == null ? new Color(0.3f, 1f, 0.4f, 0.95f) : new Color(1f, 0.3f, 0.25f, 0.9f));
         _orbit.SetHover(_orbitHover, colour);
 
         // Keys turn the planet too.
@@ -582,6 +593,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         else if (id == "surface") LeaveOrbit();
         else if (id == "display:planet") SetOrbitDisplay(OrbitDisplay.Planet);
         else if (id == "feed") ToggleFeed();
+        else if (id == "sats") ToggleSatellites(); // the SATELLITES window (PlanetDriver.Satellites.cs)
     }
 
     private void SetOrbitDisplay(OrbitDisplay display)
@@ -677,9 +689,9 @@ public partial class PlanetDriver : Node3D, ITestHost
         _helm.SetClock($"{seconds / 60:00}:{seconds % 60:00}");
         _helm.SetResources(string.Join("   ", _data.HudResources.Select(r => $"{ShortResource(r.Name)} {Hud.Whole(stock[r.Index])}")));
 
-        var hint = me.Phase == LandingPhase.Descending ? "DROP SHIPS AWAY…"
+        var hint = SatelliteHint() ?? (me.Phase == LandingPhase.Descending ? "DROP SHIPS AWAY…"
             : _orbitAction == "land" && me.Phase == LandingPhase.InOrbit ? "CLICK A GREEN (SAFE) SITE TO LAND THE COLONY"
-            : _orbitAction != null ? "CLICK THE PLANET TO CHOOSE WHERE · RIGHT-CLICK CANCELS" : null;
+            : _orbitAction != null ? "CLICK THE PLANET TO CHOOSE WHERE · RIGHT-CLICK CANCELS" : null);
         var shipLine = ShipLine(); // the flagship's name and class (PlanetDriver.System.cs)
         var atColony = _orbit.AtColony; // the globe shows the colony's own body (else another body: OrbitView.Bodies.cs)
 
@@ -692,6 +704,8 @@ public partial class PlanetDriver : Node3D, ITestHost
                 rail.Add(new HelmAction($"scan:{i}", "", PlanetHud.ScanNames[i], Highlight: (int)_orbit.Mode == i));
             rail.Add(new HelmAction("grid", "", "GRID", Colour: _orbit.Grid ? HelmScreen.Cyan : null));
         }
+        if (display is OrbitDisplay.Planet or OrbitDisplay.Orbit) // the SATELLITES window (PlanetDriver.Satellites.cs)
+            rail.Add(new HelmAction("sats", "", "SATS", Colour: _satPanelOpen ? HelmScreen.Cyan : null));
         _helm.SetRail(rail);
 
         // Panel and title per display.
@@ -751,6 +765,7 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         // Cursor readout: the tile under the mouse (the system plot does its own in SystemDisplayHud).
         if (display == OrbitDisplay.System) { }
+        else if (SatelliteReadout(mouse)) { } // over a satellite (PlanetDriver.Satellites.cs)
         else if (_orbitHover >= 0)
         {
             var lines = OrbitTileText(_orbitHover).Split('\n');
@@ -997,6 +1012,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _view.Refresh(alpha);
         UpdateSky((float)delta); // PlanetDriver.Sky.cs: before the uplink, which hands the feed the outpost's sky
         UpdateUplink((float)delta);
+        UpdateSatellites((float)delta); // after the feed's refresh: the photo camera holds the surface through it (PlanetDriver.Satellites.cs)
         if (!_inOrbit) _hud.Minimap.Refresh(_camera);
         UpdateHud();
         UpdateTutorial(delta); // tutorial cards follow the game state (PlanetDriver.Tutorial.cs)

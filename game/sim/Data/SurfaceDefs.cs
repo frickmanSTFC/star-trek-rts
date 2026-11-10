@@ -76,6 +76,18 @@ public sealed record OrbitRules(
     /// (<see cref="Surface.GravityProfile.LiftCost"/>); transporters ignore gravity.</summary>
     public IReadOnlyList<ResourceAmount> ShuttleFuel { get; init; } = System.Array.Empty<ResourceAmount>();
 
+    /// <summary>Seconds a new survey satellite rises from the ship and unfolds before it starts sweeping (orbit.satellite.deploy_seconds).</summary>
+    public int SatelliteDeploySeconds { get; init; } = 8;
+
+    /// <summary>Seconds a retasked satellite manoeuvres to its new band, not sweeping (orbit.satellite.retask_seconds).</summary>
+    public int SatelliteRetaskSeconds { get; init; } = 6;
+
+    /// <summary>How many findings each satellite's log keeps (orbit.satellite.log; the newest).</summary>
+    public int SatelliteLog { get; init; } = 40;
+
+    /// <summary>Names for satellite call signs (orbit.satellite.call_signs; empty = PlanetSurface's built-in list).</summary>
+    public IReadOnlyList<string> SatelliteCallSigns { get; init; } = System.Array.Empty<string>();
+
     /// <summary>Transporter level for a faction in this era (0 = none): the faction's override, else the era's.</summary>
     public int TransporterLevelFor(string faction, string era)
     {

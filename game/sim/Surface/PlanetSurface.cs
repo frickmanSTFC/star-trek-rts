@@ -675,25 +675,6 @@ public sealed partial class PlanetSurface
         }
     }
 
-    /// <summary>Each satellite sweeps east across its band, surveying the columns it passes.</summary>
-    private void SweepSatellites(Simulation sim)
-    {
-        var orbit = _data.Orbit;
-        if (orbit == null) return;
-        var g = Map.Grid;
-        var half = orbit.SatelliteBandRows / 2;
-        foreach (var sat in _satellites)
-        {
-            var target = (int)((sim.Tick - sat.LaunchTick) * g.Width / (orbit.SatelliteSweepSeconds * Simulation.TickRate));
-            for (; sat.Swept < target; sat.Swept++)
-            {
-                var col = sat.Swept % g.Width;
-                for (var r = System.Math.Max(0, sat.Row - half); r <= System.Math.Min(g.Height - 1, sat.Row + half); r++)
-                    Survey(sat.Owner, g.Index(col, r));
-            }
-        }
-    }
-
     // ---------------------------------------------------------------- stats: levels, research, condition
 
     private static readonly Fix64 Full = Fix64.FromInt(100);
@@ -1294,9 +1275,11 @@ public sealed partial class PlanetSurface
 
             case SatelliteCommand satellite:
                 if (SatelliteProblem(sim, satellite.Player, satellite.Row) is { } satelliteProblem) return sim.Refuse(satellite, satelliteProblem);
-                sim.Players[satellite.Player].Stock.TrySpend(_data.Orbit!.SatelliteCost);
-                _satellites.Add(new Satellite(_nextSatelliteId++, satellite.Player, satellite.Row, sim.Tick));
+                LaunchSatellite(sim, satellite); // Satellites.cs
                 return true;
+
+            case RetaskSatelliteCommand retask:
+                return ApplyRetask(sim, retask); // Satellites.cs
 
             case ResearchCommand research:
                 if (ResearchProblem(research.Player, research.TechId) is { } researchProblem) return sim.Refuse(research, researchProblem);
@@ -1966,6 +1949,7 @@ public sealed partial class PlanetSurface
         foreach (var d in _deliveries) d.AddToHash(ref h);
         h.Add(_satellites.Count);
         foreach (var s in _satellites) s.AddToHash(ref h);
+        AddSatelliteFirstsToHash(ref h); // Satellites.cs
         h.Add(_nextUnitId);
         h.Add(_nextStructureId);
         h.Add(_nextPodId);

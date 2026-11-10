@@ -142,6 +142,7 @@ public static class CommandHash
         ContactChoiceCommand => 32,
         MembershipCommand => 33,
         AllyShipOrderCommand => 34,
+        RetaskSatelliteCommand => 35,
         // Test panel.
         DebugUnitCommand => 101,
         DebugMoveUnitCommand => 102,
@@ -185,6 +186,7 @@ public static class CommandHash
             case ShuttleCommand c: h.Add(c.Tile); Text(ref h, c.UnitId); break;
             case BeamCommand c: h.Add(c.Tile); Text(ref h, c.Payload); break;
             case SatelliteCommand c: h.Add(c.Row); break;
+            case RetaskSatelliteCommand c: h.Add(c.SatelliteId); h.Add(c.Row); break;
             case ResearchCommand c: Text(ref h, c.TechId); break;
             case MaintainCommand c: h.Add(c.StructureId); break;
             case RepairCommand c: Ids(ref h, c.UnitIds); break;

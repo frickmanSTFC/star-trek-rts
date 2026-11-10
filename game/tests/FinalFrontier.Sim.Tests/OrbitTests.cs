@@ -172,6 +172,7 @@ public class OrbitTests
         Assert.Null(s.SatelliteProblem(sim, 0, row)); // allowed from orbit, before landing
         Do(sim, new SatelliteCommand(0, row));
         Assert.Single(s.Satellites);
+        for (var i = 0; i < Sec(Orbit.SatelliteDeploySeconds); i++) sim.Step(); // rises and unfolds first
         for (var i = 0; i < Sec(Orbit.SatelliteSweepSeconds / 2); i++) sim.Step();
         var half = Orbit.SatelliteBandRows / 2;
         // Half the band is surveyed after half a sweep; rows outside the band aren't.

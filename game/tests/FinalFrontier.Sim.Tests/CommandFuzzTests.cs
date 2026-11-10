@@ -152,6 +152,7 @@ public class CommandFuzzTests
             40, 15, 4, 20, 50, 4, 50, 15, 25, 15, 15, 3, 10, 2, 1, 1, // 22..37 test panel
             15, // 38 pause / resume a building
             30, 10, 10, 10, 10, // 39..43 parts economy: fabricate, cancel an order, stock target, jury-rig a building / vehicles
+            10, // 44 retask a survey satellite
         };
 
         private static readonly int TotalWeight = Weights.Sum();
@@ -212,7 +213,8 @@ public class CommandFuzzTests
                 case 40: return new CancelFabricateCommand(p, StructureId(), OrderId());
                 case 41: return new StockTargetCommand(p, Text(S.PartItems)!, Chance(80) ? N(8) : AnyInt());
                 case 42: return new JuryRigCommand(p, StructureId());
-                default: return new JuryRigUnitsCommand(p, UnitIds());
+                case 43: return new JuryRigUnitsCommand(p, UnitIds());
+                default: return new RetaskSatelliteCommand(p, Chance(80) ? 1 + N(6) : AnyInt(), Chance(80) ? N(S.Map.Grid.Height) : AnyInt());
             }
         }
 

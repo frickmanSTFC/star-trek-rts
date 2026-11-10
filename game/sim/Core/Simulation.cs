@@ -315,6 +315,7 @@ public sealed partial class Simulation
             case ShuttleCommand:
             case BeamCommand:
             case SatelliteCommand:
+            case RetaskSatelliteCommand:
             case FoundOutpostCommand:
             case FabricateCommand:
             case CancelFabricateCommand:

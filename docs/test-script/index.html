@@ -158,6 +158,15 @@ var AREAS = [
     ["r-finds", "Let a few layers finish (F9 speed helps)", "Find lines in the event feed and in the finds list; research or resources arrive."],
     ["r-danger", "Keep digging until a defence or pathogen comes up", "Defence: nearby damage, dig locked 3 min (red status). Pathogen: CREW SICK chip; a vehicle visiting another base can carry it."]
   ]},
+  { id: "sat", name: "Survey satellites", sub: "orbit, SATS on the helm rail", checks: [
+    ["sat-deploy", "In orbit press SATELLITE (key 3) and click a latitude; watch for ~8 s", "The satellite rises from the ship with its wings folded, unfolds over its band, then flies east; dish turns, beacon blinks. No errors in Output (the glb may still be a box stand-in)."],
+    ["sat-swath", "Watch it sweep on the PLANET and ORBIT displays", "A soft cyan strip on the ground under it moving along its band; its track line shows on ORBIT. A white flash on it every few seconds."],
+    ["sat-card", "Hover the satellite, click it (or SATS on the rail)", "White ring on hover, cyan when picked; the SATELLITES window (top right) lists SAT-1 · NAME with status, coverage and sweep bars, findings newest first."],
+    ["sat-photos", "Keep the card open for half a minute; click a picture, switch VIS / IR / TERRAIN", "Small top-down pictures of the real ground under it (not black, not the space view) appear in the strip; the big one has the call sign, time, coordinates; modes recolour them. A quiet tick per picture; frame rate stays smooth."],
+    ["sat-locate", "Click a finding line, then (after landing) click it again", "The globe turns to the tile with a pulsing peach ring; the second click goes down to that tile."],
+    ["sat-follow", "Press FOLLOW, then drag the globe; press RETASK and click another latitude", "The globe keeps the satellite in front until you drag; after RETASK it drifts to the new band with its thrusters lit and sweeps there."],
+    ["sat-era", "Start a campaign (Dawn of Warp) and put a satellite up", "The pre-warp satellite model (gold foil, big wings) if its glb is in; MODEL row says Earth survey satellite."]
+  ]},
   { id: "tools", name: "Test panel", sub: "F9", checks: [
     ["t-civ", "F9 › CIV: pick a body, spawn a living civ, change level, awareness, Standing, relations", "Each change shows on the card and dossier; TEST MODE tag appears."],
     ["t-ruin", "F9 › CIV › ruins row: add ruins at a picked tile, then remove them", "The ruin appears and disappears on the map."]

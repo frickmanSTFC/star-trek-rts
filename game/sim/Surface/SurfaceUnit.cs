@@ -291,23 +291,98 @@ public sealed class Delivery
     }
 }
 
-/// <summary>A survey satellite over a band of rows centred on Row; it sweeps east every sweep_seconds, surveying what it passes.</summary>
+/// <summary>What a survey satellite's sweep turned up (<see cref="SatelliteFinding"/>).</summary>
+public enum SatelliteFindingKind
+{
+    /// <summary>A deposit newly surveyed (Detail = resource index).</summary>
+    Deposit,
+
+    /// <summary>Wildlife spotted: the first tile of a herd or predator range (Detail = (int)Wildlife).</summary>
+    Life,
+
+    /// <summary>The native settlement.</summary>
+    Natives,
+
+    /// <summary>The first tile of a toxic patch.</summary>
+    Toxic,
+
+    /// <summary>A ruin site.</summary>
+    Ruins,
+
+    /// <summary>A weather cell it flew into: storm, blizzard, dust storm or fog under its track (Detail = (int)WeatherKind).</summary>
+    Weather,
+
+    /// <summary>Notable terrain: the first tile of a mountain massif (Detail = terrain index).</summary>
+    Terrain,
+}
+
+/// <summary>One line of a satellite's findings log: when, what, where (tile), a detail id (see the kind) and whether
+/// this was the owner's first finding of that kind and detail from any satellite.</summary>
+public readonly record struct SatelliteFinding(long Tick, SatelliteFindingKind Kind, int Tile, int Detail, bool First);
+
+/// <summary>
+/// A survey satellite over a band of rows centred on Row. It goes up at LaunchTick, rises from the ship and unfolds
+/// until ReadyTick (orbit.satellite.deploy_seconds), then sweeps east one map width every sweep_seconds, surveying
+/// what it passes and logging what was new (<see cref="Findings"/>). A retask (RetaskSatelliteCommand) moves its band:
+/// it stops sweeping for retask_seconds (ReadyTick moves on) and carries on from the column it had reached.
+/// </summary>
 public sealed class Satellite
 {
     public int Id { get; }
     public int Owner { get; }
-    public int Row { get; }
+
+    /// <summary>The band's centre row (changes on a retask).</summary>
+    public int Row { get; internal set; }
+
     public long LaunchTick { get; }
+
+    /// <summary>The owner's n-th satellite on this surface (1 = the first): the number in its call sign.</summary>
+    public int Ordinal { get; }
+
+    /// <summary>"SAT-2 · KESTREL": deterministic per owner from the map seed (PlanetSurface.SatelliteCallSign).</summary>
+    public string CallSign { get; }
+
+    /// <summary>Sweeping starts (again) at this tick: launch + deploy_seconds, or a retask + retask_seconds.</summary>
+    public long ReadyTick { get; internal set; }
 
     /// <summary>Columns swept so far (keeps counting past the width as it goes round again).</summary>
     public int Swept { get; internal set; }
 
-    internal Satellite(int id, int owner, int row, long launchTick)
+    /// <summary>Swept when the current run of sweeping began (at ReadyTick): the sweep's target counts on from here.</summary>
+    public int SweepBase { get; internal set; }
+
+    /// <summary>Completed laps of the planet (Swept ÷ map width).</summary>
+    public int Passes { get; internal set; }
+
+    /// <summary>Tiles this satellite surveyed first (nobody of the owner's had surveyed them before).</summary>
+    public int TilesSurveyed { get; internal set; }
+
+    /// <summary>Every finding it ever logged (the log keeps only the newest).</summary>
+    public int FindingsTotal { get; internal set; }
+
+    /// <summary>How many times it was retasked.</summary>
+    public int Retasks { get; internal set; }
+
+    /// <summary>The weather under its track at the last column (Clear when not notable): a weather finding is logged
+    /// when it flies into a notable kind.</summary>
+    public WeatherKind WeatherLast { get; internal set; }
+
+    /// <summary>The newest findings, oldest first, at most orbit.satellite.log long.</summary>
+    public IReadOnlyList<SatelliteFinding> Findings => _findings;
+    internal readonly List<SatelliteFinding> _findings = new();
+
+    /// <summary>Still rising and unfolding (first deploy) or manoeuvring to a new band (retask): not sweeping.</summary>
+    public bool Deploying(long tick) => tick < ReadyTick;
+
+    internal Satellite(int id, int owner, int row, long launchTick, long readyTick, int ordinal, string callSign)
     {
         Id = id;
         Owner = owner;
         Row = row;
         LaunchTick = launchTick;
+        ReadyTick = readyTick;
+        Ordinal = ordinal;
+        CallSign = callSign;
     }
 
     internal void AddToHash(ref StateHasher h)
@@ -316,7 +391,25 @@ public sealed class Satellite
         h.Add(Owner);
         h.Add(Row);
         h.Add(LaunchTick);
+        h.Add(Ordinal);
+        h.Add(CallSign);
+        h.Add(ReadyTick);
         h.Add(Swept);
+        h.Add(SweepBase);
+        h.Add(Passes);
+        h.Add(TilesSurveyed);
+        h.Add(FindingsTotal);
+        h.Add(Retasks);
+        h.Add((int)WeatherLast);
+        h.Add(_findings.Count);
+        foreach (var f in _findings)
+        {
+            h.Add(f.Tick);
+            h.Add((int)f.Kind);
+            h.Add(f.Tile);
+            h.Add(f.Detail);
+            h.Add(f.First);
+        }
     }
 }
 
