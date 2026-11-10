@@ -64,6 +64,20 @@ public partial class SfxHost : Node
         _preview = new AudioStreamPlayer();
     }
 
+    // Mute while the window is in the background (GameSettings.InBackground): focus lost or the mouse outside it.
+    // Both start true: until the first notification we don't know, and a fresh run usually has the mouse and focus.
+    private bool _focused = true, _mouseInside = true;
+
+    public override void _Notification(int what)
+    {
+        if (what == NotificationApplicationFocusOut || what == NotificationWMWindowFocusOut) _focused = false;
+        else if (what == NotificationApplicationFocusIn || what == NotificationWMWindowFocusIn) _focused = true;
+        else if (what == NotificationWMMouseExit) _mouseInside = false;
+        else if (what == NotificationWMMouseEnter) _mouseInside = true;
+        else return;
+        GameSettings.SetBackground(!_focused || !_mouseInside);
+    }
+
     public override void _ExitTree()
     {
         if (_tree != null && GodotObject.IsInstanceValid(_tree)) _tree.NodeAdded -= OnNodeAdded;

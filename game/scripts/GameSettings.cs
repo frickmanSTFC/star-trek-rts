@@ -59,6 +59,18 @@ public static class GameSettings
     /// <summary>Pan the surface camera when the mouse touches the window's edge.</summary>
     public static bool EdgeScroll { get { Load(); return _edgeScroll; } set { Load(); _edgeScroll = value; } }
 
+    /// <summary>True while the game window doesn't have focus or the mouse is outside it (owner 2026-11-10: "if your
+    /// cursor / focus leave the game, mute the sound"): the Master bus is muted then. Set by <see cref="SfxHost"/>.</summary>
+    public static bool InBackground { get; private set; }
+
+    /// <summary>The host's focus / mouse notifications: mute or unmute Master (volumes unchanged).</summary>
+    public static void SetBackground(bool background)
+    {
+        if (InBackground == background) return;
+        InBackground = background;
+        ApplyAudio();
+    }
+
     /// <summary>Reads user://settings.cfg once (missing file or keys = defaults).</summary>
     public static void Load()
     {
@@ -120,6 +132,7 @@ public static class GameSettings
         Load();
         Sfx.EnsureBuses();
         SetBus("Master", _masterVolume);
+        if (InBackground && AudioServer.GetBusIndex("Master") is var master and >= 0) AudioServer.SetBusMute(master, true);
         SetBus(Sfx.UiBus, _uiVolume);
         SetBus(Sfx.EffectsBus, _effectsVolume);
         SetBus(Sfx.AmbienceBus, _ambienceVolume);
