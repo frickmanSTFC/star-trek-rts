@@ -2,18 +2,20 @@
 docs/satellite-contract.md "Model"). Two original designs, era-matched, one glb each in game/models/orbit/:
 
   std      survey_satellite.glb          the standard orbital survey probe (Federation, every era but Dawn of Warp):
-                                         a sleek lofted sensor bus, light grey hull with panel lines and a thin Owner
-                                         line along the dorsal spine, a nose sensor band and an aft drive slit glowing
-                                         blue-white, swept collector wings (dark blue cells, glowing leading edge, tip
+                                         a sleek flattened-torpedo sensor bus, light grey hull with panel lines and a
+                                         thin Owner line along the dorsal spine, a glowing blue nose sensor cap and aft
+                                         ring, a dorsal sensor blister with blue ports and the beacon on a short mast,
+                                         swept collector wings set aft (dark blue cells, glowing leading edge, tip
                                          sensor pods), a deflector-style sensor dish under the belly (concentric rings,
-                                         glowing core) facing the planet, a ball-turret camera under the nose, a dorsal
-                                         fin with the beacon on top, four RCS glows. 1.85 long, 2.67 across the wings.
+                                         glowing core and rim) facing the planet, a ball-turret camera under the nose,
+                                         four RCS glows. 1.86 long, 2.74 across the wings, 0.53 tall.
   prewarp  survey_satellite_prewarp.glb  Dawn of Warp (2063-2150), Earth-built: a boxy gold-foil bus with white decks,
                                          corner posts and radiators, a Shuttle-tank orange (#C8632A family) payload
                                          adapter, wing yokes and barrel band, black tiles on the nadir deck, two big
                                          rectangular three-panel solar wings, a white telescope/camera barrel hanging
                                          at nadir, a high-gain dish on a mast at zenith, magnetometer boom, star
-                                         trackers, red beacon, RCS quads at the corners. 0.78 long, 2.98 across.
+                                         trackers, red beacon, RCS quads at the corners. 2.99 across, 2.06 tall (dish to
+                                         barrel), 1.32 long (0.78 bus).
 
 Units and axes: 1 Blender unit = 1 game world unit (the orbit globe is R ~100; the contract draws a satellite 2-3
 units long, so the glbs are made at that size and need no scale in Godot). Blender +Y = front (Godot -Z, the
@@ -72,7 +74,7 @@ if "--sheet" in argv:
     rows = [[(f"satellite-std-{s}.png", f"standard - {s}") for s in ("hero", "limb", "folded", "flash")],
             [(f"satellite-prewarp-{s}.png", f"pre-warp - {s}") for s in ("hero", "limb", "folded", "flash")],
             [("satellite-std-glb.png", "standard - glb pivots"), ("satellite-prewarp-glb.png", "pre-warp - glb pivots"),
-             ("satellite-small.png", "orbit-view size"), ("@zoom", "orbit-view size, 3x pixels")]]
+             ("satellite-small.png", "orbit-view size"), ("@zoom", "orbit-view size, 2x pixels")]]
     sheet = Image.new("RGB", (tw * 4, th * len(rows)), (16, 18, 22))
     draw = ImageDraw.Draw(sheet)
     for r, row in enumerate(rows):
@@ -80,7 +82,7 @@ if "--sheet" in argv:
             if name == "@zoom":
                 src = Image.open(os.path.join(folder, "satellite-small.png")).convert("RGB")
                 w, h = src.size
-                cw, ch = tw // 3, th // 3
+                cw, ch = tw // 2, th // 2
                 im = src.crop((w // 2 - cw // 2, h // 2 - ch // 2, w // 2 - cw // 2 + cw, h // 2 - ch // 2 + ch))
                 im = im.resize((tw, th), Image.NEAREST)
             else:
