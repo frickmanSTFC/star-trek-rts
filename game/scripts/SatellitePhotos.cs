@@ -211,11 +211,15 @@ float lum(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 
 vec3 ramp(float t) {
     t = clamp(t, 0.0, 1.0);
-    vec3 a = vec3(0.02, 0.0, 0.08), b = vec3(0.45, 0.0, 0.6), c = vec3(0.95, 0.15, 0.1), d = vec3(1.0, 0.85, 0.2), e = vec3(1.0, 1.0, 0.92);
-    if (t < 0.25) return mix(a, b, t / 0.25);
-    if (t < 0.5) return mix(b, c, (t - 0.25) / 0.25);
-    if (t < 0.78) return mix(c, d, (t - 0.5) / 0.28);
-    return mix(d, e, (t - 0.78) / 0.22);
+    vec3 k0 = vec3(0.02, 0.0, 0.08);
+    vec3 k1 = vec3(0.45, 0.0, 0.6);
+    vec3 k2 = vec3(0.95, 0.15, 0.1);
+    vec3 k3 = vec3(1.0, 0.85, 0.2);
+    vec3 k4 = vec3(1.0, 1.0, 0.92);
+    if (t < 0.25) return mix(k0, k1, t / 0.25);
+    if (t < 0.5) return mix(k1, k2, (t - 0.25) / 0.25);
+    if (t < 0.78) return mix(k2, k3, (t - 0.5) / 0.28);
+    return mix(k3, k4, (t - 0.78) / 0.22);
 }
 
 void fragment() {
@@ -226,14 +230,14 @@ void fragment() {
         float water = smoothstep(0.05, 0.2, col.b - col.r);
         col = ramp(mix(l * 0.6 + warm * 0.55, 0.06, water));
     } else if (mode == 2) {
-        float c = lum(texture(TEXTURE, UV).rgb);
+        float lc = lum(texture(TEXTURE, UV).rgb);
         float gx = lum(texture(TEXTURE, UV + vec2(texel.x, 0.0)).rgb) - lum(texture(TEXTURE, UV - vec2(texel.x, 0.0)).rgb);
         float gy = lum(texture(TEXTURE, UV + vec2(0.0, texel.y)).rgb) - lum(texture(TEXTURE, UV - vec2(0.0, texel.y)).rgb);
         float edge = clamp(length(vec2(gx, gy)) * 5.0, 0.0, 1.0);
-        float contour = smoothstep(0.82, 0.98, abs(fract(c * 9.0) - 0.5) * 2.0);
+        float contour = smoothstep(0.82, 0.98, abs(fract(lc * 9.0) - 0.5) * 2.0);
         vec2 cell = fract(UV * vec2(8.0, 5.0));
         float grid = step(cell.x, 0.012) + step(cell.y, 0.02);
-        col = vec3(0.02, 0.06, 0.05) + vec3(0.1, 0.32, 0.22) * c + vec3(0.3, 1.0, 0.55) * max(edge, contour * 0.5) + vec3(0.15, 0.5, 0.4) * clamp(grid, 0.0, 1.0) * 0.35;
+        col = vec3(0.02, 0.06, 0.05) + vec3(0.1, 0.32, 0.22) * lc + vec3(0.3, 1.0, 0.55) * max(edge, contour * 0.5) + vec3(0.15, 0.5, 0.4) * clamp(grid, 0.0, 1.0) * 0.35;
     } else {
         col = clamp((col - 0.5) * 1.12 + 0.52, 0.0, 1.0);
         col *= 0.96 + 0.04 * sin(UV.y * 400.0);
