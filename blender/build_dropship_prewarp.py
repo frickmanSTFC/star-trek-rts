@@ -251,9 +251,9 @@ def foil(name, colour, metallic=1.0, rough=0.26, crinkle=0.45):
     return m
 
 
-def tiles(name, scale=2.6, wrap=False):
+def tiles(name, scale=2.6, wrap=False, front=False):
     """Ceramic heat-shield tiles: a brick grid of near-black tiles with a few lighter ones. wrap: map (x + y, z) for a
-    vertical cylinder instead of (x, y) for a belly."""
+    vertical cylinder, front: (x, z) for a forward-facing nose cap, else (y, x) for a belly."""
     m, nt, p = node_mat(name)
     tc = nt.nodes.new("ShaderNodeTexCoord")
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
@@ -261,6 +261,9 @@ def tiles(name, scale=2.6, wrap=False):
     comb = nt.nodes.new("ShaderNodeCombineXYZ")
     if wrap:
         nt.links.new(math_op(nt, "ADD", sep.outputs["X"], sep.outputs["Y"]), comb.inputs["X"])
+        nt.links.new(sep.outputs["Z"], comb.inputs["Y"])
+    elif front:
+        nt.links.new(sep.outputs["X"], comb.inputs["X"])
         nt.links.new(sep.outputs["Z"], comb.inputs["Y"])
     else:
         nt.links.new(sep.outputs["Y"], comb.inputs["X"])
@@ -357,11 +360,12 @@ def prewarp_palette():
         "darkgrey": paint("PaintDark", (0.16, 0.165, 0.17), 0.3, 0.55, grime=0.2),
         "stainless": paint("Stainless", (0.66, 0.67, 0.7), 0.95, 0.28, grime=0.25, mottle=0.12, streaks=0.18),
         "foam": paint("FoamOrange", (0.72, 0.28, 0.06), 0.0, 0.85, grime=0.25, mottle=0.18, streaks=0.05),
-        "goldfoil": foil("FoilGold", (1.0, 0.66, 0.22)),
+        "goldfoil": foil("FoilGold", (1.0, 0.72, 0.3), 1.0, 0.22),
         "blackfoil": foil("FoilBlack", (0.035, 0.032, 0.03), 0.55, 0.32, 0.35),
         "silverfoil": foil("FoilSilver", (0.82, 0.83, 0.86), 1.0, 0.22, 0.4),
         "tiles": tiles("TileBelly"),
         "tilewrap": tiles("TileSkirt", 2.2, wrap=True),
+        "tilenose": tiles("TileNose", 2.6, front=True),
         "hazard": hazard("Hazard"),
         "nozzle": material("Nozzle", (0.19, 0.17, 0.16), 0.85, 0.4),
         "nozzlehot": material("NozzleHot", (0.32, 0.2, 0.14), 0.9, 0.35),
@@ -1101,10 +1105,13 @@ def c_hull(P, root):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     hull = mesh_object("Hull", bm, P["white"], root, smooth=False)
     hull.data.materials.append(P["tiles"])
+    hull.data.materials.append(P["tilenose"])
     for poly in hull.data.polygons:
         c, nrm = poly.center, poly.normal
-        if nrm.z < -0.55 or (c.y > 6.0 and c.z < 2.6 and nrm.y > 0.2) or (c.y > 6.9):
+        if nrm.z < -0.55:
             poly.material_index = 1
+        elif c.y > 6.98:  # the blunt nose cap: everything ahead of the last full section
+            poly.material_index = 2
     for poly in hull.data.polygons:
         poly.use_smooth = True
     return hull
@@ -1552,8 +1559,8 @@ def main():
             render(os.path.join(PREVIEW, f"prewarp-{key}-descent.png"))
             set_pose(parts, "landed")
 
-    if {"lineup", "lineup-game"} & set(SHOTS):
-        xs = [-37.5, -12.5, 12.5, 37.5]
+    def place_lineup(xs):
+        """Halyard, A, B, C at xs (so they read left to right from the shot's camera)."""
         halyard.location = (xs[0], 0, 0)
         for i, key in enumerate(["a", "b", "c"]):
             if key in builds:
@@ -1562,19 +1569,26 @@ def main():
                 builds[key]["root"].rotation_euler.z = 0
         for i, h in enumerate(hexes):
             h.location = (xs[i], 0, 0)
-        crawler.location = (0.0, 10.5, 0)
+
+    if "lineup" in SHOTS:  # front 3/4 from +Y: +X is on the left
+        place_lineup([28.5, 9.5, -9.5, -28.5])
+        crawler.location = (0.0, 10.0, 0)
+        crawler.rotation_euler = (0, 0, math.radians(-150))
+        rover.location = (19.5, 9.0, 0)
+        rover.rotation_euler = (0, 0, math.radians(200))
+        only(list(builds), ["halyard", "crawler", "rover"])
+        aim(cam, (9.0, 74.0, 10.5), (-0.5, 0, 4.4), 34)
+        render(os.path.join(PREVIEW, "prewarp-lineup.png"))
+    if "lineup-game" in SHOTS:  # the landing camera from -Y: each ship on its own hex, 25 apart like the map
+        place_lineup([-37.5, -12.5, 12.5, 37.5])
+        crawler.location = (0.0, 12.0, 0)
         crawler.rotation_euler = (0, 0, math.radians(-30))
-        rover.location = (-25.0, 10.0, 0)
+        rover.location = (-25.0, 12.0, 0)
         rover.rotation_euler = (0, 0, math.radians(15))
-        if "lineup" in SHOTS:
-            only(list(builds), ["halyard", "crawler", "rover"])
-            aim(cam, (14.0, 72.0, 21.0), (0.5, 0, 3.6), 33)
-            render(os.path.join(PREVIEW, "prewarp-lineup.png"))
-        if "lineup-game" in SHOTS:
-            only(list(builds), ["halyard", "crawler", "rover", "hex0", "hex1", "hex2", "hex3"])
-            target = Vector((0, 0, 0))
-            aim(cam, target + Vector((0, -0.57, 0.82)).normalized() * 170, target, 51)
-            render(os.path.join(PREVIEW, "prewarp-lineup-game.png"))
+        only(list(builds), ["halyard", "crawler", "rover", "hex0", "hex1", "hex2", "hex3"])
+        target = Vector((0, 0, 0))
+        aim(cam, target + Vector((0, -0.57, 0.82)).normalized() * 170, target, 51)
+        render(os.path.join(PREVIEW, "prewarp-lineup-game.png"))
     print(f"done in {time.time() - t0:.0f} s", flush=True)
 
 
