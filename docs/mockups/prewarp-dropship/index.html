@@ -83,22 +83,45 @@ ol.qs { margin: 0; padding-left: 22px; display: grid; gap: 12px; max-width: 80ch
 ol.qs li::marker { font: 700 16px var(--display); color: var(--accent); }
 ol.qs b { font-weight: 600; }
 footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; color: var(--dim); display: grid; gap: 6px; }
+.decided { border: 1px solid var(--good); background: var(--good-soft); border-radius: 8px; padding: 14px 16px; display: grid; gap: 10px; max-width: 86ch; }
+.decided h3 { color: var(--good); }
+.decided ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.chip.ok { border-color: var(--good); color: var(--good); background: var(--good-soft); }
+ol.qs .ans { display: block; margin-top: 4px; color: var(--good); }
+ol.qs .ans::before { content: "Answered: "; font-weight: 600; }
+.quad { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 760px) { .quad { grid-template-columns: minmax(0, 1fr); } }
 </style>
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Dawn of Warp · 2063–2150 · Mockup</div>
+    <div class="eyebrow">Dawn of Warp · 2063–2150 · Decided 2026-11-10</div>
     <h1>Pre-warp Drop Ship</h1>
     <blockquote>“On the pre-warp, the drop ships [shouldn't] have nacelles. Make them look less enterprise / warp era. Show me mockup.”</blockquote>
-    <p class="lede">Three original cargo landers for the human expedition from Earth: chemical rockets, fusion power on the ground, no shields or transporters, cranes and human crews. Each does Halyard 07's job (one mining crawler or rover per trip, ramp, four legs, rocket landing) with Earth-industrial looks: white and grey panels, orange foam insulation, gold and black foil blankets, exposed piping, stencilled hull text, yellow/black warning stripes and the player colour as the red band.</p>
-    <div class="chips"><span class="chip">A · Lander</span><span class="chip">B · Hopper</span><span class="chip">C · Freighter</span><span class="chip">Mockup only · no game changes yet</span></div>
+    <p class="lede">Three original cargo landers for the human expedition from Earth: chemical rockets, fusion power on the ground, no shields or transporters, cranes and human crews. Each does Halyard 07's job (one mining crawler or rover per trip, ramp, four legs, rocket landing). After the first round the owner picked the look: a white hull, the Space Shuttle external tank's rust orange as the main accent (tanks, foam, stripes), black thermal tiles where the heat is, light grey details, and the player colour as a thin line.</p>
+    <div class="chips"><span class="chip">A · Lander</span><span class="chip">B · Hopper</span><span class="chip">C · Freighter</span><span class="chip ok">Decided: a mix, random per orbiting ship</span><span class="chip ok">In the game</span></div>
   </header>
 
   <section>
-    <h2><span class="tag">Lineup</span> Today's Halyard and the three options</h2>
+    <h2><span class="tag">Decided</span> What the owner chose</h2>
+    <blockquote>“Go with a mix … random. Could be any of them per orbiting ship.” · “White, Space Shuttle red/orange, hull names random like before. Legs should fold.”</blockquote>
+    <div class="decided">
+      <h3>Built</h3>
+      <ul>
+        <li><b>All three ships, mixed:</b> in a Dawn of Warp match each player's orbiting ship carries one of A, B or C, picked at random per player from the map seed and the player's slot, so it stays the same for the whole game and after a reload. Every drop ship of that player uses it: vehicle deliveries, the three ships of the first landing and outpost drops. Other eras keep Halyard 07.</li>
+        <li><b>Colours:</b> white panels, rust orange (#C8632A family) on the tanks, foam lines and a broad stripe, black tiles under the engines, on B's skirt and nose cap and on C's belly and nose, light grey details. Gold foil stays only on A's engine mounts and cab blankets. The player colour is a thin “Owner” line.</li>
+        <li><b>Hull names random, like before:</b> every pre-warp ship draws a name from a list of 41 original Earth-expedition names (TALLGRASS, IRONWOOD, SOUTHWIND, BLUE HERON …) and a number like UE-14, per ship and never the same twice for a player. The achievement drop ship name still overrides it.</li>
+        <li><b>Legs fold:</b> A's legs fold 124° straight up beside its tanks (moved off the diagonals to make room), B's 130° straight up the barrel over dark leg wells, both with the pads turned flat, contact face out. C folds like Halyard.</li>
+        <li><b>A and B's two-piece ramps:</b> the tip unfolds after the main ramp and folds first when it closes; the unit drives the full length. B climbs out straight up instead of pitching over.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="tag">Lineup</span> Halyard and the three pre-warp ships</h2>
     <figure>
-      <img src="img/lineup.png" alt="Front three-quarter lineup on sand: Halyard 07 with its nacelle pods on the left, then the octagonal Lander A with orange and silver spherical tanks, the tall round Hopper B, and the low Freighter C with orange tanks on its back and four engine pods; a survey rover and the mining crawler stand between them for scale." width="1080" height="340" loading="lazy">
-      <figcaption><b>Left to right:</b> Halyard 07 (today, 12.6 long, 5.6 high), A Lander, B Hopper, C Freighter. A Mk II rover and the mining crawler for scale.</figcaption>
+      <img src="img/lineup.png" alt="Front three-quarter lineup on sand: Halyard 07 with its nacelle pods on the left, then the octagonal white Lander A with four orange spherical tanks, the tall white and orange Hopper B, and the low white Freighter C with orange tanks on its back and four engine pods; a survey rover and the mining crawler stand between them for scale." width="1080" height="340" loading="lazy">
+      <figcaption><b>Left to right:</b> Halyard 07 (every other era, 12.6 long, 5.6 high), A Lander, B Hopper, C Freighter. A Mk II rover and the mining crawler for scale.</figcaption>
     </figure>
     <figure>
       <img src="img/lineup-game.png" alt="The same four ships seen from above at the game's landing camera angle, each centred on a planet hex: Halyard, A, B, C from left to right." width="960" height="360" loading="lazy">
@@ -106,14 +129,14 @@ footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; 
     </figure>
     <figure>
       <img class="native" src="img/lineup-game-1x.png" alt="The landing-camera lineup at the size it appears in the game at 1280 by 720: the ships are small but each silhouette still differs." width="545" height="204" loading="lazy">
-      <figcaption><b>Actual size</b> at 1280×720 (camera FOV 45°): a ship is about 60 px long. Halyard reads by its blue strips, A by its box and four tank dots, B as a white disc, C by its two orange tanks.</figcaption>
+      <figcaption><b>Actual size</b> at 1280×720 (camera FOV 45°): a ship is about 60 px long. Halyard reads by its blue strips, A by its box and four orange tank dots, B as a white disc ringed in orange, C by its two orange tanks.</figcaption>
     </figure>
   </section>
 
   <!-- ---------------------------------------------------------------- A -->
   <section class="opt" id="a">
-    <h2><span class="tag">A</span> Lander <small>“Expedition Carrier 2” · UE-02</small></h2>
-    <p class="pitch">A squat descent stage in gold and black foil carries four exposed spherical tanks (orange-foam methane, silver oxygen), a boxy pressurised cargo module and a faceted two-window crew cab. Four splayed truss legs with dish pads, an engine bell under each corner, RCS quads on the module corners and a folding two-piece ramp: Apollo descent stage meets a modern heavy cargo lander.</p>
+    <h2><span class="tag">A</span> Lander <small>sample hull TALLGRASS · UE-02</small></h2>
+    <p class="pitch">A squat octagonal descent stage, white panels with black-tile bays over the four corner engines, carries four orange-foam spherical tanks on its side strips, a boxy white cargo module with an orange stripe and a faceted two-window crew cab. Four A-frame legs with dish pads, RCS quads on the module corners and a folding two-piece ramp: Apollo descent stage meets a modern heavy cargo lander.</p>
     <div class="shots">
       <figure>
         <img src="img/a-hero.png" alt="Lander A landed with its two-piece ramp unfolded to the ground and the mining crawler driven off the end." width="1080" height="720" loading="lazy">
@@ -130,37 +153,49 @@ footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; 
         </figure>
       </div>
     </div>
+    <div class="quad">
+      <figure>
+        <img src="img/a-flight.png" alt="Lander A in flight with its four legs folded straight up beside the tanks, pads standing flat." width="720" height="480" loading="lazy">
+        <figcaption><b>Legs folded</b> (the climb-out): 123.6° straight up beside the tanks, pads turned flat.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/a-glb.png" alt="The exported game model of Lander A twice: landed with the ramp and its tip opened through the model's own pivots, and hovering with the legs folded." width="720" height="480" loading="lazy">
+        <figcaption><b>The game glb</b> posed through its own pivots: ramp 109.6° + tip 180°, and legs folded.</figcaption>
+      </figure>
+    </div>
     <div class="cards">
       <div class="card">
-        <h3>Spec</h3>
+        <h3>Spec (in the game)</h3>
         <dl class="spec">
           <dt>Size</dt><dd>8.4 across the stage, 11.8 over the pads, 8.0 to the cab roof (9.6 to the antennas)</dd>
-          <dt>Bay</dt><dd>3.6 wide × ~7.5 long × 3.8 high, deck 2.4 up</dd>
-          <dt>Ramp</dt><dd>two pieces, 3.75 + 3.1, toe on the ground at the game's 109.6°</dd>
-          <dt>Engines</dt><dd>4 bells under the corners (exit 0.44 above ground), RCS on the module corners</dd>
+          <dt>Bay</dt><dd>3.6 wide × ~7.5 long × 3.8 high, deck 2.43 up</dd>
+          <dt>Ramp</dt><dd>hinge (0, 2.43, 4.1); 3.75 + tip 3.08 at 109.6°, toe 10.53 aft</dd>
+          <dt>Legs</dt><dd>pads (±5.02, ±5.02); fold 123.6°, pads turn back 33.6°</dd>
+          <dt>Engines</dt><dd>4 bells (exit 0.44 up, r 0.55) at (±2.51, ±2.51), RCS quads on the module corners</dd>
+          <dt>Game glb</dt><dd>dropship_prewarp_a.glb · 35 nodes · 42.8k tris · 2.9 MB</dd>
         </dl>
       </div>
       <div class="card pro">
         <h3>For the game</h3>
         <ul>
-          <li>Says “space age, Earth” at a glance: gold foil, spherical tanks, Apollo legs. Nothing about it is Starfleet.</li>
-          <li>Four corner bells are exactly what <code>RocketPlume</code> already draws: four flames, one per corner.</li>
+          <li>Says “space age, Earth” at a glance: spherical tanks, Apollo legs. Nothing about it is Starfleet.</li>
+          <li>Four corner bells are exactly what <code>RocketPlume</code> draws: four flames, one per corner.</li>
           <li>Feels right for the colony landing: lowered on its plumes, crews and cranes unload it.</li>
         </ul>
       </div>
       <div class="card con">
-        <h3>Watch out</h3>
+        <h3>Watch out (resolved)</h3>
         <ul>
-          <li>From above it is a white box with dots: close to a prefab building at a glance (the tanks and the hex of legs help).</li>
-          <li>The deck is 2.4 up, so the ramp has to fold out in two pieces: a new <code>RampTip</code> step in <code>DropShipView</code>, and the drive-off path gets twice as long.</li>
-          <li>Apollo legs never retract; folding them (the game folds every leg) looks odd on this shape. Better: no fold for A.</li>
+          <li>From above it is a white box with dots: the four orange tanks and the stripe now set it apart from the white buildings.</li>
+          <li>The two-piece ramp got its <code>RampTip</code> step in <code>DropShipView</code>: the tip unfolds after the main ramp, the drive-off runs its full length (~+1 s).</li>
+          <li>Apollo legs never retract: rebuilt as A-frames that swing as one piece, with the tanks moved clear of the diagonals, so they fold cleanly.</li>
         </ul>
       </div>
       <div class="card need">
         <h3>Crawler fit</h3>
         <ul>
           <li>Crawler 5.6 × 2.7 × 3.1 fits with 0.45 each side and 0.7 headroom.</li>
-          <li>The drive down is ~7 long at 19.6°, from 2.4 up: a slightly slower unload (about +1 s).</li>
+          <li>The drive down is ~7 long at 19.6°, from 2.43 up.</li>
         </ul>
       </div>
     </div>
@@ -168,8 +203,8 @@ footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; 
 
   <!-- ---------------------------------------------------------------- B -->
   <section class="opt" id="b">
-    <h2><span class="tag">B</span> Hopper <small>“Surface Lifter 5” · UE-05</small></h2>
-    <p class="pitch">An upright reusable rocket lander, 7.2 wide and 13.3 tall: a stainless cargo barrel over a dark tiled skirt, a white tank section with a row of crew windows, grid fins and a blunt nose. Four carbon legs deploy from the base, a cluster of four engines sits under the heat shield, and a square door housing on one side drops a two-piece ramp to the ground.</p>
+    <h2><span class="tag">B</span> Hopper <small>sample hull SOUTHWIND · UE-05</small></h2>
+    <p class="pitch">An upright reusable rocket lander, 7.2 wide and 13.3 tall: a white cargo barrel over a black tiled skirt, an orange tank section with the thin player-colour line under it, a white crew level with a row of windows, grid fins and a black-tiled nose cap. Four carbon A-frame legs hinge low on the skirt, a cluster of four engines sits under the heat shield, and a square door housing on one side drops a two-piece ramp to the ground.</p>
     <div class="shots">
       <figure>
         <img src="img/b-hero.png" alt="Hopper B landed, its side door open as a long ramp, the mining crawler on the ground beyond it." width="1080" height="720" loading="lazy">
@@ -177,8 +212,8 @@ footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; 
       </figure>
       <div class="side">
         <figure>
-          <img src="img/b-game.png" alt="Hopper B from the game camera: mostly its white domed top and the door housing." width="720" height="480" loading="lazy">
-          <figcaption><b>Game camera:</b> the dome dominates.</figcaption>
+          <img src="img/b-game.png" alt="Hopper B from the game camera: its white domed top ringed in orange and the door housing." width="720" height="480" loading="lazy">
+          <figcaption><b>Game camera:</b> the dome dominates; the orange band reads.</figcaption>
         </figure>
         <figure>
           <img src="img/b-descent.png" alt="Hopper B descending on a single merged column of flame from its four clustered engines." width="720" height="480" loading="lazy">
@@ -186,14 +221,27 @@ footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; 
         </figure>
       </div>
     </div>
+    <div class="quad">
+      <figure>
+        <img src="img/b-flight.png" alt="Hopper B in flight with its legs folded flat up the barrel over dark leg wells." width="720" height="480" loading="lazy">
+        <figcaption><b>Legs folded:</b> 129.8° straight up the barrel, pads flat against it.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/b-glb.png" alt="The exported game model of Hopper B twice: landed with its door ramp and tip open, and hovering with the legs folded." width="720" height="480" loading="lazy">
+        <figcaption><b>The game glb</b> posed through its own pivots.</figcaption>
+      </figure>
+    </div>
     <div class="cards">
       <div class="card">
-        <h3>Spec</h3>
+        <h3>Spec (in the game)</h3>
         <dl class="spec">
           <dt>Size</dt><dd>7.2 wide, 11.0 over the pads, 13.3 high (14 to the antennas)</dd>
-          <dt>Bay</dt><dd>3.6 wide × 6.7 deep × 3.9 high, floor 2.6 up</dd>
-          <dt>Ramp</dt><dd>the door: two pieces, 3.8 + 3.5, toe on the ground at 109.6°</dd>
-          <dt>Engines</dt><dd>4 bells in a cluster under the base, RCS quads high on the barrel (aft pair either side of the door)</dd>
+          <dt>Bay</dt><dd>3.6 wide × 6.7 deep × 3.9 high, floor 2.58 up</dd>
+          <dt>Ramp</dt><dd>hinge (0, 2.58, 3.98); the door 3.82 + tip 3.47 at 109.6°, toe 10.85 aft</dd>
+          <dt>Legs</dt><dd>pads (±4.49, ±4.49); fold 129.8°, pads turn back 39.8°</dd>
+          <dt>Engines</dt><dd>4 bells in a cluster (exit 0.73 up, r 0.62), RCS quads high on the barrel</dd>
+          <dt>Climb</dt><dd>straight up (no pitch-over, no aft thrusters)</dd>
+          <dt>Game glb</dt><dd>dropship_prewarp_b.glb · 35 nodes · 33.4k tris · 2.6 MB</dd>
         </dl>
       </div>
       <div class="card pro">
@@ -207,11 +255,9 @@ footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; 
       <div class="card con">
         <h3>Watch out</h3>
         <ul>
-          <li>From the 55° camera it is a white disc: you see the dome, not which way the door faces.</li>
-          <li>13–14 tall: towers over the Level 1 outpost and may clip the camera at the closest zoom.</li>
-          <li>The climb-out pitches over toward the nose (made for a horizontal ship): needs a straight climb for B.</li>
-          <li>The game's 90° leg fold leaves these legs sticking out at ~45°; B wants ~130° (a per-model angle).</li>
-          <li>Same <code>RampTip</code> step as A.</li>
+          <li>From the 55° camera it is a white disc ringed in orange: you see the dome, not which way the door faces.</li>
+          <li>13–14 tall: towers over the Level 1 outpost and may clip the camera at the closest zoom (check in Godot).</li>
+          <li>Resolved: B climbs straight up, its legs fold ~130° (a per-model angle), and its door ramp has the <code>RampTip</code> step.</li>
         </ul>
       </div>
       <div class="card need">
@@ -226,8 +272,8 @@ footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; 
 
   <!-- ---------------------------------------------------------------- C -->
   <section class="opt" id="c">
-    <h2><span class="tag">C</span> Freighter <small>“Cargo Hauler 7” · UE-07</small></h2>
-    <p class="pitch">A horizontal lifting-body cargo hauler of the early 22nd century: blunt tiled nose, ceramic-tile belly, two orange foam tanks strapped along its back and Halyard's rear ramp. Its four vertical landing engines hang exposed on outrigger beams at the corners (chamber, turbopump, bell, gimbal struts) instead of nacelles; utilitarian panels and stencils, no fins.</p>
+    <h2><span class="tag">C</span> Freighter <small>sample hull IRONWOOD · UE-07</small></h2>
+    <p class="pitch">A horizontal lifting-body cargo hauler of the early 22nd century: white hull, black-tiled nose and belly, an orange flash along the flanks over the thin player-colour line, two orange foam tanks strapped along its back and Halyard's rear ramp. Its four vertical landing engines hang exposed on outrigger beams at the corners (chamber, turbopump, bell, gimbal struts) instead of nacelles; utilitarian panels and stencils, no fins.</p>
     <div class="shots">
       <figure>
         <img src="img/c-hero.png" alt="Freighter C landed with its rear ramp down and the mining crawler driven off; engine pods hang from beams at each corner." width="1080" height="720" loading="lazy">
@@ -244,20 +290,32 @@ footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; 
         </figure>
       </div>
     </div>
+    <div class="quad">
+      <figure>
+        <img src="img/c-flight.png" alt="Freighter C in flight with its legs folded fore and aft under the outriggers." width="720" height="480" loading="lazy">
+        <figcaption><b>Legs folded</b> as Halyard's: front ones aft, rear ones forward, 90°, pads level.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/c-glb.png" alt="The exported game model of Freighter C twice: landed with its rear ramp open, and hovering with the legs folded." width="720" height="480" loading="lazy">
+        <figcaption><b>The game glb</b> posed through its own pivots.</figcaption>
+      </figure>
+    </div>
     <div class="cards">
       <div class="card">
-        <h3>Spec</h3>
+        <h3>Spec (in the game)</h3>
         <dl class="spec">
           <dt>Size</dt><dd>13.7 long, 12.5 over the engine pods, 6.2 high</dd>
           <dt>Bay</dt><dd>3.6 wide × 8.0 long × 3.35 high, floor 1.25 up (Halyard's)</dd>
-          <dt>Ramp</dt><dd>one piece, 3.32, opens 109.6° (Halyard's numbers)</dd>
-          <dt>Engines</dt><dd>4 bells in exposed pods at the corners, RCS quads at the nose and the aft corners</dd>
+          <dt>Ramp</dt><dd>hinge (0, 1.25, 6.4); one piece, 3.32 at 109.6°, toe 9.53 aft</dd>
+          <dt>Legs</dt><dd>pads (±5.65, -3.5 / 4.55); fold 90° like Halyard</dd>
+          <dt>Engines</dt><dd>4 bells in exposed pods at (±4.15, -3.5 / 4.55), exit 1.25 up, r 0.66; RCS quads at the nose and aft corners</dd>
+          <dt>Game glb</dt><dd>dropship_prewarp_c.glb · 33 nodes · 38.4k tris · 2.7 MB</dd>
         </dl>
       </div>
       <div class="card pro">
         <h3>For the game</h3>
         <ul>
-          <li>Drops straight in: same ramp hinge, length and angle, same leg rests and folds, same bay. Only the glb changes.</li>
+          <li>Almost a glb swap: Halyard's ramp length, angle, leg folds and bay; only the hinge, pads and footprint move.</li>
           <li>Readable from above: two orange tanks and four pods make a clear “H” that no building has, and the ramp end is obvious.</li>
           <li>Plumes come from the four corners, wide apart: the landing looks stable and reads as rockets.</li>
         </ul>
@@ -266,15 +324,15 @@ footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; 
         <h3>Watch out</h3>
         <ul>
           <li>Same layout as Halyard (box fuselage, rear ramp), so it's the least different of the three.</li>
-          <li>The exposed engines are detailed: the joined game glb will be heavier than Halyard's (~35 nodes) unless they are simplified.</li>
-          <li>Engine pods widen the footprint to 12.5: the landing-spot search (11 from buildings) may need +1.</li>
+          <li>The exposed engines are detailed, but the joined game glb came out at 33 nodes, like Halyard.</li>
+          <li>Engine pods widen the footprint to 12.5: the landing-spot search uses C's own footprint points.</li>
         </ul>
       </div>
       <div class="card need">
         <h3>Crawler fit</h3>
         <ul>
           <li>Halyard's bay with 0.8 more length: the crawler fits with 0.45 each side and 0.25 headroom, like today.</li>
-          <li>Unload timing and path unchanged.</li>
+          <li>Unload timing and path as Halyard's.</li>
         </ul>
       </div>
     </div>
@@ -284,31 +342,31 @@ footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; 
     <h2><span class="tag">Side by side</span></h2>
     <div class="table">
       <table>
-        <thead><tr><th>Option</th><th>Footprint × height</th><th>Bay (w × l × h)</th><th>Ramp</th><th>Game changes</th><th>From the game camera</th></tr></thead>
+        <thead><tr><th>Option</th><th>Footprint × height</th><th>Bay (w × l × h)</th><th>Ramp</th><th>In the game</th><th>From the game camera</th></tr></thead>
         <tbody>
-          <tr><td>Halyard 07 (today)</td><td>12.6 × 9.4 × 5.6</td><td>3.6 × 7.2 × 3.35</td><td>1 piece, 109.6°</td><td>—</td><td>White box with blue nacelle strips</td></tr>
-          <tr><td>A Lander</td><td>11.8 × 11.8 × 8.0</td><td>3.6 × 7.5 × 3.8</td><td>2 pieces, 109.6°</td><td>Ramp tip unfold; no leg fold; longer unload path</td><td>White box, four tank dots, splayed legs</td></tr>
-          <tr><td>B Hopper</td><td>11.0 × 11.0 × 13.3</td><td>3.6 × 6.7 × 3.9</td><td>2 pieces, 109.6°</td><td>Ramp tip; straight climb; per-model leg fold angle</td><td>White disc</td></tr>
-          <tr><td>C Freighter</td><td>13.7 × 12.5 × 6.2</td><td>3.6 × 8.0 × 3.35</td><td>1 piece, 109.6°</td><td>None (glb swap)</td><td>Orange “H” of tanks and pods</td></tr>
+          <tr><td>Halyard 07</td><td>12.6 × 9.4 × 5.6</td><td>3.6 × 7.2 × 3.35</td><td>1 piece, 109.6°</td><td>Every era but Dawn of Warp (the default spec)</td><td>White box with blue nacelle strips</td></tr>
+          <tr><td>A Lander</td><td>11.8 × 11.8 × 8.0</td><td>3.6 × 7.5 × 3.8</td><td>2 pieces, 109.6°</td><td>Ramp tip unfold; legs fold 123.6°; longer unload path</td><td>White box, four orange tank dots, splayed legs</td></tr>
+          <tr><td>B Hopper</td><td>11.0 × 11.0 × 13.3</td><td>3.6 × 6.7 × 3.9</td><td>2 pieces, 109.6°</td><td>Ramp tip; straight climb; legs fold 129.8°</td><td>White disc ringed in orange</td></tr>
+          <tr><td>C Freighter</td><td>13.7 × 12.5 × 6.2</td><td>3.6 × 8.0 × 3.35</td><td>1 piece, 109.6°</td><td>Own hinge, pads and footprint; Halyard's folds</td><td>Orange “H” of tanks and pods</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted">All three keep the game's part names (Ramp, Leg0–3, Foot0–3, Thruster0–5, BayLight, Beacon, decal markers) and drop the nacelle glows. Thruster0–3 are the glowing insides of the four bells, so the flames start at the bell exits; Thruster4/5 are the aft-facing nozzles of two RCS quads.</p>
+    <p class="muted">All three keep the game's part names (Ramp, RampTip on A and B, Leg0–3, Foot0–3, Thruster0–5, BayLight, Beacon, the name and number decal markers, the Owner material) and drop the nacelle glows. Thruster0–3 are the glowing insides of the four bells, so the flames start at the bell exits; Thruster4/5 are the aft-facing nozzles of two RCS quads. The game exports are joined like Halyard's (Body + RampBody (+ RampTipBody) + LegK/FootK bodies) with the procedural paint baked into one 2048² atlas each.</p>
   </section>
 
   <section class="opt">
-    <h2><span class="tag">Questions</span> for the owner</h2>
+    <h2><span class="tag">Questions</span> answered</h2>
     <ol class="qs">
-      <li><b>Which option?</b> A, B or C, or a mix (for example C's body with A's gold foil and spherical tanks, or A with a lower one-piece ramp).</li>
-      <li><b>Colours:</b> keep white/grey with orange foam, gold foil and the player colour as the red band? Or a plainer agency look (white with black tiles) where the player colour is the only accent?</li>
-      <li><b>One design for every pre-warp drop, or the convoy only?</b> The first landing (three ships bringing the Level 1 outpost) and single vehicle deliveries could share one lander, or the convoy could use a bigger one. Does the Earth supply ship (colonists and kits every ~15 min) land with the same lander?</li>
-      <li><b>Hull names:</b> stencilled names like “EXPEDITION CARRIER 2” with a number (UE-02), a pre-warp name list per player like today's HALYARD 07 / BOWLINE 12, or numbers only?</li>
-      <li><b>Legs:</b> should pre-warp landers fold their legs in flight (as Halyard does) or keep them out like Apollo?</li>
+      <li><b>Which option?</b> A, B or C, or a mix.<span class="ans">a mix: each player's orbiting ship gets one of the three at random (per game, from the map seed and the player's slot), and all of that player's drop ships use it.</span></li>
+      <li><b>Colours?</b><span class="ans">white, Space Shuttle red/orange as the main accent, black tiles where they make sense, light grey details; gold only as a small accent on A; the player colour a thin line.</span></li>
+      <li><b>One design for every pre-warp drop, or the convoy only?</b><span class="ans">one model per player for everything they land: deliveries, the first-landing convoy and outpost drops. (The Earth supply ship is still to come; it can reuse the same pick.)</span></li>
+      <li><b>Hull names?</b><span class="ans">random like before: a name from a pre-warp list and a UE-NN number per ship, never twice for a player.</span></li>
+      <li><b>Legs?</b><span class="ans">they fold: A 123.6° and B 129.8° straight up the hull with the pads turned flat, C 90° like Halyard.</span></li>
     </ol>
   </section>
 
   <footer>
-    <p>Built by <code>blender/build_dropship_prewarp.py</code> (bpy 5, procedural materials, no bake). Full run: 9 option renders + 2 lineups at 1080×720, 40 Cycles samples, about 6 minutes on 4 cores (about 30 s a render). Renders in <code>blender/previews/dropship_prewarp/</code> with a contact sheet; today's Halyard renders in <code>blender/previews/dropship/</code>.</p>
-    <p>Mockup only: nothing in <code>game/</code> changes until an option is chosen.</p>
+    <p>Built by <code>blender/build_dropship_prewarp.py</code> (bpy 5, procedural materials). Previews: <code>--preview blender/previews/dropship_prewarp</code> renders hero, game camera, descent, flight (legs folded) and the glb check per option plus both lineups at 1080×720, 32 Cycles samples, about 10 minutes on 4 cores; <code>--sheet</code> folds them into a contact sheet. Game models: <code>--game</code> writes <code>game/models/vehicles/dropship_prewarp_a/b/c.glb</code> (about 30 s each: joined, paint baked).</p>
+    <p>This page is the record of the decision; the game side is <code>game/scripts/DropShipSpec.cs</code> (each model's numbers) and <code>DropShipHulls.cs</code> (the pick and the names).</p>
   </footer>
 </div>
