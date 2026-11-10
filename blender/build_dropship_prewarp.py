@@ -11,7 +11,7 @@ foil, exposed piping, stencilled hull text, hazard stripes, the player colour as
 
   A  "Lander"     octagonal descent stage in gold/black foil, four exposed spherical tanks, a boxy pressurised cargo
                   module with a faceted crew cab on top, four splayed truss legs with dish pads, a bell under each
-                  corner, a folding two-piece ramp. 8.4 across the stage, 12.6 over the pads (diagonal), 8.9 high.
+                  corner, a folding two-piece ramp. 8.4 across the stage, 11.8 over the pads, 8.0 to the cab roof.
   B  "Hopper"     upright reusable rocket lander, 7.2 wide and 13.3 tall: stainless cargo barrel over a dark tiled
                   skirt, white upper tank section, grid fins, four deployable legs, a cluster of four bells under the
                   base, a cargo door housing on one side whose door unfolds into a two-piece ramp.
@@ -41,7 +41,7 @@ GAME CONTRACT KEPT (Blender +Y = front, +Z up, 1 unit = 1 world unit; names as i
 
 Run (bpy 5.x; see CLAUDE.md "Blender here"):
   /home/user/.bpyvenv/bin/python blender/build_dropship_prewarp.py --preview blender/previews/dropship_prewarp
-      every option x shot + both lineups (~12 renders at 1080 x 720, 24 samples; ~15-20 min on 4 cores)
+      every option x shot + both lineups (11 renders at 1080 x 720; with --samples 40 about 6 min on 4 cores)
   ... --options a --shots hero --res 640 --samples 8     (quick look at one option)
   ... --options a,b,c --shots lineup,lineup-game         (just the lineups)
   python3 blender/build_dropship_prewarp.py --sheet blender/previews/dropship_prewarp   (contact sheet; PIL, not bpy)
