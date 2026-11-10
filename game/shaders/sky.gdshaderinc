@@ -41,7 +41,7 @@ vec3 sky_shade(float p_day) {
 	float d = clamp(p_day, 0.0, 1.0);
 	float sun_on = smoothstep(0.0, 0.08, d);
 	vec3 warm = mix(vec3(1.0, 0.56, 0.34), vec3(1.0), smoothstep(0.06, 0.45, d));
-	vec3 ambient = mix(vec3(0.065, 0.0845, 0.156), vec3(0.22, 0.23, 0.25), smoothstep(0.0, 0.3, d)); // night floor +30% (owner 2026-11-10)
+	vec3 ambient = mix(vec3(0.13, 0.15, 0.22), vec3(0.22, 0.23, 0.25), smoothstep(0.0, 0.3, d)); // night floor (owner 2026-11-10: "still way too dark"; was 0.05/0.065/0.12, then +30%)
 	return warm * sqrt(d) * sun_on + ambient;
 }
 
