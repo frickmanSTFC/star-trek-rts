@@ -74,15 +74,15 @@ def arg(name, default=None):
 # ---------------------------------------------------------------- contact sheet (plain python3 + PIL, no bpy)
 
 SHEET_ROWS = [("a", "Lander"), ("b", "Hopper"), ("c", "Freighter")]
-SHEET_COLS = ["hero", "game", "descent"]
+SHEET_COLS = ["hero", "game", "descent", "flight"]
 
 if "--sheet" in argv:
     from PIL import Image, ImageDraw
     folder = arg("--sheet")
-    tw = 520
+    tw = 480
     th = tw * 2 // 3
-    lw = tw * 3 // 2  # the two lineups share the last row
-    sheet = Image.new("RGB", (tw * 3, th * 3 + lw * 2 // 3), (20, 22, 26))
+    lw = tw * len(SHEET_COLS) // 2  # the two lineups share the last row
+    sheet = Image.new("RGB", (tw * len(SHEET_COLS), th * 3 + lw * 2 // 3), (20, 22, 26))
     draw = ImageDraw.Draw(sheet)
 
     def put(path, box, label):
@@ -368,7 +368,8 @@ LIGHTGREY = (0.6, 0.61, 0.62)
 def prewarp_palette():
     P = V["tier_palette"](V["palette"]())
     P.update({
-        "white": paint("PaintWhite", WHITE, 0.05, 0.48, coat=0.1),
+        # "...Paint": the game's achievement paint/finish (CosmeticLook) dresses materials named Hull or *Paint.
+        "white": paint("WhitePaint", WHITE, 0.05, 0.48, coat=0.1),
         "grey": paint("PaintGrey", LIGHTGREY, 0.12, 0.5),
         "darkgrey": paint("PaintDark", (0.16, 0.165, 0.17), 0.3, 0.55, grime=0.2),
         "stainless": paint("Stainless", (0.66, 0.67, 0.7), 0.95, 0.28, grime=0.25, mottle=0.12, streaks=0.18),
