@@ -20,6 +20,7 @@ public static class GameSettings
     private static float _masterVolume = 0.8f;
     private static float _uiVolume = 0.8f;
     private static float _effectsVolume = 1f;
+    private static float _ambienceVolume = 0.9f;
     private static WindowChoice _window = WindowChoice.Windowed;
     private static bool _vsync = true;
     private static float _uiScale = 1f;
@@ -38,8 +39,11 @@ public static class GameSettings
     /// <summary>The UI bus 0..1 (menu hover/click, tutorial cards, placing, refusals).</summary>
     public static float UiVolume { get { Load(); return _uiVolume; } set { Load(); _uiVolume = Mathf.Clamp(value, 0f, 1f); } }
 
-    /// <summary>The Effects bus 0..1 (landings, selection hums; the Ambience bus follows it).</summary>
+    /// <summary>The Effects bus 0..1 (landings, vehicles driving, wipers, selection hums).</summary>
     public static float EffectsVolume { get { Load(); return _effectsVolume; } set { Load(); _effectsVolume = Mathf.Clamp(value, 0f, 1f); } }
+
+    /// <summary>The Ambience bus 0..1 (the weather at the site: wind, gusts, rain, snowfall, dust storms, thunder).</summary>
+    public static float AmbienceVolume { get { Load(); return _ambienceVolume; } set { Load(); _ambienceVolume = Mathf.Clamp(value, 0f, 1f); } }
 
     public static WindowChoice WindowMode { get { Load(); return _window; } set { Load(); _window = value; } }
 
@@ -66,6 +70,7 @@ public static class GameSettings
         _masterVolume = Mathf.Clamp((float)cfg.GetValue("audio", "master_volume", _masterVolume).AsDouble(), 0f, 1f);
         _uiVolume = Mathf.Clamp((float)cfg.GetValue("audio", "ui_volume", _uiVolume).AsDouble(), 0f, 1f);
         _effectsVolume = Mathf.Clamp((float)cfg.GetValue("audio", "effects_volume", _effectsVolume).AsDouble(), 0f, 1f);
+        _ambienceVolume = Mathf.Clamp((float)cfg.GetValue("audio", "ambience_volume", _ambienceVolume).AsDouble(), 0f, 1f);
         var w = cfg.GetValue("display", "window_mode", (int)_window).AsInt32();
         _window = w is >= 0 and <= (int)WindowChoice.Exclusive ? (WindowChoice)w : WindowChoice.Windowed;
         _vsync = cfg.GetValue("display", "vsync", _vsync).AsBool();
@@ -82,6 +87,7 @@ public static class GameSettings
         _masterVolume = 0.8f;
         _uiVolume = 0.8f;
         _effectsVolume = 1f;
+        _ambienceVolume = 0.9f;
         _window = WindowChoice.Windowed;
         _vsync = true;
         _uiScale = 1f;
@@ -97,6 +103,7 @@ public static class GameSettings
         cfg.SetValue("audio", "master_volume", _masterVolume);
         cfg.SetValue("audio", "ui_volume", _uiVolume);
         cfg.SetValue("audio", "effects_volume", _effectsVolume);
+        cfg.SetValue("audio", "ambience_volume", _ambienceVolume);
         cfg.SetValue("display", "window_mode", (int)_window);
         cfg.SetValue("display", "vsync", _vsync);
         cfg.SetValue("display", "ui_scale", _uiScale);
@@ -106,7 +113,7 @@ public static class GameSettings
         if (err != Error.Ok) GD.PushWarning($"Settings: couldn't save {File} ({err}).");
     }
 
-    /// <summary>The volumes to the buses: Master, UI, Effects and Ambience (= Effects); creates the game's buses if the
+    /// <summary>The volumes to the buses: Master, UI, Effects and Ambience; creates the game's buses if the
     /// project has none (Sfx). Cheap: the settings card calls it on every slider step.</summary>
     public static void ApplyAudio()
     {
@@ -115,7 +122,7 @@ public static class GameSettings
         SetBus("Master", _masterVolume);
         SetBus(Sfx.UiBus, _uiVolume);
         SetBus(Sfx.EffectsBus, _effectsVolume);
-        SetBus(Sfx.AmbienceBus, _effectsVolume);
+        SetBus(Sfx.AmbienceBus, _ambienceVolume);
 
         static void SetBus(string name, float volume)
         {

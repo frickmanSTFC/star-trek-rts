@@ -1065,8 +1065,10 @@ public partial class PlanetView : Node3D
                 pos = rolled;
             }
             var aboard = false;
+            var delivering = false; // in or on its drop ship (the ramp has its own roll sound): no drive sound yet
             if (_dropShips.Unloading(u, pos, alpha, out var carried, out var driving))
             {
+                delivering = true;
                 // Just delivered: it waits in its drop ship's bay, drives down the ramp, then on to its tile.
                 if (carried.Basis is { } pose) model.Basis = pose;
                 pos = carried.Origin;
@@ -1093,6 +1095,7 @@ public partial class PlanetView : Node3D
                 lamps.Update(moving || rolling, u.Broken || u.Integrity < Fix64.FromInt(50), wipe, delta);
             }
             UnitHeadlights(u, def); // PlanetView.Headlights.cs: broken / damaged / out of sight / crawler deployed
+            NoteVehicleSound(u, def, model, ground, onPad, delivering, shown, lamps, delta); // PlanetView.Sounds.cs: speed, wiper strokes, who is heard
             if (model.GetNodeOrNull<Node3D>("Selected") is { } ring) ring.Visible = SelectedUnits.Contains(u.Id) && !aboard;
             if (model.GetNodeOrNull<Node3D>("Dish") is { } dish) dish.RotateY(delta * (moving ? 3f : 1f));
 
@@ -1125,6 +1128,7 @@ public partial class PlanetView : Node3D
             _lamps.Remove(id);
             ForgetHeadlights(id);
             ForgetRover(id);
+            ForgetVehicleSound(id);
             _unitLabels[id].QueueFree();
             _unitLabels.Remove(id);
         }
@@ -1134,6 +1138,7 @@ public partial class PlanetView : Node3D
             foreach (var p in _crews[id].People) p.QueueFree();
             _crews.Remove(id);
         }
+        UpdateVehicleSounds(delta); // PlanetView.Sounds.cs: the nearest moving vehicles' drive + ground loops, flats
     }
 
     // ---------------------------------------------------------------- vehicle bay (render-only)

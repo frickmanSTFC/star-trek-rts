@@ -73,12 +73,18 @@ public partial class SettingsPanel : PanelContainer
                 GameSettings.UiVolume = v;
                 GameSettings.ApplyAudio();
             }, v => $"{v * 100f:0}%", () => Sfx.Ui("click"));
-        Slider("Effects", "Landings, engines and the hum of what you select",
+        Slider("Effects", "Landings, vehicles driving, wipers and the hum of what you select",
             0f, 1f, 0.05f, GameSettings.EffectsVolume, v =>
             {
                 GameSettings.EffectsVolume = v;
                 GameSettings.ApplyAudio();
             }, v => $"{v * 100f:0}%", () => Sfx.Preview("select/default_vehicle", Sfx.EffectsBus));
+        Slider("Weather", "Wind, gusts, rain, snowfall, dust storms and thunder at the site",
+            0f, 1f, 0.05f, GameSettings.AmbienceVolume, v =>
+            {
+                GameSettings.AmbienceVolume = v;
+                GameSettings.ApplyAudio();
+            }, v => $"{v * 100f:0}%", () => Sfx.Preview("ambience/wind_gust_b", Sfx.AmbienceBus));
 
         _box.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6 * s), MouseFilter = MouseFilterEnum.Ignore });
         var bar = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };

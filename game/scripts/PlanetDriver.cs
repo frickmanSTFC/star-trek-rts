@@ -993,6 +993,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             MoveCamera((float)delta);
             UpdateHover();
         }
+        _view.Heard = !_inOrbit; // vehicle sounds only on the surface (PlanetView.Sounds.cs)
         _view.Refresh(alpha);
         UpdateSky((float)delta); // PlanetDriver.Sky.cs: before the uplink, which hands the feed the outpost's sky
         UpdateUplink((float)delta);

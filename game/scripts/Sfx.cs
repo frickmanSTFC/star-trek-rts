@@ -34,7 +34,7 @@ public static class Sfx
     /// "locked", "none" = no click sound (hover stays), "mute" = no sound at all, …). Set it with <see cref="Tag"/>.</summary>
     public const string SoundMeta = "sfx";
 
-    internal static readonly StringName UiBusName = UiBus, EffectsBusName = EffectsBus;
+    internal static readonly StringName UiBusName = UiBus, EffectsBusName = EffectsBus, AmbienceBusName = AmbienceBus;
     internal static readonly StringName WiredMeta = "_sfx_wired", SoundMetaName = SoundMeta;
 
     private static SfxHost? _host;
@@ -85,6 +85,31 @@ public static class Sfx
         parent.AddChild(player);
         return player;
     }
+
+    /// <summary>A positional player for code that keeps its own players (vehicle drive loops, wipers): not in the tree,
+    /// no stream yet (set one from <see cref="Load"/>), bus Effects, the game's falloff (<see cref="Configure3D"/>) with
+    /// its own unit size and cut-off distance. Pauses with the game when its parent does.</summary>
+    public static AudioStreamPlayer3D Player3D(string name, float unitSize = 150f, float maxDistance = 1000f)
+    {
+        Host(); // buses + settings
+        var player = new AudioStreamPlayer3D { Name = name };
+        Configure3D(player);
+        player.UnitSize = unitSize;
+        player.MaxDistance = maxDistance;
+        return player;
+    }
+
+    /// <summary>A flat player on <paramref name="bus"/> for code that keeps its own (the weather beds on Ambience): not in
+    /// the tree, no stream yet. Pauses with the game when its parent does.</summary>
+    public static AudioStreamPlayer PlayerFlat(string name, StringName bus)
+    {
+        Host();
+        return new AudioStreamPlayer { Name = name, Bus = bus };
+    }
+
+    /// <summary>The cached stream for "group/name" (a *_loop file loops), or null while the file is missing (one
+    /// warning).</summary>
+    public static AudioStream? Load(string path) => Stream(path);
 
     /// <summary>The selection hum of a building or vehicle id (falls back to default_building / default_vehicle).</summary>
     public static void Select(string id, bool vehicle)

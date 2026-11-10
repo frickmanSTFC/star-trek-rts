@@ -21,6 +21,7 @@ public partial class PlanetDriver
 {
     private SkyField _skyField = null!;
     private WeatherView _weatherView = null!;
+    private WeatherAudio _weatherAudio = null!;
     private MeshInstance3D _skyDome = null!;
     private ShaderMaterial _skyDomeMaterial = null!;
     private DirectionalLight3D _moonLight = null!;
@@ -75,6 +76,8 @@ public partial class PlanetDriver
         AddChild(_weatherView);
         _weatherView.Build();
         _weatherView.DustColour = _view.Look.StormDust; // rust on Veyra (PlanetLook)
+        _weatherAudio = new WeatherAudio { Name = "WeatherAudio" }; // wind, rain, snow, dust, thunder on the Ambience bus
+        AddChild(_weatherAudio);
 
         _skyDomeMaterial = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/sky_dome.gdshader"), RenderPriority = -100 };
         _skyDome = new MeshInstance3D
@@ -260,6 +263,12 @@ public partial class PlanetDriver
             }
             _orbit.SetClimateStorms(_stormTiles, _stormVersion);
         }
+
+        // The weather's sound (WeatherAudio): from the same eased weather, so the SKY tab's forced weather counts; full
+        // close to the ground, quieter from far up, very quiet in orbit with the outpost feed open, off otherwise.
+        _view.RainNow = _inOrbit ? 0f : _look.Rain;
+        var presence = !_inOrbit ? 1f : landed && _feed.CameraPosition != null ? 0.18f : 0f;
+        _weatherAudio.Update(_look, _windEased.Length(), gust, _distance, presence, _weatherView.Bolts, delta);
 
         // The helm's surface feed: the outpost's sky from the same numbers.
         _feed.Climate = landed
