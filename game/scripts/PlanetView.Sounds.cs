@@ -29,6 +29,9 @@ public partial class PlanetView
     /// <summary>Rain or snowfall at the view's centre 0..1 (the driver's eased weather): auto wipers run in it, and wipers on wet glass swish, not squeak.</summary>
     public float RainNow { get; set; }
 
+    /// <summary>Where sounds are heard from: the camera (last frame's, set by UpdateHeadlights), for ConstructionView's drones.</summary>
+    public Vector3 HearingEye => _eye;
+
     private const int DriveSlots = 6;           // vehicles heard driving at once: the nearest moving ones
     private const int WiperPlayers = 4;
     private const float HearRange = 700f;       // a vehicle further from the camera than this isn't a candidate

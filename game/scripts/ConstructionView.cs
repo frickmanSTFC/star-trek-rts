@@ -125,6 +125,7 @@ public partial class ConstructionView : Node3D
         public float CutY;                // where the beams aim (top of the printed part of the current piece)
         public Aabb Focus;                // the piece being printed (or the whole building for an upgrade)
         public bool InSight = true;       // fog: the local player sees the site now (else its drones and beams are hidden)
+        public float NextChirp;           // when one of its drones next chirps (ConstructionView.Sounds.cs)
     }
 
     private enum DroneState { Outbound, Working, Home }
@@ -152,6 +153,10 @@ public partial class ConstructionView : Node3D
         public Vector3 AimOffset;         // its random part, re-picked every half second or so
         public float NextAim;
         public Vector3 LastPos;
+        public int Id;                    // sounds: which loop slot is whose
+        public int Owner;
+        public float Pitch = 1f;          // its own hum pitch (±8 %)
+        public bool DockCued;             // its dock sound has started
     }
 
     private sealed class Beam
@@ -244,6 +249,7 @@ public partial class ConstructionView : Node3D
         {
             if (old == null) return;
             StartShimmer(model);
+            SoundComplete(old, model);
             Finish(old);
             return;
         }
@@ -297,6 +303,7 @@ public partial class ConstructionView : Node3D
             Focus = bounds,
             CutY = Mathf.Min(bounds.Position.Y, centre.Y) + 1f,
             Spin = _rng.Randf() * Mathf.Tau,
+            NextChirp = _time + 2f + 4f * _rng.Randf(),
         };
     }
 
@@ -328,7 +335,11 @@ public partial class ConstructionView : Node3D
                 if (site.Upgrade && !upgrading)
                 {
                     // A level upgrade finished (a core upgrade swaps the model and comes through Attach instead).
-                    if (GodotObject.IsInstanceValid(site.Model)) StartShimmer(site.Model);
+                    if (GodotObject.IsInstanceValid(site.Model))
+                    {
+                        StartShimmer(site.Model);
+                        SoundComplete(site, site.Model);
+                    }
                     Finish(site);
                     continue;
                 }
@@ -355,6 +366,7 @@ public partial class ConstructionView : Node3D
             }
         }
         for (var i = beams; i < _beams.Count; i++) SetBeam(_beams[i], false);
+        UpdateSounds(delta); // ConstructionView.Sounds.cs
         UpdateShimmers(delta);
     }
 
@@ -419,6 +431,7 @@ public partial class ConstructionView : Node3D
                 {
                     p.State = PieceState.Locking;
                     p.LockedAt = _time;
+                    SoundLock(site, p);
                 }
                 var flash = 1f - (_time - p.LockedAt) / LockSeconds;
                 if (flash <= 0f)
@@ -668,13 +681,17 @@ public partial class ConstructionView : Node3D
             Phase = _rng.Randf() * Mathf.Tau,
             NextHop = 0f,
             LastPos = home,
+            Id = ++_nextDroneId,
+            Owner = site.Owner,
         };
+        d.Pitch = DronePitch(d.Id);
         node.GlobalPosition = home;
         Hop(d, site);
         d.Spot = SpotFor(d, site);
         d.Duration = Mathf.Clamp(home.DistanceTo(d.Spot) / CruiseSpeed, MinFlight, MaxFlight);
         d.Aim = site.Focus.GetCenter();
         _drones.Add(d);
+        SoundLaunch(d, site);
         site.Live++;
     }
 
@@ -774,7 +791,11 @@ public partial class ConstructionView : Node3D
             }
             case DroneState.Working when site != null:
             {
-                if (_time >= d.NextHop) Hop(d, site);
+                if (_time >= d.NextHop)
+                {
+                    Hop(d, site);
+                    if (site.Working) SoundHop(d, pos); // a paused site's drones stay put
+                }
                 if (site.Working) d.Spot = SpotFor(d, site); // paused: stay where it is
                 pos = pos.Lerp(d.Spot + new Vector3(0, bob, 0), 1f - Mathf.Exp(-delta * 2.2f));
                 // Beam on most of the time, with short breaks while it lines up again.
@@ -819,13 +840,19 @@ public partial class ConstructionView : Node3D
                 pos = d.From.Lerp(d.To, e) + new Vector3(0, (2.5f + d.From.DistanceTo(d.To) * 0.1f) * Mathf.Sin(Mathf.Pi * t), 0);
                 face = d.To - pos;
                 size = Mathf.Clamp((1f - d.T) / 0.15f, 0.3f, 1f);
+                if (!d.DockCued && (1f - d.T) * d.Duration <= DockLead)
+                {
+                    d.DockCued = true;
+                    SoundDock(d); // the clamp click lands as it vanishes into the dock
+                }
                 if (d.T >= 1f) return false; // docked
                 break;
             }
         }
 
-        // Fog: another player's exocomps over a site out of sight are hidden (they keep flying, so they're right when it shows).
-        var hidden = site != null && !site.InSight;
+        // Fog: another player's exocomps over a site out of sight are hidden (they keep flying, so they're right when it
+        // shows); on their way home, where they are now decides.
+        var hidden = site != null ? !site.InSight : d.Owner != _view.LocalPlayer && !_view.ShowsLive(d.Owner, _view.TileAt(pos));
         d.Node.Visible = !hidden;
         firing &= !hidden;
         d.Node.GlobalPosition = pos;
@@ -846,12 +873,14 @@ public partial class ConstructionView : Node3D
             d.Body.Scale = d.BodyScale * size;
         }
 
-        if (firing && beams < MaxBeams)
+        var drawn = firing && beams < MaxBeams;
+        if (drawn)
         {
             var from = d.Emitter != null ? d.Emitter.GlobalPosition : pos;
             DrawBeam(BeamAt(beams), from, d.Aim, d.Phase, site != null && site.Owner == _view.LocalPlayer ? Cosmetics.BeamColour : null);
             beams++;
         }
+        NoteDrone(d, pos, velocity, size, drawn); // ConstructionView.Sounds.cs: its hum and beam
         return true;
     }
 

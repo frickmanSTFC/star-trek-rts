@@ -34,7 +34,8 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "game" / "sounds"
 PAGE = ROOT / "docs" / "sounds" / "index.html"
 PEAK_CAP = 10 ** (-3 / 20)          # -3 dBFS
-TARGET_LOUDNESS = {"ui": -25.0, "select": -21.0, "landing": -17.0, "vehicle": -22.0, "ground": -23.0, "ambience": -24.0}
+TARGET_LOUDNESS = {"ui": -25.0, "select": -21.0, "landing": -17.0, "vehicle": -22.0, "ground": -23.0, "ambience": -24.0,
+                   "exocomp": -22.0}
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1585,6 +1586,197 @@ def amb_snowfall_loop(rng):
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Exocomps (the construction drones in scripts/ConstructionView.cs, positional on Effects; original sci-fi: small
+# ducted lift fans, a printing beam, little machine chirps)
+
+ROTOR = ((1, 1.0), (2, 0.38), (3, 0.2), (4, 0.09), (5, 0.04))   # a small ducted fan's blade-pass tone and harmonics
+
+
+def exo_hover_loop(rng):
+    """A small drone hovering (3 s): two ducted lift fans a few hertz apart (their beat is the flutter), air through the
+    ducts with a soft resonance, a little motor whine and a slow wander. The game varies the pitch per drone (±8 %),
+    so a swarm is a chord of slightly different fans, not one tone."""
+    n = ns(3.0)
+    pa = loop_phase(312, n, rng, 0.006, 2.5)
+    pb = loop_phase(319, n, rng, 0.006, 2.5)
+    fans = ptone(pa, ROTOR) + 0.8 * ptone(pb, ROTOR)
+    sub = np.sin(loop_phase(156, n, rng, 0.004, 2))                              # the hull's thrum at half the blade rate
+    duct = shaped_noise(n, rng, lambda f: tilt(f, -0.45) * band(f, 280, 6000) * bell_mag(f, 1150, 1.6, 4.0)
+                        * bell_mag(f, 2600, 2.5, 1.8))
+    duct *= 1 + 0.12 * np.sin(pa)                                                 # chopped a little by the blades
+    whine = ptone(loop_phase(1270, n, rng, 0.004, 4), ((1, 1), (2, 0.25), (3, 0.1)))
+    flutter = 1 + 0.1 * lsin(7.0, n, rng.uniform(0, 6.28)) + 0.07 * slow_noise(n, rng, 3)
+    y = (0.3 * fans + 0.16 * sub + 0.32 * duct + 0.035 * whine) * flutter
+    return cfilt(y, lambda f: lp_mag(f, 5200, 2) * hp_mag(f, 70, 2))
+
+
+def _zap(rng):
+    """A little arc snapping along the beam: a quick downward zip with a crackle of noise."""
+    n = ns(rng.uniform(0.035, 0.07))
+    t = tline(n)
+    f = rng.uniform(2200, 3400) * np.exp(-t / 0.03) + rng.uniform(500, 800)
+    y = np.sin(phase(f, n)) * expdec(n, 0.014, 0.0008)
+    y += 0.6 * rng.standard_normal(n) * expdec(n, 0.006, 0.0003)
+    return y
+
+
+def exo_beam_loop(rng):
+    """The printing beam (3 s): a warm tonal core (odd harmonics) with a slowly phasing pair above it, a soft buzz that
+    swells and thins, a lively crackle that comes in clusters and a few small zaps; band-limited so it stays bright,
+    not harsh."""
+    n = ns(3.0)
+    core = ptone(loop_phase(196, n, rng, 0.003, 3), ((1, 1.0), (3, 0.33), (5, 0.14), (7, 0.06)))
+    pair = np.sin(loop_phase(784, n, rng, 0.002, 2)) + np.sin(loop_phase(786.67, n, rng, 0.002, 2))
+    swell = np.clip(1 + 0.45 * slow_noise(n, rng, 5), 0.2, None)
+    buzz = cfilt(ptone(loop_phase(98, n), saw_partials(40, 1.0)), lambda f: band(f, 350, 3200) * bell_mag(f, 1300, 1.5, 2.0))
+    buzz = rmsn(buzz) * swell
+    density = np.clip(0.4 + 0.9 * slow_noise(n, rng, 4), 0.05, None)
+    crackle = rmsn(grains(n, 90 * density, rng, grain_kernels(rng, 4, 1800, 7500, 0.0007), 2.6))
+    zaps = events_circ(n, rng, 1.6, _zap, (0.35, 1.0), 0.45)
+    sizzle = shaped_noise(n, rng, lambda f: tilt(f, -0.2) * band(f, 2500, 9000)) * (0.7 + 0.3 * np.sin(2 * loop_phase(196, n)))
+    y = 0.3 * core + 0.13 * pair + 0.16 * buzz + 0.1 * crackle + 0.13 * rmsn(zaps) + 0.09 * sizzle
+    return cfilt(y, lambda f: lp_mag(f, 7500, 2) * hp_mag(f, 90, 2))
+
+
+def _fan_glide(n, rng, f_pts, amp_pts):
+    """The lift fans spooling up or down along a pitch curve (one-shots)."""
+    f = curve(n, f_pts) * wobble(n, rng, 5, 0.004)
+    y = tone(f, n, ROTOR) + 0.7 * tone(f * 1.022, n, ROTOR)
+    return y * curve(n, amp_pts)
+
+
+def _swept_air(n, rng, f_pts, amp_pts, q=1.3):
+    """A whoosh: noise through a band-pass that follows a pitch curve, under an envelope."""
+    x = shaped_noise(n, rng, lambda f: tilt(f, -0.3) * band(f, 200, 9000))
+    return biquad(x, "bp", curve(n, f_pts), q) * curve(n, amp_pts)
+
+
+def exo_launch(rng):
+    """Launch (1.3 s): the dock clamp lets go (a light clack and a pneumatic puff), then the fans spool up and a rising
+    whoosh carries the drone away."""
+    dur = 1.3
+    n = ns(dur)
+    y = np.zeros(n)
+    place(y, tick(rng, 2700, 0.04, 0.006, 0.45), 0.0, 0.45)
+    place(y, thump(0.12, 300, 150, 0.02, rng, 0.008, 0.5, 1600), 0.0, 0.55)
+    place(y, burst(0.16, rng, 500, 4000, 0.035, 0.002), 0.012, 0.45)
+    y += 1.1 * _swept_air(n, rng, [(0, 450), (0.25, 900), (1.0, 2700), (dur, 3000)],
+                          [(0, 0), (0.06, 0.25), (0.4, 1.0), (0.85, 0.45), (dur, 0)])
+    y += 0.22 * _fan_glide(n, rng, [(0, 170), (0.35, 300), (0.9, 380), (dur, 400)],
+                           [(0, 0), (0.08, 0.6), (0.5, 0.8), (dur, 0)])
+    y = reverb(y, 0.14, 0.4, 0.7, 6000, tail=0.15)
+    return fade(y, 0.001, 0.1)
+
+
+def exo_dock(rng):
+    """Docking (1.3 s): a falling whoosh as the fans spool down, then a small clamp click (the cradle jaw, a latch tick)
+    and a puff of seal air at 0.88 s."""
+    dur = 1.3
+    n = ns(dur)
+    y = 1.0 * _swept_air(n, rng, [(0, 2600), (0.45, 1300), (0.85, 520), (dur, 450)],
+                         [(0, 0), (0.12, 1.0), (0.6, 0.55), (0.88, 0.0), (dur, 0)])
+    y += 0.22 * _fan_glide(n, rng, [(0, 400), (0.5, 300), (0.95, 150), (dur, 120)],
+                           [(0, 0), (0.08, 0.7), (0.7, 0.5), (1.0, 0.0), (dur, 0)])
+    place(y, clunk(rng, 980, 0.3, 160, 0.55, 0.35, 0.07), 0.88, 0.55)
+    place(y, tick(rng, 3400, 0.04, 0.005, 0.5), 0.925, 0.5)
+    place(y, burst(0.14, rng, 2000, 8000, 0.03, 0.003), 0.95, 0.12)
+    y = reverb(y, 0.14, 0.4, 0.7, 6000, tail=0.15)
+    return fade(y, 0.001, 0.1)
+
+
+def _chirp(dur, f_pts, amp_pts, vib=0.0, vib_hz=26.0, fm=0.5, fm_ratio=2.0, bright=0.14) -> np.ndarray:
+    """One machine chirp: a sine along a pitch curve, a touch of FM and 2nd harmonic, optional vibrato (a trill)."""
+    n = ns(dur)
+    t = tline(n)
+    f = curve(n, f_pts) * (1 + vib * np.sin(2 * np.pi * vib_hz * t))
+    p = phase(f, n)
+    env = curve(n, amp_pts)
+    return (np.sin(p + fm * env * np.sin(fm_ratio * p)) + bright * np.sin(2 * p + 0.4)) * env
+
+
+def _chatter(parts, dur, rng):
+    """Chirps placed in a short phrase with a breath of air and a small room."""
+    y = np.zeros(ns(dur))
+    for at, part, g in parts:
+        place(y, part, at, g)
+    y += 0.03 * shaped_noise(len(y), rng, lambda f: band(f, 3000, 9000)) * curve(len(y), [(0, 0), (0.02, 1), (dur * 0.6, 0.3), (dur, 0)])
+    y = reverb(y, 0.16, 0.3, 0.5, 7000, tail=0.12)
+    return fade(y, 0.001, 0.05)
+
+
+def exo_chirp_a(rng):
+    """A curious "bweep?": a quick rising glide and a higher blip after it."""
+    a = _chirp(0.12, [(0, 1450), (0.09, 2350), (0.12, 2400)], [(0, 0), (0.008, 1), (0.08, 0.8), (0.12, 0)])
+    b = _chirp(0.08, [(0, 2100), (0.05, 2750), (0.08, 2800)], [(0, 0), (0.006, 0.8), (0.05, 0.6), (0.08, 0)])
+    return _chatter([(0.0, a, 1.0), (0.15, b, 0.75)], 0.26, rng)
+
+
+def exo_chirp_b(rng):
+    """A happy little warble: three quick notes, down then up, each with a flutter."""
+    notes = [(0.0, 2350, 2250), (0.075, 1900, 1850), (0.15, 2250, 2700)]
+    parts = [(at, _chirp(0.065, [(0, f0), (0.065, f1)], [(0, 0), (0.006, 1), (0.045, 0.7), (0.065, 0)], 0.025, 23), 0.85)
+             for at, f0, f1 in notes]
+    return _chatter(parts, 0.24, rng)
+
+
+def exo_chirp_c(rng):
+    """A busy "brrt-wee": a burbling trill, then a slide up."""
+    trill = _chirp(0.14, [(0, 1750), (0.14, 1650)], [(0, 0), (0.01, 0.9), (0.1, 0.7), (0.14, 0)], 0.11, 34, 0.35)
+    slide = _chirp(0.13, [(0, 1550), (0.11, 2900), (0.13, 3000)], [(0, 0), (0.01, 0.9), (0.09, 0.8), (0.13, 0)])
+    return _chatter([(0.0, trill, 0.9), (0.165, slide, 0.85)], 0.31, rng)
+
+
+def exo_lock(rng):
+    """A printed piece locks into place (0.6 s): a soft clunk, a bright tick on top and the hologram's energy settling."""
+    n = ns(0.6)
+    y = np.zeros(n)
+    place(y, clunk(rng, 540, 0.45, 115, 0.75, 0.28, 0.1), 0.0, 0.7)
+    tk = modal(0.25, 3650, BAR, (1, 0.5, 0.25, 0.1), (0.07, 0.035, 0.02, 0.012), rng, 0.003)
+    tk += 1.6 * burst(0.25, rng, 2500, 9000, 0.0015)
+    place(y, tk, 0.022, 0.42)
+    m = ns(0.16)
+    settle = np.sin(phase(1750 * np.exp(-tline(m) / 0.08) + 650, m)) * expdec(m, 0.05, 0.003)
+    place(y, settle, 0.03, 0.14)
+    place(y, burst(0.25, rng, 3000, 9000, 0.045, 0.004), 0.025, 0.07)
+    y = reverb(y, 0.12, 0.35, 0.6, 6000, tail=0.1)
+    return fade(y, 0.0005, 0.08)
+
+
+def exo_complete(rng):
+    """The building comes on (~2.2 s): a chime that rises over the 1.3 s the shimmer takes to sweep up the building
+    (bell notes climbing a pentatonic scale, bright noise and sparkle following the sweep, a soft power-up chord
+    swelling under it), a high two-bell ring as the sweep reaches the top at 1.3 s, then a tail."""
+    dur = 1.75
+    n = ns(dur)
+    y = np.zeros(n)
+    notes = (784.0, 880.0, 1046.5, 1174.7, 1318.5, 1568.0, 1760.0, 2093.0)
+    k = len(notes) - 1
+    for i, f in enumerate(notes):
+        at = 1.22 * (i / k) * (0.85 + 0.15 * i / k)                              # a little faster at the start
+        place(y, bell(f, 0.8, 2.0, 1.1, 0.35), at, 0.42 + 0.3 * i / k)
+    place(y, bell(2093.0, 1.0, 2.0, 1.4, 0.55), 1.3, 0.75)
+    place(y, bell(3136.0, 0.9, 2.0, 1.0, 0.45), 1.31, 0.4)
+    env = [(0, 0), (0.15, 0.35), (1.15, 1.0), (1.4, 0.6), (dur, 0)]
+    y += 0.3 * _swept_air(n, rng, [(0, 1200), (1.3, 7200), (dur, 7500)], env, 3.0)
+    sparkle = grains(n, curve(n, [(0, 10), (1.3, 90), (dur, 0)]), rng, grain_kernels(rng, 3, 5000, 11000, 0.0006), 2.0)
+    y += 0.06 * rmsn(sparkle) * curve(n, env)
+    chord = tone(523.25, n, ((1, 1), (2, 0.3))) + tone(659.25, n, ((1, 0.8),)) + tone(783.99, n, ((1, 0.7), (2, 0.2)))
+    y += 0.07 * chord * curve(n, [(0, 0), (1.0, 0.55), (1.35, 1.0), (dur, 0)])
+    y = reverb(y, 0.26, 1.0, 0.85, 8000, tail=0.4)
+    return fade(y, 0.002, 0.15)
+
+
+def exo_hop(rng):
+    """A short thruster puff (0.35 s) as a drone hops to its next spot: a soft push of air and a blip of the fans."""
+    dur = 0.35
+    n = ns(dur)
+    x = shaped_noise(n, rng, lambda f: tilt(f, -0.4) * band(f, 300, 4000) * bell_mag(f, 950, 1.5, 2.5))
+    y = x * curve(n, [(0, 0), (0.025, 1.0), (0.08, 0.6), (dur, 0)])
+    y += 0.25 * _fan_glide(n, rng, [(0, 330), (0.06, 440), (dur, 350)], [(0, 0), (0.02, 1.0), (0.15, 0.4), (dur, 0)])
+    return fade(y, 0.002, 0.05)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Registry: (group, name, description, maker, loop)
 
 SOUNDS = [
@@ -1684,6 +1876,22 @@ SOUNDS = [
     ("ambience", "dust_storm_loop", "Dust storm (loop): sand scouring in gusts over a strong wind.",
      amb_dust_storm_loop, True),
     ("ambience", "snowfall_loop", "Snowfall (loop): a very soft, muffled hush.", amb_snowfall_loop, True),
+
+    ("exocomp", "hover_loop", "One drone hovering (loop): two small ducted fans beating into a soft flutter, duct air, a "
+                              "little motor whine; each drone gets its own pitch in game.", exo_hover_loop, True),
+    ("exocomp", "beam_loop", "The construction beam (loop): warm tonal core, a phasing pair above it, a swelling buzz, "
+                             "crackle and small zaps.", exo_beam_loop, True),
+    ("exocomp", "launch", "A drone leaves its dock: clamp release, a puff, the fans spool up into a rising whoosh.",
+     exo_launch, False),
+    ("exocomp", "dock", "A drone comes home: a falling whoosh as the fans spool down, a small clamp click.", exo_dock,
+     False),
+    ("exocomp", "chirp_a", "Drone talk: a curious rising \"bweep?\" and a higher blip.", exo_chirp_a, False),
+    ("exocomp", "chirp_b", "Drone talk: a happy three-note warble.", exo_chirp_b, False),
+    ("exocomp", "chirp_c", "Drone talk: a burbling trill, then a slide up.", exo_chirp_c, False),
+    ("exocomp", "lock", "A printed piece locks into place: soft clunk, bright tick, the energy settling.", exo_lock, False),
+    ("exocomp", "complete", "The building is finished: a chime rising with the 1.3 s shimmer sweep, a two-bell ring at the "
+                            "top.", exo_complete, False),
+    ("exocomp", "hop", "A drone hops to its next spot: a short thruster puff.", exo_hop, False),
 ]
 
 GROUPS = {
@@ -1697,12 +1905,17 @@ GROUPS = {
                          "crossfades them as the ground changes. Previews at 16 kHz."),
     "ambience": ("Weather", "The weather at the site on the Ambience bus: wind by its speed, gusts, rain light to heavy, "
                             "snowfall, dust storms, thunder after each lightning flash. Previews at 8–16 kHz (the dark ones lower)."),
+    "exocomp": ("Exocomps", "The construction drones, positional on Effects: each nearby drone hums as it hovers (its own "
+                            "pitch), beams buzz while they print, launch and dock as drones leave and come home, a hop "
+                            "puff, chirps now and then, a lock as each piece sets and a chime when the building comes "
+                            "on. Previews at 16 kHz (the chime at 22 kHz)."),
 }
 
 # Page previews: 22 kHz; the long ground and weather beds at 16 kHz, and the dark ones (wind, snowfall, thunder: next to
 # nothing above 3 kHz) lower still, which keeps the page under 8 MB. By name first, then by group.
 PREVIEW_SR = {"ground": 16000, "ambience": 16000, "wind_loop": 11025, "wind_gust_a": 11025, "wind_gust_b": 11025,
-              "wind_gust_c": 11025, "snowfall_loop": 8000, "thunder_a": 8000, "thunder_b": 11025, "thunder_close": 16000}
+              "wind_gust_c": 11025, "snowfall_loop": 8000, "thunder_a": 8000, "thunder_b": 11025, "thunder_close": 16000,
+              "exocomp": 16000, "complete": 22050}
 
 # Per-sound loudness offsets from the group's target (dB).
 LOUDNESS_OFFSET = {
@@ -1711,6 +1924,8 @@ LOUDNESS_OFFSET = {
     "wind_gust_a": 1.0, "wind_gust_b": 1.0, "wind_gust_c": 1.0,
     "rain_light_loop": -3.0, "rain_heavy_loop": 2.0, "dust_storm_loop": 2.0, "snowfall_loop": -6.0,
     "thunder_a": 4.0, "thunder_b": 5.0, "thunder_close": 8.0,
+    "hover_loop": -4.0, "beam_loop": -2.0, "chirp_a": -5.0, "chirp_b": -5.0, "chirp_c": -5.0, "hop": -6.0, "lock": -2.0,
+    "launch": -2.0, "dock": -2.0, "complete": 1.0,
 }
 
 
@@ -1974,7 +2189,7 @@ audio { width: 100%; height: 36px; display: block; }
   <h1>Final Frontier Sound Board</h1>
   <p class="lede">Every sound in the game, synthesised from numbers by <code>tools/gen_sounds.py</code> (no
   recordings). Files live in <code>game/sounds/&lt;group&gt;/&lt;name&gt;.wav</code>; a real recording with the same
-  name replaces one. Previews here are 22 kHz copies of the 44.1 kHz game files (8–16 kHz for the ground and weather
+  name replaces one. Previews here are 22 kHz copies of the 44.1 kHz game files (8–16 kHz for the ground, weather and drone
   beds). Loops repeat on their own; in the game the vehicle, ground and weather loops are mixed by speed, ground and
   weather.</p>
   <div class="tools"><button type="button" id="stop">Stop all</button>
@@ -2041,7 +2256,7 @@ def write_page(results) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--only", help="one group (ui, landing, select, vehicle, ground, ambience) or one sound name")
+    ap.add_argument("--only", help="one group (ui, landing, select, vehicle, ground, ambience, exocomp) or one sound name")
     ap.add_argument("--no-page", action="store_true", help="don't write docs/sounds/index.html")
     a = ap.parse_args()
     results = build(a.only)
