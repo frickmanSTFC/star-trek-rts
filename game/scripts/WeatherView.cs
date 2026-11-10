@@ -39,6 +39,9 @@ public partial class WeatherView : Node3D
     /// <summary>Brightness of the current lightning flash (0..1), for the sky and ambient.</summary>
     public float Flash => _flashLevel;
 
+    /// <summary>Lightning flashes so far (one more at the start of each): WeatherAudio's thunder follows them.</summary>
+    public int Bolts { get; private set; }
+
     /// <summary>Blowing dust's colour (sRGB): the planet class's (PlanetLook.StormDust; rust on Veyra).</summary>
     public Color DustColour { get; set; } = new(0.78f, 0.58f, 0.36f);
 
@@ -299,6 +302,7 @@ public partial class WeatherView : Node3D
             if (_nextBolt <= 0f && _flashT < 0f)
             {
                 _flashT = 0f;
+                Bolts++;
                 _nextBolt = _rng.RandfRange(3f, 11f);
                 _flash.RotationDegrees = new Vector3(-_rng.RandfRange(45f, 80f), _rng.RandfRange(0f, 360f), 0f);
             }

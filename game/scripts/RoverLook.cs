@@ -81,8 +81,9 @@ public static class RoverLook
         /// <summary>Wiper sweep, degrees from the parked position up across the glass.</summary>
         private const float WipeDegrees = 100f;
 
-        /// <summary>Seconds for one wiper stroke up and back.</summary>
-        private const float WipeSeconds = 1.3f;
+        /// <summary>Seconds for one wiper stroke up and back (the vehicle/wiper sound is cut to it: tools/gen_sounds.py
+        /// WIPE_T).</summary>
+        public const float WipeSeconds = 1.3f;
 
         private Lamps(Node3D model, int seed)
         {
@@ -135,6 +136,9 @@ public static class RoverLook
 
         public bool HasWipers => _wipers.Count > 0;
 
+        /// <summary>True for the one frame a wiper stroke starts (the sound plays then: PlanetView.Sounds.cs).</summary>
+        public bool StrokeBegan { get; private set; }
+
         /// <summary>The V key's setting: automatic (by the ground), or forced on or off.</summary>
         public WiperMode Wipers { get; set; }
 
@@ -157,6 +161,7 @@ public static class RoverLook
                 _tail.EmissionEnergyMultiplier = alarm ? ((_time * 2f) % 1f < 0.5f ? _tailEnergy * 2.5f : 0.15f) : _tailEnergy;
 
             // Wipers: keep sweeping while needed; when not, finish the stroke and park.
+            StrokeBegan = false;
             if (_wipers.Count == 0) return;
             wipe = Wipers switch { WiperMode.On => true, WiperMode.Off => false, _ => wipe };
             var sweeping = wipe || _wipe % 1f > 0.001f;
@@ -164,7 +169,9 @@ public static class RoverLook
             {
                 var before = _wipe;
                 _wipe += delta / WipeSeconds;
-                if (!wipe && Mathf.FloorToInt(_wipe) > Mathf.FloorToInt(before)) _wipe = Mathf.Floor(_wipe); // parked
+                var crossed = Mathf.FloorToInt(_wipe) > Mathf.FloorToInt(before);
+                if (!wipe && crossed) _wipe = Mathf.Floor(_wipe); // parked
+                else if (crossed || before % 1f <= 0.001f) StrokeBegan = delta > 0f; // a new stroke from the rest
             }
             Wiped = sweeping ? Mathf.Min(1f, Wiped + delta / WipeSeconds) : Mathf.Max(0f, Wiped - delta / 45f);
             var angle = Mathf.DegToRad(WipeDegrees) * (0.5f - 0.5f * Mathf.Cos(_wipe * Mathf.Tau));
