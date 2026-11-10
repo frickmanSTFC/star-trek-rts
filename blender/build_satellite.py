@@ -44,12 +44,12 @@ PARTS (same names in both glbs; every pivot is unrotated, so Godot angles are ap
 
 Run (bpy 5.x, see CLAUDE.md "Blender here"):
   /home/user/.bpyvenv/bin/python blender/build_satellite.py --game
-      both glbs (~15 s): joined per pivot, procedural paints EMIT-baked into one atlas per satellite (--bake-res,
+      both glbs (~10 s): joined per pivot, procedural paints EMIT-baked into one atlas per satellite (--bake-res,
       default 1024, JPEG); prints node count, size, dimensions and pivots in Godot coordinates.
   /home/user/.bpyvenv/bin/python blender/build_satellite.py --preview blender/previews/satellite --samples 48
       Cycles previews over a planet limb: satellite-<design>-{hero,limb,folded,flash}.png, satellite-<design>-glb.png
       (the exported glb posed through its own pivots: deployed + folded, camera tilted, dish turned; needs --game
-      first) and satellite-small.png (both glbs at orbit-view size over the planet). ~6 min on 4 cores.
+      first) and satellite-small.png (both glbs at orbit-view size over the planet). ~12 min on 4 cores at 48 samples.
   python3 blender/build_satellite.py --sheet blender/previews/satellite      contact sheet (system python + PIL)
 Flags: --designs std,prewarp  --shots hero,limb,folded,flash,glb,small  --res 1200  --samples 32
 """
@@ -1317,7 +1317,7 @@ def preview_glb(key):
         _, parts = import_glb(path, ((1 - k) * gap, 0, 0))  # seen from the front, +X is on the left
         pose(parts, fold, tilt, spin)
     bpy.context.view_layer.update()
-    shot(cam, (0, 0, 0.0 if key == "std" else -0.1), 14, 24, 11.5 if key == "prewarp" else 10.0, 50)
+    shot(cam, (0, 0, 0.0 if key == "std" else -0.1), 14, 24, 15.5 if key == "prewarp" else 14.0, 50)
     place_planet(cam, planet, air, 8, 6)
     render(os.path.join(PREVIEW, f"satellite-{key}-glb.png"))
 
