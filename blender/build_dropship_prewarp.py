@@ -1,23 +1,29 @@
-"""Pre-warp drop ship MOCKUP (Dawn of Warp era, 2063-2150): three original cargo-lander designs for the human
-expedition's surface deliveries, to replace the 24th-century look of Halyard 07 (build_dropship.py: nacelles,
-impulse grilles) in pre-warp matches. Owner 2026-11-10: "on the pre-warp, the drop ships [shouldn't] have nacelles.
-Make them look less enterprise / warp era. show me mockup".
+"""Pre-warp drop ships (Dawn of Warp era, 2063-2150): three original cargo landers for the human expedition's surface
+deliveries, in place of the 24th-century Halyard 07 (build_dropship.py: nacelles, impulse grilles) in pre-warp
+matches. Owner 2026-11-10: "on the pre-warp, the drop ships [shouldn't] have nacelles. Make them look less enterprise /
+warp era. show me mockup"; after the mockup: "go with a mix … random. could be any of them per orbiting ship";
+"White, Space Shuttle red/orange, hull names random like before. Legs should fold". All three are in the game
+(--game; DropShipSpec.cs / DropShipHulls.cs pick one per player).
 
 Same role and roughly the same footprint as Halyard (a hex is 25 across): a bay that takes the mining crawler
 (5.6 x 2.7 x 3.1) or a rover, a ramp, four landing legs with pads, four downward engine bells where the game's lift
-thrusters are (the game already flies drop ships as rocket landers: RocketPlume.cs / DropShipView.cs) and small RCS
-quads in place of the aft impulse exhausts. Earth-industrial look: white/grey panels, orange insulation, gold and black
-foil, exposed piping, stencilled hull text, hazard stripes, the player colour as the "Owner" band.
+thrusters are (the game flies drop ships as rocket landers: RocketPlume.cs / DropShipView.cs) and small RCS quads in
+place of the aft impulse exhausts. Look (decided): white panels, the Shuttle external tank's rust orange (~#C8632A)
+on tanks, foam and a stripe, black thermal tiles under the engines / on skirts, bellies and nose caps, light grey
+details, gold foil only as a small accent on A, exposed piping, stencils, hazard stripes, the player colour a thin
+"Owner" line.
 
-  A  "Lander"     octagonal descent stage in gold/black foil, four exposed spherical tanks, a boxy pressurised cargo
-                  module with a faceted crew cab on top, four splayed truss legs with dish pads, a bell under each
-                  corner, a folding two-piece ramp. 8.4 across the stage, 11.8 over the pads, 8.0 to the cab roof.
-  B  "Hopper"     upright reusable rocket lander, 7.2 wide and 13.3 tall: stainless cargo barrel over a dark tiled
-                  skirt, white upper tank section, grid fins, four deployable legs, a cluster of four bells under the
-                  base, a cargo door housing on one side whose door unfolds into a two-piece ramp.
-  C  "Freighter"  horizontal lifting-body cargo hauler, 13.7 long: blunt nose, ceramic-tile belly, rear ramp like
-                  Halyard's, four vertical engines hung exposed on outrigger beams, two external foam tanks on top,
-                  utilitarian panels and stencils, no fins.
+  A  "Lander"     octagonal descent stage (white panels, black-tile bays over the engines), four orange spherical tanks
+                  on the side strips, a boxy pressurised cargo module with a faceted crew cab on top, four A-frame
+                  legs with dish pads that fold straight up beside the tanks (A fold), a bell under each corner, a
+                  folding two-piece ramp. 8.4 across the stage, 11.8 over the pads, 8.0 to the cab roof.
+  B  "Hopper"     upright reusable rocket lander, 7.2 wide and 13.3 tall: white cargo barrel over a black tiled skirt,
+                  orange tank section, white crew level, black nose cap, grid fins, four carbon A-frame legs hinged
+                  low that fold ~130 degrees up the barrel over dark leg wells, a cluster of four bells under the base,
+                  a cargo door housing on one side whose door unfolds into a two-piece ramp.
+  C  "Freighter"  horizontal lifting-body cargo hauler, 13.7 long: blunt black-tiled nose, tiled belly, orange flash,
+                  rear ramp like Halyard's, four vertical engines hung exposed on outrigger beams, two orange foam
+                  tanks on top, utilitarian panels and stencils, no fins; legs fold like Halyard's.
 
 GAME CONTRACT KEPT (Blender +Y = front, +Z up, 1 unit = 1 world unit; names as in build_dropship.py):
   Ramp            empty on the hinge line at the bay floor's door edge (always on the -Y face = Godot +Z, "aft").
@@ -27,9 +33,10 @@ GAME CONTRACT KEPT (Blender +Y = front, +Z up, 1 unit = 1 world unit; names as i
   RampTip         (A, B only; NEW) empty at the far end of the main ramp slab; the ramp's second half is built folded
                   back onto the walking face and unfolds +180 degrees about local X once the ramp is down.
   Leg0..Leg3      hinge empties (0 front-left -X+Y, 1 front-right, 2 rear-left, 3 rear-right). Rest = deployed. Their
-                  rest yaw points the leg so the game's fold (front -90, rear +90 about local X) swings it up the
-                  hull (on Halyard the rest is identity; the game already composes rest * fold).
-  Foot0..Foot3    ankle empties (children of LegK) carrying the pads.
+                  rest yaw points the leg so the game's fold (front -leg, rear +leg about local X; parts["fold"], the
+                  printed SPEC line = DropShipSpec.LegFold) swings it up the hull (the game composes rest * fold).
+  Foot0..Foot3    ankle empties (children of LegK) carrying the pads; they turn back by the foot angle
+                  (DropShipSpec.FootFold: = leg keeps them level, leg - 90 lays them flat against the hull).
   Thruster0..3    the four lift engines: each is the glowing INSIDE surface of an engine bell (own material ThrusterK),
                   so its bounding box bottom = the bell's exit plane and its width = the exit diameter (the game's
                   RocketPlume reads both from the mesh AABB).
@@ -40,8 +47,13 @@ GAME CONTRACT KEPT (Blender +Y = front, +Z up, 1 unit = 1 world unit; names as i
   Material "Owner" = the player-colour band.
 
 Run (bpy 5.x; see CLAUDE.md "Blender here"):
-  /home/user/.bpyvenv/bin/python blender/build_dropship_prewarp.py --preview blender/previews/dropship_prewarp
-      every option x shot + both lineups (11 renders at 1080 x 720; with --samples 40 about 6 min on 4 cores)
+  /home/user/.bpyvenv/bin/python blender/build_dropship_prewarp.py --game
+      the game models game/models/vehicles/dropship_prewarp_{a,b,c}.glb (~30 s each): --blank markers, landed rest
+      pose, joined like build_dropship.py's (Body, RampBody, RampTipBody, LegKBody, FootKBody + Thruster0-5, BayLight,
+      Beacon), the procedural paints EMIT-baked into one atlas (--bake-res, default 2048, JPEG); prints a SPEC line per
+      option (hinge, ramp + tip, toe, folds, pads, bells in Godot coordinates) for DropShipSpec.cs
+  /home/user/.bpyvenv/bin/python blender/build_dropship_prewarp.py --shots hero,game,descent,flight,glb,lineup,lineup-game \
+      --samples 32 --preview blender/previews/dropship_prewarp     (17 renders at 1080 x 720, ~10 min on 4 cores)
   ... --options a --shots hero --res 640 --samples 8     (quick look at one option)
   ... --options a,b,c --shots lineup,lineup-game         (just the lineups)
   python3 blender/build_dropship_prewarp.py --sheet blender/previews/dropship_prewarp   (contact sheet; PIL, not bpy)
@@ -52,7 +64,9 @@ Flags:
                       preview: 55 degrees down from 46 away, 35 mm, ship turned 25 degrees, a Mk II rover and a hex
                       outline for scale), descent (legs out, engines firing), lineup (Halyard + A/B/C side by side,
                       each on its own hex), lineup-game (the same from the game's landing camera: 55 degrees down,
-                      170 away, a 51 mm crop of it). Default: all of them.
+                      170 away, a 51 mm crop of it), flight (as descent with the legs folded as the game folds them),
+                      glb (the exported game model imported twice and posed through its own pivots: ramp + tip open,
+                      legs folded; needs --game first). Default: all but glb.
   --preview <dir>     write <dir>/prewarp-<option>-<shot>.png and prewarp-<lineup shot>.png
   --res, --samples    render width (height 2/3) and Cycles samples
   --blank             decals as the game's marker empties (only with a single option)
