@@ -65,7 +65,6 @@ public partial class SatelliteCard : Control
     private string _listSig = "", _rowsSig = "", _buttonsSig = "", _stripSig = "", _logSig = "";
     private readonly List<(Label Label, Label Value, ColorRect? Bar, ColorRect? BarBack)> _rowNodes = new();
     private IReadOnlyList<SatellitePhoto> _photos = Array.Empty<SatellitePhoto>();
-    private string _photoTitle = "";
 
     public bool IsOverUi(Vector2 screenPos) =>
         Visible && ((_frame != null && _frame.GetGlobalRect().HasPoint(screenPos)) || (_enlarge != null && _enlarge.Visible && _enlarge.GetGlobalRect().HasPoint(screenPos)));
@@ -104,7 +103,6 @@ public partial class SatelliteCard : Control
         var showCard = card != null && !collapsed;
         _card!.Visible = showCard;
         _photos = card?.Colony == true ? photos : Array.Empty<SatellitePhoto>();
-        _photoTitle = card?.Title ?? "";
         if (showCard)
         {
             _cardTitle!.Text = card!.Title.ToUpperInvariant();
@@ -168,7 +166,7 @@ public partial class SatelliteCard : Control
                 var label = Text(r.Label, F(12), HelmScreen.Sky, bold: true);
                 var cell = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsHorizontal = SizeFlags.ExpandFill };
                 cell.AddThemeConstantOverride("separation", P(1));
-                var value = Text("", F(13), HelmScreen.Ink, wrap: true);
+                var value = Text("", F(13), Colors.White, wrap: true);
                 cell.AddChild(value);
                 ColorRect? bar = null, back = null;
                 if (r.Bar.HasValue)
@@ -186,8 +184,9 @@ public partial class SatelliteCard : Control
         for (var i = 0; i < rows.Count && i < _rowNodes.Count; i++)
         {
             var (_, value, bar, back) = _rowNodes[i];
-            value.Text = rows[i].Value;
-            value.AddThemeColorOverride("font_color", rows[i].ValueColour ?? HelmScreen.Ink);
+            if (value.Text != rows[i].Value) value.Text = rows[i].Value;
+            var colour = rows[i].ValueColour ?? HelmScreen.Ink;
+            if (value.Modulate != colour) value.Modulate = colour; // the label's own colour is white: Modulate tints it
             if (bar != null && back != null)
             {
                 var f = Mathf.Clamp(rows[i].Bar ?? 0f, 0f, 1f);
@@ -317,7 +316,9 @@ public partial class SatelliteCard : Control
         _bigMode!.Text = Mode switch { PhotoMode.Infrared => "IR", PhotoMode.Terrain => "TERRAIN", _ => "VIS" };
         _enlarge.Size = Vector2.Zero;
         var size = _enlarge.Size;
-        var at = area.Position + (area.Size - size) * 0.5f - GlobalPosition;
+        // Left of the window (beside the strip it was picked from), vertically centred in the viewscreen.
+        var right = _frame != null ? _frame.GlobalPosition.X - P(10) : area.End.X;
+        var at = new Vector2(right - size.X, area.Position.Y + (area.Size.Y - size.Y) * 0.5f) - GlobalPosition;
         _enlarge.Position = new Vector2(Mathf.Max(area.Position.X - GlobalPosition.X, at.X), Mathf.Max(area.Position.Y - GlobalPosition.Y, at.Y));
     }
 

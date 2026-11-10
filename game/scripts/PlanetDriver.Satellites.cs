@@ -28,6 +28,7 @@ public partial class PlanetDriver
     private readonly Dictionary<int, float> _satFindingShot = new();
     private long _photoCountHeard;
     private float _satClock;
+    private static readonly List<SatListEntry> NoSatellites = new();
 
     private static readonly Color DepositColour = HelmScreen.Peach;
     private static readonly Color ToxicColour = Color.FromHtml("#c8e35a");
@@ -236,11 +237,16 @@ public partial class PlanetDriver
             _satKey = null;
             _retasking = false;
         }
-        var list = SatelliteList();
-        if (_satKey == null && list.Count > 0 && _satPanelOpen) _satKey = list[0].Key;
         var show = _inOrbit && _satPanelOpen && orbit != null;
+        if (!show)
+        {
+            _satCard.Refresh(false, _helm.OpenRect, _helm.UiScale, NoSatellites, null, null, photos, false);
+            return;
+        }
+        var list = SatelliteList();
+        if (_satKey == null && list.Count > 0) _satKey = list[0].Key;
         var collapsed = _info != null && _info.StartsWith("orbit:");
-        _satCard.Refresh(show, _helm.OpenRect, _helm.UiScale, list, _satKey, show ? SatelliteCardView() : null, photos, collapsed);
+        _satCard.Refresh(true, _helm.OpenRect, _helm.UiScale, list, _satKey, SatelliteCardView(), photos, collapsed);
     }
 
     private bool SatelliteEntryGone(string key)
