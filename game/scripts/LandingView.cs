@@ -84,9 +84,9 @@ public partial class LandingView : Node3D
 
     private const float SetDistance = 8.5f;  // module origin (the wedge's apex) from the hub centre when set down
     private const float CentroidOut = 2.6f;  // the wedge's centroid from its apex
-    private const float CarryDrop = 4f;      // module base below the ship's origin while carried (top just under the belly)
+    // The module's base below the ship's origin while carried and the cables' hard points under the belly are the ship
+    // model's (DropShipSpec.CarryDrop / BellyY: Halyard 4 and 0.85).
     private const float CarryAft = 0.3f;     // the centroid hangs this far aft of the ship's origin
-    private const float BellyY = 0.85f;      // build_dropship.py BELLY
     private const float HubClear = 15.5f;    // landing ships keep their footprint this far from the hub centre
 
     /// <summary>The convoy ships' names per player (render-only), three each.</summary>
@@ -153,6 +153,7 @@ public partial class LandingView : Node3D
         public required float End;
         public required float Scale;              // assemble_seconds / 20
         public required bool FirstLanding;
+        public required DropShipSpec Spec;        // the owner's drop ship model (belly, carry drop, climb)
         public required Node3D Model;
         public required Transform3D Hub;
         public required Slot[] Slots;
@@ -299,6 +300,7 @@ public partial class LandingView : Node3D
         var heading = 0.9f + 1.3f * owner + (firstLanding ? 0f : 0.7f * key);
         var haze = SprayRig.HazeColour(SprayRig.KindFor(_surface.Map, tile));
         haze.A = Mathf.Max(haze.A, 0.45f);
+        var spec = _ships.SpecFor(owner); // the owner's drop ship model: where the cables hang from, how low the module rides
         for (var k = 0; k < 3; k++)
         {
             var module = modules[k]!;
@@ -308,7 +310,7 @@ public partial class LandingView : Node3D
             // In the ship's frame the module's centre line points forward (-Z), its centroid hangs under the ship.
             var yaw = Mathf.Pi - Mathf.Atan2(dir.X, dir.Z);
             var turn = new Basis(Vector3.Up, yaw);
-            var carry = new Transform3D(turn, new Vector3(0, -CarryDrop, CarryAft) - turn * (dir * CentroidOut)) * restHub;
+            var carry = new Transform3D(turn, new Vector3(0, -spec.CarryDrop, CarryAft) - turn * (dir * CentroidOut)) * restHub;
             var a = heading + (k - 1) * 0.2f;
             var groundAt = hub * (dir * (SetDistance + CentroidOut));
             var slot = new Slot
@@ -331,7 +333,7 @@ public partial class LandingView : Node3D
             // The ship hovers so the module's base is LowerBy above the ground at its set-down spot.
             var setDown = SetPose(hub, slot, SetDistance, slot.SetGround + LowerBy);
             slot.HoverPose = setDown * carry.AffineInverse(); // module = ship * carry
-            Cables(slot);
+            Cables(slot, spec.BellyY);
             slot.Winch = Sfx.Loop(this, "landing/winch_loop"); // null while the file is missing: silent
             slot.Puff = DropShipView.Downwash(haze, burst: true);
             slot.Trail = DropShipView.Downwash(haze, burst: false);
@@ -356,6 +358,7 @@ public partial class LandingView : Node3D
             End = end,
             Scale = scale,
             FirstLanding = firstLanding,
+            Spec = spec,
             Model = model,
             Hub = hub,
             Slots = slots,
@@ -416,7 +419,7 @@ public partial class LandingView : Node3D
                 best.UnitIndex = i;
                 best.Lands = true;
                 var crawler = _sim.Data.SurfaceUnit(units[i]).CanMine;
-                best.Landed = _ships.ConvoyLanding(unitTile, key * 3 + best.Index, crawler, tile, HubClear, others);
+                best.Landed = _ships.ConvoyLanding(owner, unitTile, key * 3 + best.Index, crawler, tile, HubClear, others);
                 others.Add(best.Landed.Origin);
             }
         }
@@ -435,7 +438,8 @@ public partial class LandingView : Node3D
             else s.ArriveTick = touchTick;
             var offset = (s.ArriveTick - touchTick) / (float)Simulation.TickRate;
             var slot = s;
-            var hull = ConvoyHulls[(owner * 3 + k) % ConvoyHulls.Length];
+            // Pre-warp ships draw their names per ship (the first landing is delivery 0, an outpost drop its delivery id).
+            var hull = _ships.PreWarpHull(owner, firstLanding ? 0 : key, k) ?? ConvoyHulls[(owner * 3 + k) % ConvoyHulls.Length];
             var crawlerShip = s.Lands && _sim.Data.SurfaceUnit(_sim.Data.Landing.Units[s.UnitIndex]).CanMine;
             _ships.AddConvoyShip(new DropShipView.ConvoyShip
             {
@@ -465,7 +469,7 @@ public partial class LandingView : Node3D
 
     /// <summary>Four cables from hard points under the ship's belly straight down to the module's roof (two on the
     /// deck ring, two on the dome), measured in the carry pose.</summary>
-    private void Cables(Slot s)
+    private void Cables(Slot s, float bellyY)
     {
         _cableMesh ??= new CylinderMesh { TopRadius = 0.035f, BottomRadius = 0.035f, Height = 1f, RadialSegments = 6, Rings = 1 };
         _cableMaterial ??= new StandardMaterial3D { AlbedoColor = new Color(0.1f, 0.1f, 0.11f), Metallic = 0.6f, Roughness = 0.5f };
@@ -482,8 +486,8 @@ public partial class LandingView : Node3D
         for (var i = 0; i < 4; i++)
         {
             var p = s.Carry * (restInv * s.Attach[i]);
-            s.HardPoints[i] = new Vector3(p.X, BellyY, p.Z);
-            s.CableRest[i] = Mathf.Max(0.2f, BellyY - p.Y);
+            s.HardPoints[i] = new Vector3(p.X, bellyY, p.Z);
+            s.CableRest[i] = Mathf.Max(0.2f, bellyY - p.Y);
             s.Cables[i] = new MeshInstance3D { Mesh = _cableMesh, MaterialOverride = _cableMaterial, Visible = false };
             AddChild(s.Cables[i]);
         }
@@ -565,13 +569,15 @@ public partial class LandingView : Node3D
         }
         if (!s.Lands || c.Aborted)
         {
-            // Straight up on a growing burn, accelerating, then it pitches over toward its nose and away.
+            // Straight up on a growing burn, accelerating, then it pitches over toward its nose and away (the upright
+            // pre-warp Hopper keeps climbing straight up: DropShipSpec.PitchOver).
             var k = T - climbFrom;
+            var pitch = c.Spec.PitchOver;
             var forward = (-s.HoverPose.Basis.Z) with { Y = 0 };
             forward = forward.LengthSquared() > 1e-6f ? forward.Normalized() : Vector3.Forward;
-            var pos = s.HoverPose.Origin + Vector3.Up * RocketClimb.Up(k) + forward * RocketClimb.Ahead(k);
-            var basis = s.HoverPose.Basis * new Basis(Vector3.Right, -Mathf.DegToRad(RocketClimb.Pitch(k)));
-            return new DropShipView.Flight(new Transform3D(basis, pos), Mathf.Max(0.66f, RocketClimb.Throttle(k)), RocketClimb.Aft(k), 0f,
+            var pos = s.HoverPose.Origin + Vector3.Up * RocketClimb.Up(k) + (pitch ? forward * RocketClimb.Ahead(k) : Vector3.Zero);
+            var basis = pitch ? s.HoverPose.Basis * new Basis(Vector3.Right, -Mathf.DegToRad(RocketClimb.Pitch(k))) : s.HoverPose.Basis;
+            return new DropShipView.Flight(new Transform3D(basis, pos), Mathf.Max(0.66f, RocketClimb.Throttle(k)), pitch ? RocketClimb.Aft(k) : 0f, 0f,
                 c.Aborted ? 1f : 0f);
         }
         // Hop: pop up to a low cruise on a strong burn, lean into the hop and back to brake it, then drop and brake

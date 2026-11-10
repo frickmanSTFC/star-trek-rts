@@ -1,23 +1,29 @@
-"""Pre-warp drop ship MOCKUP (Dawn of Warp era, 2063-2150): three original cargo-lander designs for the human
-expedition's surface deliveries, to replace the 24th-century look of Halyard 07 (build_dropship.py: nacelles,
-impulse grilles) in pre-warp matches. Owner 2026-11-10: "on the pre-warp, the drop ships [shouldn't] have nacelles.
-Make them look less enterprise / warp era. show me mockup".
+"""Pre-warp drop ships (Dawn of Warp era, 2063-2150): three original cargo landers for the human expedition's surface
+deliveries, in place of the 24th-century Halyard 07 (build_dropship.py: nacelles, impulse grilles) in pre-warp
+matches. Owner 2026-11-10: "on the pre-warp, the drop ships [shouldn't] have nacelles. Make them look less enterprise /
+warp era. show me mockup"; after the mockup: "go with a mix … random. could be any of them per orbiting ship";
+"White, Space Shuttle red/orange, hull names random like before. Legs should fold". All three are in the game
+(--game; DropShipSpec.cs / DropShipHulls.cs pick one per player).
 
 Same role and roughly the same footprint as Halyard (a hex is 25 across): a bay that takes the mining crawler
 (5.6 x 2.7 x 3.1) or a rover, a ramp, four landing legs with pads, four downward engine bells where the game's lift
-thrusters are (the game already flies drop ships as rocket landers: RocketPlume.cs / DropShipView.cs) and small RCS
-quads in place of the aft impulse exhausts. Earth-industrial look: white/grey panels, orange insulation, gold and black
-foil, exposed piping, stencilled hull text, hazard stripes, the player colour as the "Owner" band.
+thrusters are (the game flies drop ships as rocket landers: RocketPlume.cs / DropShipView.cs) and small RCS quads in
+place of the aft impulse exhausts. Look (decided): white panels, the Shuttle external tank's rust orange (~#C8632A)
+on tanks, foam and a stripe, black thermal tiles under the engines / on skirts, bellies and nose caps, light grey
+details, gold foil only as a small accent on A, exposed piping, stencils, hazard stripes, the player colour a thin
+"Owner" line.
 
-  A  "Lander"     octagonal descent stage in gold/black foil, four exposed spherical tanks, a boxy pressurised cargo
-                  module with a faceted crew cab on top, four splayed truss legs with dish pads, a bell under each
-                  corner, a folding two-piece ramp. 8.4 across the stage, 11.8 over the pads, 8.0 to the cab roof.
-  B  "Hopper"     upright reusable rocket lander, 7.2 wide and 13.3 tall: stainless cargo barrel over a dark tiled
-                  skirt, white upper tank section, grid fins, four deployable legs, a cluster of four bells under the
-                  base, a cargo door housing on one side whose door unfolds into a two-piece ramp.
-  C  "Freighter"  horizontal lifting-body cargo hauler, 13.7 long: blunt nose, ceramic-tile belly, rear ramp like
-                  Halyard's, four vertical engines hung exposed on outrigger beams, two external foam tanks on top,
-                  utilitarian panels and stencils, no fins.
+  A  "Lander"     octagonal descent stage (white panels, black-tile bays over the engines), four orange spherical tanks
+                  on the side strips, a boxy pressurised cargo module with a faceted crew cab on top, four A-frame
+                  legs with dish pads that fold straight up beside the tanks (A fold), a bell under each corner, a
+                  folding two-piece ramp. 8.4 across the stage, 11.8 over the pads, 8.0 to the cab roof.
+  B  "Hopper"     upright reusable rocket lander, 7.2 wide and 13.3 tall: white cargo barrel over a black tiled skirt,
+                  orange tank section, white crew level, black nose cap, grid fins, four carbon A-frame legs hinged
+                  low that fold ~130 degrees up the barrel over dark leg wells, a cluster of four bells under the base,
+                  a cargo door housing on one side whose door unfolds into a two-piece ramp.
+  C  "Freighter"  horizontal lifting-body cargo hauler, 13.7 long: blunt black-tiled nose, tiled belly, orange flash,
+                  rear ramp like Halyard's, four vertical engines hung exposed on outrigger beams, two orange foam
+                  tanks on top, utilitarian panels and stencils, no fins; legs fold like Halyard's.
 
 GAME CONTRACT KEPT (Blender +Y = front, +Z up, 1 unit = 1 world unit; names as in build_dropship.py):
   Ramp            empty on the hinge line at the bay floor's door edge (always on the -Y face = Godot +Z, "aft").
@@ -27,9 +33,10 @@ GAME CONTRACT KEPT (Blender +Y = front, +Z up, 1 unit = 1 world unit; names as i
   RampTip         (A, B only; NEW) empty at the far end of the main ramp slab; the ramp's second half is built folded
                   back onto the walking face and unfolds +180 degrees about local X once the ramp is down.
   Leg0..Leg3      hinge empties (0 front-left -X+Y, 1 front-right, 2 rear-left, 3 rear-right). Rest = deployed. Their
-                  rest yaw points the leg so the game's fold (front -90, rear +90 about local X) swings it up the
-                  hull (on Halyard the rest is identity; the game already composes rest * fold).
-  Foot0..Foot3    ankle empties (children of LegK) carrying the pads.
+                  rest yaw points the leg so the game's fold (front -leg, rear +leg about local X; parts["fold"], the
+                  printed SPEC line = DropShipSpec.LegFold) swings it up the hull (the game composes rest * fold).
+  Foot0..Foot3    ankle empties (children of LegK) carrying the pads; they turn back by the foot angle
+                  (DropShipSpec.FootFold: = leg keeps them level, leg - 90 lays them flat against the hull).
   Thruster0..3    the four lift engines: each is the glowing INSIDE surface of an engine bell (own material ThrusterK),
                   so its bounding box bottom = the bell's exit plane and its width = the exit diameter (the game's
                   RocketPlume reads both from the mesh AABB).
@@ -40,8 +47,13 @@ GAME CONTRACT KEPT (Blender +Y = front, +Z up, 1 unit = 1 world unit; names as i
   Material "Owner" = the player-colour band.
 
 Run (bpy 5.x; see CLAUDE.md "Blender here"):
-  /home/user/.bpyvenv/bin/python blender/build_dropship_prewarp.py --preview blender/previews/dropship_prewarp
-      every option x shot + both lineups (11 renders at 1080 x 720; with --samples 40 about 6 min on 4 cores)
+  /home/user/.bpyvenv/bin/python blender/build_dropship_prewarp.py --game
+      the game models game/models/vehicles/dropship_prewarp_{a,b,c}.glb (~30 s each): --blank markers, landed rest
+      pose, joined like build_dropship.py's (Body, RampBody, RampTipBody, LegKBody, FootKBody + Thruster0-5, BayLight,
+      Beacon), the procedural paints EMIT-baked into one atlas (--bake-res, default 2048, JPEG); prints a SPEC line per
+      option (hinge, ramp + tip, toe, folds, pads, bells in Godot coordinates) for DropShipSpec.cs
+  /home/user/.bpyvenv/bin/python blender/build_dropship_prewarp.py --shots hero,game,descent,flight,glb,lineup,lineup-game \
+      --samples 32 --preview blender/previews/dropship_prewarp     (17 renders at 1080 x 720, ~10 min on 4 cores)
   ... --options a --shots hero --res 640 --samples 8     (quick look at one option)
   ... --options a,b,c --shots lineup,lineup-game         (just the lineups)
   python3 blender/build_dropship_prewarp.py --sheet blender/previews/dropship_prewarp   (contact sheet; PIL, not bpy)
@@ -52,7 +64,9 @@ Flags:
                       preview: 55 degrees down from 46 away, 35 mm, ship turned 25 degrees, a Mk II rover and a hex
                       outline for scale), descent (legs out, engines firing), lineup (Halyard + A/B/C side by side,
                       each on its own hex), lineup-game (the same from the game's landing camera: 55 degrees down,
-                      170 away, a 51 mm crop of it). Default: all of them.
+                      170 away, a 51 mm crop of it), flight (as descent with the legs folded as the game folds them),
+                      glb (the exported game model imported twice and posed through its own pivots: ramp + tip open,
+                      legs folded; needs --game first). Default: all but glb.
   --preview <dir>     write <dir>/prewarp-<option>-<shot>.png and prewarp-<lineup shot>.png
   --res, --samples    render width (height 2/3) and Cycles samples
   --blank             decals as the game's marker empties (only with a single option)
@@ -74,15 +88,15 @@ def arg(name, default=None):
 # ---------------------------------------------------------------- contact sheet (plain python3 + PIL, no bpy)
 
 SHEET_ROWS = [("a", "Lander"), ("b", "Hopper"), ("c", "Freighter")]
-SHEET_COLS = ["hero", "game", "descent"]
+SHEET_COLS = ["hero", "game", "descent", "flight"]
 
 if "--sheet" in argv:
     from PIL import Image, ImageDraw
     folder = arg("--sheet")
-    tw = 520
+    tw = 480
     th = tw * 2 // 3
-    lw = tw * 3 // 2  # the two lineups share the last row
-    sheet = Image.new("RGB", (tw * 3, th * 3 + lw * 2 // 3), (20, 22, 26))
+    lw = tw * len(SHEET_COLS) // 2  # the two lineups share the last row
+    sheet = Image.new("RGB", (tw * len(SHEET_COLS), th * 3 + lw * 2 // 3), (20, 22, 26))
     draw = ImageDraw.Draw(sheet)
 
     def put(path, box, label):
@@ -112,17 +126,22 @@ REPO = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
 OPTIONS = [s.strip().lower() for s in arg("--options", "a,b,c").split(",") if s.strip()]
-ALL_SHOTS = ["hero", "game", "descent", "lineup", "lineup-game"]
-SHOTS = [s.strip() for s in arg("--shots", ",".join(ALL_SHOTS)).split(",") if s.strip()]
+ALL_SHOTS = ["hero", "game", "descent", "flight", "lineup", "lineup-game", "glb"]
+DEFAULT_SHOTS = ["hero", "game", "descent", "flight", "lineup", "lineup-game"]
+SHOTS = [s.strip() for s in arg("--shots", ",".join(DEFAULT_SHOTS)).split(",") if s.strip()]
 PREVIEW = arg("--preview")
 RES = int(arg("--res", "1080"))
 SAMPLES = int(arg("--samples", "24"))
-BLANK = "--blank" in argv
+GAME = "--game" in argv
+BAKE_RES = int(arg("--bake-res", "2048"))
+BLANK = "--blank" in argv or GAME
 if set(OPTIONS) - {"a", "b", "c"}:
     sys.exit("--options takes a, b and c")
 if set(SHOTS) - set(ALL_SHOTS):
     sys.exit(f"--shots takes {', '.join(ALL_SHOTS)}")
-if BLANK and len(OPTIONS) > 1:
+if GAME and PREVIEW:
+    sys.exit("--game builds the game models only; render previews in a second run (--shots glb checks the exports)")
+if BLANK and not GAME and len(OPTIONS) > 1:
     sys.exit("--blank needs a single --options value (object names must be unique)")
 
 
@@ -352,14 +371,23 @@ def thruster_material(k, aft=False):
     return material(f"Thruster{k}", tuple(c * 0.25 for c in colour), 0.0, 0.35, emission=colour, strength=0.25)
 
 
+# Owner 2026-11-10: "White, Space Shuttle red/orange, hull names random like before". White hull, the external tank's
+# rust orange (~#C8632A) as the main accent (tanks, foam, stripes), black thermal tiles where the heat is, light grey
+# details; gold foil only as a small accent on A; the player colour stays a thin "Owner" line.
+WHITE = (0.82, 0.82, 0.8)
+ORANGE = (0.56, 0.13, 0.026)   # linear for sRGB ~#C8632A
+LIGHTGREY = (0.6, 0.61, 0.62)
+
+
 def prewarp_palette():
     P = V["tier_palette"](V["palette"]())
     P.update({
-        "white": paint("PaintWhite", (0.8, 0.8, 0.78), 0.05, 0.5, coat=0.1),
-        "grey": paint("PaintGrey", (0.47, 0.48, 0.49), 0.15, 0.5),
+        # "...Paint": the game's achievement paint/finish (CosmeticLook) dresses materials named Hull or *Paint.
+        "white": paint("WhitePaint", WHITE, 0.05, 0.48, coat=0.1),
+        "grey": paint("PaintGrey", LIGHTGREY, 0.12, 0.5),
         "darkgrey": paint("PaintDark", (0.16, 0.165, 0.17), 0.3, 0.55, grime=0.2),
         "stainless": paint("Stainless", (0.66, 0.67, 0.7), 0.95, 0.28, grime=0.25, mottle=0.12, streaks=0.18),
-        "foam": paint("FoamOrange", (0.72, 0.28, 0.06), 0.0, 0.85, grime=0.25, mottle=0.18, streaks=0.05),
+        "foam": paint("FoamOrange", ORANGE, 0.0, 0.82, grime=0.22, grime_col=(0.22, 0.08, 0.03), mottle=0.16, streaks=0.06),
         "goldfoil": foil("FoilGold", (1.0, 0.72, 0.3), 1.0, 0.22),
         "blackfoil": foil("FoilBlack", (0.035, 0.032, 0.03), 0.55, 0.32, 0.35),
         "silverfoil": foil("FoilSilver", (0.82, 0.83, 0.86), 1.0, 0.22, 0.4),
@@ -376,7 +404,7 @@ def prewarp_palette():
         "stencilwhite": material("StencilWhite", (0.85, 0.85, 0.83), 0.0, 0.6),
         "radiator": material("Radiator", (0.86, 0.87, 0.88), 0.2, 0.3),
         "deck": material("Deck", (0.2, 0.205, 0.215), 0.7, 0.45),
-        "liner": material("BayLiner", (0.5, 0.51, 0.53), 0.2, 0.6),
+        "liner": material("BayLiner", (0.55, 0.56, 0.58), 0.2, 0.6),
         "baylight": material("BayLight", (1.0, 0.95, 0.85), 0.0, 0.3, emission=(1.0, 0.94, 0.82), strength=3.0),
         "navgreen": material("NavGreen", (0.05, 0.9, 0.2), 0.0, 0.3, emission=(0.05, 1.0, 0.2), strength=3.0),
         "carbon": material("Carbon", (0.07, 0.072, 0.078), 0.2, 0.4),
@@ -707,25 +735,27 @@ A_MTOP = 6.55
 A_BAYTOP = 6.2
 A_BAYHW = 1.8
 A_L1, A_L2, A_T = 3.75, 3.08, 0.22
-A_LEG_R, A_PAD_R = 4.3, 7.15   # radial distance (along the diagonals) of the leg hinge and the pad centre
+A_LEG_R, A_PAD_R = 4.45, 7.15  # radial distance (along the diagonals) of the leg hinge and the pad centre
 A_BELL = dict(r_t=0.17, r_e=0.55, L=0.86)
 A_BELL_R = 3.55          # radial distance of the bells along the diagonals
 A_TANK_R = 0.92
-A_TANKS = [(-3.17, 2.45), (3.17, 2.45), (-3.17, -2.45), (3.17, -2.45)]
-A_NAME, A_NUMBER = "EXPEDITION CARRIER 2", "UE-02"
+# Tanks on the side strips, clear of the diagonals so the legs can fold straight up past them (owner: "Legs should fold").
+A_TANKS = [(-3.17, 1.55), (3.17, 1.55), (-3.17, -1.55), (3.17, -1.55)]
+A_NAME, A_NUMBER = "TALLGRASS", "UE-02"
+A_STRIPE_Z, A_OWNER_Z = 5.6, 5.95   # orange band and the thin player-colour line along the module
 
 
 def option_a(P):
     root = empty("PrewarpLander")
     parts = {"root": root, "key": "a", "legs": [], "feet": [], "plumes": [], "bells": [], "hinge_z": A_FLOOR}
 
-    # Descent stage: octagonal box in gold foil (four main bays) and black foil (diagonal bays behind the legs),
-    # steel rims and corner posts, black heat blanket underneath, grating deck on top.
+    # Descent stage: octagonal box, white panels on the four main bays and black thermal tiles on the diagonal bays
+    # over the engines, steel rims and corner posts, tiles underneath, grating deck on top.
     core = octagon("Stage", A_APO - 0.05, A_BOT, A_TOP, P["frame"], root)
     side = 2 * A_APO * math.tan(math.radians(22.5))
     for i in range(8):
         a = math.radians(45 * i)
-        mat = P["goldfoil"] if i % 2 == 0 else P["blackfoil"]
+        mat = P["white"] if i % 2 == 0 else P["tilewrap"]
         o = box(f"StageBlanket{i}", (0.06, side * 0.93, (A_TOP - A_BOT) * 0.86), (0, 0, 0), mat, root, 0.03)
         o.location = (math.cos(a) * (A_APO - 0.02), math.sin(a) * (A_APO - 0.02), (A_BOT + A_TOP) / 2)
         o.rotation_euler = (0, 0, a)
@@ -736,7 +766,7 @@ def option_a(P):
         a = math.radians(22.5 + 45 * i)
         cylinder(f"StagePost{i}", 0.07, A_TOP - A_BOT, (math.cos(a) * R, math.sin(a) * R, (A_TOP + A_BOT) / 2), P["steel"], root,
                  axis="Z", segments=8)
-    octagon("StageUnderside", A_APO - 0.15, A_BOT - 0.06, A_BOT, P["blackfoil"], root)
+    octagon("StageUnderside", A_APO - 0.15, A_BOT - 0.06, A_BOT, P["tiles"], root)
     octagon("StageDeck", A_APO - 0.12, A_TOP, A_TOP + 0.04, P["grating"], root)
     parts["stage"] = core
 
@@ -744,7 +774,7 @@ def option_a(P):
     for k, (sx, sy) in enumerate(((-1, 1), (1, 1), (-1, -1), (1, -1))):
         x, y = sx * A_BELL_R / math.sqrt(2), sy * A_BELL_R / math.sqrt(2)
         b = bell(k, (x, y), A_BOT - 0.05, A_BELL["r_t"], A_BELL["r_e"], A_BELL["L"], P, root, chamber=False)
-        cylinder(f"EngineMount{k}", 0.34, 0.1, (x, y, A_BOT - 0.04), P["gunmetal"], root, axis="Z", segments=16)
+        cylinder(f"EngineMount{k}", 0.34, 0.1, (x, y, A_BOT - 0.04), P["goldfoil"], root, axis="Z", segments=16)  # gold: a small accent
         parts["bells"].append((b, Vector((x, y, A_BOT - 0.05 - A_BELL["L"])), A_BELL["r_e"]))
 
     # Cargo module: a box with stiffening ribs, the bay cut out of it, a door frame on the ramp face.
@@ -758,8 +788,8 @@ def option_a(P):
         for i in range(7):
             y = A_MY[0] + 0.35 + i * (ylen - 0.7) / 6
             box(f"ModuleRib{s}{i}", (0.1, 0.14, A_MTOP - A_TOP - 0.3), (s * (A_MHW + 0.04), y, (A_MTOP + A_TOP) / 2), P["grey"], root, 0.02)
-        box(f"ModuleOwner{s}", (0.02, ylen - 0.3, 0.32), (s * (A_MHW + 0.011), 0, 5.55), P["owner"], root, 0).visible_shadow = False
-        box(f"ModuleOwnerThin{s}", (0.02, ylen - 0.3, 0.08), (s * (A_MHW + 0.011), 0, 5.25), P["owner"], root, 0).visible_shadow = False
+        box(f"ModuleStripe{s}", (0.02, ylen - 0.3, 0.36), (s * (A_MHW + 0.011), 0, A_STRIPE_Z), P["foam"], root, 0).visible_shadow = False
+        box(f"ModuleOwner{s}", (0.02, ylen - 0.3, 0.08), (s * (A_MHW + 0.011), 0, A_OWNER_Z), P["owner"], root, 0).visible_shadow = False
         for i, (y, z) in enumerate(((-2.6, 3.0), (2.4, 3.0))):
             seam(f"ModuleSeamV{s}{i}", (0.02, 0.03, 3.6), (s * (A_MHW + 0.004), y + 0.55, 4.35), P, root)
         seam(f"ModuleSeamH{s}", (0.02, ylen - 0.2, 0.03), (s * (A_MHW + 0.004), 0, 3.7), P, root)
@@ -790,7 +820,7 @@ def option_a(P):
         box(f"CabLampFrame{x}", (0.4, 0.04, 0.22), mid2 + n2 * 0.01 + Vector((x, 0, 0)), P["dark"], root, 0.01, rot=(rx2, 0, 0))
         box(f"CabLamp{x}", (0.3, 0.05, 0.14), mid2 + n2 * 0.02 + Vector((x, 0, 0)), P["lamp"], root, 0.01, rot=(rx2, 0, 0))
     for s in (-1, 1):
-        box(f"CabBlanket{s}", (0.04, 2.4, 0.9), (s * 1.52, 2.2, 7.25), P["silverfoil"], root, 0.02)
+        box(f"CabBlanket{s}", (0.04, 2.4, 0.9), (s * 1.52, 2.2, 7.25), P["goldfoil"], root, 0.02)
         box(f"CabSideWindow{s}", (0.04, 0.36, 0.36), (s * 1.52, 3.3, 7.45), P["glass"], root, 0.01)
     cylinder("CabHatch", 0.42, 0.18, (0, 2.2, 8.08), P["grey"], root, axis="Z", segments=24, bev=0.02)
     cylinder("CabHatchRing", 0.5, 0.06, (0, 2.2, 8.02), P["dark"], root, axis="Z", segments=24)
@@ -814,12 +844,11 @@ def option_a(P):
         glow = (4 if sx < 0 else 5) if sy < 0 else None
         rcs_quad(f"Rcs{k}", (sx * (A_MHW + 0.2), sy * (abs(A_MY[0]) - 0.25), A_MTOP - 0.35), (sx, 0, 0), P, root, glow_k=glow)
 
-    # Propellant: four exposed spherical tanks in cradles (front pair methane in orange foam, rear pair oxygen in
-    # silver foil), a cross-feed manifold, pressurant bottles, downcomers over the stage edge.
+    # Propellant: four exposed spherical tanks in cradles on the side strips (orange foam, front pair methane, rear
+    # pair oxygen), a cross-feed manifold, a pressurant bottle per side, downcomers over the stage edge.
     for i, (x, y) in enumerate(A_TANKS):
         zc = A_TOP + 0.16 + A_TANK_R
-        mat = P["foam"] if y > 0 else P["silverfoil"]
-        sphere(f"Tank{i}", A_TANK_R, (x, y, zc), mat, root)
+        sphere(f"Tank{i}", A_TANK_R, (x, y, zc), P["foam"], root)
         lathe(f"TankGirth{i}", [(A_TANK_R + 0.04, zc + 0.06), (A_TANK_R + 0.04, zc - 0.06)], P["steel"], root, (x, y, 0), seg=28)
         for j in range(4):
             a = math.radians(45 + 90 * j)
@@ -833,17 +862,19 @@ def option_a(P):
     for s in (-1, 1):
         x = s * 3.17
         pipe(f"Manifold{s}", [(x, -1.5, A_TOP + 0.35), (x, 1.5, A_TOP + 0.35)], 0.07, P["foam"], root)
-        for i, y in enumerate((-0.55, 0.55)):
-            sphere(f"Copv{s}{i}", 0.34, (x + s * 0.22, y, A_TOP + 0.45), P["carbon"], root)
+        sphere(f"Copv{s}", 0.3, (s * 2.62, 0, A_TOP + 0.4), P["carbon"], root)
         pipe(f"Downcomer{s}", [(x, 0, A_TOP + 0.35), (s * (A_APO - 0.15), 0, A_TOP + 0.3), (s * (A_APO + 0.12), 0, A_TOP - 0.05),
                                 (s * (A_APO + 0.12), 0, A_BOT + 0.1), (s * (A_APO - 0.3), 0, A_BOT - 0.12)], 0.06, P["steel"], root)
         for y in (-1.2, 1.2):
             pipe(f"Feed{s}{y}", [(x, y, A_TOP + 0.35), (x, y * 1.6, A_TOP + 0.16)], 0.05, P["steel"], root, joints=False)
 
-    # Legs on the diagonal flats: primary strut in gold foil with a shock absorber, two secondary struts from the
-    # stage's bottom corners, a deployment brace, a dish pad on a ball joint.
+    # Legs on the diagonal corners: an A-frame (white primary strut with a shock absorber, two dark secondaries from
+    # the ends of the hinge axle to the knee) on a hinge axle held by two brackets on the stage rim, a dish pad on a
+    # ball joint. The whole frame swings about the axle, so it folds cleanly: straight up beside the tanks in flight
+    # (A_FOLD; the game keeps the pads level), like a stowed Apollo-style leg.
     for k, (sx, sy) in enumerate(((-1, 1), (1, 1), (-1, -1), (1, -1))):
         d = Vector((sx, sy, 0)).normalized()
+        t_w = Vector((-d.y, d.x, 0))
         hinge = d * A_LEG_R + Vector((0, 0, A_TOP - 0.15))
         yaw, M = leg_frame(hinge, (d.x, d.y), front=sy > 0)
         lg = empty(f"Leg{k}", hinge, root)
@@ -851,18 +882,17 @@ def option_a(P):
         ankle_w = d * (A_PAD_R - 0.05) + Vector((0, 0, 0.42))
         Minv = M.inverted()
         ankle = Minv @ ankle_w
-        cylinder(f"Leg{k}Knuckle", 0.12, 0.5, (0, 0, 0), P["steel"], lg, axis="X", segments=14)
+        for j in (-1, 1):  # hinge brackets: body parts on the stage rim
+            box(f"Leg{k}Bracket{j}", (0.14, 0.34, 0.36), hinge + t_w * j * 0.68 - d * 0.12, P["gunmetal"], root, 0.02).rotation_euler.z = \
+                math.atan2(d.y, d.x)
+        cylinder(f"Leg{k}Axle", 0.1, 1.5, (0, 0, 0), P["steel"], lg, axis="X", segments=14)
         knee = ankle * 0.58
-        strut(f"Leg{k}Primary", Vector((0, 0, 0)), ankle * 0.66, 0.13, P["goldfoil"], lg, 14)
+        strut(f"Leg{k}Primary", Vector((0, 0, 0)), ankle * 0.66, 0.13, P["white"], lg, 14)
         strut(f"Leg{k}Piston", ankle * 0.64, ankle, 0.075, P["steel"], lg, 12)
         cylinder(f"Leg{k}Collar", 0.15, 0.1, ankle * 0.66, P["dark"], lg, axis="Z", segments=14).rotation_euler = \
             ankle.to_track_quat("Z", "Y").to_euler()
         for j, t in enumerate((-1, 1)):
-            a = math.atan2(d.y, d.x) + t * math.radians(22.5)
-            corner_w = Vector((math.cos(a) * R, math.sin(a) * R, A_BOT + 0.05))
-            strut(f"Leg{k}Secondary{j}", Minv @ corner_w, knee, 0.055, P["blackfoil"], lg, 10)
-        brace_w = d * (A_APO + 0.05) + Vector((0, 0, A_BOT + 0.5))
-        strut(f"Leg{k}Brace", Minv @ brace_w, ankle * 0.3, 0.04, P["steel"], lg, 8)
+            strut(f"Leg{k}Secondary{j}", Vector((t * 0.6, 0, 0)), knee, 0.055, P["darkgrey"], lg, 10)
         ft = empty(f"Foot{k}", ankle, lg)
         sphere(f"Foot{k}Ball", 0.12, (0, 0, 0), P["steel"], ft, seg=12, rings=8)
         pad_dish(f"Foot{k}Pad", 0.62, P, ft, (0, 0, -0.42))
@@ -874,21 +904,27 @@ def option_a(P):
     ramp, tip, toe = folding_ramp(P, root, (0, A_MY[0], A_FLOOR), A_BAYHW - 0.03, A_L1, A_L2, A_T, P["white"])
     for z in (1.2, 2.5):
         seam(f"RampSeam{z}", (2 * A_BAYHW - 0.2, 0.02, 0.03), (0, -A_T - 0.004, z), P, ramp)
-    box("RampOwner", (2 * A_BAYHW - 0.1, 0.012, 0.32), (0, -A_T - 0.006, 5.55 - A_FLOOR), P["owner"], ramp, 0).visible_shadow = False
+    box("RampStripe", (2 * A_BAYHW - 0.1, 0.012, 0.36), (0, -A_T - 0.006, A_STRIPE_Z - A_FLOOR), P["foam"], ramp, 0).visible_shadow = False
+    box("RampOwner", (2 * A_BAYHW - 0.1, 0.012, 0.08), (0, -A_T - 0.006, A_OWNER_Z - A_FLOOR), P["owner"], ramp, 0).visible_shadow = False
     stencil("RampKeepClear", "KEEP CLEAR OF RAMP", 0.16, (0, -A_T - 0.01, 0.55), "-Y", P["stencil"], ramp)
     parts.update(ramp=ramp, tip=tip, toe=toe)
 
-    # Stencils: name along the module, big hull number, name across the cab front, small warnings on the stage.
+    # Stencils: name along the module (above the orange band), big hull number, name across the cab front, small
+    # warnings on the stage.
     for s in (-1, 1):
         f = "+X" if s > 0 else "-X"
-        stencil(f"Name{s}", A_NAME, 0.3, (s * (A_MHW + 0.11), 0.2, 3.05), f, P["stencil"], root, max_width=6.0)
-        stencil(f"Number{s}", A_NUMBER, 0.95, (s * (A_MHW + 0.11), -0.4, 4.4), f, P["stencil"], root, max_width=4.4)
+        stencil(f"Name{s}", A_NAME, 0.3, (s * (A_MHW + 0.11), 0.2, 6.25), f, P["stencil"], root, max_width=5.0)
+        stencil(f"Number{s}", A_NUMBER, 0.9, (s * (A_MHW + 0.11), -0.4, 4.78), f, P["stencil"], root, max_width=4.4)
         stencil(f"StageWarn{s}", "DANGER  ENGINE EXHAUST", 0.13, (s * (A_APO + 0.03), 0, A_BOT + 0.22), f, P["stencilred"], root)
         stencil(f"NoStep{s}", "NO STEP", 0.18, (s * 1.0, -0.6, A_MTOP + 0.015), "+Z", P["stencil"], root, read=math.radians(90 if s > 0 else -90))
     stencil("NameFront", A_NAME, 0.22, (0, A_MY[1] + 0.02, 5.1), "+Y", P["stencil"], root, max_width=3.6)
-    stencil("NameRear", A_NUMBER, 0.42, (0, A_MY[0] - 0.21, A_BAYTOP + 0.13), "-Y", P["stencilwhite"], root, max_width=1.6)
+    stencil("NameRear", A_NAME, 0.22, (0, A_MY[0] - 0.21, A_BAYTOP + 0.13), "-Y", P["stencil"], root, max_width=3.2)
     landing_lamps(P, root, [(0, A_APO - 0.6, A_BOT - 0.08), (0, -A_APO + 0.6, A_BOT - 0.08)])
     parts["descent_alt"] = 8.0
+    # Legs fold straight up beside the tanks (the primary strut vertical, ~124 degrees); the pads turn a further
+    # (fold - 90) so they stand flat, contact face out, like a stowed Apollo-style leg.
+    leg = 90 + math.degrees(math.atan2((A_TOP - 0.15) - 0.42, (A_PAD_R - 0.05) - A_LEG_R))
+    parts["fold"] = (leg, leg - 90)
     return parts
 
 
@@ -903,24 +939,27 @@ B_BAY_Y = (-4.0, 2.75)
 B_DOOR_Y = -3.98        # door housing face / hinge line
 B_L1 = B_BAYTOP - B_FLOOR - 0.05
 B_L2, B_T = 3.47, 0.22
-B_LEG_R, B_LEG_Z, B_PAD_R = B_R + 0.05, 2.55, 6.35
+B_LEG_R, B_LEG_Z, B_PAD_R = B_R + 0.35, 2.45, 6.35   # hinge stands off the skirt so the folded leg clears the barrel
 B_BELL = dict(r_t=0.19, r_e=0.62, L=1.2)
-B_NAME, B_NUMBER = "SURFACE LIFTER 5", "UE-05"
+B_NAME, B_NUMBER = "SOUTHWIND", "UE-05"
+B_ORANGE = (7.35, 9.55)  # the orange tank section between the white cargo barrel and the white crew level
 
 
 def option_b(P):
     root = empty("PrewarpHopper")
     parts = {"root": root, "key": "b", "legs": [], "feet": [], "plumes": [], "bells": [], "hinge_z": B_FLOOR}
 
-    # Body: one lathe; materials by height band: tiled skirt, stainless cargo barrel, white tank section and nose.
-    prof = [(0, B_BASE), (B_R - 0.3, B_BASE), (B_R, B_BASE + 0.28), (B_R, 2.9), (B_R, 7.1), (B_R, 7.6), (B_R, 10.4),
-            (B_R - 0.12, 11.1), (B_R - 0.55, 11.9), (B_R - 1.35, 12.6), (B_R - 2.4, 13.1), (0, 13.3)]
-    body = lathe("Body", prof, P["stainless"], root, seg=64)
+    # Body: one lathe; materials by height band: black tiled skirt, white cargo barrel, the orange tank section, white
+    # crew level and nose, a black tiled nose cap.
+    prof = [(0, B_BASE), (B_R - 0.3, B_BASE), (B_R, B_BASE + 0.28), (B_R, 2.9), (B_R, 7.1), (B_R, B_ORANGE[0]),
+            (B_R, 7.6), (B_R, B_ORANGE[1]), (B_R, 10.4), (B_R - 0.12, 11.1), (B_R - 0.55, 11.9), (B_R - 1.35, 12.6),
+            (B_R - 2.4, 13.1), (0, 13.3)]
+    body = lathe("Barrel", prof, P["white"], root, seg=64)
     body.data.materials.append(P["tilewrap"])
-    body.data.materials.append(P["white"])
+    body.data.materials.append(P["foam"])
     for poly in body.data.polygons:
         z = poly.center.z
-        poly.material_index = 1 if z < 2.9 else (0 if z < 7.35 else 2)
+        poly.material_index = 1 if (z < 2.9 or z > 12.62) else (2 if B_ORANGE[0] < z < B_ORANGE[1] else 0)
     cut(body, "BayCut", (2 * B_BAYHW, B_BAY_Y[1] - B_BAY_Y[0] + 0.6, B_BAYTOP - B_FLOOR + 0.02),
         (0, (B_BAY_Y[0] - 0.6 + B_BAY_Y[1]) / 2, (B_BAYTOP + B_FLOOR) / 2), root)
     bay_interior(P, root, B_BAYHW, B_DOOR_Y, B_BAY_Y[1], B_FLOOR, B_BAYTOP)
@@ -929,11 +968,14 @@ def option_b(P):
     lathe("HeatShield", [(0, B_BASE + 0.01), (B_R - 0.32, B_BASE + 0.01), (B_R - 0.1, B_BASE - 0.08), (0, B_BASE - 0.08)],
           P["tiles"], root, seg=48, closed=True)
     sphere("ThrustCone", 0.8, (0, 0, B_BASE - 0.08), P["goldfoil"], root, squash=0.45)
-    # Weld seams on the barrel, the owner band, panel lines and a tank-dome ring of orange foam.
-    for z in (3.75, 4.95, 6.15):
+    # Weld seams on the barrel, the thin owner line under the orange section, panel lines; dark tile strips where
+    # the legs lie folded.
+    for z in (3.75, 4.95, 6.15, B_ORANGE[1]):
         ring_band(f"Weld{z}", B_R + 0.006, z - 0.02, z + 0.02, P["dark"], root)
-    ring_band("OwnerBand", B_R + 0.01, 7.35, 7.75, P["owner"], root, seg=64)
-    ring_band("OwnerThin", B_R + 0.01, 7.9, 7.98, P["owner"], root, seg=64)
+    ring_band("OwnerBand", B_R + 0.01, 7.08, 7.2, P["owner"], root, seg=64)
+    for k in range(4):
+        a = math.radians(45 + 90 * k)
+        cyl_patch(f"LegWell{k}", B_R, a - 0.11, a + 0.11, 2.85, 6.4, P["tilewrap"], root, nu=4, lift=0.008)
     for i in range(12):
         a = math.radians(15 + 30 * i)
         cyl_patch(f"PanelLine{i}", B_R, a - 0.002, a + 0.002, 8.05, 10.35, P["dark"], root, nu=1, lift=0.006)
@@ -962,7 +1004,9 @@ def option_b(P):
         parts["bells"].append((b, Vector((x, y, B_BASE - 0.12 - B_BELL["L"])), B_BELL["r_e"]))
         cylinder(f"EngineMount{k}", 0.36, 0.12, (x, y, B_BASE - 0.1), P["gunmetal"], root, axis="Z", segments=16)
 
-    # Legs on the diagonals: carbon main beam, telescoping deploy strut from higher up the barrel, big dish pads.
+    # Legs on the diagonals: hinged low on a bracket off the tiled skirt, a black carbon main beam with a white tip and
+    # two side braces from the ends of the hinge axle (an A-frame that swings as one), big dish pads. In flight they
+    # fold B_FOLD (~130 degrees) straight up against the barrel over the dark leg wells, pads turned flat against it.
     for k, (sx, sy) in enumerate(((-1, 1), (1, 1), (-1, -1), (1, -1))):
         d = Vector((sx, sy, 0)).normalized()
         hinge = d * B_LEG_R + Vector((0, 0, B_LEG_Z))
@@ -971,16 +1015,14 @@ def option_b(P):
         lg.rotation_euler.z = yaw
         Minv = M.inverted()
         ankle = Minv @ (d * B_PAD_R + Vector((0, 0, 0.45)))
-        box(f"Leg{k}Clevis", (0.5, 0.3, 0.3), (0, 0, 0), P["gunmetal"], lg, 0.03)
-        cylinder(f"Leg{k}Knuckle", 0.12, 0.6, (0, 0, 0), P["steel"], lg, axis="X", segments=14)
+        mount = box(f"Leg{k}Mount", (0.42, 1.2, 0.5), d * (B_R + 0.13) + Vector((0, 0, B_LEG_Z + 0.02)), P["gunmetal"], root, 0.04)
+        mount.rotation_euler.z = math.atan2(d.y, d.x)
+        box(f"Leg{k}Clevis", (1.0, 0.3, 0.26), (0, 0, 0), P["gunmetal"], lg, 0.03)
+        cylinder(f"Leg{k}Knuckle", 0.12, 1.1, (0, 0, 0), P["steel"], lg, axis="X", segments=14)
         strut(f"Leg{k}Beam", Vector((0, 0, 0)), ankle, 0.17, P["carbon"], lg, 6)
         strut(f"Leg{k}BeamTip", ankle * 0.82, ankle, 0.19, P["white"], lg, 6)
-        top_w = d * (B_R + 0.05) + Vector((0, 0, 5.35))
-        knee = ankle * 0.55
-        strut(f"Leg{k}Ram", Minv @ top_w, (Minv @ top_w).lerp(knee, 0.55), 0.09, P["white"], lg, 12)
-        strut(f"Leg{k}RamRod", (Minv @ top_w).lerp(knee, 0.5), knee, 0.05, P["steel"], lg, 10)
-        box(f"Leg{k}RamMount", (0.42, 0.2, 0.3), Minv @ (d * (B_R + 0.08) + Vector((0, 0, 5.35))), P["gunmetal"], lg, 0.03).rotation_euler.z = 0
-        hz_box(f"Leg{k}Hz", (0.02, 0.36, 0.6), ankle * 0.9 + Vector((0, 0, 0.2)), P, lg)
+        for j in (-1, 1):
+            strut(f"Leg{k}Brace{j}", Vector((j * 0.5, 0, 0)), ankle * 0.55, 0.06, P["grey"], lg, 10)
         ft = empty(f"Foot{k}", ankle, lg)
         sphere(f"Foot{k}Ball", 0.14, (0, 0, 0), P["steel"], ft, seg=12, rings=8)
         pad_dish(f"Foot{k}Pad", 0.72, P, ft, (0, 0, -0.45))
@@ -1005,13 +1047,14 @@ def option_b(P):
         d = Vector((math.cos(a), math.sin(a), 0))
         rcs_quad(f"Rcs{k}", d * (B_R + 0.12) + Vector((0, 0, 10.75)), d, P, root, glow_k=glow)
 
-    # Crew level: window row facing forward, a side hatch with a ladder down the barrel, a cable raceway with two
-    # insulated feed lines, landing lamps under the base, beacon and antennas on the nose.
+    # Crew level: window row facing forward, a hatch under it with a ladder down the barrel (between the front legs),
+    # a cable raceway with two insulated feed lines (clear of the folded legs), landing lamps under the base, beacon
+    # and antennas on the nose.
     for i in range(5):
         a = math.radians(90 - 36 + 18 * i)
         cyl_patch(f"CrewWindowFrame{i}", B_R, a - 0.07, a + 0.07, 9.85, 10.35, P["frame"], root, nu=3, lift=0.01)
         cyl_patch(f"CrewWindow{i}", B_R, a - 0.055, a + 0.055, 9.9, 10.3, P["glass"], root, nu=3, lift=0.016)
-    ha = math.radians(35)
+    ha = math.radians(90)
     cyl_patch("CrewHatchFrame", B_R, ha - 0.2, ha + 0.2, 8.25, 9.65, P["grey"], root, nu=6, lift=0.012)
     cyl_patch("CrewHatchSeam", B_R, ha - 0.17, ha + 0.17, 8.3, 9.6, P["dark"], root, nu=6, lift=0.016)
     cyl_patch("CrewHatch", B_R, ha - 0.16, ha + 0.16, 8.32, 9.58, P["white"], root, nu=6, lift=0.02)
@@ -1020,15 +1063,15 @@ def option_b(P):
            (-dh.y, dh.x, 0), 0.5, P, root)
     for z in (3.6, 5.6, 7.6):
         strut(f"LadderStandoff{z}", dh * B_R + Vector((0, 0, z)), dh * (B_R + 0.22) + Vector((0, 0, z)), 0.03, P["steel"], root, 6)
-    a_r = math.radians(140)
+    a_r = math.radians(115)
     d_r = Vector((math.cos(a_r), math.sin(a_r), 0))
     t_r = Vector((-d_r.y, d_r.x, 0))
-    rw = box("Raceway", (0.22, 0.38, 8.4), d_r * (B_R + 0.1) + Vector((0, 0, 2.9 + 4.2)), P["grey"], root, 0.03)
+    rw = box("Raceway", (0.22, 0.38, 6.6), d_r * (B_R + 0.1) + Vector((0, 0, 2.9 + 3.3)), P["grey"], root, 0.03)
     rw.rotation_euler.z = a_r
     for s in (-1, 1):
         pipe(f"RacewayLine{s}", [d_r * (B_R + 0.3) + t_r * s * 0.32 + Vector((0, 0, 2.7)),
-                                 d_r * (B_R + 0.3) + t_r * s * 0.32 + Vector((0, 0, 11.2))], 0.07, P["foam"], root)
-    for z in (3.4, 5.0, 6.6, 8.2, 9.8):
+                                 d_r * (B_R + 0.3) + t_r * s * 0.32 + Vector((0, 0, 9.5))], 0.07, P["grey"], root)
+    for z in (3.4, 5.0, 6.6, 8.2):
         box(f"RacewayClamp{z}", (0.12, 1.0, 0.1), d_r * (B_R + 0.28) + Vector((0, 0, z)), P["gunmetal"], root, 0.02).rotation_euler.z = a_r
     landing_lamps(P, root, [(0, 2.3, B_BASE - 0.1), (0, -2.3, B_BASE - 0.1), (2.3, 0, B_BASE - 0.1), (-2.3, 0, B_BASE - 0.1)])
     cylinder("BeaconBase", 0.13, 0.06, (0, 0, 13.3), P["dark"], root, axis="Z", segments=16)
@@ -1038,13 +1081,23 @@ def option_b(P):
 
     # Stencils.
     for s, phi in ((1, 0.0), (-1, math.pi)):
-        text_on_cylinder(f"Number{s}", B_NUMBER, 1.0, B_R, phi, 8.9, P["stencil"], root)
-        text_on_cylinder(f"Name{s}", B_NAME, 0.3, B_R, phi, 6.75, P["stencil"], root)
-    text_on_cylinder("NameFront", B_NAME, 0.36, B_R, math.pi / 2, 8.4, P["stencil"], root)
-    stencil("NameRear", B_NUMBER, 0.34, (0, B_DOOR_Y - 0.01, B_BAYTOP + 0.18), "-Y", P["stencil"], root, max_width=1.6)
+        if BLANK:
+            # The game paints flat Label3D decals on these markers: kept narrow so the curve hides them (sagitta
+            # w^2 / 8R ~0.15) and set a little proud of the barrel.
+            f = "+X" if s > 0 else "-X"
+            stencil(f"Number{s}", B_NUMBER, 0.9, (s * (B_R + 0.08), 0, 8.9), f, P["stencil"], root, max_width=2.2)
+            stencil(f"Name{s}", B_NAME, 0.3, (s * (B_R + 0.06), 0, 6.75), f, P["stencil"], root, max_width=2.0)
+        else:
+            text_on_cylinder(f"Number{s}", B_NUMBER, 1.0, B_R, phi, 8.9, P["stencil"], root)
+            text_on_cylinder(f"Name{s}", B_NAME, 0.3, B_R, phi, 6.75, P["stencil"], root)
+    stencil("NameRear", B_NAME, 0.24, (0, B_DOOR_Y - 0.01, B_BAYTOP + 0.18), "-Y", P["stencil"], root, max_width=3.4)
     text_on_cylinder("SkirtWarn", "DANGER  ENGINE EXHAUST  KEEP 50 M CLEAR", 0.13, B_R, math.pi / 2, 2.55, P["stencilwhite"], root)
     text_on_cylinder("HatchSign", "CREW HATCH", 0.14, B_R, ha, 9.78, P["stencil"], root)
     parts["descent_alt"] = 9.0
+    # Legs fold straight up the barrel (beam vertical, ~130 degrees); the pads turn a further (fold - 90) so they lie
+    # flat against the barrel, contact face out.
+    leg = 90 + math.degrees(math.atan2(B_LEG_Z - 0.45, B_PAD_R - B_LEG_R))
+    parts["fold"] = (leg, leg - 90)
     return parts
 
 
@@ -1064,7 +1117,7 @@ C_NTOP, C_NBOT, C_RING = 4.0, 9.0, 56
 C_ENG = [(-4.15, 3.5), (4.15, 3.5), (-4.15, -4.55), (4.15, -4.55)]   # engine centres (x, y), Thruster0..3 order
 C_ENG_Z = 3.05          # mount ring height
 C_BELL = dict(r_t=0.22, r_e=0.66, L=1.25)
-C_NAME, C_NUMBER = "CARGO HAULER 7", "UE-07"
+C_NAME, C_NUMBER = "IRONWOOD", "UE-07"
 
 
 def c_section(y):
@@ -1176,13 +1229,13 @@ def option_c(P):
         c_patch(f"SideWindow{s}", 4.9, 5.4, t - 0.1 * s, t + 0.1 * s, P["glass"], root, nu=2, nv=2, lift=0.02)
         c_patch(f"NoseLamp{s}", 7.0, 7.12, (math.radians(-25) if s > 0 else math.pi + math.radians(25)) - 0.08 * s,
                 (math.radians(-25) if s > 0 else math.pi + math.radians(25)) + 0.08 * s, P["lamp"], root, nu=2, nv=1, lift=0.02)
-    # Owner flash along the flanks, a thin second line, panel seams, hazard edge at the door.
+    # Orange flash along the flanks, the thin player-colour line under it, panel seams, hazard edge at the door.
     for s in (-1, 1):
-        for nm, z0, z1, y1 in (("Flash", 4.18, 4.4, 6.3), ("FlashB", 4.0, 4.07, 6.1)):
+        for nm, z0, z1, y1, mat in (("Flash", 4.15, 4.42, 6.3, P["foam"]), ("FlashOwner", 3.96, 4.04, 6.1, P["owner"])):
             t0, t1 = c_angle(z0), c_angle(z1)
             if s < 0:
                 t0, t1 = math.pi - t1, math.pi - t0
-            c_patch(f"{nm}{s}", C_REAR + 0.05, y1, t0, t1, P["owner"], root, nu=1, nv=28)
+            c_patch(f"{nm}{s}", C_REAR + 0.05, y1, t0, t1, mat, root, nu=1, nv=28)
         for y in (-3.95, 0.55, 2.7):
             seam(f"SeamV{s}{y}", (0.02, 0.03, 2.6), (s * 2.506, y, 2.75), P, root)
         seam(f"SeamH{s}", (0.02, 8.4, 0.03), (s * 2.506, -2.1, 1.85), P, root)
@@ -1199,7 +1252,8 @@ def option_c(P):
     ramp, tip, toe = single_ramp(P, root, (0, C_REAR, C_FLOOR), 1.75, C_RAMP_L, C_RAMP_T, P["white"])
     for z in (1.3, 2.4):
         seam(f"RampSeam{z}", (3.3, 0.02, 0.03), (0, -C_RAMP_T - 0.004, z), P, ramp)
-    box("RampOwner", (3.42, 0.012, 0.18), (0, -C_RAMP_T - 0.006, 0.95), P["owner"], ramp, 0).visible_shadow = False
+    box("RampStripe", (3.42, 0.012, 0.27), (0, -C_RAMP_T - 0.006, 4.285 - C_FLOOR), P["foam"], ramp, 0).visible_shadow = False
+    box("RampOwner", (3.42, 0.012, 0.08), (0, -C_RAMP_T - 0.006, 4.0 - C_FLOOR), P["owner"], ramp, 0).visible_shadow = False
     stencil("RampKeepClear", "KEEP CLEAR OF RAMP", 0.16, (0, -C_RAMP_T - 0.01, 0.5), "-Y", P["stencil"], ramp)
     parts.update(ramp=ramp, tip=tip, toe=toe)
 
@@ -1287,6 +1341,7 @@ def option_c(P):
     stencil("NameRear", C_NUMBER, 0.24, (0, C_REAR - C_RAMP_T - 0.035, C_BAYTOP + 0.1), "-Y", P["stencilwhite"], root, max_width=2.6)
     stencil("NoseName", C_NAME, 0.2, (0, 7.02, 2.2), "+Y", P["stencilwhite"], root, max_width=1.8)
     parts["descent_alt"] = 7.5
+    parts["fold"] = (90.0, 90.0)  # as Halyard: front legs fold aft, rear forward, under the outriggers; pads level
     return parts
 
 
@@ -1340,10 +1395,24 @@ def add_plumes(parts, P):
     parts["plumes"] = objs
 
 
+def fold_legs(legs, feet, fold, f):
+    """The game's leg fold at share f (0 = down, 1 = folded): front legs (0, 1) turn -leg about local X, rear legs
+    +leg; their feet turn the other way by the foot angle (= leg keeps the pads level). DropShipSpec.LegFold/FootFold."""
+    leg, foot = fold
+    for k, (lg, ft) in enumerate(zip(legs, feet)):
+        sgn = -1.0 if k < 2 else 1.0
+        lg.rotation_euler.x = sgn * math.radians(leg) * f
+        ft.rotation_euler.x = -sgn * math.radians(foot) * f
+
+
 def set_pose(parts, pose):
-    """landed: legs down, ramp closed, idle. open: landed with the ramp (and tip) down. descent: alt up, burning."""
+    """landed: legs down, ramp closed, idle. open: landed with the ramp (and tip) down. descent: alt up, burning.
+    flight: as descent with the legs folded (the climb-out)."""
     root = parts["root"]
-    root.location.z = parts["descent_alt"] if pose == "descent" else 0.0
+    root.location.z = parts["descent_alt"] if pose in ("descent", "flight") else 0.0
+    fold_legs(parts["legs"], parts["feet"], parts["fold"], 1.0 if pose == "flight" else 0.0)
+    if pose == "flight":
+        pose = "descent"
     if pose == "open":
         parts["ramp"].rotation_euler.x = parts["ramp_open"]
         if parts["tip"] is not None:
@@ -1359,6 +1428,217 @@ def set_pose(parts, pose):
     for k in (4, 5):
         glow(f"Thruster{k}", 6.0 if pose == "descent" else 0.25)
     glow("BayLight", 6.0 if pose == "open" else 2.0)
+
+
+# ---------------------------------------------------------------- game export (--game)
+
+GAME_DIR = os.path.join(REPO, "game", "models", "vehicles")
+PIVOTS = ["Ramp", "RampTip"] + [f"Leg{k}" for k in range(4)] + [f"Foot{k}" for k in range(4)]  # animated empties
+KEEP = [f"Thruster{k}" for k in range(6)] + ["BayLight", "Beacon"]  # driven meshes, exported as their own nodes
+
+
+def game_path(key):
+    return os.path.join(GAME_DIR, f"dropship_prewarp_{key}.glb")
+
+
+def join_for_game(root):
+    """build_dropship.py's join_for_game for the pre-warp ships: every modifier applied, the boolean cutters dropped,
+    then one mesh per pivot (root -> "Body", Ramp -> "RampBody", RampTip -> "RampTipBody", LegK -> "LegKBody",
+    FootK -> "FootKBody"), one material slot per material. KEEP meshes and the decal marker empties stay as they are;
+    empties left with nothing under them (grid fin frames) go. Every part first gets one UV layer called "UVMap" (the
+    join keeps only the active object's layers by name)."""
+    meshes = [o for o in root.children_recursive if o.type == "MESH" and not o.hide_render]
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    applied = {o: bpy.data.meshes.new_from_object(o.evaluated_get(depsgraph), preserve_all_data_layers=True, depsgraph=depsgraph)
+               for o in meshes if o.modifiers}
+    for o, me in applied.items():
+        o.modifiers.clear()
+        o.data = me
+    for o in [o for o in root.children_recursive if o.hide_render]:
+        bpy.data.objects.remove(o)
+
+    def pivot_of(o):
+        p = o.parent
+        while p is not None and p is not root and p.name not in PIVOTS:
+            p = p.parent
+        return p or root
+
+    groups = {}
+    for o in meshes:
+        if o.name in KEEP:
+            continue
+        groups.setdefault(pivot_of(o), []).append(o)
+    for o in meshes:
+        if not o.data.uv_layers:
+            o.data.uv_layers.new(name="UVMap")
+        o.data.uv_layers[0].name = "UVMap"
+        while len(o.data.uv_layers) > 1:
+            o.data.uv_layers.remove(o.data.uv_layers[1])
+    for pivot, objs in groups.items():
+        for o in objs:  # straight under the pivot first (some parts hang under helper empties)
+            mw = o.matrix_world.copy()
+            o.parent = pivot
+            o.matrix_parent_inverse = Matrix.Identity(4)
+            o.matrix_world = mw
+        bpy.context.view_layer.update()
+        target = objs[0]
+        bpy.ops.object.select_all(action="DESELECT")
+        for o in objs:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = target
+        if len(objs) > 1:
+            bpy.ops.object.join()
+        target.name = "Body" if pivot is root else f"{pivot.name}Body"
+        target.data.name = target.name
+        target.data.transform(target.matrix_basis)
+        target.matrix_basis = Matrix.Identity(4)
+    markers = set(V["MARKERS"].values())
+    while True:
+        bare = [o for o in root.children_recursive if o.type == "EMPTY" and not o.children and o.name not in PIVOTS
+                and o.name not in markers]
+        if not bare:
+            break
+        for o in bare:
+            bpy.data.objects.remove(o)
+    bpy.ops.object.select_all(action="DESELECT")
+    names = sorted(o.name for o in root.children_recursive)
+    missing = sorted(set(KEEP + PIVOTS) - set(names))
+    print(f"joined for the game: {len(names) + 1} nodes:", ", ".join(names), flush=True)
+    if missing:
+        print("  (no", ", ".join(missing) + ")", flush=True)
+
+
+def _principled(m):
+    return m.node_tree.nodes.get("Principled BSDF") if m and m.use_nodes else None
+
+
+def bake_colours(root, res, image_name):
+    """The procedural paints (scuffed white, foam, tiles, foil, hazard stripes) don't survive glTF: unwrap every
+    joined body into one shared atlas (multi-object smart UV, like building_kit.bake_grime), EMIT-bake each material's
+    own Base Color input into it, then give every procedural material Base Color = the atlas (roughness = its
+    middle value, the bump dropped). Flat materials (Owner, lamps, glass, steel...) stay as they are."""
+    scene = bpy.context.scene
+    scene.render.engine = "CYCLES"
+    scene.cycles.samples = 4
+    targets = [o for o in root.children_recursive if o.type == "MESH" and o.name not in KEEP]
+    mats = {s.material for o in targets for s in o.material_slots if s.material}
+    procedural = [m for m in mats if (p := _principled(m)) is not None and p.inputs["Base Color"].is_linked]
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in targets:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = targets[0]
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.002, area_weight=0.0, correct_aspect=True,
+                             scale_to_bounds=False)
+    bpy.ops.uv.pack_islands(margin=0.002, rotate=True)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    image = bpy.data.images.new(image_name, res, res)
+    copies = {}
+    for m in mats:
+        c = m.copy()
+        nt = c.node_tree
+        p = nt.nodes.get("Principled BSDF")
+        emit = nt.nodes.new("ShaderNodeEmission")
+        if p is not None and p.inputs["Base Color"].is_linked:
+            nt.links.new(p.inputs["Base Color"].links[0].from_socket, emit.inputs["Color"])
+        elif p is not None:
+            emit.inputs["Color"].default_value = p.inputs["Base Color"].default_value
+        out = nt.nodes.get("Material Output") or nt.nodes.new("ShaderNodeOutputMaterial")
+        nt.links.new(emit.outputs[0], out.inputs["Surface"])
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = image
+        nt.nodes.active = tex
+        copies[m] = c
+    saved = {}
+    for o in targets:
+        saved[o] = [s.material for s in o.material_slots]
+        for s in o.material_slots:
+            if s.material:
+                s.material = copies[s.material]
+    t = time.time()
+    scene.cycles.bake_type = "EMIT"
+    bpy.ops.object.bake(type="EMIT", margin=4, use_clear=True)
+    print(f"baked the paint atlas {res} for {len(targets)} bodies, {len(procedural)} procedural materials "
+          f"in {time.time() - t:.0f} s", flush=True)
+    for o, ms in saved.items():
+        for s, m in zip(o.material_slots, ms):
+            s.material = m
+    for c in copies.values():
+        bpy.data.materials.remove(c)
+    image.pack()
+    for m in procedural:
+        nt = m.node_tree
+        p = _principled(m)
+        for name in ("Base Color", "Normal", "Roughness"):
+            inp = p.inputs[name]
+            if not inp.is_linked:
+                continue
+            src = inp.links[0].from_node
+            if name == "Roughness":
+                lo = src.inputs.get("To Min")
+                hi = src.inputs.get("To Max")
+                inp.default_value = (lo.default_value + hi.default_value) / 2 if lo and hi else 0.45
+            nt.links.remove(inp.links[0])
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = image
+        nt.links.new(tex.outputs["Color"], p.inputs["Base Color"])
+
+
+def export_glb(root, path):
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in [root] + list(root.children_recursive):
+        if not o.hide_render:
+            o.select_set(True)
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_apply=True, export_yup=True,
+                              export_lights=False, export_cameras=False, export_image_format="JPEG",
+                              export_jpeg_quality=86, export_image_quality=86)
+    tris = sum(len(p.vertices) - 2 for o in root.children_recursive if o.type == "MESH" for p in o.data.polygons)
+    nodes = 1 + len(root.children_recursive)
+    print(f"exported {path}: {os.path.getsize(path) / 1e6:.2f} MB, {nodes} nodes, {tris} triangles", flush=True)
+
+
+def godot(v):
+    """Blender (x, y, z) -> Godot (x, z, -y)."""
+    return (round(v[0], 3), round(v[2], 3), round(-v[1], 3))
+
+
+def print_spec(parts):
+    """The numbers DropShipSpec.cs needs, in Godot model space (front -Z, up +Y, aft +Z)."""
+    ramp, tip = parts["ramp"], parts["tip"]
+    bpy.context.view_layer.update()
+    hinge = ramp.matrix_world.translation
+    L1 = tip.location.z if tip is not None else max(z for _, z in parts["toe"])
+    L = max(z for _, z in parts["toe"])
+    a = RAMP_GAME
+    toe_y = hinge.y - (L * math.sin(a))  # Blender: the ramp swings aft (-Y) and down
+    toe_z = hinge.z + L * math.cos(a)
+    print(f"SPEC {parts['key'].upper()}: hinge {godot(hinge)}  ramp {L1:.3f} + tip {L - L1:.3f}  "
+          f"toe at 109.6: ({0:.2f}, {toe_z:.3f}, {-toe_y:.3f})  fold leg {parts['fold'][0]:.1f} foot {parts['fold'][1]:.1f}", flush=True)
+    for k, ft in enumerate(parts["feet"]):
+        w = ft.matrix_world.translation
+        print(f"  Foot{k} pad {godot((w.x, w.y, 0.0))}", flush=True)
+    for b, ex, r in parts["bells"]:
+        print(f"  {b.name} exit {godot(ex)} r {r}", flush=True)
+
+
+def game_export(key, res):
+    """One option as the game model: --blank markers, landed rest pose (legs down, ramp closed, tip folded),
+    joined, paint baked, written to game/models/vehicles/dropship_prewarp_<key>.glb."""
+    t = time.time()
+    V["reset"]()
+    V["BLANK"] = True
+    V["NUMBER_DIGITS"] = 5  # number markers sized for "UE-07"
+    P = prewarp_palette()
+    parts = BUILDERS[key](P)
+    parts["ramp_open"] = ramp_angle(parts["hinge_z"], parts["toe"])
+    set_pose(parts, "landed")
+    print_spec(parts)
+    join_for_game(parts["root"])
+    bake_colours(parts["root"], res, f"Prewarp{key.upper()}Paint")
+    export_glb(parts["root"], game_path(key))
+    print(f"option {key.upper()} exported in {time.time() - t:.0f} s", flush=True)
 
 
 # ---------------------------------------------------------------- scene, props, render
@@ -1470,6 +1750,11 @@ def crawler_spot(parts):
 
 def main():
     t0 = time.time()
+    if GAME:
+        for key in OPTIONS:
+            game_export(key, BAKE_RES)
+        print(f"done in {time.time() - t0:.0f} s", flush=True)
+        return
     V["reset"]()
     V["BLANK"] = BLANK
     P = prewarp_palette()
@@ -1558,6 +1843,38 @@ def main():
             aim(cam, pos, target, lens)
             render(os.path.join(PREVIEW, f"prewarp-{key}-descent.png"))
             set_pose(parts, "landed")
+        if "flight" in SHOTS:  # the climb-out: legs folded as the game folds them (DropShipSpec.LegFold / FootFold)
+            set_pose(parts, "flight")
+            only([key], [])
+            pos, target, lens = FRAMING[key]["descent"]
+            aim(cam, pos, target, lens)
+            render(os.path.join(PREVIEW, f"prewarp-{key}-flight.png"))
+            set_pose(parts, "landed")
+        if "glb" in SHOTS and os.path.exists(game_path(key)):
+            # The exported game model, posed through its own pivots the way DropShipView does: left landed with the
+            # ramp at 109.6 and the tip unfolded, right in flight with the legs folded.
+            copies = [import_glb(game_path(key), props), import_glb(game_path(key), props)]
+            for c, (x, z, pose) in zip(copies, ((-8.5, 0.0, "open"), (8.5, 6.0, "flight"))):
+                c.location = (x, 0, z)
+                nodes = {o.name.split(".")[0]: o for o in c.children_recursive}
+                if pose == "open":
+                    nodes["Ramp"].matrix_basis = nodes["Ramp"].matrix_basis @ Matrix.Rotation(RAMP_GAME, 4, "X")
+                    if "RampTip" in nodes:
+                        nodes["RampTip"].matrix_basis = nodes["RampTip"].matrix_basis @ Matrix.Rotation(math.pi, 4, "X")
+                else:
+                    leg, foot = parts["fold"]
+                    for k in range(4):
+                        sgn = -1.0 if k < 2 else 1.0
+                        nodes[f"Leg{k}"].matrix_basis = nodes[f"Leg{k}"].matrix_basis @ Matrix.Rotation(sgn * math.radians(leg), 4, "X")
+                        nodes[f"Foot{k}"].matrix_basis = nodes[f"Foot{k}"].matrix_basis @ Matrix.Rotation(-sgn * math.radians(foot), 4, "X")
+            only([], [])
+            pos, target, lens = {"a": ((-9, -46, 13), (0, 0, 5.0), 32), "b": ((-9, -50, 15), (0, 0, 7.5), 30),
+                                 "c": ((-9, -48, 12), (0, 0, 4.5), 30)}[key]
+            aim(cam, pos, target, lens)
+            render(os.path.join(PREVIEW, f"prewarp-{key}-glb.png"))
+            for c in copies:
+                for o in [c] + list(c.children_recursive):
+                    o.hide_render = True
 
     def place_lineup(xs):
         """Halyard, A, B, C at xs (so they read left to right from the shot's camera)."""

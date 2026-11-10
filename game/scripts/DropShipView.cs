@@ -35,6 +35,12 @@ namespace FinalFrontier;
 /// (<see cref="ConvoyShip.Approach"/>: down from orbit with an outpost module slung underneath, set it down, hop over
 /// to their landing spot) and names the unit each one carries; from touchdown on they unload and leave like any other.
 /// A convoy ship with <see cref="ConvoyShip.FliesAway"/> never lands: LandingView flies it the whole time.</para>
+/// <para>Models (<see cref="DropShipSpec"/>, <see cref="SpecFor"/>): Halyard in every era but Dawn of Warp; there each
+/// player's ships are one of the pre-warp A Lander / B Hopper / C Freighter, picked per player from the map seed
+/// (<see cref="DropShipHulls"/>), named per ship from the pre-warp list. A and B have two-piece ramps: the tip
+/// ("RampTip") unfolds +180° from 85% of the main ramp's travel (1.1 s), the unit drives once it is down and its path
+/// runs the full length; closing, the tip folds first. Legs fold by the model's LegFold (A ~124°, B ~130° straight up
+/// the hull, pads turned flat by FootFold); B climbs straight up instead of pitching over.</para>
 /// </summary>
 public partial class DropShipView : Node3D
 {
@@ -44,7 +50,9 @@ public partial class DropShipView : Node3D
     private const float TouchdownAt = -2f;
     private const float LegsFrom = -5.8f, LegsTo = -3.6f; // out during the burn, down by the hover
     private const float RampSeconds = 1.6f;    // opens from ArriveTick, closes after the unit is out
-    private const float DriveFrom = 1.3f;      // the unit starts down the ramp
+    private const float TipSeconds = 1.1f;     // a two-piece ramp's tip unfolds after the main ramp (and folds first)
+    private const float TipAfter = 0.85f;      // ... starting at this share of the main ramp's travel
+    private const float DriveFrom = 1.3f;      // the unit starts down the ramp (a one-piece ramp)
     private const float DriveSpeed = 3.4f;     // world units a second
     private const float CloseDelay = 0.4f;
     private const float SpoolSeconds = 1.1f;
@@ -53,25 +61,12 @@ public partial class DropShipView : Node3D
 
     private const float StartHeight = 260f, ApproachDistance = 140f;
 
-    // ---------------------------------------------------------------- the model (Godot space: front -Z, up +Y)
+    // The model's own numbers (hinge, ramp, bay, pads, footprint, leg fold, climb, lights) are in its DropShipSpec
+    // (Godot space: front -Z, up +Y): Halyard everywhere but a Dawn of Warp match, where each player flies one of
+    // the three pre-warp ships (SpecFor).
 
-    private const float RampOpenDegrees = 109.6f; // build_dropship.py RAMP_OPEN: the toe rests on the ground
-    private const float RampLength = 3.32f;
-    private static readonly Vector3 HingeDefault = new(0, 1.25f, 6f);
-    private static readonly Vector3 BayStart = new(0, 1.25f, -0.5f); // rear wheels of the unit parked in the bay
-    private const float ToeReach = 9.15f; // ship origin to the open ramp's toe along +Z
-
-    private static readonly Vector3[] PadSpots = { new(-4.25f, 0, -2.4f), new(4.25f, 0, -2.4f), new(-4.25f, 0, 5.5f), new(4.25f, 0, 5.5f) };
-
-    /// <summary>Points under the landed ship (and its open ramp) that must be clear, flat ground.</summary>
-    private static readonly Vector3[] Footprint =
-    {
-        new(0, 0, -6.6f), new(-2.3f, 0, -4.5f), new(2.3f, 0, -4.5f), new(-2.3f, 0, 0), new(2.3f, 0, 0), new(0, 0, 0),
-        new(-2.3f, 0, 5.8f), new(2.3f, 0, 5.8f), new(-3.75f, 0, -5.9f), new(3.75f, 0, -5.9f), new(-3.75f, 0, 3.9f),
-        new(3.75f, 0, 3.9f), PadSpots[0], PadSpots[1], PadSpots[2], PadSpots[3], new(0, 0, 9.1f), new(-1.6f, 0, 8.6f), new(1.6f, 0, 8.6f),
-    };
-
-    /// <summary>Each player's ship has its own name and hull number (render-only).</summary>
+    /// <summary>Each player's ship has its own name and hull number (render-only); pre-warp ships draw theirs per ship
+    /// from <see cref="DropShipHulls"/>.</summary>
     private static readonly (string Name, string Number)[] Hulls =
         { ("HALYARD", "07"), ("BOWLINE", "12"), ("LANYARD", "23"), ("CAPSTAN", "31"), ("GANTLINE", "46"), ("TOPMAST", "58") };
 
@@ -86,6 +81,7 @@ public partial class DropShipView : Node3D
     private readonly Dictionary<int, Ship> _ships = new();   // by delivery id
     private readonly Dictionary<int, Ship> _byUnit = new();  // by the id of the unit it carries
     private readonly List<int> _done = new();
+    private readonly Dictionary<int, DropShipSpec> _specs = new(); // by owner: the model their drop ships use
     private float _clock;                                    // running seconds (flame flicker)
     private bool _heard;                                     // the surface is on screen (not in orbit): ships may sound
 
@@ -116,12 +112,13 @@ public partial class DropShipView : Node3D
         public required int Owner;
         public required long LaunchTick, ArriveTick;
         public required Node3D Model;
+        public required DropShipSpec Spec;
         public required Transform3D Landed;
         public required int Tile;
         public required float Wheelbase;
-        public Node3D? Ramp;
-        public Basis RampRest;
-        public Vector3 Hinge = HingeDefault;
+        public Node3D? Ramp, RampTip;
+        public Basis RampRest, TipRest;
+        public required Vector3 Hinge;
         public readonly Node3D?[] Legs = new Node3D?[4], Feet = new Node3D?[4];
         public readonly Basis[] LegRest = new Basis[4], FootRest = new Basis[4];
         public readonly BaseMaterial3D?[] Thrusters = new BaseMaterial3D?[6];
@@ -138,17 +135,25 @@ public partial class DropShipView : Node3D
         public float PathLength, DriveSeconds;
         public bool TouchedDown, LiftedOff, Lit, Shown;
         public AudioStreamPlayer3D? Burn;   // landing/burn_loop, driven by the throttle (Sound)
-        public bool Burning, RampOpened, RampClosed, Rolled;
+        public bool Burning, RampOpened, TipOpened, RampClosed, MainClosing, Rolled;
         public float Time;          // this frame, seconds from ArriveTick
         public ConvoyShip? Convoy;  // flown by LandingView until touchdown
 
         public bool Flown => Convoy != null && (Convoy.FliesAway || Time < TouchdownAt);
 
+        // The ramp: the main slab opens 0 → RampSeconds; a tip (two-piece ramp, and only if the model has one) unfolds
+        // from TipFrom; the unit drives once the ramp is (nearly) down; closing, the tip folds first, then the slab.
+        public bool Tip => RampTip != null && Spec.HasTip;
+        public float TipFrom => RampSeconds * TipAfter;
+        public float OpenedAt => Tip ? TipFrom + TipSeconds : RampSeconds;
+        public float DriveStart => Tip ? OpenedAt - 0.25f : DriveFrom;
         public float DescentFrom => Mathf.Min(TouchdownAt - 1f, Mathf.Max(-DescentSeconds, -(ArriveTick - LaunchTick) / (float)Simulation.TickRate));
-        public float UnloadEnd => DriveFrom + DriveSeconds;
-        public float CloseFrom => Mathf.Max(RampSeconds, UnloadEnd + CloseDelay);
-        public float LiftFrom => CloseFrom + RampSeconds + SpoolSeconds;
+        public float UnloadEnd => DriveStart + DriveSeconds;
+        public float CloseFrom => Mathf.Max(OpenedAt, UnloadEnd + CloseDelay);
+        public float MainCloseFrom => Tip ? CloseFrom + TipSeconds * TipAfter : CloseFrom;
+        public float LiftFrom => MainCloseFrom + RampSeconds + SpoolSeconds;
         public float Gone => Convoy is { FliesAway: true } c ? c.GoneAt : LiftFrom + ClimbSeconds;
+        public float RampTotal => Spec.RampLength + (Tip ? Spec.TipLength : 0f);
     }
 
     /// <summary>Where a unit coming off a drop ship is drawn: Origin on the ground under it; Basis null = leave its
@@ -238,8 +243,8 @@ public partial class DropShipView : Node3D
         var travel = ship.PathLength - ship.Wheelbase;
         if (t < ship.UnloadEnd)
         {
-            var k = t < DriveFrom || ship.DriveSeconds <= 0f ? 0f : Mathf.SmoothStep(0f, 1f, (t - DriveFrom) / ship.DriveSeconds);
-            driving = t >= DriveFrom;
+            var k = t < ship.DriveStart || ship.DriveSeconds <= 0f ? 0f : Mathf.SmoothStep(0f, 1f, (t - ship.DriveStart) / ship.DriveSeconds);
+            driving = t >= ship.DriveStart;
             pose = PoseAt(ship, ship.Wheelbase + travel * k);
             if (ship.Flown)
             {
@@ -278,7 +283,7 @@ public partial class DropShipView : Node3D
                 _byUnit[id] = ship;
                 ship.Path = PathFor(ship, _view.UnitPos(carried)); // its parking spot on the tile (sim lanes)
             }
-            else if (id < 0 || ship.Time >= DriveFrom) ship.UnitId = -1;
+            else if (id < 0 || ship.Time >= ship.DriveStart) ship.UnitId = -1;
             return;
         }
         foreach (var u in _surface.Units)
@@ -289,18 +294,19 @@ public partial class DropShipView : Node3D
                 ship.Path = PathFor(ship, _view.UnitPos(u)); // its parking spot; fixes DriveSeconds, so the rest of the timeline
                 return;
             }
-        if (ship.Time >= DriveFrom) ship.UnitId = -1; // nothing came down: just close up and leave
+        if (ship.Time >= ship.DriveStart) ship.UnitId = -1; // nothing came down: just close up and leave
     }
 
     // ---------------------------------------------------------------- the unit's way out
 
     /// <summary>The unit's wheel path in world space: rear wheels at the front of the bay, along the deck to the hinge,
-    /// down the open ramp to its toe, a step onto the ground, then on until its centre is on <paramref name="spot"/>.</summary>
+    /// down the open ramp (both slabs of a two-piece ramp: the unfolded tip carries straight on) to its toe, a step onto
+    /// the ground, then on until its centre is on <paramref name="spot"/>.</summary>
     private Vector3[] PathFor(Ship ship, Vector3 spot)
     {
         var l = ship.Landed;
-        var toeLocal = ship.Hinge + new Basis(Vector3.Right, Mathf.DegToRad(RampOpenDegrees)) * new Vector3(0, RampLength, 0);
-        var bay = l * BayStart;
+        var toeLocal = ship.Hinge + new Basis(Vector3.Right, Mathf.DegToRad(ship.Spec.RampOpenDegrees)) * new Vector3(0, ship.RampTotal, 0);
+        var bay = l * ship.Spec.BayStart;
         var hinge = l * ship.Hinge;
         var toe = l * toeLocal;
         var outward = Flat(l.Basis.Z).Normalized();
@@ -393,27 +399,40 @@ public partial class DropShipView : Node3D
         }
         else
         {
-            // Straight up, accelerating, then it pitches over toward its nose and away (RocketClimb).
+            // Straight up, accelerating, then (most models) it pitches over toward its nose and away (RocketClimb); the
+            // upright Hopper climbs straight up on its main engines the whole way.
             var c = t - ship.LiftFrom;
-            pose = new Transform3D(l.Basis * new Basis(Vector3.Right, -Mathf.DegToRad(RocketClimb.Pitch(c))),
-                l.Origin + Vector3.Up * RocketClimb.Up(c) + Flat(forward).Normalized() * RocketClimb.Ahead(c));
+            var pitch = ship.Spec.PitchOver;
+            pose = new Transform3D(pitch ? l.Basis * new Basis(Vector3.Right, -Mathf.DegToRad(RocketClimb.Pitch(c))) : l.Basis,
+                l.Origin + Vector3.Up * RocketClimb.Up(c) + (pitch ? Flat(forward).Normalized() * RocketClimb.Ahead(c) : Vector3.Zero));
             lift = RocketClimb.Throttle(c);
-            impulse = RocketClimb.Aft(c);
+            impulse = pitch ? RocketClimb.Aft(c) : 0f;
             legsOut = 1f - RocketPlume.S(1f, 3f, c);
         }
         ship.Model.Transform = pose;
 
-        // Legs fold under the pods for flight: front ones aft (-90°), rear ones forward (+90°); feet stay level.
+        // Legs fold for flight about their local X: front ones by -LegFold, rear ones by +LegFold (Halyard: 90°, under
+        // the pods; the pre-warp A/B straight up the hull); the feet turn back by FootFold (= LegFold keeps them level).
+        var spec = ship.Spec;
         for (var k = 0; k < 4; k++)
         {
-            var fold = Mathf.DegToRad(k < 2 ? -90f : 90f) * (1f - legsOut);
-            if (ship.Legs[k] is { } leg) leg.Basis = ship.LegRest[k] * new Basis(Vector3.Right, fold);
-            if (ship.Feet[k] is { } foot) foot.Basis = ship.FootRest[k] * new Basis(Vector3.Right, -fold);
+            var sign = k < 2 ? -1f : 1f;
+            var folded = 1f - legsOut;
+            if (ship.Legs[k] is { } leg) leg.Basis = ship.LegRest[k] * new Basis(Vector3.Right, sign * Mathf.DegToRad(spec.LegFold) * folded);
+            if (ship.Feet[k] is { } foot) foot.Basis = ship.FootRest[k] * new Basis(Vector3.Right, -sign * Mathf.DegToRad(spec.FootFold) * folded);
         }
 
-        // Ramp: opens at ArriveTick, closes once the unit is out.
-        var open = ship.Convoy is { FliesAway: true } ? 0f : Mathf.SmoothStep(0f, 1f, t / RampSeconds) * (1f - Mathf.SmoothStep(0f, 1f, (t - ship.CloseFrom) / RampSeconds));
-        if (ship.Ramp != null) ship.Ramp.Basis = ship.RampRest * new Basis(Vector3.Right, Mathf.DegToRad(RampOpenDegrees) * open);
+        // Ramp: opens at ArriveTick, closes once the unit is out. A two-piece ramp's tip unfolds once the slab is nearly
+        // down and folds back first when it closes.
+        var lands = ship.Convoy is not { FliesAway: true };
+        var open = !lands ? 0f : Mathf.SmoothStep(0f, 1f, t / RampSeconds) * (1f - Mathf.SmoothStep(0f, 1f, (t - ship.MainCloseFrom) / RampSeconds));
+        if (ship.Ramp != null) ship.Ramp.Basis = ship.RampRest * new Basis(Vector3.Right, Mathf.DegToRad(spec.RampOpenDegrees) * open);
+        if (ship.RampTip != null)
+        {
+            var unfold = !lands || !ship.Tip ? 0f
+                : Mathf.SmoothStep(0f, 1f, (t - ship.TipFrom) / TipSeconds) * (1f - Mathf.SmoothStep(0f, 1f, (t - ship.CloseFrom) / TipSeconds));
+            ship.RampTip.Basis = ship.TipRest * new Basis(Vector3.Right, Mathf.Pi * unfold);
+        }
 
         // Glow: the lift thrusters' throats hot orange-white by throttle, the aft exhausts small, the bay lit while the
         // ramp is down.
@@ -446,7 +465,6 @@ public partial class DropShipView : Node3D
         ship.Wash.Position = under;
         var wash = ship.Shown && lift > 0.2f && height < WashBelow;
         if (ship.Wash.Emitting != wash) ship.Wash.Emitting = wash;
-        var lands = ship.Convoy is not { FliesAway: true };
         if (!ship.TouchedDown && t >= TouchdownAt && lands)
         {
             ship.TouchedDown = true;
@@ -511,15 +529,31 @@ public partial class DropShipView : Node3D
             ship.RampOpened = true;
             if (heard && t < 0.5f) Sfx.At("landing/ramp_open", ship.Model.ToGlobal(ship.Hinge));
         }
-        if (!ship.Rolled && ship.UnitId > 0 && t >= DriveFrom)
+        if (!ship.TipOpened && ship.Tip && t >= ship.TipFrom)
+        {
+            // The ramp's second slab unfolding off the first: the same motor, lighter and a little higher.
+            ship.TipOpened = true;
+            if (heard && t < ship.TipFrom + 0.5f) Sfx.At("landing/ramp_open", ship.RampTip!.GlobalPosition, -4f, 1.12f);
+        }
+        if (!ship.Rolled && ship.UnitId > 0 && t >= ship.DriveStart)
         {
             ship.Rolled = true;
-            if (heard && t < DriveFrom + 0.5f) Sfx.At("landing/vehicle_roll", ship.Model.ToGlobal(ship.Hinge), 0f, Pitch(ship, 0.08f));
+            if (heard && t < ship.DriveStart + 0.5f) Sfx.At("landing/vehicle_roll", ship.Model.ToGlobal(ship.Hinge), 0f, Pitch(ship, 0.08f));
         }
         if (!ship.RampClosed && t >= ship.CloseFrom)
         {
+            // Closing: a two-piece ramp folds its tip first (lighter), then the slab comes up.
             ship.RampClosed = true;
-            if (heard && t < ship.CloseFrom + 0.5f) Sfx.At("landing/ramp_close", ship.Model.ToGlobal(ship.Hinge));
+            if (heard && t < ship.CloseFrom + 0.5f)
+            {
+                if (ship.Tip) Sfx.At("landing/ramp_close", ship.RampTip!.GlobalPosition, -4f, 1.12f);
+                else Sfx.At("landing/ramp_close", ship.Model.ToGlobal(ship.Hinge));
+            }
+        }
+        if (!ship.MainClosing && ship.Tip && t >= ship.MainCloseFrom)
+        {
+            ship.MainClosing = true;
+            if (heard && t < ship.MainCloseFrom + 0.5f) Sfx.At("landing/ramp_close", ship.Model.ToGlobal(ship.Hinge));
         }
     }
 
@@ -547,8 +581,29 @@ public partial class DropShipView : Node3D
     private Ship Create(Delivery d)
     {
         var def = _sim.Data.SurfaceUnit(d.Payload);
-        var hull = Hulls[d.Owner % Hulls.Length];
-        return Create(d.Id, d.Owner, d.LaunchTick, d.ArriveTick, LandingFor(d.Tile, d.Id, def.CanMine), def.CanMine, hull.Name, hull.Number);
+        var spec = SpecFor(d.Owner);
+        var hull = PreWarpHull(d.Owner, d.Id, 0) ?? Hulls[d.Owner % Hulls.Length];
+        return Create(d.Id, d.Owner, d.LaunchTick, d.ArriveTick, LandingFor(spec, d.Tile, d.Id, def.CanMine), def.CanMine, hull.Name, hull.Number);
+    }
+
+    /// <summary>The drop ship model <paramref name="owner"/> flies (render-only): Halyard, or in a Dawn of Warp match the
+    /// pre-warp ship picked for that player from the map seed and their slot (<see cref="DropShipHulls.PreWarpModel"/>),
+    /// the same for every drop ship of theirs for the whole game. Halyard if that glb isn't there.</summary>
+    public DropShipSpec SpecFor(int owner)
+    {
+        if (_surface == null) return DropShipSpec.Halyard;
+        if (!_specs.TryGetValue(owner, out var spec))
+            _specs[owner] = spec = DropShipSpec.For(_sim.Data.Orbit?.Era, _surface.Map.Seed, owner);
+        return spec;
+    }
+
+    /// <summary>A pre-warp ship's name and hull number (null outside a Dawn of Warp match: the caller keeps its own
+    /// list): drawn per ship from <see cref="DropShipHulls"/> by the delivery that brought it (0 = the first landing)
+    /// and its slot in a convoy, so it never repeats for a player and is the same after a reload.</summary>
+    public (string Name, string Number)? PreWarpHull(int owner, int deliveryId, int slot)
+    {
+        if (_surface == null || !DropShipHulls.IsPreWarp(_sim.Data.Orbit?.Era)) return null;
+        return DropShipHulls.PreWarp(_surface.Map.Seed, owner, DropShipHulls.Serial(deliveryId, slot));
     }
 
     /// <summary>Start a convoy ship (LandingView). Its key must be negative; a key already flying is ignored.</summary>
@@ -561,16 +616,23 @@ public partial class DropShipView : Node3D
         _ships[c.Key] = ship;
     }
 
-    /// <summary>Where a convoy ship will stand to unload the unit the sim puts on <paramref name="unitTile"/>: as for a
-    /// delivery's ship, but also clear of the outpost (no footprint point within <paramref name="hubClear"/> of
-    /// <paramref name="hubTile"/>'s centre) and 9 away from the other convoy ships' spots.</summary>
-    public Transform3D ConvoyLanding(int unitTile, int seed, bool crawler, int hubTile, float hubClear, IReadOnlyList<Vector3> others) =>
-        LandingFor(unitTile, seed, crawler, hubTile, hubClear, others);
+    /// <summary>Where <paramref name="owner"/>'s convoy ship will stand to unload the unit the sim puts on
+    /// <paramref name="unitTile"/>: as for a delivery's ship, but also clear of the outpost (no footprint point within
+    /// <paramref name="hubClear"/> of <paramref name="hubTile"/>'s centre) and 9 away from the other convoy ships' spots.</summary>
+    public Transform3D ConvoyLanding(int owner, int unitTile, int seed, bool crawler, int hubTile, float hubClear, IReadOnlyList<Vector3> others) =>
+        LandingFor(SpecFor(owner), unitTile, seed, crawler, hubTile, hubClear, others);
 
     private Ship Create(int key, int owner, long launchTick, long arriveTick, Transform3D landed, bool crawler, string name, string number)
     {
         var colour = PlanetDriver.ColorOf(owner);
-        var model = BuildingModels.DropShip(colour) ?? Primitive(colour);
+        // The owner's model; if its glb won't load, Halyard's; if that won't either, the primitive (Halyard's shape).
+        var spec = SpecFor(owner);
+        var model = BuildingModels.DropShip(colour, spec.Id);
+        if (model == null)
+        {
+            spec = DropShipSpec.Halyard;
+            model = BuildingModels.DropShip(colour) ?? Primitive(colour);
+        }
         var ours = owner == _localPlayer;
         if (ours)
         {
@@ -590,15 +652,22 @@ public partial class DropShipView : Node3D
             LaunchTick = launchTick,
             ArriveTick = arriveTick,
             Model = model,
+            Spec = spec,
             Landed = landed,
             Tile = _view.TileAt(landed.Origin),
             Wheelbase = crawler ? 4.2f : 3f,
+            Hinge = spec.Hinge,
         };
         if (model.FindChild("Ramp", true, false) is Node3D ramp)
         {
             ship.Ramp = ramp;
             ship.RampRest = ramp.Basis;
             ship.Hinge = ModelSpace(ramp, model).Origin;
+            if (spec.HasTip && ramp.FindChild("RampTip", true, false) is Node3D tip)
+            {
+                ship.RampTip = tip;
+                ship.TipRest = tip.Basis;
+            }
         }
         for (var k = 0; k < 4; k++)
         {
@@ -629,10 +698,10 @@ public partial class DropShipView : Node3D
         ship.Nacelle = nacelle;
         if (model.FindChild("BayLight", true, false) is MeshInstance3D bay) ship.Bay = OwnGlow(bay, null);
         ship.Lamps = RoverLook.Lamps.Attach(model, key & 0xffff); // convoy keys are negative: the flash phase needs a time >= 0
-        ship.Lights = VehicleLights.Rig.Attach(model, VehicleLights.Kind.DropShip, key & 0xffff);
+        ship.Lights = VehicleLights.Rig.Attach(model, VehicleLights.Kind.DropShip, key & 0xffff, spec.Lights);
         _view.AddLightRig(ship.Lights);
 
-        ship.BayLamp = new OmniLight3D { LightColor = new Color(1f, 0.93f, 0.8f), OmniRange = 9f, LightEnergy = 0f, ShadowEnabled = false, Position = new Vector3(0, 3.8f, 2.6f) };
+        ship.BayLamp = new OmniLight3D { LightColor = new Color(1f, 0.93f, 0.8f), OmniRange = 9f, LightEnergy = 0f, ShadowEnabled = false, Position = spec.BayLamp };
         model.AddChild(ship.BayLamp);
 
         var haze = SprayRig.HazeColour(SprayRig.KindFor(_surface.Map, ship.Tile));
@@ -658,7 +727,7 @@ public partial class DropShipView : Node3D
     /// onto open ground and stops on the centre. Of 12 headings, the one whose footprint stays off buildings, water,
     /// mountains and the map edge on the flattest ground wins; then the ship is tilted to the ground under its pads.
     /// </summary>
-    private Transform3D LandingFor(int tile, int seed, bool crawler, int keepOff = -1, float keepOffRadius = 0f, IReadOnlyList<Vector3>? others = null)
+    private Transform3D LandingFor(DropShipSpec spec, int tile, int seed, bool crawler, int keepOff = -1, float keepOffRadius = 0f, IReadOnlyList<Vector3>? others = null)
     {
         var map = _surface.Map;
         if (_surface.StructureAt(tile) != null || !map.Terrain(tile).Passable)
@@ -669,7 +738,7 @@ public partial class DropShipView : Node3D
                     break;
                 }
         var spot = _view.TileCentre(tile);
-        var reach = ToeReach + (crawler ? 4.2f : 3.4f);
+        var reach = spec.ToeReach + (crawler ? 4.2f : 3.4f);
         var bestScore = float.MaxValue;
         var best = Transform3D.Identity;
         for (var i = 0; i < 12; i++)
@@ -679,21 +748,21 @@ public partial class DropShipView : Node3D
             var dir = new Vector3(Mathf.Sin(a), 0, Mathf.Cos(a));
             var basis = Basis.LookingAt(dir, Vector3.Up); // nose away from the spot, ramp (+Z) toward it
             var origin = spot with { Y = 0 } + dir * reach;
-            var score = FootprintScore(origin, basis, keepOff, keepOffRadius, others);
+            var score = FootprintScore(spec, origin, basis, keepOff, keepOffRadius, others);
             if (score < bestScore - 0.01f)
             {
                 bestScore = score;
                 best = new Transform3D(basis, origin);
             }
         }
-        return Settle(best);
+        return Settle(spec, best);
     }
 
-    private float FootprintScore(Vector3 origin, Basis basis, int keepOff, float keepOffRadius, IReadOnlyList<Vector3>? others)
+    private float FootprintScore(DropShipSpec spec, Vector3 origin, Basis basis, int keepOff, float keepOffRadius, IReadOnlyList<Vector3>? others)
     {
         var map = _surface.Map;
         float lo = float.MaxValue, hi = float.MinValue, penalty = 0f;
-        foreach (var p in Footprint)
+        foreach (var p in spec.Footprint)
         {
             var w = origin + basis * p;
             var t = _view.TileAt(w);
@@ -716,18 +785,22 @@ public partial class DropShipView : Node3D
     }
 
     /// <summary>Lift the ship onto the ground under its four pads, tilted to match (a few degrees at most).</summary>
-    private Transform3D Settle(Transform3D flat)
+    private Transform3D Settle(DropShipSpec spec, Transform3D flat)
     {
+        var pads = spec.PadSpots;
         var h = new float[4];
-        for (var k = 0; k < 4; k++) h[k] = _view.GroundAt(flat * PadSpots[k]);
-        var rise = Mathf.Clamp((h[2] + h[3] - h[0] - h[1]) / 2f, -1.4f, 1.4f); // rear pads minus front, over 7.9
-        var roll = Mathf.Clamp((h[1] + h[3] - h[0] - h[2]) / 2f, -1.5f, 1.5f); // right minus left, over 8.5
-        var z = (flat.Basis.Z.Normalized() * 7.9f + Vector3.Up * rise).Normalized();
-        var x = (flat.Basis.X.Normalized() * 8.5f + Vector3.Up * roll).Normalized();
+        for (var k = 0; k < 4; k++) h[k] = _view.GroundAt(flat * pads[k]);
+        var length = Mathf.Max(1f, pads[2].Z - pads[0].Z);  // front pads to rear pads (Halyard 7.9)
+        var width = Mathf.Max(1f, pads[1].X - pads[0].X);   // left pads to right pads (Halyard 8.5)
+        var rise = Mathf.Clamp((h[2] + h[3] - h[0] - h[1]) / 2f, -1.4f, 1.4f); // rear pads minus front
+        var roll = Mathf.Clamp((h[1] + h[3] - h[0] - h[2]) / 2f, -1.5f, 1.5f); // right minus left
+        var z = (flat.Basis.Z.Normalized() * length + Vector3.Up * rise).Normalized();
+        var x = (flat.Basis.X.Normalized() * width + Vector3.Up * roll).Normalized();
         var y = z.Cross(x).Normalized();
         x = y.Cross(z).Normalized();
-        // The pads' centre is 1.55 aft of the origin: take the plane's height at the origin itself.
-        var origin = flat.Origin with { Y = (h[0] + h[1] + h[2] + h[3]) / 4f - rise * 1.55f / 7.9f };
+        // The pads' centre may be aft of the origin (Halyard 1.55): take the plane's height at the origin itself.
+        var centre = (pads[0].Z + pads[1].Z + pads[2].Z + pads[3].Z) / 4f;
+        var origin = flat.Origin with { Y = (h[0] + h[1] + h[2] + h[3]) / 4f - rise * centre / length };
         return new Transform3D(new Basis(x, y, z), origin);
     }
 
@@ -828,8 +901,9 @@ public partial class DropShipView : Node3D
             Box(n, $"Pod{s}", new Vector3(1.3f, 1.3f, 9.9f), new Vector3(s * 3.75f, 3.35f, 1.4f), hull);
             Box(n, $"Pylon{s}", new Vector3(1.6f, 0.3f, 3.6f), new Vector3(s * 2.9f, 3.45f, 1.5f), hull);
         }
-        var ramp = new Node3D { Name = "Ramp", Position = HingeDefault };
-        Box(ramp, "RampSlab", new Vector3(3.5f, RampLength, 0.26f), new Vector3(0, RampLength / 2f, 0.13f), hull);
+        var halyard = DropShipSpec.Halyard;
+        var ramp = new Node3D { Name = "Ramp", Position = halyard.Hinge };
+        Box(ramp, "RampSlab", new Vector3(3.5f, halyard.RampLength, 0.26f), new Vector3(0, halyard.RampLength / 2f, 0.13f), hull);
         n.AddChild(ramp);
         for (var k = 0; k < 4; k++)
         {

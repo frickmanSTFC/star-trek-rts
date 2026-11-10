@@ -19,4 +19,8 @@
     <ProjectReference Include="../../../tools/BalanceRunner/BalanceRunner.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Godot-free view helpers, tested here (the game project compiles them too). -->
+    <Compile Include="../../scripts/DropShipHulls.cs" Link="Linked/DropShipHulls.cs" />
+  </ItemGroup>
 </Project>
