@@ -176,6 +176,7 @@ public partial class OrbitView : Node3D
         painted.SplatA.GenerateMipmaps();
         painted.SplatB.GenerateMipmaps();
         var albedo = ImageTexture.CreateFromImage(painted.Albedo);
+        _albedoImage = painted.Albedo; // kept for GlobeCrop (the satellite photos' fallback)
         var water = ImageTexture.CreateFromImage(painted.Water);
         var normal = ImageTexture.CreateFromImage(painted.Normal);
         _groundMaterial = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/planet.gdshader") };

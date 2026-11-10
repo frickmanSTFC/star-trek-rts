@@ -179,6 +179,8 @@ public partial class OrbitView
             _sats.Remove(id);
         }
 
+        UpdateLocate();
+
         // FOLLOW: keep the followed satellite's sub-point facing the camera.
         if (FollowSatellite is { } follow && _sats.TryGetValue(follow, out var followed) && Display != OrbitDisplay.System)
         {
@@ -313,4 +315,69 @@ public partial class OrbitView
 
     /// <summary>The model node of a satellite (tracked objects, screen positions), or null.</summary>
     private Node3D? SatelliteNode(int id) => _sats.TryGetValue(id, out var v) ? v.Holder : null;
+}
+
+public partial class OrbitView
+{
+    private Image? _albedoImage;
+
+    /// <summary>A crop of the painted globe round a tile (wrapping east–west), scaled to size: the satellite photos'
+    /// fallback when the surface can't be rendered. Null before Build.</summary>
+    public Image? GlobeCrop(int tile, Vector2I size)
+    {
+        if (_albedoImage == null || tile < 0) return null;
+        var src = _albedoImage;
+        var w = src.GetWidth();
+        var h = src.GetHeight();
+        var d = TileDirection(tile);
+        var u = Mathf.PosMod(Mathf.Atan2(d.X, d.Z) / Mathf.Tau, 1f);
+        var v = Mathf.Acos(Mathf.Clamp(d.Y, -1f, 1f)) / Mathf.Pi;
+        // About 7 tiles across, like the 3D camera's view.
+        var g = _surface.Map.Grid;
+        var cw = Mathf.Max(8, Mathf.RoundToInt(w * 7f / g.Width));
+        var ch = Mathf.Max(8, Mathf.RoundToInt(cw * size.Y / (float)size.X));
+        var x0 = Mathf.RoundToInt(u * w) - cw / 2;
+        var y0 = Mathf.Clamp(Mathf.RoundToInt(v * h) - ch / 2, 0, h - ch);
+        var crop = Image.CreateEmpty(cw, ch, false, src.GetFormat());
+        x0 = (x0 % w + w) % w;
+        var first = Mathf.Min(cw, w - x0);
+        crop.BlitRect(src, new Rect2I(x0, y0, first, ch), Vector2I.Zero);
+        if (first < cw) crop.BlitRect(src, new Rect2I(0, y0, cw - first, ch), new Vector2I(first, 0));
+        crop.Resize(size.X, size.Y, Image.Interpolation.Bilinear);
+        return crop;
+    }
+
+    private MeshInstance3D? _locate;
+    private StandardMaterial3D? _locateMaterial;
+    private float _locateUntil = -1f;
+
+    /// <summary>Turn the globe to a tile and pulse a ring on it for a few seconds (a satellite finding picked in the card).</summary>
+    public void Locate(int tile)
+    {
+        if (tile < 0 || !_atColony) return;
+        if (_locate == null)
+        {
+            _locateMaterial = new StandardMaterial3D { AlbedoColor = Peach, Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, RenderPriority = 4 };
+            _locate = new MeshInstance3D { Mesh = new TorusMesh { InnerRadius = 1.9f, OuterRadius = 2.4f, Rings = 32, RingSegments = 4 }, MaterialOverride = _locateMaterial, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+            _globe.AddChild(_locate);
+        }
+        FollowSatellite = null;
+        PlaceOnSurface(_locate, tile, 0.7f);
+        _locateUntil = _time + 5f;
+        if (Display == OrbitDisplay.System) SetDisplay(OrbitDisplay.Planet);
+        Focus(tile, Mathf.Min(_distanceTarget, 230f));
+    }
+
+    /// <summary>The located ring's pulse (from UpdateSatellites).</summary>
+    private void UpdateLocate()
+    {
+        if (_locate == null || _locateMaterial == null) return;
+        var left = _locateUntil - _time;
+        _locate.Visible = left > 0f;
+        if (left <= 0f) return;
+        var pulse = 0.5f + 0.5f * Mathf.Sin(_time * 7f);
+        var basis = _locate.Basis.Orthonormalized();
+        _locate.Basis = basis.Scaled(Vector3.One * (1f + 0.35f * pulse));
+        _locateMaterial.AlbedoColor = Peach with { A = Mathf.Clamp(left, 0f, 1f) * (0.55f + 0.45f * pulse) };
+    }
 }
