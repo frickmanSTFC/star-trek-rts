@@ -644,6 +644,10 @@ public static partial class BuildingModels
     /// null if the file is missing or not imported yet (DropShipView then builds a primitive stand-in).</summary>
     public static Node3D? DropShip(Color owner) => Imported("dropship", owner);
 
+    /// <summary>A drop ship model by glb id (Halyard "dropship", the pre-warp "dropship_prewarp_a/b/c"; DropShipSpec);
+    /// null if that glb isn't there or imported.</summary>
+    public static Node3D? DropShip(Color owner, string id) => Imported(id, owner);
+
     /// <summary>A survey rover: the unit's own model (survey_rover = Mk I, survey_rover_mk2, survey_rover_mk3), falling
     /// back to the Mk I file and then to primitives. Its blank decal markers (NameL/NameR/NameRear/NumberL/NumberR) are
     /// left in place for <see cref="RoverLook.Paint"/>.</summary>

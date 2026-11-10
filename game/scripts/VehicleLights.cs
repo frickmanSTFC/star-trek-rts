@@ -242,13 +242,13 @@ public static class VehicleLights
         /// <summary>Extra downward tilt for the head and roof lamps (degrees; the deployed crawler looks at its dig).</summary>
         public float Tilt;
 
-        private Rig(Node3D model, Kind kind, int seed)
+        private Rig(Node3D model, Kind kind, int seed, Spec? own)
         {
             Model = model;
             Kind = kind;
             Seed = seed;
             Stagger = SwitchStagger * Mathf.PosMod(seed * 0.618034f, 1f);
-            var spec = Specs[kind];
+            var spec = own ?? Specs[kind];
             var lens = ShareLens(model);
             var glb = lens != null;
             _lamps = (Lamp[])(glb ? spec.Lamps : spec.Primitive).Clone();
@@ -368,7 +368,11 @@ public static class VehicleLights
 
         /// <summary>Build a vehicle's lamps (before the model enters the tree, after RoverLook's grime overlay so the
         /// cones and lenses don't get dirt).</summary>
-        public static Rig Attach(Node3D model, Kind kind, int seed) => new(model, kind, seed);
+        public static Rig Attach(Node3D model, Kind kind, int seed) => new(model, kind, seed, null);
+
+        /// <summary><see cref="Attach(Node3D, Kind, int)"/> with a model's own lamp table instead of the kind's (the
+        /// drop ship models: <see cref="DropShipSpec.Lights"/>).</summary>
+        public static Rig Attach(Node3D model, Kind kind, int seed, Spec own) => new(model, kind, seed, own);
 
         /// <summary>What lamp <paramref name="i"/> (the order of <see cref="Demand"/>) is for.</summary>
         public Role RoleOf(int i) => _lamps[i].Role;
