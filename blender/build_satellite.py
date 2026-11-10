@@ -301,8 +301,8 @@ def std_palette():
         "collector": cells("Collector", (0.02, 0.035, 0.1), (0.2, 0.28, 0.45), 22.0),
         "edge": flat("CollectorGlow", (0.4, 0.6, 0.9), 0.0, 0.3, emission=blue, strength=2.0),
         "tip": flat("TipGlow", (0.5, 0.7, 1.0), 0.0, 0.3, emission=(0.75, 0.88, 1.0), strength=4.0),
-        "sensor": flat("SensorGlow", (0.4, 0.6, 0.9), 0.0, 0.3, emission=blue, strength=3.0),
-        "drive": flat("DriveGlow", (0.4, 0.6, 0.9), 0.0, 0.3, emission=(0.45, 0.7, 1.0), strength=3.0),
+        "sensor": flat("SensorGlow", (0.05, 0.15, 0.5), 0.2, 0.15, emission=(0.18, 0.45, 1.0), strength=1.6),
+        "drive": flat("DriveGlow", (0.3, 0.5, 0.9), 0.0, 0.3, emission=(0.4, 0.66, 1.0), strength=2.2),
         "plate": flat("DishPlate", (0.42, 0.45, 0.52), 0.75, 0.3),
         "ring": flat("DishRing", (0.78, 0.8, 0.84), 0.85, 0.22),
         "dishglow": flat("DishGlow", (0.5, 0.7, 1.0), 0.0, 0.3, emission=(0.6, 0.82, 1.0), strength=5.0),
@@ -552,18 +552,20 @@ def strut(name, a, b, r, mat, parent=None, seg=8):
 # ---------------------------------------------------------------- design: standard survey probe
 
 STD_STATIONS = catmull([
-    # y, half width, top, bottom, zc
-    (-0.85, 0.205, 0.118, 0.098, 0.0),
-    (-0.75, 0.232, 0.132, 0.108, 0.0),
-    (-0.50, 0.272, 0.156, 0.12, 0.0),
-    (-0.20, 0.29, 0.17, 0.125, 0.0),
-    (0.10, 0.284, 0.168, 0.12, 0.0),
-    (0.35, 0.258, 0.155, 0.108, 0.0),
-    (0.60, 0.205, 0.128, 0.088, -0.004),
-    (0.80, 0.13, 0.085, 0.06, -0.01),
-    (0.92, 0.062, 0.042, 0.03, -0.014),
+    # y, half width, top, bottom, zc: a flattened torpedo, fullest just aft of the middle, bullet nose
+    (-0.82, 0.19, 0.11, 0.095, 0.0),
+    (-0.70, 0.235, 0.135, 0.11, 0.0),
+    (-0.45, 0.275, 0.158, 0.12, 0.0),
+    (-0.15, 0.29, 0.168, 0.125, 0.0),
+    (0.15, 0.285, 0.165, 0.122, 0.0),
+    (0.40, 0.262, 0.152, 0.112, 0.0),
+    (0.60, 0.222, 0.132, 0.096, 0.0),
+    (0.74, 0.17, 0.104, 0.076, 0.0),
+    (0.84, 0.11, 0.07, 0.052, 0.0),
+    (0.90, 0.05, 0.034, 0.026, 0.0),
 ], 5)
-STD_TIP = (1.0, -0.018)
+STD_TIP = (0.915, 0.0)
+NOSE_Y = 0.80  # the glowing sensor cap starts here
 
 
 def hull_at(y):
@@ -580,8 +582,8 @@ def hull_at(y):
 def std_wing(P, root, side):
     """One swept collector wing; its mesh pieces hang under the hinge empty (PanelR for side +1, PanelL for -1)."""
     s = side
-    hinge = empty("PanelR" if s > 0 else "PanelL", (s * 0.318, -0.1, 0.0), root)
-    plan = [(0.05, 0.22), (0.05, -0.2), (1.0, -0.52), (1.0, -0.32)]  # root LE, root TE, tip TE, tip LE (x out, y)
+    hinge = empty("PanelR" if s > 0 else "PanelL", (s * 0.318, -0.3, 0.0), root)
+    plan = [(0.05, 0.26), (0.05, -0.24), (1.0, -0.56), (1.0, -0.34)]  # root LE, root TE, tip TE, tip LE (x out, y)
     poly = [(s * x, y) for x, y in plan]
     if s < 0:
         poly = list(reversed(poly))
@@ -590,47 +592,48 @@ def std_wing(P, root, side):
     prism("CollectorTop", inner, 0.013, 0.018, P["collector"], hinge)
     prism("CollectorBot", inner, -0.018, -0.013, P["collector"], hinge)
     # glowing leading edge: a thin strip just ahead of the frame
-    le0, le1 = (0.06, 0.22), (0.99, -0.32)
+    le0, le1 = (0.06, 0.26), (0.99, -0.34)
     strip = [(s * le0[0], le0[1] + 0.012), (s * le0[0], le0[1] - 0.012), (s * le1[0], le1[1] - 0.012),
              (s * le1[0], le1[1] + 0.012)]
     prism("LeadingEdge", strip, -0.009, 0.009, P["edge"], hinge)
-    # trailing-edge Owner tick near the root (thin)
-    cylinder("Knuckle", 0.03, 0.46, (s * 0.022, 0.01, 0.0), P["dark"], hinge, axis="Y", seg=16)
-    cylinder("KnuckleCapF", 0.034, 0.03, (s * 0.022, 0.25, 0.0), P["trim"], hinge, axis="Y", seg=16)
-    cylinder("KnuckleCapB", 0.034, 0.03, (s * 0.022, -0.23, 0.0), P["trim"], hinge, axis="Y", seg=16)
+    cylinder("Knuckle", 0.03, 0.52, (s * 0.022, 0.01, 0.0), P["dark"], hinge, axis="Y", seg=16)
+    cylinder("KnuckleCapF", 0.034, 0.03, (s * 0.022, 0.28, 0.0), P["trim"], hinge, axis="Y", seg=16)
+    cylinder("KnuckleCapB", 0.034, 0.03, (s * 0.022, -0.26, 0.0), P["trim"], hinge, axis="Y", seg=16)
     # tip sensor pod with a glowing front
     pod = lathe("TipPod", [(0.0, -0.2), (0.016, -0.19), (0.03, -0.15), (0.034, -0.05), (0.034, 0.08), (0.026, 0.16),
-                           (0.0, 0.19)], P["trim"], hinge, (s * 1.02, -0.42, 0.0), seg=16)
+                           (0.0, 0.19)], P["trim"], hinge, (s * 1.02, -0.44, 0.0), seg=16)
     pod.rotation_euler = (math.radians(-90), 0, 0)
-    sphere("TipGlow", 0.017, (s * 1.02, -0.233, 0.0), P["tip"], hinge, 12, 6)
+    sphere("TipGlow", 0.017, (s * 1.02, -0.253, 0.0), P["tip"], hinge, 12, 6)
     return hinge
 
 
 def std_dish(P, root):
     """Deflector-style sensor dish under the belly, facing the planet; spins about its vertical axis."""
-    zb = -hull_at(-0.18)[2]
-    d = empty("Dish", (0, -0.18, zb + 0.01), root)
-    R = 0.3
+    zb = -hull_at(-0.2)[2]
+    d = empty("Dish", (0, -0.2, zb + 0.01), root)
+    R = 0.33
 
     def sag(r):
-        return -0.035 - 0.05 * (r / R) ** 2
+        return -0.04 - 0.07 * (r / R) ** 2
 
-    lathe("DishShell", [(0.05, sag(0.05)), (0.1, sag(0.1)), (0.16, sag(0.16)), (0.22, sag(0.22)), (0.27, sag(0.27)),
-                        (R, sag(R))], P["plate"], d, seg=48, solid=0.012)
-    cylinder("DishNeck", 0.07, 0.05, (0, 0, -0.02), P["dark"], d, seg=20)
-    for k, r in enumerate((0.11, 0.19, 0.26)):
+    lathe("DishShell", [(0.05, sag(0.05)), (0.1, sag(0.1)), (0.16, sag(0.16)), (0.22, sag(0.22)), (0.28, sag(0.28)),
+                        (R, sag(R))], P["plate"], d, seg=48, solid=0.014)
+    lathe("DishBack", [(0.0, -0.005), (0.09, -0.01), (0.2, -0.05), (0.28, -0.085), (0.0, -0.03)], P["dark"], d, seg=32)
+    cylinder("DishNeck", 0.075, 0.05, (0, 0, -0.015), P["dark"], d, seg=20)
+    for k, r in enumerate((0.12, 0.2, 0.27)):
         ring(f"DishRing{k}", r - 0.008, r + 0.008, sag(r) - 0.016, sag(r) - 0.004, P["ring"], d, seg=48)
-    ring("DishRim", R - 0.012, R + 0.008, sag(R) - 0.012, sag(R) + 0.01, P["ring"], d, seg=48)
-    ring("DishGlowRing", 0.135, 0.155, sag(0.145) - 0.012, sag(0.145) - 0.006, P["dishglow"], d, seg=48)
-    lathe("DishCore", [(0.0, -0.12), (0.03, -0.11), (0.05, -0.075), (0.055, -0.04), (0.0, -0.035)], P["dishglow"], d,
+    ring("DishRim", R - 0.012, R + 0.01, sag(R) - 0.016, sag(R) + 0.012, P["ring"], d, seg=56)
+    ring("DishRimGlow", R + 0.008, R + 0.018, sag(R) - 0.012, sag(R) + 0.004, P["dishglow"], d, seg=56)
+    ring("DishGlowRing", 0.145, 0.165, sag(0.155) - 0.012, sag(0.155) - 0.006, P["dishglow"], d, seg=48)
+    lathe("DishCore", [(0.0, -0.15), (0.03, -0.14), (0.055, -0.1), (0.06, -0.05), (0.0, -0.045)], P["dishglow"], d,
           seg=24)
     for k in range(3):
         a = math.radians(90 + 120 * k)
         c, sn = math.cos(a), math.sin(a)
-        strut(f"DishSpoke{k}", (0.055 * c, 0.055 * sn, -0.09), (0.29 * c, 0.29 * sn, sag(0.29) - 0.012), 0.008,
+        strut(f"DishSpoke{k}", (0.06 * c, 0.06 * sn, -0.11), (0.32 * c, 0.32 * sn, sag(0.32) - 0.014), 0.009,
               P["ring"], d)
     # asymmetric emitter block on one spoke so the spin reads
-    box("DishEmitter", (0.04, 0.05, 0.02), (0.0, 0.2, sag(0.2) - 0.022), P["dishglow"], d, bev=0.004)
+    box("DishEmitter", (0.045, 0.06, 0.024), (0.0, 0.22, sag(0.22) - 0.03), P["dishglow"], d, bev=0.004)
     return d
 
 
@@ -642,58 +645,73 @@ def std_camera(P, root):
     ring("CamBand", 0.0585, 0.062, -0.008, 0.008, P["dark"], cam, seg=24)
     cylinder("CamBarrel", 0.032, 0.08, (0, 0, -0.07), P["dark"], cam, seg=20)
     lens = cylinder("Lens", 0.025, 0.006, (0, 0, -0.112), P["lens"], cam, seg=20)
-    flash = ring("Flash", 0.034, 0.046, -0.104, -0.092, P["flash"], cam, seg=24)
+    flash = ring("Flash", 0.034, 0.046, -0.006, 0.006, P["flash"], cam, (0, 0, -0.098), seg=24)
     return cam, lens, flash
 
 
 def build_std():
     P = std_palette()
     root = empty("SurveySatellite")
-    loft("Hull", STD_STATIONS, P["hull"], root, tip=STD_TIP)
-    # nose sensor band and aft face
-    band = [(y, hw * 1.025, t * 1.03, b * 1.03, zc) for y, hw, t, b, zc in
-            [(0.78,) + tuple(hull_at(0.78)), (0.81,) + tuple(hull_at(0.81))]]
-    loft("NoseBand", band, P["sensor"], root)
-    aft = [(-0.862,) + tuple(c * 0.95 if i < 3 else c for i, c in enumerate(hull_at(-0.85))),
-           (-0.846,) + tuple(c * 0.95 if i < 3 else c for i, c in enumerate(hull_at(-0.85)))]
+    body = [st for st in STD_STATIONS if st[0] < NOSE_Y] + [(NOSE_Y,) + tuple(hull_at(NOSE_Y))]
+    nose = [(NOSE_Y,) + tuple(hull_at(NOSE_Y))] + [st for st in STD_STATIONS if st[0] > NOSE_Y]
+    loft("Hull", body, P["hull"], root, cap_front=False)
+    loft("NoseCap", nose, P["sensor"], root, tip=STD_TIP, cap_back=False)
+    band = [(y, hw * 1.03, t * 1.035, b * 1.035, zc) for y, hw, t, b, zc in
+            [(NOSE_Y - 0.035,) + tuple(hull_at(NOSE_Y - 0.035)), (NOSE_Y - 0.002,) + tuple(hull_at(NOSE_Y - 0.002))]]
+    loft("NoseBand", band, P["trim"], root)
+    # aft: dark plate inside a glowing ring
+    y0 = STD_STATIONS[0][0]
+    aft = [(y0 - 0.014,) + tuple(c * 0.93 if i < 3 else c for i, c in enumerate(hull_at(y0))),
+           (y0 + 0.004,) + tuple(c * 0.93 if i < 3 else c for i, c in enumerate(hull_at(y0)))]
     loft("AftPlate", aft, P["dark"], root)
-    box("DriveSlit", (0.16, 0.012, 0.03), (0, -0.866, -0.02), P["drive"], root, bev=0.003)
-    # dorsal spine with the thin Owner line along both sides
+    glow = [(y0 + 0.02,) + tuple(c * 1.03 if i < 3 else c for i, c in enumerate(hull_at(y0 + 0.02))),
+            (y0 + 0.05,) + tuple(c * 1.03 if i < 3 else c for i, c in enumerate(hull_at(y0 + 0.05)))]
+    loft("AftRing", glow, P["drive"], root)
+
     def top(y):
         return hull_at(y)[3] + hull_at(y)[1]
 
-    spine = [(y, 0.03, 0.026, 0.03, top(y) - 0.006) for y in [-0.62 + 0.1 * k for k in range(12)]]
+    # dorsal spine with the thin Owner line along both sides
+    spine = [(y, 0.03, 0.026, 0.03, top(y) - 0.006) for y in [-0.66 + 0.1 * k for k in range(13)]]
     owner = [(y, 0.048, 0.01, 0.02, top(y) - 0.004) for y, *_ in spine]
     loft("Spine", spine, P["trim"], root, seg=24)
     loft("OwnerLine", owner, P["owner"], root, seg=24)
-    # dorsal fin with the beacon
-    fy0, fy1 = -0.8, -0.42
-    fin = [(fy0, top(fy0) - 0.02), (fy1, top(fy1) - 0.02), (-0.62, 0.33), (-0.73, 0.345)]
-    prism("Fin", fin, -0.012, 0.012, P["hull"], root, plane="YZ", bev=0.003)
-    beacon = sphere("Beacon", 0.022, (0, -0.7, 0.36), P["beacon"], root, 16, 8)
-    # wing root fairings (static, on the hull) and the hinge blisters
+    # dorsal sensor blister with glowing windows, beacon on a short mast aft of it
+    blister = catmull([(y, w, h, 0.03, top(y) - 0.012) for y, w, h in
+                       [(-0.42, 0.04, 0.012), (-0.34, 0.11, 0.05), (-0.18, 0.13, 0.07), (-0.02, 0.12, 0.065),
+                        (0.08, 0.07, 0.04), (0.13, 0.03, 0.012)]], 4)
+    loft("Blister", blister, P["hull"], root, seg=32)
     for s in (-1, 1):
-        cylinder(f"Fairing{s}", 0.045, 0.52, (s * 0.27, -0.09, 0.0), P["hull"], root, axis="Y", seg=20, bev=0.004)
-        for y in (-0.3, 0.12):
+        for k in range(3):
+            y = -0.27 + 0.085 * k
+            box(f"BlisterPort{s}{k}", (0.012, 0.05, 0.024), (s * 0.118, y, top(y) + 0.03), P["sensor"], root, bev=0.0,
+                rot=(0, s * math.radians(-30), 0))
+    cylinder("BeaconMast", 0.012, 0.09, (0, -0.56, top(-0.56) + 0.04), P["trim"], root, seg=10)
+    beacon = sphere("Beacon", 0.024, (0, -0.56, top(-0.56) + 0.095), P["beacon"], root, 16, 8)
+    # wing root fairings (static, on the hull) and the hinge blocks
+    for s in (-1, 1):
+        cylinder(f"Fairing{s}", 0.045, 0.6, (s * 0.27, -0.3, 0.0), P["hull"], root, axis="Y", seg=20, bev=0.004)
+        for y in (-0.56, -0.04):
             box(f"HingeBlock{s}{y}", (0.03, 0.03, 0.05), (s * 0.3, y, 0.0), P["dark"], root)
     # sensor windows (dark strips) on the flanks and a ventral keel
     for s in (-1, 1):
         for k in range(4):
             y = 0.18 + 0.08 * k
-            hw, top, bot, zc = hull_at(y)
+            hw = hull_at(y)[0]
             box(f"Port{s}{k}", (0.012, 0.05, 0.022), (s * (hw - 0.004), y, 0.03), P["sensor"], root, bev=0.0)
     # RCS thrusters: housings in the hull, the glowing nozzles are the driven parts
     thr = []
-    for k, (x, y, z, axis) in enumerate([(-1, 0.42, 0.0, "X"), (1, 0.42, 0.0, "X"), (-1, -0.86, 0.04, "Y"),
-                                         (1, -0.86, 0.04, "Y")]):
+    ya = STD_STATIONS[0][0] - 0.01
+    for k, (x, y, z, axis) in enumerate([(-1, 0.5, 0.0, "X"), (1, 0.5, 0.0, "X"), (-1, ya, 0.035, "Y"),
+                                         (1, ya, 0.035, "Y")]):
         if axis == "X":
             hw = hull_at(y)[0]
             box(f"RcsHousing{k}", (0.03, 0.06, 0.05), (x * (hw - 0.006), y, z), P["dark"], root)
             thr.append(cylinder(f"Thruster{k}", 0.018, 0.008, (x * (hw + 0.012), y, z), P["thr"][k], root, axis="X",
                                 seg=16))
         else:
-            box(f"RcsHousing{k}", (0.05, 0.03, 0.04), (x * 0.13, y + 0.005, z), P["dark"], root)
-            thr.append(cylinder(f"Thruster{k}", 0.016, 0.008, (x * 0.13, y - 0.014, z), P["thr"][k], root, axis="Y",
+            box(f"RcsHousing{k}", (0.05, 0.03, 0.04), (x * 0.1, y, z), P["dark"], root)
+            thr.append(cylinder(f"Thruster{k}", 0.016, 0.008, (x * 0.1, y - 0.018, z), P["thr"][k], root, axis="Y",
                                 seg=16))
     wings = {s: std_wing(P, root, s) for s in (-1, 1)}
     dish = std_dish(P, root)
@@ -826,7 +844,7 @@ def build_prewarp():
     strut("MagBoom", (-0.3, -0.33, bz / 2 + 0.02), (-0.58, -0.66, bz / 2 + 0.28), 0.008, P["grey"], root)
     box("Magnetometer", (0.05, 0.05, 0.05), (-0.58, -0.66, bz / 2 + 0.28), P["white"], root, bev=0.006)
     for k, (x, y) in enumerate([(0.3, -0.33), (-0.3, 0.33)]):
-        strut(f"Whip{k}", (x, y, -bz / 2), (x * 1.25, y * 1.25, -bz / 2 - 0.38), 0.005, P["steel"], root, 6)
+        strut(f"Whip{k}", (x, y, -bz / 2), (x * 1.9, y * 1.9, -bz / 2 - 0.22), 0.005, P["steel"], root, 6)
     box("SunSensor", (0.06, 0.04, 0.03), (0.2, -0.3, bz / 2 + 0.03), P["dark"], root)
     beacon = sphere("Beacon", 0.024, (0.3, 0.33, bz / 2 + 0.05), P["beacon"], root, 16, 8)
     cylinder("BeaconBase", 0.026, 0.03, (0.3, 0.33, bz / 2 + 0.025), P["grey"], root, seg=12)
@@ -1092,7 +1110,7 @@ def atmosphere_material(sun_dir):
     pw = nt.nodes.new("ShaderNodeMath")
     pw.operation = "POWER"
     nt.links.new(lw.outputs["Facing"], pw.inputs[0])
-    pw.inputs[1].default_value = 3.0
+    pw.inputs[1].default_value = 5.0
     geo = nt.nodes.new("ShaderNodeNewGeometry")
     dot = nt.nodes.new("ShaderNodeVectorMath")
     dot.operation = "DOT_PRODUCT"
@@ -1105,8 +1123,8 @@ def atmosphere_material(sun_dir):
     nt.links.new(pw.outputs[0], amt.inputs[0])
     nt.links.new(lit.outputs[0], amt.inputs[1])
     emit = nt.nodes.new("ShaderNodeEmission")
-    emit.inputs["Color"].default_value = (0.3, 0.55, 1.0, 1)
-    emit.inputs["Strength"].default_value = 2.2
+    emit.inputs["Color"].default_value = (0.22, 0.48, 1.0, 1)
+    emit.inputs["Strength"].default_value = 2.6
     mixs = nt.nodes.new("ShaderNodeMixShader")
     clamp = nt.nodes.new("ShaderNodeMath")
     clamp.operation = "MINIMUM"
@@ -1176,7 +1194,7 @@ def setup_world():
     bmesh.ops.create_uvsphere(bm, u_segments=192, v_segments=96, radius=R)
     planet = mesh_object("Planet", bm, planet_material(), None, smooth=True, recalc=False)
     bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=192, v_segments=96, radius=R * 1.025)
+    bmesh.ops.create_uvsphere(bm, u_segments=192, v_segments=96, radius=R * 1.014)
     air = mesh_object("Air", bm, atmosphere_material(SUN_DIR), None, smooth=True, recalc=False)
     air.visible_shadow = False
     return cam, planet, air
@@ -1281,18 +1299,24 @@ def preview_glb(key):
         return
     reset()
     cam, planet, air = setup_world()
-    gap = 3.4 if key == "prewarp" else 3.0
-    a, pa = import_glb(path, (-gap / 2, 0, 0))
-    b, pb = import_glb(path, (gap / 2, 0, 0))
-    pb["PanelR"].rotation_euler = (0, math.radians(-FOLD), 0)
-    pb["PanelL"].rotation_euler = (0, math.radians(FOLD), 0)
-    pb["Camera"].rotation_euler = (math.radians(25), 0, 0)
-    pb["Dish"].rotation_euler = (0, 0, math.radians(60))
-    pa["PanelR"].rotation_euler = (0, math.radians(-40), 0)
-    pa["PanelL"].rotation_euler = (0, math.radians(40), 0)
+    gap = 3.3 if key == "prewarp" else 3.0
+
+    def pose(parts, fold, tilt=0.0, spin=0.0):
+        for name in ("PanelL", "PanelR", "Camera", "Dish"):
+            parts[name].rotation_mode = "XYZ"  # the glTF importer leaves quaternions
+        parts["PanelR"].rotation_euler = (0, math.radians(-fold), 0)
+        parts["PanelL"].rotation_euler = (0, math.radians(fold), 0)
+        parts["Camera"].rotation_euler = (math.radians(tilt), 0, 0)
+        parts["Dish"].rotation_euler = (0, 0, math.radians(spin))
+
+    # left to right: the export's rest pose (deployed), half folded, folded with the camera tilted 30 deg forward and
+    # the dish turned 60 deg: everything through the glb's own pivots
+    for k, (fold, tilt, spin) in enumerate([(0, 0, 0), (45, 0, 0), (FOLD, 30, 60)]):
+        _, parts = import_glb(path, ((1 - k) * gap, 0, 0))  # seen from the front, +X is on the left
+        pose(parts, fold, tilt, spin)
     bpy.context.view_layer.update()
-    shot(cam, (0, 0, 0.1), 30, 20, 8.5 if key == "prewarp" else 7.4, 50)
-    place_planet(cam, planet, air, 6, 10)
+    shot(cam, (0, 0, 0.0 if key == "std" else -0.1), 14, 24, 11.5 if key == "prewarp" else 10.0, 50)
+    place_planet(cam, planet, air, 8, 6)
     render(os.path.join(PREVIEW, f"satellite-{key}-glb.png"))
 
 
@@ -1303,11 +1327,13 @@ def preview_small():
         return
     reset()
     cam, planet, air = setup_world()
-    import_glb(paths[0], (-2.2, 0.0, 0.0))
-    import_glb(paths[1], (2.2, 0.0, 0.0))
-    # the orbit view: a camera well outside the satellites' track, looking down past them at the day side
-    shot(cam, (0, 0, 0), 15, 40, 90, 50)
-    place_planet(cam, planet, air, -18, 0, L=150)
+    for path, x in ((paths[0], 2.4), (paths[1], -2.4)):  # std on the left as seen from the front
+        holder, parts = import_glb(path, (x, 0.0, 0.0))
+        for o in holder.children_recursive:
+            o.visible_shadow = False  # no specks of shadow on the planet below
+    # orbit-view scale: ~30 px per world unit (a satellite ~80-90 px across) over the day side, the limb above
+    shot(cam, (0, 0, 0), 12, 38, 55, 50)
+    place_planet(cam, planet, air, -11, 4, L=120)
     render(os.path.join(PREVIEW, "satellite-small.png"))
 
 
