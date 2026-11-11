@@ -137,6 +137,13 @@ public partial class PlanetDriver
         if (IsInsideTree()) GetTree().NodeAdded -= OnGraphicsNodeAdded;
         GraphicsQuality.CompareClassic = false; // the compare is per visit (the menu shows the saved settings)
         if (_gfxMeasuring) RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), false);
+        if (_classic is { } c)
+        {
+            // The renderer-wide settings back to the project's (the menu and the next game start from them).
+            RenderingServer.DirectionalSoftShadowFilterSetQuality(c.SoftShadows);
+            RenderingServer.EnvironmentSetSsaoQuality(c.SsaoQuality, c.SsaoHalf, c.SsaoTarget, c.SsaoBlur, c.SsaoFadeFrom, c.SsaoFadeTo);
+            RenderingServer.EnvironmentSetSsilQuality(c.SsilQuality, c.SsilHalf, c.SsilTarget, c.SsilBlur, c.SsilFadeFrom, c.SsilFadeTo);
+        }
     }
 
     private void OnGraphicsChanged()
