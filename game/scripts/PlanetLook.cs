@@ -13,6 +13,8 @@ namespace FinalFrontier;
 /// lichen-green lowlands, dark basalt rock, water-ice poles. Its terrain ids are mapped onto the seven class-M roles
 /// (<see cref="Role"/>), so a class-L <c>planets</c> entry can reuse plains/forest/hills/… or bring new ids
 /// (tundra, lichen, regolith, ridge, dune, basalt, ice_plain…) and still get a colour, scatter and spray.</para>
+/// <para>The Grade* members are the visual pass's colour grade per class (read only while GraphicsQuality.Grading is on:
+/// PlanetDriver.Graphics.cs, PlanetDriver.Sky.cs); every class without its own grade gets class M's.</para>
 /// </summary>
 public sealed class PlanetLook
 {

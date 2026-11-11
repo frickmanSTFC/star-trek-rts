@@ -71,7 +71,7 @@ public partial class PlanetDriver
     // Zoom-dependent state (changed with hysteresis, never every frame).
     private int _sdfgiBand = -1;
     private double _sdfgiBandAt = -10;
-    private float _aoFadeFor = -1f;
+    private float _aoFadeFor = -1f, _splitTilt = -1f;
     private bool _gfxShadowsApplied, _gfxGiSurface;
 
     // Orbit glow (EnterOrbit's numbers: the Classic branch in orbit).
@@ -453,9 +453,13 @@ public partial class PlanetDriver
             // Splits fitted to the camera: at the 55° strategy pitch the ground starts ~0.84× the distance away, so the
             // first cascade ends ~1.05×; close to the ground (20° pitch) it hugs the vehicles in front.
             var t = Mathf.SmoothStep(MinZoom, TiltFrom, d);
-            _sun.DirectionalShadowSplit1 = Mathf.Lerp(0.06f, 0.48f, t);
-            _sun.DirectionalShadowSplit2 = Mathf.Lerp(0.16f, 0.6f, t);
-            _sun.DirectionalShadowSplit3 = Mathf.Lerp(0.4f, 0.75f, t);
+            if (force || Mathf.Abs(t - _splitTilt) > 0.004f)
+            {
+                _splitTilt = t;
+                _sun.DirectionalShadowSplit1 = Mathf.Lerp(0.06f, 0.48f, t);
+                _sun.DirectionalShadowSplit2 = Mathf.Lerp(0.16f, 0.6f, t);
+                _sun.DirectionalShadowSplit3 = Mathf.Lerp(0.4f, 0.75f, t);
+            }
             var radius = Mathf.Clamp(d * 0.012f, 1.5f, 6f);
             if (force || Mathf.Abs(env.SsaoRadius - radius) > 0.05f) env.SsaoRadius = radius;
             // SSAO fades out 50–300 from the camera by default, i.e. never at the strategy zoom: scale it (global setting,
