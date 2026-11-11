@@ -29,6 +29,7 @@ public partial class MissionTracker : Control
     public event Action<string>? EntryPicked;
     public event Action? BannerPicked;
     public event Action? CollapseToggled;
+    public event Action? LogPicked;
 
     private PanelContainer? _panel;
     private string _sig = "";
@@ -54,27 +55,35 @@ public partial class MissionTracker : Control
         _bannerNode.Modulate = new Color(1, 1, 1, 0.78f + 0.22f * Mathf.Sin(_pulse * 4.2f));
     }
 
-    /// <summary>Once a frame. Entries null or empty and no banner = hidden. Anchor = the point the panel hangs from (its
-    /// top-right corner, or top-centre when <paramref name="centred"/>); maxHeight caps it; collapsed = the chip only.</summary>
-    public void Refresh(IReadOnlyList<TrackerEntry>? entries, TrackerBanner? banner, Vector2 anchor, bool centred, float maxHeight,
+    /// <summary>Once a frame. Entries null or empty and no banner = hidden. Anchor = a point in viewport pixels; pivot =
+    /// which point of the panel sits on it ((1, 0) = its top-right corner on the surface, (0, 1) = its bottom-left corner
+    /// in orbit); maxHeight caps it; collapsed = the chip only (and the banner).</summary>
+    public void Refresh(IReadOnlyList<TrackerEntry>? entries, TrackerBanner? banner, Vector2 anchor, Vector2 pivot, float maxHeight,
         float scale, bool collapsed, string chip)
     {
         var any = (entries != null && entries.Count > 0) || banner != null;
         Visible = any;
         if (!any) return;
         var sig = Signature(entries, banner, collapsed, chip, scale);
-        if (sig != _sig || _panel == null)
+        if (sig != _sig) _compact = 0; // new content: try the full layout first
+        if (sig != _sig || _panel == null || _compact != _builtCompact)
         {
             _sig = sig;
             _s = scale;
+            _builtCompact = _compact;
             Rebuild(entries ?? Array.Empty<TrackerEntry>(), banner, collapsed, chip);
         }
         if (_panel == null) return;
-        _panel.Size = Vector2.Zero; // shrink to the content
+        _panel.Size = Vector2.Zero; // shrink to the content (a container never goes below its minimum size)
         var size = _panel.Size;
-        if (size.Y > maxHeight) size = _panel.Size = new Vector2(size.X, maxHeight);
-        _panel.Position = centred ? new Vector2(anchor.X - size.X / 2f, anchor.Y) - GlobalPosition : new Vector2(anchor.X - size.X, anchor.Y) - GlobalPosition;
+        // Too tall for the space (a short window, several jobs): the side jobs, then every entry, drop their objective
+        // lines on the next rebuild instead of running off the screen.
+        if (size.Y > maxHeight && _compact < 2 && !collapsed) _compact++;
+        _panel.Position = anchor - size * pivot - GlobalPosition;
     }
+
+    /// <summary>0 = every entry with its objectives; 1 = only the first (the main mission) keeps them; 2 = titles only.</summary>
+    private int _compact, _builtCompact;
 
     private static string Signature(IReadOnlyList<TrackerEntry>? entries, TrackerBanner? banner, bool collapsed, string chip, float scale)
     {
@@ -144,7 +153,13 @@ public partial class MissionTracker : Control
         var caption = HudKit.Label("MISSIONS", 12 * _s, HudKit.Dim, condensed: true, bold: true);
         caption.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         head.AddChild(caption);
-        head.AddChild(HudKit.Label("N  LOG", 11 * _s, HudKit.Dim with { A = 0.7f }, condensed: true));
+        var log = new Button { Text = "LOG [N]", FocusMode = FocusModeEnum.None, Flat = true, TooltipText = "The mission log: active, completed, failed and declined missions (N)" };
+        log.AddThemeFontOverride("font", HudKit.Condensed());
+        log.AddThemeFontSizeOverride("font_size", F(11));
+        log.AddThemeColorOverride("font_color", HudKit.Dim);
+        log.AddThemeColorOverride("font_hover_color", HudKit.Ink);
+        log.Pressed += () => LogPicked?.Invoke();
+        head.AddChild(log);
         var collapse = new Button { Text = "–", FocusMode = FocusModeEnum.None, Flat = true, TooltipText = "Collapse to a chip", CustomMinimumSize = new Vector2(P(22), P(18)) };
         collapse.AddThemeFontSizeOverride("font_size", F(14));
         collapse.AddThemeColorOverride("font_color", HudKit.Dim);
@@ -152,10 +167,10 @@ public partial class MissionTracker : Control
         head.AddChild(collapse);
         column.AddChild(head);
 
-        foreach (var e in entries) column.AddChild(EntryNode(e, width));
+        for (var i = 0; i < entries.Count; i++) column.AddChild(EntryNode(entries[i], width, _compact == 0 || (_compact == 1 && i == 0)));
     }
 
-    private Control EntryNode(TrackerEntry e, float width)
+    private Control EntryNode(TrackerEntry e, float width, bool detail)
     {
         // A panel the size of its content that acts as a button: the click flies the camera (or opens the card).
         var normal = HudKit.Box(new Color(1, 1, 1, 0.025f), new Color(e.Colour, 0.35f), P(5), 0, 0);
@@ -196,7 +211,7 @@ public partial class MissionTracker : Control
 
         var inner = width - P(16);
         if (e.Stage.Length > 0) box.AddChild(Wrapped(e.Stage, 12 * _s, HudKit.Sky, inner));
-        foreach (var o in e.Objectives)
+        foreach (var o in detail ? e.Objectives : Array.Empty<MissionObjectiveLine>())
         {
             var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
             row.AddThemeConstantOverride("separation", Mathf.RoundToInt(P(5)));
@@ -220,7 +235,7 @@ public partial class MissionTracker : Control
                 box.AddChild(back);
             }
         }
-        if (e.Hint.Length > 0) box.AddChild(Wrapped(e.Hint, 11 * _s, HudKit.Dim, inner));
+        if (e.Hint.Length > 0 && detail) box.AddChild(Wrapped(e.Hint, 11 * _s, HudKit.Dim, inner));
 
         button.AddChild(margin);
         button.CustomMinimumSize = new Vector2(width, 0);
