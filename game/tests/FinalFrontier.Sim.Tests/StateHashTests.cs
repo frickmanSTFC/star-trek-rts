@@ -53,9 +53,24 @@ public class StateHashTests
             Assert.Equal(before, game.StateHash());
         }
 
+        // The missions' site counter, in a game with missions on (MissionBook hashes nothing while they are off).
+        var campaign = CommandFuzzTests.TwoPlayersLanded(missions: true);
+        var missionCounters = Counters(typeof(FinalFrontier.Sim.Missions.MissionBook)).ToList();
+        Assert.Equal(new[] { "_nextSiteId" }, missionCounters.Select(f => f.Name));
+        foreach (var f in missionCounters)
+        {
+            var before = campaign.StateHash();
+            var value = (int)f.GetValue(campaign.Missions)!;
+            f.SetValue(campaign.Missions, value + 1);
+            Assert.True(before != campaign.StateHash(), $"MissionBook.{f.Name} is not in the state hash");
+            f.SetValue(campaign.Missions, value);
+            Assert.Equal(before, campaign.StateHash());
+        }
+
         // A counter anywhere else in the sim would need its own line above (and in that class's AddToHash).
         var elsewhere = typeof(Simulation).Assembly.GetTypes()
-            .Where(t => t != typeof(Simulation) && t != typeof(PlanetSurface) && t != typeof(StarSystemState))
+            .Where(t => t != typeof(Simulation) && t != typeof(PlanetSurface) && t != typeof(StarSystemState)
+                && t != typeof(FinalFrontier.Sim.Missions.MissionBook))
             .SelectMany(t => Counters(t).Select(f => $"{t.Name}.{f.Name}")).ToList();
         Assert.Empty(elsewhere);
     }
