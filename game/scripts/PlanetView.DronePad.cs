@@ -36,7 +36,7 @@ public partial class PlanetView
         public float Open, OpenUntil = -1f, DishYaw;
         public int Docked = -1;
         // per frame, per bay: what is there
-        public DroneState[] State = System.Array.Empty<DroneState>();
+        public DroneState[] State = System.Array.Empty<DroneState>(), Before = System.Array.Empty<DroneState>();
         public float[] Battery = System.Array.Empty<float>();
     }
 
@@ -78,6 +78,7 @@ public partial class PlanetView
             Lights = new List<(BaseMaterial3D, float)>[bays],
             Heads = new List<(BaseMaterial3D, float)>[bays],
             State = new DroneState[bays],
+            Before = new DroneState[bays],
             Battery = new float[bays],
             Door = Part(model, "Door"),
             Dish = Part(model, "Dish"),
@@ -111,6 +112,7 @@ public partial class PlanetView
     {
         for (var k = 0; k < p.State.Length; k++)
         {
+            p.Before[k] = p.State[k];
             p.State[k] = DroneState.None;
             p.Battery[k] = 0f;
         }
@@ -144,8 +146,9 @@ public partial class PlanetView
             }
         }
 
-        // the door: a drone loaded from stock, or one coming in to land
-        if (p.Docked >= 0 && docked > p.Docked && !landing) p.OpenUntil = _time + 3f;
+        // the door: a drone loaded from stock (an empty bay now holds a docked drone), or one coming in to land
+        for (var k = 0; k < p.State.Length; k++)
+            if (p.Docked >= 0 && p.State[k] == DroneState.Docked && p.Before[k] is DroneState.None or DroneState.Lost) p.OpenUntil = _time + 3f;
         p.Docked = docked;
         var open = landing || _time < p.OpenUntil ? 1f : 0f;
         p.Open = Mathf.MoveToward(p.Open, open, delta / 0.9f);
