@@ -594,7 +594,7 @@ public partial class PlanetHud : CanvasLayer
                 ("F9 › SKY", "force time of day, season, weather and wind (look only)"),
                 ("F3", "achievements, and the HANGAR for the cosmetics they unlock"),
                 ("F7", "graphics compare: Classic ↔ your settings, with the frame time (Settings › Graphics)"),
-                ("F8 / Shift+F8", "debug overlay: FPS, frame graph, rendering, sim, cursor, selection (Settings › Debug) / renderer view"),
+                ("F8 or ` / Shift+", "debug overlay: FPS, frame graph, rendering, sim, cursor, selection (Settings › Debug) / next renderer view"),
                 ("C", "civilization dossier: level ladder, awareness, study, Starfleet Standing (Esc closes)"),
                 ("Hidden post", "orbiting a native world: HIDDEN POST on the strip or its card studies them ×4, may be found"),
                 ("Standing (top bar)", "Starfleet Standing (Prime Directive eras); hover for the ladder, click for the dossier"),

@@ -76,6 +76,7 @@ public partial class DebugOverlay : CanvasLayer
     private double _textAt = -1, _now;
     private bool _on, _measuring;
     private DebugRenderMode _appliedMode = DebugRenderMode.Off;
+    private string TimerKey => $"debug_overlay_{GetInstanceId()}";
     private Vector2 _builtSize;
     private float _s = 1f;
 
@@ -125,10 +126,12 @@ public partial class DebugOverlay : CanvasLayer
         Refresh();
     }
 
-    /// <summary>F8: the whole overlay on / off (saved). Shift+F8: the next renderer view (turns the overlay on).</summary>
+    /// <summary>F8: the whole overlay on / off (saved). Shift+F8: the next renderer view (turns the overlay on). The
+    /// backquote key (`) does the same, in case the editor keeps F8 (its "Stop running project" shortcut) for itself.</summary>
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.F8 } key) return;
+        if (@event is not InputEventKey { Pressed: true, Echo: false } key || key.CtrlPressed || key.AltPressed || key.MetaPressed) return;
+        if (key.Keycode != Key.F8 && key.Keycode != Key.Quoteleft && key.PhysicalKeycode != Key.Quoteleft) return; // ` = the key left of 1 on any layout
         if (GetViewport().GuiGetFocusOwner() is LineEdit) return; // typing in a test-panel field
         if (key.ShiftPressed)
         {
@@ -171,7 +174,7 @@ public partial class DebugOverlay : CanvasLayer
         if (measure != _measuring)
         {
             _measuring = measure;
-            RenderTimer.Want(GetViewport(), "debug_overlay", measure);
+            RenderTimer.Want(GetViewport(), TimerKey, measure);
         }
         ApplyRenderMode(DebugOptions.RenderMode);
         _textAt = -1; // fill the text on the next frame
@@ -183,7 +186,7 @@ public partial class DebugOverlay : CanvasLayer
         if (_measuring)
         {
             _measuring = false;
-            RenderTimer.Want(GetViewport(), "debug_overlay", false);
+            RenderTimer.Want(GetViewport(), TimerKey, false);
         }
         ApplyRenderMode(DebugRenderMode.Off);
         Host?.DebugPlaced(false, 0f);

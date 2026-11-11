@@ -68,6 +68,9 @@ public partial class PlanetDriver : IDebugHost
     /// <summary>The F7 readout hides while the overlay's Performance card shows the same numbers.</summary>
     private static bool DebugCoversFrameTime => DebugOptions.Shows(DebugOptions.Performance);
 
+    /// <summary>Real seconds (the overlay keeps running while the pause card stops _clock).</summary>
+    private static double DebugNow => Time.GetTicksMsec() / 1000.0;
+
     // ---------------------------------------------------------------- IDebugHost
 
     Rect2 IDebugHost.DebugArea(Vector2 screen)
@@ -93,6 +96,10 @@ public partial class PlanetDriver : IDebugHost
     void IDebugHost.DebugStop()
     {
         _debugTiming = false;
+        _debugStepTime = _debugStepMax = 0;
+        _debugSteps = _debugRateSteps = _debugFrames = 0;
+        _debugRateAt = -1;
+        _debugRate = -1f;
         FreeGrid();
         FreePaths();
         FreeRings();
@@ -114,7 +121,7 @@ public partial class PlanetDriver : IDebugHost
         else FreePaths();
         if (DebugOptions.Footprints)
         {
-            if (_debugRings == null || _clock - _debugRingsAt > 0.5) DrawRings();
+            if (_debugRings == null || DebugNow - _debugRingsAt > 0.5) DrawRings();
         }
         else FreeRings();
         if (_debugWorld != null) _debugWorld.Visible = surface;
@@ -133,12 +140,12 @@ public partial class PlanetDriver : IDebugHost
         _debugStepTime = _debugStepMax = 0;
         _debugSteps = 0;
         _debugFrames = 0;
-        if (_debugRateAt < 0) _debugRateAt = _clock;
-        if (_clock - _debugRateAt >= 1.0)
+        if (_debugRateAt < 0) _debugRateAt = DebugNow;
+        if (DebugNow - _debugRateAt >= 1.0)
         {
-            _debugRate = (float)(_debugRateSteps / (_clock - _debugRateAt));
+            _debugRate = (float)(_debugRateSteps / (DebugNow - _debugRateAt));
             _debugRateSteps = 0;
-            _debugRateAt = _clock;
+            _debugRateAt = DebugNow;
         }
         var speed = _test?.Speed ?? 1.0;
         var paused = (_test?.Paused ?? false) || GetTree().Paused;
@@ -169,11 +176,11 @@ public partial class PlanetDriver : IDebugHost
             if (s.Owner == LocalPlayer) ownStructures++;
         sb.Append($"players {_sim.Players.Count} · units {units.Count} (own {ownUnits}) · structures {structures.Count} (own {ownStructures})\n");
         sb.Append($"refused commands {_sim.RefusedCommands}\n");
-        if (_sim.LastRefusal is { } last) sb.Append("  last: ").Append(Clip(last, 96)).Append('\n');
+        if (_sim.LastRefusal is { } last) sb.Append("  last: ").Append(Clip(last, 64)).Append('\n');
         sb.Append($"test edits {_sim.DebugEdits}{(_test?.LocalEdits == true ? " + render-only edits" : "")}\n");
-        if (_clock - _debugHashAt >= 2.0)
+        if (DebugNow - _debugHashAt >= 2.0)
         {
-            _debugHashAt = _clock;
+            _debugHashAt = DebugNow;
             var t = Stopwatch.GetTimestamp();
             var hash = _sim.StateHash();
             var ms = (Stopwatch.GetTimestamp() - t) * 1000.0 / Stopwatch.Frequency;
@@ -445,7 +452,7 @@ public partial class PlanetDriver : IDebugHost
             _debugRingMesh = new ImmediateMesh();
             _debugRings = LineNode("Footprints", _debugRingMesh, depthTest: true);
         }
-        _debugRingsAt = _clock;
+        _debugRingsAt = DebugNow;
         var mesh = _debugRingMesh!;
         mesh.ClearSurfaces();
         if (_inOrbit) return;
