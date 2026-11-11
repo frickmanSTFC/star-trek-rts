@@ -75,7 +75,7 @@ public class FabricationTests
     {
         var s = MatchSetup.CreatePlanetLanding(Data, 1).Surface!;
         Assert.Equal(new[] { "structural_frame", "hull_plating", "mechanism", "power_coupling", "control_module", "seal_kit",
-            "mechanical_spares", "electrical_spares", "rover_spares", "environmental_spares", "prefab_module", "machinery_set" }, s.PartItems);
+            "mechanical_spares", "electrical_spares", "rover_spares", "environmental_spares", "prefab_module", "machinery_set", "scout_drone" }, s.PartItems);
         Assert.Equal(Fix64.One, Data.Resource("mechanism").Volume);
         Assert.Equal(F(2), Data.Resource("mechanical_spares").Volume);
         Assert.Equal(F(2), Data.Resource("prefab_module").Volume);

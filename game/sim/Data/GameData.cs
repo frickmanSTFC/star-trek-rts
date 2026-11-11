@@ -185,6 +185,9 @@ public sealed partial class GameData
     public HullDef Hull(string id) => Get(_hulls, id, "hull");
     public ShipClassDef ShipClass(string key) => Get(_classes, key, "ship class");
     public ResourceDef Resource(string id) => Get(_resources, id, "resource");
+
+    /// <summary>True when a resource with this id exists.</summary>
+    public bool HasResource(string id) => _resources.ContainsKey(id);
     public PlanetClassDef PlanetClass(string id) => Get(_planetClasses, id, "planet class");
     public BuildingDef Building(string id) => Get(_buildings, id, "building");
     public MapDef Map(string id) => Get(_maps, id, "map");
