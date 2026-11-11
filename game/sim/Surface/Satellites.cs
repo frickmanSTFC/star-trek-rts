@@ -73,7 +73,8 @@ public sealed partial class PlanetSurface
     public Fix64 SatelliteLapProgress(Satellite sat) =>
         Fix64.FromInt(sat.Swept % Map.Grid.Width) / Fix64.FromInt(Map.Grid.Width);
 
-    /// <summary>Why this satellite can't move to the band centred on row (null = it can).</summary>
+    /// <summary>Why this satellite can't move to the band centred on row (null = it can). For a relay satellite
+    /// (<see cref="SatelliteKind.Relay"/>) row is the new station tile instead (Comms.cs).</summary>
     public string? RetaskProblem(Simulation sim, int player, int satelliteId, int row)
     {
         if (!IsPlayer(player)) return "no such player";
@@ -81,6 +82,7 @@ public sealed partial class PlanetSurface
         var sat = SatelliteById(satelliteId);
         if (sat == null) return "no such satellite";
         if (sat.Owner != player) return "not your satellite";
+        if (sat.Kind == SatelliteKind.Relay) return RelayRetaskProblem(sim, sat, row); // Comms.cs
         if (row < 0 || row >= Map.Grid.Height) return "off the map";
         if (sat.Deploying(sim.Tick)) return sat.Retasks == 0 ? "still deploying" : "still manoeuvring to its band";
         if (row == sat.Row) return "already over that band";
@@ -96,7 +98,7 @@ public sealed partial class PlanetSurface
         sim.Players[command.Player].Stock.TrySpend(orbit.SatelliteCost);
         var ordinal = 1;
         foreach (var s in _satellites)
-            if (s.Owner == command.Player) ordinal++;
+            if (s.Owner == command.Player && s.Kind == SatelliteKind.Survey) ordinal++;
         _satellites.Add(new Satellite(_nextSatelliteId++, command.Player, command.Row, sim.Tick, sim.Tick + Ticks(orbit.SatelliteDeploySeconds),
             ordinal, SatelliteCallSign(command.Player, ordinal)));
     }
@@ -105,6 +107,11 @@ public sealed partial class PlanetSurface
     {
         if (RetaskProblem(sim, command.Player, command.SatelliteId, command.Row) is { } problem) return sim.Refuse(command, problem);
         var sat = SatelliteById(command.SatelliteId)!;
+        if (sat.Kind == SatelliteKind.Relay)
+        {
+            MoveRelay(sim, sat, command.Row); // Comms.cs: Row carries the new station tile
+            return true;
+        }
         sat.Row = command.Row;
         sat.SweepBase = sat.Swept; // carry on from the column it had reached
         sat.ReadyTick = sim.Tick + Ticks(_data.Orbit!.SatelliteRetaskSeconds);
@@ -123,7 +130,7 @@ public sealed partial class PlanetSurface
         var lapTicks = (long)orbit.SatelliteSweepSeconds * Simulation.TickRate;
         foreach (var sat in _satellites)
         {
-            if (sim.Tick < sat.ReadyTick) continue;
+            if (sat.Kind != SatelliteKind.Survey || sim.Tick < sat.ReadyTick) continue; // relays don't sweep (Comms.cs)
             var target = sat.SweepBase + (int)((sim.Tick - sat.ReadyTick) * g.Width / lapTicks);
             var (first, last) = SatelliteBand(sat);
             for (; sat.Swept < target; sat.Swept++)

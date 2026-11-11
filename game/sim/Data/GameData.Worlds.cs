@@ -65,6 +65,10 @@ public sealed record DomeRules(int CoreDomeRadius, IReadOnlyList<string> BuildMe
 
     /// <summary>Power each crewed building draws on top of its own.</summary>
     public Fix64 CrewedExtraPower { get; init; }
+
+    /// <summary>Seconds a ground vehicle waits at a hex edge between covered and uncovered ground while its own field meshes
+    /// with the dome's (habitability.domes transit_seconds; Surface/DomeTransit.cs).</summary>
+    public Fix64 TransitSeconds { get; init; } = Fix64.Parse("2.5");
 }
 
 /// <summary>Habitability rules (surfaces.json "habitability"): tier names, the checks, the domes kit.</summary>
@@ -180,6 +184,7 @@ public sealed partial class GameData
             {
                 CrewedMetalCost = d.TryGetProperty("crewed_metal_cost", out var cm) ? Num(cm) : Fix64.One,
                 CrewedExtraPower = d.TryGetProperty("crewed_extra_power", out var cp) ? Num(cp) : Fix64.Zero,
+                TransitSeconds = d.TryGetProperty("transit_seconds", out var ts) ? Num(ts) : Fix64.Parse("2.5"),
             };
         return new HabitabilityRules(tiers, checks, domes);
     }
@@ -264,6 +269,7 @@ public sealed partial class GameData
             {
                 if (d.CoreDomeRadius < 0 || d.GraceSeconds < 0 || d.LifeSupportPerCrewed < Fix64.Zero || d.CrewLossPerMinute < Fix64.Zero || d.CrewedMetalCost <= Fix64.Zero || d.CrewedExtraPower < Fix64.Zero)
                     problems.Add("Habitability domes: radius, grace, life support and crew loss can't be negative.");
+                if (d.TransitSeconds < Fix64.Zero || d.TransitSeconds > Fix64.FromInt(60)) problems.Add("Habitability domes: transit_seconds must be 0 to 60.");
                 foreach (var id in d.BuildMenu) // the rest of the build-menu checks run on these too (EveryBuildMenu)
                     if (BuildMenu.Contains(id)) problems.Add($"Habitability domes: {id} is already in the build menu.");
                 if (!d.BuildMenu.Any(id => _buildings.TryGetValue(id, out var b) && WorldStatsOf(b.Id).LifeSupport > Fix64.Zero && !b.IsCore))

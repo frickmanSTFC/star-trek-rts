@@ -387,7 +387,7 @@ public sealed partial class PlanetSurface
         }
         foreach (var u in _units)
         {
-            if (Map.Grid.Distance(u.Tile, site.Tile) > d.Radius) continue;
+            if (u.Drone != null || Map.Grid.Distance(u.Tile, site.Tile) > d.Radius) continue; // drones take no damage
             u.Integrity = Fix64.Max(Fix64.Min(u.Integrity, Fix64.One), u.Integrity - damage);
             u.HazardAtTick = sim.Tick;
             u.LastHazard = "ruin defence";
@@ -430,7 +430,7 @@ public sealed partial class PlanetSurface
             foreach (var u in _units)
             {
                 var core = StructureAt(u.Tile);
-                if (core == null || core.Owner != u.Owner || core.Id != core.BaseId || !_data.Building(core.DefId).IsCore) continue;
+                if (u.Drone != null || core == null || core.Owner != u.Owner || core.Id != core.BaseId || !_data.Building(core.DefId).IsCore) continue;
                 if (_sickUntil.TryGetValue(core.Id, out var until) && until > now)
                 {
                     if (!_carrierUntil.TryGetValue(u.Id, out var carrying) || carrying < until) _carrierUntil[u.Id] = until;

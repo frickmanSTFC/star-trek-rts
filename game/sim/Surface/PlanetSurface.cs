@@ -533,7 +533,7 @@ public sealed partial class PlanetSurface
         foreach (var s in _structures)
             if (s.Owner == player && s.State == StructureState.Complete) best = System.Math.Min(best, Map.Grid.Distance(s.Tile, tile));
         foreach (var u in _units)
-            if (u.Owner == player) best = System.Math.Min(best, Map.Grid.Distance(u.Tile, tile));
+            if (u.Owner == player && u.Drone == null) best = System.Math.Min(best, Map.Grid.Distance(u.Tile, tile));
         return best;
     }
 
@@ -571,7 +571,7 @@ public sealed partial class PlanetSurface
         if (orbit == null) return "no ship in orbit";
         if (sim.System?.OrbitProblem(player) is { } away) return away;
         if (row < 0 || row >= Map.Grid.Height) return "off the map";
-        if (_satellites.Count(x => x.Owner == player) >= orbit.SatelliteMax) return $"all {orbit.SatelliteMax} satellites are up";
+        if (_satellites.Count(x => x.Owner == player && x.Kind == SatelliteKind.Survey) >= orbit.SatelliteMax) return $"all {orbit.SatelliteMax} satellites are up";
         if (!sim.Players[player].Stock.CanAfford(orbit.SatelliteCost)) return "not enough resources";
         return null;
     }
@@ -976,7 +976,7 @@ public sealed partial class PlanetSurface
             if (!Map.Terrain(n).Passable || _structureAt[n] != 0) continue;
             var taken = false;
             foreach (var u in _units)
-                if (u.Tile == n) taken = true;
+                if (u.Tile == n && u.Drone == null) taken = true;
             if (!taken)
             {
                 tile = n;
@@ -1191,22 +1191,23 @@ public sealed partial class PlanetSurface
             case MoveUnitsCommand move:
             {
                 if (!OnMap(move.Tile)) return sim.Refuse(move, "off the map");
-                var goals = GroupGoals(move.UnitIds.Distinct().Select(FindUnit).Where(u => u != null && u.Owner == move.Player && DriveProblem(u) == null).ToList()!, move.Tile);
-                var moved = 0;
+                var moved = MoveDrones(move, out var droneProblem); // Drones.cs: drones fly there themselves (or launch)
+                var goals = GroupGoals(move.UnitIds.Distinct().Select(FindUnit).Where(u => u != null && u.Owner == move.Player && u.Drone == null && DriveProblem(u) == null).ToList()!, move.Tile);
+                var drove = 0;
                 foreach (var id in move.UnitIds.Distinct())
                 {
                     var unit = FindUnit(id);
-                    if (unit == null || unit.Owner != move.Player || DriveProblem(unit) != null) continue;
+                    if (unit == null || unit.Owner != move.Player || unit.Drone != null || DriveProblem(unit) != null) continue;
                     var path = FindPath(unit.Tile, goals.GetValueOrDefault(id, move.Tile)) ?? FindPath(unit.Tile, move.Tile);
                     if (path == null) continue;
-                    moved++;
+                    drove++;
                     AbortFounding(sim, unit); // a construction rover's founding trip (or unfolding, refunded) is off
                     SetPath(unit, path);
                     unit.DeployOnArrival = false;
                     StartPacking(unit); // a deployed crawler folds up, then drives off
                     unit.MiningStatus = MiningStatus.None;
                 }
-                return moved > 0 || sim.Refuse(move, "none of these vehicles can drive there");
+                return moved + drove > 0 || sim.Refuse(move, droneProblem ?? "none of these vehicles can drive there");
             }
 
             case MineCommand mine:
@@ -1280,6 +1281,15 @@ public sealed partial class PlanetSurface
 
             case RetaskSatelliteCommand retask:
                 return ApplyRetask(sim, retask); // Satellites.cs
+
+            case RelaySatelliteCommand relay:
+                return ApplyRelay(sim, relay); // Comms.cs
+
+            case LaunchDroneCommand launch:
+                return ApplyLaunchDrone(sim, launch); // Drones.cs
+
+            case RecallDroneCommand recall:
+                return ApplyRecallDrones(sim, recall); // Drones.cs
 
             case ResearchCommand research:
                 if (ResearchProblem(research.Player, research.TechId) is { } researchProblem) return sim.Refuse(research, researchProblem);
@@ -1521,6 +1531,7 @@ public sealed partial class PlanetSurface
         RoverWear(sim);
         AutoOrders(sim); // Fabrication.cs: keep-in-stock and kits for waiting repairs, once a second
         MoveUnits(sim);
+        DronesStep(sim); // Drones.cs: pads load, drones charge / fly / loiter / land
         ExcavationStep(sim); // Excavation.cs: sickness, carriers, banked dig research (only on maps with any)
         FinishAssembly(sim.Tick + 1);
         UpdateSight(sim.Tick); // Visibility.cs: fog of war memory, after everything has moved
