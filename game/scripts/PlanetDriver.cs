@@ -237,6 +237,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         SetupAchievements(); // toast, screen, trophy chip (PlanetDriver.Achievements.cs)
         SetupParts(); // inventory screen, fabricator queue / workshop / inventory hooks (PlanetDriver.Parts.cs)
         SetupCiv(); // civilization dossier, Standing chip hooks (PlanetDriver.Civ.cs)
+        SetupMissions(); // tracker, comms card, mission log; a campaign turns missions on before tick 0 (PlanetDriver.Missions.cs)
         SetupSky(); // day/night, seasons and weather from Climate (PlanetDriver.Sky.cs); before EnterOrbit changes the environment
 
         // The test panel exists only in debug builds (editor runs); release exports never get it.
@@ -265,6 +266,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (orbit != null)
         {
             list.Add(("orbit:satellite", "Survey Satellite")); // third, so it never falls off the end of the strip
+            AddRelayCard(list); // RELAY, fourth (PlanetDriver.Relays.cs)
             foreach (var u in orbit.ShuttlePayloads) list.Add(($"orbit:shuttle:{u}", $"Drop Ship: {ShortUnit(u)}"));
             var payloads = orbit.TransporterLevels.SelectMany(l => l.Payloads).Distinct().ToList();
             foreach (var pl in payloads) list.Add(($"orbit:beam:{pl}", pl == OrbitRules.Supplies ? "Beam Supplies" : $"Beam: {ShortUnit(pl)}"));
@@ -363,6 +365,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (action == "land") return Surface.LandProblem(_sim, LocalPlayer, tile); // incl. "a storm over the site …" (climate)
         if (action == "outpost") return Surface.OutpostProblem(_sim, LocalPlayer, tile);
         if (action == "satellite") return Surface.SatelliteProblem(_sim, LocalPlayer, Surface.Map.Grid.Row(tile));
+        if (action == "relay") return RelayOrbitProblem(tile);
         if (action.StartsWith("shuttle:")) return Surface.ShuttleProblem(_sim, LocalPlayer, tile, action[8..]);
         if (action.StartsWith("beam:")) return Surface.BeamProblem(_sim, LocalPlayer, tile, action[5..]);
         return "unknown";
@@ -397,6 +400,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (a == "land") _sim.Schedule(when, new LandColonyCommand(LocalPlayer, tile));
         else if (a == "outpost") _sim.Schedule(when, new OutpostDropCommand(LocalPlayer, tile));
         else if (a == "satellite") _sim.Schedule(when, new SatelliteCommand(LocalPlayer, Surface.Map.Grid.Row(tile)));
+        else if (a == "relay") SendRelay(tile);
         else if (a.StartsWith("shuttle:")) _sim.Schedule(when, new ShuttleCommand(LocalPlayer, tile, a[8..]));
         else if (a.StartsWith("beam:")) _sim.Schedule(when, new BeamCommand(LocalPlayer, tile, a[5..]));
         if (!shift)
@@ -525,7 +529,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void OrbitHover(float delta)
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _satCard.IsOverUi(mouse) || _chooser.IsOverUi(mouse) || AchievementsBlockMouse(mouse) || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _satCard.IsOverUi(mouse) || _chooser.IsOverUi(mouse) || AchievementsBlockMouse(mouse) || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse) || MissionsBlockMouse(mouse);
         if (_helm.ViewRect.Size.X > 32f && _helm.ViewRect.Size.Y > 32f) _orbit.SetViewRect(_helm.ViewRect, GetViewport().GetVisibleRect().Size);
         _orbitHover = _mouseOverUi ? -1 : _orbit.PickTile(mouse);
         SatelliteHover(mouse); // a satellite under the mouse takes the hover (PlanetDriver.Satellites.cs)
@@ -800,6 +804,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             if (a == "land") disabled = me.Phase != LandingPhase.InOrbit;
             else if (a == "satellite") tag = $" {Surface.Satellites.Count(x => x.Owner == LocalPlayer)}/{orbit?.SatelliteMax}";
             else if (me.Phase != LandingPhase.Landed) disabled = true;
+            else if (a == "relay") tag = RelayTag();
             else if (a.StartsWith("shuttle:") && me.ShuttleBackTick > _sim.Tick) tag = $" {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate}S";
             else if (a.StartsWith("beam:"))
             {
@@ -807,7 +812,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 if (level == null || !level.Payloads.Contains(a[5..])) disabled = true;
                 else if (me.TransporterReadyTick > _sim.Tick) tag = $" {(me.TransporterReadyTick - _sim.Tick) / Simulation.TickRate}S";
             }
-            var label = a == "land" ? "LAND" : a == "outpost" ? "OUTPOST" : a == "satellite" ? "SATELLITE"
+            var label = a == "land" ? "LAND" : a == "outpost" ? "OUTPOST" : a == "satellite" ? "SATELLITE" : a == "relay" ? "RELAY"
                 : a.StartsWith("shuttle:") ? $"DROP {ShortUnit(a[8..]).ToUpperInvariant()}"
                 : a == "beam:" + OrbitRules.Supplies ? "BEAM SUPPLIES" : $"BEAM {ShortUnit(a[5..]).ToUpperInvariant()}";
             actions.Add(new HelmAction(id, (i + 1).ToString(), label + tag, !disabled || _orbitAction == a, _orbitAction == a)); // greyed ones still open their card
@@ -853,6 +858,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private InfoView OrbitInfo(string cardId)
     {
         var a = cardId[6..];
+        if (a == "relay") return RelayInfo(); // PlanetDriver.Relays.cs
         var orbit = _data.Orbit!;
         var me = Me;
         var stock = _sim.Players[LocalPlayer].Stock;
@@ -1016,6 +1022,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (!_inOrbit) _hud.Minimap.Refresh(_camera);
         UpdateHud();
         UpdateTutorial(delta); // tutorial cards follow the game state (PlanetDriver.Tutorial.cs)
+        UpdateMissionUi(delta); // drones, relays, mission tracker / comms / log (PlanetDriver.Missions.cs)
         UpdateSelectionSound(); // the hum of what the player just selected (PlanetDriver.Sounds.cs)
     }
 
@@ -1191,6 +1198,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (AchievementInput(@event)) return; // F3, and Esc / other keys while the achievements screen is open
         if (InventoryInput(@event)) return; // I / Esc close the inventory; other keys wait (PlanetDriver.Parts.cs)
         if (CivInput(@event)) return; // C toggles the civilization dossier; Esc closes it (PlanetDriver.Civ.cs)
+        if (MissionInput(@event)) return; // N mission log, Y comms card; Esc closes them (PlanetDriver.Missions.cs)
         if (_test != null && @event is InputEventKey { Pressed: true, Echo: false } testKey)
         {
             if (testKey.Keycode == Key.F9)
@@ -1239,6 +1247,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             EnterOrbit();
             return;
         }
+        if (DroneInput(@event)) return; // the drone launch pick, G coverage, R / L for drones and pads (PlanetDriver.Drones.cs)
         switch (@event)
         {
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click:
@@ -1528,6 +1537,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void OnAction(string id)
     {
         if (RoverAction(id)) return; // the rover panel's REPAIR / CHANGE TYRE
+        if (DroneAction(id)) return; // LAUNCH / RECALL on a Drone Pad or a drone (PlanetDriver.Drones.cs)
         var s = Surface.FindStructure(_selectedStructure != 0 ? _selectedStructure : _selectedBase);
         if (s == null) return;
         var warn = new Color(1f, 0.7f, 0.42f);
@@ -1670,7 +1680,8 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void RightClick()
     {
         if (_hoverTile < 0 || _mouseOverUi || _view.SelectedUnits.Count == 0 || Me.Phase != LandingPhase.Landed) return;
-        var ids = _view.SelectedUnits.OrderBy(id => id).ToArray();
+        if (DroneRightClick()) return; // drones fly there / launch there; true = only drones selected (PlanetDriver.Drones.cs)
+        var ids = _view.SelectedUnits.Where(id => !IsDroneId(id)).OrderBy(id => id).ToArray();
         // Say why nothing happens when the target can't be reached (the sim would quietly ignore it).
         var map = Surface.Map;
         if (!map.Terrain(_hoverTile).Passable)
@@ -1714,7 +1725,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void UpdateHover()
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse) || MissionsBlockMouse(mouse);
         _hoverTile = -1;
         if (!_mouseOverUi)
         {
@@ -1728,6 +1739,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             FoundingHover();
             if (_founding != 0) return;
         }
+        if (LaunchHover()) return; // a drone launch being aimed (PlanetDriver.Drones.cs)
         if (_placing != null)
         {
             var ok = _hoverTile >= 0 && Surface.CheckPlacement(_sim, LocalPlayer, _placing, _hoverTile) == PlacementProblem.None;
@@ -1801,6 +1813,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             LandingPhase.Descending => $"Three drop ships descending… touchdown in {(Me.LandsAtTick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate} s",
             _ when _pick != null => $"{_pickPrompt}  ·  right-click / Esc cancel",
             _ when _placing != null => $"Placing {_data.Building(_placing).Name}  ·  R rotate  ·  Shift+click place more  ·  right-click / Esc stop",
+            _ when _launchPad != 0 => LaunchBanner(),
             _ when _founding != 0 => $"Founding an outpost: click a green site at least {(Surface.FindUnit(_founding) is { } fr ? Surface.FoundRulesOf(fr)!.MinDistance : 0)} tiles from your bases (outside the red ring)  ·  right-click / Esc stop",
             _ => "",
         });
@@ -1809,7 +1822,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (FabTooltip() is { } fabTip) _hud.ShowRichTooltip(fabTip, GetViewport().GetMousePosition()); // a recipe tile: inputs red when short
         else
         {
-            _hud.ShowTooltip(_hoverTile < 0 ? "" : _placing != null ? DescribePlacement(_placing, _hoverTile) : _founding != 0 ? FoundTooltip(_hoverTile) : DescribeTile(_hoverTile), GetViewport().GetMousePosition());
+            _hud.ShowTooltip(_hoverTile < 0 ? "" : _placing != null ? DescribePlacement(_placing, _hoverTile) : _founding != 0 ? FoundTooltip(_hoverTile) : _launchPad != 0 ? LaunchTooltip(_hoverTile) : DescribeTile(_hoverTile), GetViewport().GetMousePosition());
             if (BuildTooltip() is { } buildTip) _hud.ShowTooltip(buildTip, GetViewport().GetMousePosition()); // a drawer / recent tile under the mouse
         }
 
@@ -2025,6 +2038,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (_info != null && _info.StartsWith("unit:")) return "Enter or pick it again: order  ·  Backspace cancel the last order  ·  Esc close";
         if (_drawer.IsOpen) return $"1–{Mathf.Min(9, MenuBuildings().Count)} building card  ·  Shift+pick place at once  ·  B / Esc close  ·  F1 controls";
         if (_founding != 0) return "Click a site  ·  Shift+click keep picking  ·  right-click / Esc stop  ·  F1 controls";
+        if (DroneHints() is { } droneHints) return droneHints; // launch pick, a Drone Pad, drones (PlanetDriver.Drones.cs)
         if (SelectedFounder() != null) return "F / 1 found outpost (pick a site)  ·  right-click drive  ·  R repair  ·  T change tyre  ·  V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
         var jury = JuryRelevant() ? "J jury-rig  ·  " : "";
         if (SelectedFabricator() is { } fabAt)
@@ -2059,6 +2073,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void ShowUnits()
     {
         var units = _view.SelectedUnits.OrderBy(id => id).Select(Surface.FindUnit).Where(u => u != null).Select(u => u!).ToList();
+        if (ShowDrones(units)) return; // a drone's battery panel, or several drones (PlanetDriver.Drones.cs)
         if (units.Count == 1 && _data.SurfaceUnit(units[0].DefId).CanMine)
         {
             ShowCrawler(units[0]);
@@ -2355,6 +2370,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             AddJuryAction(s, actions); // JURY-RIG [J] while it can be, or while its repair waits for kits (replaces SALVAGE in a full row)
         }
 
+        DronePadPanel(s, complete, rows, actions, ref status, ref statusColour); // a Drone Pad's bays, LAUNCH / RECALL (PlanetDriver.Drones.cs)
         var subtitle = def.Levels.Count > 0 ? $"{Surface.LevelName(s)} of {def.MaxLevel switch { 2 => "Mk II", 3 => "Mk III", _ => $"{def.MaxLevel}" }}" : def.Category.Replace('_', ' ');
         // A Machine Shop or a core's workshop: its queue takes the right column, its rows go first (PlanetDriver.Parts.cs).
         var fab = FabPanel(s, rows, ref status, ref statusColour, conditionText, maintenance);
