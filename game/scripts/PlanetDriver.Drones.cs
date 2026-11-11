@@ -34,48 +34,6 @@ public partial class PlanetDriver
 
     // ---------------------------------------------------------------- merge seams (agent V1's PlanetView / OrbitView)
 
-    private readonly Dictionary<string, MethodInfo?> _seamMethods = new();
-    private readonly Dictionary<string, string> _seamLast = new();
-
-    /// <summary>Calls a view method by name if it exists (V1's `PlanetView.ShowComms(bool)`, `ShowDroneTarget(int)`,
-    /// `OrbitView.ShowRelayPreview(int, int, bool)`), only when the arguments changed since the last call.
-    /// TODO(merge V1): replace each Seam(...) with the direct call once PlanetView.Comms.cs / Drones.cs / OrbitView.Relays.cs are in.</summary>
-    private void Seam(object target, string method, params object[] args)
-    {
-        var key = target.GetType().Name + "." + method;
-        var sig = string.Join(",", args);
-        if (_seamLast.TryGetValue(key, out var last) && last == sig) return;
-        _seamLast[key] = sig;
-        if (!_seamMethods.TryGetValue(key, out var mi))
-        {
-            mi = target.GetType().GetMethod(method, BindingFlags.Public | BindingFlags.Instance, args.Select(a => a.GetType()).ToArray());
-            _seamMethods[key] = mi;
-        }
-        if (mi == null) return;
-        try { mi.Invoke(target, args); }
-        catch (System.Exception e) { GD.PushWarning($"{key}: {e.InnerException?.Message ?? e.Message}"); }
-    }
-
-    /// <summary>A number from a def the sim agent adds (e.g. the scout drone's `Drone.BatterySeconds`), read by
-    /// reflection so this builds against the stubs; null when it isn't there. TODO(merge S1): read the field directly.</summary>
-    private static float? DefNumber(object? o, params string[] path)
-    {
-        foreach (var name in path)
-        {
-            if (o == null) return null;
-            o = o.GetType().GetProperty(name)?.GetValue(o);
-        }
-        return o switch
-        {
-            Fix64 f => f.ToFloat(),
-            int i => i,
-            long l => l,
-            float x => x,
-            double d => (float)d,
-            _ => null,
-        };
-    }
-
     // ---------------------------------------------------------------- what is a drone, what is selected
 
     private bool IsDrone(SurfaceUnit u) => Surface.DroneOf(u).State != DroneState.None || Surface.IsAerial(u);
@@ -376,8 +334,9 @@ public partial class PlanetDriver
         var drone = units[0];
         var info = Surface.DroneOf(drone);
         var def = _data.SurfaceUnit(drone.DefId);
-        var batterySeconds = DefNumber(def, "Drone", "BatterySeconds");
-        var recharge = DefNumber(def, "Drone", "RechargeSeconds");
+        var droneDef = _data.DroneOf(drone.DefId);
+        float? batterySeconds = droneDef?.BatterySeconds.ToFloat();
+        float? recharge = droneDef?.RechargeSeconds.ToFloat();
         var battery = Mathf.Clamp(info.Battery.ToFloat(), 0f, 1f);
         var (status, colour) = info.State switch
         {
@@ -443,11 +402,12 @@ public partial class PlanetDriver
         // V1's world view: the coverage overlay (G, while a launch is armed, while drones are selected) and the selected
         // drone's target ring (or the tile a launch would go to).
         var drones = _inOrbit ? new List<SurfaceUnit>() : SelectedDrones();
-        Seam(_view, "ShowComms", !_inOrbit && (_commsOverlay || _launchPad != 0 || drones.Count > 0));
+        _view.ShowComms(!_inOrbit && _commsOverlay);
+        _view.ArmComms(!_inOrbit && (_launchPad != 0 || drones.Count > 0));
         var target = -1;
         if (_launchPad != 0) target = _hoverTile;
         else if (drones.Count == 1 && Surface.DroneOf(drones[0]) is { } d && Airborne(d.State)) target = d.Target;
-        Seam(_view, "ShowDroneTarget", target);
+        _view.ShowDroneTarget(target, _launchPad == 0 || target < 0 || Surface.LaunchProblem(_sim, LocalPlayer, _launchPad, target) == null);
     }
 
     /// <summary>Event lines when one of our drones changes state.</summary>

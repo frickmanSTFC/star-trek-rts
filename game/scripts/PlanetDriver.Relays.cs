@@ -28,26 +28,18 @@ public partial class PlanetDriver
     /// <summary>The relay's coverage radius in hexes: the data's (once S1 adds it), else an existing relay's, else 0.</summary>
     private int RelayRadius()
     {
-        var r = DefNumber(_data, "Comms", "RelayRadius") ?? DefNumber(_data.Orbit, "RelayRadius") ?? DefNumber(_data.Orbit, "Relay", "Radius");
-        if (r is { } v && v > 0) return Mathf.RoundToInt(v);
+        if (_data.Comms?.Relay is { Radius: > 0 } rules) return rules.Radius;
         return MyRelays().Select(c => c.Radius).DefaultIfEmpty(0).Max();
     }
 
     private int? RelayMax()
     {
-        var m = DefNumber(_data, "Comms", "RelayMax") ?? DefNumber(_data.Orbit, "RelayMax") ?? DefNumber(_data.Orbit, "Relay", "Max");
-        return m is { } v ? Mathf.RoundToInt(v) : null;
+        return _data.Comms?.Relay?.Max;
     }
 
     private IReadOnlyList<ResourceAmount> RelayCost()
     {
-        object? Get(object? o, params string[] path)
-        {
-            foreach (var name in path) o = o?.GetType().GetProperty(name)?.GetValue(o);
-            return o;
-        }
-        return (Get(_data, "Comms", "RelayCost") ?? Get(_data.Orbit, "RelayCost") ?? Get(_data.Orbit, "Relay", "Cost")) as IReadOnlyList<ResourceAmount>
-            ?? System.Array.Empty<ResourceAmount>();
+        return _data.Comms?.Relay?.Cost ?? (IReadOnlyList<ResourceAmount>)System.Array.Empty<ResourceAmount>();
     }
 
     private string RelayTag() => RelayMax() is { } max ? $" {MyRelays().Count()}/{max}" : MyRelays().Any() ? $" {MyRelays().Count()}" : "";
@@ -78,7 +70,7 @@ public partial class PlanetDriver
             ("Why", "drones only fly inside comms coverage; your colony cores' antennas reach a few tiles, relays reach the rest"),
             ("Needs", "landed, with the outpost's uplink online; paid from the ship's hold"),
         };
-        var deploy = DefNumber(_data, "Comms", "RelayDeploySeconds") ?? DefNumber(_data.Orbit, "RelayDeploySeconds");
+        float? deploy = _data.Comms?.Relay?.DeploySeconds;
         if (deploy is { } ds) rows.Add(("Deploy", $"{Mathf.RoundToInt(ds)} s drifting to station"));
         var hover = _orbitHover >= 0 ? RelayOrbitProblem(_orbitHover) : "pick a spot on the planet";
         var footer = _orbitAction == "relay"
@@ -92,11 +84,17 @@ public partial class PlanetDriver
 
     /// <summary>Every frame (UpdateMissionUi): the coverage preview on the globe while RELAY is armed, events when a relay
     /// reaches its station.</summary>
+    private int _relayPreviewTile = -2;
+
     private void UpdateRelays()
     {
         var armed = _inOrbit && _orbitAction == "relay" && _orbit.AtColony;
         var tile = armed ? _orbitHover : -1;
-        Seam(_orbit, "ShowRelayPreview", tile, tile >= 0 ? RelayRadius() : 0, tile >= 0 && RelayOrbitProblem(tile) == null);
+        if (tile != _relayPreviewTile)
+        {
+            _relayPreviewTile = tile;
+            _orbit.PreviewRelay(tile, tile >= 0 ? RelayRadius() : 14, tile >= 0 && RelayOrbitProblem(tile) == null);
+        }
 
         foreach (var c in MyRelays())
         {

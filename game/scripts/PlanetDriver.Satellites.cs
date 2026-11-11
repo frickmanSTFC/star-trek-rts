@@ -188,7 +188,7 @@ public partial class PlanetDriver
         var selected = SelectedSatelliteId;
         foreach (var sat in Surface.Satellites)
         {
-            if (sat.Owner != LocalPlayer) continue;
+            if (sat.Owner != LocalPlayer || sat.Kind == SatelliteKind.Relay) continue;
             var seen = _satSeen.GetValueOrDefault(sat.Id, 0);
             if (sat.FindingsTotal > seen)
             {
@@ -264,7 +264,7 @@ public partial class PlanetDriver
         var list = new List<SatListEntry>();
         var relays = RelaySatelliteIds(); // comms relays get their own rows (PlanetDriver.Relays.cs)
         foreach (var sat in Surface.Satellites)
-            if (sat.Owner == LocalPlayer && !relays.Contains(sat.Id))
+            if (sat.Owner == LocalPlayer && sat.Kind != SatelliteKind.Relay && !relays.Contains(sat.Id))
                 list.Add(new SatListEntry($"sat:{sat.Id}", sat.CallSign, SatelliteShortStatus(sat), HelmScreen.Sky));
         list.AddRange(RelayListEntries());
         if (_system.State is { } state)

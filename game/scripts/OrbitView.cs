@@ -1165,6 +1165,12 @@ public partial class OrbitView : Node3D
         foreach (var sat in _surface.Satellites)
         {
             if (sat.Owner != _localPlayer) continue;
+            if (sat.Kind == SatelliteKind.Relay)
+            {
+                var ready = !sat.Deploying(_sim.Tick);
+                list.Add((new OrbitObject(sat.CallSign, "Satellite", ready ? $"Relay on station · {_surface.Map.Terrain(sat.StationTile).Name}" : "Relay drifting to station", SkyBlue), RelayNode(sat.Id)));
+                continue;
+            }
             var lat = Mathf.RoundToInt(RowLatitude(sat.Row));
             var where = $"{Mathf.Abs(lat)}° {(lat >= 0 ? "N" : "S")}";
             var sweep = sat.Deploying(_sim.Tick) ? (sat.Retasks == 0 ? "deploying" : "manoeuvring to its new band")

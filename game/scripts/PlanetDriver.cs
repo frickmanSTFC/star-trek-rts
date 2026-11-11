@@ -756,7 +756,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                     new("OCEANS", $"{_planetShares.Value.Water} %"),
                     new("BIOMASS", $"{_planetShares.Value.Biomass} % average"),
                     new("NATIVES", map.NativeTile >= 0 ? "1 settlement" : "none found", map.NativeTile >= 0 ? HelmScreen.Peach : null),
-                    new("SATELLITES", $"{Surface.Satellites.Count(x => x.Owner == LocalPlayer)} / {orbit?.SatelliteMax}"),
+                    new("SATELLITES", $"{Surface.Satellites.Count(x => x.Owner == LocalPlayer && x.Kind != SatelliteKind.Relay)} / {orbit?.SatelliteMax}"),
                 }));
                 sections.Add(new HelmSection($"SCAN · {PlanetHud.ScanNames[mode]}", HelmScreen.Sky, new List<HelmRow> { new("", ScanLegends[mode]) }));
                 sections.Add(_telemetry.Glance(_readings, UplinkStatus())); // "awaiting surface uplink" until the outpost reports
@@ -802,7 +802,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             var tag = "";
             var disabled = false;
             if (a == "land") disabled = me.Phase != LandingPhase.InOrbit;
-            else if (a == "satellite") tag = $" {Surface.Satellites.Count(x => x.Owner == LocalPlayer)}/{orbit?.SatelliteMax}";
+            else if (a == "satellite") tag = $" {Surface.Satellites.Count(x => x.Owner == LocalPlayer && x.Kind != SatelliteKind.Relay)}/{orbit?.SatelliteMax}";
             else if (me.Phase != LandingPhase.Landed) disabled = true;
             else if (a == "relay") tag = RelayTag();
             else if (a.StartsWith("shuttle:") && me.ShuttleBackTick > _sim.Tick) tag = $" {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate}S";
@@ -886,7 +886,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         else if (a == "satellite")
         {
             title = "Survey Satellite";
-            sub = $"{Surface.Satellites.Count(x => x.Owner == LocalPlayer)} of {orbit.SatelliteMax} in orbit";
+            sub = $"{Surface.Satellites.Count(x => x.Owner == LocalPlayer && x.Kind != SatelliteKind.Relay)} of {orbit.SatelliteMax} in orbit";
             body = $"Put a survey satellite into orbit over a band of the planet. It circles the world every {orbit.SatelliteSweepSeconds} s, surveying every tile it passes, so deposits in its band show up without a rover. Click the latitude you want it to cover.";
             rows.Add(("Covers", $"{orbit.SatelliteBandRows} rows of tiles, all the way round"));
             rows.Add(("Works", "from orbit, even before you land"));
