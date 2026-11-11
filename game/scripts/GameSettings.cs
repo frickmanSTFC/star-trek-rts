@@ -9,7 +9,8 @@ public enum WindowChoice { Windowed, Fullscreen, Exclusive }
 /// Player settings (docs/menu-contract.md): static, kept in user://settings.cfg. Read lazily on first use (so a direct F6
 /// run of Planet.tscn gets them too); <see cref="Save"/> writes them, <see cref="Apply"/> pushes the window and audio ones
 /// to the engine (the others are read where they act: PlanetDriver's camera, HudKit.ScaleFor, the tutorial).
-/// Only settings that do something today are here. [graphics] holds GraphicsQuality's (the visual pass).
+/// Only settings that do something today are here. [graphics] holds GraphicsQuality's (the visual pass), [debug]
+/// DebugOptions' (the F8 overlay).
 /// </summary>
 public static class GameSettings
 {
@@ -90,6 +91,7 @@ public static class GameSettings
         _cameraSpeed = Mathf.Clamp((float)cfg.GetValue("controls", "camera_speed", _cameraSpeed).AsDouble(), CameraSpeedMin, CameraSpeedMax);
         _edgeScroll = cfg.GetValue("controls", "edge_scroll", _edgeScroll).AsBool();
         LoadGraphics(cfg);
+        DebugOptions.Load(cfg); // [debug]: the F8 overlay, world draws, renderer view, FPS cap
     }
 
     /// <summary>[graphics] (visual pass, GraphicsQuality): preset 0 Classic / 1 Enhanced / 2 Custom, the Custom toggles
@@ -145,6 +147,7 @@ public static class GameSettings
         _cameraSpeed = 1f;
         _edgeScroll = false;
         GraphicsQuality.ResetDefaults();
+        DebugOptions.ResetDefaults();
     }
 
     public static void Save()
@@ -162,6 +165,7 @@ public static class GameSettings
         cfg.SetValue("controls", "camera_speed", _cameraSpeed);
         cfg.SetValue("controls", "edge_scroll", _edgeScroll);
         SaveGraphics(cfg);
+        DebugOptions.Save(cfg);
         var err = cfg.Save(File);
         if (err != Error.Ok) GD.PushWarning($"Settings: couldn't save {File} ({err}).");
     }
@@ -191,6 +195,7 @@ public static class GameSettings
     public static void Apply()
     {
         ApplyAudio();
+        DebugOptions.Apply(); // the FPS cap
         var vsync = _vsync ? DisplayServer.VSyncMode.Enabled : DisplayServer.VSyncMode.Disabled;
         if (DisplayServer.WindowGetVsyncMode() != vsync) DisplayServer.WindowSetVsyncMode(vsync);
         var mode = _window switch

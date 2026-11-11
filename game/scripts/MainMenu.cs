@@ -60,6 +60,7 @@ public partial class MainMenu : Node3D
         _ui.AddChild(_overlay);
         Sfx.Wire(_ui); // hover / click / locked on every button of every page (Sfx.cs)
         ShowPage(Page.Title);
+        AddChild(new DebugOverlay { Name = "DebugOverlay" }); // F8: performance, rendering, memory cards (no host on the menu)
     }
 
     public override void _Process(double delta)
