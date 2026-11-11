@@ -385,6 +385,7 @@ public partial class MainMenu
     private void OnTutorialSkip()
     {
         _pickerTutorialDone = true;
+        GameSettings.SkipTutorials(); // owner 2026-11-11: a skip holds for every later game (Settings › Tutorial hints)
         CloseTutorial();
     }
 

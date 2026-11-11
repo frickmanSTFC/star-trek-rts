@@ -60,7 +60,11 @@ public partial class PlanetDriver
         if (_tutorialCard != null && GodotObject.IsInstanceValid(_tutorialCard)) _tutorialCard.Close();
         _tutorialCard = null;
         _tutorialAnchorControl = null;
-        if (_tutorial != null && skipped) _hud.PushEvent("Tutorial skipped: F1 shows the controls", new Color(0.62f, 0.82f, 1f));
+        if (_tutorial != null && skipped)
+        {
+            GameSettings.SkipTutorials(); // owner 2026-11-11: a skip holds for every later game
+            _hud.PushEvent("Tutorial skipped for good: F1 shows the controls; Settings › Tutorial hints brings it back", new Color(0.62f, 0.82f, 1f));
+        }
         _tutorial = null;
     }
 

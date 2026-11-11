@@ -201,7 +201,7 @@ public partial class SettingsPanel : PanelContainer
     {
         var s = _s;
         Section("GAME");
-        Toggle("Tutorial hints", "Guided cards in a campaign start and on the star-system picker", GameSettings.TutorialHints,
+        Toggle("Tutorial hints", "Guided cards in a campaign start and on the star-system picker (SKIP TUTORIAL turns this off)", GameSettings.TutorialHints,
             v => GameSettings.TutorialHints = v);
 
         Section("DISPLAY");

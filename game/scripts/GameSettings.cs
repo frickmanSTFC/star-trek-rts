@@ -34,6 +34,14 @@ public static class GameSettings
     /// <summary>Tutorial cards in a campaign start (and on the menu's star-system picker).</summary>
     public static bool TutorialHints { get { Load(); return _tutorialHints; } set { Load(); _tutorialHints = value; } }
 
+    /// <summary>SKIP TUTORIAL on any tutorial card (campaign start or the star-system picker): hints off and saved, so no
+    /// tutorial shows in later games until Settings › Tutorial hints is turned back on (owner 2026-11-11).</summary>
+    public static void SkipTutorials()
+    {
+        TutorialHints = false;
+        Save();
+    }
+
     /// <summary>Master bus volume 0..1 (every sound goes through it; <see cref="ApplyAudio"/> sets the bus).</summary>
     public static float MasterVolume { get { Load(); return _masterVolume; } set { Load(); _masterVolume = Mathf.Clamp(value, 0f, 1f); } }
 
