@@ -115,8 +115,8 @@ public partial class PlanetDriver : IDebugHost
         _debugTiming = true;
         _debugFrames++;
         var surface = !_inOrbit && IsInsideTree();
-        if (DebugOptions.HexGrid) EnsureGrid();
-        else FreeGrid();
+        if (!DebugOptions.HexGrid) FreeGrid();
+        else if (surface) EnsureGrid(); // built on the surface only (one ~0.2 s hitch), kept while in orbit
         if (DebugOptions.Paths) DrawPaths();
         else FreePaths();
         if (DebugOptions.Footprints)
