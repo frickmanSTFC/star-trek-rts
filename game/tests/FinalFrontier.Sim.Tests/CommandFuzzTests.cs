@@ -27,13 +27,14 @@ public class CommandFuzzTests
     private static GameData Data => TestData.Real;
 
     /// <summary>Two players (Federation and Cardassian) landed on seed 1701, both outposts assembled.</summary>
-    internal static Simulation TwoPlayersLanded(GameData? data = null)
+    internal static Simulation TwoPlayersLanded(GameData? data = null, bool missions = false)
     {
         data ??= Data;
         var sim = new Simulation(data, 1701);
         sim.LoadSurface(MatchSetup.MvpPlanetClass, 1701);
         sim.AddPlayer("federation");
         sim.AddPlayer("cardassian");
+        if (missions) Assert.Null(sim.Missions.Enable("first_light")); // campaign missions on (MissionTests)
         var map = sim.Surface!.Map;
         var first = Enumerable.Range(0, map.Grid.Count).First(t => sim.Surface.CanLand(0, t));
         var second = Enumerable.Range(0, map.Grid.Count).Last(t => sim.Surface.CanLand(1, t) && map.Grid.Distance(t, first) > 20);
@@ -118,6 +119,7 @@ public class CommandFuzzTests
         private string? BuildingId() => Text(Chance(75) ? Data.BuildMenu : Data.Buildings.Select(b => b.Id).ToList());
         private string? SurfaceUnitId() => Text(Data.SurfaceUnits.Select(u => u.Id).ToList());
         private string? TechId() => Text(Data.Techs.Select(t => t.Id).ToList());
+        private string? MissionId() => Text(Data.Missions?.List.Select(m => m.Id).ToList() ?? new List<string>());
 
         private Fix64 Value()
         {
@@ -153,6 +155,7 @@ public class CommandFuzzTests
             15, // 38 pause / resume a building
             30, 10, 10, 10, 10, // 39..43 parts economy: fabricate, cancel an order, stock target, jury-rig a building / vehicles
             10, // 44 retask a survey satellite
+            20, 8, // 45, 46 missions: a choice (accept / decline / a branch), the test panel's mission edits
         };
 
         private static readonly int TotalWeight = Weights.Sum();
@@ -214,7 +217,13 @@ public class CommandFuzzTests
                 case 41: return new StockTargetCommand(p, Text(S.PartItems)!, Chance(80) ? N(8) : AnyInt());
                 case 42: return new JuryRigCommand(p, StructureId());
                 case 43: return new JuryRigUnitsCommand(p, UnitIds());
-                default: return new RetaskSatelliteCommand(p, Chance(80) ? 1 + N(6) : AnyInt(), Chance(80) ? N(S.Map.Grid.Height) : AnyInt());
+                case 44: return new RetaskSatelliteCommand(p, Chance(80) ? 1 + N(6) : AnyInt(), Chance(80) ? N(S.Map.Grid.Height) : AnyInt());
+                case 45: return new MissionChoiceCommand(p, MissionId()!, Text(new[] { "accept", "accept", "decline", "launch" })!);
+                default:
+                    return new DebugMissionCommand(p, Player(), MissionId()!, Chance(3) ? DebugMissionAction.Enable : Enum<DebugMissionAction>(),
+                        Text(Data.Missions?.List.SelectMany(m => m.Stages.Select(st => st.Id)).ToList() ?? new List<string>())!,
+                        Text(Data.Missions?.List.SelectMany(m => m.Stages.SelectMany(st => st.Objectives.Select(o => o.Id))).ToList() ?? new List<string>())!,
+                        Chance(70) ? Tile() : AnyInt());
             }
         }
 
@@ -305,7 +314,7 @@ public class CommandFuzzTests
     /// <summary>Plays one fuzzed game: returns the state hashes along the way and the number of commands sent.</summary>
     private static (List<ulong> Hashes, int Commands, int Refused) Play(ulong seed, int ticks, List<string> problems)
     {
-        var sim = TwoPlayersLanded();
+        var sim = TwoPlayersLanded(missions: true);
         var fuzz = new Fuzzer(sim, seed);
         var hashes = new List<ulong>();
         var sent = 0;
@@ -422,8 +431,8 @@ public class CommandFuzzTests
     [Fact]
     public void RefusedCommandsChangeNothing()
     {
-        var a = TwoPlayersLanded();
-        var b = TwoPlayersLanded();
+        var a = TwoPlayersLanded(missions: true);
+        var b = TwoPlayersLanded(missions: true);
         var fuzz = new Fuzzer(a, 99);
         var refused = 0;
         for (var i = 0; i < 1200; i++)

@@ -433,7 +433,7 @@ public sealed partial class MissionBook
             case "decline":
                 return run.State == MissionState.Offered ? null : "not offered";
             default:
-                if (run.State != MissionState.Active) return "not active";
+                if (run.State != MissionState.Active || run.Stage < 0 || run.Stage >= d.Stages.Count) return "not active";
                 foreach (var ch in d.Stages[run.Stage].Choices)
                     if (ch.Id == c.Option) return null;
                 return $"no option '{c.Option}' now";

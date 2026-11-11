@@ -25,6 +25,7 @@ public sealed partial class MissionBook
             case "place_tiles":
             {
                 var name = a.F("bind") ?? "";
+                if (run.Find(name) is { } old) _sites.RemoveAll(x => old.Sites.Contains(x.Id) && x.MissionId == run.Id); // placed again
                 var tiles = PickTiles(s, p, run, a);
                 var b = new Binding { Name = name };
                 b.Tiles.AddRange(tiles);

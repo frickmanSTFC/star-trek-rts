@@ -25,7 +25,7 @@ public sealed partial class MissionBook
             case DebugMissionAction.GotoStage:
                 return d.StageIndex(c.Stage) >= 0 ? null : $"no stage '{c.Stage}'";
             case DebugMissionAction.CompleteObjective:
-                if (run.State != MissionState.Active) return "not active";
+                if (run.State != MissionState.Active || run.Stage < 0 || run.Stage >= d.Stages.Count) return "not active";
                 foreach (var o in d.Stages[run.Stage].Objectives)
                     if (o.Id == c.Objective) return null;
                 return $"no objective '{c.Objective}' in the current stage";
@@ -79,15 +79,15 @@ public sealed partial class MissionBook
                 Fail(p, run, d);
                 break;
             case DebugMissionAction.Reset:
-                Clear(run);
+                Clear(p, run);
                 break;
         }
     }
 
     /// <summary>Back to a fresh Locked run (its sites are removed).</summary>
-    private void Clear(MissionRun run)
+    private void Clear(int p, MissionRun run)
     {
-        _sites.RemoveAll(s => s.Owner >= 0 && s.MissionId == run.Id && run.Bindings.Exists(b => b.Sites.Contains(s.Id)));
+        _sites.RemoveAll(s => s.Owner == p && s.MissionId == run.Id);
         run.State = MissionState.Locked;
         run.Stage = -1;
         run.StageStart = run.Start = run.End = run.OfferEnd = run.TimerEnd = -1;
@@ -106,7 +106,7 @@ public sealed partial class MissionBook
     private void Restart(int p, MissionRun run, MissionDef d, int tile)
     {
         var s = _sim!.Surface!;
-        Clear(run);
+        Clear(p, run);
         var bindings = new List<Binding>();
         if (d.Trigger != null) Check(p, null, -1, d.Trigger, bindings);
         if (tile < 0 || tile >= s.Map.Grid.Count) tile = Hub(s, p);

@@ -165,9 +165,12 @@ public class MissionTests
         Do(sim, new DebugPlaceBuildingCommand(0, 0, "science_lab", FreeTile(sim, "science_lab"), 0));
         Seconds(sim, 1);
         Assert.Equal(MissionState.Active, State(sim, "ground_truth"));
+        Assert.True(View(sim, "ground_truth").Objectives[0].Progress < Fix64.FromInt(60)); // the landing alone doesn't do it
+        var exploreFrom = sim.Tick;
         Assert.Contains(sim.Missions.Messages(0), m => m.MissionId == "ground_truth" && m.Channel == "comms" && m.GiverName == "Flight Director Moreau");
         Explore(sim, () => State(sim, "ground_truth") == MissionState.Completed, 900);
         Done("ground_truth");
+        Assert.True(sim.Tick - exploreFrom > 20 * Simulation.TickRate); // the rovers had to drive
         Assert.Equal(Fix64.FromInt(30), s.DigResearchBank(0)); // no tech started: banked
         if (stopAfter == "ground_truth") return (sim, world);
 
