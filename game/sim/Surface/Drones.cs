@@ -78,7 +78,10 @@ internal sealed class DroneFlight
 // (removed lost_seconds later). Lanes, parking, rover wear, repairs and people blockers skip drones (unit.Drone != null).
 public sealed partial class PlanetSurface
 {
-    private static readonly Fix64 BaySpacing = Fix64.Parse("6.4");
+    /// <summary>Bay centres in the pad's frame = the drone_pad.glb Bay0/Bay1 empties (Godot (∓2.75, 0.55, 1.3); map Y = view Z).</summary>
+    private static readonly Fix64 BaySpacing = Fix64.Parse("5.5");
+
+    private static readonly Fix64 BayForward = Fix64.Parse("1.3");
     private static readonly Fix64 BayRing = Fix64.FromInt(4);
 
     /// <summary>True for a unit that flies (data: "aerial": true). Aerial units ignore lanes, terrain and dome transits.</summary>
@@ -127,7 +130,7 @@ public sealed partial class PlanetSurface
     {
         var n = System.Math.Max(1, DroneBays(pad));
         FixVec2 local;
-        if (n <= 2) local = new FixVec2(BaySpacing * (Fix64.FromInt(bay) - Fix64.FromInt(n - 1) / 2), Fix64.Zero);
+        if (n <= 2) local = new FixVec2(BaySpacing * (Fix64.FromInt(bay) - Fix64.FromInt(n - 1) / 2), BayForward);
         else
         {
             var deg = Fix64.FromInt(360) * Fix64.FromInt(bay) / Fix64.FromInt(n);
