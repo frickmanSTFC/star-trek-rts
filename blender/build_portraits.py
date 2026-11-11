@@ -75,6 +75,7 @@ Toward the game's portrait / comm-screen generator (plan only, nothing exported 
 """
 import json
 import math
+import zlib
 import os
 import sys
 
@@ -108,7 +109,7 @@ def hexrgb(h):
 # skin / hair / iris presets (sRGB)
 SK = dict(fair=(0.95, 0.79, 0.69), light=(0.90, 0.72, 0.60), tan=(0.80, 0.60, 0.45), olive=(0.74, 0.56, 0.40),
           brown=(0.58, 0.40, 0.28), dark=(0.40, 0.26, 0.18), deep=(0.29, 0.19, 0.13), eastasian=(0.88, 0.71, 0.56),
-          andorian=(0.42, 0.60, 0.86), cardassian=(0.62, 0.62, 0.60), ferengi=(0.86, 0.66, 0.50),
+          andorian=(0.42, 0.60, 0.86), cardassian=(0.56, 0.55, 0.52), ferengi=(0.86, 0.66, 0.50),
           tellarite=(0.70, 0.52, 0.42), klingon=(0.50, 0.33, 0.24), romulan=(0.86, 0.72, 0.60))
 HC = dict(black=(0.05, 0.045, 0.045), darkbrown=(0.16, 0.10, 0.07), brown=(0.32, 0.20, 0.11), auburn=(0.45, 0.20, 0.10),
           blond=(0.72, 0.58, 0.36), ash=(0.55, 0.50, 0.44), grey=(0.62, 0.61, 0.60), white=(0.92, 0.93, 0.95),
@@ -128,7 +129,7 @@ CAST = [
     dict(id="vulcan_m_exploration", species="vulcan", sex="m", dept="exploration", age="60-90 (looks 40s)", skin="light",
          hair="darkbrown", style="bowl", iris="brown", slim=0.4),
     dict(id="andorian_f_defense", species="andorian", sex="f", dept="defense", age="25-35", skin="andorian", hair="white",
-         style="bob", iris="violet"),
+         style="bun", iris="violet"),
     dict(id="andorian_m_maintenance", species="andorian", sex="m", dept="maintenance", age="30-40", skin="andorian",
          hair="white", style="swept", iris="grey", heavy=0.3),
     dict(id="tellarite_f_maintenance", species="tellarite", sex="f", dept="maintenance", age="30-40", skin="tellarite",
@@ -247,7 +248,7 @@ _neck0 = bc.neck_limb
 
 
 def neck_thick(body, inflate=0.0):
-    return _neck0(body, inflate + 0.0085 - 0.004 * body.fem)
+    return _neck0(body, inflate + 0.0085 - 0.004 * body.fem + (0.008 if CUR.get("species") == "cardassian" else 0.0))
 
 
 bc.neck_limb = neck_thick
@@ -288,18 +289,23 @@ def head_local_species(la, lo, body):
     fem = body.fem
     # portrait refinements for everyone: fuller jaw and chin, shaped lips, philtrum, deeper brow
     fy = smooth(0.02, 0.06, y)
-    x *= 1 + (0.13 - 0.07 * fem) * smooth(-0.025, -0.075, z) * smooth(-0.04, 0.03, y)
-    x *= 1 + 0.05 * gauss(z + 0.004, 0.016) * smooth(-0.02, 0.03, y)                          # cheekbones out
-    y += 0.0032 * gauss(ax - 0.047, 0.011) * gauss(z + 0.008, 0.011) * fy                      # cheekbones forward
-    y -= 0.0018 * gauss(ax - 0.045, 0.012) * gauss(z + 0.045, 0.012) * fy                      # hollow under them
+    fv = CUR.get("fv") or {}
+    jaw, chin, lip = fv.get("jaw", 1.0), fv.get("chin", 1.0), fv.get("lip", 1.0)
+    cheek, browr = fv.get("cheek", 1.0), fv.get("brow", 1.0)
+    x *= fv.get("width", 1.0)
+    x *= 1 + (0.15 - 0.09 * fem) * jaw * smooth(-0.025, -0.075, z) * smooth(-0.04, 0.03, y)    # jaw
+    x *= 1 + 0.05 * cheek * gauss(z + 0.004, 0.016) * smooth(-0.02, 0.03, y)                  # cheekbones out
+    y += 0.0032 * cheek * gauss(ax - 0.047, 0.011) * gauss(z + 0.008, 0.011) * fy              # cheekbones forward
+    y -= 0.0018 * cheek * gauss(ax - 0.045, 0.012) * gauss(z + 0.045, 0.012) * fy              # hollow under them
     y -= 0.0022 * gauss(x, 0.009) * gauss(z - 0.019, 0.006) * fy                              # nasion
-    y += (0.0035 - 0.001 * fem) * gauss(x, 0.017) * gauss(z + 0.089, 0.010) * fy
+    y += (0.0038 - 0.0014 * fem) * chin * gauss(x, 0.017) * gauss(z + 0.089, 0.010) * fy      # chin
+    z -= (0.004 - 0.003 * fem) * chin * smooth(-0.06, -0.10, z) * smooth(0.0, 0.04, y)       # longer chin (men)
     bow = 0.0016 * gauss(ax - 0.0065, 0.0035)
-    y += (0.0016 + 0.0006 * fem) * smooth(0.023, 0.010, ax) * gauss(z + 0.0468 - bow, 0.0026) * fy
-    y += (0.0020 + 0.0008 * fem) * smooth(0.022, 0.008, ax) * gauss(z + 0.0590, 0.0032) * fy
+    y += (0.0014 + 0.0009 * fem) * lip * smooth(0.023, 0.010, ax) * gauss(z + 0.0468 - bow, 0.0026) * fy
+    y += (0.0018 + 0.0011 * fem) * lip * smooth(0.022, 0.008, ax) * gauss(z + 0.0590, 0.0032) * fy
     y -= 0.0008 * gauss(x, 0.0026) * gauss(z + 0.0405, 0.0038) * fy
     y -= 0.0014 * gauss(x, 0.013) * gauss(z + 0.0685, 0.0038) * fy
-    y += (0.0022 - 0.0008 * fem) * gauss(z - 0.031, 0.0065) * smooth(0.056, 0.024, ax) * fy
+    y += (0.0026 - 0.0014 * fem) * browr * gauss(z - 0.031, 0.0065) * smooth(0.056, 0.024, ax) * fy
     for sx in (-1, 1):  # deeper sockets: the lids, not the skin, shape the eye opening
         y -= SOCKET * math.exp(-((x - sx * 0.033) ** 2 / (2 * 0.0145 ** 2) + (z - 0.010) ** 2 / (2 * 0.0105 ** 2))) * fy
     if sp in ("human", "vulcan", "andorian", "bajoran", "trill", "betazoid"):
@@ -501,10 +507,11 @@ def pattern_material(name, a_srgb, b_srgb, rough=0.6):
     nt = m.node_tree
     tc = node(nt, "ShaderNodeTexCoord")
     vo = node(nt, "ShaderNodeTexVoronoi")
-    vo.inputs["Scale"].default_value = 38
+    vo.inputs["Scale"].default_value = 30
+    vo.inputs["Randomness"].default_value = 0.15
     wv = node(nt, "ShaderNodeTexWave")
-    wv.inputs["Scale"].default_value = 9
-    wv.inputs["Distortion"].default_value = 3
+    wv.inputs["Scale"].default_value = 60
+    wv.inputs["Distortion"].default_value = 0.5
     nt.links.new(tc.outputs["Generated"], vo.inputs["Vector"])
     nt.links.new(tc.outputs["Generated"], wv.inputs["Vector"])
     mth = node(nt, "ShaderNodeMath")
@@ -512,8 +519,8 @@ def pattern_material(name, a_srgb, b_srgb, rough=0.6):
     nt.links.new(vo.outputs["Distance"], mth.inputs[0])
     nt.links.new(wv.outputs["Fac"], mth.inputs[1])
     ramp = node(nt, "ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].position = 0.12
-    ramp.color_ramp.elements[1].position = 0.2
+    ramp.color_ramp.elements[0].position = 0.10
+    ramp.color_ramp.elements[1].position = 0.16
     ramp.color_ramp.elements[0].color = (*srgb_lin(b_srgb), 1)
     ramp.color_ramp.elements[1].color = (*srgb_lin(a_srgb), 1)
     nt.links.new(mth.outputs["Value"], ramp.inputs["Factor"])
@@ -525,7 +532,7 @@ def pattern_material(name, a_srgb, b_srgb, rough=0.6):
 # outfit swatches (sRGB, roughness, metal, kind)
 OUTFIT_MATS = {
     "kl_leather": ((0.12, 0.085, 0.07), 0.55, 0.0, "leather"),
-    "kl_metal": ((0.36, 0.34, 0.32), 0.36, 1.0, "metal"),
+    "kl_metal": ((0.24, 0.23, 0.22), 0.48, 1.0, "leather"),
     "kl_red": ((0.40, 0.07, 0.05), 0.5, 0.0, "leather"),
     "rom_cloth": ((0.30, 0.35, 0.31), 0.8, 0.0, "cloth"),
     "rom_pad": ((0.42, 0.48, 0.42), 0.75, 0.0, "cloth"),
@@ -542,7 +549,7 @@ OUTFIT_MATS = {
     "eyewhite_hd": ((0.86, 0.82, 0.79), 0.25, 0.0, "plain"),
     "pupil": ((0.004, 0.004, 0.004), 0.2, 0.0, "plain"),
     "limbus": ((0.03, 0.025, 0.02), 0.3, 0.0, "plain"),
-    "trill_spot": ((0.36, 0.22, 0.13), 0.55, 0.0, "plain"),
+    "trill_spot": ((0.27, 0.15, 0.09), 0.55, 0.0, "plain"),
     "silver": ((0.80, 0.80, 0.82), 0.22, 1.0, "metal"),
     "chain_gold": ((0.85, 0.66, 0.30), 0.25, 1.0, "metal"),
     "snout": ((1.0, 1.0, 1.0), 0.5, 0.0, "plain"),
@@ -584,6 +591,7 @@ def char_materials(c):
     CHAR_MATS["Skin"] = skin_material("Skin_" + c["id"], sk)
     CHAR_MATS["Hair"] = hair_material("Hair_" + c["id"], hc)
     CHAR_MATS["brow"] = hair_material("Brow_" + c["id"], tuple(x * 0.85 for x in hc))
+    CHAR_MATS["beard"] = hair_material("Beard_" + c["id"], tuple(x * 0.78 for x in hc))
     CHAR_MATS["iris"] = iris_material("Iris_" + c["id"], IR[c["iris"]])
     if c.get("dept"):
         m, _ = principled("Dept_" + c["id"], srgb_lin(tuple(x * 0.9 for x in hexrgb(DEPTS[c["dept"]]))), 0.72)
@@ -713,7 +721,19 @@ def nose(mb, body, ws=1.0, ps=1.0, ridges=(), ridge_amp=0.0012, top=None):
                      RIG_HEAD)
 
 
-def mouth_line(mb, body, width=0.0225, zc=-0.0527, droop=0.0004):
+def bridge_ridges(mb, body, zs, half=0.0085, r=0.0011):
+    """Ridges across the bridge of the nose (Bajoran, Ferengi): flattened strips lying on the skin."""
+    for zr in zs:
+        w = half * (1.0 + 0.25 * (zr - zs[0]) / 0.02)
+        pts = []
+        for i in range(13):
+            x = -w + 2 * w * i / 12
+            z = zr - 0.0012 * (x / w) ** 2
+            pts.append(V((x, hl(x, z, body) + 0.0002, HEAD_C.z + z)))
+        loft(mb, pts, lambda t: r * (0.25 + 0.75 * math.sin(pi * t) ** 0.5), "Skin", RIG_HEAD, segs=10)
+
+
+def mouth_line(mb, body, width=0.0225, zc=-0.0527, droop=-0.0005):
     a_row, m_row, b_row = [], [], []
     for i in range(25):
         t = i / 24
@@ -785,9 +805,9 @@ def brows(mb, body, kind="natural", thick=1.0):
             if kind == "upswept":
                 z = 0.030 + 0.003 * t + 0.017 * t ** 2.2
             elif kind == "bushy":
-                z = 0.037 + 0.004 * math.sin(pi * (0.25 + 0.75 * t)) - 0.003 * t
+                z = 0.034 + 0.004 * math.sin(pi * (0.1 + 0.8 * t))
             else:
-                z = 0.032 + 0.006 * math.sin(pi * (0.3 + 0.7 * t)) - 0.004 * t
+                z = 0.0305 + 0.0055 * math.sin(pi * (0.1 + 0.8 * t)) + 0.0005 * t
             return x, z
         n = 14
         a_row, m_row, b_row = [], [], []
@@ -806,9 +826,12 @@ def brows(mb, body, kind="natural", thick=1.0):
 
 def ear_frame(sx, kind):
     if kind == "ferengi":
-        c = HEAD_C + V((sx * 0.084, -0.022, -0.008))
-        ax = V((sx * math.cos(rad(42)), math.sin(rad(42)), 0.0)).normalized()
-        az = V((0, -0.12, 1)).normalized()
+        c = HEAD_C + V((sx * 0.072, -0.014, -0.004))
+        b = rad(56)
+        ax = V((sx * math.cos(b), math.sin(b), 0.0))            # the ear faces forward and out
+        ay = V((sx * math.sin(b), -math.cos(b), 0.0))           # its long axis runs outward and back
+        az = orth(V((0, -0.12, 1)), ax)
+        return c, ax, ay, az
     else:
         c = HEAD_C + V((sx * 0.074, -0.012, -0.006))
         ax = V((sx * math.cos(rad(18)), -math.sin(rad(18)), 0))
@@ -822,8 +845,8 @@ def ears(mb, body, kind="human", scale=1.0):
     for sx in (-1, 1):
         c, ax, ay, az = ear_frame(sx, kind)
         if kind == "ferengi":
-            radii = (0.011 * scale, 0.040 * scale, 0.056 * scale)
-            cc = c + ax * 0.004 - ay * 0.010 * scale
+            radii = (0.010 * scale, 0.050 * scale, 0.050 * scale)
+            cc = c + ay * 0.038 * scale - ax * 0.004 - az * 0.008
         else:
             radii = (0.009, 0.019, 0.031)
             cc = c + ax * 0.004
@@ -840,9 +863,11 @@ def ears(mb, body, kind="human", scale=1.0):
                 tip = smooth(0.15, 1.0, up)
                 p = p + az * 0.019 * tip ** 2 - ay * (0.009 * tip ** 2 + 0.006 * fw * tip)
             if kind == "ferengi":
-                p = p + ax * 0.006 * scale * math.sin(fw * 4.0) * smooth(0.2, 0.9, abs(up))  # rippled rim
-                p = p - ay * 0.010 * scale * smooth(-0.2, 1.0, up) ** 2 + az * 0.006 * scale * smooth(0.6, 1, up)
-                p = p - ax * 0.010 * scale * smooth(0.0, 1.0, -fw)  # front edge tucks toward the head
+                p = p + ax * 0.007 * scale * smooth(0.55, 1.0, fw)                              # outer rim curls forward
+                p = p + ax * 0.003 * scale * math.sin(up * 6.0) * smooth(0.3, 0.9, fw)           # rippled rim
+                p = p - ax * 0.012 * scale * smooth(-0.3, -1.0, fw)                              # root sweeps back
+                p = p + az * 0.014 * scale * smooth(0.1, 1.0, up) * smooth(-0.2, 0.7, fw)       # tall upper lobe
+                p = p + az * 0.010 * scale * smooth(-0.3, -1.0, up) * smooth(0.2, 1.0, fw)      # outer-lower edge lifts
             return p
         bc.ellipsoid(mb, cc, (ax, ay, az), radii, 28, 16, "Skin", RIG_HEAD, deform=ear)
         out[sx] = e = (cc, ax, ay, az, radii, ear)
@@ -917,20 +942,20 @@ def ferengi_teeth(mb, body):
 
 def antennae(mb, body):
     for sx in (-1, 1):
-        lo = 90 - sx * 24
-        la = 60
+        lo = 90 - sx * 27
+        la = 57
         base = bc.head_pt(la, lo, body, 0.002)
         n = bc.head_n(la, lo, body)
         up = V((0, 0, 1))
         pts = []
         for i in range(25):
             t = i / 24
-            p = base + n * (0.018 * t) + up * (0.10 * t ** 1.05) + V((sx * 0.026 * t ** 1.6, 0.012 * math.sin(pi * t) - 0.012 * t ** 2, 0))
+            p = base + n * (0.022 * t) + up * (0.135 * t ** 1.05) + V((sx * 0.034 * t ** 1.5, 0.016 * math.sin(pi * t) - 0.016 * t ** 2, 0))
             pts.append(p)
-        radius = lambda t: (0.0075 - 0.0038 * t + 0.0006 * math.sin(t * 40) ** 2) * (0.85 if CUR["sex"] == "f" else 1.0)  # noqa: E731
+        radius = lambda t: (0.0085 - 0.0042 * t + 0.0007 * math.sin(t * 40) ** 2) * (0.88 if CUR["sex"] == "f" else 1.0)  # noqa: E731
         loft(mb, pts, radius, "Skin", RIG_HEAD)
         tip = pts[-1] + (pts[-1] - pts[-2]).normalized() * 0.003
-        r = 0.0062 * (0.85 if CUR["sex"] == "f" else 1.0)
+        r = 0.0068 * (0.88 if CUR["sex"] == "f" else 1.0)
         bc.ellipsoid(mb, tip, (V((1, 0, 0)), V((0, 1, 0)), V((0, 0, 1))), (r, r, r * 1.25), 14, 7, "Skin", RIG_HEAD)
         base_in = base - n * 0.01
         bc.tube(mb, base_in, base + n * 0.003, 0.0105, 0.0085, 16, "Skin", RIG_HEAD, caps=(False, False))
@@ -972,7 +997,7 @@ def trill_spots(mb, body):
             for row in (0, 1):
                 if (i + row) % 2:
                     continue
-                size = 0.0032 - 0.0011 * i / len(path)
+                size = 0.0043 - 0.0014 * i / len(path)
                 if kind == "h":
                     off = 2.2 * (1 if row else -1)
                     la, lo = a, b + off * sx * 0.7
@@ -1001,11 +1026,11 @@ def neck_ridges(mb, body):
         for la in (-6, -18, -30):
             pts.append(bc.head_pt(la, lo, body))
             ns.append(bc.head_n(la, lo, body))
-        for u in (0.85, 0.6, 0.35, 0.12):
-            th = th_side - sx * rad(28)
+        for u, thd in ((0.85, 26), (0.6, 16), (0.35, 6), (0.12, -4)):
+            th = th_side - sx * rad(thd)
             pts.append(nl.pt(u, th))
             ns.append(nl.n(u, th))
-        for z, thd in ((1.51, 22), (1.49, 18)):
+        for z, thd in ((1.51, -10), (1.49, -14)):
             th = th_side - sx * rad(thd)
             pts.append(body.torso(z, th, 0.004))
             ns.append(body.torso_n(z, th))
@@ -1015,10 +1040,10 @@ def neck_ridges(mb, body):
             t = i / (n - 1)
             d = (pts[min(i + 1, n - 1)] - pts[max(i - 1, 0)]).normalized()
             side = nn.cross(d).normalized()
-            w = 0.006 + 0.012 * t ** 1.4
-            h = 0.004 + 0.004 * t
-            rows.append([p - nn * 0.003 + side * w * math.cos(pi * k / 10) + nn * h * math.sin(pi * k / 10) ** 0.7
-                         + nn * 0.0015 * math.sin(pi * k / 10) * math.sin(pi * k / 5) ** 2 for k in range(11)])
+            w = 0.009 + 0.020 * t ** 1.1
+            h = 0.007 + 0.008 * t
+            rows.append([p - nn * 0.003 + side * w * math.cos(pi * k / 16) + nn * h * math.sin(pi * k / 16) ** 1.4
+                         + nn * 0.003 * gauss(k / 16 - 0.5, 0.07) for k in range(17)])
             cen.append(p - nn * 0.01)
         bc.sheet(mb, rows, "Skin", cand, centres=cen)
 
@@ -1094,19 +1119,21 @@ def hair(mb, body, style):
             h = base_hairline(lo) + 4 - 6 * gauss(adiff(lo, 90), 8)
         if style == "wild":
             h = lerp(64, h, smooth(22, 80, a))
-        if notch or style in ("bowl", "vulcan_f"):
-            h = max(h, ear_notch(lo, 0.060 if notch else 0.034))
+        if notch or style in ("bowl", "vulcan_f", "bob"):
+            h = max(h, ear_notch(lo, 0.060 if notch else 0.036))
         return h
 
     def vol(lo, v):
         extra = 0.0
-        if style in ("bob", "long", "wild"):  # puffed out over the ears
+        if style in ("long", "wild"):  # puffed out over the ears
             l0 = low(lo)
             la = l0 + v * (88 - l0)
             g = max(smooth(32, 14, abs(adiff(lo, e))) for e in (-9, 189))
             extra = 0.019 * g * smooth(36, 16, la)
+        groove = (0.0016 if style not in ("crop", "slick", "slick_bun") else 0.0006) * (
+            0.5 + 0.5 * math.sin(rad(lo) * 52 + 3 * math.sin(rad(lo) * 7) + v * 2)) * smooth(0.0, 0.12, v)
         taper = 1.0 if style in ("bowl", "vulcan_f", "bob", "wild", "curly", "shaggy") else 0.2 + 0.8 * smooth(0.0, 0.16, v)
-        return (extra + vol0(lo, v)) * taper + 0.0012 * (1 - taper)
+        return (extra + vol0(lo, v) + groove) * taper + 0.0012 * (1 - taper)
 
     def vol0(lo, v):
         top = math.sin(v * pi / 2)
@@ -1141,7 +1168,7 @@ def hair(mb, body, style):
     def hang_w(lo):
         a = ang_front(lo)
         if style == "bob":
-            return smooth(50, 92, a)
+            return smooth(100, 128, a)
         if style == "long":
             return smooth(78, 112, a)
         if style == "wild":
@@ -1150,6 +1177,8 @@ def hair(mb, body, style):
 
     def ear_r(z, lo):
         """Hanging hair must pass outside the (round) ears."""
+        if style == "bob":
+            return 0.0
         g = max(smooth(30, 14, abs(adiff(lo, e))) for e in (-9, 189))
         return 0.099 * g * smooth(HEAD_C.z - 0.06, HEAD_C.z - 0.04, z) * smooth(HEAD_C.z + 0.04, HEAD_C.z + 0.025, z)
 
@@ -1179,7 +1208,8 @@ def hair(mb, body, style):
                 cr, cy = clearance(z, lo, gap)
                 fall = (zt - z) / max(0.01, zt - zb)
                 wave = 0.004 * math.sin(z * 90 + lo * 0.2) * fall if style == "wild" else 0.0
-                r = max(rw * (1 - 0.05 * fall), cr, ear_r(z, lo)) + wave + (0.012 * fall if style == "wild" else 0.0)
+                gr = 0.0018 * (0.5 + 0.5 * math.sin(rad(lo) * 52 + 3 * math.sin(rad(lo) * 7)))
+                r = max(rw * (1 - 0.05 * fall), cr, ear_r(z, lo)) + wave + gr + (0.012 * fall if style == "wild" else 0.0)
                 cy_ = lerp(cy, HEAD_C.y, smooth(1.52, 1.62, z))
                 col.append(V((dirv.x * r, cy_ + dirv.y * r, z)))
             col += hp[iw + 1:]
@@ -1225,38 +1255,34 @@ def hair(mb, body, style):
 
 
 def beard(mb, body, kind):
-    lons = [32 + 116 * j / 48 for j in range(49)]
-    lats = [-88 + 2.0 * i for i in range(40)]
+    """A beard shell over the jaw; outside the beard (and round the mouth) it sinks under the skin, so its edge is
+    where it crosses the skin: soft outlines, no cut-out holes."""
+    lons = [16 + 148 * j / 88 for j in range(89)]
+    lats = [-89 + 1.2 * i for i in range(78)]
 
-    def keep(i, j):
-        la = (lats[i] + lats[i + 1]) / 2
-        lo = (lons[j] + lons[j + 1]) / 2
+    def mask(la, lo):
         p = bc.head_local(la, lo, body)
         a = abs(adiff(lo, 90))
-        if abs(p.x) < 0.025 and -0.068 < p.z < -0.038 and p.y > 0.03:      # mouth
-            return kind == "full" and -0.046 < p.z < -0.040 and abs(p.x) < 0.022  # moustache over the lip
-        if p.z > -0.03 and a < 28:                                           # cheeks under the eyes / nose
-            return False
-        if kind == "tellarite":
-            return p.z < 0.012 + 0.03 * smooth(40, 80, a) and a < 92
-        return p.z < -0.012 + 0.02 * smooth(45, 80, a) and a < 88
+        ztop = (-0.012 + 0.03 * smooth(42, 82, a)) if kind != "tellarite" else (0.002 + 0.03 * smooth(40, 80, a))
+        m = smooth(ztop + 0.003, ztop - 0.003, p.z) * smooth(96, 86, a)
+        hole = smooth(0.030, 0.021, abs(p.x)) * smooth(0.0105, 0.0065, abs(p.z + 0.0535)) * smooth(0.02, 0.04, p.y)
+        nose_clear = smooth(0.026, 0.018, abs(p.x)) * smooth(-0.044, -0.040, p.z)
+        return clamp(m * (1 - hole) * (1 - nose_clear), 0, 1), p, a
 
     def vol(la, lo):
-        p = bc.head_local(la, lo, body)
-        a = abs(adiff(lo, 90))
-        v = {"full": 0.0045, "klingon": 0.008, "tellarite": 0.009}[kind]
+        m, p, a = mask(la, lo)
+        v = {"full": 0.0042, "klingon": 0.0085, "tellarite": 0.009}[kind]
         if kind == "klingon":
-            v += 0.02 * gauss(a, 18) * smooth(-0.07, -0.11, p.z)
-        if kind == "tellarite":
-            v += 0.004 * math.sin(lo * 0.5) * math.sin(la * 0.4)
-        return v
+            v += 0.016 * gauss(a, 20) * smooth(-0.07, -0.11, p.z)
+        v += 0.0005 * math.sin(rad(lo) * 110 + 5 * math.sin(rad(la) * 11)) * math.sin(rad(la) * 37 + rad(lo) * 13)
+        return m * v - (1 - m) * 0.003
     rows = [[bc.head_pt(la, lo, body, vol(la, lo)) for lo in lons] for la in lats]
     if kind == "klingon":
         for r_, la in zip(rows, lats):
             for j, lo in enumerate(lons):
                 a = abs(adiff(lo, 90))
-                r_[j] = r_[j] + V((0, 0, -0.022 * gauss(a, 14) * smooth(-60, -84, la)))
-    bc.sheet(mb, rows, "Hair", RIG_HEAD, outward=lambda m: m - HEAD_C, keep=keep)
+                r_[j] = r_[j] + V((0, 0.004, -0.02)) * gauss(a, 14) * smooth(-60, -86, la)
+    bc.sheet(mb, rows, "beard", RIG_HEAD, outward=lambda m: m - HEAD_C)
 
 
 # ---------------------------------------------------------------- outfits (other powers)
@@ -1299,11 +1325,11 @@ def details_portrait(mb, role, body):
     nf = body.torso_n
     D = rad
     if f == "klingon":
-        collar(mb, body, "kl_leather", h=0.03, out=0.008, flare=0.012)
+        collar(mb, body, "kl_leather", h=0.022, out=0.008, flare=0.006)
         th = [D(100 + 340 * k / 40) for k in range(41)]
         nl = bc.neck_limb(body)
-        edge = [nl.pt(0.62, t, 0.042) + V((0, 0, 0.024)) for t in th]
-        edge2 = [nl.pt(0.62, t, 0.034) + V((0, 0, 0.026)) for t in th]
+        edge = [nl.pt(0.62, t, 0.0285) + V((0, 0, 0.0176)) for t in th]
+        edge2 = [nl.pt(0.62, t, 0.022) + V((0, 0, 0.0186)) for t in th]
         bc.sheet(mb, [edge, edge2], "kl_red", bc.T_CAND, outward=lambda m: V((0, 0, 1)))
         for sx, c0 in ((1, 0), (-1, 180)):
             for k in range(3):  # layered pauldron plates, top one first
@@ -1320,7 +1346,6 @@ def details_portrait(mb, role, body):
             z0 = 1.22 + 0.045 * k
             bc.surface_panel(mb, fn, nf, [z0, z0 + 0.02, z0 + 0.04], [D(62 + 56 * j / 10) for j in range(11)],
                              lambda z, t: 0.008 + 0.003 * math.sin(t) ** 4, "kl_metal" if k % 2 == 0 else "kl_leather", bc.T_CAND)
-        bc.ribbon(mb, fn, nf, lambda t: (1.48 - 0.4 * t, D(90)), 14, 0.008, 0.012, "kl_red", bc.T_CAND, depth=0.003)
     elif f == "romulan":
         collar(mb, body, "rom_trim", h=0.016, out=0.005)
         zs = [1.36 + (1.515 - 1.36) * i / 8 for i in range(9)]
@@ -1357,7 +1382,7 @@ def details_portrait(mb, role, body):
                 bc.ribbon(mb, fn, nf, lambda t, c0=c0, zr=zr: (zr, D(c0 - 55 + 110 * t)), 16, 0.006,
                           0.014 + 0.018 * smooth(1.44, 1.52, zr) + 0.004, "car_rib", bc.T_CAND, depth=0.003)
     elif f == "ferengi":
-        collar(mb, body, "fer_trim", h=0.05, out=0.012, flare=0.03, th0=120, th1=420)
+        collar(mb, body, "fer_trim", h=0.016, out=0.010, flare=0.03, th0=125, th1=415)
         bc.surface_panel(mb, fn, nf, [1.08 + 0.42 * i / 12 for i in range(13)], [D(80 + 20 * j / 4) for j in range(5)],
                          0.003, "fer_shirt", bc.T_CAND)
         for sx in (1, -1):  # lapels
@@ -1386,14 +1411,14 @@ SPECIES = {
     "vulcan": dict(ears="pointed", brow="upswept", nose=(0.92, 1.08)),
     "andorian": dict(ears="human", brow="natural", lip=(0.82, 0.72, 0.92)),
     "tellarite": dict(ears="human", brow="bushy", eye_r=0.0098, lids=(14, -24)),
-    "bajoran": dict(ears="human", brow="natural", ridges=(0.0125, 0.0080, 0.0035, -0.001)),
+    "bajoran": dict(ears="human", brow="natural", bridge=(0.0150, 0.0110, 0.0072, 0.0036)),
     "trill": dict(ears="human", brow="natural"),
     "betazoid": dict(ears="human", brow="natural"),
     "klingon": dict(ears="human", brow="bushy", nose=(1.35, 1.12), lids=(22, -28)),
     "romulan": dict(ears="pointed", brow="upswept", nose=(0.95, 1.05)),
     "cardassian": dict(ears="human", brow="thin", nose=(0.95, 1.0), lip=(0.78, 0.70, 0.72)),
     "ferengi": dict(ears="ferengi", brow="thin", nose=(1.25, 1.3), lids=(22, -26),
-                    ridges=(0.012, 0.007, 0.002, -0.003, -0.008, -0.013, -0.018)),
+                    ridges=(-0.002, -0.007, -0.012, -0.017), bridge=(0.017, 0.0125, 0.008, 0.0035)),
 }
 
 
@@ -1408,6 +1433,10 @@ def build_character(c, loc=V((0, 0, 0)), yaw=0.0, head_turn=0.0, cam=None, t_idl
     CUR["lip"] = S.get("lip", (0.80, 0.58, 0.58) if SK[c["skin"]][0] > 0.6 else (0.78, 0.66, 0.66))
     CUR["hair_gap"] = {"klingon": 0.04, "romulan": 0.045, "cardassian": 0.045, "ferengi": 0.07}.get(CUR["faction"], 0.022)
     fem = 1.0 if c["sex"] == "f" else 0.0
+    seed = zlib.crc32(c["id"].encode())
+    h = lambda k: bc.h32(seed, k)  # noqa: E731
+    CUR["fv"] = dict(width=0.97 + 0.06 * h(1), jaw=0.6 + 0.8 * h(2), chin=0.6 + 0.8 * h(3), lip=0.75 + 0.5 * h(4),
+                     cheek=0.6 + 0.8 * h(5), brow=0.7 + 0.6 * h(6), nose_w=0.88 + 0.26 * h(7), nose_p=0.85 + 0.3 * h(8))
     body = bc.Body(fem, c.get("heavy", 0.0), c.get("slim", 0.0))
     CUR["body"] = body
     bc._FACE_Y.clear()
@@ -1432,8 +1461,11 @@ def build_character(c, loc=V((0, 0, 0)), yaw=0.0, head_turn=0.0, cam=None, t_idl
         snout(hm, body)
     else:
         ws, ps = S.get("nose", (1.0, 1.0))
+        ws, ps = ws * CUR["fv"]["nose_w"], ps * CUR["fv"]["nose_p"] * (0.92 if c["sex"] == "f" else 1.0)
         nose(hm, body, ws, ps, ridges=S.get("ridges", ()), ridge_amp=0.0013 if sp == "bajoran" else 0.0011,
              top=0.017)
+    if S.get("bridge"):
+        bridge_ridges(hm, body, S["bridge"], 0.0085 if sp == "bajoran" else 0.011, 0.0011 if sp == "bajoran" else 0.0014)
     if sp != "ferengi":
         mouth_line(hm, body)
     eye_r = S.get("eye_r", 0.0118)
@@ -1443,7 +1475,7 @@ def build_character(c, loc=V((0, 0, 0)), yaw=0.0, head_turn=0.0, cam=None, t_idl
     if S["brow"]:
         brows(hm, body, S["brow"], 1.25 if c["sex"] == "m" else 0.95)
     ear_kind = S["ears"]
-    es = ears(hm, body, ear_kind, 1.0 if c["sex"] == "m" else 0.82)
+    es = ears(hm, body, ear_kind, (1.0 if c["sex"] == "m" else 0.82) if ear_kind != "ferengi" else (1.0 if c["sex"] == "m" else 0.86))
     xm = bc.MB()
     if sp == "bajoran":
         bajoran_earring(xm, es[1])
@@ -1714,10 +1746,18 @@ def lineup(cam, chars, extras):
     fl = bpy.data.objects.new("Floor", me)
     bpy.context.scene.collection.objects.link(fl)
     bd = plane("BackdropL", V((-1.2, -3.2, 2.6)), 14, 7, extras["bd_wide"], camp)
-    aim(cam, camp, V((0.0, 0.0, 0.95)), 50)
+    for o in extras["portrait_lights"]:
+        o.hide_render = True
+    ls = [light("LKey", "AREA", 1400, 3.0, (-3.2, 4.6, 4.2), (0, 0, 1.1), (1.0, 0.95, 0.88)),
+          light("LRim", "AREA", 900, 2.0, (3.4, -3.0, 3.4), (0, 0, 1.2), (0.82, 0.9, 1.0)),
+          light("LRim2", "AREA", 500, 2.0, (-3.6, -2.6, 3.0), (0, 0, 1.2), (0.9, 0.92, 1.0)),
+          light("LFill", "AREA", 200, 5.0, (4.0, 5.0, 2.0), (0, 0, 1.0), (0.88, 0.93, 1.0))]
+    aim(cam, camp, V((0.0, 0.0, 0.93)), 50)
     cam.data.dof.use_dof = False
     render(os.path.join(OUT, "lineup.jpg"), 1600, 900)
-    remove(objs_all + [fl, bd])
+    remove(objs_all + [fl, bd] + ls)
+    for o in extras["portrait_lights"]:
+        o.hide_render = False
 
 
 def look(seed, species, sex=None):
@@ -1782,11 +1822,12 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     cam = setup_scene()
     # lights: soft key from camera-left, rim from behind-right, weak fill
-    light("Key", "AREA", 80, 0.9, (-1.25, 0.95, 2.15), (0, 0, 1.64), (1.0, 0.95, 0.88))
-    light("Rim", "AREA", 90, 0.5, (0.9, -0.8, 1.95), (0, 0, 1.64), (0.82, 0.9, 1.0))
-    light("Rim2", "AREA", 40, 0.5, (-0.9, -0.85, 1.9), (0, 0, 1.62), (0.9, 0.92, 1.0))
-    light("Fill", "AREA", 9, 2.0, (1.3, 1.5, 1.4), (0, 0, 1.6), (0.88, 0.93, 1.0))
-    extras = {"bd": {f: backdrop_material("BD_" + f, backdrop_image(f)) for f in FACTION_COLOUR}}
+    pl = [light("Key", "AREA", 80, 0.9, (-1.25, 0.95, 2.15), (0, 0, 1.64), (1.0, 0.95, 0.88)),
+          light("Rim", "AREA", 90, 0.5, (0.9, -0.8, 1.95), (0, 0, 1.64), (0.82, 0.9, 1.0)),
+          light("Rim2", "AREA", 40, 0.5, (-0.9, -0.85, 1.9), (0, 0, 1.62), (0.9, 0.92, 1.0)),
+          light("Fill", "AREA", 9, 2.0, (1.3, 1.5, 1.4), (0, 0, 1.6), (0.88, 0.93, 1.0))]
+    extras = {"portrait_lights": pl}
+    extras["bd"] = {f: backdrop_material("BD_" + f, backdrop_image(f)) for f in FACTION_COLOUR}
     extras["bd_wide"] = backdrop_material("BD_wide", backdrop_image("federation", 1600, 800, side=1))
     cast = [c for c in CAST if (not ONLY_SPECIES or c["species"] in ONLY_SPECIES)
             and (not ONLY_SEX or c["sex"] == ONLY_SEX) and (not ONLY or c["id"] in ONLY)]
