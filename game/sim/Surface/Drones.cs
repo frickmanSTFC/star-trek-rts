@@ -160,8 +160,9 @@ public sealed partial class PlanetSurface
 
     private FixVec2 HomeOf(SurfaceUnit u, DroneFlight d) => PadOf(u, d) is { } pad ? DroneBayPos(pad, d.Bay) : d.Home;
 
-    /// <summary>Why this drone can't fly from <paramref name="from"/> to the tile, loiter and get home with its reserve
-    /// left (<paramref name="before"/> = ticks it still spends first, e.g. lifting off), or null.</summary>
+    /// <summary>Why this drone can't fly from <paramref name="from"/> to the tile and get home with its reserve left
+    /// (<paramref name="before"/> = ticks it still spends first, e.g. lifting off), or null. Loitering isn't counted: on a
+    /// long trip the battery cuts it short.</summary>
     private string? TripProblem(SurfaceUnit u, DroneFlight d, DroneDef def, FixVec2 from, int tile, int before)
     {
         if (!OnMap(tile)) return "off the map";
@@ -169,10 +170,9 @@ public sealed partial class PlanetSurface
         var target = CentreOf(tile);
         if (!CommsCoveredLine(u.Owner, from, target)) return "the way there leaves comms coverage";
         var step = FlightStep(u);
-        var ticks = (long)before + FlightTicks(from, target, step) + DroneTicks(def.LoiterSeconds)
-            + FlightTicks(target, HomeOf(u, d), step) + DroneTicks(def.LandSeconds);
+        var ticks = (long)before + FlightTicks(from, target, step) + FlightTicks(target, HomeOf(u, d), step) + DroneTicks(def.LandSeconds);
         var need = DrainPerTick(def) * Fix64.FromInt((int)System.Math.Min(ticks, int.MaxValue / 4)) + def.Reserve;
-        return need > d.Battery ? "too far: the battery can't get there, circle and get back" : null;
+        return need > d.Battery ? "too far: the battery can't get there and back" : null;
     }
 
     /// <summary>Enough charge to take off at all (reserve + the launch margin).</summary>

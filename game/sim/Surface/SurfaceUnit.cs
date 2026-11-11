@@ -454,7 +454,7 @@ public sealed class Satellite
             h.Add(f.Detail);
             h.Add(f.First);
         }
-        if (Kind != SatelliteKind.Survey) // relays only, so games without them hash as before
+        if (Kind != SatelliteKind.Survey || StationTile != -1) // relays only, so games without them hash as before
         {
             h.Add((int)Kind);
             h.Add(StationTile);

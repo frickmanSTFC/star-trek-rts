@@ -255,7 +255,7 @@ public class CommandFuzzTests
             if (!unitIds.Add(u.Id)) problems.Add($"unit id {u.Id} twice");
             if (u.Owner < 0 || u.Owner >= sim.Players.Count) problems.Add($"unit {u.Id} owner {u.Owner}");
             if (u.Tile < 0 || u.Tile >= grid.Count) { problems.Add($"unit {u.Id} off the map at {u.Tile}"); continue; }
-            if (!s.Map.Terrain(u.Tile).Passable) problems.Add($"unit {u.Id} on impassable {s.Map.Terrain(u.Tile).Id} tile {u.Tile}");
+            if (!s.Map.Terrain(u.Tile).Passable && !s.IsAerial(u)) problems.Add($"unit {u.Id} on impassable {s.Map.Terrain(u.Tile).Id} tile {u.Tile}");
             if (u.Integrity < Fix64.Zero || u.Integrity > Fix64.FromInt(100)) problems.Add($"unit {u.Id} integrity {u.Integrity}");
             if (u.Spares < 0) problems.Add($"unit {u.Id} spares {u.Spares}");
             if (u.Hopper < Fix64.Zero) problems.Add($"unit {u.Id} hopper {u.Hopper}");
