@@ -95,7 +95,7 @@ public partial class OrbitView
         _satAlive.Clear();
         foreach (var sat in _surface.Satellites)
         {
-            if (sat.Owner != _localPlayer) continue;
+            if (sat.Owner != _localPlayer || _relayIds.Contains(sat.Id)) continue; // relays: OrbitView.Relays.cs
             _satAlive.Add(sat.Id);
             if (!_sats.TryGetValue(sat.Id, out var v))
             {

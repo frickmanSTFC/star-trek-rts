@@ -878,6 +878,7 @@ public partial class OrbitView : Node3D
         UpdateBases();
         UpdateUnits();
         UpdateDeliveries(alpha);
+        UpdateRelays(alpha, delta); // OrbitView.Relays.cs (before the satellites: they skip the relays)
         UpdateSatellites(alpha, delta); // OrbitView.Satellites.cs
     }
 
