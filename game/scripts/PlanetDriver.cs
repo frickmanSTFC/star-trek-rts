@@ -239,6 +239,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         SetupCiv(); // civilization dossier, Standing chip hooks (PlanetDriver.Civ.cs)
         SetupMissions(); // tracker, comms card, mission log; a campaign turns missions on before tick 0 (PlanetDriver.Missions.cs)
         SetupSky(); // day/night, seasons and weather from Climate (PlanetDriver.Sky.cs); before EnterOrbit changes the environment
+        SetupGraphics(); // visual pass: Classic values captured, F7 compare, frame-time readout (PlanetDriver.Graphics.cs); before EnterOrbit
 
         // The test panel exists only in debug builds (editor runs); release exports never get it.
         if (OS.IsDebugBuild())
@@ -314,6 +315,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             _environment.SetGlowLevel(5, 0.6f);
             _environment.SetGlowLevel(6, 0.35f);
         }
+        ApplyGraphics(); // visual pass: orbit = grading + glow only (PlanetDriver.Graphics.cs)
         if (Me.Phase == LandingPhase.Landed)
         {
             var tile = _view.TileAt(_focus);
@@ -349,6 +351,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 _environment.SetGlowLevel(6, glow.Level6);
             }
         }
+        ApplyGraphics(); // visual pass: the surface's GI / fog / grading / shadows (PlanetDriver.Graphics.cs)
         _hud.Minimap.Visible = true;
         if (tile >= 0)
         {
@@ -1017,6 +1020,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _view.Heard = !_inOrbit; // vehicle sounds only on the surface (PlanetView.Sounds.cs)
         _view.Refresh(alpha);
         UpdateSky((float)delta); // PlanetDriver.Sky.cs: before the uplink, which hands the feed the outpost's sky
+        UpdateGraphics((float)delta); // visual pass: zoom-fitted GI / fog / shadows, F7 banner, frame time (PlanetDriver.Graphics.cs)
         UpdateUplink((float)delta);
         UpdateSatellites((float)delta); // after the feed's refresh: the photo camera holds the surface through it (PlanetDriver.Satellites.cs)
         if (!_inOrbit) _hud.Minimap.Refresh(_camera);
@@ -1195,6 +1199,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         // Typing in a test-panel field: no game hotkeys.
         if (@event is InputEventKey && GetViewport().GuiGetFocusOwner() is LineEdit) return;
         if (@event is InputEventMouseButton { Pressed: true }) GetViewport().GuiReleaseFocus(); // clicking the map ends typing
+        if (GraphicsInput(@event)) return; // F7: Classic ↔ Enhanced compare, surface and orbit (PlanetDriver.Graphics.cs)
         if (AchievementInput(@event)) return; // F3, and Esc / other keys while the achievements screen is open
         if (InventoryInput(@event)) return; // I / Esc close the inventory; other keys wait (PlanetDriver.Parts.cs)
         if (CivInput(@event)) return; // C toggles the civilization dossier; Esc closes it (PlanetDriver.Civ.cs)

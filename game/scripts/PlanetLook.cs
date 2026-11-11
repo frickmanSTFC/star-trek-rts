@@ -69,6 +69,45 @@ public sealed class PlanetLook
 
     private Dictionary<string, string> Roles { get; init; } = new();
 
+    // ---- Colour grade (visual pass, only while GraphicsQuality.Grading is on; Classic never reads these).
+    // Applied after tone mapping (Environment adjustment): a per-channel curve through shadow lift → mid → white tint
+    // (a 1D colour-correction texture), then saturation and contrast; the haze colour is tinted on the surface.
+
+    /// <summary>What black maps to per channel (sRGB 0..1): a small cool lift keeps night shadows readable.</summary>
+    public Color GradeShadow { get; private init; } = new(0.014f, 0.018f, 0.034f);
+
+    /// <summary>What mid grey (0.5) maps to per channel: the midtone balance.</summary>
+    public Color GradeMid { get; private init; } = new(0.5f, 0.5f, 0.505f);
+
+    /// <summary>What white maps to per channel: the highlights' colour temperature (warm sun on class M).</summary>
+    public Color GradeWhite { get; private init; } = new(1f, 0.985f, 0.95f);
+
+    /// <summary>Environment adjustment saturation and contrast (1 = unchanged).</summary>
+    public float GradeSaturation { get; private init; } = 1.12f;
+    public float GradeContrast { get; private init; } = 1.05f;
+
+    /// <summary>Multiplies the surface haze colour (fog, sky-dome haze) and tints the volumetric fog's albedo.</summary>
+    public Color GradeFogTint { get; private init; } = new(1f, 1f, 1f);
+
+    private Texture2D? _gradeTexture;
+
+    /// <summary>The 1D colour-correction curve built from GradeShadow / GradeMid / GradeWhite (made on first use, on
+    /// the main thread).</summary>
+    public Texture2D GradeTexture => _gradeTexture ??= MakeGrade(GradeShadow, GradeMid, GradeWhite);
+
+    /// <summary>A per-channel curve as a GradientTexture1D: input t → the gradient's colour at t, channel by channel.</summary>
+    public static Texture2D MakeGrade(Color shadow, Color mid, Color white)
+    {
+        var gradient = new Gradient();
+        gradient.SetOffset(0, 0f);
+        gradient.SetColor(0, new Color(shadow, 1f));
+        gradient.SetOffset(1, 1f);
+        gradient.SetColor(1, new Color(white, 1f));
+        gradient.AddPoint(0.5f, new Color(mid, 1f));
+        return new GradientTexture1D { Gradient = gradient, Width = 256 };
+    }
+
+
     /// <summary>The class-M terrain a terrain id plays on this world (plains, forest, desert, hills, mountains, ice,
     /// ocean, shallows), for scatter, spray and the orbit painter. Unknown ids map to themselves.</summary>
     public string Role(string terrainId) => Roles.TryGetValue(terrainId, out var r) ? r : terrainId;
@@ -145,6 +184,14 @@ public sealed class PlanetLook
         DustDevils = true,
         Co2Haze = true,
         ScatterSet = "class_l",
+        // Cold, marginal: ochre-warm highlights under a weak sun, blue-grey shadows, dusty (less saturated), a little
+        // more contrast; the haze leans ochre-grey.
+        GradeShadow = new(0.02f, 0.022f, 0.032f),
+        GradeMid = new(0.505f, 0.494f, 0.475f),
+        GradeWhite = new(1f, 0.962f, 0.9f),
+        GradeSaturation = 0.97f,
+        GradeContrast = 1.09f,
+        GradeFogTint = new(1.06f, 0.98f, 0.9f),
     };
 }
 
