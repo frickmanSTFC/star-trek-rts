@@ -63,3 +63,31 @@ Godot side (`scripts/PlanetView.Jack.cs`, `scripts/JackModel.cs`): loads the glb
 same names if missing; walk = legs/arms swing, rise/sink through green mist, throw = ArmUpperR swing + Pumpkin shown
 then flies on an arc, bats = a swarm circling out from Jack, bow at the end. HUD: a red INCOMING ATTACK banner with
 the countdown, event-feed lines, an alarm sound.
+
+**Built (2026-11-11, `blender/build_jack.py --game`; previews `blender/previews/jack/jack-{hero,game,glb,props}.png`,
+sheet `jack-sheet.png`).** jack.glb 0.52 MB, 17 nodes, ~19.2k tris (Head 8.0k, Pumpkin 3.5k, each Hand 1.5k, Torso
+1.4k); materials Bone, Suit (a 64×4 pinstripe PNG repeated by the UVs, glTF REPEAT wrap), Black, Pumpkin,
+PumpkinGlow, Stalk. pumpkin.glb 0.09 MB, one node `Pumpkin`, 1.58 across, 1.44 tall (stalk included; Godot y
+-0.57..0.87). bat.glb 0.04 MB, `Body` + `WingL`/`WingR`, wingspan 1.40; materials Black, BatWing, BatEye (red,
+emissive 1). Turns keep their sign between Blender and Godot: +a about X swings a hanging limb forward
+(Basis(Vector3.Right, +a)); a wing flap of +a about Blender Y is Basis(Vector3.Forward, +a) in Godot.
+
+Pivot positions at rest, Godot world coordinates (node origin = joint; local position = this minus the parent's):
+
+| node | Godot (x, y, z) | parent |
+|---|---|---|
+| Jack | (0, 0, 0) | — |
+| Hips | (0, 7.3, 0) | Jack |
+| Torso | (0, 8.05, 0) | Hips |
+| Head | (0, 12.25, 0) | Torso (skull top at y 16.0, skull centre ~(0, 14.28, -0.04), ~3.0 wide) |
+| ArmUpperL / R | (∓1.18, 11.42, 0.02) | Torso |
+| ArmLowerL / R | (∓1.844, 8.546, 0.02) | ArmUpper |
+| HandL / R | (∓2.485, 5.779, -0.222) | ArmLower (fingers hang ~1.5 below the wrist) |
+| Pumpkin | (1.69, 5.01, -0.37) | HandR (centre; on the palm side, resting on the curled fingers) |
+| LegUpperL / R | (∓0.46, 7.3, 0) | Hips |
+| LegLowerL / R | (∓0.46, 3.95, 0) | LegUpper |
+| FootL / R | (∓0.46, 0.62, 0) | LegLower (shoe toe tip at z -2.02, heel z 0.44, sole y 0) |
+
+(L = Jack's left = -x.) bat.glb: Body (0, 0, 0); WingL (-0.07, 0.01, -0.04), WingR (0.07, 0.01, -0.04).
+Stand-in sizes: torso ~2.6 across the shoulders tapering to ~1.1 at the waist; limbs ~0.4 thick (thigh 0.6);
+coat tails hang behind the hips down to y ~4.2.
