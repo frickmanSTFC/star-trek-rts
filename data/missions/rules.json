@@ -1,0 +1,12 @@
+{
+  "rules": { "max_side_active": 2, "offer_seconds": 90, "message_log": 60, "rich_deposit": 2400,
+    "site_kinds": ["probe_wreck", "signal_source", "photo_point", "survey_marker"] },
+  "givers": [
+    { "id": "control", "name": "Flight Director Moreau", "role": "Earth Mission Control", "initials": "FM" },
+    { "id": "ops", "name": "Chief Okafor", "role": "Outpost operations", "initials": "CO" },
+    { "id": "science", "name": "Dr. Reyes", "role": "Science", "initials": "DR" }
+  ],
+  "chains": [
+    { "id": "first_light", "name": "First Light", "era": "dawn_of_warp" }
+  ]
+}
