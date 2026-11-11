@@ -120,8 +120,10 @@ public partial class PlanetView
         var landing = false;
         Vector3? nearestFlying = null;
         var nearestDist = float.MaxValue;
-        foreach (var d in _surface.DronesOf(s.Id))
+        var drones = _surface.DronesOf(s.Id);
+        for (var i = 0; i < drones.Count; i++)
         {
+            var d = drones[i];
             var info = _surface.DroneOf(d);
             if (info.Bay < 0 || info.Bay >= p.State.Length) continue;
             p.State[info.Bay] = info.State;

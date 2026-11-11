@@ -246,6 +246,7 @@ public partial class PlanetView : Node3D
         UpdateDronePads(delta); // PlanetView.DronePad.cs: bay lights, chargers, door, dish by the pad's drones
         UpdateScatter();
         UpdateRuins(delta); // PlanetView.Ruins.cs: ruin props on seen ruin tiles (after UpdateScatter: their scatter holes)
+        UpdateMissions(delta); // PlanetView.Missions.cs: mission site props (scatter cut after the ruins') and markers
         UpdateVeyra(delta); // PlanetView.Veyra.cs: class L dust devils and CO₂ haze (nothing on class M)
         UpdateDomes(delta); // PlanetView.Domes.cs: glass domes and containment fields on a Domes world
         _time += delta;
@@ -253,6 +254,7 @@ public partial class PlanetView : Node3D
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
         UpdateRovers(alpha, delta);
         UpdateScoutDrones(alpha, delta); // PlanetView.Drones.cs: scout drones flying, docked, landing, lost; target rings, rotor buzz
+        UpdateComms(delta); // PlanetView.Comms.cs: comms coverage overlay (toggle / armed drone order)
         UpdateDomeTransits(alpha, delta); // PlanetView.DomeTransit.cs: vehicle fields cycling through a dome's shell (after the rovers are posed)
         UpdatePods(alpha);
     }
