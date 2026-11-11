@@ -9,7 +9,7 @@ public enum WindowChoice { Windowed, Fullscreen, Exclusive }
 /// Player settings (docs/menu-contract.md): static, kept in user://settings.cfg. Read lazily on first use (so a direct F6
 /// run of Planet.tscn gets them too); <see cref="Save"/> writes them, <see cref="Apply"/> pushes the window and audio ones
 /// to the engine (the others are read where they act: PlanetDriver's camera, HudKit.ScaleFor, the tutorial).
-/// Only settings that do something today are here.
+/// Only settings that do something today are here. [graphics] holds GraphicsQuality's (the visual pass).
 /// </summary>
 public static class GameSettings
 {
@@ -89,6 +89,38 @@ public static class GameSettings
         _uiScale = Mathf.Clamp((float)cfg.GetValue("display", "ui_scale", _uiScale).AsDouble(), UiScaleMin, UiScaleMax);
         _cameraSpeed = Mathf.Clamp((float)cfg.GetValue("controls", "camera_speed", _cameraSpeed).AsDouble(), CameraSpeedMin, CameraSpeedMax);
         _edgeScroll = cfg.GetValue("controls", "edge_scroll", _edgeScroll).AsBool();
+        LoadGraphics(cfg);
+    }
+
+    /// <summary>[graphics] (visual pass, GraphicsQuality): preset 0 Classic / 1 Enhanced / 2 Custom, the Custom toggles
+    /// and the frame-time readout. Missing keys keep the defaults (Enhanced, all on).</summary>
+    private static void LoadGraphics(ConfigFile cfg)
+    {
+        var preset = cfg.GetValue("graphics", "preset", (int)GraphicsQuality.Preset).AsInt32();
+        GraphicsQuality.Preset = preset is >= 0 and <= (int)GraphicsPreset.Custom ? (GraphicsPreset)preset : GraphicsPreset.Enhanced;
+        GraphicsQuality.GiSetting = cfg.GetValue("graphics", "gi", GraphicsQuality.GiSetting).AsBool();
+        GraphicsQuality.FogSetting = cfg.GetValue("graphics", "volumetric_fog", GraphicsQuality.FogSetting).AsBool();
+        GraphicsQuality.GradingSetting = cfg.GetValue("graphics", "grading", GraphicsQuality.GradingSetting).AsBool();
+        GraphicsQuality.ShadowsSetting = cfg.GetValue("graphics", "shadows", GraphicsQuality.ShadowsSetting).AsBool();
+        GraphicsQuality.TerrainSetting = cfg.GetValue("graphics", "terrain", GraphicsQuality.TerrainSetting).AsBool();
+        GraphicsQuality.DecalsSetting = cfg.GetValue("graphics", "decals", GraphicsQuality.DecalsSetting).AsBool();
+        GraphicsQuality.EffectsSetting = cfg.GetValue("graphics", "effects", GraphicsQuality.EffectsSetting).AsBool();
+        GraphicsQuality.AntiAliasSetting = cfg.GetValue("graphics", "anti_alias", GraphicsQuality.AntiAliasSetting).AsBool();
+        GraphicsQuality.ShowFps = cfg.GetValue("graphics", "show_frame_time", GraphicsQuality.ShowFps).AsBool();
+    }
+
+    private static void SaveGraphics(ConfigFile cfg)
+    {
+        cfg.SetValue("graphics", "preset", (int)GraphicsQuality.Preset);
+        cfg.SetValue("graphics", "gi", GraphicsQuality.GiSetting);
+        cfg.SetValue("graphics", "volumetric_fog", GraphicsQuality.FogSetting);
+        cfg.SetValue("graphics", "grading", GraphicsQuality.GradingSetting);
+        cfg.SetValue("graphics", "shadows", GraphicsQuality.ShadowsSetting);
+        cfg.SetValue("graphics", "terrain", GraphicsQuality.TerrainSetting);
+        cfg.SetValue("graphics", "decals", GraphicsQuality.DecalsSetting);
+        cfg.SetValue("graphics", "effects", GraphicsQuality.EffectsSetting);
+        cfg.SetValue("graphics", "anti_alias", GraphicsQuality.AntiAliasSetting);
+        cfg.SetValue("graphics", "show_frame_time", GraphicsQuality.ShowFps);
     }
 
     /// <summary>Every setting back to its default (not saved: call <see cref="Save"/>).</summary>
@@ -105,6 +137,7 @@ public static class GameSettings
         _uiScale = 1f;
         _cameraSpeed = 1f;
         _edgeScroll = false;
+        GraphicsQuality.ResetDefaults();
     }
 
     public static void Save()
@@ -121,6 +154,7 @@ public static class GameSettings
         cfg.SetValue("display", "ui_scale", _uiScale);
         cfg.SetValue("controls", "camera_speed", _cameraSpeed);
         cfg.SetValue("controls", "edge_scroll", _edgeScroll);
+        SaveGraphics(cfg);
         var err = cfg.Save(File);
         if (err != Error.Ok) GD.PushWarning($"Settings: couldn't save {File} ({err}).");
     }

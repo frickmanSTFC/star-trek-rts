@@ -373,6 +373,11 @@ public partial class PlanetDriver
         var thick = Mathf.Clamp(Mathf.Max(Mathf.Max(_look.Fog, _look.Rain * 0.5f), Mathf.Max(_look.Snow * 0.6f, _look.Dust)), 0f, 1f) * (1f - 0.5f * wide);
         // Close up the haze takes on the sky (darkened: it fills the near air too), so far ground fades into the horizon.
         var fogColour = _baseFogColour.Lerp(horizon * 0.65f, tilt * 0.75f).Lerp(weatherTint, thick) + new Color(0.5f, 0.55f, 0.7f) * flash * 0.3f;
+        // Visual pass (PlanetDriver.Graphics.cs): Enhanced = the world class's haze tint (PlanetLook grade); Classic as above.
+        var grading = GraphicsQuality.Grading;
+        if (grading) fogColour *= _view.Look.GradeFogTint;
+        _gfxNight = night;
+        _gfxSunElevation = elevation;
 
         if (_environment != null)
         {
@@ -381,11 +386,29 @@ public partial class PlanetDriver
             _environment.AmbientLightColor = NightAmbient.Lerp(_baseAmbientColour, a).Lerp(grey, 0.3f * _cloudEased);
             // MoveCamera set this frame's haze for the zoom; thicken it for the weather (less so from high above).
             _environment.FogDensity *= 1f + (5f * _look.Fog + 3f * _look.Dust + 0.8f * _look.Rain + 1.2f * _look.Snow) * (1f - 0.6f * wide);
+            if (_volFogOn)
+            {
+                // Enhanced fog: part of the haze becomes volumetric (lit by the sun, moon, lamps and headlights), the
+                // exponential/height fog keeps the far look a little thinner. Classic: neither line runs.
+                _gfxVolDensity = _environment.FogDensity * 0.3f + 0.004f * _look.Fog + 0.002f * _look.Dust;
+                _environment.FogDensity *= 0.85f;
+            }
             _environment.FogLightColor = fogColour;
             _environment.FogHeight = _view.GroundAt(site) + 22f;
             _environment.FogHeightDensity = 0.03f * _look.Fog + 0.015f * _look.Dust;
-            _environment.GlowHdrThreshold = Mathf.Lerp(_baseGlowThreshold, 0.7f, night);
-            _environment.GlowIntensity = Mathf.Lerp(_baseGlowIntensity, _baseGlowIntensity * 1.3f, night);
+            if (grading)
+            {
+                // Enhanced: nothing lit by daylight blooms (threshold above 1), lamps still do; night exposure lifted
+                // (owner 2026-11-10: nights too dark) on top of the same ambient.
+                _environment.GlowHdrThreshold = Mathf.Lerp(1.08f, 0.72f, night);
+                _environment.GlowIntensity = Mathf.Lerp(0.72f, 0.95f, night);
+                _environment.TonemapExposure = Mathf.Lerp(1.05f, 1.22f, night);
+            }
+            else
+            {
+                _environment.GlowHdrThreshold = Mathf.Lerp(_baseGlowThreshold, 0.7f, night);
+                _environment.GlowIntensity = Mathf.Lerp(_baseGlowIntensity, _baseGlowIntensity * 1.3f, night);
+            }
         }
 
         // Sky dome around the camera (only the part above the horizon is drawn).

@@ -581,6 +581,7 @@ public partial class PlanetHud : CanvasLayer
                 ("F9", "test panel (dev builds): edit anything for testing"), ("Ctrl+Z", "undo the last test-panel edit"), ("Space", "pause / resume while the test panel is open"),
                 ("F9 › SKY", "force time of day, season, weather and wind (look only)"),
                 ("F3", "achievements, and the HANGAR for the cosmetics they unlock"),
+                ("F7", "graphics compare: Classic ↔ your settings, with the frame time (Settings › Graphics)"),
                 ("C", "civilization dossier: level ladder, awareness, study, Starfleet Standing (Esc closes)"),
                 ("Hidden post", "orbiting a native world: HIDDEN POST on the strip or its card studies them ×4, may be found"),
                 ("Standing (top bar)", "Starfleet Standing (Prime Directive eras); hover for the ladder, click for the dossier"),

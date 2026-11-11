@@ -42,6 +42,83 @@ public partial class SettingsPanel : PanelContainer
         title.AddChild(note);
         _box.AddChild(title);
 
+        // Two pages: GENERAL (game, display, controls, audio) and GRAPHICS (the visual pass), so the card stays one
+        // screen tall at 1280×720.
+        var tabs = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        tabs.AddThemeConstantOverride("separation", Mathf.RoundToInt(4 * s));
+        var tabGroup = new ButtonGroup();
+        foreach (var (text, page) in new[] { ("GENERAL", 0), ("GRAPHICS", 1) })
+        {
+            var b = Tile(text, _page == page);
+            b.ButtonGroup = tabGroup;
+            b.CustomMinimumSize = new Vector2(120 * s, 30 * s);
+            var pick = page;
+            b.Toggled += on =>
+            {
+                if (!on || _page == pick) return;
+                _page = pick;
+                Callable.From(Refill).CallDeferred();
+            };
+            tabs.AddChild(b);
+        }
+        _box.AddChild(tabs);
+
+        if (_page == 1) FillGraphics();
+        else FillGeneral();
+
+        _box.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6 * s), MouseFilter = MouseFilterEnum.Ignore });
+        var bar = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        bar.AddThemeConstantOverride("separation", Mathf.RoundToInt(10 * s));
+        var reset = HudKit.ActionButton("RESET DEFAULTS", false, s);
+        reset.CustomMinimumSize = new Vector2(170 * s, 36 * s);
+        reset.Pressed += () =>
+        {
+            GameSettings.ResetDefaults();
+            Changed();
+            GraphicsQuality.NotifyChanged();
+            Callable.From(Refill).CallDeferred(); // not inside the button's own signal: Refill frees it
+        };
+        bar.AddChild(reset);
+        bar.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore });
+        var done = HudKit.ActionButton(_inGame ? "BACK" : "DONE", true, s);
+        done.CustomMinimumSize = new Vector2(140 * s, 36 * s);
+        done.Pressed += () => Done?.Invoke();
+        bar.AddChild(done);
+        _box.AddChild(bar);
+    }
+
+    /// <summary>The page shown (0 general, 1 graphics); kept while the game runs so the card reopens where it was.</summary>
+    private static int _page;
+
+    /// <summary>GRAPHICS: the preset, one toggle per feature (the preset's values while Classic / Enhanced; touching one
+    /// makes the mix Custom), the frame-time readout. Every change applies at once (GraphicsQuality.Changed) and is saved.</summary>
+    private void FillGraphics()
+    {
+        Section("GRAPHICS");
+        Choice("Preset", new[] { ("CLASSIC", GraphicsPreset.Classic), ("ENHANCED", GraphicsPreset.Enhanced), ("CUSTOM", GraphicsPreset.Custom) },
+            GraphicsQuality.Preset, v => GraphicsQuality.SetPreset(v),
+            "Classic: the look before the visual pass · Enhanced: everything on · Custom: your own mix", graphics: true);
+        for (var i = 0; i < GraphicsQuality.Features.Length; i++)
+        {
+            var index = i;
+            var (name, hint, _, _) = GraphicsQuality.Features[i];
+            Toggle(name, hint, GraphicsQuality.FeatureShown(i), v => GraphicsQuality.SetFeature(index, v), graphics: true);
+        }
+        Toggle("Show frame time", "FPS and frame / GPU milliseconds top-left (always shown while F7 compares)", GraphicsQuality.ShowFps,
+            v => GraphicsQuality.ShowFps = v);
+        var note = GraphicsQuality.ForwardPlus
+            ? "In the game F7 flips between Classic and these settings, with the frame time. Turn VSync off to see the real cost."
+            : "This renderer has no global illumination, volumetric fog or FSR 2 (Forward+ only): those switches do nothing here.";
+        if (_inGame && GraphicsQuality.CompareClassic) note = "F7 compare is on: the game shows Classic until F7 is pressed again. " + note;
+        var n = HudKit.Label(note, 12 * _s, HudKit.Dim);
+        n.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        n.CustomMinimumSize = new Vector2(400 * _s, 0);
+        _box.AddChild(n);
+    }
+
+    private void FillGeneral()
+    {
+        var s = _s;
         Section("GAME");
         Toggle("Tutorial hints", "Guided cards in a campaign start and on the star-system picker", GameSettings.TutorialHints,
             v => GameSettings.TutorialHints = v);
@@ -85,25 +162,6 @@ public partial class SettingsPanel : PanelContainer
                 GameSettings.AmbienceVolume = v;
                 GameSettings.ApplyAudio();
             }, v => $"{v * 100f:0}%", () => Sfx.Preview("ambience/wind_gust_b", Sfx.AmbienceBus));
-
-        _box.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6 * s), MouseFilter = MouseFilterEnum.Ignore });
-        var bar = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-        bar.AddThemeConstantOverride("separation", Mathf.RoundToInt(10 * s));
-        var reset = HudKit.ActionButton("RESET DEFAULTS", false, s);
-        reset.CustomMinimumSize = new Vector2(170 * s, 36 * s);
-        reset.Pressed += () =>
-        {
-            GameSettings.ResetDefaults();
-            Changed();
-            Callable.From(Refill).CallDeferred(); // not inside the button's own signal: Refill frees it
-        };
-        bar.AddChild(reset);
-        bar.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore });
-        var done = HudKit.ActionButton(_inGame ? "BACK" : "DONE", true, s);
-        done.CustomMinimumSize = new Vector2(140 * s, 36 * s);
-        done.Pressed += () => Done?.Invoke();
-        bar.AddChild(done);
-        _box.AddChild(bar);
     }
 
     private void Refill()
@@ -153,7 +211,16 @@ public partial class SettingsPanel : PanelContainer
         return b;
     }
 
-    private void Toggle(string name, string hint, bool value, System.Action<bool> set)
+    /// <summary>A graphics switch changed: save, tell the listeners (environment, terrain, decals), and redraw the page
+    /// (the preset row and the other toggles follow), not inside the button's own signal.</summary>
+    private void GraphicsChanged()
+    {
+        Changed();
+        GraphicsQuality.NotifyChanged();
+        Callable.From(Refill).CallDeferred();
+    }
+
+    private void Toggle(string name, string hint, bool value, System.Action<bool> set, bool graphics = false)
     {
         var row = Row(name, hint);
         var b = Tile(value ? "ON" : "OFF", value);
@@ -161,12 +228,13 @@ public partial class SettingsPanel : PanelContainer
         {
             b.Text = on ? "ON" : "OFF";
             set(on);
-            Changed();
+            if (graphics) GraphicsChanged();
+            else Changed();
         };
         row.AddChild(b);
     }
 
-    private void Choice<T>(string name, (string Text, T Value)[] options, T value, System.Action<T> set, string hint)
+    private void Choice<T>(string name, (string Text, T Value)[] options, T value, System.Action<T> set, string hint, bool graphics = false)
     {
         var row = Row(name, hint);
         var group = new ButtonGroup();
@@ -181,7 +249,8 @@ public partial class SettingsPanel : PanelContainer
             {
                 if (!on) return;
                 set(pick);
-                Changed();
+                if (graphics) GraphicsChanged();
+                else Changed();
             };
             tiles.AddChild(b);
         }

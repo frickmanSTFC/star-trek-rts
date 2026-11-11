@@ -45,7 +45,10 @@ public partial class MainMenu : Node3D
         GameSettings.Load();
         GameSettings.Apply();
         GetTree().Paused = false; // the pause card's MAIN MENU unpauses first; this is a second guard
+        GraphicsQuality.CompareClassic = false; // F7's compare is the game's; the menu shows the saved settings
         BuildBackdrop();
+        GraphicsQuality.Changed += ApplyMenuGraphics; // the settings page's GRAPHICS switches act at once here too
+        ApplyMenuGraphics();
 
         var layer = new CanvasLayer { Name = "MenuLayer", Layer = 1 };
         AddChild(layer);
@@ -78,6 +81,47 @@ public partial class MainMenu : Node3D
         }
         if (_page == Page.System) UpdatePicker();
     }
+
+    public override void _ExitTree() => GraphicsQuality.Changed -= ApplyMenuGraphics;
+
+    private Godot.Environment _menuEnv = null!;
+
+    /// <summary>The backdrop's environment follows GraphicsQuality.Grading (Classic = the Filmic set-up it always had;
+    /// Enhanced = AgX, a little saturation and contrast, softer bloom, capped glow) and the window's anti-aliasing.</summary>
+    private void ApplyMenuGraphics()
+    {
+        if (!IsInstanceValid(this) || _menuEnv == null) return;
+        GraphicsQuality.ApplyViewport(GetViewport());
+        var env = _menuEnv;
+        if (GraphicsQuality.Grading)
+        {
+            env.TonemapMode = Godot.Environment.ToneMapper.Agx;
+            env.TonemapAgxWhite = 6f;
+            env.TonemapAgxContrast = 1.2f;
+            env.TonemapExposure = 1.08f;
+            env.AdjustmentEnabled = true;
+            env.AdjustmentContrast = 1.05f;
+            env.AdjustmentSaturation = 1.1f;
+            env.AdjustmentColorCorrection = PlanetLook.ClassM.GradeTexture;
+            env.GlowBloom = 0.025f;
+            env.GlowHdrLuminanceCap = 10f;
+        }
+        else
+        {
+            env.TonemapMode = Godot.Environment.ToneMapper.Filmic;
+            env.TonemapExposure = _classicMenu.Exposure;
+            env.TonemapAgxWhite = _classicMenu.AgxWhite;
+            env.TonemapAgxContrast = _classicMenu.AgxContrast;
+            env.AdjustmentEnabled = false;
+            env.AdjustmentContrast = 1f;
+            env.AdjustmentSaturation = 1f;
+            env.AdjustmentColorCorrection = null;
+            env.GlowBloom = 0.05f;
+            env.GlowHdrLuminanceCap = _classicMenu.LumCap;
+        }
+    }
+
+    private (float Exposure, float AgxWhite, float AgxContrast, float LumCap) _classicMenu;
 
     public override void _UnhandledInput(InputEvent @event)
     {
@@ -322,6 +366,8 @@ public partial class MainMenu : Node3D
             GlowBloom = 0.05f,
         };
         AddChild(new WorldEnvironment { Name = "WorldEnvironment", Environment = env });
+        _menuEnv = env;
+        _classicMenu = (env.TonemapExposure, env.TonemapAgxWhite, env.TonemapAgxContrast, env.GlowHdrLuminanceCap);
 
         var camera = new Camera3D { Name = "Camera3D", Fov = 45f, Far = 2000f, Current = true };
         AddChild(camera);
