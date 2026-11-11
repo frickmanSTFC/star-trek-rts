@@ -18,7 +18,7 @@ namespace FinalFrontier;
 /// landing circles' centres (+Y up), Charger0/1 arm pivots (rest = swung over the bay; the view swings them away about
 /// local Y), Door (roll door pivot at the top of the opening: scale Y 1 shut .. 0.08 open), Dish (on the mast; turns
 /// about local Y), Beacon, PadLight0/1 (each bay's ring lights, separate meshes, own materials), material "Status"
-/// (the ops board), "ChargeGlow" (charger heads), Build0..N, SignFront, AddOnSpot0..4, RoofSpot0..1, Owner bands.
+/// (the ops board), ChargeLight0/1 under Charger0/1 (material "ChargeLight", the charger heads), Build0..N, SignFront, AddOnSpot0..4, RoofSpot0..1, Owner bands.
 ///
 /// Relay satellite (models/orbit/relay_satellite_prewarp.glb for Dawn of Warp, relay_satellite.glb later): orbit view
 /// axes like the survey satellite (-Z = along the track, +Y = zenith, -Y = nadir): big parabolic Dish facing nadir,
@@ -37,7 +37,7 @@ public static partial class BuildingModels
     public const string MissionPropsPath = "res://models/missions/mission_props.glb";
 
     /// <summary>The Drone Pad's bays in its own frame (the stand-in's; the glb's Bay0/Bay1 empties win).</summary>
-    public static readonly Vector3[] DronePadBays = { new(-2.9f, 0.32f, 1.2f), new(2.9f, 0.32f, 1.2f) };
+    public static readonly Vector3[] DronePadBays = { new(-2.75f, 0.55f, 1.3f), new(2.75f, 0.55f, 1.3f) }; // = drone_pad.glb Bay0/Bay1
 
     // ---------------------------------------------------------------- scout drone
 
@@ -178,17 +178,19 @@ public static partial class BuildingModels
         Marker(b1, "SignFront", new Vector3(0.4f, 2.62f, -2.46f), 0f, 2.4f, 0.26f);
         Spot(b1, "RoofSpot0", new Vector3(-1.4f, 3.02f, -3.7f), 0f);
 
-        // Build2 the chargers (rest = swung over the bay)
+        // Build2 the chargers, as in the glb: pivot outboard of the bay at arm height, rest = arm pointing back (-Z);
+        // RotateY(-90°) for Charger0, +90° for Charger1 swings the head (ChargeLight{k}) over the drone
         var b2 = Group(n, "Build2");
         for (var k = 0; k < 2; k++)
         {
             var side = k == 0 ? -1f : 1f;
-            var pivot = Group(b2, $"Charger{k}", DronePadBays[k] + new Vector3(side * 2.6f, 0f, 0f));
-            Shape(pivot, new CylinderMesh { TopRadius = 0.12f, BottomRadius = 0.16f, Height = 1.6f, RadialSegments = 10 }, new Vector3(0, 0.8f, 0), steel);
-            Shape(pivot, new BoxMesh { Size = new Vector3(2.3f, 0.14f, 0.18f) }, new Vector3(-side * 1.15f, 1.55f, 0), hazard);
-            Shape(pivot, new BoxMesh { Size = new Vector3(0.3f, 0.3f, 0.3f) }, new Vector3(-side * 2.3f, 1.45f, 0), trim);
-            Shape(pivot, new CylinderMesh { TopRadius = 0.06f, BottomRadius = 0.08f, Height = 0.18f, RadialSegments = 8 }, new Vector3(-side * 2.3f, 1.22f, 0),
-                Named(Glow(new Color(0.4f, 0.8f, 1f), 0.3f), "ChargeGlow"));
+            Shape(b2, new CylinderMesh { TopRadius = 0.12f, BottomRadius = 0.16f, Height = 2.1f, RadialSegments = 10 },
+                new Vector3(DronePadBays[k].X + side * 2.1f, 1.05f, DronePadBays[k].Z), steel);
+            var pivot = Group(b2, $"Charger{k}", new Vector3(DronePadBays[k].X + side * 2.1f, 2.05f, DronePadBays[k].Z));
+            Shape(pivot, new BoxMesh { Size = new Vector3(0.18f, 0.14f, 2.3f) }, new Vector3(0, 0f, -1.05f), hazard);
+            Shape(pivot, new BoxMesh { Size = new Vector3(0.3f, 0.3f, 0.3f) }, new Vector3(0, -0.15f, -2.1f), trim);
+            Shape(pivot, new CylinderMesh { TopRadius = 0.06f, BottomRadius = 0.08f, Height = 0.18f, RadialSegments = 8 }, new Vector3(0, -0.43f, -2.1f),
+                Named(Glow(new Color(0.4f, 0.8f, 1f), 0.3f), "ChargeLight")).Name = $"ChargeLight{k}";
         }
 
         // Build3 the mast: dish and beacon

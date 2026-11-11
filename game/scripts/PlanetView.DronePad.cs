@@ -9,7 +9,7 @@ namespace FinalFrontier;
 /// (PlanetSurface.DronesOf / DroneOf), after UpdateExcavations. Per bay (Bay0..): the ring lights (PadLight{k}) are dim
 /// white when empty, amber breathing while the docked drone charges, steady green once it is full, a fast blue blink
 /// while one launches or lands there, dim cyan while its drone is out, slow red when it was lost; the charger arm
-/// (Charger{k}) swings over a docked drone (its head "ChargeGlow" lit while charging) and away otherwise. The roll Door
+/// (Charger{k}) swings over a docked drone (its head ChargeLight{k}, material "ChargeLight", lit while charging) and away otherwise. The roll Door
 /// opens for 3 s when a drone is loaded from stock (the docked count goes up) and while one lands. The Status board:
 /// green all charged, amber charging, cyan a drone out, red one lost, flickering when the pad is broken. The Beacon
 /// blinks every 1.5 s, twice as fast while a drone is out; the Dish turns to follow the nearest of the pad's flying
@@ -94,7 +94,7 @@ public partial class PlanetView
             Lamps(model, $"PadLight{k}", p.Lights[k]);
             if (p.Chargers[k] is { } charger)
                 foreach (var m in MaterialsOf(charger))
-                    if (m.ResourceName == "ChargeGlow")
+                    if (m.ResourceName is "ChargeLight" or "ChargeGlow")
                     {
                         m.EmissionEnabled = true;
                         p.Heads[k].Add((m, 2.5f));
@@ -152,7 +152,7 @@ public partial class PlanetView
         p.Docked = docked;
         var open = landing || _time < p.OpenUntil ? 1f : 0f;
         p.Open = Mathf.MoveToward(p.Open, open, delta / 0.9f);
-        if (p.Door != null) p.Door.Scale = new Vector3(1f, Mathf.Lerp(1f, 0.08f, Mathf.SmoothStep(0f, 1f, p.Open)), 1f);
+        if (p.Door != null) p.Door.Scale = new Vector3(1f, Mathf.Lerp(1f, 0.1f, Mathf.SmoothStep(0f, 1f, p.Open)), 1f);
 
         var charging = false;
         var broken = s.Broken;
@@ -198,12 +198,12 @@ public partial class PlanetView
                 m.EmissionEnergyMultiplier = e * level;
             }
 
-            // charger arm: over the drone while docked, swung away otherwise
+            // charger arm: rest = pointing back, swung over the drone while docked (RotateY -90° for Charger0, +90° for Charger1)
             p.Swing[k] = Mathf.MoveToward(p.Swing[k], st == DroneState.Docked ? 0f : 1f, delta / 1.2f);
             if (p.Chargers[k] is { } c)
             {
                 var side = k % 2 == 0 ? -1f : 1f;
-                c.Basis = p.ChargerRest[k] * new Basis(Vector3.Up, side * Mathf.DegToRad(75f) * Mathf.SmoothStep(0f, 1f, p.Swing[k]));
+                c.Basis = p.ChargerRest[k] * new Basis(Vector3.Up, side * Mathf.Pi / 2f * (1f - Mathf.SmoothStep(0f, 1f, p.Swing[k])));
             }
             var head = st == DroneState.Docked && !full && !broken ? 0.6f + 0.4f * Mathf.Sin(_time * 6f + k) : 0.05f;
             foreach (var (m, e) in p.Heads[k]) m.EmissionEnergyMultiplier = e * head;
