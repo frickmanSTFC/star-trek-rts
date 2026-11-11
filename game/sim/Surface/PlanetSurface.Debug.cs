@@ -167,6 +167,8 @@ public sealed partial class PlanetSurface
                 return c.Amount >= Fix64.Zero && c.Amount <= Simulation.DebugMaxAmount ? null : "amounts are 0 to 1 000 000 000";
             case DebugRuinCommand c:
                 return RuinDebugProblem(c); // Excavation.cs
+            case DebugJackCommand c:
+                return JackDebugProblem(sim, c); // Jack.cs
             default:
                 return "not a surface command";
         }
@@ -179,6 +181,9 @@ public sealed partial class PlanetSurface
         {
             case DebugRuinCommand ruin:
                 ApplyRuinDebug(ruin); // Excavation.cs
+                break;
+            case DebugJackCommand jack:
+                ApplyJackDebug(sim, jack); // Jack.cs
                 break;
             case DebugUnitCommand c:
             {

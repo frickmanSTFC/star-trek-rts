@@ -170,6 +170,7 @@ public static class CommandHash
         DebugCivCommand => 117,
         DebugRuinCommand => 118,
         DebugMissionCommand => 119,
+        DebugJackCommand => 120,
         _ => UnknownTag,
     };
 
@@ -241,6 +242,7 @@ public static class CommandHash
                     }
                 break;
             case DebugFlagCommand c: h.Add(c.Target); h.Add((int)c.Flag); h.Add(c.On); break;
+            case DebugJackCommand c: h.Add(c.Target); break;
             case DebugTechCommand c: h.Add(c.Target); Text(ref h, c.TechId); h.Add(c.Known); h.Add(c.Progress); break;
             case DebugSurveyAllCommand c: h.Add(c.Target); break;
             case DebugDepositCommand c: h.Add(c.Tile); h.Add(c.Amount); break;

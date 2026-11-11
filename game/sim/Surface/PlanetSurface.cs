@@ -1533,6 +1533,7 @@ public sealed partial class PlanetSurface
         MoveUnits(sim);
         DronesStep(sim); // Drones.cs: pads load, drones charge / fly / loiter / land
         ExcavationStep(sim); // Excavation.cs: sickness, carriers, banked dig research (only on maps with any)
+        JackStep(sim); // Jack.cs: the Jack Skellington raid joke (only when JackEnabled or summoned)
         FinishAssembly(sim.Tick + 1);
         UpdateSight(sim.Tick); // Visibility.cs: fog of war memory, after everything has moved
     }
@@ -1969,6 +1970,7 @@ public sealed partial class PlanetSurface
         AddLifeSupportToHash(ref h); // Domes worlds only (Habitability.cs)
         AddFabricationToHash(ref h); // Fabrication.cs
         AddExcavationToHash(ref h); // Excavation.cs: only on maps with ruins, sickness or finds
+        AddJackToHash(ref h); // Jack.cs: only once Jack is on or summoned
         // Not hashed because they follow from what is hashed: _structureAt (each structure's Tile; the fuzz test checks
         // they agree), _weatherTick (sim.Tick at the top of Step), _data (Simulation hashes each change of data), and
         // each unit's SpeedPerTick / SurveyRadius (its def in that data).

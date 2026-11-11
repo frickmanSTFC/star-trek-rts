@@ -162,6 +162,9 @@ public sealed record DebugCivCommand(int Player, int Target, string BodyId, Debu
 /// <summary>Test panel: add (Add = true) or remove ruins on a surface tile of the colony's world.</summary>
 public sealed record DebugRuinCommand(int Player, int Tile, bool Add) : DebugCommand(Player);
 
+/// <summary>SUMMON JACK: the Jack Skellington raid starts now for Target (warning + countdown), on or off (Surface/Jack.cs).</summary>
+public sealed record DebugJackCommand(int Player, int Target) : DebugCommand(Player);
+
 /// <summary>What <see cref="DebugMissionCommand"/> does (Missions/MissionBook.Debug.cs).</summary>
 public enum DebugMissionAction
 {
