@@ -81,7 +81,7 @@ h2 small { font: 500 14px/1 var(--body); color: var(--dim); }
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Test + fix pass · menu · tutorial · parts · civilizations · satellites · dome transits · drones · relays · missions</div>
+    <div class="eyebrow">Test + fix pass · menu · tutorial · parts · civilizations · satellites · dome transits · drones · relays · missions · visual pass</div>
     <h1>Final Frontier Test Run</h1>
     <p class="lede">Work down the list in Godot. Mark each check Pass, Fail or Skip and add a short note when something looks wrong. Results save as you go and everyone testing sees each other's, so Michael and Craig can split the list. After the session, send the <span class="kbd">godot.log</span> file too.</p>
     <div class="update"><b>Update first</b><code>Close Godot, discard changes to game/project.godot (and Planet.tscn), pull main.
@@ -188,6 +188,14 @@ var AREAS = [
     ["ms-side", "Wait for a side job offer (e.g. Rich Vein after a rich deposit)", "OFFER in the tracker; ACCEPT / DECLINE on the card; at most 2 side jobs at once; an ignored offer lapses after ~90 s."],
     ["ms-log", "Press N", "The mission log: ACTIVE / COMPLETED / FAILED / DECLINED tabs, briefings and debriefs to re-read, SHOW ON MAP."],
     ["ms-test", "F9 › MISSIONS (in a DEBUG game: Turn missions on)", "Every mission listed; Start / Go to stage / Objective done / Complete / Fail / Reset work and show in the tracker."]
+  ]},
+  { id: "gfx", name: "Visual pass", sub: "Settings › GRAPHICS, F7", checks: [
+    ["g-errors", "Start a DEBUG game and watch Output while it loads", "No red lines about terrain, rock, grime, heat_haze, AgX or SDFGI."],
+    ["g-compare", "On the surface press F7 a few times, by day and at night (F9 › SKY)", "CLASSIC looks exactly like the old game; ENHANCED is richer (soft bounced light, light shafts at dawn/dusk, filmic colour). Night stays readable. The top-left readout shows FPS and GPU ms for both."],
+    ["g-ground", "Zoom right in on grass, rock, sand and snow", "Detailed ground textures that match each hex, no visible tiling or seam where the detail fades out; rocks get the same detail."],
+    ["g-decals", "Drive a rover across the ground, land a drop ship, let crews walk a while", "Tyre tracks behind the rover (fading after a minute), a scorch mark where the ship landed, worn ground round buildings, footpaths appearing."],
+    ["g-fx", "Look at a working refinery/reactor close up, and at a drop ship landing", "Heat shimmer over the stacks and under the rocket, embers at the furnace, dust motes in the air near the ground by day."],
+    ["g-toggles", "Settings › GRAPHICS: try Classic, Enhanced, then Custom with one toggle off at a time", "Each toggle changes only its own feature, applies at once and is remembered after a restart. Note which one costs the most frame time on your PC."]
   ]},
   { id: "tools", name: "Test panel", sub: "F9", checks: [
     ["t-civ", "F9 › CIV: pick a body, spawn a living civ, change level, awareness, Standing, relations", "Each change shows on the card and dossier; TEST MODE tag appears."],
