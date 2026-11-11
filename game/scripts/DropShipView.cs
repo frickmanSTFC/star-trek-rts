@@ -83,6 +83,27 @@ public partial class DropShipView : Node3D
     private readonly List<int> _done = new();
     private readonly Dictionary<int, DropShipSpec> _specs = new(); // by owner: the model their drop ships use
     private float _clock;                                    // running seconds (flame flicker)
+
+    /// <summary>Visual pass (PlanetView.Decals.cs): a shown ship touched down (false) or lifted off (true) at this ground
+    /// point (local to PlanetView): scorch and blast ring.</summary>
+    public System.Action<Vector3, bool>? Scorched;
+
+    /// <summary>Visual pass (PlanetView.Effects.cs): shown ships burning low over the ground, as (ground point,
+    /// throttle, height); fills the caller's arrays, returns how many. No allocation.</summary>
+    public int Burning(Vector3[] under, float[] throttle, float[] height)
+    {
+        var n = 0;
+        foreach (var ship in _ships.Values)
+        {
+            if (n >= under.Length) break;
+            if (!ship.Shown || ship.Throttle < 0.2f || ship.Height > 70f) continue;
+            under[n] = ship.Under;
+            throttle[n] = ship.Throttle;
+            height[n] = ship.Height;
+            n++;
+        }
+        return n;
+    }
     private bool _heard;                                     // the surface is on screen (not in orbit): ships may sound
 
     /// <summary>Where a convoy ship is and how its engines and legs look at a moment (LandingView's flight): Lift = the
@@ -134,6 +155,8 @@ public partial class DropShipView : Node3D
         public Vector3[]? Path;     // the unit's wheel path: bay, hinge, toe, ground, end (world)
         public float PathLength, DriveSeconds;
         public bool TouchedDown, LiftedOff, Lit, Shown;
+        public float Throttle, Height; // this frame's lift throttle and height over the ground (PlanetView.Effects.cs)
+        public Vector3 Under;          // the ground under it
         public AudioStreamPlayer3D? Burn;   // landing/burn_loop, driven by the throttle (Sound)
         public bool Burning, RampOpened, TipOpened, RampClosed, MainClosing, Rolled;
         public float Time;          // this frame, seconds from ArriveTick
@@ -462,6 +485,9 @@ public partial class DropShipView : Node3D
         var under = pose.Origin with { Y = ground + 0.3f };
         var height = pose.Origin.Y - ground;
         ship.Plume.Update(pose, lift, impulse, ground, ship.Shown, _clock, cant);
+        ship.Throttle = lift;
+        ship.Height = height;
+        ship.Under = under;
         ship.Wash.Position = under;
         var wash = ship.Shown && lift > 0.2f && height < WashBelow;
         if (ship.Wash.Emitting != wash) ship.Wash.Emitting = wash;
@@ -469,6 +495,7 @@ public partial class DropShipView : Node3D
         {
             ship.TouchedDown = true;
             if (ship.Shown) Burst(ship, under);
+            if (ship.Shown && t < TouchdownAt + 0.5f) Scorched?.Invoke(under, false);
             if (ship.Shown && _heard && t < TouchdownAt + 0.5f) Sfx.At("landing/touchdown", ToGlobal(under), 0f, Pitch(ship, 0.06f));
         }
         if (!ship.Lit && t >= ship.LiftFrom - SpoolSeconds + 0.25f && lands)
@@ -481,6 +508,7 @@ public partial class DropShipView : Node3D
         {
             ship.LiftedOff = true;
             if (ship.Shown) Burst(ship, under);
+            if (ship.Shown) Scorched?.Invoke(under, true);
         }
         Sound(ship, t, lift, impulse, lands);
     }
