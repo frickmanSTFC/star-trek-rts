@@ -39,6 +39,9 @@ public partial class PlanetView
         public float Reveal;
         public Node3D? Glass;
         public int TintVersion = int.MinValue; // Cosmetics.Version the field colour was set for (ours only)
+        // Vehicle transits touching this shell (PlanetView.DomeTransit.cs fills them each frame, ShellContacts at most).
+        public readonly Color[] ContactAt = new Color[ShellContacts], ContactTo = new Color[ShellContacts], ContactFx = new Color[ShellContacts];
+        public int Contacts, ContactsBefore;
     }
 
     private readonly Dictionary<int, DomeVisual> _domes = new();
@@ -98,6 +101,7 @@ public partial class PlanetView
                 v.Radius = radius;
                 v.Reveal = 0f;
                 v.TintVersion = int.MinValue;
+                v.Contacts = v.ContactsBefore = 0;
                 _domeRoot.AddChild(v.Field);
             }
             else if (radius <= 0 && v.Field != null)
@@ -253,13 +257,14 @@ public partial class PlanetView
     private (Node3D Node, ShaderMaterial Material) NewField(int radius, int id)
     {
         _fieldShader ??= GD.Load<Shader>("res://shaders/containment_field.gdshader");
-        _fieldMesh ??= DomeMesh(48, 14);
+        _fieldMesh ??= DomeMesh(96, 24); // fine enough for the transit contacts' sag and rings
         var r = (radius + 0.5f) * HexWidth;
         var material = new ShaderMaterial { Shader = _fieldShader };
         material.SetShaderParameter("field_colour", FieldColour);
         material.SetShaderParameter("hex_cells", 6f + 3f * radius);
         material.SetShaderParameter("seed", (id * 0.6180339f) % 1f * 100f);
         material.SetShaderParameter("reveal", 0f);
+        material.SetShaderParameter("shell_scale", new Vector3(r, r * FieldHeightShare, r)); // transit contacts (DomeTransit.cs)
         var node = new MeshInstance3D
         {
             Name = $"Field{id}",
