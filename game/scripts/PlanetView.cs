@@ -258,8 +258,7 @@ public partial class PlanetView : Node3D
         UpdateComms(delta); // PlanetView.Comms.cs: comms coverage overlay (toggle / armed drone order)
         UpdateDomeTransits(alpha, delta); // PlanetView.DomeTransit.cs: vehicle fields cycling through a dome's shell (after the rovers are posed)
         UpdatePods(alpha);
-        UpdateDecals(delta); // PlanetView.Decals.cs: tracks, scorch, worn ground, footpaths (GraphicsQuality.Decals)
-        UpdateEffects(delta); // PlanetView.Effects.cs: heat shimmer, embers, dust motes, drone downwash (GraphicsQuality.Effects)
+        UpdateVisualPass(delta); // PlanetView.TerrainDetail.cs: decals, effects, late scatter rocks (visual pass, GraphicsQuality)
     }
 
     /// <summary>Outline the tile under the mouse: a thin line along the hex edge that follows the ground (owner

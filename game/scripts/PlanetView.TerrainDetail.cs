@@ -91,6 +91,44 @@ public partial class PlanetView
             _terrainMaterial.SetShaderParameter("det_kind_tex", _detailKindTexture);
         }
         _terrainMaterial.SetShaderParameter("det_on", on ? 1f : 0f);
+        _detailRockCount = 0; // UpdateVisualPass (re)does the scatter rocks
+        ApplyRockDetail();
+    }
+
+    private int _detailRockCount;
+    private static Shader? _rockShader;
+
+    /// <summary>The scatter rocks (rock.gdshader materials among the fog materials, made lazily by the scatter) get the
+    /// rock/basalt layer while terrain detail is on; ice keeps its own look.</summary>
+    private void ApplyRockDetail()
+    {
+        if (_detailRockCount == _fogMaterials.Count) return;
+        _rockShader ??= GD.Load<Shader>("res://shaders/rock.gdshader");
+        var layer = Look.ClassId == "class_l" ? LayerBasalt : LayerRock;
+        for (var i = _detailRockCount; i < _fogMaterials.Count; i++)
+        {
+            var m = _fogMaterials[i];
+            if (m.Shader != _rockShader) continue;
+            var rough = m.GetShaderParameter("roughness"); // Nil = the shader's default 0.85; ice is glassy (0.22)
+            var on = _terrainDetailOn && (rough.VariantType == Variant.Type.Nil || rough.AsSingle() > 0.4f);
+            if (on)
+            {
+                m.SetShaderParameter("det_albedo", _detailAlbedo!);
+                m.SetShaderParameter("det_normal", _detailNormal!);
+                m.SetShaderParameter("det_layer", (float)layer);
+                m.SetShaderParameter("det_mean_colour", _detailMean![layer]);
+            }
+            m.SetShaderParameter("det_on", on ? 1f : 0f);
+        }
+        _detailRockCount = _fogMaterials.Count;
+    }
+
+    /// <summary>Once a frame (Refresh, last): the visual pass's per-frame work.</summary>
+    private void UpdateVisualPass(float delta)
+    {
+        if (_detailRockCount != _fogMaterials.Count) ApplyRockDetail();
+        UpdateDecals(delta);  // PlanetView.Decals.cs
+        UpdateEffects(delta); // PlanetView.Effects.cs
     }
 
     /// <summary>The detail layer each terrain id uses on this world.</summary>
