@@ -57,6 +57,7 @@ public static class CommandChecks
             case MissionChoiceCommand c: return Id(c.MissionId) ?? Id(c.Option);
             case DebugCivCommand c: return Enum.IsDefined(c.Field) ? Id(c.BodyId) : "unknown field";
             case DebugUnitCommand c: return Enum.IsDefined(c.Field) ? null : "unknown field";
+            case DebugMissionCommand c: return !Enum.IsDefined(c.Action) ? "unknown action" : Id(c.MissionId) ?? Id(c.Stage) ?? Id(c.Objective);
             case DebugSpawnUnitCommand c: return Id(c.UnitId);
             case DebugStructureCommand c: return Enum.IsDefined(c.Field) ? null : "unknown field";
             case DebugPlaceBuildingCommand c: return Id(c.BuildingId);
@@ -168,6 +169,7 @@ public static class CommandHash
         DebugReloadDataCommand => 116,
         DebugCivCommand => 117,
         DebugRuinCommand => 118,
+        DebugMissionCommand => 119,
         _ => UnknownTag,
     };
 
@@ -219,6 +221,7 @@ public static class CommandHash
             case MissionChoiceCommand c: Text(ref h, c.MissionId); Text(ref h, c.Option); break;
             case DebugCivCommand c: h.Add(c.Target); Text(ref h, c.BodyId); h.Add((int)c.Field); h.Add(c.Value); break;
             case DebugRuinCommand c: h.Add(c.Tile); h.Add(c.Add); break;
+            case DebugMissionCommand c: h.Add(c.Target); Text(ref h, c.MissionId); h.Add((int)c.Action); Text(ref h, c.Stage); Text(ref h, c.Objective); h.Add(c.Tile); break;
             case DebugUnitCommand c: h.Add(c.UnitId); h.Add((int)c.Field); h.Add(c.Value); break;
             case DebugMoveUnitCommand c: h.Add(c.UnitId); h.Add(c.Tile); break;
             case DebugRemoveUnitCommand c: h.Add(c.UnitId); break;

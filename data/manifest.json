@@ -200,6 +200,12 @@
       "civilizations/names.json",
       "civilizations/ruins.json",
       "civilizations/contact.json"
+    ],
+    "missions": [
+      "missions/notes.json",
+      "missions/rules.json",
+      "missions/first_light.json",
+      "missions/side_jobs.json"
     ]
   }
 }

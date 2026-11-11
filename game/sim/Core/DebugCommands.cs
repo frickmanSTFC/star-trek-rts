@@ -161,3 +161,27 @@ public sealed record DebugCivCommand(int Player, int Target, string BodyId, Debu
 
 /// <summary>Test panel: add (Add = true) or remove ruins on a surface tile of the colony's world.</summary>
 public sealed record DebugRuinCommand(int Player, int Tile, bool Add) : DebugCommand(Player);
+
+/// <summary>What <see cref="DebugMissionCommand"/> does (Missions/MissionBook.Debug.cs).</summary>
+public enum DebugMissionAction
+{
+    /// <summary>Turn missions on in this game (MissionId = a chain or era id, "" = the first chain); works after tick 0.</summary>
+    Enable,
+    /// <summary>Start the mission now (any state; a trigger's bindings that don't hold are bound to Tile, or the unit there).</summary>
+    Start,
+    /// <summary>Go to stage Stage of an active mission (starts it first if it isn't).</summary>
+    GotoStage,
+    /// <summary>Mark objective Objective of the current stage done.</summary>
+    CompleteObjective,
+    /// <summary>Complete it now (rewards are paid once).</summary>
+    Complete,
+    /// <summary>Fail it now.</summary>
+    Fail,
+    /// <summary>Back to Locked: progress, bindings, markers and its sites gone (rewards can be paid again).</summary>
+    Reset,
+}
+
+/// <summary>Test panel MISSIONS tab: change the Target player's mission MissionId. Stage / Objective are ids ("" when not
+/// used); Tile binds a trigger's missing bindings on Start (-1 = the hub).</summary>
+public sealed record DebugMissionCommand(int Player, int Target, string MissionId, DebugMissionAction Action, string Stage, string Objective, int Tile)
+    : DebugCommand(Player);
