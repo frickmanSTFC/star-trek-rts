@@ -7,48 +7,21 @@ using FinalFrontier.Sim.Surface;
 namespace FinalFrontier.Sim.Tests;
 
 /// <summary>
-/// Campaign missions (docs/missions-contract.md C; game/sim/Missions/). The drone and relay missions read drones and
-/// comms coverage through MissionBook.World: until agent S1's drones, Drone Pad and relay satellites are merged the
-/// surface's stubs return none, so these tests use a FakeWorld (drones and relays that exist only for the missions) and,
-/// for Wings / First Flight / Beyond the Ridge, a data copy where drone_pad → storage_container and scout_drone →
-/// control_module (so the missions are available and buildable today). After S1 merges: re-check the tests marked
-/// "S1" against the real drones and relays (and drop the patches).
+/// Campaign missions (docs/missions-contract.md C; game/sim/Missions/). The golden paths play every main mission of
+/// First Light with real orders: rovers drive and park, relay satellites go up and are retasked, the Machine Shop makes
+/// scout drones, the Drone Pad launches them (S1's drones, relays and comms coverage, merged 2026-11-11).
 /// </summary>
 public class MissionTests
 {
     private static GameData Data => TestData.Real;
 
-    /// <summary>Drones and relay satellites for the missions only (player 0), on top of what the surface reports.</summary>
-    private sealed class FakeWorld : MissionWorld
-    {
-        public readonly List<MissionDrone> DroneList = new();
-        public readonly List<CommsSource> Relays = new();
-
-        public override IEnumerable<MissionDrone> Drones(PlanetSurface s, int player) =>
-            player == 0 ? DroneList.Concat(base.Drones(s, player)).ToList() : base.Drones(s, player);
-
-        public override bool Covered(PlanetSurface s, int player, int tile) =>
-            player == 0 && Relays.Any(r => r.Ready && s.Map.Grid.Distance(r.Tile, tile) <= r.Radius) || base.Covered(s, player, tile);
-
-        public override IReadOnlyList<CommsSource> Sources(PlanetSurface s, int player) =>
-            player == 0 ? base.Sources(s, player).Concat(Relays).ToList() : base.Sources(s, player);
-
-        public void Relay(int tile) => Relays.Add(new CommsSource(CommsSourceKind.Relay, tile, 14, 0, Relays.Count + 1, true));
-    }
-
-    /// <summary>The real data with the drone ids swapped for ones that exist today (S1: remove once drones are merged).</summary>
-    private static readonly Lazy<GameData> DroneStandIns = new(() => TestData.Patched(
-        ("missions", "\"drone_pad\"", "\"storage_container\""),
-        ("missions", "\"scout_drone\"", "\"control_module\"")));
-
     /// <summary>A landed one-player game on seed 1701 with missions on (or off), outpost assembled.</summary>
-    private static Simulation Game(GameData? data = null, bool missions = true, FakeWorld? world = null, int players = 1)
+    private static Simulation Game(GameData? data = null, bool missions = true, int players = 1)
     {
         data ??= Data;
         var sim = MatchSetup.CreatePlanetLanding(data, 1701);
         if (players > 1) sim.AddPlayer("cardassian");
         if (missions) Assert.Null(sim.Missions.Enable("dawn_of_warp"));
-        if (world != null) sim.Missions.World = world;
         TestData.NoStockTargets(sim);
         var map = sim.Surface!.Map;
         var first = Enumerable.Range(0, map.Grid.Count).First(t => sim.Surface.CanLand(0, t));
@@ -143,15 +116,12 @@ public class MissionTests
     // ---------------------------------------------------------------- the main chain, golden path
 
     /// <summary>
-    /// Plays First Light along a scripted path until the mission stopAfter completes (null: all seven). Ground Truth and
-    /// The Lost Pathfinder are played with real orders (rovers drive, survey, park); Calling Home, First Flight, Beyond the
-    /// Ridge and Foothold use the FakeWorld's relays and drones (S1); Wings fabricates real control modules standing in
-    /// for scout drones (S1).
+    /// Plays First Light along a scripted path of real orders until the mission stopAfter completes (null: all seven).
+    /// The test panel only places buildings at once (lab, Machine Shop, Drone Pad, the second outpost) and tops up stock.
     /// </summary>
-    private static (Simulation Sim, FakeWorld World) PlayFirstLight(string? stopAfter, List<ulong>? hashes = null)
+    private static Simulation PlayFirstLight(string? stopAfter, List<ulong>? hashes = null)
     {
-        var world = new FakeWorld();
-        var sim = Game(DroneStandIns.Value, world: world);
+        var sim = Game();
         var s = sim.Surface!;
         var hub = s.Bases(0)[0];
         void Done(string id)
@@ -172,7 +142,7 @@ public class MissionTests
         Done("ground_truth");
         Assert.True(sim.Tick - exploreFrom > 20 * Simulation.TickRate); // the rovers had to drive
         Assert.Equal(Fix64.FromInt(30), s.DigResearchBank(0)); // no tech started: banked
-        if (stopAfter == "ground_truth") return (sim, world);
+        if (stopAfter == "ground_truth") return sim;
 
         // 2. The Lost Pathfinder: a wreck 10–18 hexes out on passable land, inside a search area; find it, park beside it 20 s.
         Seconds(sim, 1);
@@ -194,100 +164,142 @@ public class MissionTests
         Assert.Equal(modules + Fix64.FromInt(2), sim.Players[0].Stock[R("control_module")]);
         Assert.True(s.Map.Grid.Within(wreck.Tile, 6).All(t => s.Players[0].Surveyed[t])); // reveal 6
         Assert.Contains(sim.Missions.Messages(0), m => m.Text.Contains("Pathfinder IV,") && m.Channel == "feed"); // {wreck.distance} filled
-        if (stopAfter == "lost_pathfinder") return (sim, world);
+        if (stopAfter == "lost_pathfinder") return sim;
 
-        // 3. Calling Home (S1: relays are fakes): a relay over the base, then the wreck under coverage.
+        // 3. Calling Home: a relay satellite over the base, then the wreck under coverage (a second relay if it is out of reach).
+        TopUp(sim);
         Seconds(sim, 1);
         Assert.Equal(MissionState.Active, State(sim, "calling_home"));
         Assert.Equal("Put up a relay", View(sim, "calling_home").StageTitle);
-        world.Relay(hub.Tile);
-        Seconds(sim, 1);
-        if (s.Map.Grid.Distance(hub.Tile, wreck.Tile) > 14)
+        Assert.False(s.CommsCovered(0, wreck.Tile) && s.Map.Grid.Distance(hub.Tile, wreck.Tile) > 5);
+        Do(sim, new RelaySatelliteCommand(0, hub.Tile));
+        Seconds(sim, 5);
+        Assert.Equal("Put up a relay", View(sim, "calling_home").StageTitle); // still drifting to its station
+        StepUntil(sim, () => View(sim, "calling_home").StageTitle != "Put up a relay", 20, "relay over the base");
+        if (State(sim, "calling_home") == MissionState.Active)
         {
             Assert.Equal("Link the wreck", View(sim, "calling_home").StageTitle);
-            world.Relay(wreck.Tile);
-            Seconds(sim, 1);
+            if (!s.CommsCovered(0, wreck.Tile)) Do(sim, new RelaySatelliteCommand(0, wreck.Tile)); // beyond the first relay's 14 hexes
         }
-        StepUntil(sim, () => State(sim, "calling_home") == MissionState.Completed, 3, "wreck linked");
+        StepUntil(sim, () => State(sim, "calling_home") == MissionState.Completed, 20, "wreck linked");
         Done("calling_home");
+        Assert.True(s.CommsCovered(0, wreck.Tile));
         Assert.Contains("earth_link", sim.Missions.Flags(0));
-        if (stopAfter == "calling_home") return (sim, world);
+        if (stopAfter == "calling_home") return sim;
 
-        // 4. Wings (S1: storage_container stands in for the Drone Pad, control modules for scout drones).
+        // 4. Wings: a Machine Shop and a Drone Pad, then two scout drones fabricated (the pad unpacks them into its bays).
         Seconds(sim, 1);
         Assert.Equal(MissionState.Active, State(sim, "wings"));
         Assert.Equal("Chief Okafor", View(sim, "wings").GiverName);
         Do(sim, new DebugPlaceBuildingCommand(0, 0, "machine_shop", FreeTile(sim, "machine_shop"), 0));
-        Do(sim, new DebugPlaceBuildingCommand(0, 0, "storage_container", FreeTile(sim, "storage_container"), 0));
+        Do(sim, new DebugPlaceBuildingCommand(0, 0, "drone_pad", FreeTile(sim, "drone_pad"), 0));
         var shop = s.Structures.First(x => x.Owner == 0 && x.DefId == "machine_shop");
-        Do(sim, new FabricateCommand(0, shop.Id, "control_module", 2));
+        var pad = s.Structures.First(x => x.Owner == 0 && x.DefId == "drone_pad");
+        Do(sim, new FabricateCommand(0, shop.Id, "scout_drone", 2));
         Seconds(sim, 2);
         var drones = View(sim, "wings").Objectives.Single(o => o.Id == "drones");
         Assert.Equal(Fix64.FromInt(2), drones.Target);
         Assert.False(drones.Done);
-        var couplings = sim.Players[0].Stock[R("power_coupling")];
-        StepUntil(sim, () => State(sim, "wings") == MissionState.Completed, 200, "two fabricated");
+        StepUntil(sim, () => State(sim, "wings") == MissionState.Completed, 200, "two scout drones fabricated");
         Done("wings");
-        Assert.Equal(couplings + Fix64.FromInt(2), sim.Players[0].Stock[R("power_coupling")]);
-        if (stopAfter == "wings") return (sim, world);
+        Assert.Contains(sim.Missions.Messages(0), m => m.MissionId == "wings" && m.Text.Contains("2 Power Coupling")); // paid into storage
+        StepUntil(sim, () => s.DronesOf(pad.Id).Count == 2, 10, "both drones on the pad");
+        if (stopAfter == "wings") return sim;
 
-        // 5. First Flight (S1: the drone is a fake): launch, then a drone loitering over each of three photo points.
+        // 5. First Flight: launch a drone, then a drone loitering over each of the three photo points (relay coverage).
         Seconds(sim, 1);
         Assert.Equal(MissionState.Active, State(sim, "first_flight"));
-        world.DroneList.Add(new MissionDrone(DroneState.Flying, hub.Tile));
+        StepUntil(sim, () => s.LaunchProblem(sim, 0, pad.Id, hub.Tile) == null, 120, "a drone charged");
+        Do(sim, new LaunchDroneCommand(0, pad.Id, hub.Tile));
         Seconds(sim, 1);
         Assert.Equal("Photo survey", View(sim, "first_flight").StageTitle);
         var photos = sim.Missions.Sites(0).Where(x => x.Kind == "photo_point").ToList();
         Assert.Equal(3, photos.Count);
         Assert.All(photos, p => Assert.InRange(s.Map.Grid.Distance(hub.Tile, p.Tile), 6, 13));
         Assert.Equal(3, sim.Missions.Markers(0).Count(m => m.MissionId == "first_flight"));
-        for (var k = 0; k < 3; k++)
-        {
-            world.DroneList[0] = new MissionDrone(DroneState.Loitering, photos[k].Tile);
-            Seconds(sim, 1);
-            if (k < 2) Assert.Equal(Fix64.FromInt(k + 1), View(sim, "first_flight").Objectives[0].Progress);
-            Assert.Equal(2 - k, sim.Missions.Markers(0).Count(m => m.MissionId == "first_flight")); // done points drop their marker
-        }
+        FlyOver(sim, pad, () => sim.Missions.Sites(0).Where(x => x.Kind == "photo_point" && !x.Done).Select(x => x.Tile).ToList(),
+            () => State(sim, "first_flight") == MissionState.Completed, 900);
         Done("first_flight");
-        world.DroneList[0] = new MissionDrone(DroneState.Returning, hub.Tile);
-        if (stopAfter == "first_flight") return (sim, world);
+        Assert.All(sim.Missions.Sites(0).Where(x => x.Kind == "photo_point"), p => Assert.True(p.Done));
+        Assert.Empty(sim.Missions.Markers(0).Where(m => m.MissionId == "first_flight"));
+        Assert.Contains(s.Units, u => u.Owner == 0 && s.DroneRecord(u).Launches > 0);
+        if (stopAfter == "first_flight") return sim;
 
-        // 6. Beyond the Ridge (S1: fake drone): bearings from 2 of 3 points, then find and reach the source with a rover.
+        // 6. Beyond the Ridge: drone bearings from 2 of 3 points (a relay moved over any out of reach), then find the
+        // signal source and park a rover at it.
         Seconds(sim, 1);
         Assert.Equal(MissionState.Active, State(sim, "beyond_the_ridge"));
-        var bearings = sim.Missions.Markers(0).Where(m => m.MissionId == "beyond_the_ridge").ToList();
+        var bearings = sim.Missions.Markers(0).Where(m => m.MissionId == "beyond_the_ridge").Select(m => m.Tile).ToList();
         Assert.Equal(3, bearings.Count);
-        world.DroneList[0] = new MissionDrone(DroneState.Loitering, bearings[0].Tile);
-        Seconds(sim, 1);
-        Assert.Equal("Take bearings", View(sim, "beyond_the_ridge").StageTitle);
-        world.DroneList[0] = new MissionDrone(DroneState.Loitering, bearings[2].Tile);
-        Seconds(sim, 1);
+        Assert.All(bearings, t => Assert.InRange(s.Map.Grid.Distance(hub.Tile, t), 8, 15));
+        var visited = new List<int>();
+        FlyOver(sim, pad, () => bearings.Where(t => !visited.Contains(t)).ToList(),
+            () => View(sim, "beyond_the_ridge").StageTitle != "Take bearings", 900, visited);
         Assert.Equal("Find the source", View(sim, "beyond_the_ridge").StageTitle);
         var source = sim.Missions.Sites(0).Single(x => x.Kind == "signal_source");
-        Assert.True(bearings.Min(b => s.Map.Grid.Distance(b.Tile, source.Tile)) <= 6);
-        world.DroneList[0] = new MissionDrone(DroneState.Docked, hub.Tile);
-        var rover = Rover(sim);
-        Do(sim, new DebugMoveUnitCommand(0, rover.Id, source.Tile));
+        Assert.True(bearings.Min(b => s.Map.Grid.Distance(b, source.Tile)) <= 6);
+        Assert.True(s.Map.Terrain(source.Tile).Passable);
+        DriveTo(sim, Rover(sim), source.Tile, 1200);
         StepUntil(sim, () => State(sim, "beyond_the_ridge") == MissionState.Completed, 10, "signal source reached");
         Done("beyond_the_ridge");
-        if (stopAfter == "beyond_the_ridge") return (sim, world);
+        if (stopAfter == "beyond_the_ridge") return sim;
 
-        // 7. Foothold (S1: the relay is a fake): a second outpost inside coverage (not its own antenna's).
+        // 7. Foothold: a second outpost outside coverage doesn't count (its own antenna doesn't); a relay moved over it does.
         Seconds(sim, 1);
         Assert.Equal(MissionState.Active, State(sim, "foothold"));
-        var site = Enumerable.Range(0, s.Map.Grid.Count).First(t => s.Map.Grid.Distance(hub.Tile, t) == 10 && s.Map.Terrain(t).Buildable
-            && s.StructureAt(t) == null && !s.Map.NearNatives(t) && s.Map.Grid.Within(t, 1).All(n => s.StructureAt(n) == null));
-        world.Relays.Clear();
+        var site = Enumerable.Range(0, s.Map.Grid.Count).First(t => s.Map.Grid.Distance(hub.Tile, t) >= 10 && !s.CommsCovered(0, t)
+            && s.Map.Terrain(t).Buildable && !s.Map.NearNatives(t) && s.Map.Grid.Within(t, 1).All(n => s.StructureAt(n) == null));
         Do(sim, new DebugPlaceBuildingCommand(0, 0, "colony_hub", site, 0));
-        Seconds(sim, 2);
-        Assert.Equal(MissionState.Active, State(sim, "foothold")); // not covered: its own antenna doesn't count
-        world.Relay(site);
-        Seconds(sim, 1);
+        Seconds(sim, 3);
+        Assert.Equal(MissionState.Active, State(sim, "foothold"));
+        var relay = s.Satellites.First(x => x.Owner == 0 && x.Kind == SatelliteKind.Relay);
+        Do(sim, new RetaskSatelliteCommand(0, relay.Id, site));
+        StepUntil(sim, () => State(sim, "foothold") == MissionState.Completed, 30, "the new outpost under a relay");
         Done("foothold");
         Assert.Contains(sim.Missions.Messages(0), m => m.MissionId == "foothold" && m.Text.Contains("First Light is complete"));
         Assert.All(new[] { "ground_truth", "lost_pathfinder", "calling_home", "wings", "first_flight", "beyond_the_ridge", "foothold" },
             id => Assert.Equal(MissionState.Completed, State(sim, id)));
-        return (sim, world);
+        return sim;
+    }
+
+    /// <summary>Plenty of metal and drone parts in stock (relays, drone recipes).</summary>
+    private static void TopUp(Simulation sim)
+    {
+        var stock = sim.Players[0].Stock;
+        var values = new[] { ("duranium", 2000), ("tritanium", 1000), ("structural_frame", 4), ("power_coupling", 4), ("control_module", 8) }
+            .Select(x => new ResourceAmount(R(x.Item1), Fix64.Max(stock[R(x.Item1)], Fix64.FromInt(x.Item2)))).ToList();
+        Do(sim, new DebugStockCommand(0, 0, values));
+        Do(sim, new DebugFlagCommand(0, 0, DebugFlag.NoStorageCap, true));
+    }
+
+    /// <summary>Launches the pad's drones over each tile still wanted (a relay put up or moved over one out of comms
+    /// range), one launch at a time, until done.</summary>
+    private static void FlyOver(Simulation sim, SurfaceStructure pad, Func<List<int>> wanted, Func<bool> done, int maxSeconds, List<int>? sent = null)
+    {
+        var s = sim.Surface!;
+        var tried = sent ?? new List<int>();
+        for (var sec = 0; sec < maxSeconds && !done(); sec++)
+        {
+            if (sec % 3 == 0)
+                foreach (var tile in wanted())
+                {
+                    if (!s.CommsCovered(0, tile))
+                    {
+                        var relays = s.CommsSources(0).Where(x => x.Kind == CommsSourceKind.Relay).ToList();
+                        if (relays.Any(x => !x.Ready)) break; // one is still drifting to its station: wait for it
+                        if (s.RelayCount(0) < 3) Do(sim, new RelaySatelliteCommand(0, tile));
+                        else Do(sim, new RetaskSatelliteCommand(0, relays[^1].SatelliteId, tile));
+                        break;
+                    }
+                    var flying = s.Units.Any(u => u.Owner == 0 && s.DroneOf(u).State is DroneState.Launching or DroneState.Flying && s.DroneOf(u).Target == tile);
+                    if (flying || s.LaunchProblem(sim, 0, pad.Id, tile) != null) continue;
+                    Do(sim, new LaunchDroneCommand(0, pad.Id, tile));
+                    if (!tried.Contains(tile)) tried.Add(tile);
+                    break;
+                }
+            Seconds(sim, 1);
+        }
+        Assert.True(done(), "drone flights didn't finish the stage");
     }
 
     [Theory]
@@ -299,7 +311,7 @@ public class MissionTests
     [InlineData("beyond_the_ridge")]
     public void EachMainMissionCompletesAlongItsGoldenPath(string mission)
     {
-        var (sim, _) = PlayFirstLight(mission);
+        var sim = PlayFirstLight(mission);
         Assert.Equal(MissionState.Completed, State(sim, mission));
         // The view of a completed mission: debrief filled, rewards listed.
         var v = View(sim, mission);
@@ -313,8 +325,8 @@ public class MissionTests
     {
         var a = new List<ulong>();
         var b = new List<ulong>();
-        var (simA, _) = PlayFirstLight(null, a);
-        var (simB, _) = PlayFirstLight(null, b);
+        var simA = PlayFirstLight(null, a);
+        var simB = PlayFirstLight(null, b);
         Assert.Equal(7, a.Count);
         Assert.Equal(a, b);
         Assert.Equal(simA.StateHash(), simB.StateHash());
@@ -324,15 +336,20 @@ public class MissionTests
     }
 
     [Fact]
-    public void DroneMissionsAreLeftOutUntilTheDroneDataExists()
+    public void AMissionWhoseNeedsAreMissingIsLeftOut()
     {
-        var sim = Game();
-        var ids = sim.Missions.States(0).Select(x => x.Id).ToList();
-        Assert.Contains("ground_truth", ids);
-        Assert.Contains("foothold", ids);
-        // S1: scout_drone / drone_pad don't exist yet, so these are left out (they come in with the drone data).
-        if (!Data.Buildings.Any(x => x.Id == "drone_pad")) Assert.DoesNotContain("wings", ids);
-        if (!Data.Resources.Any(x => x.Id == "scout_drone")) Assert.DoesNotContain("first_flight", ids);
+        // Every First Light mission is in a game on the real data (drones, Drone Pad and relays exist).
+        var ids = Game().Missions.States(0).Select(x => x.Id).ToList();
+        Assert.Equal(Data.Missions!.List.Where(m => m.Chain == "first_light").Select(m => m.Id), ids);
+        // A data set without one of a mission's needs (here: the drone pad renamed in the needs lists) leaves it out.
+        var data = TestData.Patched(("missions", "\"needs\": [\"drone_pad\", \"scout_drone\"]", "\"needs\": [\"hover_pad\", \"scout_drone\"]"));
+        Assert.Empty(data.Validate());
+        var left = Game(data).Missions.States(0).Select(x => x.Id).ToList();
+        Assert.DoesNotContain("first_flight", left);
+        Assert.DoesNotContain("beyond_the_ridge", left);
+        Assert.DoesNotContain("lost_signal", left);
+        Assert.Contains("wings", left);
+        Assert.Contains("foothold", left);
     }
 
     [Fact]
