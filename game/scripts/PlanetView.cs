@@ -258,6 +258,7 @@ public partial class PlanetView : Node3D
         UpdateComms(delta); // PlanetView.Comms.cs: comms coverage overlay (toggle / armed drone order)
         UpdateDomeTransits(alpha, delta); // PlanetView.DomeTransit.cs: vehicle fields cycling through a dome's shell (after the rovers are posed)
         UpdatePods(alpha);
+        UpdateJack(alpha, delta); // PlanetView.Jack.cs: the Jack Skellington raid (giant, pumpkins, bats, mist)
         UpdateVisualPass(delta); // PlanetView.TerrainDetail.cs: decals, effects, late scatter rocks (visual pass, GraphicsQuality)
     }
 

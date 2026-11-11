@@ -1029,6 +1029,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         UpdateTutorial(delta); // tutorial cards follow the game state (PlanetDriver.Tutorial.cs)
         UpdateMissionUi(delta); // drones, relays, mission tracker / comms / log (PlanetDriver.Missions.cs)
         UpdateSelectionSound(); // the hum of what the player just selected (PlanetDriver.Sounds.cs)
+        UpdateJackUi(delta); // PlanetDriver.Jack.cs: the Jack Skellington raid's alert, countdown and feed lines
     }
 
     private void OnPhaseChange()

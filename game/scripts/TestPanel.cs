@@ -1080,6 +1080,8 @@ public partial class TestPanel : PanelContainer
         _content.AddChild(fog);
         _content.AddChild(MakeButton("Survey every deposit", Plain, () =>
             Apply("surveyed the whole planet", new[] { new DebugSurveyAllCommand(Me, Me) }, null), 0, 36));
+        _content.AddChild(MakeButton("SUMMON JACK (Jack Skellington raid now)", Plain, () =>
+            Apply("summoned Jack Skellington", new DebugCommand[] { new DebugJackCommand(Me, Me) }, null), 0, 36));
 
         // Deposit under the cursor.
         _content.AddChild(Section("DEPOSIT UNDER THE CURSOR"));
