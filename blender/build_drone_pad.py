@@ -22,7 +22,7 @@ PARTS (the game drives these; names from the contract, all pivots unrotated):
   Charger0, Charger1   arm pivots (posts at Godot x -4.85 / +4.85, z +1.3, pivot height 2.05). Rest = stowed along
                        Godot -Z (back). Over the docked drone: Charger0 RotateY(-90 deg), Charger1 RotateY(+90 deg),
                        i.e. Godot Basis(Vector3.Up, -/+a), a = 0 .. 90; the head then hangs over the bay centre
-                       ~0.62 above the drone's satcom hatch (head bottom at Godot y 1.6).
+                       ~0.15 above the docked drone's top (head bottom at Godot y 1.6).
   ChargeLight0/1       child meshes of the arms (material "ChargeLight", green-white, strength 3): on while charging.
   Door                 roll-up door pivot at the top of the opening (Godot y 2.62): scale Y 1 = shut, ~0.1 = open.
   Dish                 mast dish pivot (Godot (4.45, 6.55, -3.1)); rest aims front-up; RotateY turns it (tracking).

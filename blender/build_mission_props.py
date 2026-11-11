@@ -94,9 +94,9 @@ def palette():
         "grey": flat("PaintGrey", (0.5, 0.51, 0.52), 0.3, 0.45),
         "dark": flat("PaintDark", (0.07, 0.07, 0.075), 0.3, 0.6),
         "steel": flat("Steel", (0.62, 0.63, 0.66), 0.9, 0.3),
-        "ground": painted("Ground", (0.3, 0.24, 0.17), 0.0, 0.95, 0.2, 3.0),
+        "ground": painted("Ground", (0.15, 0.115, 0.08), 0.0, 0.95, 0.2, 3.0),
         "scorch": painted("Scorch", (0.035, 0.03, 0.028), 0.0, 0.95, 0.35, 2.5),
-        "rock": painted("Rock", (0.32, 0.3, 0.28), 0.0, 0.85, 0.22, 4.0),
+        "rock": painted("Rock", (0.13, 0.12, 0.11), 0.0, 0.85, 0.25, 4.0),
         "chute_o": flat("ChuteOrange", (0.62, 0.2, 0.05), 0.0, 0.85),
         "chute_w": flat("ChuteWhite", (0.72, 0.7, 0.66), 0.0, 0.85),
         "obsidian": flat("Obsidian", (0.02, 0.022, 0.03), 0.6, 0.15),
@@ -193,7 +193,7 @@ def cloth(name, nx, ny, sx, sy, height, mats, parent, rng, loc=(0, 0, 0), rot=0.
 
 
 def probe_wreck(P, root, rng):
-    ground_disc("Mound", rng, 4.6, P["ground"], root, mound=0.35, rough=0.18)
+    ground_disc("Mound", rng, 4.3, P["ground"], root, lift=0.03, mound=0.28, rough=0.18)
     # skid trench (scorched) behind the capsule toward -Y, a scorch patch round the impact
     flat_patch("Scorch", rng, 2.3, 0.075, P["scorch"], root, xy=(0.2, -0.5), stretch=(1.0, 1.4))
     flat_patch("Trench", rng, 0.6, 0.08, P["scorch"], root, segs=16, xy=(0.0, -2.8), stretch=(1.0, 2.6), rough=0.2)
@@ -204,6 +204,7 @@ def probe_wreck(P, root, rng):
     # the capsule: tipped forward-left and half sunk; a frame carries it
     fr = empty("CapsuleFrame", (0.0, 0.25, 0.0), root)
     fr.rotation_euler = (math.radians(28), math.radians(-12), math.radians(20))
+    fr.scale = (1.35, 1.35, 1.35)
     lathe("Backshell", [(0.86, 0.0), (0.84, 0.08), (0.62, 0.55), (0.42, 0.95), (0.34, 1.05), (0.0, 1.06)],
           P["white"], fr, (0, 0, -0.45), seg=32)
     lathe("ShieldRim", [(0.88, -0.02), (0.9, 0.04), (0.86, 0.06), (0.8, 0.0)], P["dark"], fr, (0, 0, -0.45), seg=32)
@@ -266,15 +267,16 @@ def signal_source(P, root, rng):
         flat_patch(f"Crack{k}", rng, 0.12, 0.07, P["scorch"], root, segs=6, rough=0.1,
                    xy=(1.6 * math.cos(a), 1.6 * math.sin(a)), stretch=(1.0, 1.0))
     # the outcrop: one big split boulder, smaller ones round it
-    blob("Boulder", rng, 1.0, (0.15, 0.2, 0.35), P["rock"], root, (1.3, 1.05, 0.85), 0.3, 2)
-    blob("BoulderB", rng, 0.6, (-0.95, 0.5, 0.2), P["rock"], root, (1.0, 1.2, 0.8), 0.35, 2)
+    blob("Boulder", rng, 0.8, (0.2, 0.45, 0.3), P["rock"], root, (1.3, 1.0, 0.8), 0.3, 2)
+    blob("BoulderB", rng, 0.5, (-0.9, 0.75, 0.18), P["rock"], root, (1.0, 1.2, 0.8), 0.35, 2)
+    blob("BoulderC", rng, 0.42, (0.85, -0.35, 0.12), P["rock"], root, (1.2, 1.0, 0.7), 0.35, 2)
     for k in range(5):
         a = math.radians(200 + 35 * k)
         blob(f"Stone{k}", rng, 0.18 + 0.15 * rng.random(), (1.7 * math.cos(a), 1.7 * math.sin(a), 0.1), P["rock"],
              root, (1, 1, 0.7), 0.35, 1)
     # the transmitter: a faceted spindle wedged into the boulder's front, leaning out
-    t = empty("Spindle", (0.1, -0.35, 0.55), root)
-    t.rotation_euler = (math.radians(-24), math.radians(10), math.radians(15))
+    t = empty("Spindle", (0.0, -0.55, 0.42), root)
+    t.rotation_euler = (math.radians(32), math.radians(12), math.radians(15))
     prof = [(0.0, -0.75), (0.12, -0.6), (0.24, -0.3), (0.28, 0.0), (0.24, 0.35), (0.14, 0.62), (0.06, 0.72), (0.0, 0.74)]
     lathe("Spindle", prof, P["obsidian"], t, seg=6, smooth=False)
     # glowing seams + aperture: one mesh "Glow"
@@ -287,7 +289,7 @@ def signal_source(P, root, rng):
     g = mesh_object("Glow", bm, P["glow"], t, smooth=False)
     g.visible_shadow = False
     # a couple of thin metal fins out of the rock beside it (part of the thing, half buried)
-    for k, (x, y, yaw) in enumerate([(0.75, -0.1, 30), (-0.45, -0.25, -40)]):
+    for k, (x, y, yaw) in enumerate([(0.6, -0.75, 30), (-0.55, -0.6, -40)]):
         box(f"Fin{k}", (0.03, 0.42, 0.3), (x, y, 0.28), P["obsidian"], root, bev=0.0,
             rot=(math.radians(-20), 0, math.radians(yaw)))
 
