@@ -81,7 +81,7 @@ h2 small { font: 500 14px/1 var(--body); color: var(--dim); }
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Test + fix pass · main menu · rocket landings · tutorial · parts · civilizations</div>
+    <div class="eyebrow">Test + fix pass · menu · tutorial · parts · civilizations · satellites · dome transits · drones · relays · missions</div>
     <h1>Final Frontier Test Run</h1>
     <p class="lede">Work down the list in Godot. Mark each check Pass, Fail or Skip and add a short note when something looks wrong. Results save as you go and everyone testing sees each other's, so Michael and Craig can split the list. After the session, send the <span class="kbd">godot.log</span> file too.</p>
     <div class="update"><b>Update first</b><code>Close Godot, discard changes to game/project.godot (and Planet.tscn), pull main.
@@ -166,6 +166,28 @@ var AREAS = [
     ["sat-locate", "Click a finding line, then (after landing) click it again", "The globe turns to the tile with a pulsing peach ring; the second click goes down to that tile."],
     ["sat-follow", "Press FOLLOW, then drag the globe; press RETASK and click another latitude", "The globe keeps the satellite in front until you drag; after RETASK it drifts to the new band with its thrusters lit and sweeps there."],
     ["sat-era", "Start a campaign (Dawn of Warp) and put a satellite up", "The pre-warp satellite model (gold foil, big wings) if its glb is in; MODEL row says Earth survey satellite."]
+  ]},
+  { id: "dome", name: "Dome transits", sub: "a Domes world (e.g. Veyra)", checks: [
+    ["d-fake", "DEBUG on a Domes world: select a parked rover near a dome edge, press Shift+F10", "A gold field rises over the rover, the dome dips toward it, rings spread over the shell, arcs crackle, an opening glows round it, then it fades. No red lines in Output (vehicle_field / containment_field)."],
+    ["d-leave", "Drive a rover out of the hub's field, and back in", "It stops about 2.5 s at the shell while its field forms and meshes with the dome; leaving, its field lingers then burns away; entering, it melts into the dome with a soft flash. A vehicle behind it waits."]
+  ]},
+  { id: "drones", name: "Scout drones", sub: "Machine Shop + Drone Pad", checks: [
+    ["dr-make", "Build a Machine Shop and a Drone Pad (Industry); queue 2 Scout Drones at the shop", "The drones finish at the shop and appear docked on the pad's two bays; bay lights amber while charging, green when full."],
+    ["dr-launch", "Select the pad, press L (LAUNCH) and click a tile across a mountain or water", "Green/red target ring; the drone spins up, lifts off, cruises over the terrain (never through it), banks in turns, surveys on the way, circles the tile, flies home and lands."],
+    ["dr-range", "Press G, then try to launch to a tile outside the cyan coverage", "Coverage outlines round the hub; the far tile is red with \"Out of comms range: put a relay satellite over it\"."],
+    ["dr-panel", "Select a flying drone: right-click another tile, then press R", "Panel shows battery, state and target; right-click retargets it; R brings it home."]
+  ]},
+  { id: "relay", name: "Relay satellites", sub: "orbit, RELAY pill", checks: [
+    ["rl-up", "In orbit press RELAY and click a tile away from the base", "A coverage cap previews on the globe; the relay drifts out from the ship, unfolds, parks over the tile with a faint link line; SATELLITES lists it as RELAY-1."],
+    ["rl-cover", "Back on the surface press G", "A second, teal outline round the relay's tile; drones can now fly there."]
+  ]},
+  { id: "missions", name: "Missions", sub: "campaign: First Light", checks: [
+    ["ms-first", "Start a campaign and play past the tutorial (lab placed)", "\"Ground Truth\" arrives: banner + feed line; the tracker top right shows survey 0 / 60 and resources found; Y opens the message card."],
+    ["ms-probe", "Finish Ground Truth and follow The Lost Pathfinder", "An amber search ring on the map; surveying inside it finds the probe wreck (prop with a blinking beacon); parking a rover beside it 20 s completes it with a debrief card."],
+    ["ms-chain", "Keep going: Calling Home, Wings, First Flight", "Each asks for the right thing (a relay, a Drone Pad + 2 drones, drone flights to photo points) and completes when done; rewards land in stock / research."],
+    ["ms-side", "Wait for a side job offer (e.g. Rich Vein after a rich deposit)", "OFFER in the tracker; ACCEPT / DECLINE on the card; at most 2 side jobs at once; an ignored offer lapses after ~90 s."],
+    ["ms-log", "Press N", "The mission log: ACTIVE / COMPLETED / FAILED / DECLINED tabs, briefings and debriefs to re-read, SHOW ON MAP."],
+    ["ms-test", "F9 › MISSIONS (in a DEBUG game: Turn missions on)", "Every mission listed; Start / Go to stage / Objective done / Complete / Fail / Reset work and show in the tracker."]
   ]},
   { id: "tools", name: "Test panel", sub: "F9", checks: [
     ["t-civ", "F9 › CIV: pick a body, spawn a living civ, change level, awareness, Standing, relations", "Each change shows on the card and dossier; TEST MODE tag appears."],
