@@ -27,9 +27,10 @@ rotation is identity, so the game animates by setting each node's Basis, identit
   Stalk. bat.glb: Black (body), BatWing (dark purple membrane), BatEye (red, emissive strength 1).
 
 Units and axes: 1 Blender unit = 1 game world unit (hexes 25 wide, buildings 10-12, so Jack is a giant). Blender +Y =
-front (Godot -Z), +Z = up (Godot +Y); the exporter maps Blender (x, y, z) to Godot (x, z, -y). Turning a pivot about
-Blender +X by a positive angle swings a hanging limb forward (Godot: Basis(Vector3.Right, -a) ... note the sign flip
-of the Y/Z swap: Blender X stays Godot X, so the same +a about X in Godot swings it backward toward +Z).
+front (Godot -Z), +Z = up (Godot +Y); the exporter maps Blender (x, y, z) to Godot (x, z, -y), a proper rotation, so
+turns keep their sign: a positive turn about X swings a hanging limb forward in both (Blender rotation_euler.x = +a,
+Godot Basis(Vector3.Right, +a)); Blender's turn about Z (heading) is Godot's about Y, Blender's about Y is Godot's
+about -Z (so a bat wing flap of +a about Blender Y is Basis(Vector3.Forward, +a) in Godot).
 
 Run (bpy 5.x, see CLAUDE.md "Blender here"):
   /home/user/.bpyvenv/bin/python blender/build_jack.py --game
@@ -39,7 +40,7 @@ Run (bpy 5.x, see CLAUDE.md "Blender here"):
       Cycles: jack-hero.png (3/4 front, holding a lit pumpkin), jack-game.png (game camera ~45 deg down beside a
       10-wide grey box standing in for a building, a pumpkin in flight, bats), jack-glb.png (the exported jack.glb
       re-imported and posed mid-stride through its own pivots; needs --game first), jack-props.png (pumpkin.glb +
-      bat.glb). ~3-5 min on 4 cores.
+      bat.glb). ~1.5 min on 4 cores at 40 samples, 1200 x 800.
   python3 blender/build_jack.py --sheet blender/previews/jack      contact sheet jack-sheet.png (system python + PIL)
 Flags: --shots hero,game,glb,props  --res 1200  --samples 40
 """
