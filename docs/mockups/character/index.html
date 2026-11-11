@@ -1,0 +1,736 @@
+<title>Officer &amp; Saves Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@500;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: a design-review page like the other game mockups: controls (faction, era, screen) on top, the game screen at
+   1280×720 proportions in the middle (helm colours from HelmScreen.cs, slim elbows), design notes and open questions
+   under it. The page shell follows the viewer's theme (dark first); the game frame keeps the game's own colours. */
+:root {
+  color-scheme: dark;
+  --page: #06080e; --page-2: #0d1322; --ink: #e8ecf5; --dim: #97a3bd; --rule: #252e46; --mark: #f2a65a; --focus: #9ed1ff;
+  --h-bg: #000; --h-panel: #0a0c13; --h-panel-2: #11141d; --h-line: #272b38;
+  --h-peach: #f2a65a; --h-lav: #a9a3e0; --h-sky: #7fb0e8; --h-rust: #c8664a; --h-green: #9be37a;
+  --h-red: #e8645a; --h-amber: #f5c04a; --h-ink: #f2e6d8; --h-grey: #3d404b; --h-greytext: #8d909a;
+  --d-exploration: #3e7fd6; --d-defense: #c8423a; --d-maintenance: #d9a23a; --d-archaeology: #4e9a5a;
+  --dc: var(--d-exploration);
+  --display: "Antonio", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { color-scheme: light; --page: #eceff5; --page-2: #ffffff; --ink: #151b29; --dim: #4e5970; --rule: #cdd3e0; --mark: #a8561a; --focus: #1f5fbf; }
+}
+:root[data-theme="light"] { color-scheme: light; --page: #eceff5; --page-2: #ffffff; --ink: #151b29; --dim: #4e5970; --rule: #cdd3e0; --mark: #a8561a; --focus: #1f5fbf; }
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 18px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+header.page h1 { font: 700 clamp(34px, 5vw, 52px)/1 var(--display); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 8px; text-wrap: balance; }
+header.page p { margin: 0; color: var(--dim); max-width: 72ch; }
+.eyebrow { display: inline-block; font: 600 13px/1 var(--label); letter-spacing: .16em; text-transform: uppercase; color: var(--mark);
+  border: 1px solid var(--mark); border-radius: 12px; padding: 5px 10px; margin-bottom: 12px; }
+
+.controls { display: grid; gap: 10px; }
+.ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.ctl-label { font: 600 12px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); min-width: 64px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 16px; border: 1px solid var(--rule);
+  background: var(--page-2); font: 600 14px/1 var(--label); letter-spacing: .06em; text-transform: uppercase; }
+.chip i { width: 10px; height: 10px; border-radius: 50%; background: var(--c, var(--mark)); flex: none; }
+.chip[aria-pressed="true"] { border-color: var(--c, var(--mark)); box-shadow: inset 0 0 0 1px var(--c, var(--mark)); }
+.chip small { font-size: 10px; color: var(--dim); letter-spacing: .1em; }
+.steps { display: flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; width: fit-content; max-width: 100%; }
+.steps button { display: flex; align-items: center; gap: 8px; border: 0; border-right: 1px solid var(--rule); background: var(--page-2);
+  padding: 9px 13px; font: 600 14px/1 var(--label); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.steps button:last-child { border-right: 0; }
+.steps button b { font: 700 12px/1 var(--display); color: var(--mark); }
+.steps button[aria-current="true"] { color: var(--ink); background: color-mix(in srgb, var(--mark) 16%, var(--page-2)); }
+.cap { font: 600 12px/1.3 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+
+/* ---------------------------------------------------------------- game frame */
+.game { position: relative; background: var(--h-bg); color: var(--h-ink); border-radius: 12px; overflow: hidden;
+  display: grid; grid-template-columns: 150px minmax(0, 1fr); grid-template-rows: 34px minmax(0, 1fr) 28px; gap: 4px;
+  grid-template-areas: "top top" "rail body" "bot bot"; font: 400 14px/1.4 var(--body); min-height: 560px; }
+@media (min-width: 960px) { .game { aspect-ratio: 16 / 9; min-height: 0; } }
+.game .top { grid-area: top; display: flex; gap: 4px; }
+.game .top .cap0 { width: 150px; flex: none; background: var(--h-peach); border-radius: 12px 0 0 0; }
+.game .top .bar { flex: 1; min-width: 0; background: var(--h-lav); color: #000; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 0 14px; font: 700 17px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+.game .top .bar small { font: 600 12px/1 var(--label); letter-spacing: .14em; }
+.game .top .end { flex: none; width: 190px; background: var(--dc); color: #000; border-radius: 0 12px 0 0; display: flex; align-items: center;
+  justify-content: center; font: 700 14px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; }
+.rail { grid-area: rail; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+.rail button { border: 0; background: var(--h-grey); color: #000; text-align: right; padding: 22px 10px 5px; font: 600 13px/1 var(--label);
+  letter-spacing: .12em; text-transform: uppercase; }
+.rail button[aria-current="true"] { background: var(--h-peach); }
+.rail button.done { background: #6b6e79; }
+.rail button:disabled { background: #24262d; color: #555864; cursor: default; }
+.rail .fill { flex: 1; background: var(--h-grey); min-height: 16px; }
+.rail .tag { background: var(--dc); color: #000; padding: 18px 10px 5px; text-align: right; font: 600 12px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; }
+.bot { grid-area: bot; display: flex; gap: 4px; }
+.bot .cap0 { width: 150px; flex: none; background: var(--h-lav); border-radius: 0 0 0 12px; }
+.bot .bar { flex: 1; min-width: 0; background: var(--h-grey); border-radius: 0 0 12px 0; display: flex; align-items: center; gap: 6px; padding: 0 8px; overflow-x: auto; }
+.pill { border: 0; background: var(--h-peach); color: #000; border-radius: 11px; padding: 4px 12px; font: 600 12px/1 var(--label);
+  letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+.pill.dis { background: var(--h-greytext); cursor: default; }
+.pill.alt { background: var(--h-sky); }
+.pill.red { background: var(--h-red); }
+.bot .hint { margin-left: auto; color: #000; font: 600 12px/1 var(--label); letter-spacing: .12em; white-space: nowrap; padding-right: 6px; text-transform: uppercase; }
+.body { grid-area: body; min-width: 0; min-height: 0; overflow: auto; padding: 12px 14px 12px 10px; }
+
+/* in-frame type + parts */
+.h4 { margin: 0; font: 700 26px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--h-peach); }
+.h5 { margin: 0; font: 600 13px/1.2 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--h-lav); }
+.mute { color: var(--h-greytext); }
+.cols { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+.cols.w3 { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+@media (max-width: 820px) { .cols, .cols.w3 { grid-template-columns: minmax(0, 1fr); } .game { grid-template-columns: 0 minmax(0, 1fr); } .rail { display: none; } .game .top .cap0, .bot .cap0 { width: 0; } .game .top .end { width: 120px; } }
+.panel { background: var(--h-panel); border: 1px solid var(--h-line); border-radius: 0 10px 10px 0; border-left: 6px solid var(--h-lav); padding: 10px 12px; display: grid; gap: 9px; min-width: 0; }
+.panel.dc { border-left-color: var(--dc); }
+.field { display: grid; gap: 4px; }
+.field label, .lbl { font: 600 11px/1 var(--label); letter-spacing: .16em; text-transform: uppercase; color: var(--h-greytext); }
+.inp { background: #000; border: 1px solid #3a3f50; border-radius: 6px; padding: 7px 9px; color: var(--h-ink); font: 600 17px/1.1 var(--label); letter-spacing: .04em; width: 100%; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.opt { border: 1px solid #3a3f50; background: var(--h-panel-2); color: var(--h-ink); border-radius: 13px; padding: 5px 11px; font: 600 13px/1 var(--label); letter-spacing: .08em; text-transform: uppercase; }
+.opt[aria-pressed="true"] { background: var(--h-peach); color: #000; border-color: var(--h-peach); }
+.opt:disabled { color: #5d606b; border-style: dashed; cursor: not-allowed; }
+.opt.lock::after { content: " · locked"; font-size: 10px; letter-spacing: .08em; }
+.sw { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #000; box-shadow: 0 0 0 1px #3a3f50; background: var(--s); padding: 0; }
+.sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--h-peach); }
+input[type=range] { width: 100%; accent-color: var(--h-peach); }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; font-size: 13.5px; }
+.kv dt { font: 600 11px/1.6 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--h-greytext); }
+.kv dd { margin: 0; min-width: 0; }
+.note { font-size: 12.5px; color: var(--h-greytext); }
+.perk { font-size: 13px; color: var(--h-green); }
+.warn { font-size: 13px; color: var(--h-amber); }
+
+/* portraits */
+.face { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: radial-gradient(circle at 50% 35%, #1d2232, #07080c 75%); border: 1px solid #2e3344; }
+.face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.face svg { width: 100%; height: 100%; display: block; }
+.face .ribbon { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, rgba(0,0,0,.85)); padding: 14px 7px 5px;
+  font: 600 11px/1.15 var(--label); letter-spacing: .1em; text-transform: uppercase; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.gallery button { padding: 0; border: 2px solid transparent; border-radius: 9px; background: none; }
+.gallery button[aria-pressed="true"] { border-color: var(--h-peach); }
+.bigface { max-width: 300px; width: 100%; }
+
+/* department cards */
+.depts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 1100px) { .depts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .depts { grid-template-columns: minmax(0, 1fr); } }
+.dept { text-align: left; background: var(--h-panel); border: 1px solid var(--h-line); border-top: 8px solid var(--c); border-radius: 0 0 10px 10px; padding: 10px 11px; display: grid; gap: 7px; color: var(--h-ink); align-content: start; }
+.dept[aria-pressed="true"] { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); background: color-mix(in srgb, var(--c) 12%, var(--h-panel)); }
+.dept .t { font: 700 21px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
+.dept .r { font: 600 12px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--h-greytext); }
+.dept ul { margin: 0; padding-left: 16px; font-size: 13px; display: grid; gap: 2px; }
+
+/* traits */
+.traits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 560px) { .traits { grid-template-columns: minmax(0, 1fr); } }
+.trait { text-align: left; border: 1px solid #3a3f50; background: var(--h-panel-2); border-radius: 8px; padding: 7px 9px; color: var(--h-ink); display: grid; gap: 2px; }
+.trait b { font: 600 14px/1.1 var(--label); letter-spacing: .08em; text-transform: uppercase; }
+.trait span { font-size: 12.5px; color: var(--h-greytext); }
+.trait[aria-pressed="true"] { border-color: var(--h-peach); background: color-mix(in srgb, var(--h-peach) 14%, var(--h-panel-2)); }
+.trait[aria-pressed="true"] span { color: var(--h-ink); }
+.trait:disabled { opacity: .45; cursor: not-allowed; }
+
+/* saves */
+.slots { display: grid; gap: 5px; }
+.slot { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; background: var(--h-panel);
+  border: 1px solid var(--h-line); border-radius: 0 8px 8px 0; border-left: 5px solid var(--c, var(--h-grey)); padding: 5px 9px 5px 5px; color: var(--h-ink); }
+.slot[aria-pressed="true"] { border-color: var(--h-peach); box-shadow: inset 0 0 0 1px var(--h-peach); }
+.slot img, .slot .newshot { width: 112px; aspect-ratio: 16/9; object-fit: cover; border-radius: 4px; display: block; }
+.slot .newshot { display: grid; place-items: center; background: #11141d; border: 1px dashed #4a4f60; font: 700 26px/1 var(--display); color: var(--h-peach); }
+.slot .n { font: 600 15px/1.15 var(--label); letter-spacing: .06em; text-transform: uppercase; }
+.slot .m { font-size: 12px; color: var(--h-greytext); }
+.slot .k { font: 600 11px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--h-greytext); text-align: right; }
+.badge { display: inline-block; font: 600 10.5px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; border-radius: 8px; padding: 3px 6px; border: 1px solid currentColor; }
+.ok { color: var(--h-green); } .old { color: var(--h-amber); } .bad { color: var(--h-red); }
+.shot { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 6px; display: block; }
+.confirm { background: #2a1210; border: 1px solid var(--h-red); border-radius: 8px; padding: 8px 10px; display: grid; gap: 7px; }
+.pausecard { display: grid; gap: 4px; align-content: start; }
+.pausecard button { border: 0; background: var(--h-grey); color: #000; text-align: left; padding: 10px 12px; font: 600 15px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; border-radius: 0 12px 12px 0; }
+.pausecard button[aria-current="true"] { background: var(--h-peach); }
+
+/* comms viewscreen */
+.comms { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 820px) { .comms { grid-template-columns: minmax(0, 1fr); } }
+.screen { position: relative; border-radius: 14px; overflow: hidden; border: 3px solid #2a2f40; box-shadow: 0 0 0 6px #0a0c13, 0 0 0 7px #2a2f40; aspect-ratio: 4 / 3; background: #000; max-width: 100%; }
+.screen img, .screen svg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.screen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.6)); }
+.screen .hud { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; padding: 8px 10px; z-index: 2;
+  font: 600 12px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--h-ink); text-shadow: 0 1px 2px #000; }
+.screen .rec { color: var(--h-red); }
+.screen .sub { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 26px 14px 12px; background: linear-gradient(transparent, rgba(0,0,0,.88));
+  font: 500 16px/1.35 var(--body); color: #fff; min-height: 4.6em; }
+.screen.static img, .screen.static svg { filter: contrast(1.1) saturate(.7) blur(.4px); }
+.wave { display: flex; gap: 3px; align-items: center; height: 22px; }
+.wave i { width: 4px; background: var(--h-peach); border-radius: 2px; height: 30%; animation: talk .9s ease-in-out infinite; }
+.wave i:nth-child(2) { animation-delay: .1s } .wave i:nth-child(3) { animation-delay: .25s } .wave i:nth-child(4) { animation-delay: .05s }
+.wave i:nth-child(5) { animation-delay: .3s } .wave i:nth-child(6) { animation-delay: .15s } .wave i:nth-child(7) { animation-delay: .4s }
+.wave.quiet i { animation: none; height: 12%; background: var(--h-greytext); }
+@keyframes talk { 0%,100% { height: 18% } 50% { height: 95% } }
+@media (prefers-reduced-motion: reduce) { .wave i { animation: none; height: 50%; } }
+.reply { text-align: left; border: 1px solid #3a3f50; background: var(--h-panel-2); color: var(--h-ink); border-radius: 0 12px 12px 0; border-left: 5px solid var(--h-sky); padding: 7px 10px; font-size: 14px; }
+.reply b { font: 700 12px/1 var(--display); color: var(--h-sky); margin-right: 6px; }
+.staff { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 700px) { .staff { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.staff .who { display: grid; gap: 4px; font-size: 12px; }
+.staff .who b { font: 600 13px/1.1 var(--label); letter-spacing: .06em; text-transform: uppercase; }
+.staff .who .face { border-top: 4px solid var(--c, var(--h-lav)); }
+
+/* notes under the frame */
+.notes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+@media (max-width: 860px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.notes h2 { font: 700 22px/1.1 var(--display); letter-spacing: .06em; text-transform: uppercase; margin: 0 0 8px; }
+.notes p, .notes li { color: var(--dim); max-width: 68ch; }
+.notes li b, .notes p b { color: var(--ink); font-weight: 600; }
+.notes ol, .notes ul { padding-left: 20px; margin: 0; display: grid; gap: 6px; }
+.peoplestrip { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.peoplestrip figure { margin: 0; display: grid; gap: 3px; }
+.peoplestrip figcaption { font: 600 11px/1.2 var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <span class="eyebrow">Mockup · not in the game yet</span>
+    <h1>Your officer, saves and comms</h1>
+    <p>Who you play: not the captain but the outpost's second, heading one of four departments under the head of the outpost.
+      The new-campaign flow gains an officer step (identity, looks, background, department), the main menu and pause menu gain
+      load and save, and people talk to you on a view screen. Pick a faction and era to see how the species list changes; the
+      faces come from the portrait renders below.</p>
+  </header>
+
+  <div class="controls">
+    <div class="ctl"><span class="ctl-label">Faction</span><div class="seg" id="factions"></div></div>
+    <div class="ctl"><span class="ctl-label">Era</span><div class="seg" id="eras"></div></div>
+    <div class="ctl"><span class="ctl-label">Screen</span><nav class="steps" id="steps" aria-label="Screens"></nav></div>
+  </div>
+
+  <div class="cap" id="where"></div>
+  <section class="game" id="game" aria-live="polite">
+    <div class="top"><div class="cap0"></div><div class="bar"><span id="title"></span><small id="subtitle"></small></div><div class="end" id="endcap"></div></div>
+    <div class="rail" id="rail"></div>
+    <div class="body" id="body"></div>
+    <div class="bot"><div class="cap0"></div><div class="bar" id="actions"></div></div>
+  </section>
+
+  <section>
+    <h2 class="cap" style="margin:0 0 8px">People rendered for this mockup (comm-screen portraits)</h2>
+    <div class="peoplestrip" id="people"></div>
+    <p class="note" id="peoplenote" style="color:var(--dim)"></p>
+  </section>
+
+  <section class="notes">
+    <div>
+      <h2>How it would work</h2>
+      <ul>
+        <li><b>Where it sits.</b> Campaign → faction → era → <b>your officer</b> (new, five steps) → pick a world → land. DEBUG skips it with a default officer.</li>
+        <li><b>Your role.</b> You still give every order (it's an RTS). Your department is where you shine: its perks apply to your colony, the
+          head of the outpost sends you missions about it, and the other three departments are run by officers who report to you on comms
+          and handle their own routine work (the maintenance chief books repairs, security answers hazards) unless you take over.</li>
+        <li><b>Species by faction and era.</b> Dawn of Warp is an Earth expedition, so Humans only. From the Enterprise era Vulcans,
+          Andorians and Tellarites open; later eras add Trill, Betazoids and Bajorans. Other powers have their own lists (Borg get a designation, not a name).</li>
+        <li><b>Looks.</b> The picture you pick is a starting face; sliders and swatches change the live bust (the crew figures' variant hash, so your walker on the map matches your portrait).</li>
+        <li><b>Saves.</b> Autosave at landing, then every 5 minutes (3 rotating slots), plus quicksave (Ctrl+S) and named saves from the pause menu. The load screen groups saves by officer, newest first.</li>
+        <li><b>How a save is made (proposal).</b> A full snapshot of the simulation state, checked against its state hash when loaded. The command log rides along so an older save can still be replayed if the format changes. Saves from builds whose data no longer matches are flagged before you load them.</li>
+        <li><b>Comms.</b> A view screen with the speaker's bust, name, post and signal delay (the game already has signal delay). Messages from Earth in Dawn of Warp arrive recorded with the supply ship. Later, rival and native leaders hail you live.</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Open questions</h2>
+      <ol>
+        <li><b>Department perks.</b> Real bonuses (as shown), or flavour only with missions as the difference?</li>
+        <li><b>Species perks.</b> Small bonuses (proposed), or looks only?</li>
+        <li><b>Sex.</b> Female and male only, or also a third option (and should pronouns be picked separately)?</li>
+        <li><b>Traits.</b> Pick 2 (Humans 3) as shown? Add an optional flaw that buys an extra trait?</li>
+        <li><b>Can you lose your post?</b> E.g. relieved after a disaster, then continue as another officer in the same colony?</li>
+        <li><b>One officer per campaign</b>, or carry the same officer from world to world (with their history and achievements)?</li>
+        <li><b>Your peers:</b> randomly generated, or can you pick or rename them?</li>
+        <li><b>Head of the outpost:</b> a fixed character per campaign, or generated? Should they ever be replaced or promote you?</li>
+        <li><b>Save format:</b> snapshot (recommended) or replay-only (smaller, but breaks whenever the sim changes)?</li>
+        <li><b>Ironman option</b> (one autosave, no reloading)?</li>
+        <li><b>Voices:</b> do comms get spoken lines later (a voice choice is on the Appearance step), or subtitles with a talk sound?</li>
+        <li><b>Your officer on the map:</b> a walker you can follow (it rides along on missions), or only a portrait?</li>
+      </ol>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data
+  const FACTIONS = [
+    { id: "federation", name: "Federation", c: "#7fb0e8", playable: true },
+    { id: "klingon", name: "Klingon", c: "#e0574c" }, { id: "romulan", name: "Romulan", c: "#45b89c" },
+    { id: "cardassian", name: "Cardassian", c: "#c9a24a" }, { id: "dominion", name: "Dominion", c: "#a487e0" },
+    { id: "ferengi", name: "Ferengi", c: "#e8963a" }, { id: "borg", name: "Borg", c: "#8fe060" },
+  ];
+  const ERAS = [
+    { id: "dawn", name: "Dawn of Warp", years: "2063–2150", y: 2063, open: true },
+    { id: "ent", name: "Enterprise", years: "2151–2160", y: 2151 },
+    { id: "tos", name: "Original Series", years: "2265", y: 2265 },
+    { id: "tng", name: "Next Generation", years: "2364", y: 2364 },
+    { id: "dw", name: "Dominion War", years: "2373–2379", y: 2373 },
+  ];
+  // from = first year the species can be picked for this faction (Dawn of Warp = an Earth expedition: Humans only).
+  const SPECIES = {
+    federation: [
+      { id: "human", name: "Human", from: 2063, home: ["Earth · Lagos", "Earth · Montréal", "Earth · Kyoto", "Earth · São Paulo", "Luna · Tycho City", "Mars · Cydonia Station"],
+        perk: "Adaptable: pick 3 traits instead of 2", skins: ["#f1d2bd", "#e2b896", "#c99872", "#a8754f", "#8a5a3b", "#6b4329", "#4f2f1c", "#3a2214"] },
+      { id: "vulcan", name: "Vulcan", from: 2151, home: ["Vulcan · ShiKahr", "Vulcan · Raal", "Vulcan · Gol"], perk: "Disciplined: research +10%", skins: ["#e9d0b4", "#cfae8c", "#b48c68", "#8f6a4c", "#6a4b34"] },
+      { id: "andorian", name: "Andorian", from: 2161, home: ["Andoria · Laibok", "Andoria · the Northern Wastes"], perk: "Hardy: crew sickness 25% shorter", skins: ["#7fa7d9", "#6b93cc", "#5b80bd", "#8db6e3"] },
+      { id: "tellarite", name: "Tellarite", from: 2161, home: ["Tellar Prime · Gravett", "Tellar Prime · the Ironpits"], perk: "Stubborn: repairs 10% faster", skins: ["#d6a59a", "#c08d80", "#a87566", "#8d5e51"] },
+      { id: "trill", name: "Trill", from: 2285, home: ["Trill · Mak'ala", "Trill · Leran Manev"], perk: "Many lives (joined): one trait from another department's list", skins: ["#f0d4bf", "#dbb594", "#bd906c", "#94684a"] },
+      { id: "betazoid", name: "Betazoid", from: 2300, home: ["Betazed · Rixx", "Betazed · the Lake Cataria shore"], perk: "Empath: first-contact steps go smoothly more often", skins: ["#efd3bf", "#d7af8e", "#b98a66", "#8e6345"] },
+      { id: "bajoran", name: "Bajoran", from: 2364, home: ["Bajor · Ashalla", "Bajor · Dahkur Province", "Valo II settlement"], perk: "Ruin-wise: dig layers 10% faster", skins: ["#f0d2bc", "#d9b391", "#b98b67", "#8f6446"] },
+    ],
+    klingon: [{ id: "klingon", name: "Klingon", from: 2063, home: ["Qo'noS · First City"], perk: "Warrior: defences hit harder", skins: ["#b98a66", "#8f6446", "#6b4329"] }],
+    romulan: [{ id: "romulan", name: "Romulan", from: 2063, home: ["Romulus · Ki Baratan"], perk: "Secretive: harder to spot", skins: ["#e2c0a0", "#c49b78", "#9a7253"] },
+              { id: "reman", name: "Reman", from: 2063, home: ["Remus · the dark side"], perk: "Night-born: no night penalty", skins: ["#9aa0a6", "#7f868d"] }],
+    cardassian: [{ id: "cardassian", name: "Cardassian", from: 2063, home: ["Cardassia Prime · Lakarian City"], perk: "Orderly: building +5% output", skins: ["#a7a59b", "#8f8d83", "#77756c"] }],
+    dominion: [{ id: "vorta", name: "Vorta", from: 2063, home: ["Kurill Prime"], perk: "Negotiator: trade terms better", skins: ["#e8d2c0", "#d4b9a3"] },
+               { id: "jemhadar", name: "Jem'Hadar", from: 2063, home: ["a hatchery"], perk: "Soldier: no sex choice, no traits from Archaeology", skins: ["#a59b8a", "#8b8272"] },
+               { id: "changeling", name: "Changeling", from: 2063, home: ["the Great Link"], perk: "Shapeshifter: no sex, picks any look", skins: ["#d7c2a3"] }],
+    ferengi: [{ id: "ferengi", name: "Ferengi", from: 2063, home: ["Ferenginar · the Tower of Commerce"], perk: "Profit: trade pays 15% more", skins: ["#e2b896", "#cf9f7a", "#b8875f"] }],
+    borg: [{ id: "drone", name: "Drone", from: 2063, home: ["Unimatrix 01"], perk: "Collective: no name, a designation", skins: ["#b9bcc2", "#9da1a8"] }],
+  };
+  const NAMES = {
+    human: { f: ["Maya Torres", "Amara Okafor", "Lin Haruka", "Ingrid Solberg", "Priya Raman", "Celeste Moreau"], m: ["Daniel Reyes", "Tomas Novak", "Kwame Mensah", "Arjun Mehta", "Elias Brandt", "Kenji Sato"] },
+    vulcan: { f: ["T'Vael", "T'Mira", "T'Sorel"], m: ["Soran", "Taveth", "Sevik"] },
+    andorian: { f: ["Thaira sh'Vetrel", "Jhiss zh'Arren"], m: ["Thelev ch'Rhessa", "Varik th'Oran"] },
+    tellarite: { f: ["Brenna glasch Tov", "Hura brel Kog"], m: ["Grenn glasch Tor", "Mokh brel Dav"] },
+    trill: { f: ["Lenia Tolen", "Ezra Kaval"], m: ["Tolen Ral", "Jorin Veth"] },
+    betazoid: { f: ["Mirel Andovi", "Selai Tavo"], m: ["Daro Imeni", "Kael Vosti"] },
+    bajoran: { f: ["Kell Mira", "Tora Seyla"], m: ["Anor Davi", "Jalen Rhos"] },
+    klingon: { f: ["Mara, daughter of Kesh"], m: ["Kraag, son of Durak"] }, romulan: { f: ["Velaan tr'Hesset"], m: ["Tal'kar t'Rovan"] },
+    reman: { f: ["Vreth"], m: ["Shael"] }, cardassian: { f: ["Remia Dalen"], m: ["Dakar Remin"] }, ferengi: { f: ["Ishla"], m: ["Gorz"] },
+    vorta: { f: ["Kilnar"], m: ["Evek"] }, jemhadar: { m: ["Torak'ar"], f: ["Torak'ar"] }, changeling: { f: ["Laas-Odo"], m: ["Laas-Odo"] },
+    drone: { f: ["Four of Nine"], m: ["Seven of Twelve"] },
+  };
+  const DEPTS = [
+    { id: "exploration", name: "Exploration", title: "Chief of Exploration", c: "var(--d-exploration)",
+      runs: ["Survey rovers, scout drones, satellites, relays", "Charting the system and landing sites", "Finding deposits and native settlements"],
+      perks: ["Rovers survey 1 tile further", "Scout drones fly 15% longer", "Your missions: chart the system, find the next site"] },
+    { id: "defense", name: "Defense", title: "Chief of Security", c: "var(--d-defense)",
+      runs: ["Security crews and the perimeter", "Hazards: wildlife, storms, ruin defences", "Keeping native contact quiet (awareness)"],
+      perks: ["Buildings take 20% less damage", "Hazard and storm warnings 30 s earlier", "Your missions: secure sites, escort convoys"] },
+    { id: "maintenance", name: "Maintenance", title: "Chief Engineer", c: "var(--d-maintenance)",
+      runs: ["Repairs, wear and breakdowns", "Machine Shop, spare kits, power", "Life support on dome worlds"],
+      perks: ["Repairs 20% faster", "Buildings wear 10% slower", "Your missions: keep the colony running through a crisis"] },
+    { id: "archaeology", name: "Archaeology", title: "Chief Archaeologist", c: "var(--d-archaeology)",
+      runs: ["Ruins and Excavation Sites", "Finds, artifacts, precursor sites", "Studying native cultures"],
+      perks: ["Dig layers 15% faster", "Defence systems found disarmed more often", "Your missions: dig, study, understand the precursors"] },
+  ];
+  const TRAITS = [
+    { id: "eye", name: "Surveyor's eye", d: "Rovers you order survey 1 tile further", dept: "exploration" },
+    { id: "weather", name: "Weather-wise", d: "Storms hold up your drop ships and rovers 30% less", dept: "exploration" },
+    { id: "hardhat", name: "Hard hat", d: "Buildings take 20% less hazard damage", dept: "defense" },
+    { id: "calm", name: "Cool under fire", d: "Native incidents cost half the Standing", dept: "defense" },
+    { id: "hands", name: "Steady hands", d: "Repairs and tyre changes 15% faster", dept: "maintenance" },
+    { id: "qm", name: "Quartermaster", d: "Spare kits made 20% faster", dept: "maintenance" },
+    { id: "digrat", name: "Dig rat", d: "Excavation layers 15% faster", dept: "archaeology" },
+    { id: "lingo", name: "Xenolinguist", d: "Studying a civilization takes 25% less time", dept: "archaeology" },
+    { id: "medic", name: "Field medic", d: "Crew sickness 30% shorter", dept: null },
+    { id: "oldhand", name: "Old hand", d: "Start with 2 extra kits of each kind (age 45+)", dept: null, minAge: 45 },
+  ];
+  const BACKGROUNDS = {
+    dawn: ["UESPA survey corps", "Earth Cargo Service (a 'boomer')", "Warp 5 project engineer", "University field archaeologist", "MACO trainee"],
+    later: ["Academy graduate", "Merchant marine", "Colony-born", "Science vessel survey team", "Border patrol"],
+  };
+  const HAIR = ["Crop", "Short", "Swept", "Bun", "Curly", "Bald"];
+  const HAIRC = ["#1b1612", "#3a2618", "#6b4527", "#a8743f", "#d8b36a", "#b8452a", "#9a9a9a", "#e8e6e0"];
+
+  // ------------------------------------------------------------ state
+  const S = {
+    faction: "federation", era: "dawn", screen: "identity",
+    o: { name: "Maya Torres", callsign: "", sex: "f", age: 34, species: "human", face: 0, skin: 2, hair: "Short", hairc: 1, beard: "None",
+         height: 168, build: 40, voice: "Mid", home: 0, bg: 0, traits: ["eye", "medic", "weather"], dept: "exploration" },
+    slot: 1, saveSlot: 0, confirm: null, call: 0, typed: 0,
+  };
+  let PORTRAITS = [];
+
+  const $ = (s, el = document) => el.querySelector(s);
+  const h = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content; };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const era = () => ERAS.find((e) => e.id === S.era);
+  const fac = () => FACTIONS.find((f) => f.id === S.faction);
+  const speciesList = () => SPECIES[S.faction];
+  const sp = () => speciesList().find((s) => s.id === S.o.species) || speciesList()[0];
+  const dept = (id = S.o.dept) => DEPTS.find((d) => d.id === id);
+  const sexless = () => ["changeling"].includes(S.o.species);
+  const traitCap = () => (S.o.species === "human" ? 3 : 2) + (S.o.species === "trill" ? 1 : 0);
+  const open = (s) => s.from <= era().y;
+
+  // ------------------------------------------------------------ portraits
+  function silhouette(skin, label) {
+    return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(label)}"><defs><radialGradient id="g" cx=".5" cy=".3" r=".8"><stop offset="0" stop-color="#232838"/><stop offset="1" stop-color="#07080c"/></radialGradient></defs>
+      <rect width="100" height="100" fill="url(#g)"/><path d="M14 100 C18 78 34 70 50 70 C66 70 82 78 86 100 Z" fill="#2b3040"/>
+      <path d="M32 74 L50 86 L68 74 L68 70 L32 70 Z" fill="var(--dc)" opacity=".85"/>
+      <ellipse cx="50" cy="44" rx="17" ry="21" fill="${skin}"/><rect x="44" y="60" width="12" height="12" fill="${skin}"/></svg>`;
+  }
+  function pick(species, sex, deptId, n = 0) {
+    let list = PORTRAITS.filter((p) => p.species === species && (!sex || p.sex === sex));
+    if (!list.length) list = PORTRAITS.filter((p) => p.species === species);
+    if (deptId) { const d = list.filter((p) => p.department === deptId); if (d.length) list = d.concat(list.filter((p) => p.department !== deptId)); }
+    return list.length ? list[n % list.length] : null;
+  }
+  function face(p, fallbackSkin, label, ribbon = "") {
+    const inner = p ? `<img src="portraits/${esc(p.file)}" alt="${esc(label)}" loading="lazy">` : silhouette(fallbackSkin || "#c99872", label);
+    return `<div class="face">${inner}${ribbon ? `<div class="ribbon">${ribbon}</div>` : ""}</div>`;
+  }
+  function myFace(ribbon = "") {
+    const list = PORTRAITS.filter((p) => p.species === S.o.species && (sexless() || p.sex === S.o.sex));
+    const p = list.length ? list[S.o.face % list.length] : pick(S.o.species, S.o.sex, S.o.dept);
+    return face(p, sp().skins[S.o.skin % sp().skins.length], S.o.name, ribbon);
+  }
+
+  // ------------------------------------------------------------ screens
+  const CREATE = [["identity", "Identity"], ["appearance", "Appearance"], ["background", "Background"], ["department", "Department"], ["review", "Review"]];
+  const SCREENS = [["load", "Load game"], ...CREATE, ["save", "Save (in game)"], ["comms", "Comms"]];
+
+  function frame({ title, sub = "", end = "", rail = "", body, actions }) {
+    $("#title").textContent = title;
+    $("#subtitle").textContent = sub;
+    $("#endcap").textContent = end;
+    $("#rail").innerHTML = rail;
+    $("#body").innerHTML = body;
+    $("#actions").innerHTML = actions;
+    document.documentElement.style.setProperty("--dc", dept().c);
+  }
+
+  function createRail() {
+    const i = CREATE.findIndex(([id]) => id === S.screen);
+    return CREATE.map(([id, n], k) => `<button data-go="${id}" ${k === i ? 'aria-current="true"' : ""} class="${k < i ? "done" : ""}">${k + 1} · ${n}</button>`).join("") +
+      `<div class="fill"></div><div class="tag">${esc(dept().name)}</div>`;
+  }
+  function createActions() {
+    const i = CREATE.findIndex(([id]) => id === S.screen);
+    return `<button class="pill dis" data-go="${i > 0 ? CREATE[i - 1][0] : "load"}">Back</button>` +
+      `<button class="pill" data-go="${i < CREATE.length - 1 ? CREATE[i + 1][0] : "comms"}">${i < CREATE.length - 1 ? "Next · " + CREATE[i + 1][1] : "Confirm · pick a world"}</button>` +
+      `<span class="hint">Campaign › ${esc(fac().name)} › ${esc(era().name)} › Officer</span>`;
+  }
+
+  function identity() {
+    const o = S.o, list = speciesList();
+    const sexes = sexless() ? `<span class="note">Changelings have no sex.</span>` :
+      ["f", "m"].map((x) => `<button class="opt" data-sex="${x}" aria-pressed="${o.sex === x}">${x === "f" ? "Female" : "Male"}</button>`).join("");
+    const borg = S.faction === "borg";
+    return {
+      title: "New officer", sub: `${fac().name} · ${era().name} ${era().years}`, end: `Step 1 of 5`, rail: createRail(), actions: createActions(),
+      body: `<div class="cols w3">
+        <div class="panel">
+          <div class="field"><label for="nm">${borg ? "Designation" : "Name"}</label>
+            <div class="row" style="flex-wrap:nowrap"><input class="inp" id="nm" value="${esc(o.name)}" maxlength="32">
+            <button class="opt" data-roll="1" title="Random name for this species and sex">Roll</button></div></div>
+          ${borg ? "" : `<div class="field"><label for="cs">Callsign or nickname (optional)</label><input class="inp" id="cs" value="${esc(o.callsign)}" placeholder="e.g. Dusty" maxlength="16"></div>`}
+          <div class="field"><span class="lbl">Species · ${esc(fac().name)}</span><div class="row">${list.map((s) =>
+            `<button class="opt ${open(s) ? "" : "lock"}" data-species="${s.id}" aria-pressed="${o.species === s.id}" ${open(s) ? "" : "disabled"} title="${open(s) ? esc(s.perk) : "Playable from " + s.from}">${esc(s.name)}</button>`).join("")}</div>
+            <div class="perk">${esc(sp().perk)}</div>
+            ${S.era === "dawn" && S.faction === "federation" ? `<div class="note">Dawn of Warp is an expedition from Earth: Humans only. Vulcans open in the Enterprise era, the founding members from 2161, the rest later.</div>` : ""}</div>
+          <div class="field"><span class="lbl">Sex</span><div class="row">${sexes}</div></div>
+          <div class="field"><label for="age">Age · <span id="agev">${o.age}</span></label><input type="range" id="age" min="22" max="65" value="${o.age}"></div>
+        </div>
+        <div class="panel dc" style="justify-items:start">
+          <span class="lbl">Your posting</span>
+          <div class="bigface">${myFace(esc(o.name))}</div>
+          <dl class="kv"><dt>Post</dt><dd>Second to the head of the outpost</dd><dt>Department</dt><dd>${esc(dept().name)} · pick on step 4</dd>
+          <dt>Species</dt><dd>${esc(sp().name)}${sexless() ? "" : " · " + (o.sex === "f" ? "female" : "male")} · ${o.age}</dd></dl>
+        </div></div>`,
+    };
+  }
+
+  function appearance() {
+    const o = S.o, s = sp();
+    const pool = PORTRAITS.filter((p) => p.species === o.species && (sexless() || p.sex === o.sex));
+    const gallery = pool.length ? pool.map((p, k) => `<button data-face="${k}" aria-pressed="${o.face % pool.length === k}" title="${esc(p.notes || p.species)}">${face(p, null, p.species)}</button>`).join("")
+      : `<p class="note">No portrait render for ${esc(s.name)} ${o.sex === "f" ? "women" : "men"} yet: the silhouette stands in.</p>`;
+    return {
+      title: "Appearance", sub: `${s.name} · ${o.sex === "f" ? "female" : "male"}`, end: "Step 2 of 5", rail: createRail(), actions: createActions(),
+      body: `<div class="cols w3">
+        <div class="panel">
+          <div class="field"><span class="lbl">Starting face (${pool.length} for this species and sex)</span><div class="gallery">${gallery}</div></div>
+          <div class="field"><span class="lbl">Skin</span><div class="row">${s.skins.map((c, k) => `<button class="sw" style="--s:${c}" data-skin="${k}" aria-pressed="${o.skin === k}" aria-label="Skin tone ${k + 1}"></button>`).join("")}</div></div>
+          <div class="field"><span class="lbl">Hair</span><div class="row">${HAIR.map((x) => `<button class="opt" data-hair="${x}" aria-pressed="${o.hair === x}">${x}</button>`).join("")}</div>
+            <div class="row">${HAIRC.map((c, k) => `<button class="sw" style="--s:${c}" data-hairc="${k}" aria-pressed="${o.hairc === k}" aria-label="Hair colour ${k + 1}"></button>`).join("")}</div></div>
+          ${o.sex === "m" ? `<div class="field"><span class="lbl">Facial hair</span><div class="row">${["None", "Stubble", "Short beard", "Full beard"].map((x) => `<button class="opt" data-beard="${x}" aria-pressed="${o.beard === x}">${x}</button>`).join("")}</div></div>` : ""}
+          <div class="cols"><div class="field"><label for="ht">Height · <span id="htv">${o.height} cm</span></label><input type="range" id="ht" min="150" max="200" value="${o.height}"></div>
+          <div class="field"><label for="bd">Build · <span id="bdv">${o.build < 35 ? "slim" : o.build > 65 ? "heavy" : "average"}</span></label><input type="range" id="bd" min="0" max="100" value="${o.build}"></div></div>
+          <div class="field"><span class="lbl">Voice (comm lines)</span><div class="row">${["Low", "Mid", "High"].map((x) => `<button class="opt" data-voice="${x}" aria-pressed="${o.voice === x}">${x}</button>`).join("")}</div></div>
+        </div>
+        <div class="panel dc" style="justify-items:start">
+          <span class="lbl">Live bust (in the game: the crew figure, recoloured and reshaped)</span>
+          <div class="bigface">${myFace(`${esc(o.hair)} · ${esc(HAIRC[o.hairc])} · ${o.height} cm`)}</div>
+          <p class="note">Uniform colour follows your department: ${esc(dept().name)}. The same look is used for your walker on the map.</p>
+        </div></div>`,
+    };
+  }
+
+  function background() {
+    const o = S.o, s = sp(), bgs = S.era === "dawn" ? BACKGROUNDS.dawn : BACKGROUNDS.later, cap = traitCap();
+    return {
+      title: "Background", sub: `${o.traits.length} of ${cap} traits`, end: "Step 3 of 5", rail: createRail(), actions: createActions(),
+      body: `<div class="cols w3">
+        <div class="panel">
+          <div class="field"><span class="lbl">Traits · pick ${cap}${o.species === "human" ? " (Humans: adaptable)" : ""}</span>
+            <div class="traits">${TRAITS.map((t) => {
+              const on = o.traits.includes(t.id), blocked = (t.minAge && o.age < t.minAge) || (!on && o.traits.length >= cap);
+              const d = t.dept ? dept(t.dept) : null;
+              return `<button class="trait" data-trait="${t.id}" aria-pressed="${on}" ${blocked && !on ? "disabled" : ""}>
+                <b>${esc(t.name)}${d ? ` <i style="color:${d.c};font-style:normal">· ${esc(d.name)}</i>` : ""}</b><span>${esc(t.d)}${t.minAge && o.age < t.minAge ? ` · age ${t.minAge}+` : ""}</span></button>`;
+            }).join("")}</div></div>
+        </div>
+        <div class="panel">
+          <div class="field"><span class="lbl">Born</span><div class="row">${s.home.map((x, k) => `<button class="opt" data-home="${k}" aria-pressed="${o.home === k}">${esc(x)}</button>`).join("")}</div></div>
+          <div class="field"><span class="lbl">Before this posting</span><div class="row">${bgs.map((x, k) => `<button class="opt" data-bg="${k}" aria-pressed="${o.bg === k}">${esc(x)}</button>`).join("")}</div>
+            <div class="note">Flavour for the dossier and a few comm lines; no bonus.</div></div>
+          <div class="field"><span class="lbl">Species perk</span><div class="perk">${esc(s.perk)}</div></div>
+        </div></div>`,
+    };
+  }
+
+  function department() {
+    return {
+      title: "Department", sub: "You answer to the head of the outpost", end: "Step 4 of 5", rail: createRail(), actions: createActions(),
+      body: `<div style="display:grid;gap:12px">
+        <p class="note" style="margin:0">Pick what you run. You can still give any order; this is where your perks apply and what your missions are about. The other three are run by officers who report to you.</p>
+        <div class="depts">${DEPTS.map((d) => `<button class="dept" style="--c:${d.c}" data-dept="${d.id}" aria-pressed="${S.o.dept === d.id}">
+          <span class="t">${esc(d.name)}</span><span class="r">${esc(d.title)}</span>
+          <span class="lbl">You run</span><ul>${d.runs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+          <span class="lbl">Perks</span><ul class="perk">${d.perks.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></button>`).join("")}</div></div>`,
+    };
+  }
+
+  function staff() {
+    // Head of the outpost + the three other department heads (generated per campaign).
+    const head = { species: "human", sex: "f", name: S.era === "dawn" ? "Director Amara Okafor" : "Commander Amara Okafor", post: "Head of the outpost", dept: null };
+    const others = DEPTS.filter((d) => d.id !== S.o.dept);
+    const peers = [
+      { species: "human", sex: "m", name: "Kenji Sato" }, { species: "human", sex: "f", name: "Ingrid Solberg" }, { species: "human", sex: "m", name: "Kwame Mensah" },
+    ].map((p, k) => ({ ...p, post: others[k].title, dept: others[k].id }));
+    if (S.era !== "dawn" && S.faction === "federation") { peers[0].species = "vulcan"; peers[0].name = "Soran"; peers[2].species = "tellarite"; peers[2].name = "Grenn glasch Tor"; }
+    return [head, ...peers];
+  }
+
+  function review() {
+    const o = S.o, s = sp(), d = dept();
+    const st = staff();
+    const card = (p, k) => `<div class="who" style="--c:${p.dept ? dept(p.dept).c : "var(--h-lav)"}">${face(pick(p.species, p.sex, p.dept, k), "#b98a66", p.name)}<b>${esc(p.name)}</b><span class="mute">${esc(p.post)}</span></div>`;
+    const me = `<div class="who" style="--c:${d.c}">${myFace()}<b>${esc(o.name)} (you)</b><span class="mute">${esc(d.title)}</span></div>`;
+    return {
+      title: "Officer dossier", sub: `${s.name} · ${d.title}`, end: "Step 5 of 5", rail: createRail(), actions: createActions(),
+      body: `<div style="display:grid;gap:12px"><div class="cols w3">
+        <div class="panel dc"><div style="display:grid;grid-template-columns:minmax(0,140px) minmax(0,1fr);gap:12px;align-items:start">
+          ${myFace()}
+          <div style="display:grid;gap:6px;min-width:0"><div class="h4">${esc(o.name)}${o.callsign ? ` <span class="mute" style="font-size:18px">“${esc(o.callsign)}”</span>` : ""}</div>
+          <div class="h5" style="color:${d.c}">${esc(d.title)} · second to the head of the outpost</div>
+          <dl class="kv"><dt>Species</dt><dd>${esc(s.name)}${sexless() ? "" : ", " + (o.sex === "f" ? "female" : "male")}, ${o.age}</dd>
+            <dt>Born</dt><dd>${esc(s.home[o.home % s.home.length])}</dd>
+            <dt>Before</dt><dd>${esc((S.era === "dawn" ? BACKGROUNDS.dawn : BACKGROUNDS.later)[o.bg])}</dd>
+            <dt>Traits</dt><dd>${o.traits.map((t) => esc(TRAITS.find((x) => x.id === t).name)).join(" · ")}</dd>
+            <dt>Perks</dt><dd class="perk">${esc(s.perk)}; ${d.perks.slice(0, 2).map(esc).join("; ")}</dd></dl></div></div></div>
+        <div class="panel"><span class="lbl">First orders</span>
+          <p style="margin:0">Land with the expedition on the world you pick next. ${esc(st[0].name)} will brief you once the outpost is up.</p>
+          <p class="note" style="margin:0">Your first department mission: ${esc(d.perks[2].replace("Your missions: ", ""))}.</p></div></div>
+        <div class="panel"><span class="lbl">Chain of command</span><div class="staff">${card(st[0], 0)}${me}${st.slice(1).map(card).join("")}</div></div></div>`,
+    };
+  }
+
+  const SAVES = [
+    { n: "Autosave · 5 min", shot: "dome", world: "Veyra (class L)", day: "Day 6 · 09:40", time: "2 h 03 min", when: "today 21:52", officer: "Maya Torres", dept: "exploration", auto: true, compat: "ok", bases: 2, bld: 17, veh: 7, miss: "4 / 6" },
+    { n: "Before first contact", shot: "dig", world: "Veyra (class L)", day: "Day 5 · 18:10", time: "1 h 47 min", when: "today 21:31", officer: "Maya Torres", dept: "exploration", compat: "ok", bases: 2, bld: 15, veh: 7, miss: "3 / 6" },
+    { n: "Quicksave", shot: "shop", world: "Tarsis (class M)", day: "Day 3 · 14:20", time: "1 h 12 min", when: "yesterday 19:05", officer: "Kell Mira", dept: "archaeology", compat: "old", bases: 1, bld: 11, veh: 5, miss: "2 / 6" },
+    { n: "Landing", shot: "outpost", world: "Tarsis (class M)", day: "Day 1 · 07:02", time: "4 min", when: "2026-11-08 20:14", officer: "Kell Mira", dept: "archaeology", auto: true, compat: "bad", bases: 1, bld: 1, veh: 3, miss: "0 / 6" },
+  ];
+  const compat = { ok: `<span class="badge ok">Ready</span>`, old: `<span class="badge old">Older build · converts on load</span>`, bad: `<span class="badge bad">Data changed · can't load</span>` };
+
+  function slotRow(sv, k, sel) {
+    return `<button class="slot" style="--c:${dept(sv.dept).c}" data-slot="${k}" aria-pressed="${sel}"><img src="shots/${sv.shot}.jpg" alt="">
+      <span style="min-width:0"><span class="n">${esc(sv.n)}</span><br><span class="m">${esc(sv.officer)} · ${esc(sv.world)} · ${esc(sv.day)}</span></span>
+      <span class="k">${esc(sv.when)}<br>${sv.compat === "ok" ? "" : compat[sv.compat]}</span></button>`;
+  }
+
+  function load() {
+    const sv = SAVES[S.slot];
+    const officers = [...new Set(SAVES.map((x) => x.officer))];
+    const confirm = S.confirm === "delete" ? `<div class="confirm"><span>Delete “${esc(sv.n)}”? This can't be undone.</span><div class="row"><button class="pill red" data-confirm="yes">Delete</button><button class="pill dis" data-confirm="no">Keep it</button></div></div>` : "";
+    return {
+      title: "Load game", sub: `${SAVES.length} saves · ${officers.length} officers`, end: "Main menu",
+      rail: `<button aria-current="true">Continue</button><button>Campaign</button><button disabled>Multiplayer</button><button>Settings</button><button>Debug</button><div class="fill"></div><div class="tag">Final Frontier</div>`,
+      actions: `<button class="pill" ${sv.compat === "bad" ? 'disabled style="opacity:.5"' : ""}>Load</button><button class="pill alt">Rename</button><button class="pill red" data-confirm="ask">Delete</button><span class="hint">Continue = newest save · Ctrl+L in game</span>`,
+      body: `<div class="cols">
+        <div style="display:grid;gap:8px;min-width:0">
+          <div class="row">${officers.map((n, k) => `<span class="opt" aria-pressed="${k === 0}">${esc(n)} · ${SAVES.filter((x) => x.officer === n).length}</span>`).join("")}</div>
+          <div class="slots">${SAVES.map((x, k) => slotRow(x, k, k === S.slot)).join("")}</div>
+          <p class="note" style="margin:0">Autosaves rotate through 3 slots; named saves and the quicksave are kept until you delete them.</p>
+        </div>
+        <div class="panel dc" style="--dc:${dept(sv.dept).c}">
+          <img class="shot" src="shots/${sv.shot}.jpg" alt="Screenshot of the colony when the game was saved">
+          <div style="display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:center">
+            ${face(pick(sv.officer === "Kell Mira" ? "bajoran" : "human", "f", sv.dept), "#c99872", sv.officer)}
+            <div><div class="h5" style="color:${dept(sv.dept).c}">${esc(dept(sv.dept).title)}</div><div class="h4" style="font-size:22px">${esc(sv.officer)}</div></div></div>
+          <dl class="kv"><dt>World</dt><dd>${esc(sv.world)}</dd><dt>Era</dt><dd>Dawn of Warp</dd><dt>Game time</dt><dd>${esc(sv.day)}</dd><dt>Played</dt><dd>${esc(sv.time)}</dd>
+            <dt>Colony</dt><dd>${sv.bases} bases · ${sv.bld} buildings · ${sv.veh} vehicles</dd><dt>Missions</dt><dd>${esc(sv.miss)} First Light</dd>
+            <dt>Saved</dt><dd>${esc(sv.when)}</dd><dt>Build</dt><dd>${compat[sv.compat]}</dd></dl>
+          ${confirm}
+        </div></div>`,
+    };
+  }
+
+  function save() {
+    const named = [{ n: "New save", isNew: true }, ...SAVES.filter((x) => !x.auto && x.officer === "Maya Torres")];
+    const cur = named[S.saveSlot];
+    const confirm = S.confirm === "overwrite" ? `<div class="confirm"><span>Overwrite “${esc(cur.n)}”?</span><div class="row"><button class="pill red" data-confirm="no">Overwrite</button><button class="pill dis" data-confirm="no">Cancel</button></div></div>` : "";
+    return {
+      title: "Paused", sub: "Veyra · Day 6 · 11:05", end: dept().name,
+      rail: `<div class="fill" style="flex:0;min-height:22px"></div><div class="tag">Game paused</div><div class="fill"></div>`,
+      actions: `<button class="pill" data-confirm="${cur.isNew ? "no" : "overwrite"}">${cur.isNew ? "Save" : "Overwrite"}</button><button class="pill dis" data-go="load">Load game…</button><span class="hint">Ctrl+S quicksave · autosave in 3:12</span>`,
+      body: `<div class="cols" style="grid-template-columns:minmax(0,200px) minmax(0,1fr)">
+        <div class="pausecard"><button>Resume</button><button aria-current="true">Save game</button><button data-go="load">Load game</button><button>Settings</button><button>Main menu</button><button>Quit</button></div>
+        <div style="display:grid;gap:10px;min-width:0">
+          <div class="field"><label for="svn">Save name</label><input class="inp" id="svn" value="${esc(cur.isNew ? "Veyra · second base up" : cur.n)}"></div>
+          <div class="slots">${named.map((x, k) => x.isNew
+            ? `<button class="slot" data-saveslot="${k}" aria-pressed="${S.saveSlot === k}"><span class="newshot">+</span><span><span class="n">New save</span><br><span class="m">Takes a screenshot of what's on screen now</span></span><span></span></button>`
+            : slotRow(x, k, S.saveSlot === k).replace(`data-slot="${SAVES.indexOf(x)}"`, `data-saveslot="${k}"`)).join("")}</div>
+          ${confirm}
+          <p class="note" style="margin:0">Saves for ${esc(S.o.name)} only; other officers' saves are on the main menu's load screen.</p>
+        </div></div>`,
+    };
+  }
+
+  const CALLS = () => {
+    const st = staff();
+    return [
+      { who: st[0].name, post: st[0].post, species: "human", sex: "f", dept: null, where: "Colony Hub · Veyra", delay: "live · 0.0 s", rec: false,
+        text: `${S.o.name.split(" ")[0]}, the hub is up and the uplink is holding. I need ${dept().id === "exploration" ? "eyes on that ridge to the east before nightfall" : dept().id === "defense" ? "the perimeter walked before the dust comes in" : dept().id === "maintenance" ? "the reactor checked; it's running hot" : "someone at those ruins before the survey crews trample them"}. Your call how.`,
+        replies: ["On it. I'll take a rover out myself.", "Give me an hour to get my people set.", "Can it wait until the refinery is running?"] },
+      { who: st[3].name, post: st[3].post, species: st[3].species, sex: st[3].sex, dept: st[3].dept, where: "Machine Shop · Base 1", delay: "live · 0.0 s", rec: false,
+        text: "We're down to one environmental kit. Two of the domes are due their seal service tomorrow. Do I strip the spare rover, or do you want to wait for the supply ship?",
+        replies: ["Strip it. Domes come first.", "Wait for the ship.", "Make kits; I'll pause the refinery for power."] },
+      { who: "UESPA Mission Control", post: "Earth · Houston", species: "human", sex: "m", dept: null, where: "Earth · recorded", delay: "arrived with the supply ship", rec: true,
+        text: "Expedition Veyra, this is Houston. Your sample cores made the evening news. Next ship carries four colonists and the drill heads you asked for. Godspeed.",
+        replies: ["File reply for the next ship"] },
+      { who: "Soran", post: "Vulcan observer · Enterprise era", species: "vulcan", sex: "m", dept: null, where: "Vulcan survey ship T'Lara", delay: "subspace · 1.4 s", rec: false, future: true,
+        text: "Your excavation has disturbed a site of some significance. We would like to observe. I assure you our interest is purely academic.",
+        replies: ["You're welcome to observe.", "This is a human site. Stay in orbit."] },
+      { who: "Kraag, son of Durak", post: "Klingon captain · later eras", species: "klingon", sex: "m", dept: null, where: "IKS Gor'tak", delay: "subspace · 0.6 s", rec: false, future: true,
+        text: "This world has no claim on it but yours, little colony. Ours is coming. Prepare yourselves, or prepare to leave.",
+        replies: ["We'll talk when you land.", "Hail Starfleet."] },
+    ];
+  };
+
+  function comms() {
+    const calls = CALLS(), c = calls[S.call % calls.length];
+    const p = pick(c.species, c.sex, c.dept, S.call);
+    const shown = c.text.slice(0, S.typed);
+    const talking = S.typed < c.text.length;
+    return {
+      title: "Incoming transmission", sub: c.where, end: c.rec ? "Recorded" : "Live",
+      rail: calls.map((x, k) => `<button data-call="${k}" ${k === S.call % calls.length ? 'aria-current="true"' : ""}>${esc(x.who.split(" ")[0])}${x.future ? " · later" : ""}</button>`).join("") + `<div class="fill"></div><div class="tag">Comms</div>`,
+      actions: `<button class="pill">Reply</button><button class="pill alt" data-call="${(S.call + 1) % calls.length}">Next message</button><button class="pill dis">End</button><span class="hint">Y opens messages · N mission log</span>`,
+      body: `<div class="comms">
+        <div class="screen ${c.rec ? "static" : ""}">${p ? `<img src="portraits/${esc(p.file)}" alt="${esc(c.who)}">` : silhouette("#c99872", c.who)}
+          <div class="hud"><span>${esc(c.who)}</span><span class="${c.rec ? "rec" : ""}">${c.rec ? "● Rec" : esc(c.delay)}</span></div>
+          <div class="sub">${esc(shown)}${talking ? "▌" : ""}</div></div>
+        <div style="display:grid;gap:10px;min-width:0">
+          <div class="panel"><div class="h4" style="font-size:22px">${esc(c.who)}</div><div class="h5">${esc(c.post)}</div>
+            <dl class="kv"><dt>From</dt><dd>${esc(c.where)}</dd><dt>Signal</dt><dd>${esc(c.delay)}</dd></dl>
+            <div class="wave ${talking ? "" : "quiet"}" aria-hidden="true">${"<i></i>".repeat(7)}</div></div>
+          <span class="lbl">Your reply</span>
+          ${c.replies.map((r, k) => `<button class="reply"><b>${k + 1}</b>${esc(r)}</button>`).join("")}
+          ${c.future ? `<p class="note" style="margin:0">A later-era sample: shows the range of people the view screen will need.</p>` : ""}
+        </div></div>`,
+    };
+  }
+
+  const RENDER = { load, identity, appearance, background, department, review, save, comms };
+
+  // ------------------------------------------------------------ render + events
+  let typer = null;
+  function render() {
+    $("#factions").innerHTML = FACTIONS.map((f) => `<button class="chip" style="--c:${f.c}" data-faction="${f.id}" aria-pressed="${S.faction === f.id}"><i></i>${esc(f.name)}${f.playable ? "" : " <small>preview</small>"}</button>`).join("");
+    $("#eras").innerHTML = ERAS.map((e) => `<button class="chip" data-era="${e.id}" aria-pressed="${S.era === e.id}">${esc(e.name)} <small>${e.years}${e.open ? "" : " · preview"}</small></button>`).join("");
+    $("#steps").innerHTML = SCREENS.map(([id, n], k) => `<button data-go="${id}" aria-current="${S.screen === id}"><b>${k + 1}</b>${esc(n)}</button>`).join("");
+    $("#where").textContent = { load: "Main menu › Load game (Continue picks the newest)", save: "In game › Esc › Save game", comms: "In game › a transmission comes in" }[S.screen] || "Main menu › Campaign › faction › era › your officer";
+    frame(RENDER[S.screen]());
+    clearInterval(typer);
+    if (S.screen === "comms") {
+      const text = CALLS()[S.call % CALLS().length].text;
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) { S.typed = text.length; return; }
+      typer = setInterval(() => {
+        S.typed = Math.min(text.length, S.typed + 2);
+        const sub = $(".screen .sub"); if (sub) sub.textContent = text.slice(0, S.typed) + (S.typed < text.length ? "▌" : "");
+        if (S.typed >= text.length) { clearInterval(typer); $(".wave")?.classList.add("quiet"); }
+      }, 40);
+    }
+  }
+
+  function setSpecies(id) {
+    S.o.species = id; S.o.face = 0; S.o.skin = 0; S.o.home = 0;
+    const cap = traitCap(); S.o.traits = S.o.traits.slice(0, cap);
+    roll();
+  }
+  function roll() {
+    const pool = (NAMES[S.o.species] || NAMES.human)[S.o.sex] || NAMES.human.f;
+    S.o.name = pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const d = b.dataset;
+    if (d.go) { S.screen = d.go; S.confirm = null; S.typed = 0; }
+    else if (d.faction) { S.faction = d.faction; if (!speciesList().some((s) => s.id === S.o.species)) setSpecies(speciesList().find(open)?.id || speciesList()[0].id); if (S.faction === "borg") S.o.name = NAMES.drone.f[0]; }
+    else if (d.era) { S.era = d.era; if (!open(sp())) setSpecies(speciesList().find(open).id); }
+    else if (d.species) setSpecies(d.species);
+    else if (d.sex) { S.o.sex = d.sex; S.o.face = 0; roll(); if (d.sex === "f") S.o.beard = "None"; }
+    else if (d.roll) roll();
+    else if (d.face) S.o.face = +d.face;
+    else if (d.skin) S.o.skin = +d.skin;
+    else if (d.hair) S.o.hair = d.hair;
+    else if (d.hairc) S.o.hairc = +d.hairc;
+    else if (d.beard) S.o.beard = d.beard;
+    else if (d.voice) S.o.voice = d.voice;
+    else if (d.home) S.o.home = +d.home;
+    else if (d.bg) S.o.bg = +d.bg;
+    else if (d.trait) { const t = S.o.traits; const i = t.indexOf(d.trait); if (i >= 0) t.splice(i, 1); else if (t.length < traitCap()) t.push(d.trait); }
+    else if (d.dept) S.o.dept = d.dept;
+    else if (d.slot) { S.slot = +d.slot; S.confirm = null; }
+    else if (d.saveslot) { S.saveSlot = +d.saveslot; S.confirm = null; }
+    else if (d.confirm) S.confirm = d.confirm === "ask" ? "delete" : d.confirm === "overwrite" ? "overwrite" : null;
+    else if (d.call) { S.call = +d.call; S.typed = 0; }
+    else return;
+    render();
+  });
+  document.addEventListener("input", (e) => {
+    const t = e.target;
+    if (t.id === "nm") S.o.name = t.value;
+    else if (t.id === "cs") S.o.callsign = t.value;
+    else if (t.id === "age") { S.o.age = +t.value; $("#agev").textContent = t.value; if (S.o.age < 45) S.o.traits = S.o.traits.filter((x) => x !== "oldhand"); return; }
+    else if (t.id === "ht") { S.o.height = +t.value; $("#htv").textContent = t.value + " cm"; return; }
+    else if (t.id === "bd") { S.o.build = +t.value; $("#bdv").textContent = S.o.build < 35 ? "slim" : S.o.build > 65 ? "heavy" : "average"; return; }
+  });
+  document.addEventListener("change", (e) => { if (["nm", "cs", "age"].includes(e.target.id)) render(); });
+
+  function people() {
+    const strip = $("#people");
+    if (!PORTRAITS.length) { strip.innerHTML = ""; $("#peoplenote").textContent = "Portrait renders not published yet: silhouettes stand in."; return; }
+    strip.innerHTML = PORTRAITS.map((p) => `<figure>${face(p, null, p.species)}<figcaption>${esc(p.species)} · ${esc(p.sex === "f" ? "female" : "male")}${p.department ? " · " + esc(p.department) : ""}</figcaption></figure>`).join("");
+    $("#peoplenote").textContent = `${PORTRAITS.length} portraits, built procedurally in Blender from the colony crew heads (blender/build_portraits.py). The game would generate busts like these live from a look seed.`;
+  }
+
+  render();
+  fetch("portraits/portraits.json").then((r) => (r.ok ? r.json() : [])).then((j) => {
+    PORTRAITS = (Array.isArray(j) ? j : j.portraits || []).filter((p) => p && p.file);
+    people(); render();
+  }).catch(() => people());
+})();
+</script>
