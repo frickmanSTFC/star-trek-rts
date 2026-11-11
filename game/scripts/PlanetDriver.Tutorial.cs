@@ -134,7 +134,8 @@ public partial class PlanetDriver
         _tutorialCard.SetAnchor(anchor);
         _tutorialCard.SetArea(TutorialArea());
         // Out of the way while a full-screen card or screen is up (the large building card shows PLACE itself).
-        _tutorialCard.Visible = !(_bigCard.IsOpen || _inventory.IsOpen || _achScreen.IsOpen || _dossier.IsOpen || _chooser.IsOpen);
+        // The mission comms card and log sit in the same middle area: the tutorial waits under them (PlanetDriver.Missions.cs).
+        _tutorialCard.Visible = !(_bigCard.IsOpen || _inventory.IsOpen || _achScreen.IsOpen || _dossier.IsOpen || _chooser.IsOpen || _commsCard.IsOpen || _missionLog.IsOpen);
     }
 
     /// <summary>Debug builds: F4 (re)starts the tutorial, so it can be tried before the main menu is merged.</summary>

@@ -567,6 +567,8 @@ public partial class PlanetHud : CanvasLayer
                 ("Sky (top bar)", "day, season, local time and weather at the view's centre; hover for wind and ground"),
                 ("Ruins", "rust diamond on the minimap: an Excavation Site on the hex digs it, layer by layer"),
                 ("Crew sick", "chip by the base tabs: a dig pathogen slows the crew; vehicles can carry it"),
+                ("N", "mission log: active, completed, failed, declined; briefings and debriefs (Esc closes)"),
+                ("Y", "incoming transmission: open the comms card (accept / decline / choices); again: next or close"),
             },
             new[]
             {
@@ -586,6 +588,8 @@ public partial class PlanetHud : CanvasLayer
                 ("Membership", "dossier: Contact → Trade partner → Candidate → Allied world; trade in the top bar tooltips"),
                 ("Ally ships", "green chevrons on the plot: ESCORT follows the flagship, SCOUT + click a body charts it"),
                 ("F9 › CIV", "spawn / edit a civilization, Standing, relations, ruins on the colony map"),
+                ("Drone Pad: L / R", "launch a drone (click a tile inside comms coverage) / recall them; a drone: R return, right-click retarget"),
+                ("G", "comms coverage on the map (also while launching or with drones selected); RELAY on the orbit strip widens it"),
             },
         };
         foreach (var g in groups)

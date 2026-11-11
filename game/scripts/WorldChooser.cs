@@ -40,6 +40,11 @@ public static class GameSetup
     /// <summary>Tutorial cards on: a campaign start with tutorial hints on in the settings.</summary>
     public static bool Tutorial => Mode == GameMode.Campaign && GameSettings.TutorialHints;
 
+    /// <summary>The mission chain a campaign start turns on (docs/missions-contract.md C): the era's chain (Dawn of Warp's
+    /// "First Light" is enabled by the era id), null in a DEBUG sandbox (the test panel's MISSIONS tab can switch them on).
+    /// PlanetDriver.BeginMissions hands it to the sim before tick 0.</summary>
+    public static string? MissionChain { get; private set; }
+
     /// <summary>The main menu's campaign start (not saved: chosen in the menu each time).</summary>
     public static void StartCampaign(string faction, string era, ulong seed, string homeBodyId)
     {
@@ -48,6 +53,7 @@ public static class GameSetup
         Era = era;
         CampaignSeed = seed;
         HomeBody = homeBodyId;
+        MissionChain = era; // campaign start → missions on (the era's chain)
     }
 
     /// <summary>The main menu's DEBUG start: the sandbox as before.</summary>
@@ -58,6 +64,7 @@ public static class GameSetup
         Era = null;
         CampaignSeed = null;
         HomeBody = null;
+        MissionChain = null;
     }
 
     public static void Choose(string world, ulong seed)

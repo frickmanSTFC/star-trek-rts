@@ -12,9 +12,11 @@ public sealed record SatListEntry(string Key, string Name, string Status, Color 
 public sealed record SatFindingLine(string Time, string Kind, string Text, Color Colour, bool First, int Tile);
 
 /// <summary>What the satellite card shows (built by the driver, PlanetDriver.Satellites.cs). Colony = one of the colony
-/// world's survey satellites (FOLLOW, RETASK, photos, findings); otherwise a satellite at another body (its live rows).</summary>
+/// world's survey satellites (FOLLOW, RETASK, photos, findings); otherwise a satellite at another body (its live rows),
+/// or with Relay a comms relay over the colony's world (station, coverage: PlanetDriver.Relays.cs).</summary>
 public sealed record SatCardView(string Key, string Title, string Subtitle, IReadOnlyList<HelmRow> Rows, bool Colony,
-    bool Following, bool CanFollow, bool Retasking, string? RetaskProblem, IReadOnlyList<SatFindingLine> Findings, int FindingsTotal);
+    bool Following, bool CanFollow, bool Retasking, string? RetaskProblem, IReadOnlyList<SatFindingLine> Findings, int FindingsTotal,
+    bool Relay = false);
 
 /// <summary>
 /// The helm's SATELLITES window (docs/satellite-contract.md "Helm"; render-only): a list of our satellites (the colony
@@ -129,7 +131,7 @@ public partial class SatelliteCard : Control
         Clear(_list!);
         if (list.Count == 0)
         {
-            _list!.AddChild(Text("No satellites yet: SATELLITE on the strip puts one up over the band you click.", F(12), HelmScreen.Ink with { A = 0.7f }, wrap: true));
+            _list!.AddChild(Text("No satellites yet: SATELLITE on the strip puts one up over the band you click, RELAY a comms relay over a spot.", F(12), HelmScreen.Ink with { A = 0.7f }, wrap: true));
             return;
         }
         foreach (var e in list)
@@ -198,13 +200,14 @@ public partial class SatelliteCard : Control
 
     private void UpdateButtons(SatCardView card)
     {
-        var sig = $"{card.Key}{card.Colony}{card.Following}{card.CanFollow}{card.Retasking}{card.RetaskProblem}{Mode}";
+        var sig = $"{card.Key}{card.Colony}{card.Relay}{card.Following}{card.CanFollow}{card.Retasking}{card.RetaskProblem}{Mode}";
         if (sig == _buttonsSig) return;
         _buttonsSig = sig;
         Clear(_buttons!);
         if (!card.Colony)
         {
-            _buttons!.AddChild(Text("Live data from orbit: no pictures from here.", F(12), HelmScreen.Ink with { A = 0.7f }));
+            _buttons!.AddChild(Text(card.Relay ? "Comms relay: drones may fly anywhere inside its circle. No camera." : "Live data from orbit: no pictures from here.",
+                F(12), HelmScreen.Ink with { A = 0.7f }, wrap: card.Relay));
             return;
         }
         _buttons!.AddChild(Pill(card.Following ? "FOLLOWING" : "FOLLOW", card.CanFollow ? "Keep it facing the camera (a drag stops it)" : "Only over the colony's world",

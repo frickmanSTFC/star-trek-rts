@@ -8,7 +8,7 @@ namespace FinalFrontier;
 
 // Survey satellites on the helm (docs/satellite-contract.md "View / UI"; render-only, commands only): the SATELLITES
 // window (SatelliteCard: list + card), hover and click on a satellite in the 3D view, FOLLOW, RETASK (arms a click on
-// the globe → RetaskSatelliteCommand), the pictures (SatellitePhotos: every few seconds of sweeping while its card is
+// the globe → RetaskSatelliteCommand), comms relays' rows (PlanetDriver.Relays.cs), the pictures (SatellitePhotos: every few seconds of sweeping while its card is
 // open, and on findings), the flash on each picture, event lines for first finds, and the shutter tick.
 
 public partial class PlanetDriver
@@ -59,6 +59,7 @@ public partial class PlanetDriver
         _satPanelOpen = true;
         if (_satKey != key) _retasking = false;
         _satKey = key;
+        if (key.StartsWith("relay:")) LocateRelay(key); // a comms relay: turn the globe to its station (PlanetDriver.Relays.cs)
     }
 
     private void ToggleFollow()
@@ -252,6 +253,7 @@ public partial class PlanetDriver
     private bool SatelliteEntryGone(string key)
     {
         if (key.StartsWith("sat:")) return SelectedSatellite == null;
+        if (key.StartsWith("relay:")) return RelayGone(key);
         var body = key[4..];
         return _system.State?.Satellites.Any(s => s.Owner == LocalPlayer && s.BodyId == body) != true;
     }
@@ -260,9 +262,11 @@ public partial class PlanetDriver
     private List<SatListEntry> SatelliteList()
     {
         var list = new List<SatListEntry>();
+        var relays = RelaySatelliteIds(); // comms relays get their own rows (PlanetDriver.Relays.cs)
         foreach (var sat in Surface.Satellites)
-            if (sat.Owner == LocalPlayer)
+            if (sat.Owner == LocalPlayer && !relays.Contains(sat.Id))
                 list.Add(new SatListEntry($"sat:{sat.Id}", sat.CallSign, SatelliteShortStatus(sat), HelmScreen.Sky));
+        list.AddRange(RelayListEntries());
         if (_system.State is { } state)
             foreach (var s in state.Satellites)
                 if (s.Owner == LocalPlayer && _system.Body(s.BodyId) is { } b)
@@ -295,6 +299,7 @@ public partial class PlanetDriver
     private SatCardView? SatelliteCardView()
     {
         if (_satKey == null) return null;
+        if (_satKey.StartsWith("relay:")) return RelayCardView(_satKey);
         if (_satKey.StartsWith("sys:"))
         {
             var b = _system.Body(_satKey[4..]);

@@ -69,7 +69,7 @@ public partial class TestPanel : PanelContainer
     private static readonly Tint Yellow = new(new Color(0.165f, 0.141f, 0.071f), new Color(0.953f, 0.796f, 0.357f), new Color(0.361f, 0.298f, 0.118f));
     private static readonly Tint Red = new(new Color(0.173f, 0.086f, 0.094f), new Color(0.941f, 0.627f, 0.635f), new Color(0.416f, 0.18f, 0.196f));
 
-    private static readonly string[] TabNames = { "SELECTED", "RESOURCES", "RESEARCH", "MAP", "DATA", "SKY", "CIV" };
+    private static readonly string[] TabNames = { "SELECTED", "RESOURCES", "RESEARCH", "MAP", "DATA", "SKY", "CIV", "MISSIONS" };
 
     private ITestHost _host = null!;
     private Font _caps = null!;
@@ -266,6 +266,8 @@ public partial class TestPanel : PanelContainer
                 return $"data|{Identity(Data)}";
             case 6:
                 return CivShape(); // TestPanel.Civ.cs
+            case 7:
+                return MissionsShape(); // TestPanel.Missions.cs
             default:
                 return $"tab{_tab}";
         }
@@ -291,6 +293,7 @@ public partial class TestPanel : PanelContainer
             case 4: BuildData(); break;
             case 5: BuildSky(); break; // TestPanel.Sky.cs
             case 6: BuildCiv(); break; // TestPanel.Civ.cs
+            case 7: BuildMissions(); break; // TestPanel.Missions.cs
         }
     }
 
