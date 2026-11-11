@@ -313,7 +313,7 @@ public sealed partial class MissionBook
             {
                 var swept = 0L;
                 foreach (var sat in s.Satellites)
-                    if (sat.Owner == p) swept += sat.TilesSurveyed;
+                    if (sat.Owner == p && sat.Kind == SatelliteKind.Survey) swept += sat.TilesSurveyed; // relays don't sweep
                 var share = c.N("share", Fix64.One);
                 var total = s.Map.Grid.Count;
                 var pct = total == 0 ? 0 : (int)System.Math.Min(100, swept * 100 / total);

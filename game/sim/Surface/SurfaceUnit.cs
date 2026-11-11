@@ -177,6 +177,19 @@ public sealed class SurfaceUnit
 
     public FoundProblem FoundFailure { get; internal set; }
 
+    // Dome transits (DomeTransit.cs): only ever set on a world with the domes kit, so other worlds hash as before.
+
+    /// <summary>The field transit under way at a hex edge (null = none); <see cref="TransitLeft"/> ticks of it remain.</summary>
+    internal DomeTransit? Transit { get; set; }
+
+    internal int TransitLeft { get; set; }
+
+    /// <summary>The last finished transit (for the view's after-glow), null = none yet.</summary>
+    internal DomeTransit? LastTransit { get; set; }
+
+    /// <summary>A scout drone's flight state (Drones.cs); null for every other unit, so their hash is as before.</summary>
+    internal DroneFlight? Drone { get; set; }
+
     internal SurfaceUnit(int id, int owner, string defId, Fix64 speedPerTick, int surveyRadius, int tile)
     {
         Id = id;
@@ -233,6 +246,28 @@ public sealed class SurfaceUnit
         h.Add(JuryRigged);
         h.Add(JuryRigOrdered);
         h.Add(RepairPaid);
+        if (Transit != null || LastTransit != null) // only after a dome transit (Domes worlds), so other games hash as before
+        {
+            h.Add(0x7EA5);
+            AddTransit(ref h, Transit);
+            h.Add(TransitLeft);
+            AddTransit(ref h, LastTransit);
+        }
+        Drone?.AddToHash(ref h); // drones only
+    }
+
+    private static void AddTransit(ref StateHasher h, DomeTransit? transit)
+    {
+        h.Add(transit.HasValue);
+        if (transit is not { } t) return;
+        h.Add(t.StructureId);
+        h.Add(t.Entering);
+        h.Add(t.Fraction);
+        h.Add(t.Contact);
+        h.Add(t.FromTile);
+        h.Add(t.ToTile);
+        h.Add(t.StartTick);
+        h.Add(t.EndTick);
     }
 }
 
@@ -331,12 +366,18 @@ public sealed class Satellite
     public int Id { get; }
     public int Owner { get; }
 
+    /// <summary>Survey (sweeps its band) or Relay (a comms relay parked over <see cref="StationTile"/>; Comms.cs).</summary>
+    public SatelliteKind Kind { get; }
+
+    /// <summary>A relay's station: the tile it hangs over and covers round (-1 for a survey satellite). Row is its row.</summary>
+    public int StationTile { get; internal set; } = -1;
+
     /// <summary>The band's centre row (changes on a retask).</summary>
     public int Row { get; internal set; }
 
     public long LaunchTick { get; }
 
-    /// <summary>The owner's n-th satellite on this surface (1 = the first): the number in its call sign.</summary>
+    /// <summary>The owner's n-th satellite of its kind on this surface (1 = the first): the number in its call sign.</summary>
     public int Ordinal { get; }
 
     /// <summary>"SAT-2 · KESTREL": deterministic per owner from the map seed (PlanetSurface.SatelliteCallSign).</summary>
@@ -374,10 +415,13 @@ public sealed class Satellite
     /// <summary>Still rising and unfolding (first deploy) or manoeuvring to a new band (retask): not sweeping.</summary>
     public bool Deploying(long tick) => tick < ReadyTick;
 
-    internal Satellite(int id, int owner, int row, long launchTick, long readyTick, int ordinal, string callSign)
+    internal Satellite(int id, int owner, int row, long launchTick, long readyTick, int ordinal, string callSign,
+        SatelliteKind kind = SatelliteKind.Survey, int stationTile = -1)
     {
         Id = id;
         Owner = owner;
+        Kind = kind;
+        StationTile = stationTile;
         Row = row;
         LaunchTick = launchTick;
         ReadyTick = readyTick;
@@ -410,7 +454,22 @@ public sealed class Satellite
             h.Add(f.Detail);
             h.Add(f.First);
         }
+        if (Kind != SatelliteKind.Survey || StationTile != -1) // relays only, so games without them hash as before
+        {
+            h.Add((int)Kind);
+            h.Add(StationTile);
+        }
     }
+}
+
+/// <summary>What a satellite is for.</summary>
+public enum SatelliteKind
+{
+    /// <summary>Sweeps a band of rows, surveying (Satellites.cs).</summary>
+    Survey,
+
+    /// <summary>A comms relay parked over a tile: comms coverage round it (Comms.cs).</summary>
+    Relay,
 }
 
 /// <summary>A load of ore flying from a crawler to a storage building; it lands in stock at ArriveTick.</summary>

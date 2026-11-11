@@ -73,8 +73,29 @@ internal static class TestData
     public static GameData Patched(params (string File, string From, string To)[] patches)
     {
         var dir = CopyData();
-        foreach (var (file, from, to) in patches) Replace(dir, file, from, to);
-        return GameData.Load(dir);
+        try
+        {
+            foreach (var (file, from, to) in patches) Replace(dir, file, from, to);
+            return GameData.Load(dir);
+        }
+        finally
+        {
+            Remove(dir); // loaded into memory: the copy isn't needed (they used to pile up in the temp folder)
+        }
+    }
+
+    private static void Remove(string dir)
+    {
+        try
+        {
+            Directory.Delete(dir, true);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     /// <summary>A copy of the real data with regular-expression replacements in one document's files (every match), loaded fresh.
@@ -90,7 +111,14 @@ internal static class TestData
             foreach (var p in parts) texts[p] = System.Text.RegularExpressions.Regex.Replace(texts[p], pattern, to);
         }
         foreach (var (p, t) in texts) File.WriteAllText(Path.Combine(dir, p), t);
-        return GameData.Load(dir);
+        try
+        {
+            return GameData.Load(dir);
+        }
+        finally
+        {
+            Remove(dir);
+        }
     }
 
     /// <summary>The loaded text of the one file of a document that contains <paramref name="needle"/>.</summary>

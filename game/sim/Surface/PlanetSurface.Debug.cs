@@ -41,7 +41,7 @@ public sealed partial class PlanetSurface
         foreach (var t in new[] { tile }.Concat(Map.Grid.Neighbours(tile)).Concat(Map.Grid.Within(tile, 2)))
         {
             if (!Map.Terrain(t).Passable || _structureAt[t] != 0) continue;
-            if (_units.All(u => u.Tile != t)) return t;
+            if (_units.All(u => u.Tile != t || u.Drone != null)) return t;
             if (fallback < 0) fallback = t;
         }
         return fallback;
@@ -55,6 +55,7 @@ public sealed partial class PlanetSurface
             case DebugUnitCommand c:
             {
                 if (FindUnit(c.UnitId) is not { } unit) return "no such vehicle";
+                if (unit.Drone != null) return "a drone has no integrity, breakdowns or tyres";
                 var tyres = _data.SurfaceUnit(unit.DefId).Tyres;
                 var whole = c.Value == Fix64.FromInt(c.Value.FloorToInt());
                 return c.Field switch
@@ -68,7 +69,8 @@ public sealed partial class PlanetSurface
                 };
             }
             case DebugMoveUnitCommand c:
-                if (FindUnit(c.UnitId) == null) return "no such vehicle";
+                if (FindUnit(c.UnitId) is not { } moved) return "no such vehicle";
+                if (moved.Drone != null) return "drones fly: launch or move them instead";
                 if (!OnMap(c.Tile)) return "off the map";
                 return Map.Terrain(c.Tile).Passable ? null : "vehicles can't stand there";
             case DebugRemoveUnitCommand c:
@@ -76,6 +78,7 @@ public sealed partial class PlanetSurface
             case DebugSpawnUnitCommand c:
                 if (!IsPlayer(c.Owner)) return "no such player";
                 if (_data.SurfaceUnits.All(u => u.Id != c.UnitId)) return "unknown vehicle";
+                if (_data.IsAerialUnit(c.UnitId)) return "drones come from a Drone Pad: put one in stock (Machine Shop recipe)";
                 return FreeSpotNear(c.Tile) < 0 ? "no room there" : null;
 
             case DebugStructureCommand c:

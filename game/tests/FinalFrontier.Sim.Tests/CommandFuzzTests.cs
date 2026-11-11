@@ -155,7 +155,8 @@ public class CommandFuzzTests
             15, // 38 pause / resume a building
             30, 10, 10, 10, 10, // 39..43 parts economy: fabricate, cancel an order, stock target, jury-rig a building / vehicles
             10, // 44 retask a survey satellite
-            20, 8, // 45, 46 missions: a choice (accept / decline / a branch), the test panel's mission edits
+            25, 8, 8, // 45..47 drones and comms: launch a drone, recall drones, put up a relay satellite
+            20, 8, // 48, 49 missions: a choice (accept / decline / a branch), the test panel's mission edits
         };
 
         private static readonly int TotalWeight = Weights.Sum();
@@ -217,8 +218,26 @@ public class CommandFuzzTests
                 case 41: return new StockTargetCommand(p, Text(S.PartItems)!, Chance(80) ? N(8) : AnyInt());
                 case 42: return new JuryRigCommand(p, StructureId());
                 case 43: return new JuryRigUnitsCommand(p, UnitIds());
-                case 44: return new RetaskSatelliteCommand(p, Chance(80) ? 1 + N(6) : AnyInt(), Chance(80) ? N(S.Map.Grid.Height) : AnyInt());
-                case 45: return new MissionChoiceCommand(p, MissionId()!, Text(new[] { "accept", "accept", "decline", "launch" })!);
+                case 44:
+                {
+                    // Relays take a station tile in the row field, survey satellites a row.
+                    var sats = S.Satellites;
+                    var sat = sats.Count > 0 && Chance(80) ? Pick(sats) : null;
+                    var row = sat?.Kind == SatelliteKind.Relay && Chance(80) ? Tile() : Chance(80) ? N(S.Map.Grid.Height) : AnyInt();
+                    return new RetaskSatelliteCommand(p, sat?.Id ?? (Chance(80) ? 1 + N(6) : AnyInt()), row);
+                }
+                case 45:
+                {
+                    var pads = S.Structures.Where(x => S.DroneBays(x) > 0).ToList();
+                    return new LaunchDroneCommand(p, pads.Count > 0 && Chance(80) ? Pick(pads).Id : StructureId(), Tile());
+                }
+                case 46:
+                {
+                    var drones = S.Units.Where(u => S.IsAerial(u)).Select(u => u.Id).ToList();
+                    return new RecallDroneCommand(p, drones.Count > 0 && Chance(70) ? new[] { Pick(drones) } : UnitIds());
+                }
+                case 47: return new RelaySatelliteCommand(p, Tile());
+                case 48: return new MissionChoiceCommand(p, MissionId()!, Text(new[] { "accept", "accept", "decline", "launch" })!);
                 default:
                     return new DebugMissionCommand(p, Player(), MissionId()!, Chance(3) ? DebugMissionAction.Enable : Enum<DebugMissionAction>(),
                         Text(Data.Missions?.List.SelectMany(m => m.Stages.Select(st => st.Id)).ToList() ?? new List<string>())!,
@@ -264,12 +283,19 @@ public class CommandFuzzTests
             if (!unitIds.Add(u.Id)) problems.Add($"unit id {u.Id} twice");
             if (u.Owner < 0 || u.Owner >= sim.Players.Count) problems.Add($"unit {u.Id} owner {u.Owner}");
             if (u.Tile < 0 || u.Tile >= grid.Count) { problems.Add($"unit {u.Id} off the map at {u.Tile}"); continue; }
-            if (!s.Map.Terrain(u.Tile).Passable) problems.Add($"unit {u.Id} on impassable {s.Map.Terrain(u.Tile).Id} tile {u.Tile}");
+            if (!s.Map.Terrain(u.Tile).Passable && !s.IsAerial(u)) problems.Add($"unit {u.Id} on impassable {s.Map.Terrain(u.Tile).Id} tile {u.Tile}");
             if (u.Integrity < Fix64.Zero || u.Integrity > Fix64.FromInt(100)) problems.Add($"unit {u.Id} integrity {u.Integrity}");
             if (u.Spares < 0) problems.Add($"unit {u.Id} spares {u.Spares}");
             if (u.Hopper < Fix64.Zero) problems.Add($"unit {u.Id} hopper {u.Hopper}");
             foreach (var t in u.Path)
                 if (t < 0 || t >= grid.Count) problems.Add($"unit {u.Id} path through {t}");
+            var drone = s.DroneOf(u);
+            if (s.IsAerial(u) != (drone.State != DroneState.None)) problems.Add($"unit {u.Id} aerial without a drone state");
+            if (drone.Battery < Fix64.Zero || drone.Battery > Fix64.One) problems.Add($"drone {u.Id} battery {drone.Battery}");
+            if (drone.State == DroneState.Docked && (s.FindStructure(drone.Pad) is not { } pad || pad.Tile != u.Tile)) problems.Add($"drone {u.Id} docked off its pad");
+            if (drone.State != DroneState.None && s.Units.Any(o => o != u && s.DroneOf(o) is { State: not DroneState.None } od && od.Pad == drone.Pad && od.Bay == drone.Bay))
+                problems.Add($"drones share bay {drone.Bay} of pad {drone.Pad}");
+            if (s.DomeTransitOf(u) is { } tr && (!s.NeedsDomes || tr.FromTile != u.Tile)) problems.Add($"unit {u.Id} transit {tr}");
         }
 
         var structureIds = new HashSet<int>();
@@ -307,7 +333,11 @@ public class CommandFuzzTests
         foreach (var pod in s.Pods)
             if (pod.Amount < Fix64.Zero) problems.Add($"pod {pod.Id} carries {pod.Amount}");
         foreach (var sat in s.Satellites)
+        {
             if (sat.Row < 0 || sat.Row >= grid.Height) problems.Add($"satellite {sat.Id} over row {sat.Row}");
+            if (sat.Kind == SatelliteKind.Relay && (sat.StationTile < 0 || sat.StationTile >= grid.Count || grid.Row(sat.StationTile) != sat.Row))
+                problems.Add($"relay {sat.Id} station {sat.StationTile}");
+        }
         return problems;
     }
 

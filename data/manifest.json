@@ -60,6 +60,7 @@
       "buildings/surface/refinery.json",
       "buildings/surface/foundry.json",
       "buildings/surface/machine_shop.json",
+      "buildings/surface/drone_pad.json",
       "buildings/surface/industry.json",
       "buildings/surface/fusion_reactor.json",
       "buildings/surface/power.json",
@@ -115,6 +116,7 @@
       "surfaces/excavation.json",
       "surfaces/research.json",
       "surfaces/orbit.json",
+      "surfaces/comms.json",
       "surfaces/lanes.json",
       "surfaces/unit_names.json",
       "surfaces/units/survey_team.json",
@@ -122,7 +124,8 @@
       "surfaces/units/survey_rover_mk2.json",
       "surfaces/units/survey_rover_mk3.json",
       "surfaces/units/mining_crawler.json",
-      "surfaces/units/construction_rover.json"
+      "surfaces/units/construction_rover.json",
+      "surfaces/units/scout_drone.json"
     ],
     "vehicles": [
       "vehicles/notes.json",
