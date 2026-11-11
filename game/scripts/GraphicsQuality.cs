@@ -21,7 +21,7 @@ public enum GraphicsPreset { Classic, Enhanced, Custom }
 
 public static class GraphicsQuality
 {
-    private static GraphicsPreset _preset = GraphicsPreset.Enhanced;
+    private static GraphicsPreset _preset = GraphicsPreset.Classic; // owner 2026-11-11: "completely unplayable on my laptop" → off by default
     private static bool _gi = true, _fog = true, _grading = true, _shadows = true, _terrain = true, _decals = true, _effects = true, _antiAlias = true;
     private static bool _showFps;
 
@@ -111,10 +111,11 @@ public static class GraphicsQuality
         _ => Features[index].Get(),
     };
 
-    /// <summary>Defaults (GameSettings.ResetDefaults): Enhanced, every toggle on, no frame-time readout.</summary>
+    /// <summary>Defaults (GameSettings.ResetDefaults): Classic (owner 2026-11-11: off by default), the Custom toggles all on
+    /// so picking Custom starts from the full set, no frame-time readout.</summary>
     public static void ResetDefaults()
     {
-        _preset = GraphicsPreset.Enhanced;
+        _preset = GraphicsPreset.Classic;
         _gi = _fog = _grading = _shadows = _terrain = _decals = _effects = _antiAlias = true;
         _showFps = false;
         CompareClassic = false;

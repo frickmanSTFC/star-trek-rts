@@ -93,11 +93,17 @@ public static class GameSettings
     }
 
     /// <summary>[graphics] (visual pass, GraphicsQuality): preset 0 Classic / 1 Enhanced / 2 Custom, the Custom toggles
-    /// and the frame-time readout. Missing keys keep the defaults (Enhanced, all on).</summary>
+    /// and the frame-time readout. Missing keys keep the defaults (Classic; Custom toggles all on).</summary>
+    /// <summary>Bumped when the graphics defaults change in a way that must override saved files (2 = Classic default).</summary>
+    private const int GraphicsDefaultsVersion = 2;
+
     private static void LoadGraphics(ConfigFile cfg)
     {
         var preset = cfg.GetValue("graphics", "preset", (int)GraphicsQuality.Preset).AsInt32();
-        GraphicsQuality.Preset = preset is >= 0 and <= (int)GraphicsPreset.Custom ? (GraphicsPreset)preset : GraphicsPreset.Enhanced;
+        // defaults 2 (owner 2026-11-11): Classic became the default; a settings file saved before that (Enhanced was the
+        // default then) starts on Classic once, after which the player's own pick is kept.
+        if (cfg.GetValue("graphics", "defaults", 1).AsInt32() < GraphicsDefaultsVersion) preset = (int)GraphicsPreset.Classic;
+        GraphicsQuality.Preset = preset is >= 0 and <= (int)GraphicsPreset.Custom ? (GraphicsPreset)preset : GraphicsPreset.Classic;
         GraphicsQuality.GiSetting = cfg.GetValue("graphics", "gi", GraphicsQuality.GiSetting).AsBool();
         GraphicsQuality.FogSetting = cfg.GetValue("graphics", "volumetric_fog", GraphicsQuality.FogSetting).AsBool();
         GraphicsQuality.GradingSetting = cfg.GetValue("graphics", "grading", GraphicsQuality.GradingSetting).AsBool();
@@ -112,6 +118,7 @@ public static class GameSettings
     private static void SaveGraphics(ConfigFile cfg)
     {
         cfg.SetValue("graphics", "preset", (int)GraphicsQuality.Preset);
+        cfg.SetValue("graphics", "defaults", GraphicsDefaultsVersion);
         cfg.SetValue("graphics", "gi", GraphicsQuality.GiSetting);
         cfg.SetValue("graphics", "volumetric_fog", GraphicsQuality.FogSetting);
         cfg.SetValue("graphics", "grading", GraphicsQuality.GradingSetting);
