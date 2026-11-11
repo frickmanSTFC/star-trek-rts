@@ -24,6 +24,12 @@ uniform float wiped : hint_range(0.0, 1.0) = 0.0;
 // Rover damage (RoverLook.Grime.Damage, from integrity: 0 at 75 and above, 1 at 0): scratches through the paint first,
 // then sooty scorch marks spreading over the hull. Drawn under the dirt.
 uniform float damage : hint_range(0.0, 1.0) = 0.0;
+// Visual pass (GraphicsQuality.Terrain, RoverLook.Grime.Detail): close to the camera, a faint permanent weathering
+// (rain streaks down the sides, a road film low on the body) and relief on caked dirt (a bump from the dirt's own
+// noise), fading out between detail_near and detail_far. 0 = exactly the overlay as before.
+uniform float detail_on = 0.0;
+uniform float detail_near = 30.0;
+uniform float detail_far = 80.0;
 
 varying vec3 m_pos;
 varying vec3 m_normal;
@@ -106,15 +112,36 @@ void fragment() {
 	float up = clamp(m_normal.y, 0.0, 1.0);
 	float snow_a = max(spread(0.72 * up + 0.28 * broad, snow, 0.06), spread(0.55 * low * low + 0.45 * fine, snow * 0.6, 0.05) * 0.8);
 
-	// Damage under the dirt: bright scratches (thin streaks along the body, in patches), then dark scorch.
-	vec3 col = vec3(0.0);
-	float a = 0.0;
+	// Close-zoom detail (detail_on is a uniform, so the derivatives here are taken in uniform control flow).
+	float close = 0.0;
+	float weather_a = 0.0;
+	float bump_x = 0.0;
+	float bump_y = 0.0;
+	vec3 dpdx = vec3(0.0);
+	vec3 dpdy = vec3(0.0);
+	if (detail_on > 0.5) {
+		close = 1.0 - smoothstep(detail_near, detail_far, length(VERTEX));
+		float run = value_noise(vec3(m_pos.x * 7.0, m_pos.y * 0.6, m_pos.z * 7.0) + vec3(11.0, 0.0, 5.0));
+		float streaks = smoothstep(0.6, 0.85, run) * (0.4 + 0.6 * broad) * (1.0 - up);
+		float film = low * low * low * (0.55 + 0.45 * broad);
+		weather_a = clamp(streaks * 0.16 + film * 0.2, 0.0, 0.3) * close;
+		float relief_h = fbm(m_pos * 18.0 + vec3(2.0, 7.0, 1.0)) * 0.025;
+		bump_x = dFdx(relief_h);
+		bump_y = dFdy(relief_h);
+		dpdx = dFdx(VERTEX);
+		dpdy = dFdy(VERTEX);
+	}
+
+	// Weathering first (detail only), then damage under the dirt: bright scratches (thin streaks along the body, in
+	// patches), then dark scorch.
+	vec3 col = mix(dust_colour, vec3(0.16, 0.14, 0.12), 0.6) * weather_a;
+	float a = weather_a;
 	if (damage > 0.0) {
 		float streak = smoothstep(0.86, 0.95, value_noise(vec3(m_pos.x * 1.3, m_pos.y * 34.0, m_pos.z * 1.3) + vec3(3.0)));
 		float scratch_a = streak * spread(fbm(m_pos * 1.1 + vec3(17.0, 3.0, 9.0)), min(1.0, damage * 1.6), 0.08) * 0.85;
 		float scorch_a = spread(0.7 * fbm(m_pos * 1.9 + vec3(41.0, 7.0, 23.0)) + 0.3 * h, max(0.0, damage * 1.25 - 0.3), 0.07) * 0.9;
-		col = vec3(0.62, 0.61, 0.58) * scratch_a;
-		a = scratch_a;
+		col = col * (1.0 - scratch_a) + vec3(0.62, 0.61, 0.58) * scratch_a;
+		a = a + scratch_a * (1.0 - a);
 		col = col * (1.0 - scorch_a) + vec3(0.05, 0.045, 0.04) * (0.7 + 0.6 * fine) * scorch_a;
 		a = a + scorch_a * (1.0 - a);
 	}
@@ -135,9 +162,22 @@ void fragment() {
 		a *= keep;
 	}
 
+	// Caked dirt stands off the paint a little (surface-gradient bump in view space; detail only).
+	float relief = (mud_a + dust_a * 0.35 + snow_a * 0.25 + weather_a * 0.5) * close;
+	if (relief > 0.001) {
+		vec3 r1 = cross(dpdy, NORMAL);
+		vec3 r2 = cross(NORMAL, dpdx);
+		float det = dot(dpdx, r1);
+		vec3 grad = sign(det) * (bump_x * r1 + bump_y * r2);
+		vec3 bumped = abs(det) * NORMAL - grad * relief;
+		if (dot(bumped, bumped) > 0.0) {
+			NORMAL = normalize(bumped);
+		}
+	}
+
 	ALBEDO = col / max(a, 0.001);
 	ALPHA = a;
-	ROUGHNESS = mix(0.95, 0.55, mud_a);
+	ROUGHNESS = mix(0.95, 0.55, mud_a) + (fine - 0.5) * 0.2 * close;
 	SPECULAR = 0.3;
 	METALLIC = 0.0;
 }

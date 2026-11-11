@@ -264,6 +264,7 @@ public static class RoverLook
             _shader ??= GD.Load<Shader>("res://shaders/grime.gdshader");
             var material = new ShaderMaterial { Shader = _shader };
             material.SetShaderParameter("body_height", bodyHeight);
+            if (Detail) material.SetShaderParameter("detail_on", 1f);
             var grime = new Grime(model, material);
             grime.Cover(model);
             grime.Push();
@@ -292,6 +293,13 @@ public static class RoverLook
             _material.SetShaderParameter("wiper_len", area.Length);
             _material.SetShaderParameter("wiper_sweep", area.Sweep);
         }
+
+        /// <summary>Visual pass (GraphicsQuality.Terrain, set by PlanetView.TerrainDetail.cs): close-zoom weathering and
+        /// caked-dirt relief in grime.gdshader (detail_on). Off = the overlay exactly as before.</summary>
+        public static bool Detail { get; set; }
+
+        /// <summary>Switch the close-zoom detail on this vehicle's overlay.</summary>
+        public void SetDetail(bool on) => _material.SetShaderParameter("detail_on", on ? 1f : 0f);
 
         /// <summary>How clean the wiped fan is (from <see cref="Lamps.Wiped"/>).</summary>
         public float Wiped { get; set; }

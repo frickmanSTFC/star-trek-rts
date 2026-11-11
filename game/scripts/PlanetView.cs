@@ -122,6 +122,7 @@ public partial class PlanetView : Node3D
         AddChild(_landing);
         _construction = new ConstructionView(this, sim) { Name = "Construction" };
         AddChild(_construction);
+        SetupVisualPass(); // PlanetView.TerrainDetail.cs: visual pass (terrain detail, decals, effects) by GraphicsQuality
         Refresh(0f);
     }
 
@@ -257,6 +258,8 @@ public partial class PlanetView : Node3D
         UpdateComms(delta); // PlanetView.Comms.cs: comms coverage overlay (toggle / armed drone order)
         UpdateDomeTransits(alpha, delta); // PlanetView.DomeTransit.cs: vehicle fields cycling through a dome's shell (after the rovers are posed)
         UpdatePods(alpha);
+        UpdateDecals(delta); // PlanetView.Decals.cs: tracks, scorch, worn ground, footpaths (GraphicsQuality.Decals)
+        UpdateEffects(delta); // PlanetView.Effects.cs: heat shimmer, embers, dust motes, drone downwash (GraphicsQuality.Effects)
     }
 
     /// <summary>Outline the tile under the mouse: a thin line along the hex edge that follows the ground (owner
