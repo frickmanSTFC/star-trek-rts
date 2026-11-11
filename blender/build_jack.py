@@ -525,7 +525,7 @@ def front_slab(pc, rows, mat, off, cols=4, depth=0.06):
     bmesh.ops.recalc_face_normals(bm, faces=faces)
 
 
-def bat_outline(scale=1.0, ears=True):
+def bat_outline(sx=1.0, sz=1.0, ears=True):
     """Right half of a bat silhouette (x >= 0) from the top centre round the wing to the bottom centre; mirrored."""
     top = [(0.0, 0.085)]
     if ears:
@@ -539,7 +539,7 @@ def bat_outline(scale=1.0, ears=True):
         edge.append((x1, z1))
     half = top + edge + [(0.05, -0.1), (0.0, -0.13)]
     full = half + [(-x, z) for x, z in reversed(half[1:-1])]
-    return [(x * scale, z * scale) for x, z in full]
+    return [(x * sx, z * sz) for x, z in full]
 
 
 def build_torso(P, pc):
@@ -559,11 +559,8 @@ def build_torso(P, pc):
         ellipsoid(pc, (0, front_y(0, z) + 0.01, z), (0.07, 0.04, 0.07), P["black"], 10, 5)
     # the bat bow tie, wings swept a touch forward
     y = front_y(0, 12.02) + 0.1
-    prism(pc, bat_outline(1.0), (0, y, 12.02), (1, 0.12, 0), (0, 0, 1), 0.07, P["black"])
-    ellipsoid(pc, (0, y + 0.03, 12.04), (0.09, 0.06, 0.09), P["black"], 10, 6)
-    # shoulder pads
-    for sgn in (-1, 1):
-        ellipsoid(pc, (sgn * 1.08, -0.02, 11.52), (0.36, 0.42, 0.2), P["suit"], 16, 8)
+    prism(pc, bat_outline(1.08, 1.55), (0, y, 12.0), (1, 0.14, 0), (0, 0, 1), 0.07, P["black"])
+    ellipsoid(pc, (0, y + 0.035, 12.02), (0.1, 0.06, 0.11), P["black"], 10, 6)
 
 
 def build_hips(P, pc):
@@ -590,7 +587,7 @@ def arm_dirs(sgn):
 def build_arm_upper(P, pc, sgn):
     s, e, _, d, _ = arm_dirs(sgn)
     tube(pc, [s - d * 0.15, s + d * 0.6, e], [0.27, 0.24, 0.19], P["suit"], seg=14)
-    ellipsoid(pc, s, (0.3, 0.3, 0.3), P["suit"], 14, 8)
+    ellipsoid(pc, s - d * 0.05, (0.26, 0.28, 0.26), P["suit"], 14, 8)
 
 
 def build_arm_lower(P, pc, sgn):
@@ -600,7 +597,7 @@ def build_arm_lower(P, pc, sgn):
     tube(pc, [w - d2 * 0.1, w + d2 * 0.02], [0.185, 0.185], P["black"], seg=14, stripes=1)  # cuff band
 
 
-def build_hand(P, pc, sgn):
+def build_hand(P, pc, sgn, curl=(12, 22, 20)):
     _, _, w, _, down = arm_dirs(sgn)
     palm_n = Vector((-sgn, 0, 0))  # palm faces the body
     palm_n = (palm_n - down * palm_n.dot(down)).normalized()
@@ -633,7 +630,7 @@ def build_hand(P, pc, sgn):
     for off, L in ((-0.19, 0.84), (-0.065, 1.02), (0.065, 1.1), (0.19, 0.98)):
         base = w + down * 0.72 + fwd * off
         direction = down + fwd * off * 0.35
-        finger(base, direction, [L * 0.42, L * 0.33, L * 0.22], [12, 22, 20], 0.06)
+        finger(base, direction, [L * 0.42, L * 0.33, L * 0.22], curl, 0.06)
     finger(w + down * 0.28 + fwd * 0.2 + palm_n * 0.05, down * 0.55 + fwd * 0.75 + palm_n * 0.35, [0.38, 0.3],
            [18, 20], 0.065)
 
@@ -642,7 +639,11 @@ def pumpkin_centre_on_hand():
     _, _, w, _, down = arm_dirs(1)
     palm_n = Vector((-1, 0, 0))
     palm_n = (palm_n - down * palm_n.dot(down)).normalized()
-    return w + down * 0.62 + palm_n * 0.9
+    fwd = palm_n.cross(down).normalized()
+    if fwd.y < 0:
+        fwd = -fwd
+    # level with the palm, resting on the curled fingers (see build_hand's curl for HandR)
+    return w + down * 0.58 + palm_n * 0.95 + fwd * 0.08
 
 
 def build_leg_upper(P, pc, sgn):
@@ -734,7 +735,7 @@ def jack_pieces(P):
         s, e, w, _, _ = arm_dirs(sgn)
         build_arm_upper(P, add(f"ArmUpper{side}", s, "Torso"), sgn)
         build_arm_lower(P, add(f"ArmLower{side}", e, f"ArmUpper{side}"), sgn)
-        build_hand(P, add(f"Hand{side}", w, f"ArmLower{side}"), sgn)
+        build_hand(P, add(f"Hand{side}", w, f"ArmLower{side}"), sgn, (25, 35, 30) if sgn > 0 else (12, 22, 20))
     c = pumpkin_centre_on_hand()
     build_pumpkin(P, add("Pumpkin", c, "HandR"), c)
     for sgn, side in ((-1, "L"), (1, "R")):
@@ -1060,6 +1061,15 @@ def glow_preview(strength=10.0):
         m.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = strength
 
 
+def face_camera(obj, cam):
+    """Preview only: turn a pumpkin pivot so its carved face (+Y) looks at the camera, stalk up."""
+    pos = obj.matrix_world.translation.copy()
+    to_cam = cam.location - pos
+    to_cam.z *= 0.3
+    obj.matrix_world = Matrix.Translation(pos) @ to_cam.to_track_quat("Y", "Z").to_matrix().to_4x4()
+    bpy.context.view_layer.update()
+
+
 def pumpkin_light(obj, energy=260.0, name="PumpkinLight"):
     mw = obj.matrix_world
     face = (mw.to_3x3() @ Vector((0, 1, 0))).normalized()
@@ -1106,10 +1116,11 @@ def preview_built():
     glow_preview()
     if "hero" in SHOTS:
         pose(objs, "hero", root)
+        shot(cam, (0.6, 0, 7.9), 30, 7, 38, 50)
+        face_camera(objs["Pumpkin"], cam)
         light = pumpkin_light(objs["Pumpkin"])
-        bats = [add_bat(P, (-6.5, 1.5, 13.5), (10, -15, 40), 25), add_bat(P, (-9.0, -2.0, 10.5), (-5, 10, 70), -15),
-                add_bat(P, (5.5, -3.0, 15.8), (0, 20, -30), 35)]
-        shot(cam, (0.6, 0, 8.6), 32, 7, 41, 50)
+        bats = [add_bat(P, (-4.0, 7.0, 15.2), (10, -15, 40), 25), add_bat(P, (-6.5, 4.0, 10.0), (-5, 10, 70), -15),
+                add_bat(P, (6.5, 8.0, 15.6), (0, 20, -30), 35), add_bat(P, (3.5, -4.0, 17.0), (0, -10, 160), 10)]
         render(os.path.join(PREVIEW, "jack-hero.png"))
         for o in [light] + bats:
             for c in [o] + list(o.children_recursive):
@@ -1117,6 +1128,7 @@ def preview_built():
     if "game" in SHOTS:
         root.rotation_euler = (0, 0, math.radians(118))
         pose(objs, "menace", root)
+        objs["Pumpkin"].hide_render = True  # thrown: the one in the air below
         bm = bmesh.new()
         bmesh.ops.create_cube(bm, size=1.0)
         bmesh.ops.scale(bm, vec=(10, 10, 6), verts=bm.verts)
