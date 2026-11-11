@@ -386,7 +386,8 @@ public partial class PlanetView
             shell.FieldMaterial!.SetShaderParameter(PContactTint, v.Tint);
         }
 
-        // Arcs, light and sounds.
+        // Arcs (only against a real shell), light and sounds.
+        if (shell == null) arcs = 0f;
         DrawTransitArcs(v, b, shellPoint, shell, aperture * Mathf.Max(open, 0.35f), arcs, delta);
         var flicker = arcs > 0.01f ? 0.55f + 0.45f * _transitRng.Randf() : 0f;
         var energy = (contact * 0.9f + arcs * flicker * 2.2f + flash * 3f + closing * 1.5f) * strength;
@@ -497,7 +498,7 @@ public partial class PlanetView
             else if (v.Hum.Playing) v.Hum.Stop();
         }
         if (!Heard) return;
-        bool Crossed(float last, float now, float mark) => last < mark && now >= mark;
+        bool Crossed(float last, float now, float mark) => last >= 0f && last < mark && now >= mark;
         if (t.After < 0f)
         {
             if (Crossed(v.LastF, t.F, 0.31f)) Sfx.At("exocomp/lock", at, -4f, 0.75f);
