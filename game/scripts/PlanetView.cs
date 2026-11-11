@@ -251,6 +251,7 @@ public partial class PlanetView : Node3D
         UpdateCosmetics(); // PlanetView.Cosmetics.cs: re-apply our achievement cosmetics when the picks change
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
         UpdateRovers(alpha, delta);
+        UpdateDomeTransits(alpha, delta); // PlanetView.DomeTransit.cs: vehicle fields cycling through a dome's shell (after the rovers are posed)
         UpdatePods(alpha);
     }
 
