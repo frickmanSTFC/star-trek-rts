@@ -33,6 +33,9 @@ public partial class PlanetDriver
     private MissionLog _missionLog = null!;
     private bool _trackerCollapsed;
     private IReadOnlyList<MissionView> _missions = System.Array.Empty<MissionView>();
+    private IReadOnlyList<MissionMarker> _missionMarkers = System.Array.Empty<MissionMarker>();
+    private IReadOnlyList<MissionSite> _missionSites = System.Array.Empty<MissionSite>();
+    private List<TrackerEntry> _trackerEntries = new();
     private double _missionsAt = -1;
     private readonly Dictionary<string, (MissionState State, string Stage)> _missionSeen = new();
     private readonly HashSet<string> _messagesSeen = new();
@@ -139,7 +142,10 @@ public partial class PlanetDriver
         {
             _missionsAt = _clock;
             _missions = book.For(LocalPlayer);
+            _missionMarkers = book.Markers(LocalPlayer);
+            _missionSites = book.Sites(LocalPlayer);
             MissionEvents(book);
+            _trackerEntries = TrackerEntries(); // timers tick at this rate too
         }
         if (_chapterCheck != null && _clock >= _chapterCheckAt) ChapterCheck();
 
@@ -153,7 +159,7 @@ public partial class PlanetDriver
 
         // Tracker: hidden while the tutorial runs or a full-screen card is up; in orbit only while the SATELLITES window
         // (same corner) is closed.
-        var entries = TrackerEntries();
+        var entries = _trackerEntries;
         var banner = TrackerBannerView();
         var tutorialRunning = _tutorial != null;
         var hideTracker = blocked || tutorialRunning || _missionLog.IsOpen || (_inOrbit && _satPanelOpen);
@@ -332,7 +338,6 @@ public partial class PlanetDriver
     private List<TrackerEntry> TrackerEntries()
     {
         var list = new List<TrackerEntry>();
-        var markers = _sim.Missions.Markers(LocalPlayer);
         foreach (var pass in new[] { 0, 1, 2 })
             foreach (var m in _missions)
             {
@@ -344,7 +349,7 @@ public partial class PlanetDriver
                 };
                 if (!wanted) continue;
                 var offer = m.State == MissionState.Offered;
-                var locatable = markers.Any(k => k.MissionId == m.Id) || _sim.Missions.Sites(LocalPlayer).Any(s => s.MissionId == m.Id && s.Found);
+                var locatable = HasMapPoint(m.Id);
                 var hint = offer ? "Click or Y: read the offer, accept or decline" : m.Options.Count > 0 ? "A decision is waiting: click to answer" : "";
                 list.Add(new TrackerEntry(m.Id, offer ? "OFFER" : m.Kind == MissionKind.Main ? "MAIN" : "SIDE", m.Title,
                     offer ? "" : m.StageTitle, offer ? System.Array.Empty<MissionObjectiveLine>() : ObjectiveLines(m), TimerText(m.TimerEndTick), hint,
@@ -365,6 +370,10 @@ public partial class PlanetDriver
         }
         return lines;
     }
+
+    /// <summary>The mission has a marker or a found site to fly the camera to.</summary>
+    private bool HasMapPoint(string missionId) =>
+        _missionMarkers.Any(k => k.MissionId == missionId) || _missionSites.Any(s => s.MissionId == missionId && s.Found);
 
     /// <summary>"1:24" until the tick, "" with no timer (or once it has passed).</summary>
     private string TimerText(long endTick)
@@ -614,7 +623,7 @@ public partial class PlanetDriver
             if (msg.MissionId == id) messages.Add((Clock(msg.Tick), msg.GiverName.Length > 0 ? msg.GiverName : GiverName(msg.Giver), msg.Text));
         var subtitle = $"{(m.Kind == MissionKind.Main ? "MAIN MISSION" : "SIDE JOB")} · {StateName(m.State).ToUpperInvariant()} · {GiverName(m.Giver).ToUpperInvariant()}";
         var live = m.State is MissionState.Active or MissionState.Offered;
-        var locatable = live && (_sim.Missions.Markers(LocalPlayer).Any(k => k.MissionId == id) || _sim.Missions.Sites(LocalPlayer).Any(s => s.MissionId == id && s.Found));
+        var locatable = live && HasMapPoint(id);
         return new MissionLogDetail(m.Id, m.Title, subtitle, m.State == MissionState.Active ? m.StageTitle : "", m.Briefing,
             live ? ObjectiveLines(m) : new List<MissionObjectiveLine>(), m.State is MissionState.Completed or MissionState.Failed ? m.Debrief : "",
             m.Rewards, m.State == MissionState.Completed, messages, locatable);
