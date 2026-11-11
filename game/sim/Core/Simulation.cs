@@ -58,8 +58,11 @@ public sealed partial class Simulation
     /// <summary>The planet surface being played on, or null in a star-system match.</summary>
     public PlanetSurface? Surface { get; private set; }
 
-    /// <summary>Campaign missions (Missions/MissionBook.cs; docs/missions-contract.md C). Disabled unless set up.</summary>
-    public FinalFrontier.Sim.Missions.MissionBook Missions { get; } = new();
+    /// <summary>Campaign missions (Missions/MissionBook.cs; docs/missions-contract.md C). Off unless a campaign start
+    /// turns them on before tick 0: <c>sim.Missions.Enable("first_light")</c> (or the era id "dawn_of_warp").</summary>
+    public FinalFrontier.Sim.Missions.MissionBook Missions => _missions ??= new FinalFrontier.Sim.Missions.MissionBook(this);
+
+    private FinalFrontier.Sim.Missions.MissionBook? _missions;
 
     public IReadOnlyList<Player> Players => _players;
     public IReadOnlyList<Body> Bodies => _bodies;
@@ -254,6 +257,7 @@ public sealed partial class Simulation
         System?.Step(this);
         Surface?.Step(this);
         foreach (var ship in _ships) Movement(ship);
+        if (Tick % TickRate == 0 && _missions is { Enabled: true }) _missions.Step(); // once a second, after the surface (Missions/)
         if (Tick % TickRate == 0) Achievements.Check(); // once a second, after everything has moved (Achievements.cs)
         Tick++;
     }
@@ -285,6 +289,11 @@ public sealed partial class Simulation
         if (!relayed && System != null && IsColonyOrder(command) && System.CommsDelayTicks(command.Player) is var delay && delay > 0)
         {
             _inTransit.Add(new OrderInTransit(Tick, Tick + delay, command));
+            return;
+        }
+        if (command is MissionChoiceCommand choice)
+        {
+            Missions.Choose(choice); // refuses itself when missions are off or the option isn't open
             return;
         }
         if (Surface != null && Surface.Apply(this, command)) return;
@@ -371,6 +380,8 @@ public sealed partial class Simulation
                 return DataTuning.Rebuild(Data, Array.Empty<DataEdit>(), reload.Files, out _);
             case DebugCivCommand civ:
                 return System == null ? "no star system" : System.DebugCivProblem(this, civ);
+            case DebugMissionCommand mission:
+                return Missions.DebugProblem(mission);
             default:
                 return Surface == null ? "no planet surface" : Surface.DebugProblem(this, command);
         }
@@ -422,6 +433,9 @@ public sealed partial class Simulation
                 break;
             case DebugCivCommand civ:
                 System!.ApplyDebugCiv(this, civ);
+                break;
+            case DebugMissionCommand mission:
+                Missions.ApplyDebug(mission);
                 break;
             default:
                 Surface!.ApplyDebug(this, command);
@@ -487,6 +501,7 @@ public sealed partial class Simulation
             }
         }
         Achievements.AddToHash(ref h); // only once it has tracked anything (Achievements.cs)
+        _missions?.AddToHash(ref h); // only while missions are on (Missions/MissionBook.cs)
         h.Add(DebugEdits);
         h.Add(_dataChanges.Count);
         foreach (var c in _dataChanges) h.Add(c);

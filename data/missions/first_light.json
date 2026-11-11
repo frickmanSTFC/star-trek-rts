@@ -1,0 +1,128 @@
+{
+  "missions": [
+    { "id": "ground_truth", "chain": "first_light", "kind": "main", "title": "Ground Truth", "giver": "control",
+      "trigger": { "any": [
+        { "building": { "id": "science_lab", "state": "any" } },
+        { "time": { "after_seconds": 600, "since": "uplink" } } ] },
+      "briefing": "Moreau here, Earth Mission Control. The orbital pictures only tell us so much. Put your rovers on the ground and give us ground truth: sixty tiles surveyed, and at least three different resources confirmed.",
+      "stages": [
+        { "id": "survey", "title": "Survey the landing region",
+          "objectives": [
+            { "id": "tiles", "text": "Survey 60 tiles", "cond": { "surveyed": { "count": 60 } }, "hint": "Send the rovers out: every tile they drive past is surveyed." },
+            { "id": "resources", "text": "Find 3 different resources", "cond": { "deposits_found": { "count": 3 } } } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 30 } } ],
+      "debrief": "Good data, all of it. Earth has its first ground-truth map of this world. Stand by: we have something else for you." },
+
+    { "id": "lost_pathfinder", "chain": "first_light", "kind": "main", "title": "The Lost Pathfinder", "giver": "control",
+      "briefing": "Before anyone built warp engines, Earth sent the uncrewed Pathfinder IV probe out here. It came down on this world decades ago and went silent. Its last fix puts it inside the marked search area. Find the wreck and recover the data recorder.",
+      "stages": [
+        { "id": "search", "title": "Find the probe",
+          "on_enter": [
+            { "place_site": { "bind": "wreck", "kind": "probe_wreck", "min": 10, "max": 18, "terrain": "passable", "unsurveyed": true } },
+            { "marker": { "at": "wreck", "style": "area", "radius": 4, "offset": 3, "label": "Search area" } } ],
+          "objectives": [
+            { "id": "find", "text": "Find the Pathfinder IV wreck in the search area", "cond": { "site": { "site": "wreck", "state": "found" } },
+              "hint": "Drive a rover into the marked area: the wreck shows once its tile is surveyed." } ],
+          "next": "recover" },
+        { "id": "recover", "title": "Recover the data recorder",
+          "on_enter": [
+            { "message": { "giver": "science", "channel": "feed", "text": "Reyes: That's it, Pathfinder IV, {wreck.distance} tiles out. Park a rover beside it and we'll pull the recorder." } },
+            { "marker": { "at": "wreck", "style": "site", "radius": 1, "label": "Pathfinder IV" } } ],
+          "objectives": [
+            { "id": "recorder", "text": "Park a rover beside the wreck", "cond": { "site": { "site": "wreck", "state": "reached", "radius": 1 } },
+              "hold_seconds": 20, "hint": "Keep it parked there while the crew pull the recorder." } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 60 } }, { "grant": { "control_module": 2 } }, { "reveal": { "at": "wreck", "radius": 6 } } ],
+      "debrief": "The recorder survived. Forty years of surface readings, and the probe's own map of the ground round {wreck}. Earth will want every byte of it." },
+
+    { "id": "calling_home", "chain": "first_light", "kind": "main", "title": "Calling Home", "giver": "control",
+      "imports": ["lost_pathfinder.wreck"],
+      "briefing": "The recorder's data has to come home, and the outpost's antenna can't reach Earth on its own. Deploy a relay satellite whose coverage includes the base, then bring the Pathfinder wreck under coverage too, with the same relay or another.",
+      "stages": [
+        { "id": "relay", "title": "Put up a relay",
+          "objectives": [
+            { "id": "base", "text": "Deploy a relay satellite covering the base", "cond": { "relay": { "covers": "base" } },
+              "hint": "Helm: RELAY, then pick a tile over the outpost." } ],
+          "next": "wreck" },
+        { "id": "wreck", "title": "Link the wreck",
+          "on_enter": [ { "marker": { "at": "wreck", "style": "site", "radius": 1, "label": "Pathfinder IV" } } ],
+          "objectives": [
+            { "id": "wreck", "text": "Bring the Pathfinder wreck under relay coverage", "cond": { "relay": { "covers": "wreck" } } } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 40 } }, { "set_flag": { "name": "earth_link" } } ],
+      "debrief": "Link confirmed. Earth is reading Pathfinder IV's recorder as we speak, and the outpost has a voice of its own now." },
+
+    { "id": "wings", "chain": "first_light", "kind": "main", "title": "Wings", "giver": "ops",
+      "needs": ["machine_shop", "drone_pad", "scout_drone"],
+      "briefing": "Okafor here. The rovers can't cross half of what's out there. We can build scout drones from parts: a Machine Shop to make them, a Drone Pad to fly them from. Two drones to start.",
+      "stages": [
+        { "id": "build", "title": "Build the drone kit",
+          "objectives": [
+            { "id": "shop", "text": "Build a Machine Shop", "cond": { "building": { "id": "machine_shop" } } },
+            { "id": "pad", "text": "Build a Drone Pad", "cond": { "building": { "id": "drone_pad" } } },
+            { "id": "drones", "text": "Fabricate 2 scout drones", "cond": { "fabricated": { "item": "scout_drone", "count": 2 } },
+              "hint": "Machine Shop: order Scout Drones (frame, power coupling, control modules)." } ],
+          "next": "complete" } ],
+      "rewards": [ { "grant": { "power_coupling": 2 } }, { "research": { "points": 20 } } ],
+      "debrief": "Two drones on the pad and charging. Mind the batteries and keep them inside comms coverage." },
+
+    { "id": "first_flight", "chain": "first_light", "kind": "main", "title": "First Flight", "giver": "science",
+      "needs": ["drone_pad", "scout_drone"],
+      "briefing": "Reyes here. I want pictures of the ground the rovers can't reach. Launch a drone, then fly one to each of the three photo points beyond the ridges and the water.",
+      "stages": [
+        { "id": "launch", "title": "Launch a drone",
+          "objectives": [
+            { "id": "launch", "text": "Launch a scout drone from the Drone Pad", "cond": { "drone_launched": { "count": 1 } } } ],
+          "next": "photos" },
+        { "id": "photos", "title": "Photo survey",
+          "on_enter": [
+            { "place_site": { "bind": "photos", "kind": "photo_point", "count": 3, "min": 6, "max": 13, "terrain": "any", "behind": true, "spacing": 3 } },
+            { "marker": { "at": "photos", "style": "target", "radius": 1, "label": "Photo point" } },
+            { "message": { "channel": "feed", "text": "Reyes: Photo points marked. Out of comms range? A relay satellite over them fixes that." } } ],
+          "objectives": [
+            { "id": "photos", "text": "Fly a drone to each photo point", "cond": { "drone_at": { "at": "photos", "radius": 1 } },
+              "hint": "A drone loitering over a point takes its pictures." } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 50 } }, { "reveal": { "at": "photos", "radius": 3 } } ],
+      "debrief": "Beautiful pictures. Three valleys nobody has ever seen, on file." },
+
+    { "id": "beyond_the_ridge", "chain": "first_light", "kind": "main", "title": "Beyond the Ridge", "giver": "science",
+      "needs": ["drone_pad", "scout_drone"],
+      "briefing": "Something out there is transmitting. It's faint and it isn't ours. Take bearings from two of the three marked points with a drone and we can narrow it down, then send a rover to it.",
+      "stages": [
+        { "id": "bearings", "title": "Take bearings",
+          "on_enter": [
+            { "place_tiles": { "bind": "bearings", "count": 3, "min": 8, "max": 15, "terrain": "any", "spacing": 4 } },
+            { "marker": { "at": "bearings", "style": "target", "radius": 1, "label": "Bearing point" } } ],
+          "objectives": [
+            { "id": "bearings", "text": "Take a bearing from 2 of the 3 points (a drone loitering)", "cond": { "drone_at": { "at": "bearings", "radius": 1, "count": 2 } } } ],
+          "next": "search" },
+        { "id": "search", "title": "Find the source",
+          "on_enter": [
+            { "place_site": { "bind": "source", "kind": "signal_source", "near": "bearings", "min": 2, "max": 6, "terrain": "passable", "unsurveyed": true } },
+            { "marker": { "at": "source", "style": "area", "radius": 3, "offset": 2, "label": "Signal area" } },
+            { "message": { "channel": "feed", "text": "Reyes: Got a fix. The source is somewhere in the marked area." } } ],
+          "objectives": [
+            { "id": "find", "text": "Find the signal source", "cond": { "site": { "site": "source", "state": "found" } } } ],
+          "next": "reach" },
+        { "id": "reach", "title": "Reach it",
+          "on_enter": [ { "marker": { "at": "source", "style": "site", "radius": 1, "label": "Signal source" } } ],
+          "objectives": [
+            { "id": "reach", "text": "Reach the signal source with a rover", "cond": { "site": { "site": "source", "state": "reached", "radius": 1 } }, "hold_seconds": 5 } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 100 } } ],
+      "debrief": "A small transmitter, half sunk in the rock, still running on something we don't understand. It's not human. Not anything we know." },
+
+    { "id": "foothold", "chain": "first_light", "kind": "main", "title": "Foothold", "giver": "ops",
+      "briefing": "One outpost is a landing. Two is a colony. Found a second outpost, by construction rover or by an outpost drop, somewhere our comms reach.",
+      "stages": [
+        { "id": "found", "title": "Found a second outpost",
+          "objectives": [
+            { "id": "outpost", "text": "Found a second outpost inside comms coverage", "cond": { "outpost": { "count": 2, "covered": true } },
+              "hint": "A relay satellite over the site first, then a construction rover or an outpost drop." } ],
+          "next": "complete" } ],
+      "rewards": [ { "grant": { "duranium": 150 } } ],
+      "debrief": "Moreau: Two outposts, a link home, drones in the air and a signal nobody can explain. That's the end of the beginning. Well done, all of you. First Light is complete." }
+  ]
+}

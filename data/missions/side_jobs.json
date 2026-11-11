@@ -1,0 +1,71 @@
+{
+  "missions": [
+    { "id": "rich_vein", "chain": "first_light", "kind": "side", "title": "Rich Vein", "giver": "ops",
+      "trigger": { "deposits_found": { "rich": true, "count": 1, "bind": "vein" } },
+      "briefing": "Okafor: the survey turned up a rich {vein.res} seam at {vein}. Stake it and haul some of it home.",
+      "stages": [
+        { "id": "stake", "title": "Stake the claim",
+          "on_enter": [ { "marker": { "at": "vein", "style": "target", "radius": 1, "label": "Rich seam" } } ],
+          "objectives": [
+            { "id": "mine", "text": "Put a Mining Complex or the crawler on the seam", "cond": { "any": [
+              { "building": { "ids": ["mine", "deep_core_mine"], "at": "vein", "state": "any" } },
+              { "unit": { "ids": ["mining_crawler"], "state": "deployed", "at": "vein" } } ] } } ],
+          "next": "haul" },
+        { "id": "haul", "title": "Haul it home",
+          "objectives": [
+            { "id": "haul", "text": "Mine 300 from the seam", "cond": { "deposit": { "at": "vein", "extracted": 300 } } } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 20 } }, { "grant": { "duranium": 60 } } ],
+      "debrief": "The seam's paying out. Nice find." },
+
+    { "id": "storm_watch", "chain": "first_light", "kind": "side", "title": "Storm Watch", "giver": "science",
+      "trigger": { "weather": { "kinds": ["storm", "blizzard", "dust_storm"], "near": "base", "within_seconds": 60 } },
+      "briefing": "Reyes: a storm front is coming in over the base. I'd love real readings from inside it: park a rover in the open while it blows through.",
+      "stages": [
+        { "id": "watch", "title": "Storm readings", "timer_seconds": 300,
+          "objectives": [
+            { "id": "readings", "text": "Keep a rover parked in the open during the storm", "cond": { "exposed": { "kinds": ["storm", "blizzard", "dust_storm"] } },
+              "hold_seconds": 60, "hint": "Out of cover, standing still, in the storm itself. Rough on the rover." } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 40 } } ],
+      "debrief": "Sixty seconds of storm telemetry from the ground. Worth every scratch." },
+
+    { "id": "lost_signal", "chain": "first_light", "kind": "side", "title": "Lost Signal", "giver": "science",
+      "needs": ["drone_pad", "scout_drone"],
+      "trigger": { "ruin_hint": { "bind": "ruin" } },
+      "briefing": "Reyes: orbit picked up regular shapes under the ground in the marked area. Artificial, maybe. A drone pass over it would tell us.",
+      "stages": [
+        { "id": "overfly", "title": "Overfly the area",
+          "on_enter": [ { "marker": { "at": "ruin", "style": "area", "radius": 5, "offset": 3, "label": "Structures?" } } ],
+          "objectives": [
+            { "id": "overfly", "text": "Fly a drone over the marked area", "cond": { "drone_at": { "at": "ruin", "radius": 4 } } } ],
+          "next": "complete" } ],
+      "rewards": [ { "reveal": { "at": "ruin", "radius": 1 } }, { "research": { "points": 20 } } ],
+      "debrief": "Ruins. Old ones, and not built by anyone we know. They're on the map now." },
+
+    { "id": "sky_survey", "chain": "first_light", "kind": "side", "title": "Sky Survey", "giver": "science",
+      "trigger": { "satellite_share": { "share": 0.25 } },
+      "briefing": "Reyes: the survey satellites are doing well. Keep them sweeping until they've mapped half of this world.",
+      "stages": [
+        { "id": "sweep", "title": "Map half the world",
+          "objectives": [
+            { "id": "share", "text": "Satellites survey half of the map", "cond": { "satellite_share": { "share": 0.5 } } } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 40 } } ],
+      "debrief": "Half a world mapped from orbit. The cartographers at home owe you a drink." },
+
+    { "id": "rescue", "chain": "first_light", "kind": "side", "title": "Rescue", "giver": "ops",
+      "trigger": { "unit": { "ids": ["survey_rover", "survey_rover_mk2", "survey_rover_mk3", "construction_rover"], "state": "broken", "far_from_pad": 6, "bind": "victim" } },
+      "briefing": "Okafor: {victim} is disabled out there, far from any pad. Crew's fine, reserve power isn't. Get another vehicle or a drone to them inside five minutes.",
+      "stages": [
+        { "id": "reach", "title": "Reach them", "timer_seconds": 300,
+          "on_enter": [ { "marker": { "at": "victim", "style": "unit", "label": "{victim}" } } ],
+          "objectives": [
+            { "id": "reach", "text": "Reach {victim} with another vehicle or a drone", "cond": { "any": [
+              { "near": { "at": "victim", "radius": 1 } },
+              { "drone_at": { "at": "victim", "radius": 1 } } ] } } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 20 } }, { "grant": { "rover_spares": 1 } } ],
+      "debrief": "Help reached {victim} in time. Nobody gets left out there." }
+  ]
+}
