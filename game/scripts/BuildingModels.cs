@@ -47,6 +47,7 @@ public static partial class BuildingModels
         "life_support_plant" => LifeSupportPlant(owner, v),
         "machine_shop" => MachineShop(owner, v),
         "excavation_site" => ExcavationSite(owner, v),
+        "drone_pad" => DronePad(owner, v), // BuildingModels.Drone.cs
         _ => Generic(owner),
     };
 
