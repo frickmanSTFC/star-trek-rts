@@ -130,3 +130,20 @@ public sealed record MembershipCommand(int Player, string BodyId) : Command(Play
 
 /// <summary>Order an allied native ship: BodyId null = escort your flagship, else fly to that body and scout (chart) it.</summary>
 public sealed record AllyShipOrderCommand(int Player, int ShipId, string? BodyId) : Command(Player);
+
+// ---- drones, comms relays, missions (docs/missions-contract.md; stubs until the sim agents fill them in)
+
+/// <summary>Launch a charged drone docked at your Drone Pad toward a tile inside comms coverage: it flies straight
+/// there (over anything), surveys on the way, loiters, flies home and recharges (Surface/Drones.cs).</summary>
+public sealed record LaunchDroneCommand(int Player, int PadId, int Tile) : Command(Player);
+
+/// <summary>Send these flying drones straight home to their pads.</summary>
+public sealed record RecallDroneCommand(int Player, IReadOnlyList<int> UnitIds) : Command(Player);
+
+/// <summary>Put a comms relay satellite into a stationary orbit over this tile (paid from the orbit hold): comms
+/// coverage round it (Surface/Comms.cs).</summary>
+public sealed record RelaySatelliteCommand(int Player, int Tile) : Command(Player);
+
+/// <summary>Answer a mission: Option "accept" / "decline" for an offer, or a branch option id at a choice
+/// (Missions/MissionBook.cs).</summary>
+public sealed record MissionChoiceCommand(int Player, string MissionId, string Option) : Command(Player);

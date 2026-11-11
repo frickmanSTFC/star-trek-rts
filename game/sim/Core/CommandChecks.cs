@@ -53,6 +53,8 @@ public static class CommandChecks
             case ContactChoiceCommand c: return Id(c.BodyId);
             case MembershipCommand c: return Id(c.BodyId);
             case AllyShipOrderCommand c: return c.BodyId == null ? null : Id(c.BodyId);
+            case RecallDroneCommand c: return Ids(c.UnitIds);
+            case MissionChoiceCommand c: return Id(c.MissionId) ?? Id(c.Option);
             case DebugCivCommand c: return Enum.IsDefined(c.Field) ? Id(c.BodyId) : "unknown field";
             case DebugUnitCommand c: return Enum.IsDefined(c.Field) ? null : "unknown field";
             case DebugSpawnUnitCommand c: return Id(c.UnitId);
@@ -143,6 +145,10 @@ public static class CommandHash
         MembershipCommand => 33,
         AllyShipOrderCommand => 34,
         RetaskSatelliteCommand => 35,
+        LaunchDroneCommand => 36,
+        RecallDroneCommand => 37,
+        RelaySatelliteCommand => 38,
+        MissionChoiceCommand => 39,
         // Test panel.
         DebugUnitCommand => 101,
         DebugMoveUnitCommand => 102,
@@ -207,6 +213,10 @@ public static class CommandHash
             case ContactChoiceCommand c: Text(ref h, c.BodyId); h.Add(c.Choice); break;
             case MembershipCommand c: Text(ref h, c.BodyId); break;
             case AllyShipOrderCommand c: h.Add(c.ShipId); h.Add(c.BodyId != null); if (c.BodyId != null) Text(ref h, c.BodyId); break;
+            case LaunchDroneCommand c: h.Add(c.PadId); h.Add(c.Tile); break;
+            case RecallDroneCommand c: Ids(ref h, c.UnitIds); break;
+            case RelaySatelliteCommand c: h.Add(c.Tile); break;
+            case MissionChoiceCommand c: Text(ref h, c.MissionId); Text(ref h, c.Option); break;
             case DebugCivCommand c: h.Add(c.Target); Text(ref h, c.BodyId); h.Add((int)c.Field); h.Add(c.Value); break;
             case DebugRuinCommand c: h.Add(c.Tile); h.Add(c.Add); break;
             case DebugUnitCommand c: h.Add(c.UnitId); h.Add((int)c.Field); h.Add(c.Value); break;

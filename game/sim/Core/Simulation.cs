@@ -58,6 +58,9 @@ public sealed partial class Simulation
     /// <summary>The planet surface being played on, or null in a star-system match.</summary>
     public PlanetSurface? Surface { get; private set; }
 
+    /// <summary>Campaign missions (Missions/MissionBook.cs; docs/missions-contract.md C). Disabled unless set up.</summary>
+    public FinalFrontier.Sim.Missions.MissionBook Missions { get; } = new();
+
     public IReadOnlyList<Player> Players => _players;
     public IReadOnlyList<Body> Bodies => _bodies;
     public IReadOnlyList<Colony> Colonies => _colonies;
