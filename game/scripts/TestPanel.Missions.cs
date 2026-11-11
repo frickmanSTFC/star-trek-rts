@@ -26,11 +26,31 @@ public partial class TestPanel
     private static readonly string[] MissionActions = { "start", "goto_stage", "complete_objective", "complete", "fail", "reset" };
 
     /// <summary>TODO(merge S2): the debug command for one mission action (null = not in this build).</summary>
-    private DebugCommand? MissionDebug(string missionId, string action, int arg) => null;
+    private DebugCommand? MissionDebug(string missionId, string action, int arg)
+    {
+        var def = Data.Missions?.List.FirstOrDefault(m => m.Id == missionId);
+        if (def == null) return null;
+        string Stage() => arg >= 0 && arg < def.Stages.Count ? def.Stages[arg].Id : "";
+        string Objective()
+        {
+            var view = Sim.Missions.For(Me).FirstOrDefault(m => m.Id == missionId);
+            return view != null && arg >= 0 && arg < view.Objectives.Count ? view.Objectives[arg].Id : "";
+        }
+        var (act, stage, objective) = action switch
+        {
+            "start" => (DebugMissionAction.Start, "", ""),
+            "goto_stage" => (DebugMissionAction.GotoStage, Stage(), ""),
+            "complete_objective" => (DebugMissionAction.CompleteObjective, "", Objective()),
+            "complete" => (DebugMissionAction.Complete, "", ""),
+            "fail" => (DebugMissionAction.Fail, "", ""),
+            _ => (DebugMissionAction.Reset, "", ""),
+        };
+        return new DebugMissionCommand(Me, Me, missionId, act, stage, objective, -1);
+    }
 
     /// <summary>TODO(merge S2): the debug command that turns missions on in a running sandbox game, e.g. with the
     /// Dawn of Warp chain (null = not in this build; a campaign start turns them on at set-up instead).</summary>
-    private DebugCommand? MissionsOnCommand(string chain) => null;
+    private DebugCommand? MissionsOnCommand(string chain) => new DebugMissionCommand(Me, Me, chain, DebugMissionAction.Enable, "", "", -1);
 
     /// <summary>Every mission id the panel can act on: the ones the book shows, then any the data lists (by reflection
     /// on GameData.Missions until S2's defs are merged), in order, no repeats.</summary>
@@ -38,9 +58,9 @@ public partial class TestPanel
     {
         var ids = new List<string>();
         foreach (var m in Sim.Missions.For(Me)) if (!ids.Contains(m.Id)) ids.Add(m.Id);
-        if (Data.GetType().GetProperty("Missions")?.GetValue(Data) is IEnumerable defs)
-            foreach (var d in defs)
-                if (d?.GetType().GetProperty("Id")?.GetValue(d) is string id && !ids.Contains(id)) ids.Add(id);
+        if (Data.Missions != null)
+            foreach (var d in Data.Missions.List)
+                if (Data.MissionAvailable(d) && !ids.Contains(d.Id)) ids.Add(d.Id);
         return ids;
     }
 

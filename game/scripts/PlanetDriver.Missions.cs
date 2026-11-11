@@ -79,9 +79,7 @@ public partial class PlanetDriver
     private void BeginMissions()
     {
         if (GameSetup.MissionChain is not { } chain || _sim.Missions.Enabled) return;
-        // TODO(merge S2): the enable call S2 defines, e.g. `_sim.Missions.Enable(chain);` (MissionBook.Enabled has an
-        // internal setter, so the game can't set it itself). Until then a campaign game simply has no missions.
-        _ = chain;
+        if (_sim.Missions.Enable(chain) is { } problem) GD.PushWarning($"Missions not started: {problem}");
     }
 
     /// <summary>The mouse is over a mission panel (counts as UI for the map and the globe).</summary>
