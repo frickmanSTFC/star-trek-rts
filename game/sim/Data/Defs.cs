@@ -10,8 +10,8 @@ public sealed record ResourceDef(int Index, string Id, string Name, string Tier)
     /// construction parts 2).</summary>
     public Fix64 Volume { get; init; } = Fix64.One;
 
-    /// <summary>A part, spare kit or construction part (the parts economy's items).</summary>
-    public bool IsPartItem => Tier is "part" or "spare" or "construction";
+    /// <summary>A part, spare kit, construction part or packed drone (the parts economy's items: a Machine Shop makes them).</summary>
+    public bool IsPartItem => Tier is "part" or "spare" or "construction" or "drone";
 }
 
 /// <summary>An amount of one resource, referenced by resource index.</summary>

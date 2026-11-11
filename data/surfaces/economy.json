@@ -1,5 +1,5 @@
 {
-  "build_menu": ["storage_container", "refinery", "mine", "fusion_reactor", "prefab_habitat", "foundry", "deep_core_mine", "vehicle_bay", "science_lab", "machine_shop", "excavation_site"],
+  "build_menu": ["storage_container", "refinery", "mine", "fusion_reactor", "prefab_habitat", "foundry", "deep_core_mine", "vehicle_bay", "science_lab", "machine_shop", "drone_pad", "excavation_site"],
   "power_resource": "energy",
   "hud_resources": ["duranium_ore", "tritanium_ore", "duranium", "tritanium", "parasteel", "deuterium", "dilithium", "crew"],
   "storage_exempt": ["crew", "latinum"],

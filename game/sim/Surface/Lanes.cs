@@ -109,7 +109,7 @@ public sealed partial class PlanetSurface
     /// <summary>Where another unit means to stand on this tile: parked there, or driving its last stretch to a spot.</summary>
     private static FixVec2? Claim(SurfaceUnit w, int tile)
     {
-        if (w.Tile != tile || w.Mode != UnitMode.Mobile) return null;
+        if (w.Tile != tile || w.Mode != UnitMode.Mobile || w.Drone != null) return null; // drones park on their pads' bays
         if (w._path.Count == 0) return w.Pos;
         if (w._path[0] == tile && w._route.Count > 0) return w._route[^1];
         return null;
@@ -184,7 +184,7 @@ public sealed partial class PlanetSurface
         var avoid = Lanes.AvoidRadius;
         foreach (var w in _units)
         {
-            if (w == u || w.Tile != tile || w.Mode != UnitMode.Mobile || w._path.Count > 0) continue;
+            if (w == u || w.Tile != tile || w.Mode != UnitMode.Mobile || w._path.Count > 0 || w.Drone != null) continue;
             var from = u.Pos;
             if ((from - w.Pos).Length() < avoid) continue; // starting beside it: just drive off
             for (var i = 0; i < points.Count; i++)
@@ -275,7 +275,7 @@ public sealed partial class PlanetSurface
         var c = CentreOf(tile);
         foreach (var w in _units)
         {
-            if (w == except || w.Tile != tile || w.Mode != UnitMode.Mobile || w._path.Count > 0) continue;
+            if (w == except || w.Tile != tile || w.Mode != UnitMode.Mobile || w._path.Count > 0 || w.Drone != null) continue;
             if (w.TyreChangeTicks > 0 || DriveProblem(w) != null || (w.Pos - c).Length() >= radius) continue;
             w._path.Add(tile);
             w._route.Clear();
@@ -290,6 +290,7 @@ public sealed partial class PlanetSurface
         u.WaitTicks = 0;
         u.PushTicks = 0;
         u.BlockedBy = 0;
+        CancelTransit(u); // DomeTransit.cs
     }
 
     /// <summary>Puts a unit on a tile at a free spot (appearing there: spawned, teleported, rolled back out).</summary>
@@ -355,6 +356,7 @@ public sealed partial class PlanetSurface
         if (InTheWay(u) is { } w)
         {
             u.BlockedBy = w.Id;
+            if (w.Transit != null) return true; // queues behind a vehicle cycling through a dome's field (never pushes past)
             if (++u.WaitTicks < Ticks(Lanes.WaitSeconds)) return true;
             u.PushTicks = Ticks(Lanes.PushSeconds);
         }
@@ -370,7 +372,7 @@ public sealed partial class PlanetSurface
         var reach = Lanes.GapAhead + Lanes.GapSide;
         foreach (var w in _units)
         {
-            if (w == u || w.Mode != UnitMode.Mobile || w.BlockedBy == u.Id) continue;
+            if (w == u || w.Mode != UnitMode.Mobile || w.BlockedBy == u.Id || w.Drone != null) continue; // drones fly over
             var v = w.Pos - u.Pos;
             if (Fix64.Abs(v.X) > reach || Fix64.Abs(v.Y) > reach) continue;
             // A parked vehicle it couldn't swerve round (no room on a crowded tile) only stops it when it would hit it
@@ -404,14 +406,25 @@ public sealed partial class PlanetSurface
         foreach (var unit in _units) unit.PrevPos = unit.Pos;
         foreach (var unit in _units)
         {
+            if (unit.Drone != null) continue; // drones fly straight (Drones.cs)
             if (unit._path.Count == 0 || unit.Mode != UnitMode.Mobile)
             {
                 unit.WaitTicks = 0;
                 unit.BlockedBy = 0;
+                if (unit.Transit != null) CancelTransit(unit);
                 continue;
             }
-            if (unit._route.Count == 0) PlanLeg(unit);
-            if (Blocked(unit)) continue;
+            var crossed = false;
+            if (unit.Transit != null) // waiting at a dome's field edge (DomeTransit.cs)
+            {
+                if (!TransitTick(sim, unit, out crossed)) continue;
+                if (crossed) CrossEdge(unit);
+            }
+            if (!crossed)
+            {
+                if (unit._route.Count == 0) PlanLeg(unit);
+                if (Blocked(unit)) continue;
+            }
             var budget = SpeedPerTick(unit);
             for (var guard = 0; guard < 32 && budget > Fix64.Zero; guard++)
             {
@@ -432,13 +445,8 @@ public sealed partial class PlanetSurface
                 if (unit._route.Count > 0) continue;
                 if (unit._path[0] != unit.Tile)
                 {
-                    // Over the edge into the next tile (the last one stays in Path until it parks).
-                    unit.Tile = unit._path[0];
-                    if (unit._path.Count > 1) unit._path.RemoveAt(0);
-                    Tracker?.Drove(unit); // achievements: hexes driven
-                    var surveyRadius = SurveyRadiusOf(unit);
-                    Reveal(unit.Owner, unit.Tile, surveyRadius);
-                    MarkSightAt(unit, surveyRadius); // Visibility.cs: fog of war memory
+                    if (BeginTransit(sim, unit)) break; // a dome's field edge: it stops here first (DomeTransit.cs)
+                    CrossEdge(unit);
                     continue;
                 }
                 unit._path.Clear();
@@ -446,6 +454,17 @@ public sealed partial class PlanetSurface
                 break;
             }
         }
+    }
+
+    /// <summary>Over the edge into the next tile (the last one stays in Path until it parks).</summary>
+    private void CrossEdge(SurfaceUnit unit)
+    {
+        unit.Tile = unit._path[0];
+        if (unit._path.Count > 1) unit._path.RemoveAt(0);
+        Tracker?.Drove(unit); // achievements: hexes driven
+        var surveyRadius = SurveyRadiusOf(unit);
+        Reveal(unit.Owner, unit.Tile, surveyRadius);
+        MarkSightAt(unit, surveyRadius); // Visibility.cs: fog of war memory
     }
 
     /// <summary>Parked at its spot in its last tile: unfurl (a mine order) or start founding (a construction rover).</summary>
