@@ -15,7 +15,7 @@ namespace FinalFrontier;
 //    grows along their way (PathCap); unwalked cells fade back over minutes.
 // Decals project only onto the terrain (its mesh gets DecalGroundLayer) and, while the outpost feed shows the surface
 // in orbit, onto everything on the feed layer (SurfaceFeed moves the terrain there; the marks must stay). Every decal
-// fades with distance (DecalFadeFrom + DecalFadeLength), so far ones cost nothing in Godot's cluster budget, and is
+// fades with distance (tracks 330, footpaths 380, stains 360, worn ground 540, scorch 620, + DecalFadeLength), so far ones cost nothing in Godot's cluster budget, and is
 // dimmed by the fog of war at its tile. Built on first use, pooled; nothing is allocated per frame.
 public partial class PlanetView
 {
@@ -25,7 +25,7 @@ public partial class PlanetView
     private const int TrackCap = 220, ScorchCap = 8, WearCap = 96, PathCap = 160;
     private const float TrackLife = 60f, ScorchLife = 300f, RingLife = 120f;
     private const float TrackStep = 3.4f;
-    private const float DecalFadeFrom = 240f, DecalFadeLength = 90f;
+    private const float DecalFadeLength = 120f; // each kind fades out from its own distance (NewMark)
     private const float PathCell = 2.5f;
 
     private sealed class Mark
@@ -228,7 +228,7 @@ public partial class PlanetView
         Mark m;
         if (_tracks.Count < TrackCap)
         {
-            m = NewMark("Track", Vector3.One, DecalFadeFrom * 0.8f);
+            m = NewMark("Track", Vector3.One, 330f);
             m.Node.NormalFade = 0.3f;
             _tracks.Add(m);
         }
@@ -283,8 +283,8 @@ public partial class PlanetView
         Mark scorch, ring;
         if (_scorches.Count < ScorchCap)
         {
-            scorch = NewMark("Scorch", Vector3.One, DecalFadeFrom * 1.5f);
-            ring = NewMark("BlastRing", Vector3.One, DecalFadeFrom * 1.5f);
+            scorch = NewMark("Scorch", Vector3.One, 620f);
+            ring = NewMark("BlastRing", Vector3.One, 620f);
             _scorches.Add(scorch);
             _rings.Add(ring);
         }
@@ -332,7 +332,7 @@ public partial class PlanetView
             centre.Y = GroundAt(centre);
             var radius = Mathf.Max(5f, _surface.BlockRadius(s.Tile).ToFloat());
             var hash = (uint)(s.Id * 2654435761u);
-            var wear = NewMark("Worn", Vector3.One, DecalFadeFrom);
+            var wear = NewMark("Worn", Vector3.One, 540f);
             wear.Node.TextureAlbedo = _wearTex;
             wear.Node.Size = new Vector3(radius * 2.9f, 8f, radius * 2.9f);
             wear.Node.Transform = new Transform3D(new Basis(Vector3.Up, (hash & 1023) / 1023f * Mathf.Tau), centre);
@@ -340,7 +340,7 @@ public partial class PlanetView
             wear.Peak = 0.55f;
             wear.Tile = s.Tile;
             var stainAt = _surface.AccessPoint(s.Tile) is { } access ? SimPoint(access) : centre + new Vector3(radius * 0.9f, 0f, 0f);
-            var stain = NewMark("Stain", Vector3.One, DecalFadeFrom * 0.7f);
+            var stain = NewMark("Stain", Vector3.One, 360f);
             stain.Node.TextureAlbedo = _stainTex;
             stain.Node.Size = new Vector3(4.2f, 4f, 3.4f);
             stain.Node.Transform = new Transform3D(new Basis(Vector3.Up, ((hash >> 10) & 1023) / 1023f * Mathf.Tau), stainAt);
@@ -435,7 +435,7 @@ public partial class PlanetView
             }
             else if (_pathCount < PathCap)
             {
-                c.Mark = NewMark("Footpath", Vector3.One, DecalFadeFrom * 0.8f);
+                c.Mark = NewMark("Footpath", Vector3.One, 380f);
                 c.Mark.Node.TextureAlbedo = _pathTex;
                 _pathCount++;
             }
