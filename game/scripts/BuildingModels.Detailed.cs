@@ -160,6 +160,9 @@ public static partial class BuildingModels
             case "excavation_site":
                 PaintExcavationSigns(n, number);
                 break;
+            case "drone_pad":
+                PaintDronePadSigns(n, number); // BuildingModels.Drone.cs
+                break;
         }
     }
 

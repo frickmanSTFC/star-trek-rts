@@ -243,6 +243,7 @@ public partial class PlanetView : Node3D
         UpdateDetailedBuildings(delta); // PlanetView.Detailed.cs: mine hoist, storage crane + fill gauge, reactor core
         UpdateMachineShops(delta); // PlanetView.MachineShop.cs: robot arms, press, belt, door and status board by fabricator status
         UpdateExcavations(delta); // PlanetView.Excavation.cs: the dig's crane, sieves, defence pylon and status board
+        UpdateDronePads(delta); // PlanetView.DronePad.cs: bay lights, chargers, door, dish by the pad's drones
         UpdateScatter();
         UpdateRuins(delta); // PlanetView.Ruins.cs: ruin props on seen ruin tiles (after UpdateScatter: their scatter holes)
         UpdateVeyra(delta); // PlanetView.Veyra.cs: class L dust devils and CO₂ haze (nothing on class M)
@@ -251,6 +252,7 @@ public partial class PlanetView : Node3D
         UpdateCosmetics(); // PlanetView.Cosmetics.cs: re-apply our achievement cosmetics when the picks change
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
         UpdateRovers(alpha, delta);
+        UpdateScoutDrones(alpha, delta); // PlanetView.Drones.cs: scout drones flying, docked, landing, lost; target rings, rotor buzz
         UpdateDomeTransits(alpha, delta); // PlanetView.DomeTransit.cs: vehicle fields cycling through a dome's shell (after the rovers are posed)
         UpdatePods(alpha);
     }
@@ -593,7 +595,7 @@ public partial class PlanetView : Node3D
     public RoverLook.Grime? GrimeOf(int unitId) => _grime.GetValueOrDefault(unitId);
 
     /// <summary>A unit's model, or null before it is drawn (the helm's surface feed follows it).</summary>
-    public Node3D? UnitModel(int unitId) => _rovers.GetValueOrDefault(unitId);
+    public Node3D? UnitModel(int unitId) => _rovers.GetValueOrDefault(unitId) ?? DroneModel(unitId);
 
     /// <summary>Set when the fog changed this frame (the minimap redraws its terrain then).</summary>
     public bool FogChanged { get; set; }
@@ -1000,6 +1002,7 @@ public partial class PlanetView : Node3D
         var alive = new HashSet<int>();
         foreach (var u in _surface.Units)
         {
+            if (IsDroneUnit(u)) continue; // scout drones fly: PlanetView.Drones.cs draws them (UpdateScoutDrones)
             alive.Add(u.Id);
             var def = _sim.Data.SurfaceUnit(u.DefId);
             if (!_rovers.TryGetValue(u.Id, out var model))
