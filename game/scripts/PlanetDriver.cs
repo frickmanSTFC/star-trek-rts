@@ -255,6 +255,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _info = "orbit:land";
         foreach (var m in dataMessages) _hud.PushEvent($"Data refused: {m}", new Color(1f, 0.45f, 0.4f));
         BeginTutorial(); // the guided start when GameSetup.Tutorial is on (PlanetDriver.Tutorial.cs)
+        SetupDebug(); // F8 debug overlay: frame time, rendering, memory, sim, cursor, selection, world draws (PlanetDriver.Debug.cs)
     }
 
     // ---------------------------------------------------------------- orbit
@@ -976,12 +977,12 @@ public partial class PlanetDriver : Node3D, ITestHost
         var maxSteps = Mathf.Max(5, Mathf.CeilToInt(5 * speed));
         while (_accumulator >= tickSeconds && steps < maxSteps)
         {
-            _sim.Step();
+            DebugStep(); // _sim.Step(), timed while the F8 overlay is on (PlanetDriver.Debug.cs)
             _accumulator -= tickSeconds;
             steps++;
         }
         if (steps == maxSteps) _accumulator = 0;
-        for (var owed = _test?.TakeSteps() ?? 0; owed > 0; owed--) _sim.Step(); // step one tick, skip a minute
+        for (var owed = _test?.TakeSteps() ?? 0; owed > 0; owed--) DebugStep(); // step one tick, skip a minute
         if (_test != null)
         {
             if (_inOrbit && _test.Visible) _test.Visible = false; // the panel works on the surface

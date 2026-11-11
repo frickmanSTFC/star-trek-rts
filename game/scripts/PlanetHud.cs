@@ -311,16 +311,28 @@ public partial class PlanetHud : CanvasLayer
         _hints.Visible = !orbit;
         _bannerPanel.Visible = !orbit && _banner.Text.Length > 0;
         _vignette.Visible = !orbit;
-        _feed.Position = new Vector2(orbit ? 150 : 20, orbit ? 84 : TopHeight + 16);
+        _orbitMode = orbit;
+        PlaceFeed();
         if (orbit)
         {
             _info.Visible = false;
             _tooltip.Visible = false;
         }
-        _orbitMode = orbit;
     }
 
     private bool _orbitMode;
+    private float _feedLeft;
+
+    /// <summary>The event feed starts at least this far right (the F8 debug overlay's cards sit top-left; 0 = as before).</summary>
+    public void SetFeedLeft(float left)
+    {
+        if (Mathf.IsEqualApprox(left, _feedLeft)) return;
+        _feedLeft = left;
+        PlaceFeed();
+    }
+
+    private void PlaceFeed() =>
+        _feed.Position = new Vector2(Mathf.Max(_orbitMode ? 150 : 20, _feedLeft), _orbitMode ? 84 : TopHeight + 16);
 
     /// <summary>True when the mouse is over the HUD (so the world shouldn't react to it).</summary>
     public bool BlocksMouse(Vector2 mouse) =>
@@ -582,6 +594,7 @@ public partial class PlanetHud : CanvasLayer
                 ("F9 › SKY", "force time of day, season, weather and wind (look only)"),
                 ("F3", "achievements, and the HANGAR for the cosmetics they unlock"),
                 ("F7", "graphics compare: Classic ↔ your settings, with the frame time (Settings › Graphics)"),
+                ("F8 / Shift+F8", "debug overlay: FPS, frame graph, rendering, sim, cursor, selection (Settings › Debug) / renderer view"),
                 ("C", "civilization dossier: level ladder, awareness, study, Starfleet Standing (Esc closes)"),
                 ("Hidden post", "orbiting a native world: HIDDEN POST on the strip or its card studies them ×4, may be found"),
                 ("Standing (top bar)", "Starfleet Standing (Prime Directive eras); hover for the ladder, click for the dossier"),

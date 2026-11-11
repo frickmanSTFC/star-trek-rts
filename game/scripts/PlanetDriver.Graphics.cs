@@ -88,6 +88,9 @@ public partial class PlanetDriver
     private readonly Dictionary<string, float> _gfxModeMs = new();
     private bool _gfxMeasuring;
 
+    /// <summary>The other modes' settled GPU ms ("GPU classic 4.1 ms"), for the F8 overlay's Performance card.</summary>
+    private string _gfxCompareLine = "";
+
     /// <summary>In _Ready after SetupSky (the Moon exists), before EnterOrbit changes the environment.</summary>
     private void SetupGraphics()
     {
@@ -136,7 +139,7 @@ public partial class PlanetDriver
         GraphicsQuality.Changed -= OnGraphicsChanged;
         if (IsInsideTree()) GetTree().NodeAdded -= OnGraphicsNodeAdded;
         GraphicsQuality.CompareClassic = false; // the compare is per visit (the menu shows the saved settings)
-        if (_gfxMeasuring) RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), false);
+        if (_gfxMeasuring) RenderTimer.Want(GetViewport(), "graphics", false);
         if (_classic is { } c)
         {
             // The renderer-wide settings back to the project's (the menu and the next game start from them).
@@ -535,17 +538,20 @@ public partial class PlanetDriver
             }
         }
 
-        // Frame-time readout: while comparing or with "Show frame time" on.
-        var show = GraphicsQuality.CompareClassic || GraphicsQuality.ShowFps;
+        // Frame-time readout: while comparing or with "Show frame time" on. The F8 overlay's Performance card shows the
+        // same numbers (+ _gfxCompareLine), so the readout hides under it but keeps measuring (PlanetDriver.Debug.cs).
+        var want = GraphicsQuality.CompareClassic || GraphicsQuality.ShowFps;
+        var show = want && !DebugCoversFrameTime;
         if (_gfxFps.Visible != show) _gfxFps.Visible = show;
         var rid = GetViewport().GetViewportRid();
-        if (show != _gfxMeasuring)
+        if (want != _gfxMeasuring)
         {
-            _gfxMeasuring = show;
-            RenderingServer.ViewportSetMeasureRenderTime(rid, show); // GPU time is real even when VSync caps the frame rate
+            _gfxMeasuring = want;
+            RenderTimer.Want(GetViewport(), "graphics", want); // GPU time is real even when VSync caps the frame rate
             _gfxModeMs.Clear();
+            _gfxCompareLine = "";
         }
-        if (!show) return;
+        if (!want) return;
         _gfxFrameSum += delta;
         _gfxFrameMax = Mathf.Max(_gfxFrameMax, delta);
         _gfxFrames++;
@@ -560,10 +566,14 @@ public partial class PlanetDriver
         // Remember each mode's GPU time once it has settled (SDFGI / fog take a moment after a flip).
         if (_clock - _gfxModeSince > 0.8 && gpu > 0f)
             _gfxModeMs[mode] = _gfxModeMs.TryGetValue(mode, out var was) ? Mathf.Lerp(was, gpu, 0.2f) : gpu;
+        var compare = new List<string>();
+        foreach (var name in new[] { "CLASSIC", "CUSTOM", "ENHANCED" })
+            if (name != mode && _gfxModeMs.TryGetValue(name, out var other)) compare.Add($"{name.ToLowerInvariant()} {other:0.0}");
+        _gfxCompareLine = compare.Count > 0 ? "settled GPU ms: " + string.Join(" · ", compare) : "";
+        if (!show) return;
         _gfxFpsText.Text = $"{mode} · {Engine.GetFramesPerSecond():0} FPS · {ms:0.0} ms (max {max:0.0})";
         var parts = new List<string> { $"GPU {gpu:0.0} ms" };
-        foreach (var name in new[] { "CLASSIC", "CUSTOM", "ENHANCED" })
-            if (name != mode && _gfxModeMs.TryGetValue(name, out var other)) parts.Add($"{name.ToLowerInvariant()} {other:0.0}");
+        parts.AddRange(compare);
         if (GameSettings.VSync) parts.Add("VSync caps FPS");
         _gfxFpsSub.Text = string.Join(" · ", parts) + "  ·  F7 compare";
     }

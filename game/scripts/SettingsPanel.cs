@@ -47,7 +47,7 @@ public partial class SettingsPanel : PanelContainer
         var tabs = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
         tabs.AddThemeConstantOverride("separation", Mathf.RoundToInt(4 * s));
         var tabGroup = new ButtonGroup();
-        foreach (var (text, page) in new[] { ("GENERAL", 0), ("GRAPHICS", 1) })
+        foreach (var (text, page) in new[] { ("GENERAL", 0), ("GRAPHICS", 1), ("DEBUG", 2) })
         {
             var b = Tile(text, _page == page);
             b.ButtonGroup = tabGroup;
@@ -64,6 +64,7 @@ public partial class SettingsPanel : PanelContainer
         _box.AddChild(tabs);
 
         if (_page == 1) FillGraphics();
+        else if (_page == 2) FillDebug();
         else FillGeneral();
 
         _box.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6 * s), MouseFilter = MouseFilterEnum.Ignore });
@@ -76,6 +77,7 @@ public partial class SettingsPanel : PanelContainer
             GameSettings.ResetDefaults();
             Changed();
             GraphicsQuality.NotifyChanged();
+            DebugOptions.NotifyChanged();
             Callable.From(Refill).CallDeferred(); // not inside the button's own signal: Refill frees it
         };
         bar.AddChild(reset);
@@ -87,7 +89,86 @@ public partial class SettingsPanel : PanelContainer
         _box.AddChild(bar);
     }
 
-    /// <summary>The page shown (0 general, 1 graphics); kept while the game runs so the card reopens where it was.</summary>
+    /// <summary>DEBUG (DebugOptions, [debug] in settings.cfg): the F8 overlay and its sections, the world draws and the
+    /// renderer view (two columns of compact rows so the card stays one 720p screen tall), then the frame rate: the FPS
+    /// cap here, VSync stays in General › Display (a row here says what it is and jumps there). Every change applies at
+    /// once (DebugOptions.Changed) and is saved.</summary>
+    private void FillDebug()
+    {
+        Section("DEBUG OVERLAY · F8");
+        var sections = Grid();
+        DebugToggle(sections, "Debug overlay", "Cards top-left; F8 turns them on and off in the game and on the menu",
+            DebugOptions.Overlay, v => DebugOptions.Overlay = v);
+        foreach (var (name, hint, get, set) in DebugOptions.Sections) DebugToggle(sections, name, hint, get(), set);
+
+        Section("WORLD (SURFACE, WHILE THE OVERLAY IS ON)");
+        var draws = Grid();
+        foreach (var (name, hint, get, set) in DebugOptions.Draws) DebugToggle(draws, name, hint, get(), set);
+        Choice("Renderer view", new[]
+            {
+                ("OFF", DebugRenderMode.Off), ("WIRE", DebugRenderMode.Wireframe), ("OVERDRAW", DebugRenderMode.Overdraw),
+                ("UNSHADED", DebugRenderMode.Unshaded), ("LIGHTING", DebugRenderMode.Lighting),
+            }, DebugOptions.RenderMode, v => DebugOptions.RenderMode = v,
+            "Godot's debug views of the 3D scene; Shift+F8 cycles them", debug: true);
+
+        Section("FRAME RATE");
+        var caps = new (string, int)[DebugOptions.FpsCaps.Length];
+        for (var i = 0; i < caps.Length; i++) caps[i] = (DebugOptions.FpsCaps[i] == 0 ? "OFF" : DebugOptions.FpsCaps[i].ToString(), DebugOptions.FpsCaps[i]);
+        Choice("FPS cap", caps, DebugOptions.FpsCap, v => DebugOptions.FpsCap = v,
+            "Most frames a second, overlay or not; 30 or 60 keeps a laptop cooler", debug: true);
+        var vsync = Row("VSync", $"{(GameSettings.VSync ? "ON: frames wait for the display (caps FPS)" : "OFF: no cap but the one above")} · set in General › Display");
+        var go = Tile("GENERAL ›", false);
+        go.ToggleMode = false;
+        go.Pressed += () =>
+        {
+            _page = 0;
+            Callable.From(Refill).CallDeferred();
+        };
+        vsync.AddChild(go);
+    }
+
+    private GridContainer Grid()
+    {
+        var grid = new GridContainer { Columns = 2, MouseFilter = MouseFilterEnum.Ignore };
+        grid.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(22 * _s));
+        grid.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(5 * _s));
+        _box.AddChild(grid);
+        return grid;
+    }
+
+    /// <summary>A compact row for the two-column DEBUG grid: name + one-line hint, ON/OFF tile.</summary>
+    private void DebugToggle(GridContainer grid, string name, string hint, bool value, System.Action<bool> set)
+    {
+        var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        row.AddThemeConstantOverride("separation", Mathf.RoundToInt(8 * _s));
+        var text = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        text.AddThemeConstantOverride("separation", 0);
+        text.AddChild(HudKit.Label(name, 15 * _s, HudKit.Ink, condensed: true, bold: true));
+        var h = HudKit.Label(hint, 11 * _s, HudKit.Dim);
+        h.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        h.CustomMinimumSize = new Vector2(205 * _s, 0);
+        text.AddChild(h);
+        row.AddChild(text);
+        var b = Tile(value ? "ON" : "OFF", value);
+        b.CustomMinimumSize = new Vector2(52 * _s, 28 * _s);
+        b.Toggled += on =>
+        {
+            b.Text = on ? "ON" : "OFF";
+            set(on);
+            DebugChanged();
+        };
+        row.AddChild(b);
+        grid.AddChild(row);
+    }
+
+    /// <summary>A debug switch changed: save, apply (the FPS cap), tell the overlay.</summary>
+    private static void DebugChanged()
+    {
+        Changed();
+        DebugOptions.NotifyChanged();
+    }
+
+    /// <summary>The page shown (0 general, 1 graphics, 2 debug); kept while the game runs so the card reopens where it was.</summary>
     private static int _page;
 
     /// <summary>GRAPHICS: the preset, one toggle per feature (the preset's values while Classic / Enhanced; touching one
@@ -234,7 +315,7 @@ public partial class SettingsPanel : PanelContainer
         row.AddChild(b);
     }
 
-    private void Choice<T>(string name, (string Text, T Value)[] options, T value, System.Action<T> set, string hint, bool graphics = false)
+    private void Choice<T>(string name, (string Text, T Value)[] options, T value, System.Action<T> set, string hint, bool graphics = false, bool debug = false)
     {
         var row = Row(name, hint);
         var group = new ButtonGroup();
@@ -250,6 +331,7 @@ public partial class SettingsPanel : PanelContainer
                 if (!on) return;
                 set(pick);
                 if (graphics) GraphicsChanged();
+                else if (debug) DebugChanged();
                 else Changed();
             };
             tiles.AddChild(b);
