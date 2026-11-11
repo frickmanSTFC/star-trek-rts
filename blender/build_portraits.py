@@ -322,8 +322,8 @@ def head_local_species(la, lo, body):
         x *= 1.03
     elif sp == "romulan":
         for sx in (-1, 1):
-            dd = seg_d2(x, z, (sx * 0.046, 0.066), (sx * 0.003, 0.027))
-            d += 0.0026 * gauss(dd, 0.0028) * front
+            dd = seg_d2(x, z, (sx * 0.046, 0.068), (sx * 0.003, 0.027))
+            d += 0.0036 * gauss(dd, 0.0032) * front
         d += 0.0015 * gauss(z - 0.033, 0.006) * smooth(0.06, 0.03, ax) * front
     elif sp == "cardassian":
         r = math.sqrt((x / 0.0175) ** 2 + ((z - 0.071) / 0.026) ** 2)
@@ -515,12 +515,13 @@ def pattern_material(name, a_srgb, b_srgb, rough=0.6):
     nt.links.new(tc.outputs["Generated"], vo.inputs["Vector"])
     nt.links.new(tc.outputs["Generated"], wv.inputs["Vector"])
     mth = node(nt, "ShaderNodeMath")
-    mth.operation = "MULTIPLY"
-    nt.links.new(vo.outputs["Distance"], mth.inputs[0])
-    nt.links.new(wv.outputs["Fac"], mth.inputs[1])
+    mth.operation = "MULTIPLY_ADD"
+    nt.links.new(wv.outputs["Fac"], mth.inputs[0])
+    mth.inputs[1].default_value = 0.05
+    nt.links.new(vo.outputs["Distance"], mth.inputs[2])
     ramp = node(nt, "ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].position = 0.10
-    ramp.color_ramp.elements[1].position = 0.16
+    ramp.color_ramp.elements[0].position = 0.17
+    ramp.color_ramp.elements[1].position = 0.21
     ramp.color_ramp.elements[0].color = (*srgb_lin(b_srgb), 1)
     ramp.color_ramp.elements[1].color = (*srgb_lin(a_srgb), 1)
     nt.links.new(mth.outputs["Value"], ramp.inputs["Factor"])
@@ -535,7 +536,7 @@ OUTFIT_MATS = {
     "kl_metal": ((0.24, 0.23, 0.22), 0.48, 1.0, "leather"),
     "kl_red": ((0.40, 0.07, 0.05), 0.5, 0.0, "leather"),
     "rom_cloth": ((0.30, 0.35, 0.31), 0.8, 0.0, "cloth"),
-    "rom_pad": ((0.42, 0.48, 0.42), 0.75, 0.0, "cloth"),
+    "rom_pad": ((0.40, 0.46, 0.40), 0.75, 0.0, "quilt"),
     "rom_trim": ((0.10, 0.17, 0.13), 0.6, 0.0, "cloth"),
     "rom_metal": ((0.62, 0.64, 0.62), 0.3, 1.0, "metal"),
     "car_under": ((0.17, 0.15, 0.13), 0.7, 0.0, "cloth"),
@@ -549,7 +550,7 @@ OUTFIT_MATS = {
     "eyewhite_hd": ((0.86, 0.82, 0.79), 0.25, 0.0, "plain"),
     "pupil": ((0.004, 0.004, 0.004), 0.2, 0.0, "plain"),
     "limbus": ((0.03, 0.025, 0.02), 0.3, 0.0, "plain"),
-    "trill_spot": ((0.27, 0.15, 0.09), 0.55, 0.0, "plain"),
+    "trill_spot": ((0.26, 0.14, 0.075), 0.6, 0.0, "plain"),
     "silver": ((0.80, 0.80, 0.82), 0.22, 1.0, "metal"),
     "chain_gold": ((0.85, 0.66, 0.30), 0.25, 1.0, "metal"),
     "snout": ((1.0, 1.0, 1.0), 0.5, 0.0, "plain"),
@@ -570,6 +571,19 @@ def material(key):
         m, p = principled(key, srgb_lin(rgb), rough, metal)
         if kind == "leather":
             bump(m, p, 260, 0.25, 0.0004)
+        elif kind == "quilt":
+            nt = m.node_tree
+            tc = node(nt, "ShaderNodeTexCoord")
+            wv = node(nt, "ShaderNodeTexWave")
+            wv.wave_type = "BANDS"
+            wv.bands_direction = "Z"
+            wv.inputs["Scale"].default_value = 9
+            nt.links.new(tc.outputs["Object"], wv.inputs["Vector"])
+            b = node(nt, "ShaderNodeBump")
+            b.inputs["Strength"].default_value = 0.9
+            b.inputs["Distance"].default_value = 0.004
+            nt.links.new(wv.outputs["Fac"], b.inputs["Height"])
+            nt.links.new(b.outputs["Normal"], p.inputs["Normal"])
         elif kind == "cloth":
             bump(m, p, 1400, 0.15, 0.0002)
     elif key in bc.SW:
@@ -591,7 +605,7 @@ def char_materials(c):
     CHAR_MATS["Skin"] = skin_material("Skin_" + c["id"], sk)
     CHAR_MATS["Hair"] = hair_material("Hair_" + c["id"], hc)
     CHAR_MATS["brow"] = hair_material("Brow_" + c["id"], tuple(x * 0.85 for x in hc))
-    CHAR_MATS["beard"] = hair_material("Beard_" + c["id"], tuple(x * 0.78 for x in hc))
+    CHAR_MATS["beard"] = hair_material("Beard_" + c["id"], tuple(x * (0.62 if sum(hc) > 1.2 else 0.8) for x in hc))
     CHAR_MATS["iris"] = iris_material("Iris_" + c["id"], IR[c["iris"]])
     if c.get("dept"):
         m, _ = principled("Dept_" + c["id"], srgb_lin(tuple(x * 0.9 for x in hexrgb(DEPTS[c["dept"]]))), 0.72)
@@ -803,7 +817,7 @@ def brows(mb, body, kind="natural", thick=1.0):
         def path(t):
             x = sx * (0.012 + 0.039 * t)
             if kind == "upswept":
-                z = 0.030 + 0.003 * t + 0.017 * t ** 2.2
+                z = 0.0315 + 0.0015 * t + 0.0125 * smooth(0.35, 1.0, t) ** 1.4
             elif kind == "bushy":
                 z = 0.034 + 0.004 * math.sin(pi * (0.1 + 0.8 * t))
             else:
@@ -987,7 +1001,7 @@ def trill_spots(mb, body):
         for i in range(15):
             t = i / 14
             la = 40 - 85 * t
-            ang = 66 + 24 * smooth(0.0, 1.0, t) + 8 * smooth(0.7, 1.0, t)
+            ang = 60 + 26 * smooth(0.0, 1.0, t) + 8 * smooth(0.7, 1.0, t)
             path.append(("h", la, lon(ang)))
         for i in range(7):
             u = 0.85 - 0.75 * i / 6
@@ -997,7 +1011,7 @@ def trill_spots(mb, body):
             for row in (0, 1):
                 if (i + row) % 2:
                     continue
-                size = 0.0043 - 0.0014 * i / len(path)
+                size = 0.0052 - 0.0018 * i / len(path)
                 if kind == "h":
                     off = 2.2 * (1 if row else -1)
                     la, lo = a, b + off * sx * 0.7
@@ -1012,7 +1026,7 @@ def trill_spots(mb, body):
                 t1 = orth(V((0, 0, 1)), n)
                 t2 = n.cross(t1)
                 jit = 0.8 + 0.4 * ((i * 37 + row * 11) % 7) / 6
-                bc.ellipsoid(mb, p, (t1, t2, n), (size * jit, size * 0.85 * jit, 0.0004), 10, 3, "trill_spot", cand)
+                bc.ellipsoid(mb, p, (t1, t2, n), (size * jit, size * 0.85 * jit, 0.00025), 12, 3, "trill_spot", cand)
 
 
 def neck_ridges(mb, body):
@@ -1348,21 +1362,16 @@ def details_portrait(mb, role, body):
                              lambda z, t: 0.008 + 0.003 * math.sin(t) ** 4, "kl_metal" if k % 2 == 0 else "kl_leather", bc.T_CAND)
     elif f == "romulan":
         collar(mb, body, "rom_trim", h=0.016, out=0.005)
-        zs = [1.36 + (1.515 - 1.36) * i / 8 for i in range(9)]
-        ths = [2 * pi * j / 64 for j in range(64)]
-        bc.surface_panel(mb, fn, nf, zs, ths, lambda z, t: 0.006 + 0.022 * abs(math.cos(t)) ** 1.5 * smooth(1.36, 1.44, z)
-                         * smooth(1.53, 1.47, z), "rom_pad", bc.T_CAND, closed=True)
-        for k in range(6):  # quilting lines over the pads
-            zq = 1.385 + 0.022 * k
-            for c0 in (0, 180):
-                bc.ribbon(mb, fn, nf, lambda t, c0=c0, zq=zq: (zq, D(c0 - 55 + 110 * t)), 16, 0.0025,
-                          0.007 + 0.022 * 0.85 * smooth(1.36, 1.44, zq) * smooth(1.53, 1.47, zq), "rom_trim", bc.T_CAND)
-        bc.ribbon(mb, fn, nf, lambda t: (1.49 - 0.42 * t, D(62 + 50 * t)), 20, 0.012, 0.004, "rom_trim", bc.T_CAND, depth=0.002)
-        for k in range(4):
-            t = 0.15 + 0.2 * k
-            p = body.torso(1.49 - 0.42 * t, D(62 + 50 * t), 0.008)
-            n = body.torso_n(1.49 - 0.42 * t, D(62 + 50 * t))
-            bc.tube(mb, p - n * 0.003, p + n * 0.003, 0.004, 0.0035, 10, "rom_metal", bc.T_CAND)
+        zs = [1.33 + (1.515 - 1.33) * i / 14 for i in range(15)]
+        ths = [2 * pi * j / 72 for j in range(72)]
+        bc.surface_panel(mb, fn, nf, zs, ths, lambda z, t: 0.008 + 0.030 * abs(math.cos(t)) ** 1.3 * smooth(1.33, 1.43, z),
+                         "rom_pad", bc.T_CAND, closed=True)
+        bc.ribbon(mb, fn, nf, lambda t: (1.40 - 0.33 * t, D(70 + 42 * t)), 20, 0.024, 0.006, "rom_trim", bc.T_CAND, depth=0.003)
+        for k in range(3):
+            t = 0.2 + 0.3 * k
+            p = body.torso(1.40 - 0.33 * t, D(70 + 42 * t), 0.009)
+            n = body.torso_n(1.40 - 0.33 * t, D(70 + 42 * t))
+            bc.tube(mb, p - n * 0.004, p + n * 0.003, 0.004, 0.0035, 10, "rom_metal", bc.T_CAND)
     elif f == "cardassian":
         th = [D(110 + 320 * k / 40) for k in range(41)]
         r0 = [body.torso(1.50, t, 0.006) for t in th]
@@ -1382,7 +1391,9 @@ def details_portrait(mb, role, body):
                 bc.ribbon(mb, fn, nf, lambda t, c0=c0, zr=zr: (zr, D(c0 - 55 + 110 * t)), 16, 0.006,
                           0.014 + 0.018 * smooth(1.44, 1.52, zr) + 0.004, "car_rib", bc.T_CAND, depth=0.003)
     elif f == "ferengi":
-        collar(mb, body, "fer_trim", h=0.016, out=0.010, flare=0.03, th0=125, th1=415)
+        collar(mb, body, "fer_shirt", h=0.012, out=0.006, th0=110, th1=430)
+        bc.surface_panel(mb, fn, nf, [1.43 + 0.1 * i / 8 for i in range(9)], [D(118 + 304 * j / 40) for j in range(41)],
+                         lambda z, t: 0.010 + 0.006 * smooth(1.45, 1.52, z), "fer_trim", bc.T_CAND)
         bc.surface_panel(mb, fn, nf, [1.08 + 0.42 * i / 12 for i in range(13)], [D(80 + 20 * j / 4) for j in range(5)],
                          0.003, "fer_shirt", bc.T_CAND)
         for sx in (1, -1):  # lapels
@@ -1705,8 +1716,9 @@ def portrait(cam, c, extras):
     yaw = YAW
     camp = V((0.0, CAM_DIST, 1.62))
     objs, head = build_character(c, yaw=yaw, head_turn=-4.0, cam=camp)
-    target = head + V((0, -0.03, -0.10))
-    camp = V((target.x + 0.0, target.y + CAM_DIST, target.z + 0.06))
+    tall = 0.045 if c["species"] == "andorian" else 0.0
+    target = head + V((0, -0.03, -0.10 + tall))
+    camp = V((target.x + 0.0, target.y + CAM_DIST + 2.2 * tall, target.z + 0.06))
     # eyes were aimed at the first guess; the camera only moves by centimetres
     aim(cam, camp, target, 85)
     cam.data.dof.use_dof = True
@@ -1738,8 +1750,8 @@ def lineup(cam, chars, extras):
     floor_mat = bpy.data.materials.new("Floor")
     floor_mat.use_nodes = True
     p = floor_mat.node_tree.nodes["Principled BSDF"]
-    p.inputs["Base Color"].default_value = (0.03, 0.035, 0.045, 1)
-    p.inputs["Roughness"].default_value = 0.35
+    p.inputs["Base Color"].default_value = (0.018, 0.021, 0.028, 1)
+    p.inputs["Roughness"].default_value = 0.6
     me = bpy.data.meshes.new("Floor")
     me.from_pydata([(-20, -20, 0), (20, -20, 0), (20, 20, 0), (-20, 20, 0)], [], [(0, 1, 2, 3)])
     me.materials.append(floor_mat)
