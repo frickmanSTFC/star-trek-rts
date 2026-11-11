@@ -65,6 +65,10 @@ public sealed record MissionDef(string Id, string Chain, string Kind, string Tit
 {
     public bool IsMain => Kind == "main";
 
+    /// <summary>Bindings taken over from an earlier mission when this one starts ("lost_pathfinder.wreck": the probe
+    /// wreck's site), as (mission id, binding name).</summary>
+    public IReadOnlyList<(string Mission, string Binding)> Imports { get; init; } = Array.Empty<(string, string)>();
+
     public int StageIndex(string id)
     {
         for (var i = 0; i < Stages.Count; i++)

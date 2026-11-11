@@ -37,6 +37,7 @@
       "debrief": "The recorder survived. Forty years of surface readings, and the probe's own map of the ground round {wreck}. Earth will want every byte of it." },
 
     { "id": "calling_home", "chain": "first_light", "kind": "main", "title": "Calling Home", "giver": "control",
+      "imports": ["lost_pathfinder.wreck"],
       "briefing": "The recorder's data has to come home, and the outpost's antenna can't reach Earth on its own. Deploy a relay satellite whose coverage includes the base, then bring the Pathfinder wreck under coverage too, with the same relay or another.",
       "stages": [
         { "id": "relay", "title": "Put up a relay",

@@ -240,7 +240,8 @@ public sealed partial class MissionBook
         var spacing = System.Math.Max(0, a.I("spacing", 0));
         var unsurveyed = a.F("unsurveyed") == "true";
         var behind = a.F("behind") == "true";
-        var ground = behind ? GroundSteps(s, anchors[0]) : null;
+        var hub = Hub(s, p);
+        var ground = GroundSteps(s, hub); // from the base: "behind" and "passable" (a passable site must be reachable by ground)
         var taken = new List<int>();
         foreach (var site in _sites)
             if (site.Owner == p) taken.Add(site.Tile);
@@ -265,7 +266,8 @@ public sealed partial class MissionBook
                 if (taken.Contains(t) || picks.Contains(t)) continue;
                 if (picks.Any(x => grid.Distance(x, t) < spacing)) continue;
                 if (needUnsurveyed && s.Players[p].Surveyed[t]) continue;
-                if (needBehind && !(ground![t] < 0 || ground[t] >= d + 3)) continue;
+                if (terrain == "passable" && ground[t] < 0 && pass < 3) continue;
+                if (needBehind && !(ground[t] < 0 || (hub >= 0 && ground[t] >= grid.Distance(hub, t) + 3))) continue;
                 candidates.Add(t);
             }
             while (picks.Count < count && candidates.Count > 0)

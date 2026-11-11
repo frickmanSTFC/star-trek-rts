@@ -288,20 +288,28 @@ public sealed partial class MissionBook
     private void StartMain(int p, PlayerBook book)
     {
         foreach (var run in book.Runs)
+            if (run.State is MissionState.Active or MissionState.Offered && Def(run) is { IsMain: true }) return; // one at a time
+        foreach (var run in book.Runs)
         {
-            if (Def(run) is not { IsMain: true } d) continue;
-            if (run.State is MissionState.Active or MissionState.Offered) return; // one main mission at a time
-            if (run.State != MissionState.Locked) continue;
+            if (Def(run) is not { IsMain: true } d || run.State != MissionState.Locked) continue;
             var bindings = new List<Binding>();
             if (d.Trigger == null || Check(p, null, -1, d.Trigger, bindings).Met) Activate(p, run, d, bindings, brief: true);
             return;
         }
     }
 
+    /// <summary>Bindings the mission takes over from earlier ones (MissionDef.Imports), then the trigger's.</summary>
+    private void BindAll(int p, MissionRun run, MissionDef d, List<Binding> bindings)
+    {
+        foreach (var (from, name) in d.Imports)
+            if (RunOf(p, from)?.Find(name) is { } b) run.Bind(b.Copy());
+        foreach (var b in bindings) run.Bind(b);
+    }
+
     private void Offer(int p, MissionRun run, MissionDef d, List<Binding> bindings)
     {
         run.State = MissionState.Offered;
-        foreach (var b in bindings) run.Bind(b);
+        BindAll(p, run, d, bindings);
         var seconds = d.OfferSeconds > 0 ? d.OfferSeconds : Defs!.Rules.OfferSeconds;
         run.OfferEnd = Now + (long)seconds * Simulation.TickRate;
         Say(p, run, d.Giver, Fill(p, run, d.Briefing), "comms");
@@ -312,7 +320,7 @@ public sealed partial class MissionBook
         run.State = MissionState.Active;
         run.Start = Now;
         run.OfferEnd = -1;
-        foreach (var b in bindings) run.Bind(b);
+        BindAll(p, run, d, bindings);
         if (brief) Say(p, run, d.Giver, Fill(p, run, d.Briefing), "comms");
         EnterStage(p, run, d, 0);
     }

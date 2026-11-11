@@ -177,8 +177,17 @@ public sealed partial class GameData
                     }
                 var needs = m.TryGetProperty("needs", out var nd) && nd.ValueKind == JsonValueKind.Array
                     ? nd.EnumerateArray().Select(x => x.GetString() ?? "").ToList() : new List<string>();
+                var imports = new List<(string, string)>();
+                if (m.TryGetProperty("imports", out var im) && im.ValueKind == JsonValueKind.Array)
+                    foreach (var x in im.EnumerateArray())
+                    {
+                        var text = x.GetString() ?? "";
+                        var dot = text.IndexOf('.');
+                        if (dot <= 0 || dot == text.Length - 1) problems.Add($"{where}: imports '{text}' must be mission_id.binding.");
+                        else imports.Add((text[..dot], text[(dot + 1)..]));
+                    }
                 list.Add(new MissionDef(id, S(m, "chain"), S(m, "kind"), S(m, "title"), S(m, "giver"), S(m, "briefing"), S(m, "debrief"),
-                    trigger, stages, ReadMissionActions(m, "rewards", where, problems), needs, I(m, "offer_seconds", 0)));
+                    trigger, stages, ReadMissionActions(m, "rewards", where, problems), needs, I(m, "offer_seconds", 0)) { Imports = imports });
             }
         return new MissionData(rules, givers, chains, list);
     }
@@ -382,6 +391,12 @@ public sealed partial class GameData
         // Bindings: what the trigger binds, then each stage's on_enter (in order); a reference must be bound before it.
         var available = MissionAvailable(m);
         var bound = new List<string>(MissionBuiltInRefs);
+        foreach (var (from, name) in m.Imports)
+        {
+            if (data.Find(from) is not { } source || source == m) problems.Add($"{w}: imports from unknown mission '{from}'.");
+            else if (!Binds(source).Contains(name)) problems.Add($"{w}: mission {from} never binds '{name}'.");
+            if (!bound.Contains(name)) bound.Add(name);
+        }
         if (m.Trigger != null) ValidateMissionCond(data, m.Trigger, $"{w} trigger", bound, available, problems, true);
         CheckText(m.Briefing, $"{w} briefing", bound, problems);
         foreach (var s in m.Stages)
@@ -397,6 +412,24 @@ public sealed partial class GameData
         }
         foreach (var a in m.Rewards) ValidateMissionAction(data, a, $"{w} rewards", bound, available, problems);
         CheckText(m.Debrief, $"{w} debrief", bound, problems);
+    }
+
+    /// <summary>Every binding name a mission makes (trigger binds, place_site / place_tiles).</summary>
+    public static List<string> Binds(MissionDef m)
+    {
+        var names = new List<string>();
+        void Cond(MissionCondDef? c)
+        {
+            if (c == null) return;
+            if (c.F("bind") is { } b) names.Add(b);
+            foreach (var x in c.Children) Cond(x);
+        }
+        Cond(m.Trigger);
+        foreach (var s in m.Stages)
+            foreach (var a in s.OnEnter)
+                if (a.Kind is "place_site" or "place_tiles" && a.F("bind") is { } b) names.Add(b);
+        foreach (var (_, name) in m.Imports) names.Add(name);
+        return names;
     }
 
     private static IEnumerable<string> Exits(MissionStageDef s)
