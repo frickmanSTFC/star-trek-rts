@@ -1,0 +1,8 @@
+{
+  "_notes_comms": "Comms coverage on a surface (docs/missions-contract.md B; game/sim/Surface/Comms.cs). A tile is covered for a player when it lies within core_radius tiles of one of their finished colony cores (its antenna) or within relay.radius tiles of the station of one of their relay satellites that has finished deploying. Drones only fly inside coverage. relay: a comms relay satellite put up from orbit (RelaySatelliteCommand) over a tile, paid from stock like a survey satellite (cost), at most max per player (survey satellites count separately), drifting to its station over deploy_seconds (covering nothing until then); a retask (RetaskSatelliteCommand with the new station tile in its row field) moves it over retask_seconds; call_signs = names for RELAY-n · NAME, the start picked per player from the map seed. All numbers are placeholders.",
+  "comms": {
+    "core_radius": 5,
+    "relay": { "cost": { "duranium": 120, "tritanium": 60 }, "max": 3, "radius": 14, "deploy_seconds": 10, "retask_seconds": 8,
+      "call_signs": ["BEACON", "LANTERN", "HERALD", "ECHO", "SIGNAL", "TORCH", "MERIDIAN", "COMPASS", "VESPER", "TALLY", "WAYPOINT", "PHAROS"] }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "buildings": [
+    { "id": "drone_pad", "name": "Drone Pad", "layer": "surface", "category": "production", "crewed": false, "source": "original",
+      "cost": { "duranium": 120, "tritanium": 40 }, "effect": "Unpacks scout drones from stock into its two bays, charges them and launches them to tiles inside comms coverage.", "description": "A small landing pad with two charging bays, a hangar box and an antenna mast. Make scout drones at a Machine Shop: once the pad is finished it takes one from stock into each empty bay and charges it. LAUNCH sends a charged drone flying straight to a tile inside comms coverage (your colony cores' antennas, or a relay satellite), surveying what it passes; it circles there, flies home, lands in its bay and recharges. Automated (no crew), it needs power and wears like any machine. Salvaging it puts its docked drones back in stock.",
+      "build_seconds": 40, "power_use": 4, "wear_per_min": 2, "footprint_radius": 6.5, "access": [0, 9], "drone_bays": 2 }
+  ]
+}

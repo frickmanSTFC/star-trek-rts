@@ -553,6 +553,10 @@ public sealed partial class GameData
             StartingSetRefs = ReadStartingSetRefs(buildingsRoot, Amounts),
             Lanes = ReadLanes(surfacesRoot),
             Fabrication = ReadFabrication(surfacesRoot, Amounts, problems),
+            Drones = ReadDrones(surfacesRoot),
+            AerialUnits = ReadAerialUnits(surfacesRoot),
+            DroneBayCounts = ReadDroneBays(buildingsRoot),
+            Comms = ReadComms(surfacesRoot, Amounts),
             Excavation = ReadExcavation(surfacesRoot, Modifiers, problems),
             BuildingFootprints = ReadBuildingFootprints(buildingsRoot, problems),
             UnitFootprints = ReadUnitFootprints(surfacesRoot),
@@ -638,6 +642,7 @@ public sealed partial class GameData
         ValidateClimate(problems);
         ValidateFounding(problems);
         ValidateFabrication(problems);
+        ValidateDrones(problems);
         ValidateExcavation(problems);
         ValidateLanes(problems);
         ValidateWorlds(problems);
