@@ -1,4 +1,95 @@
-"""(docstring written below, see DOC)"""
+"""Character portraits on the MakeHuman base mesh (owner 2026-11-12: the hand-built faces of build_portraits.py "look
+like dolls", noses long and pointed, smiles don't read, faces stiff; wants "realistic cartoony": stylised realism like
+modern stylised games / animation adults - believable anatomy and skin, gentle exaggeration; approved MakeHuman).
+
+What it makes (docs/mockups/character/portraits/ by default; the same files build_portraits.py made, so
+docs/mockups/character/index.html keeps working):
+  <species>_<sex>_<dept>.jpg   18 Federation people (Human x6, Vulcan, Andorian, Tellarite, Bajoran, Trill, Betazoid,
+                               one woman + one man each) in the ORIGINAL colony-service jumpsuit: charcoal, department
+                               colour on the shoulder yoke and sleeve bands (Exploration #3E7FD6, Defense #C8423A,
+                               Maintenance #D9A23A, Archaeology #4E9A5A), thin dark piping, black stand collar, gold
+                               hexagon badge with a raised chevron (no canon insignia).
+  <species>_<sex>.jpg          other powers: Klingon (leather, layered metal pauldrons, chest plates, red-trimmed collar),
+                               Romulan (grey-green tunic; man: quilted padded shoulders; woman: tall collar, slim quilted
+                               caps), Cardassian (ribbed armour, shoulder plates rising to a flared neck plate), Ferengi
+                               (brocade jacket, cream shirt front, gold flared collar).
+  portraits.json               {generator, note, size, departments, lineup, portraits: [{file, species, faction, sex,
+                               department, department_colour, skin, skin_rgb, hair, hair_style, beard, eyes, age_band,
+                               apparent_age, face_shape, nose, seed, expression, stylised_feature, makehuman, outfit}]}
+  lineup.jpg                   the four Federation officers of build_portraits.LINEUP full length (MakeHuman full body in
+                               the jumpsuit, boots and belt), cyclorama, 1600 x 900
+  sheet.jpg                    contact sheet (system python3 + PIL: --sheet DIR)
+Shot: 640 x 640, body turned 24 deg, head turned back toward the lens, eyes on the camera, 85 mm, soft warm key + cool
+rims + weak fill + a small eye light, dark gradient backdrop with a faint faction element (build_portraits'), Cycles 64
+samples denoised, JPEG 86.
+
+Run (bpy 5.x venv; ~20 s a portrait at 64 samples on 4 cores, the whole set + lineup ~12-15 min):
+  /home/user/.bpyvenv/bin/python blender/build_portraits_mh.py
+  /home/user/.bpyvenv/bin/python blender/build_portraits_mh.py --only human_f_defense,vulcan_m_exploration --samples 24
+  python3 blender/build_portraits_mh.py --sheet docs/mockups/character/portraits
+Flags: --species <id>[,<id>]   only these species (human vulcan andorian tellarite bajoran trill betazoid klingon romulan
+                               cardassian ferengi)
+       --sex f|m               only this sex
+       --only <stem>[,<stem>]  only these files (json is rewritten only on a full run)
+       --seed N[,N...]         also render the generator's random person look(N) for each picked species
+                               (<species>_<sex>_seedN.jpg, not in portraits.json)
+       --samples 64 --res 640  Cycles samples, portrait size
+       --out DIR               output folder
+       --shots portraits,lineup
+       --sheet DIR             contact sheet only (no bpy)
+       --mh PATH               a MakeHuman 1.x checkout (default /home/user/makehumancommunity/makehuman); only read
+                               when blender/makehuman/ is missing, or with --vendor (rebuild the vendored subset, exit)
+  debug: --no-hair, --skip hair,brow,lash,beard, --orbit A[,B] (extra close views round the head; --orbit-dist/-x/-z),
+         --closeup (only the orbit views), --expr unit:w,... (replace the expression), --tag S (file name suffix)
+
+MakeHuman data: blender/makehuman/ holds the compact subset this script needs (base.npz: hm08 base mesh vertices, its
+face groups (body + helpers: tights, eyes, eyelashes, teeth, tongue) and joint vertex groups; targets.npz: 516 targets
+as uint16 vertex indices + int16 offsets in 1/1000 dm (lossless: the .target files have 3 decimals) - adult macro
+targets (ethnicity x gender x young/old, universal gender x age x muscle x weight), head, forehead, eyebrows, eyes, nose,
+mouth, cheek, chin, ears, neck, torso, asym and the face expression units for all three ethnicities; rig.json.gz: the
+default skeleton's bones, joints and weights). ~4.5 MB, CC0, from github.com/makehumancommunity/makehuman (see
+blender/makehuman/README.md). MakeHuman's own code is not used; the loader and the macro weighting are re-implemented
+(apps/human.py _set*Vals, apps/humanmodifier.py getTargetWeights: a macro target's weight is the product of the macro
+variable values in its file name).
+
+How a person is generated from a seed (person()):
+  * the cast entry (build_portraits.CAST, or build_portraits.look(seed) for --seed) gives species, sex, apparent age,
+    skin, hair colour + style, iris, beard, build (heavy/slim), face shape, nose type and smile; the look seed is crc32 of
+    the id (or the --seed number) and every number below is build_crew.h32(seed, k), so a person is stable.
+  * macros: gender (0 / 1 +- a little), age (years -> MakeHuman 25..90 scale), ethnicity mix from the skin preset +-
+    0.08 each, muscle and weight from the build.
+  * ~60 face modifiers, each with its own triangular noise: head width/depth/height/fat/age, forehead height, slope and
+    temples, brow ridge projection/height/angle, eye spacing/height/lid heights/corners (tilt)/fold/bags/epicanthus,
+    nose type (straight, aquiline, roman, snub, button, broad, flat, hooked, greek -> a recipe of MakeHuman's nose
+    modifiers, then noise on all 18), mouth width, lip volumes, cupid's bow, philtrum, dimples, laugh lines, cheekbones /
+    volume / height, chin prominence / width / height, jaw width and drop, prognathism, cleft, ear size / wing / lobe /
+    rotation, neck width/depth, a double chin with weight or age; face shape (oval, round, square, long, heart, diamond)
+    from MakeHuman's head shape targets; 2-4 of MakeHuman's asym targets.
+  * stylise pass: eyes ~+10% (eye-scale), nose a little shorter and shallower with a rounder tip, the head 5.5% bigger
+    (scaled about the top of the neck), the person's strongest face feature x1.35; skin painted with soft occlusion in
+    creases and a warm flush, lid margins darkened.
+  * expression from MakeHuman's expression units (blended by the same ethnicity mix): smile = corner puller + upper lip
+    lift (teeth once it is broad) + cheeks squinting the lower lids; small values a friendly resting face; Vulcans and
+    Romulans calm; Ferengi grin with parted lips and pointed teeth.
+  * species: Vulcan/Romulan pointed ears (MakeHuman's pointed ear + a sculpted tip), Romulan forehead V ridge, Andorian
+    antennae + blue skin, Tellarite snout + heavy brow, Bajoran nose ridges + right-ear chain, Trill spot bands,
+    Betazoid black irises, Klingon crest and chevron ridges, Cardassian spoon + temple ridges + cobra neck cords (warm
+    grey), Ferengi ears (scaled up, concentric ridges, scalloped rim), nose-bridge folds and pointed teeth. Ridges are
+    displacements on a twice-subdivided copy of the body.
+  * hair, brows, lashes and beards are build_portraits.py's strand generators (guides + clumped children, comb fields,
+    blunt cuts, buns, ponytails), fed by ray casts against the MakeHuman head (radial field, front height map, hairline
+    by azimuth, ear ellipsoids, body clearance); skin, hair, eye, outfit and backdrop materials are build_portraits'.
+
+Toward the game (plan only, nothing exported yet):
+  1. One rigged bust glb per species from the MakeHuman default rig (163 bones, its face bones included), with the face
+     modifiers above as blend shapes (or a few hundred baked variants) - the same person() numbers in C# from the crew
+     id hash give every crew member, rival captain and contact a stable face.
+  2. Talking and expressions from MakeHuman's face pose units (data/poseunits/face-poseunits.bvh: 60 poses for the
+     default rig's face bones - visemes, blinks, brows, smiles), blended by the dialogue system.
+  3. Hair as cards baked from these strands; outfits as swappable meshes fitted on the tights helper.
+  4. Godot renders the bust into a SubViewport on the view screen and caches a still per character for lists; the
+     framing and lighting here are the target look.
+"""
 import gzip
 import json
 import math
@@ -247,7 +338,11 @@ ONLY_SEX = arg("--sex")
 ONLY = [s for s in (arg("--only") or "").split(",") if s]
 SEEDS = [int(s) for s in (arg("--seed") or "").split(",") if s]
 NO_HAIR = "--no-hair" in argv
+SKIP = set((arg("--skip") or "").split(","))      # debug: skip strand groups (hair, brow, lash, beard)
 ORBIT = [float(x) for x in (arg("--orbit") or "").split(",") if x]
+SK.update(fair=(0.86, 0.66, 0.55), light=(0.80, 0.59, 0.47), tan=(0.70, 0.49, 0.36), olive=(0.66, 0.49, 0.35),
+          eastasian=(0.82, 0.63, 0.49), romulan=(0.80, 0.63, 0.51), ferengi=(0.84, 0.62, 0.46),
+          brown=(0.52, 0.35, 0.24), dark=(0.37, 0.24, 0.17), deep=(0.27, 0.175, 0.13))
 D = None          # MHData, loaded in main()
 CUR = bp.CUR      # shared with build_portraits' hair / brow / lash code
 
@@ -423,19 +518,18 @@ def person(c):
         if k == strongest:
             v *= 1.35
         M.pair(folder, b, lo, hi, v, side, asym)
-    M.pair("eyes", "eye-scale", "decr", "incr", 0.32 + n(99, 0.12), "lr")
+    M.pair("eyes", "eye-scale", "decr", "incr", 0.5 + n(99, 0.12), "lr")
     M.pair("nose", "nose-scale-vert", "decr", "incr", -0.18)
     M.pair("nose", "nose-scale-depth", "decr", "incr", -0.12)
     M.pair("nose", "nose-point-width", "decr", "incr", 0.18)
     # asymmetry: two or three MakeHuman asym targets, small
-    for j, part in enumerate(["brown-1", "cheek-1", "eye-2", "jaw-1", "mouth-1", "nose-2", "ear-1", "temple-1"]):
+    for j, part in enumerate(["brown-1", "cheek-1", "eye-2", "jaw-1", "nose-2", "ear-1", "temple-1"]):
         if h(110 + j) < 0.45:
-            M.add(f"asym/asym-{part}-{'l' if h(120 + j) < 0.5 else 'r'}", 0.15 + 0.3 * h(130 + j))
+            M.add(f"asym/asym-{part}-{'l' if h(120 + j) < 0.5 else 'r'}", 0.12 + 0.25 * h(130 + j))
     # species shaping on the base head (sculpted features come later as geometry)
     if sp in ("vulcan", "romulan"):
         M.pair("ears", "ear-shape", "pointed", "triangle", -0.9, "lr")
         M.pair("ears", "ear-scale-vert", "decr", "incr", 0.45, "lr")
-        M.pair("eyebrows", "eyebrows-angle", "down", "up", 0.5)
     if sp == "klingon":
         M.pair("eyebrows", "eyebrows-trans", "backward", "forward", 0.6)
         M.pair("forehead", "forehead-nubian", "decr", "incr", 0.6)
@@ -465,14 +559,19 @@ def person(c):
         units.update({"mouth-corner-puller": 0.9, "mouth-parling": 0.55, "mouth-retraction": 0.3,
                       "mouth-upward-retraction": 0.35, "eye-left-slit": 0.25, "eye-right-slit": 0.25})
     elif smile > 0.0:
-        s = min(1.0, smile * 1.25)
-        units.update({"mouth-corner-puller": 0.95 * s, "mouth-upward-retraction": 0.18 * s * (s > 0.4),
-                      "eye-left-slit": 0.30 * s, "eye-right-slit": 0.30 * s,
-                      "mouth-parling": 0.25 * max(0.0, s - 0.45)})
+        # a real smile: corners up and back (zygomaticus), the upper lip lifting off the teeth once it is broad,
+        # cheeks pushing the lower lids up; small values = a friendly resting face
+        s = min(1.0, smile * 1.4)
+        units.update({"mouth-corner-puller": 0.35 + 0.65 * s if s > 0.05 else 0.0,
+                      "mouth-upward-retraction": 0.85 * float(sm(0.25, 0.9, s)),
+                      "eye-left-slit": 0.32 * float(sm(0.15, 0.8, s)), "eye-right-slit": 0.32 * float(sm(0.15, 0.8, s)),
+                      "mouth-parling": 0.15 * float(sm(0.5, 1.0, s))})
     if sp in ("vulcan", "romulan"):
         units["eyebrows-left-up"] = units.get("eyebrows-left-up", 0.0) + (0.12 if c.get("smirk") else 0.0)
     elif c.get("smirk"):
         units["eyebrows-left-extern-up"] = 0.2
+    if arg("--expr") is not None:      # debug: --expr unit:weight,unit:weight replaces the expression
+        units = {kv.split(":")[0]: float(kv.split(":")[1]) for kv in arg("--expr").split(",") if kv}
     for u, w in units.items():
         for r, rv in racd.items():
             E.add(f"expr/{r}/{u}", w * rv)
@@ -668,6 +767,12 @@ def skin_zones(hm, c):
     under = ga(ax - (ex - 0.002), 0.012) * ga(z - (ez - 0.013), 0.005) * fy
     toward((0.93, 0.80, 0.84) if not alien else (0.85, 0.85, 0.95), 0.55 * lid)
     toward((0.86, 0.80, 0.86) if not alien else (0.85, 0.85, 0.92), (0.4 + 0.4 * hm.age01) * under)
+    # lid margins: a soft darker, redder line where the lids meet the eye (reads as lash line and wet rim)
+    ap = np.concatenate([hm.apertures["l"][0], hm.apertures["r"][0]])
+    dmin = np.full(n, 9.0)
+    for a_ in ap:
+        dmin = np.minimum(dmin, np.linalg.norm(co - a_, axis=1))
+    toward((0.62, 0.45, 0.45) if not alien else (0.6, 0.6, 0.75), 0.75 * sm(0.0035, 0.0008, dmin))
     toward((0.45, 0.28, 0.25), 0.7 * R["nostril"])
     toward((0.55, 0.30, 0.28), 0.9 * R["mouth_in"])
     bz_ = hm.beard
@@ -680,6 +785,12 @@ def skin_zones(hm, c):
         rel = np.clip(hrgb / np.maximum(sk, 0.02), 0.05, 3.0)
         cov = hm.scalp[:, None] * 0.85
         tint = tint * (1 - cov) + rel[None, :] * cov
+    # painted-in occlusion: creases (lid folds, nostrils, mouth corners, ear bowls, smile folds) a touch darker,
+    # ridges a touch lighter, as in hand-painted stylised skin
+    cv = hm.cavity
+    face = sm(0.17, 0.12, np.linalg.norm(q, axis=1))
+    toward(np.array((0.78, 0.66, 0.66)) if not alien else np.array((0.75, 0.75, 0.8)), 0.55 * sm(0.04, 0.35, cv) * face)
+    tint = tint * (1 + 0.05 * sm(-0.04, -0.3, cv) * face)[:, None]
     bzr = hm.brow_z - hm.head_c[2]
     tz = hm.nose_tip[2] - hm.head_c[2]
     cz = hm.chin_z - hm.head_c[2]
@@ -729,7 +840,30 @@ def landmarks(hm):
         lo_, hi_ = np.percentile(pts, 3, 0), np.percentile(pts, 97, 0)
         hm.ears[s] = ((lo_ + hi_) / 2, (hi_ - lo_) / 2)
     hm.beard = beard_zone_mh(hm, co - hm.head_c)
+    # curvature of the body surface (Laplacian along the normal, per mean edge length): + in creases
+    fl = D.faces["body"]
+    vn = vertex_normals(co, fl)
+    e = np.concatenate([np.stack([fl[:, k], fl[:, (k + 1) % 4]], 1) for k in range(4)])
+    e = np.unique(np.sort(e, 1), axis=0)
+    acc = np.zeros_like(co)
+    cnt = np.zeros(len(co))
+    np.add.at(acc, e[:, 0], co[e[:, 1]])
+    np.add.at(acc, e[:, 1], co[e[:, 0]])
+    np.add.at(cnt, e[:, 0], 1)
+    np.add.at(cnt, e[:, 1], 1)
+    el = np.zeros(len(co))
+    L = np.linalg.norm(co[e[:, 0]] - co[e[:, 1]], axis=1)
+    np.add.at(el, e[:, 0], L)
+    np.add.at(el, e[:, 1], L)
+    lap = acc / np.maximum(cnt, 1)[:, None] - co
+    curv = np.sum(lap * vn, 1) / np.maximum(el / np.maximum(cnt, 1), 1e-6)
+    # smooth once so it reads as soft shading, not per-vertex noise
+    sm_ = np.zeros(len(co))
+    np.add.at(sm_, e[:, 0], curv[e[:, 1]])
+    np.add.at(sm_, e[:, 1], curv[e[:, 0]])
+    hm.cavity = 0.5 * curv + 0.5 * sm_ / np.maximum(cnt, 1)
     hm.scalp = np.zeros(len(co))
+    hm.apertures = lid_apertures(hm)
 
 
 def beard_zone_mh(hm, Q):
@@ -935,11 +1069,24 @@ def ear_push_mh(p, gap=0.004):
     for s in "lr":
         c, ext = hm.ears_local[s]
         rad_ = np.array([max(ext[0], 0.008) + 0.004, ext[1] + 0.006, ext[2] + 0.006]) + gap
+        tuck = CUR.get("species") == "bajoran" and c[0] > 0       # hair behind the ear with the chain
+        if tuck:
+            rad_ = rad_ + np.array([0.012, 0.012, 0.010])
         q = (p - c) / rad_
         d = np.linalg.norm(q, axis=-1)
         inside = d < 1.0
         if inside.any():
-            p[inside] = c + q[inside] / d[inside, None] * rad_
+            if tuck:
+                # out along (out, back): solve |q + s*dq| = 1
+                dq = np.array([0.35, -1.0, 0.0]) / rad_
+                qi = q[inside]
+                a_ = dq @ dq
+                b_ = 2 * qi @ dq
+                c_ = np.sum(qi * qi, 1) - 1
+                s_ = (-b_ + np.sqrt(np.maximum(b_ * b_ - 4 * a_ * c_, 0))) / (2 * a_)
+                p[inside] = c + (qi + s_[:, None] * dq[None]) * rad_
+            else:
+                p[inside] = c + q[inside] / d[inside, None] * rad_
     return p
 
 
@@ -992,38 +1139,73 @@ class BodyClearMH:
         return p
 
 
-def lid_lines(hm, Dh=None):
-    """Lid margins from MakeHuman's eyelash helper strips (eyelashes-2 upper, eyelashes-1 lower): the strip edge next
-    to the eye, as (eye centre, upper, lower) with (point, outward normal, lo 20..162 from the +x corner) per point,
-    rest world coordinates."""
-    out = []
+def lid_apertures(hm):
+    """The lid margins (palpebral fissure) of each eye on the MakeHuman body: in angular bins round the eye's forward
+    axis, the body vertex in front of the eyeball's equator that is closest to the axis. Returns
+    {side: (points (n, 3) ordered from the +x corner over the top and back under, angles)}."""
+    bi = hm.body_idx
+    co = hm.co[bi]
+    out = {}
     for s in ("l", "r"):
         c = hm.eye_c[s]
+        r = hm.eye_r[s]
+        q = co - c
+        sel = (q[:, 1] > 0.35 * r) & (np.linalg.norm(q, axis=1) < 2.2 * r)
+        Q = q[sel]
+        phi = np.degrees(np.arctan2(Q[:, 2], Q[:, 0])) % 360
+        rho = np.hypot(Q[:, 0], Q[:, 2])
+        pts, angs, rr = [], [], []
+        for a0 in np.arange(0, 360, 10.0):
+            m = np.abs((phi - a0 + 180) % 360 - 180) < 8.0
+            if m.sum() < 1:
+                continue
+            k = np.argmin(np.where(m, rho, 9))
+            pts.append(Q[k])
+            angs.append(a0)
+            rr.append(rho[k])
+        pts, angs, rr = np.array(pts), np.array(angs), np.array(rr)
+        med = np.array([np.median(np.take(rr, [i - 1, i, (i + 1) % len(rr)])) for i in range(len(rr))])
+        ok = rr < med * 1.12
+        pts, angs = pts[ok], angs[ok]
+        # resample on a smooth (angle -> radius, depth) curve
+        a2 = np.arange(0, 360, 4.0)
+        ext = lambda v: np.concatenate([v, v, v])  # noqa: E731
+        ae = np.concatenate([angs - 360, angs, angs + 360])
+        rho2 = np.interp(a2, ae, ext(np.hypot(pts[:, 0], pts[:, 2])))
+        y2 = np.interp(a2, ae, ext(pts[:, 1]))
+        P2 = np.stack([rho2 * np.cos(np.radians(a2)), y2, rho2 * np.sin(np.radians(a2))], 1) + c
+        out[s] = (P2, a2)
+    return out
+
+
+def lid_lines(hm, Dh=None):
+    """Lid margins for build_portraits' lash generator: (eye centre, upper, lower) with (point, outward normal,
+    lo 20..162 from the +x corner) per point, rest world coordinates."""
+    out = []
+    ap = hm.apertures
+    for s in ("l", "r"):
+        c = hm.eye_c[s]
+        P, A = ap[s]
+        # corners: the extreme x points of the aperture
+        ia, ib = int(np.argmax(P[:, 0])), int(np.argmin(P[:, 0]))
         lines = []
-        for g in (f"helper-{s}-eyelashes-2", f"helper-{s}-eyelashes-1"):
-            u = np.unique(D.faces[g].ravel())
-            P = hm.co[u]
-            dist = np.linalg.norm(P - c, axis=1)
-            xs = P[:, 0]
-            bins = np.linspace(xs.min() - 1e-6, xs.max() + 1e-6, 26)
-            roots = []
-            for b0, b1 in zip(bins, bins[1:]):
-                m = (xs >= b0) & (xs < b1)
-                if m.any():
-                    k = np.argmin(np.where(m, dist, 9))
-                    roots.append(P[k])
-            Q = np.array(sorted(roots, key=lambda p: -p[0]))      # from the +x corner
+        for upper in (True, False):
+            m = (P[:, 2] >= c[2] - 0.0005) if upper else (P[:, 2] < c[2] + 0.0005)
+            Q = P[m]
+            Q = np.concatenate([P[[ia]], Q, P[[ib]]])
+            Q = Q[np.argsort(-Q[:, 0])]
             seg = np.linalg.norm(np.diff(Q, axis=0), axis=1)
             sc = np.concatenate([[0], np.cumsum(seg)])
-            ts = np.linspace(0, sc[-1], 70)
+            npt = 70 if upper else 34
+            ts = np.linspace(0, sc[-1], npt)
             Qs = np.stack([np.interp(ts, sc, Q[:, k]) for k in range(3)], 1)
             pts = []
             for k, q in enumerate(Qs):
                 nv = q - c
                 nv = nv / np.linalg.norm(nv)
-                nv = nv * 0.55 + np.array([0, 1.0, 0]) * 0.45
+                nv = nv * 0.3 + np.array([0, 1.0, -0.12 if upper else 0.1]) * 0.7
                 nv = nv / np.linalg.norm(nv)
-                pts.append((V(q.tolist()), V(nv.tolist()), 20 + 142 * k / 69))
+                pts.append((V((q + nv * 0.0004).tolist()), V(nv.tolist()), 20 + 142 * k / (npt - 1)))
             lines.append(pts)
         out.append((V(c.tolist()), lines[0], lines[1]))
     return out
@@ -1115,8 +1297,27 @@ def strands(hm, c, objs, body_ob):
             fs += [tuple(base + i for i in pl.vertices) for pl in me.polygons]
             o.evaluated_get(dg).to_mesh_clear()
         bvh = BVHTree.FromPolygons(vs, fs)
-    if c.get("style"):
-        C, w, st = bp.scalp_strands(c, seed)
+    if c.get("style") and "hair" not in SKIP:
+        # build_portraits' style anchors (ponytail tie, bun, whorl) sit on its own head: move them onto this one
+        st0 = bp.STYLES[c["style"]]
+        st1 = dict(st0)
+        F = hm.field
+
+        def onto(p, out):
+            p = np.array(p, float)
+            d = p / np.linalg.norm(p)
+            return tuple(d * (F.R(d[None])[0][0] + out))
+        if "tie" in st0:
+            st1["tie"] = onto(st0["tie"], 0.007)
+            if "bun" in st0:
+                st1["bun"] = tuple(np.array(st1["tie"]) + (np.array(st0["bun"]) - np.array(st0["tie"])))
+        if "whorl" in st0:
+            st1["whorl"] = onto(st0["whorl"], -0.012)
+        bp.STYLES[c["style"]] = st1
+        try:
+            C, w, st = bp.scalp_strands(c, seed)
+        finally:
+            bp.STYLES[c["style"]] = st0
         hr = st.get("rad", 1.0) * 0.000085
         objs.append(bp.curves_object("Hair", C, hr, hr * 0.25, bp.CHAR_MATS["HairS"], Dh, bvh))
         if st.get("bun"):
@@ -1126,11 +1327,17 @@ def strands(hm, c, objs, body_ob):
             o.scale = (0.022, 0.016, 0.019)
             o.data.materials.append(bp.CHAR_MATS["hair_core"])
             objs.append(o)
-    B_, kind = bp.brow_strands(c, seed)
-    objs.append(bp.curves_object("Brow", B_, 0.00007, 0.00002, bp.CHAR_MATS["BrowS"], Dh))
-    L_ = bp.lash_strands(lid_lines(hm), seed)
-    objs.append(bp.curves_object("Lash", L_, 0.00006, 0.000015, bp.CHAR_MATS["LashS"], Dh))
-    if c.get("beard"):
+    if "brow" not in SKIP:
+        B_, kind = bp.brow_strands(c, seed)
+        objs.append(bp.curves_object("Brow", B_, 0.00007, 0.00002, bp.CHAR_MATS["BrowS"], Dh))
+    if "lash" not in SKIP:
+        L_ = bp.lash_strands(lid_lines(hm), seed)
+        # shorter than build_portraits' (its lids were further from the eye): upper x0.62, lower x0.42
+        root = L_[:, :1]
+        down = (L_[:, -1, 2] < L_[:, 0, 2])[:, None, None]
+        L_ = root + (L_ - root) * np.where(down, 0.42, 0.62)
+        objs.append(bp.curves_object("Lash", L_, 0.00006, 0.000015, bp.CHAR_MATS["LashS"], Dh))
+    if c.get("beard") and "beard" not in SKIP:
         Bd, kind = bp.beard_strands(c, seed)
         r0 = 0.00007 if kind != "stubble" else 0.00005
         objs.append(bp.curves_object("Beard", Bd, r0, 0.00002, bp.CHAR_MATS["BeardS"], Dh))
@@ -1185,7 +1392,7 @@ def split_quads(co, faces, W):
 def skinned_object(name, co, faces, W, rig, mats, mat_index=None, subsurf=2, smooth=True):
     """Mesh object (rest coordinates) with vertex groups from weight rows W and an armature modifier."""
     me = bpy.data.meshes.new(name)
-    me.from_pydata(co.tolist(), [], faces.tolist())
+    me.from_pydata(np.asarray(co).tolist(), [], [list(map(int, f)) for f in faces])
     me.validate(verbose=False)
     for m in mats:
         me.materials.append(m)
@@ -1268,12 +1475,12 @@ def suit_fields(S, kind):
     x, y, z = p[:, 0], p[:, 1], p[:, 2]
     t = S.arm_t(p)
     on_arm = sm(0.0, 0.05, t) * (np.abs(x) > 0.11)
-    zl = S.armpit_z + 0.03 - 0.012 * (np.abs(x) / 0.12) ** 2
+    zl = S.neck_z - 0.085 - 0.03 * (np.abs(x) / 0.12) ** 2
     yk = (1 - on_arm) * (z - zl) + on_arm * (0.105 - t)
     band = 0.012 - np.abs(t - 0.19) + (on_arm < 0.5) * -1.0
     belt = 0.022 - np.abs(z - (S.waist_z - 0.03))
     boot = 0.30 - z
-    seam = 0.0016 - np.abs(x) + (y < 0) * -1.0 + (z > zl) * -1.0
+    seam = 0.0016 - np.abs(x) + (y < 0) * -1.0 + (z > zl + 0.002) * -1.0
     return np.stack([yk, band, belt, boot], 1), seam
 
 
@@ -1311,7 +1518,7 @@ def suit_material(name, base, yoke=None, trim=(0.012, 0.012, 0.014), boot=(0.022
         bp.bump(m, p, 260, 0.25, 0.0004)
     else:
         bp.bump(m, p, 1500, 0.12, 0.0002)
-    p.inputs["Sheen Weight"].default_value = 0.25 if kind == "cloth" else 0.0
+    p.inputs["Sheen Weight"].default_value = 0.06 if kind == "cloth" else 0.0
     p.inputs["Sheen Roughness"].default_value = 0.4
     bt = step(zf[3])
     r = bp.math_node(nt, "SUBTRACT", rough, bp.math_node(nt, "MULTIPLY", bt, 0.35))
@@ -1343,9 +1550,10 @@ def ring_band(hm, S, h0, h1, out0, out1, th0=0.0, th1=360.0, nth=96, rows=6, thi
                 back = 0.5 + 0.5 * math.sin(rad(th)) * -1.0      # 1 at the back (-y)
                 zz = zb + h0 + (h1 - h0 + rise_back * back) * u
                 d = V((math.cos(rad(th)), math.sin(rad(th)), 0))
-                o = V((0, cy, zz)) + d * 0.3
-                hit = bvh.ray_cast(o, -d, 0.3)[0]
-                q = hit if hit is not None else V((0, cy, zz)) + d * 0.06
+                zcast = min(zz, zb + 0.016)
+                hit = bvh.ray_cast(V((0, cy, zcast)), d, 0.2)[0]
+                q = hit if hit is not None else V((0, cy, zcast)) + d * 0.06
+                q = V((q.x, q.y, zz))
                 off = out0 + (out1 - out0) * u + flare * u * u + shell * thick
                 row.append(tuple(q + d * off))
             grid.append(row)
@@ -1376,8 +1584,9 @@ def ring_band(hm, S, h0, h1, out0, out1, th0=0.0, th1=360.0, nth=96, rows=6, thi
     return np.array(co), np.array(faces)
 
 
-def shell(S, mask, offset, name, mat, rig, thick=0.004, subsurf=2):
-    """A raised part: the suit faces where mask > 0 (all four corners), pushed out by offset (per vertex)."""
+def shell(S, mask, offset, name, mat, rig, thick=0.004, subsurf=2, feather=0.0):
+    """A raised part: the suit faces where mask > 0 (all four corners), pushed out by offset (per vertex); with
+    feather (mask units) the offset eases to 1.5 mm at the edge so the part blends into the suit."""
     sel = (mask[S.faces] > 0).all(1)
     if not sel.any():
         return None
@@ -1386,6 +1595,8 @@ def shell(S, mask, offset, name, mat, rig, thick=0.004, subsurf=2):
     remap = np.full(len(S.co), -1, np.int64)
     remap[used] = np.arange(len(used))
     off = offset if np.ndim(offset) else np.full(len(S.co), offset)
+    if feather > 0:
+        off = 0.0015 + (off - 0.0015) * sm(0.0, feather, mask)
     co = S.co[used] + S.n[used] * off[used][:, None]
     ob = skinned_object(name, co, remap[f], S.W[used], rig, [mat], subsurf=subsurf)
     so = ob.modifiers.new("Solid", "SOLIDIFY")
@@ -1401,7 +1612,7 @@ def shell(S, mask, offset, name, mat, rig, thick=0.004, subsurf=2):
 def badge(hm, S, rig, objs):
     """Gold hexagon badge with a raised chevron on the left chest (the colony-service badge, original)."""
     p = S.co
-    want = np.array([0.072, S.chest_y, S.armpit_z - 0.02])
+    want = np.array([-0.075, S.chest_y, S.neck_z - 0.085 - 0.03 * (0.075 / 0.12) ** 2 - 0.028])
     front = (p[:, 1] > S.chest_y - 0.05)
     k = np.argmin(np.where(front, np.linalg.norm(p - want, axis=1), 9))
     c = p[k] + S.n[k] * 0.0015
@@ -1485,7 +1696,7 @@ def outfit(hm, c, rig, objs):
     hm.bvh_body_world = BVHTree.FromPolygons(hm.co.tolist(), D.faces["body"].tolist(), all_triangles=False)
     if f == "federation":
         dept = bp.CHAR_MATS["Owner"].node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value[:3]
-        mat = suit_material("Suit_" + c["id"], bc.SW["eng_suit"][1], yoke=tuple(dept))
+        mat = suit_material("Suit_" + c["id"], (0.028, 0.028, 0.031), yoke=tuple(dept))
         coll_mat = bp.material("trim")
     elif f == "klingon":
         mat = suit_material("Suit_" + c["id"], srgb_lin((0.12, 0.085, 0.07)), kind="leather", rough=0.55,
@@ -1519,7 +1730,7 @@ def outfit(hm, c, rig, objs):
     x, y, z = S.co[:, 0], S.co[:, 1], S.co[:, 2]
     t = S.arm_t(S.co)
     if f == "federation":
-        collar(-0.006, 0.018, 0.004, 0.0035, coll_mat, thick=0.0035)
+        collar(-0.006, 0.026, 0.004, 0.0035, coll_mat, thick=0.0035)
         badge(hm, S, rig, objs)
     elif f == "klingon":
         collar(-0.008, 0.026, 0.006, 0.012, coll_mat, thick=0.004, flare=0.004)
@@ -1540,30 +1751,33 @@ def outfit(hm, c, rig, objs):
     elif f == "romulan":
         if sex == "f":
             collar(-0.006, 0.030, 0.004, 0.008, coll_mat, thick=0.004, flare=0.004)
-            m_ = (z > S.armpit_z - 0.02) & (np.abs(x) > 0.07) & (t < 0.08)
-            off = 0.004 + 0.012 * sm(0.07, 0.15, np.abs(x)) * sm(S.armpit_z - 0.02, S.armpit_z + 0.04, z)
-            o = shell(S, m_.astype(float) - 0.5, off, "Pads", bp.material("rom_pad"), rig, 0.003)
+            m_ = np.minimum(np.minimum(z - (S.armpit_z + 0.005), np.abs(x) - 0.075), 0.085 - t)
+            off = 0.004 + 0.010 * sm(0.08, 0.15, np.abs(x))
+            o = shell(S, m_, off, "Pads", bp.material("rom_pad"), rig, 0.003, feather=0.02)
         else:
             collar(-0.006, 0.016, 0.005, 0.005, coll_mat, thick=0.0035)
-            m_ = (z > S.armpit_z - 0.06) & (t < 0.10)
-            off = 0.006 + 0.026 * sm(0.04, 0.16, np.abs(x)) * sm(S.armpit_z - 0.06, S.armpit_z + 0.04, z)
-            o = shell(S, m_.astype(float) - 0.5, off, "Pads", bp.material("rom_pad"), rig, 0.004)
+            m_ = np.minimum(z - (S.armpit_z - 0.05), 0.11 - t)
+            off = 0.004 + 0.024 * sm(0.04, 0.16, np.abs(x))
+            o = shell(S, m_, off, "Pads", bp.material("rom_pad"), rig, 0.004, feather=0.035)
         if o:
             objs.append(o)
     elif f == "cardassian":
-        collar(-0.01, 0.030, 0.006, 0.030, coll_mat, thick=0.005, rows=8)
-        for k in range(9):     # chest ribs
-            z0 = S.armpit_z - 0.24 + 0.026 * k
-            m_ = (z > z0) & (z < z0 + 0.018) & (y > S.chest_y - 0.08)
-            o = shell(S, m_.astype(float) - 0.5, 0.008 + 0.002 * (k % 2), f"Rib{k}",
-                      bp.material("car_rib" if k % 2 == 0 else "car_armour"), rig, 0.004)
-            if o:
-                objs.append(o)
-        m_ = (z > S.armpit_z - 0.03) & (t < 0.09)
-        off = 0.012 + 0.018 * sm(S.armpit_z, S.neck_z, z)
-        o = shell(S, m_.astype(float) - 0.5, off, "Shoulders", bp.material("car_armour"), rig, 0.006)
+        collar(-0.008, 0.010, 0.005, 0.009, coll_mat, thick=0.004)
+        # shoulder plates sweeping up toward the neck (a V cowl front and back), ribbed chest panel between them
+        zc = S.neck_z - 0.02
+        m_ = np.minimum(np.minimum(z - (S.armpit_z - 0.02), np.abs(x) - (0.035 + 0.5 * np.maximum(0, zc - z))), 0.10 - t)
+        off = 0.008 + 0.020 * sm(S.armpit_z, S.neck_z, z) * sm(0.03, 0.08, np.abs(x))
+        o = shell(S, m_, off, "Shoulders", bp.material("car_armour"), rig, 0.005, feather=0.02)
         if o:
             objs.append(o)
+        for k in range(7):     # chest ribs
+            z0 = S.neck_z - 0.075 - 0.024 * k
+            m_ = np.minimum(np.minimum(z - z0, z0 + 0.015 - z), 0.034 + 0.5 * np.maximum(0, zc - z) - np.abs(x))
+            m_ = np.where(y > S.chest_y - 0.08, m_, -1)
+            o = shell(S, m_, 0.006, f"Rib{k}", bp.material("car_rib" if k % 2 == 0 else "car_armour"), rig, 0.003,
+                      feather=0.004)
+            if o:
+                objs.append(o)
     else:  # ferengi
         collar(-0.006, 0.010, 0.005, 0.006, bp.material("fer_shirt"), thick=0.003)
         collar(0.004, 0.050, 0.012, 0.045, coll_mat, name="Flare", th0=118, th1=422, thick=0.003, flare=0.02, rows=8)
@@ -1575,6 +1789,366 @@ def outfit(hm, c, rig, objs):
     return cov
 
 
+# ================================================================ species features on the MakeHuman head
+# Base-mesh changes (ears) happen on the MakeHuman coordinates before the rig is built; ridges, spoons, cords and
+# snouts are sculpted as displacements on a twice-subdivided copy of the body (fine enough for 2-3 mm ridges);
+# antennae, spots, earrings and teeth are separate skinned meshes.
+
+def species_base(hm, c):
+    """Ear shapes on the base mesh: Vulcan / Romulan points, Ferengi shells (scaled up from the root, pushed out)."""
+    sp = c["species"]
+    co = hm.co
+    if sp not in ("vulcan", "romulan", "ferengi"):
+        return
+    for s, nm in (("l", "ears/l-ear-trans-up"), ("r", "ears/r-ear-trans-up")):
+        i, d = D.target(nm)
+        w = np.zeros(len(co))
+        w[i] = np.linalg.norm(d, axis=1)
+        w /= w.max()
+        ec, ext = hm.ears[s]
+        sx = np.sign(ec[0])
+        root = ec + np.array([-sx * ext[0] * 1.2, 0.0, 0.0])
+        if sp == "ferengi":
+            k = 1.0 + 1.25 * sm(0.15, 0.9, w)
+            q = co - root
+            q[:, 2] *= 1.0 + 0.15 * sm(0.15, 0.9, w)            # a little taller still
+            new = root + q * k[:, None]
+            new[:, 0] += sx * 0.012 * sm(0.3, 1.0, w)           # stand out from the head
+            new[:, 1] -= 0.004 * sm(0.3, 1.0, w)
+            co[:] = np.where((w > 0)[:, None], new, co)
+        else:
+            top = ec[2] + ext[2]
+            h = sm(ec[2] + 0.2 * ext[2], top + 0.002, co[:, 2]) * sm(0.4, 0.95, w)
+            co[:, 2] += 0.010 * h ** 1.6
+            co[:, 1] -= 0.006 * h ** 1.6
+            co[:, 0] += sx * 0.002 * h
+    # refresh the ear landmarks
+    for s, nm in (("l", "ears/l-ear-trans-up"), ("r", "ears/r-ear-trans-up")):
+        i, d = D.target(nm)
+        mag = np.linalg.norm(d, axis=1)
+        pts = co[i[mag > 0.6 * mag.max()]]
+        lo_, hi_ = np.percentile(pts, 3, 0), np.percentile(pts, 97, 0)
+        hm.ears[s] = ((lo_ + hi_) / 2, (hi_ - lo_) / 2)
+
+
+def seg_dist(p, a, b):
+    """Distance of points p (n, 3) to the segment a-b, and the parameter along it."""
+    ab = b - a
+    t = np.clip(((p - a) @ ab) / max(ab @ ab, 1e-12), 0, 1)
+    return np.linalg.norm(p - (a + t[:, None] * ab), axis=1), t
+
+
+def polyline_dist(p, pts):
+    d = np.full(len(p), 9.0)
+    tt = np.zeros(len(p))
+    n = len(pts) - 1
+    for k in range(n):
+        dk, tk = seg_dist(p, pts[k], pts[k + 1])
+        better = dk < d
+        d = np.where(better, dk, d)
+        tt = np.where(better, (k + tk) / n, tt)
+    return d, tt
+
+
+def species_sculpt(hm, c, q, nrm_):
+    """Displacement (metres, along the normal) and a 'ridge' colour mask for head-local points q (rest)."""
+    sp = c["species"]
+    x, y, z = q[:, 0], q[:, 1], q[:, 2]
+    ax = np.abs(x)
+    hc = hm.head_c
+    bz = hm.brow_z - hc[2]
+    ez = hm.ez - hc[2]
+    ex = abs(hm.eye_c["l"][0])
+    front = sm(0.0, 0.04, y)
+    disp = np.zeros(len(q))
+    ridge = np.zeros(len(q))
+    vec = np.zeros_like(q)
+    top = hm.field.xyz(np.array([88.0]), np.array([90.0]))[0][2]
+    if sp == "klingon":
+        fore = sm(bz - 0.004, bz + 0.008, z) * front
+        crest = 0.0042 * ga(x, 0.0055) * sm(bz + 0.0, bz + 0.012, z) * sm(top + 0.01, top - 0.03, z)
+        ch = 0.0
+        for k in range(6):
+            zk = bz + 0.010 + 0.0135 * k
+            d = z - (zk + 0.42 * ax - 2.2 * ax ** 2)
+            ch = ch + ga(d, 0.0024) * (0.0034 - 0.0003 * k) * ga(x, 0.042) * sm(0.002, 0.008, ax)
+        brow = 0.0045 * ga(z - (bz - 0.002), 0.0055) * ga(x, 0.045) * front
+        disp = fore * (crest + ch) + brow
+        ridge = np.clip(disp / 0.004, 0, 1)
+    elif sp == "romulan":
+        a = np.array([0.0, 0.0, bz - 0.003])
+        for sx in (-1, 1):
+            b = a + np.array([sx * 0.026, 0.0, 0.026])
+            d, t = seg_dist(np.stack([x, np.zeros_like(x), z], 1), a, b)
+            disp = disp + 0.0021 * ga(d, 0.0032) * sm(1.0, 0.75, t) * front
+        disp = disp + 0.0012 * ga(z - (bz - 0.002), 0.004) * ga(x, 0.04) * front
+        ridge = np.clip(disp / 0.002, 0, 1) * 0.5
+    elif sp == "tellarite":
+        # snout: the lower nose pushed forward and up and widened, nostrils turned to the front; heavy brow
+        nt = hm.nose_tip - hc
+        dn = np.linalg.norm((q - nt) * np.array([0.8, 1.0, 1.0]), axis=1)
+        w = ga(dn, 0.015)
+        vec[:, 1] = 0.011 * w
+        vec[:, 2] = 0.005 * w
+        vec[:, 0] = x * 0.35 * ga(dn, 0.017)
+        disp = 0.0065 * ga(z - (bz - 0.001), 0.007) * ga(x, 0.048) * front
+        for k in range(3):     # brow-to-nose folds
+            disp = disp + 0.0016 * ga(z - (ez - 0.004 - 0.006 * k), 0.0015) * ga(x, 0.006) * front
+        ridge = np.clip(disp / 0.005, 0, 1) * 0.4
+    elif sp == "bajoran":
+        for k in range(4):
+            zk = ez - 0.002 - 0.0045 * k
+            disp = disp + (0.0019 - 0.0002 * k) * ga(z - zk, 0.0011) * ga(x, 0.0085 + 0.0008 * k) * front
+        ridge = np.clip(disp / 0.001, 0, 1) * 0.35
+    elif sp == "cardassian":
+        # spoon: a teardrop raised rim on the forehead, slightly hollow inside
+        zc, b = bz + 0.027, 0.020
+        u = (z - zc) / b
+        aw = 0.0105 * (1.0 + 0.35 * np.clip(u, -1, 1))
+        e = np.sqrt((x / aw) ** 2 + u ** 2)
+        disp = (0.0028 * ga(e - 1.0, 0.13) - 0.0009 * sm(1.0, 0.55, e)) * front
+        # cord from the spoon's foot down the nose bridge
+        disp = disp + 0.0016 * ga(x, 0.0035) * sm(zc - b - 0.002, zc - b + 0.004, z) * sm(ez - 0.012, ez, z) * front
+        # brow ridges running out over the temples toward the ears
+        for sx in (-1, 1):
+            pts = np.array([[sx * 0.014, 0, bz + 0.006], [sx * 0.032, 0, bz + 0.010], [sx * 0.052, 0, bz + 0.004],
+                            [sx * 0.066, 0, ez - 0.002]])
+            P2 = q.copy()
+            P2[:, 1] = 0
+            d, t = polyline_dist(P2, pts)
+            disp = disp + 0.0032 * ga(d, 0.0033) * (x * sx > 0) * sm(-0.02, 0.01, y)
+        # cobra neck: two cords each side from behind the ear down and out to the shoulder
+        for sx in (-1, 1):
+            ec, ext = hm.ears_local["l" if sx * hm.ears_local["l"][0][0] > 0 else "r"]
+            a = ec + np.array([sx * -0.004, -0.012, -0.022])
+            for k, (bo, r_, h_) in enumerate(((np.array([sx * 0.085, -0.030, -0.135]), 0.0085, 0.0075),
+                                             (np.array([sx * 0.060, 0.008, -0.140]), 0.006, 0.004))):
+                d, t = seg_dist(q, a + np.array([0, 0.012 * k, -0.005 * k]), bo)
+                disp = disp + h_ * ga(d, r_) * sm(0.0, 0.15, t) * sm(1.0, 0.85, t)
+        ridge = np.clip(disp / 0.003, 0, 1)
+    elif sp == "ferengi":
+        # nose-bridge folds climbing the forehead, a central lobe line, lumpy brow
+        for k in range(5):
+            zk = ez - 0.004 + 0.0075 * k
+            disp = disp + (0.0022 - 0.0002 * k) * ga(z - zk, 0.0016) * ga(x, 0.010 + 0.002 * k) * front
+        disp = disp + 0.0025 * ga(x, 0.007) * sm(ez + 0.03, ez + 0.05, z) * sm(top, top - 0.05, z) * front
+        # ear shells: concentric ridges in the bowl, a scalloped rim
+        for s in "lr":
+            ec, ext = hm.ears_local[s]
+            sx = np.sign(ec[0])
+            rel = q - ec
+            w = sm(0.0, 0.02, rel[:, 0] * sx + 0.012) * (np.linalg.norm(rel / (ext * 1.15 + 1e-4), axis=1) < 1.3)
+            rr = np.hypot(rel[:, 1] / max(ext[1], 1e-3), rel[:, 2] / max(ext[2], 1e-3))
+            ang = np.arctan2(rel[:, 2], rel[:, 1])
+            disp = disp + w * (0.0014 * np.sin(rr * 2 * pi * 2.6) * sm(0.25, 0.4, rr) * sm(1.0, 0.8, rr)
+                               + 0.0018 * np.sin(ang * 7) * sm(0.8, 1.0, rr))
+        ridge = np.clip(np.abs(disp) / 0.002, 0, 1) * 0.5
+    return disp, ridge, vec
+
+
+def needs_sculpt(sp):
+    return sp in ("klingon", "romulan", "tellarite", "bajoran", "cardassian", "ferengi")
+
+
+def sculpt_body(body, hm, c):
+    """Two Catmull-Clark levels applied (weights and attributes carried over), then the species displacement."""
+    bpy.context.view_layer.objects.active = body
+    m = body.modifiers.new("Pre", "SUBSURF")
+    m.levels = 2
+    while body.modifiers[0].name != "Pre":
+        bpy.ops.object.modifier_move_up(modifier="Pre")
+    bpy.ops.object.modifier_apply(modifier="Pre")
+    me = body.data
+    n = len(me.vertices)
+    co = np.zeros(n * 3)
+    me.vertices.foreach_get("co", co)
+    co = co.reshape(-1, 3)
+    nn = np.zeros(n * 3)
+    me.vertices.foreach_get("normal", nn)
+    nn = nn.reshape(-1, 3)
+    disp, ridge, vec = species_sculpt(hm, c, co - hm.head_c, nn)
+    co = co + nn * disp[:, None] + vec
+    me.vertices.foreach_set("co", co.ravel())
+    me.update()
+    # ridges a shade warmer / darker in their folds
+    sk = {"cardassian": (1.06, 0.92, 0.74), "klingon": (0.9, 0.78, 0.72), "ferengi": (0.95, 0.85, 0.8)}.get(
+        c["species"], (0.94, 0.86, 0.84))
+    t = np.zeros(n * 4)
+    me.color_attributes["tint"].data.foreach_get("color", t)
+    t = t.reshape(-1, 4)
+    t[:, :3] *= 1 + (np.array(sk) - 1)[None, :] * ridge[:, None]
+    me.color_attributes["tint"].data.foreach_set("color", t.ravel())
+
+
+def skin_extra(name, co, faces, rig, hm, objs, mat=None):
+    """A skin-coloured extra (antennae ...): weights from the nearest body vertex, skin attributes."""
+    W = nearest_rows(co, hm.body_idx, hm.co)
+    ob = skinned_object(name, co, faces, W, rig, [mat or bp.material("Skin")], subsurf=1)
+    me = ob.data
+    bp.set_attr(me, "tint", np.ones((len(co), 4)), "FLOAT_COLOR")
+    bp.set_attr(me, "skm", np.zeros((len(co), 4)), "FLOAT_COLOR")
+    bp.set_attr(me, "rest", co - hm.head_c, "FLOAT_VECTOR")
+    objs.append(ob)
+    return ob
+
+
+def tube(path, radii, nseg=14):
+    """Tube mesh along a polyline with per-point radii, closed caps. Returns (co, faces)."""
+    path = np.asarray(path, float)
+    n = len(path)
+    co, faces = [], []
+    t = np.gradient(path, axis=0)
+    t = nrm(t)
+    ref = np.array([1.0, 0, 0]) if abs(t[0][0]) < 0.9 else np.array([0, 1.0, 0])
+    e1 = nrm(np.cross(t[0], ref))
+    for i in range(n):
+        e1 = nrm(e1 - t[i] * (e1 @ t[i]))
+        e2 = np.cross(t[i], e1)
+        for j in range(nseg):
+            a = 2 * pi * j / nseg
+            co.append(path[i] + (e1 * math.cos(a) + e2 * math.sin(a)) * radii[i])
+    for i in range(n - 1):
+        for j in range(nseg):
+            k = (j + 1) % nseg
+            faces.append((i * nseg + j, i * nseg + k, (i + 1) * nseg + k, (i + 1) * nseg + j))
+    co.append(path[0] - t[0] * radii[0] * 0.3)
+    co.append(path[-1] + t[-1] * radii[-1] * 0.5)
+    a0, a1 = len(co) - 2, len(co) - 1
+    for j in range(nseg):
+        k = (j + 1) % nseg
+        faces.append((k, j, a0))
+        faces.append(((n - 1) * nseg + j, (n - 1) * nseg + k, a1))
+    return np.array(co), faces
+
+
+def spheres(centres, radii, seg=10, rings=6):
+    co, faces = [], []
+    for c_, r in zip(centres, radii):
+        b = len(co)
+        co.append(c_ + np.array([0, 0, -r]))
+        for i in range(1, rings):
+            th = pi * i / rings - pi / 2
+            for j in range(seg):
+                a = 2 * pi * j / seg
+                co.append(c_ + np.array([math.cos(th) * math.cos(a), math.cos(th) * math.sin(a), math.sin(th)]) * r)
+        co.append(c_ + np.array([0, 0, r]))
+        top = len(co) - 1
+        for j in range(seg):
+            k = (j + 1) % seg
+            faces.append((b, b + 1 + k, b + 1 + j))
+            for i in range(rings - 2):
+                r0, r1 = b + 1 + i * seg, b + 1 + (i + 1) * seg
+                faces.append((r0 + j, r0 + k, r1 + k, r1 + j))
+            rl = b + 1 + (rings - 2) * seg
+            faces.append((rl + j, rl + k, top))
+    return np.array(co), faces
+
+
+def surface_point(hm, p):
+    """Nearest point on the rest body and its normal."""
+    loc, nn, _, _ = hm.bvh_body_world.find_nearest(V(tuple(p)))
+    return np.array(loc), np.array(nn)
+
+
+def species_extras(hm, c, rig, objs):
+    sp = c["species"]
+    hc = hm.head_c
+    if sp == "andorian":
+        F = hm.field
+        for sx in (-1, 1):
+            d0 = np.array([sx * 0.24, 0.55, 0.8])
+            d0 = d0 / np.linalg.norm(d0)
+            root = d0 * (F.R(d0[None])[0][0] - 0.003) + hc
+            ts = np.linspace(0, 1, 24)
+            L = 0.088
+            path = np.stack([root[0] + sx * (0.012 * ts + 0.01 * ts ** 2), root[1] + 0.012 * ts - 0.012 * ts ** 2,
+                             root[2] + L * ts], 1)
+            radii = 0.0040 * (1 - 0.5 * ts) + 0.0042 * ga(ts - 0.95, 0.045) * (ts > 0.8) + 0.0012 * ga(ts, 0.08)
+            co, fc = tube(path, radii)
+            skin_extra(f"Antenna{sx}", co, fc, rig, hm, objs)
+    if sp == "trill":
+        R = rng(hm.P["seed"] + 77)
+        cents, rads = [], []
+        for s in "lr":
+            ec, ext = hm.ears_local[s]
+            sx = np.sign(ec[0])
+            # temple (beside the brow, behind the eye corner) -> in front of the ear -> down the side of the neck
+            line = np.array([[sx * 0.060, 0.050, hm.brow_z - hc[2] + 0.012], [sx * 0.066, 0.030, hm.ez - hc[2] - 0.01],
+                             [ec[0] * 0.98, ec[1] + 0.018, ec[2] - 0.03], [sx * 0.050, 0.005, -0.10],
+                             [sx * 0.050, -0.005, -0.15]])
+            for k in range(26):
+                t = k / 25
+                seg_ = min(int(t * 4), 3)
+                u = t * 4 - seg_
+                p = line[seg_] * (1 - u) + line[seg_ + 1] * u
+                for col in (-1, 1):
+                    jit = R.normal(0, 0.0018, 3)
+                    pp = p + np.array([0, col * 0.0045, 0]) + jit + hc
+                    if R.uniform() < 0.25:
+                        continue
+                    loc, nn = surface_point(hm, pp)
+                    r = (0.0032 - 0.0018 * t) * R.uniform(0.7, 1.2)
+                    cents.append((loc, nn, r))
+        co, fc = [], []
+        for loc, nn, r in cents:
+            e1 = nrm(np.cross(nn, [0, 0, 1.0]))
+            e2 = np.cross(nn, e1)
+            b = len(co)
+            co.append(loc + nn * 0.0011)
+            for j in range(10):
+                a = 2 * pi * j / 10
+                rr = r * (1 + 0.15 * math.sin(3 * a + r * 1e4))
+                co.append(loc + nn * 0.0008 + (e1 * math.cos(a) * 1.2 + e2 * math.sin(a)) * rr)
+            for j in range(10):
+                fc.append((b, b + 1 + j, b + 1 + (j + 1) % 10))
+        co = np.array(co)
+        W = nearest_rows(co, hm.body_idx, hm.co)
+        objs.append(skinned_object("TrillSpots", co, fc, W, rig, [bp.material("trill_spot")], subsurf=0))
+    if sp == "bajoran":
+        # the right ear (+x): a cuff at the top of the helix, beads down the rim to the lobe and a short drop
+        s = "r" if hm.ears_local["r"][0][0] > 0 else "l"
+        ec, ext = hm.ears_local[s]
+        sx = np.sign(ec[0])
+        topp = ec + np.array([sx * ext[0] * 0.6, -ext[1] * 0.2, ext[2] * 0.85])
+        lobe = ec + np.array([sx * ext[0] * 0.5, ext[1] * 0.25, -ext[2] * 0.9])
+        pts = []
+        for k in range(18):
+            t = k / 17
+            p = topp * (1 - t) + lobe * t + np.array([sx * 0.006 * math.sin(pi * t), -0.010 * math.sin(pi * t), 0])
+            pts.append(p + hc)
+        drop = [lobe + hc + np.array([sx * 0.003, 0, -0.004 - 0.0035 * k]) for k in range(7)]
+        cen = [np.array(p) for p in pts + drop]
+        rr = [0.0011] * len(pts) + [0.0012] * 6 + [0.0026]
+        co, fc = spheres(cen + [topp + hc + np.array([sx * 0.002, 0, 0])], rr + [0.0035])
+        W = nearest_rows(co, hm.body_idx, hm.co)
+        objs.append(skinned_object("Earring", co, fc, W, rig, [bp.material("chain_gold")], subsurf=1))
+    if sp == "ferengi":
+        # pointed teeth along the front of MakeHuman's teeth helpers
+        for g, down in (("helper-upper-teeth", True), ("helper-lower-teeth", False)):
+            u = np.unique(D.faces[g].ravel())
+            P = hm.co[u]
+            front = P[P[:, 1] > np.percentile(P[:, 1], 40)]
+            zedge = front[:, 2].min() if down else front[:, 2].max()
+            xs = np.linspace(front[:, 0].min() * 0.95, front[:, 0].max() * 0.95, 11)
+            co, fc = [], []
+            for xk in xs:
+                near = front[np.argsort(np.abs(front[:, 0] - xk))[:4]]
+                yk = near[:, 1].max() - 0.0005
+                base = np.array([xk, yk, zedge + (0.0055 if down else -0.0055)])
+                tip = np.array([xk, yk + 0.0004, zedge - (0.0016 if down else -0.0016)])
+                b = len(co)
+                for j in range(6):
+                    a = 2 * pi * j / 6
+                    co.append(base + np.array([math.cos(a) * 0.0021, math.sin(a) * 0.0013, 0]))
+                co.append(tip)
+                for j in range(6):
+                    k = (j + 1) % 6
+                    fc.append((b + j, b + k, b + 6) if down else (b + k, b + j, b + 6))
+            co = np.array(co)
+            W = D.W[u[np.argmin(np.linalg.norm(P[None, :, :] - co[:, None, :], axis=2), axis=1)]]
+            objs.append(skinned_object("Fangs", co, fc, W, rig, [bp.material("teeth")], subsurf=0))
+
+
 # ================================================================ one character
 
 def build_character(c, loc=(0, 0, 0), yaw=0.0, head_turn=0.0, cam=None, t=0.0, height=1.0, full=False):
@@ -1584,6 +2158,7 @@ def build_character(c, loc=(0, 0, 0), yaw=0.0, head_turn=0.0, cam=None, t=0.0, h
     P = person(c)
     hm = Human(c, P)
     landmarks(hm)
+    species_base(hm, c)
     CUR.clear()
     CUR.update(c)
     CUR["species"] = c["species"]
@@ -1603,10 +2178,14 @@ def build_character(c, loc=(0, 0, 0), yaw=0.0, head_turn=0.0, cam=None, t=0.0, h
     bp.set_attr(body.data, "skm", skm[used], "FLOAT_COLOR")
     bp.set_attr(body.data, "rest", hm.co[used] - hm.head_c, "FLOAT_VECTOR")
     skin_to(body, used, rig)
-    sub = body.modifiers.new("Subsurf", "SUBSURF")
-    sub.levels = 1
-    sub.render_levels = 2
+    if needs_sculpt(c["species"]):
+        sculpt_body(body, hm, c)
+    else:
+        sub = body.modifiers.new("Subsurf", "SUBSURF")
+        sub.levels = 1
+        sub.render_levels = 2
     objs.append(body)
+    species_extras(hm, c, rig, objs)
     for g, mk in (("helper-upper-teeth", "teeth"), ("helper-lower-teeth", "teeth"), ("helper-tongue", "gum")):
         o, u = mesh_from(g, hm.co, D.faces[g], [bp.material(mk)])
         skin_to(o, u, rig)
@@ -1615,6 +2194,7 @@ def build_character(c, loc=(0, 0, 0), yaw=0.0, head_turn=0.0, cam=None, t=0.0, h
         objs.append(o)
     rig.location = loc
     rig.rotation_euler = (0, 0, rad(yaw))
+    rig.scale = (height,) * 3
     bpy.context.view_layer.update()
     pose_body(rig, hm, head_turn, t=t)
     Dh = head_matrix(rig)
@@ -1624,7 +2204,8 @@ def build_character(c, loc=(0, 0, 0), yaw=0.0, head_turn=0.0, cam=None, t=0.0, h
     up = Dh.to_3x3() @ V((0, 0, 1))
     for s, k in (("l", 1), ("r", -1)):
         ce = Dh @ V(hm.eye_c[s].tolist())
-        objs += eyeball(ce, hm.eye_r[s] * 0.985, cam + V((0.012 * k, 0, 0)), up,
+        ce = ce - (cam - ce).normalized() * 0.0004
+        objs += eyeball(ce, hm.eye_r[s] * 0.965, cam + V((0.012 * k, 0, 0)), up,
                         50.0 if c["species"] == "betazoid" else 57.5)
     if not NO_HAIR:
         strands(hm, c, objs, body)
@@ -1634,14 +2215,14 @@ def build_character(c, loc=(0, 0, 0), yaw=0.0, head_turn=0.0, cam=None, t=0.0, h
 # ================================================================ shots
 
 YAW = 24.0
-CAM_DIST = 1.22
+CAM_DIST = 1.05
 
 
 def portrait(cam, c, extras):
     camp = V((0.0, CAM_DIST, 1.58))
     objs, head = build_character(c, yaw=YAW, head_turn=-12.0, cam=camp)
     tall = 0.06 if c["species"] == "andorian" else 0.0
-    target = head + V((0, -0.03, -0.062 + tall))
+    target = head + V((0, -0.03, -0.05 + tall))
     camp = V((target.x, target.y + CAM_DIST + 2.2 * tall, target.z + 0.06))
     bp.aim(cam, camp, target, 85)
     cam.data.dof.use_dof = True
@@ -1652,16 +2233,93 @@ def portrait(cam, c, extras):
         o.location = p0 + off
     eye_l = bp.light("EyeLight", "AREA", 1.6, 0.12, camp + V((-0.16, -0.05, 0.10)), head, (1.0, 0.97, 0.94))
     bd = bp.plane("Backdrop", target + V((0, -1.5, 0.08)), 2.2, 2.2, extras["bd"][c["faction"]], camp)
-    path = os.path.join(OUT, c["id"] + ".jpg")
-    bp.render(path, RES, RES)
+    path = os.path.join(OUT, c["id"] + (arg("--tag") or "") + ".jpg")
+    if "--closeup" not in argv:
+        bp.render(path, RES, RES)
     for a in ORBIT:
         hc = head + V((0, -0.01, 0))
-        d = V((math.sin(rad(a)), math.cos(rad(a)), 0)) * 0.55
-        bp.aim(cam, hc + d + V((0, 0, 0.01)), hc, 85)
+        d = V((math.sin(rad(a)), math.cos(rad(a)), 0)) * float(arg("--orbit-dist", "0.55"))
+        bp.aim(cam, hc + d + V((0, 0, 0.01)), hc + V((float(arg("--orbit-x", "0")), 0, float(arg("--orbit-z", "0")))), 85)
         cam.data.dof.use_dof = False
-        bp.render(os.path.join(OUT, f"{c['id']}_orbit{int(a)}.jpg"), RES, RES)
+        bp.render(os.path.join(OUT, f"{c['id']}{arg('--tag') or ''}_orbit{int(a)}.jpg"), RES, RES)
     bp.remove(objs + [bd, eye_l])
     return path
+
+
+def lineup(cam, chars, extras):
+    """Four Federation officers full length on a curved cyclorama, 3/4 view, 1600 x 900."""
+    objs_all = []
+    xs = [-1.35, -0.45, 0.45, 1.35]
+    heights = [1.03, 0.98, 1.0, 0.96]
+    camp = V((2.2, 6.6, 1.55))
+    for k, c in enumerate(chars):
+        objs, _ = build_character(c, loc=(xs[k], 0.15 * (k % 2), 0), yaw=28 + 4 * k, head_turn=-6, cam=camp,
+                                  t=0.1 + 0.2 * k, height=heights[k])
+        objs_all += objs
+    cy = bp.cyclorama("Cyc", 18, 9.0, 8.0, 2.2, bp.cyc_material(bp.backdrop_image("federation", 1600, 900, side=1)))
+    cy.location = (-0.6, -3.4, 0)
+    for o, _ in extras["portrait_lights"]:
+        o.hide_render = True
+    ls = [bp.light("LKey", "AREA", 1100, 2.4, (-3.2, 4.6, 4.2), (0, 0, 1.1), (1.0, 0.95, 0.88)),
+          bp.light("LRim", "AREA", 800, 2.0, (3.4, -2.6, 3.4), (0, 0, 1.2), (0.82, 0.9, 1.0)),
+          bp.light("LRim2", "AREA", 450, 2.0, (-3.6, -2.2, 3.0), (0, 0, 1.2), (0.9, 0.92, 1.0)),
+          bp.light("LFill", "AREA", 160, 5.0, (4.0, 5.0, 2.0), (0, 0, 1.0), (0.88, 0.93, 1.0))]
+    for x in xs:   # soft pools on the floor under each officer
+        ls.append(bp.light("LPool", "SPOT", 90, 0.6, (x + 0.2, 0.6, 5.2), (x, 0.1, 0.0), (1.0, 0.96, 0.9)))
+        ls[-1].data.spot_size = rad(38)
+        ls[-1].data.spot_blend = 0.9
+    bp.aim(cam, camp, V((0.0, 0.0, 0.93)), 50)
+    cam.data.dof.use_dof = False
+    bp.render(os.path.join(OUT, "lineup.jpg"), 1600, 900)
+    bp.remove(objs_all + [cy] + ls)
+    for o, _ in extras["portrait_lights"]:
+        o.hide_render = False
+
+
+OUTFIT_TEXT = {"klingon": "dark leather, layered metal pauldrons and chest plates, red-trimmed collar",
+               "cardassian": "grey-brown ribbed armour, shoulder plates rising to a flared neck plate",
+               "ferengi": "patterned jacket, cream shirt front, gold flared collar"}
+
+
+def write_json(cast):
+    entries = []
+    for c in cast:
+        f = c["id"] + ".jpg"
+        if not os.path.exists(os.path.join(OUT, f)):
+            continue
+        c = dict(c)
+        c.setdefault("faction", FACTION_OF[c["species"]])
+        P = person(c)
+        info = P["info"]
+        fac = FACTION_OF[c["species"]]
+        if fac == "federation":
+            outfit_s = "colony-service jumpsuit, department yoke"
+        elif fac == "romulan":
+            outfit_s = ("grey-green tunic, high stand collar, slim quilted shoulder caps" if c["sex"] == "f"
+                        else "grey-green tunic, quilted padded shoulders")
+        else:
+            outfit_s = OUTFIT_TEXT[fac]
+        entries.append(dict(
+            file=f, species=c["species"], faction=fac, sex=c["sex"], department=c.get("dept"),
+            department_colour=DEPTS.get(c.get("dept")) if c.get("dept") else None,
+            skin=c["skin"], skin_rgb=[round(x, 3) for x in SK[c["skin"]]], hair=c.get("hair") or "none (bald)",
+            hair_style=c.get("style") or "bald", beard=c.get("beard"), eyes=c["iris"], age_band=c["age"],
+            apparent_age=c.get("years"), face_shape=info["face"], nose=info["nose"], seed=info["seed"],
+            expression=("grin" if c["species"] == "ferengi" else "smile" if info["smile"] >= 0.3 else
+                        "friendly" if info["smile"] > 0.05 else "calm"),
+            stylised_feature=info["strongest"],
+            makehuman=dict(gender=round(P["macro"]["gender"], 3), age=round(P["macro"]["age"], 3),
+                           muscle=round(P["macro"]["muscle"], 3), weight=round(P["macro"]["weight"], 3),
+                           ethnicity={k: round(v, 3) for k, v in info["race"].items()}),
+            outfit=outfit_s))
+    doc = dict(generator="blender/build_portraits_mh.py",
+               note="Mockup portraits on the MakeHuman 1.x base mesh (CC0); original designs, no canon uniforms or insignia.",
+               size=[RES, RES], departments=DEPTS,
+               lineup=dict(file="lineup.jpg", left_to_right=bp.LINEUP[::-1]) if os.path.exists(
+                   os.path.join(OUT, "lineup.jpg")) else None, portraits=entries)
+    with open(os.path.join(OUT, "portraits.json"), "w") as fh:
+        json.dump(doc, fh, indent=1)
+    print("json", len(entries), flush=True)
 
 
 def main():
@@ -1673,10 +2331,10 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     cam = bp.setup_scene()
     pl = []
-    for args in (("Key", "AREA", 80, 0.9, (-1.25, 0.95, 2.15), (0, 0, 1.64), (1.0, 0.95, 0.88)),
-                 ("Rim", "AREA", 90, 0.5, (0.9, -0.8, 1.95), (0, 0, 1.64), (0.82, 0.9, 1.0)),
+    for args in (("Key", "AREA", 62, 0.8, (-1.2, 0.9, 2.1), (0, 0, 1.64), (1.0, 0.93, 0.84)),
+                 ("Rim", "AREA", 95, 0.5, (0.9, -0.8, 1.95), (0, 0, 1.64), (0.78, 0.88, 1.0)),
                  ("Rim2", "AREA", 40, 0.5, (-0.9, -0.85, 1.9), (0, 0, 1.62), (0.9, 0.92, 1.0)),
-                 ("Fill", "AREA", 9, 2.0, (1.3, 1.5, 1.4), (0, 0, 1.6), (0.88, 0.93, 1.0))):
+                 ("Fill", "AREA", 6, 2.0, (1.3, 1.5, 1.4), (0, 0, 1.6), (0.85, 0.92, 1.0))):
         o = bp.light(*args)
         pl.append((o, o.location.copy()))
     extras = {"portrait_lights": pl}
@@ -1689,6 +2347,12 @@ def main():
         for sd in SEEDS:
             for sp in (ONLY_SPECIES or bp.SPECIES_ORDER):
                 portrait(cam, bp.look(sd, sp, ONLY_SEX), extras)
+    if not ONLY and not SEEDS and not ONLY_SPECIES and not ONLY_SEX:
+        write_json(bp.CAST)
+    if "lineup" in SHOTS:
+        lineup(cam, [dict(next(c for c in bp.CAST if c["id"] == i)) for i in bp.LINEUP], extras)
+        if not ONLY and not SEEDS and not ONLY_SPECIES and not ONLY_SEX:
+            write_json(bp.CAST)
 
 
 if __name__ == "__main__":
