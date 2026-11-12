@@ -186,7 +186,8 @@ Content (S2, `data/missions/`; English text inline; givers are original placehol
    (radius 4) round a hidden `probe_wreck` site 10–18 tiles from the hub on passable land. Find it (survey its tile),
    then park a rover beside it for 20 s (recover the data recorder). Reward: research 60, 2 control modules, reveal 6.
 3. **Calling Home** (set up communications): the recorder's data has to go home: deploy a relay satellite whose
-   coverage includes the base, then bring the wreck site under coverage (the same relay or another). Reward: research
+   coverage includes the outpost (the first base, `covers: hub`), then bring the wreck site under coverage (the same
+   relay or another; the wreck keeps its marker though the site was done in mission 2). Reward: research
    40 + flag `earth_link`.
 4. **Wings** (make drones): build a Machine Shop (skip if built) and a Drone Pad; fabricate 2 scout drones. Reward:
    2 power couplings, research 20.

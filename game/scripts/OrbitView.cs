@@ -1173,7 +1173,7 @@ public partial class OrbitView : Node3D
             }
             var lat = Mathf.RoundToInt(RowLatitude(sat.Row));
             var where = $"{Mathf.Abs(lat)}° {(lat >= 0 ? "N" : "S")}";
-            var sweep = sat.Deploying(_sim.Tick) ? (sat.Retasks == 0 ? "deploying" : "manoeuvring to its new band")
+            var sweep = sat.Deploying(_sim.Tick) ? (sat.Retasks == 0 ? $"deploying, sweeps in {SecondsTo(sat.ReadyTick)} s" : "manoeuvring to its new band")
                 : sat.Passes == 0 ? $"first pass, {sat.Swept * 100 / g.Width} % swept" : $"pass {sat.Passes + 1}, {sat.Swept % g.Width * 100 / g.Width} %";
             list.Add((new OrbitObject(sat.CallSign, "Satellite", $"Lat {where} · {sweep}", SkyBlue), SatelliteNode(sat.Id)));
         }
