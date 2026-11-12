@@ -10,19 +10,37 @@ public sealed record FabCost(string ResourceId, string Name, int Amount, int Hav
 
 /// <summary>A recipe tile: item id, full name, number key ("7", "0", "" = none), tier colour, inputs, how many of it are
 /// queued here, whether it can be made right now (false = greyed out, still clickable), and its hover text.</summary>
-public sealed record FabTileView(string Id, string Name, string Key, Color Colour, IReadOnlyList<FabCost> Cost, int Queued, bool CanMake, string Tip);
+/// Picture = an <see cref="ItemArt.ForKey"/> key ("" = the item id; "vehicle:&lt;id&gt;" draws a 4:3 render across the
+/// tile's top); Meta = a dim line under the cost chips ("20 s · speed 2 · survey 2").</summary>
+public sealed record FabTileView(string Id, string Name, string Key, Color Colour, IReadOnlyList<FabCost> Cost, int Queued, bool CanMake, string Tip,
+    string Picture = "", string Meta = "");
 
 /// <summary>A queued order: its id (×), item, inputs, why it can't start (red; empty = it can), time ("0:15", "0:07 left"),
-/// running progress (below 0 = not started) and a tag ("keep in stock").</summary>
-public sealed record FabQueueView(int Id, string ItemId, string Name, Color Colour, IReadOnlyList<FabCost> Cost, string Reason, string Time, float Progress, string Tag);
+/// running progress (below 0 = not started), a tag ("keep in stock") and its picture key ("" = the item id).</summary>
+public sealed record FabQueueView(int Id, string ItemId, string Name, Color Colour, IReadOnlyList<FabCost> Cost, string Reason, string Time, float Progress, string Tag,
+    string Picture = "");
 
 /// <summary>An Overview fact: caption above its value; Tone colours the value (null = ink).</summary>
 public sealed record FabFactView(string Label, string Value, Color? Tone = null);
 
+/// <summary>A tech tile on a Research Lab's Tech tree / Done tab: id (sent on click), name, picture key, Line = its first
+/// effect or "needs …" (Red), Status at the right ("✓ DONE", "48%", "LOCKED", "80 PTS") in StatusColour; Done / Active
+/// edge colours, Locked = greyed out (still clickable), Linked = draw the connector to the column on its left, Tag
+/// (a small "RUINS" pill), Key = its number key, Tip = hover text.</summary>
+public sealed record TechTileView(string Id, string Name, string Picture, string Line, bool Red, string Status, Color StatusColour,
+    bool Done, bool Active, bool Locked, bool Linked, string Tag, string Key, string Tip);
+
+/// <summary>One column of the tech tree: its caption and tiles.</summary>
+public sealed record TechColumnView(string Title, IReadOnlyList<TechTileView> Techs);
+
 /// <summary>
-/// A selected Machine Shop (or a colony core's workshop) as the bottom panel shows it (owner 2026-11-12 picked option 2,
-/// "Tabs", of docs/mockups/machine-shop-panel): on the left the name, level, status line and the buttons; on the right
-/// three tabs (Overview, Queue · n, Recipes · n). Shorts = every queued item that can't start with its full reason.
+/// A selected building with a tabbed bottom panel (owner 2026-11-12 picked option 2, "Tabs", of
+/// docs/mockups/machine-shop-panel, then approved docs/mockups/bay-lab-panel for the Vehicle Bay and Research Lab): on the
+/// left the name, level, status line (with a progress bar when StatusProgress ≥ 0) and the buttons; on the right the
+/// tabs. Kind "fab" (Machine Shop / core workshop: Overview, Queue · n, Recipes · n), "bay" (Overview, Queue · n,
+/// Vehicles · n: the same queue rows and tiles), "lab" (Overview, Tech tree · n = Tree's columns, Done · n = Done).
+/// Tabs = (id, label) with ids overview / queue / recipes / tree / done (null = the Machine Shop's three).
+/// Shorts = every queued item that can't start with its full reason.
 /// </summary>
 public sealed record FabPanelView(
     string Title,
@@ -37,7 +55,12 @@ public sealed record FabPanelView(
     string QueueNote,
     IReadOnlyList<FabTileView> Recipes,
     string RecipeNote,
-    bool Workshop);
+    bool Workshop,
+    string Kind = "fab",
+    IReadOnlyList<(string Id, string Label)>? Tabs = null,
+    IReadOnlyList<TechColumnView>? Tree = null,
+    IReadOnlyList<TechTileView>? Done = null,
+    float StatusProgress = -1f);
 
 /// <summary>
 /// The tabbed Machine Shop panel (see <see cref="FabPanelView"/>). It takes the bottom panel's centre and command card
@@ -47,13 +70,23 @@ public sealed record FabPanelView(
 /// shrinks a little rather than break a word), and each tab scrolls if it holds more than fits.
 /// Recipe tiles: a left click opens the item's card, Shift+click queues 5, Ctrl+click queues 1, a right click removes
 /// one queued order of it; tiles you can't make right now are dimmed and desaturated (still clickable).
+/// The same panel shows a selected Vehicle Bay (vehicle tiles with their pictures, same clicks) and Research Lab (a
+/// three-column tech tree and a Done tab of tech tiles; a click opens the tech's card): see <see cref="FabPanelView"/>.
 /// </summary>
 public partial class FabPanel : MarginContainer
 {
-    /// <summary>The tab that shows (remembered for the session; Recipes at first).</summary>
-    public static string LastTab = "recipes";
+    /// <summary>The tab that shows per panel kind (remembered for the session; Recipes / Vehicles / Tech tree at first).</summary>
+    private static readonly Dictionary<string, string> LastTabs = new();
 
-    /// <summary>A recipe tile: (item id, mode) with mode 0 = open its card, 1 / 5 = queue that many, -1 = remove one.</summary>
+    private static string DefaultTab(string kind) => kind == "lab" ? "tree" : "recipes";
+
+    private string LastTab
+    {
+        get => LastTabs.GetValueOrDefault(_kind, DefaultTab(_kind));
+        set => LastTabs[_kind] = value;
+    }
+
+    /// <summary>A recipe / vehicle / tech tile: (id, mode) with mode 0 = open its card, 1 / 5 = queue that many, -1 = remove one.</summary>
     public event Action<string, int>? RecipePressed;
     public event Action<int>? CancelPressed;
     public event Action<string>? ActionPressed;
@@ -71,6 +104,20 @@ public partial class FabPanel : MarginContainer
     private float _nameSize;
 
     private int _shown;
+    private string _kind = "fab";
+    private bool _wideTiles;
+    private float _metaSize;
+    private int _metaLines;
+    private float _picH;
+
+    // the lab's tech tree and Done tab
+    private ScrollContainer _treeScroll = null!, _doneScroll = null!;
+    private HBoxContainer _treeRow = null!;
+    private GridContainer _doneGrid = null!;
+    private readonly List<TechTile> _techTiles = new();
+    private readonly List<TechTile> _doneTiles = new();
+    private string _treeSignature = "";
+    private Bar _statusBar = null!;
 
     /// <summary>Shown for a few frames since its last rebuild, so wrapped labels have their widths and its minimum size is real.</summary>
     public bool LaidOut => _shown > 2;
@@ -112,20 +159,26 @@ public partial class FabPanel : MarginContainer
     public void Show(FabPanelView v, Vector2 screen, float width)
     {
         var s = HudKit.ScaleFor(screen);
-        var signature = string.Join(",", v.Recipes.Select(r => r.Id + ":" + r.Name + ":" + r.Cost.Count));
-        if (screen != _builtFor || !Mathf.IsEqualApprox(width, _width) || !Mathf.IsEqualApprox(s, _builtScale) || _icon == null)
+        var signature = string.Join(",", v.Recipes.Select(r => r.Id + ":" + r.Name + ":" + r.Cost.Count + ":" + r.Meta));
+        var treeSignature = TreeSignature(v);
+        if (screen != _builtFor || !Mathf.IsEqualApprox(width, _width) || !Mathf.IsEqualApprox(s, _builtScale) || _icon == null || v.Kind != _kind
+            || string.Join(",", Tabs(v).Select(t => t.Id)) != string.Join(",", _tabs.Keys))
         {
             _width = width;
+            _kind = v.Kind;
             Build(screen, s, v);
             _tileSignature = "";
+            _treeSignature = "";
         }
         _shown = _icon == null || _shown > 1000 ? _shown : _shown + 1;
-        if (signature != _tileSignature)
+        if (signature != _tileSignature || treeSignature != _treeSignature)
         {
             _shown = 0;
             Measure(v);
             BuildTiles(v);
+            BuildTree(v);
             _tileSignature = signature;
+            _treeSignature = treeSignature;
         }
         Fill(v);
     }
@@ -144,6 +197,9 @@ public partial class FabPanel : MarginContainer
         _factCells.Clear();
         _queueRows.Clear();
         _tiles.Clear();
+        _techTiles.Clear();
+        _doneTiles.Clear();
+        _wideTiles = v.Kind == "bay";
 
         foreach (var side in new[] { "left", "right" }) AddThemeConstantOverride($"margin_{side}", Mathf.RoundToInt(16 * s));
         AddThemeConstantOverride("margin_top", Mathf.RoundToInt(12 * s));
@@ -180,6 +236,8 @@ public partial class FabPanel : MarginContainer
         _status.AutowrapMode = TextServer.AutowrapMode.Word;
         _status.CustomMinimumSize = new Vector2(leftW, 0);
         left.AddChild(_status);
+        _statusBar = new Bar { CustomMinimumSize = new Vector2(leftW, 6 * s), Visible = false };
+        left.AddChild(_statusBar);
         for (var i = 0; i < 4; i++) // upgrade, maintain, pause, salvage / jury-rig
         {
             var b = new Button
@@ -208,7 +266,7 @@ public partial class FabPanel : MarginContainer
         right.AddThemeConstantOverride("separation", 0);
         var header = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
         header.AddThemeConstantOverride("separation", Mathf.RoundToInt(2 * s));
-        foreach (var id in new[] { "overview", "queue", "recipes" })
+        foreach (var (id, _) in Tabs(v))
         {
             var tab = new Button { ToggleMode = true, FocusMode = FocusModeEnum.None, CustomMinimumSize = new Vector2(0, 30 * s) };
             tab.AddThemeFontOverride("font", HudKit.Condensed(true));
@@ -283,9 +341,26 @@ public partial class FabPanel : MarginContainer
         _recipesScroll.AddChild(recipes);
         right.AddChild(_recipesScroll);
 
+        // Tech tree (the lab): three columns side by side; Done: tech tiles in two columns.
+        _treeScroll = Scroll();
+        _treeRow = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Pass };
+        _treeRow.AddThemeConstantOverride("separation", 0);
+        _treeScroll.AddChild(_treeRow);
+        right.AddChild(_treeScroll);
+        _doneScroll = Scroll();
+        _doneGrid = new GridContainer { Columns = 2, SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Pass };
+        _doneGrid.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(14 * s));
+        _doneGrid.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(7 * s));
+        _doneScroll.AddChild(_doneGrid);
+        right.AddChild(_doneScroll);
+
         row.AddChild(right);
         Measure(v);
     }
+
+    /// <summary>The panel's tabs: the view's own, else the Machine Shop's three.</summary>
+    private static IReadOnlyList<(string Id, string Label)> Tabs(FabPanelView v) =>
+        v.Tabs ?? new[] { ("overview", "OVERVIEW"), ("queue", "QUEUE"), ("recipes", "RECIPES") };
 
     private ScrollContainer Scroll() => new()
     {
@@ -337,35 +412,44 @@ public partial class FabPanel : MarginContainer
         var s = _s;
         var gap = Mathf.Round(7 * s);
         var n = Mathf.Max(1, v.Recipes.Count);
-        _columns = Mathf.Clamp(Mathf.FloorToInt((_rightW + gap) / (96 * s + gap)), 2, 7);
+        // Vehicle tiles carry a 4:3 picture across the top, so they want a little more width.
+        _columns = Mathf.Clamp(Mathf.FloorToInt((_rightW + gap) / ((_wideTiles ? 120 : 96) * s + gap)), 2, 7);
         var rows = Mathf.CeilToInt(n / (float)_columns);
         var width = _rightW - (rows > 2 ? 16 * s : 0) - 2; // room for the scroll bar when more than two rows
         _tileW = Mathf.Floor((width - (_columns - 1) * gap) / _columns);
         var pad = 6 * s;
         var inner = _tileW - pad * 2;
         // Tile names: the largest size (down to 75%) at which every name fits two lines without breaking a word.
-        _nameSize = 13.5f * s;
+        _nameSize = (_wideTiles ? 15f : 13.5f) * s;
         while (_nameSize > 10f * s && v.Recipes.Any(r => Wrap(r.Name, _nameSize, inner).Lines > 2)) _nameSize -= 0.5f;
+        // The dim line under the chips (vehicles: time · speed · survey): every word kept, as many lines as it takes.
+        _metaSize = 12f * s;
+        _metaLines = 0;
+        foreach (var r in v.Recipes)
+            if (r.Meta.Length > 0) _metaLines = Mathf.Max(_metaLines, Mathf.Min(4, Wrap(r.Meta, _metaSize, inner, regular: true).Lines));
         var chipRows = 1;
         foreach (var r in v.Recipes) chipRows = Mathf.Max(chipRows, ChipRows(r.Cost, inner));
         var chipH = ChipHeight();
-        _tileH = Mathf.Ceil(pad * 2 + 36 * s + 3 * s + 2 * LineHeight(_nameSize) + 4 * s + chipRows * chipH + (chipRows - 1) * 3 * s + 4 * s);
+        _picH = _wideTiles ? Mathf.Floor(inner * 0.75f) : 36 * s;
+        _tileH = Mathf.Ceil(pad * 2 + _picH + 3 * s + 2 * LineHeight(_nameSize) + 4 * s + chipRows * chipH + (chipRows - 1) * 3 * s + 4 * s
+                            + (_metaLines > 0 ? _metaLines * LineHeight(_metaSize) + 3 * s : 0));
         var shown = Mathf.Clamp(rows, 1, 2);
         _bodyH = Mathf.Ceil(shown * _tileH + (shown - 1) * gap + (v.RecipeNote.Length > 0 ? 18 * s : 0));
+        if (v.Tree != null) _bodyH = Mathf.Max(Mathf.Min(TreeHeight(v), 300 * s), 150 * s);
         var headerH = 30 * s + Mathf.Max(1, s) + 8 * s;
         var rightH = 22 * s + headerH + _bodyH;
         var leftH = 22 * s + 42 * s + 4 * s + 2 * 19 * s + 4 * (34 * s + 4 * s);
         NeededHeight = Mathf.Ceil(Mathf.Max(PlanetHud.BottomHeight, Mathf.Max(rightH, leftH) + 2));
-        foreach (var sc in new[] { _overviewScroll, _queueScroll, _recipesScroll })
+        foreach (var sc in new[] { _overviewScroll, _queueScroll, _recipesScroll, _treeScroll, _doneScroll })
             if (sc != null) sc.CustomMinimumSize = new Vector2(0, Mathf.Max(_bodyH, leftH - 22 * s - headerH));
         if (_grid != null) _grid.Columns = _columns;
     }
 
     /// <summary>Greedy word wrap of a name at a font size: the text with line breaks, its line count (a word wider than
     /// the width counts as 99 lines, so it is never broken inside).</summary>
-    private static (string Text, int Lines) Wrap(string name, float size, float width)
+    private static (string Text, int Lines) Wrap(string name, float size, float width, bool regular = false)
     {
-        var font = HudKit.Condensed(true);
+        var font = regular ? ThemeDB.FallbackFont : HudKit.Condensed(true);
         var px = Mathf.RoundToInt(size);
         float W(string t) => font.GetStringSize(t, HorizontalAlignment.Left, -1, px).X;
         var lines = new List<string>();
@@ -417,9 +501,12 @@ public partial class FabPanel : MarginContainer
         public Button Root = null!;
         public TextureRect Picture = null!;
         public Label Name = null!, Key = null!, Badge = null!;
+        public Label? Meta;
         public PanelContainer BadgeBox = null!;
         public HFlowContainer Cost = null!;
         public string CostSignature = "";
+        public string PictureKey = "";
+        public bool HasPicture;
         public bool? CanMake;
     }
 
@@ -438,28 +525,53 @@ public partial class FabPanel : MarginContainer
             var box = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
             box.AddThemeConstantOverride("separation", Mathf.RoundToInt(3 * s));
             box.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, LayoutPresetMode.Minsize, Mathf.RoundToInt(pad));
-            var top = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-            top.AddThemeConstantOverride("separation", Mathf.RoundToInt(4 * s));
+            var pictureKey = r.Picture.Length > 0 ? r.Picture : r.Id;
             t.Picture = new TextureRect
             {
-                CustomMinimumSize = new Vector2(36, 36) * s, ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, TextureFilter = TextureFilterEnum.LinearWithMipmaps,
-                MouseFilter = MouseFilterEnum.Ignore, Texture = ItemArt.PictureOrIcon(r.Id, r.Colour),
+                CustomMinimumSize = _wideTiles ? new Vector2(_tileW - pad * 2, _picH) : new Vector2(36, 36) * s, ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = _wideTiles ? TextureRect.StretchModeEnum.KeepAspectCovered : TextureRect.StretchModeEnum.KeepAspectCentered,
+                TextureFilter = TextureFilterEnum.LinearWithMipmaps, ClipContents = _wideTiles,
+                MouseFilter = MouseFilterEnum.Ignore, Texture = ItemArt.ForKey(pictureKey, r.Colour),
             };
-            top.AddChild(t.Picture);
-            top.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore });
-            var right = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-            right.AddThemeConstantOverride("separation", Mathf.RoundToInt(3 * s));
-            t.Key = HudKit.Label(r.Key, 12 * s, HudKit.Dim, condensed: true);
-            t.Key.HorizontalAlignment = HorizontalAlignment.Right;
-            right.AddChild(t.Key);
+            t.PictureKey = pictureKey;
+            t.HasPicture = ItemArt.HasPicture(pictureKey);
+            t.Key = HudKit.Label(r.Key, 12 * s, _wideTiles ? HudKit.Ink : HudKit.Dim, condensed: true);
             t.BadgeBox = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsHorizontal = SizeFlags.ShrinkEnd };
             t.BadgeBox.AddThemeStyleboxOverride("panel", HudKit.Box(HudKit.Accent, HudKit.Accent, 9 * s, 5 * s, 0));
             t.Badge = HudKit.Label("", 12 * s, new Color(0.06f, 0.07f, 0.1f), condensed: true, bold: true);
             t.BadgeBox.AddChild(t.Badge);
-            right.AddChild(t.BadgeBox);
-            top.AddChild(right);
-            box.AddChild(top);
+            if (_wideTiles)
+            {
+                // The vehicle's picture across the top, its hotkey in the top-left corner and ×n in the top-right.
+                var holder = new Control { CustomMinimumSize = t.Picture.CustomMinimumSize, MouseFilter = MouseFilterEnum.Ignore, ClipContents = true };
+                holder.AddChild(t.Picture);
+                t.Picture.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+                var keyBox = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, Position = new Vector2(4, 4) * s };
+                keyBox.AddThemeStyleboxOverride("panel", HudKit.Box(new Color(0.04f, 0.063f, 0.114f, 0.85f), HudKit.Line, 4 * s, 5 * s, 1 * s));
+                keyBox.AddChild(t.Key);
+                keyBox.Visible = r.Key.Length > 0;
+                holder.AddChild(keyBox);
+                holder.AddChild(t.BadgeBox);
+                t.BadgeBox.SetAnchorsAndOffsetsPreset(LayoutPreset.TopRight);
+                t.BadgeBox.GrowHorizontal = GrowDirection.Begin;
+                t.BadgeBox.OffsetRight = -4 * s;
+                t.BadgeBox.OffsetTop = 4 * s;
+                box.AddChild(holder);
+            }
+            else
+            {
+                var top = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+                top.AddThemeConstantOverride("separation", Mathf.RoundToInt(4 * s));
+                top.AddChild(t.Picture);
+                top.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore });
+                var right = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+                right.AddThemeConstantOverride("separation", Mathf.RoundToInt(3 * s));
+                t.Key.HorizontalAlignment = HorizontalAlignment.Right;
+                right.AddChild(t.Key);
+                right.AddChild(t.BadgeBox);
+                top.AddChild(right);
+                box.AddChild(top);
+            }
             var (text, _) = Wrap(r.Name, _nameSize, _tileW - pad * 2);
             t.Name = HudKit.Label(text, _nameSize, HudKit.Ink, bold: true);
             t.Name.CustomMinimumSize = new Vector2(0, 2 * LineHeight(_nameSize));
@@ -469,6 +581,13 @@ public partial class FabPanel : MarginContainer
             t.Cost.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(3 * s));
             t.Cost.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(3 * s));
             box.AddChild(t.Cost);
+            if (_metaLines > 0)
+            {
+                var (meta, lines) = Wrap(r.Meta, _metaSize, _tileW - pad * 2, regular: true);
+                t.Meta = HudKit.Label(lines > 4 ? r.Meta : meta, _metaSize, HudKit.Dim);
+                if (lines > 4) t.Meta.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+                box.AddChild(t.Meta);
+            }
             b.AddChild(box);
             var id = r.Id;
             b.GuiInput += e =>
@@ -522,6 +641,213 @@ public partial class FabPanel : MarginContainer
         return chip;
     }
 
+    // ---------------------------------------------------------------- the lab's tech tree
+
+    private sealed class TechTile
+    {
+        public string Id = "";
+        public PanelContainer Root = null!;
+        public TextureRect Picture = null!;
+        public Label Name = null!, Line = null!, Status = null!;
+        public PanelContainer? TagBox;
+        public ColorRect? Connector;
+        public bool Hovered;
+        public string Look = "";
+        public bool? Locked;
+    }
+
+    private static string TreeSignature(FabPanelView v) =>
+        v.Tree == null ? "" : string.Join("|", v.Tree.Select(c => c.Title + ":" + string.Join(",", c.Techs.Select(t => $"{t.Id}/{t.Name}/{t.Linked}/{t.Tag}/{t.Picture}"))))
+            + "#" + string.Join(",", (v.Done ?? Array.Empty<TechTileView>()).Select(t => $"{t.Id}/{t.Name}/{t.Tag}"));
+
+    private float TreeGap => Mathf.Round(16 * _s);
+    private float TreeColumn => Mathf.Floor((_rightW - 16 * _s - 2 * TreeGap) / 3);
+    private float TechPicW => Mathf.Round(56 * _s);
+    private float TechPicH => Mathf.Round(42 * _s);
+
+    /// <summary>The tallest column of the tree as laid out (an estimate from word-wrapping each tile's texts).</summary>
+    private float TreeHeight(FabPanelView v)
+    {
+        if (v.Tree == null) return 0;
+        var s = _s;
+        var text = TreeColumn - 2 * 7 * s - TechPicW - 9 * s;
+        var tallest = 0f;
+        foreach (var column in v.Tree)
+        {
+            var h = LineHeight(12 * s) + 6 * s;
+            foreach (var t in column.Techs)
+            {
+                var nameLines = Wrap(t.Name, 15 * s, text - (t.Tag.Length > 0 ? 44 * s : 0)).Lines;
+                var lineLines = Wrap(t.Line, 12.5f * s, text, regular: true).Lines;
+                var content = Mathf.Min(nameLines, 3) * LineHeight(15 * s) + Mathf.Min(lineLines, 4) * (LineHeight(12.5f * s) - 2) + LineHeight(12 * s) + 4 * s;
+                h += Mathf.Max(TechPicH, content) + 2 * 6 * s + 7 * s;
+            }
+            tallest = Mathf.Max(tallest, h);
+        }
+        return Mathf.Ceil(tallest);
+    }
+
+    private void BuildTree(FabPanelView v)
+    {
+        HudKit.Clear(_treeRow);
+        HudKit.Clear(_doneGrid);
+        _techTiles.Clear();
+        _doneTiles.Clear();
+        if (v.Tree == null) return;
+        var s = _s;
+        var gap = TreeGap;
+        var width = TreeColumn;
+        for (var c = 0; c < v.Tree.Count; c++)
+        {
+            var column = v.Tree[c];
+            var col = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(width + (c > 0 ? gap : 0), 0) };
+            col.AddThemeConstantOverride("separation", Mathf.RoundToInt(7 * s));
+            var caption = HudKit.Label(column.Title.ToUpperInvariant(), 12 * s, HudKit.Dim, condensed: true);
+            caption.AutowrapMode = TextServer.AutowrapMode.Word;
+            caption.CustomMinimumSize = new Vector2(width, 0);
+            col.AddChild(Indented(caption, c > 0 ? gap : 0, null));
+            foreach (var t in column.Techs)
+            {
+                var tile = MakeTechTile(t, width);
+                ColorRect? line = null;
+                if (c > 0 && t.Linked)
+                    line = new ColorRect { Color = HudKit.HoverEdge, MouseFilter = MouseFilterEnum.Ignore };
+                tile.Connector = line;
+                col.AddChild(Indented(tile.Root, c > 0 ? gap : 0, line));
+                _techTiles.Add(tile);
+            }
+            _treeRow.AddChild(col);
+        }
+        var doneW = Mathf.Floor((_rightW - 16 * s - 14 * s) / 2);
+        foreach (var t in v.Done ?? Array.Empty<TechTileView>())
+        {
+            var tile = MakeTechTile(t, doneW);
+            _doneGrid.AddChild(tile.Root);
+            _doneTiles.Add(tile);
+        }
+    }
+
+    /// <summary>A tree cell pushed right by the column gap; Line = the connector drawn across that gap at mid height.</summary>
+    private static Control Indented(Control inner, float gap, ColorRect? line)
+    {
+        if (gap <= 0) return inner;
+        var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        row.AddThemeConstantOverride("separation", 0);
+        var stub = new Control { CustomMinimumSize = new Vector2(gap, 0), MouseFilter = MouseFilterEnum.Ignore };
+        if (line != null)
+        {
+            stub.AddChild(line);
+            line.SetAnchorsAndOffsetsPreset(LayoutPreset.HcenterWide);
+            line.OffsetTop = -1;
+            line.OffsetBottom = 1;
+            line.OffsetLeft = 0;
+            line.OffsetRight = 0;
+        }
+        row.AddChild(stub);
+        row.AddChild(inner);
+        return row;
+    }
+
+    private TechTile MakeTechTile(TechTileView t, float width)
+    {
+        var s = _s;
+        var tile = new TechTile { Id = t.Id };
+        var root = new PanelContainer { MouseFilter = MouseFilterEnum.Stop, CustomMinimumSize = new Vector2(width, 0), TooltipText = t.Tip };
+        var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        row.AddThemeConstantOverride("separation", Mathf.RoundToInt(9 * s));
+        var plate = new Control { CustomMinimumSize = new Vector2(TechPicW, TechPicH), MouseFilter = MouseFilterEnum.Ignore, ClipContents = true, SizeFlagsVertical = SizeFlags.ShrinkCenter };
+        tile.Picture = new TextureRect
+        {
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+            TextureFilter = TextureFilterEnum.LinearWithMipmaps, MouseFilter = MouseFilterEnum.Ignore,
+            Texture = ItemArt.ForKey(t.Picture, HudKit.Good),
+        };
+        plate.AddChild(tile.Picture);
+        tile.Picture.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        row.AddChild(plate);
+        var text = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore, SizeFlagsVertical = SizeFlags.ShrinkCenter };
+        text.AddThemeConstantOverride("separation", Mathf.RoundToInt(1 * s));
+        var head = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        head.AddThemeConstantOverride("separation", Mathf.RoundToInt(5 * s));
+        tile.Name = HudKit.Label(t.Name, 15 * s, HudKit.Ink, bold: true);
+        tile.Name.AutowrapMode = TextServer.AutowrapMode.Word;
+        tile.Name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        head.AddChild(tile.Name);
+        if (t.Tag.Length > 0)
+        {
+            tile.TagBox = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsVertical = SizeFlags.ShrinkBegin };
+            tile.TagBox.AddThemeStyleboxOverride("panel", HudKit.Box(new Color(0.09f, 0.13f, 0.22f), HudKit.Line, 8 * s, 5 * s, 0));
+            tile.TagBox.AddChild(HudKit.Label(t.Tag.ToUpperInvariant(), 11 * s, HudKit.Dim, condensed: true));
+            head.AddChild(tile.TagBox);
+        }
+        text.AddChild(head);
+        tile.Line = HudKit.Label("", 12.5f * s, HudKit.Dim);
+        tile.Line.AutowrapMode = TextServer.AutowrapMode.Word;
+        tile.Line.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        text.AddChild(tile.Line);
+        tile.Status = HudKit.Label("", 12 * s, HudKit.Dim, condensed: true, bold: true);
+        text.AddChild(tile.Status);
+        row.AddChild(text);
+        root.AddChild(row);
+        var id = t.Id;
+        root.GuiInput += e =>
+        {
+            if (e is not InputEventMouseButton { Pressed: true } mb) return;
+            if (mb.ButtonIndex == MouseButton.Left) RecipePressed?.Invoke(id, mb.CtrlPressed || mb.MetaPressed ? 1 : 0);
+            else if (mb.ButtonIndex != MouseButton.Right) return;
+            root.AcceptEvent();
+        };
+        root.MouseEntered += () =>
+        {
+            tile.Hovered = true;
+            tile.Look = "";
+        };
+        root.MouseExited += () =>
+        {
+            tile.Hovered = false;
+            tile.Look = "";
+        };
+        return tile;
+    }
+
+    private void FillTree(FabPanelView v)
+    {
+        if (v.Tree == null) return;
+        var i = 0;
+        foreach (var column in v.Tree)
+            foreach (var t in column.Techs)
+                if (i < _techTiles.Count) FillTech(_techTiles[i++], t);
+        var done = v.Done ?? Array.Empty<TechTileView>();
+        for (var k = 0; k < done.Count && k < _doneTiles.Count; k++) FillTech(_doneTiles[k], done[k]);
+    }
+
+    private void FillTech(TechTile tile, TechTileView t)
+    {
+        var s = _s;
+        Set(tile.Line, t.Line);
+        tile.Line.AddThemeColorOverride("font_color", t.Red ? new Color(1f, 0.48f, 0.42f) : HudKit.Dim);
+        Set(tile.Status, t.Key.Length > 0 ? $"{t.Status}   ·   KEY {t.Key}" : t.Status);
+        tile.Status.AddThemeColorOverride("font_color", t.StatusColour);
+        if (tile.Root.TooltipText != t.Tip) tile.Root.TooltipText = t.Tip;
+        if (tile.Connector != null) tile.Connector.Color = t.Red ? new Color(0.45f, 0.25f, 0.25f) : new Color(0.56f, 0.84f, 0.48f, 0.7f);
+        var look = $"{t.Done}{t.Active}{tile.Hovered}";
+        if (look != tile.Look)
+        {
+            tile.Look = look;
+            var edge = t.Active ? HudKit.Accent : t.Done ? new Color(0.56f, 0.84f, 0.48f, 0.55f) : tile.Hovered ? HudKit.HoverEdge : HudKit.Line;
+            var bg = tile.Hovered ? new Color(0.08f, 0.13f, 0.25f) : new Color(0.047f, 0.075f, 0.13f);
+            tile.Root.AddThemeStyleboxOverride("panel", HudKit.Box(bg, edge, 7 * s, 7 * s, 6 * s, t.Active ? 2 : 1));
+        }
+        // Locked: greyed out but still clickable for its card (brighter under the mouse).
+        var dim = t.Locked ? new Color(1, 1, 1, tile.Hovered ? 0.75f : 0.52f) : Colors.White;
+        if (tile.Root.Modulate != dim) tile.Root.Modulate = dim;
+        if (tile.Locked != t.Locked)
+        {
+            tile.Locked = t.Locked;
+            tile.Picture.Material = t.Locked ? ItemArt.Greyed(0.65f) : null;
+        }
+    }
+
     // ---------------------------------------------------------------- per frame
 
     private void Fill(FabPanelView v)
@@ -532,6 +858,13 @@ public partial class FabPanel : MarginContainer
         Set(_sub, v.Subtitle);
         Set(_status, v.Status);
         _status.AddThemeColorOverride("font_color", v.StatusColour);
+        var barOn = v.StatusProgress >= 0;
+        if (_statusBar.Visible != barOn) _statusBar.Visible = barOn;
+        if (barOn)
+        {
+            _statusBar.Fraction = v.StatusProgress;
+            _statusBar.Colour = v.StatusColour;
+        }
         for (var i = 0; i < _actions.Count; i++)
         {
             var b = _actions[i];
@@ -546,10 +879,17 @@ public partial class FabPanel : MarginContainer
         }
 
         if (_workshopChip.Visible != v.Workshop) _workshopChip.Visible = v.Workshop;
-        SetTab("overview", "OVERVIEW");
-        SetTab("queue", $"QUEUE · {v.Queue.Count}");
-        SetTab("recipes", $"RECIPES · {v.Recipes.Count}");
+        if (v.Tabs == null)
+        {
+            SetTab("overview", "OVERVIEW");
+            SetTab("queue", $"QUEUE · {v.Queue.Count}");
+            SetTab("recipes", $"RECIPES · {v.Recipes.Count}");
+        }
+        else
+            foreach (var (id, label) in v.Tabs)
+                if (_tabs.ContainsKey(id)) SetTab(id, label);
         ShowTab();
+        FillTree(v);
 
         // Overview: captions above values, then every short order with its full reason.
         while (_factCells.Count < v.Facts.Count)
@@ -610,6 +950,11 @@ public partial class FabPanel : MarginContainer
             var t = _tiles[i];
             var r = v.Recipes[i];
             Set(t.Key, r.Key);
+            if (!t.HasPicture && t.PictureKey.StartsWith("vehicle:"))
+            {
+                var tex = ItemArt.ForKey(t.PictureKey, r.Colour); // the runtime render once it is ready
+                if (t.Picture.Texture != tex) t.Picture.Texture = tex;
+            }
             var queued = r.Queued > 0;
             if (t.BadgeBox.Visible != queued) t.BadgeBox.Visible = queued;
             if (queued) Set(t.Badge, $"×{r.Queued}");
@@ -641,12 +986,15 @@ public partial class FabPanel : MarginContainer
 
     private void ShowTab()
     {
-        if (!_tabs.ContainsKey(LastTab)) LastTab = "recipes";
-        foreach (var (id, tab) in _tabs) tab.SetPressedNoSignal(id == LastTab);
-        if (_overviewScroll.Visible != (LastTab == "overview")) _overviewScroll.Visible = LastTab == "overview";
-        if (_queueScroll.Visible != (LastTab == "queue")) _queueScroll.Visible = LastTab == "queue";
-        if (_recipesScroll.Visible != (LastTab == "recipes")) _recipesScroll.Visible = LastTab == "recipes";
+        if (!_tabs.ContainsKey(LastTab)) LastTab = _tabs.ContainsKey(DefaultTab(_kind)) ? DefaultTab(_kind) : _tabs.Keys.First();
+        var tab = LastTab;
+        foreach (var (id, button) in _tabs) button.SetPressedNoSignal(id == tab);
+        foreach (var (id, body) in new[] { ("overview", _overviewScroll), ("queue", _queueScroll), ("recipes", _recipesScroll), ("tree", _treeScroll), ("done", _doneScroll) })
+            if (body.Visible != (tab == id)) body.Visible = tab == id;
     }
+
+    /// <summary>Switches to a tab if the panel has it (the lab's tree opens when its research finishes).</summary>
+    public static void SelectTab(string kind, string id) => LastTabs[kind] = id;
 
     private static void Set(Label l, string text)
     {
@@ -725,10 +1073,15 @@ public partial class FabPanel : MarginContainer
         public void Fill(int number, FabQueueView q)
         {
             _id = q.Id;
-            if (_item != q.ItemId)
+            var key = q.Picture.Length > 0 ? q.Picture : q.ItemId;
+            if (_item != key || (key.StartsWith("vehicle:") && !ItemArt.HasPicture(key)))
             {
-                _item = q.ItemId;
-                _picture.Texture = ItemArt.PictureOrIcon(q.ItemId, q.Colour);
+                _item = key;
+                _picture.Texture = ItemArt.ForKey(key, q.Colour);
+                var wide = key.StartsWith("vehicle:"); // a 4:3 render: fill a wider frame
+                _picture.StretchMode = wide ? TextureRect.StretchModeEnum.KeepAspectCovered : TextureRect.StretchModeEnum.KeepAspectCentered;
+                _picture.ClipContents = wide;
+                _picture.CustomMinimumSize = wide ? new Vector2(40, 30) * _s : new Vector2(30, 30) * _s;
             }
             Set(_name, $"{number}. {q.Name}");
             Set(_tag, q.Tag);

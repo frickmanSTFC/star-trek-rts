@@ -18,30 +18,80 @@ public sealed record ItemNeed(string Id, string Name, int Each, int Have, bool S
 public sealed record ItemCardView(string Id, string Name, string Kind, string Key, Color Colour, string Times, bool CanMake,
     IReadOnlyList<ItemNeed> Needs, string Description, string StockLine, string Problem, string Note);
 
+/// <summary>The tone of a card's status box: green (can do it / done), red (can't), orange (in progress).</summary>
+public enum CardTone { Good, Bad, Busy }
+
+/// <summary>A link in a card's status box: opens that card (Clickable) or is plain red text.</summary>
+public sealed record CardLink(string Id, string Name, bool Clickable);
+
+/// <summary>A card button: its label, the action id it sends (<see cref="ItemCard.ActionPressed"/>), enabled, primary
+/// (accent edge) and hover text.</summary>
+public sealed record CardButton(string Label, int Action, bool Enabled, bool Primary, string Tip = "");
+
 /// <summary>
-/// The full card of a Machine Shop item (owner 2026-11-12: anything you can't make right now is greyed out but still
-/// clickable to see its full card), modal over the map like the build menu's <see cref="BuildingCard"/>: a dimmed
-/// backdrop (a click on it closes the card), Esc / × close, and no click reaches the map while it is open. Big item
-/// picture, name, kind, hotkey, times, a green "Can make now" or red "Can't make yet" box whose missing items are links
-/// to their own cards, the inputs table, the description, stock, and QUEUE ONE [Enter] / QUEUE 5 [Shift+Enter] /
-/// CLOSE [Esc]. The owner hasn't decided whether short items may be queued, so (as the sim does today: an order waits
-/// for its inputs) the button then reads "Queue anyway (waits for inputs)". Sizes scale from 1280×720.
+/// The generic full card (shared by the Machine Shop's items, the Vehicle Bay's vehicles and the Research Lab's techs):
+/// PictureKey for <see cref="ItemArt.ForKey"/> (Wide = a 4:3 render, else a square item picture on a plate), name,
+/// Kind (coloured line under the name), Times (dim line), the status box (Tone, text, then LinkCaption + Links), stat
+/// tiles (value over caption), a table (TableHead / EACH / YOU HAVE) of Rows, a bullet list (BulletsHead), the
+/// description, extra Notes, Buttons and a dim Hint at the bottom. Rebuilt only when something on it changed.
+/// </summary>
+public sealed record PanelCard(
+    string Id,
+    string PictureKey,
+    bool Wide,
+    string Name,
+    string Kind,
+    string Times,
+    Color Colour,
+    CardTone Tone,
+    string StatusText,
+    string LinkCaption,
+    IReadOnlyList<CardLink> Links,
+    IReadOnlyList<(string Value, string Label)> Stats,
+    string TableHead,
+    IReadOnlyList<ItemNeed> Rows,
+    string BulletsHead,
+    IReadOnlyList<string> Bullets,
+    string Description,
+    IReadOnlyList<(string Text, Color Colour)> Notes,
+    IReadOnlyList<CardButton> Buttons,
+    string Hint)
+{
+    /// <summary>Everything on the card in one string (the card rebuilds when it changes).</summary>
+    public string Signature() =>
+        $"{Id}|{PictureKey}|{Wide}|{Name}|{Kind}|{Times}|{Colour}|{Tone}|{StatusText}|{LinkCaption}|{string.Join(";", Links)}|" +
+        $"{string.Join(";", Stats)}|{TableHead}|{string.Join(";", Rows)}|{BulletsHead}|{string.Join(";", Bullets)}|{Description}|" +
+        $"{string.Join(";", Notes.Select(n => n.Text))}|{string.Join(";", Buttons)}|{Hint}";
+}
+
+/// <summary>
+/// The full card of a Machine Shop item, a Vehicle Bay vehicle or a Research Lab tech (owner 2026-11-12: anything you
+/// can't do right now is greyed out but still clickable to see its full card), modal over the map like the build
+/// menu's <see cref="BuildingCard"/>: a dimmed backdrop (a click on it closes the card), Esc / × close, and no click
+/// reaches the map while it is open. Big picture, name, kind, times, a green / red / orange status box whose links open
+/// other cards, stat tiles, a table with what you have, bullets, the description and its buttons (see
+/// <see cref="PanelCard"/>). The Machine Shop's item card is <see cref="Show(ItemCardView)"/>: QUEUE ONE [Enter] (or
+/// "Queue anyway (waits for inputs)" when short) / QUEUE 5 [Shift+Enter] / CLOSE [Esc]. Sizes scale from 1280×720; the
+/// body scrolls when it is taller than the screen (UI scale 125% at 720p), so nothing is cut off.
 /// </summary>
 public partial class ItemCard : Control
 {
-    /// <summary>Queue this many of the card's item.</summary>
-    public event Action<int>? QueuePressed;
-    /// <summary>A missing item's link: open that item's card.</summary>
+    /// <summary>A card button: its action (the Machine Shop's queue buttons send 1 / 5).</summary>
+    public event Action<int>? ActionPressed;
+    /// <summary>A link: open that card (an item id, or the panel's own link id such as "tech:x").</summary>
     public event Action<string>? LinkPressed;
     public event Action? CloseRequested;
 
     private string _signature = "";
     private Vector2 _builtFor;
     private float _builtScale;
+    private ScrollContainer? _scroll;
+    private Control? _body;
+    private float _maxBody;
 
     public bool IsOpen => Visible;
 
-    /// <summary>The item whose card is open (null = closed).</summary>
+    /// <summary>The card that is open (its Id; null = closed).</summary>
     public string? ItemId { get; private set; }
 
     public override void _Ready()
@@ -51,22 +101,54 @@ public partial class ItemCard : Control
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         GuiInput += e =>
         {
-            // The dimmed backdrop: a left or right click outside the card closes it.
+            // The dimmed backdrop: a left or right click outside the card closes it; the wheel never reaches the map.
             if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right })
             {
                 AcceptEvent();
                 CloseRequested?.Invoke();
             }
+            else if (e is InputEventMouseButton) AcceptEvent();
         };
     }
 
-    /// <summary>Opens or refreshes the card (rebuilt only when something on it changed).</summary>
+    public override void _Process(double delta)
+    {
+        // The body scrolls only when it is taller than the room on screen.
+        if (!Visible || _scroll == null || _body == null) return;
+        var want = Mathf.Min(_body.GetCombinedMinimumSize().Y, _maxBody);
+        if (!Mathf.IsEqualApprox(_scroll.CustomMinimumSize.Y, want)) _scroll.CustomMinimumSize = new Vector2(_scroll.CustomMinimumSize.X, want);
+    }
+
+    /// <summary>The Machine Shop's item card (as before the generic card existed).</summary>
     public void Show(ItemCardView v)
+    {
+        var missing = v.Needs.Where(n => n.Short).ToList();
+        var status = v.CanMake ? "Can make now. It starts as soon as the shop is free."
+            : missing.Count > 0 ? "Can't make yet: missing " + string.Join(" and ", missing.Select(n => $"{n.Each - n.Have} {n.Name}")) + "."
+            : $"Can't queue it: {v.Problem}.";
+        var links = missing.Select(n => n.Makeable ? new CardLink(n.Id, n.Name, true) : new CardLink(n.Id, $"{n.Name} (from a refinery or foundry)", false)).ToList();
+        var notes = new List<(string, Color)>();
+        foreach (var (text, colour) in new[] { (v.StockLine, HudKit.Dim), (v.Note, HudKit.Dim), (v.CanMake || v.Problem.Length == 0 ? "" : $"Can't queue it: {v.Problem}", new Color(1f, 0.48f, 0.42f)) })
+            if (text.Length > 0) notes.Add((text, colour));
+        var canQueue = v.Problem.Length == 0;
+        var buttons = new List<CardButton>
+        {
+            new(v.CanMake ? "QUEUE ONE  [ENTER]" : "QUEUE ANYWAY (WAITS FOR INPUTS)  [ENTER]", 1, canQueue, true,
+                v.CanMake ? "Add one order to this shop's queue" : "The order waits in the queue until its inputs are in stock"),
+            new("QUEUE 5  [SHIFT+ENTER]", 5, canQueue, false),
+        };
+        Show(new PanelCard(v.Id, v.Id, false, v.Name, v.Kind + (v.Key.Length > 0 ? $"  ·  hotkey {v.Key}" : "  ·  no hotkey"), v.Times, v.Colour,
+            v.CanMake ? CardTone.Good : CardTone.Bad, status, missing.Count > 0 ? "Make or get:" : "", links,
+            Array.Empty<(string, string)>(), "NEEDS", v.Needs, "", Array.Empty<string>(), v.Description, notes, buttons,
+            "On the recipe tiles: click = this card · Shift+click = queue 5 · Ctrl+click = queue 1 · right-click = remove one · number keys queue 1 (Shift 5)"));
+    }
+
+    /// <summary>Opens or refreshes the card (rebuilt only when something on it changed).</summary>
+    public void Show(PanelCard v)
     {
         var screen = GetViewportRect().Size;
         var s = HudKit.ScaleFor(screen);
-        var sig = $"{v.Id}|{v.Name}|{v.Kind}|{v.Key}|{v.Times}|{v.CanMake}|{v.Description}|{v.StockLine}|{v.Problem}|{v.Note}|" +
-                  string.Join(";", v.Needs.Select(n => $"{n.Id},{n.Each},{n.Have},{n.Short},{n.Makeable}"));
+        var sig = v.Signature();
         if (!Visible)
         {
             Sfx.Ui("open");
@@ -89,7 +171,16 @@ public partial class ItemCard : Control
         _signature = "";
     }
 
-    private void Build(ItemCardView v, Vector2 screen, float s)
+    private static Label Wrapped(string text, float size, Color colour, float width = 0)
+    {
+        var l = HudKit.Label(text, size, colour);
+        l.AutowrapMode = TextServer.AutowrapMode.Word;
+        l.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        if (width > 0) l.CustomMinimumSize = new Vector2(width, 0);
+        return l;
+    }
+
+    private void Build(PanelCard v, Vector2 screen, float s)
     {
         HudKit.Clear(this);
         var dim = new ColorRect { Color = new Color(0.005f, 0.01f, 0.025f, 0.6f), MouseFilter = MouseFilterEnum.Ignore };
@@ -99,7 +190,7 @@ public partial class ItemCard : Control
         AddChild(centre);
         centre.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
-        var width = Mathf.Min(screen.X - 40 * s, 640 * s);
+        var width = Mathf.Min(screen.X - 40 * s, (v.Wide ? 680 : 640) * s);
         var pad = 18 * s;
         var inner = width - pad * 2;
         var panel = new PanelContainer { MouseFilter = MouseFilterEnum.Stop, CustomMinimumSize = new Vector2(width, 0) };
@@ -110,19 +201,20 @@ public partial class ItemCard : Control
         panel.AddThemeStyleboxOverride("panel", frame);
         centre.AddChild(panel);
 
-        var box = new VBoxContainer { MouseFilter = MouseFilterEnum.Pass, CustomMinimumSize = new Vector2(inner, 0) };
-        box.AddThemeConstantOverride("separation", Mathf.RoundToInt(11 * s));
-        panel.AddChild(box);
+        var outer = new VBoxContainer { MouseFilter = MouseFilterEnum.Pass, CustomMinimumSize = new Vector2(inner, 0) };
+        outer.AddThemeConstantOverride("separation", Mathf.RoundToInt(11 * s));
+        panel.AddChild(outer);
 
-        // Header: big picture, name, kind · hotkey, times, ×.
+        // Header (stays put): big picture, name, kind, times, ×.
         var head = new HBoxContainer { MouseFilter = MouseFilterEnum.Pass };
         head.AddThemeConstantOverride("separation", Mathf.RoundToInt(14 * s));
-        var picSize = Mathf.Min(128 * s, (screen.Y - 420 * s) * 0.5f);
-        picSize = Mathf.Max(picSize, 72 * s);
-        var plate = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(picSize, picSize), SizeFlagsVertical = SizeFlags.ShrinkBegin };
-        plate.AddThemeStyleboxOverride("panel", HudKit.Box(v.Colour.Darkened(0.78f), v.Colour.Darkened(0.4f), 12 * s));
-        var pic = HudKit.Picture(new Vector2(picSize, picSize));
-        pic.Texture = ItemArt.PictureOrIcon(v.Id, v.Colour);
+        var picH = Mathf.Max(Mathf.Min(128 * s, (screen.Y - 420 * s) * 0.5f), 72 * s);
+        var picW = v.Wide ? Mathf.Round(picH * 4f / 3f) : picH;
+        var plate = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(picW, picH), SizeFlagsVertical = SizeFlags.ShrinkBegin, ClipContents = true };
+        plate.AddThemeStyleboxOverride("panel", HudKit.Box(v.Colour.Darkened(0.78f), v.Colour.Darkened(0.4f), (v.Wide ? 8 : 12) * s));
+        var pic = HudKit.Picture(new Vector2(picW, picH));
+        if (v.Wide) pic.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
+        pic.Texture = ItemArt.ForKey(v.PictureKey, v.Colour);
         plate.AddChild(pic);
         head.AddChild(plate);
         var names = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore, SizeFlagsVertical = SizeFlags.ShrinkCenter };
@@ -131,141 +223,173 @@ public partial class ItemCard : Control
         title.AutowrapMode = TextServer.AutowrapMode.Word;
         title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         names.AddChild(title);
-        var kind = HudKit.Label(v.Kind + (v.Key.Length > 0 ? $"  ·  hotkey {v.Key}" : "  ·  no hotkey"), 14 * s, v.Colour, condensed: true);
+        var kind = HudKit.Label(v.Kind, 14 * s, v.Colour, condensed: true);
         kind.AutowrapMode = TextServer.AutowrapMode.Word;
         names.AddChild(kind);
-        var times = HudKit.Label(v.Times, 14 * s, HudKit.Dim);
-        times.AutowrapMode = TextServer.AutowrapMode.Word;
-        names.AddChild(times);
+        if (v.Times.Length > 0) names.AddChild(Wrapped(v.Times, 14 * s, HudKit.Dim));
         head.AddChild(names);
         var close = new Button { Text = "×", FocusMode = FocusModeEnum.None, CustomMinimumSize = new Vector2(32, 32) * s, SizeFlagsVertical = SizeFlags.ShrinkBegin, TooltipText = "Close (Esc)" };
         close.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(18 * s));
         HudKit.StyleTile(close, 6 * s);
         close.Pressed += () => CloseRequested?.Invoke();
         head.AddChild(close);
-        box.AddChild(head);
+        outer.AddChild(head);
 
-        // Can make now / can't make yet (missing items link to their cards).
-        var missing = v.Needs.Where(n => n.Short).ToList();
+        // The body scrolls if it is taller than the screen allows (sized in _Process).
+        _scroll = new ScrollContainer
+        {
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
+            MouseFilter = MouseFilterEnum.Pass, FollowFocus = false, CustomMinimumSize = new Vector2(inner, 0),
+        };
+        _maxBody = Mathf.Max(120 * s, screen.Y - 2 * pad - picH - 11 * s - 2 * 20 * s - 10 * s - 34 * s - 11 * s);
+        var box = new VBoxContainer { MouseFilter = MouseFilterEnum.Pass, CustomMinimumSize = new Vector2(inner - 12 * s, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        box.AddThemeConstantOverride("separation", Mathf.RoundToInt(11 * s));
+        _scroll.AddChild(box);
+        _body = box;
+        var bodyW = inner - 12 * s;
+
+        // Status box (links open other cards).
+        var (bg, edge, ink) = v.Tone switch
+        {
+            CardTone.Good => (new Color(0.075f, 0.15f, 0.1f), new Color(0.56f, 0.84f, 0.48f, 0.5f), new Color(0.78f, 0.95f, 0.74f)),
+            CardTone.Busy => (new Color(0.165f, 0.114f, 0.055f), new Color(0.94f, 0.64f, 0.29f, 0.6f), new Color(1f, 0.85f, 0.66f)),
+            _ => (new Color(0.17f, 0.08f, 0.08f), new Color(0.93f, 0.42f, 0.36f, 0.5f), new Color(1f, 0.76f, 0.73f)),
+        };
         var stat = new PanelContainer { MouseFilter = MouseFilterEnum.Pass };
-        stat.AddThemeStyleboxOverride("panel", v.CanMake
-            ? HudKit.Box(new Color(0.075f, 0.15f, 0.1f), new Color(0.56f, 0.84f, 0.48f, 0.5f), 7 * s, 11 * s, 8 * s)
-            : HudKit.Box(new Color(0.17f, 0.08f, 0.08f), new Color(0.93f, 0.42f, 0.36f, 0.5f), 7 * s, 11 * s, 8 * s));
+        stat.AddThemeStyleboxOverride("panel", HudKit.Box(bg, edge, 7 * s, 11 * s, 8 * s));
         var statBox = new VBoxContainer { MouseFilter = MouseFilterEnum.Pass };
         statBox.AddThemeConstantOverride("separation", Mathf.RoundToInt(4 * s));
-        if (v.CanMake)
+        statBox.AddChild(Wrapped(v.StatusText, 15 * s, ink));
+        if (v.Links.Count > 0)
         {
-            var yes = HudKit.Label("Can make now. It starts as soon as the shop is free.", 15 * s, new Color(0.78f, 0.95f, 0.74f));
-            yes.AutowrapMode = TextServer.AutowrapMode.Word;
-            statBox.AddChild(yes);
-        }
-        else
-        {
-            var lines = missing.Count > 0
-                ? "Can't make yet: missing " + string.Join(" and ", missing.Select(n => $"{n.Each - n.Have} {n.Name}")) + "."
-                : $"Can't queue it: {v.Problem}.";
-            var no = HudKit.Label(lines, 15 * s, new Color(1f, 0.76f, 0.73f));
-            no.AutowrapMode = TextServer.AutowrapMode.Word;
-            statBox.AddChild(no);
-            if (missing.Count > 0)
+            var flow = new HFlowContainer { MouseFilter = MouseFilterEnum.Pass };
+            flow.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(6 * s));
+            flow.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(2 * s));
+            if (v.LinkCaption.Length > 0) flow.AddChild(HudKit.Label(v.LinkCaption, 14 * s, ink));
+            for (var i = 0; i < v.Links.Count; i++)
             {
-                var flow = new HFlowContainer { MouseFilter = MouseFilterEnum.Pass };
-                flow.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(6 * s));
-                flow.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(2 * s));
-                flow.AddChild(HudKit.Label("Make or get:", 14 * s, new Color(1f, 0.76f, 0.73f)));
-                for (var i = 0; i < missing.Count; i++)
+                var n = v.Links[i];
+                var last = i == v.Links.Count - 1;
+                if (n.Clickable)
                 {
-                    var n = missing[i];
-                    var last = i == missing.Count - 1;
-                    if (n.Makeable)
-                    {
-                        var link = new LinkButton { Text = n.Name + (last ? "" : ","), Underline = LinkButton.UnderlineMode.Always, FocusMode = FocusModeEnum.None, TooltipText = $"Open the {n.Name} card" };
-                        link.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(14 * s));
-                        link.AddThemeColorOverride("font_color", HudKit.Sky);
-                        link.AddThemeColorOverride("font_hover_color", new Color(0.85f, 0.93f, 1f));
-                        var id = n.Id;
-                        link.Pressed += () => LinkPressed?.Invoke(id);
-                        flow.AddChild(link);
-                    }
-                    else flow.AddChild(HudKit.Label($"{n.Name} (from a refinery or foundry){(last ? "" : ",")}", 14 * s, new Color(1f, 0.76f, 0.73f)));
+                    var link = new LinkButton { Text = n.Name + (last ? "" : ","), Underline = LinkButton.UnderlineMode.Always, FocusMode = FocusModeEnum.None, TooltipText = $"Open the {n.Name} card" };
+                    link.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(14 * s));
+                    link.AddThemeColorOverride("font_color", HudKit.Sky);
+                    link.AddThemeColorOverride("font_hover_color", new Color(0.85f, 0.93f, 1f));
+                    var id = n.Id;
+                    link.Pressed += () => LinkPressed?.Invoke(id);
+                    flow.AddChild(link);
                 }
-                statBox.AddChild(flow);
+                else flow.AddChild(HudKit.Label(n.Name + (last ? "" : ","), 14 * s, ink));
             }
+            statBox.AddChild(flow);
         }
         stat.AddChild(statBox);
         box.AddChild(stat);
 
-        // Needs / Each / You have.
-        var table = new GridContainer { Columns = 3, MouseFilter = MouseFilterEnum.Ignore };
-        table.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(18 * s));
-        table.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(5 * s));
-        Label Cell(string text, Color colour, bool head, bool right)
+        // Stat tiles: value over caption, as many columns as fit (each at least 120 px).
+        if (v.Stats.Count > 0)
         {
-            var l = head ? HudKit.Label(text, 12 * s, HudKit.Dim, condensed: true) : HudKit.Label(text, 15 * s, colour);
-            l.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
-            if (!right) l.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            l.CustomMinimumSize = new Vector2(right ? 80 * s : 0, 0);
-            return l;
-        }
-        table.AddChild(Cell("NEEDS", HudKit.Dim, true, false));
-        table.AddChild(Cell("EACH", HudKit.Dim, true, true));
-        table.AddChild(Cell("YOU HAVE", HudKit.Dim, true, true));
-        foreach (var n in v.Needs)
-        {
-            var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsHorizontal = SizeFlags.ExpandFill };
-            row.AddThemeConstantOverride("separation", Mathf.RoundToInt(6 * s));
-            row.AddChild(new TextureRect
+            var columns = Mathf.Clamp(Mathf.FloorToInt((bodyW + 6 * s) / (120 * s + 6 * s)), 1, v.Stats.Count);
+            var grid = new GridContainer { Columns = columns, MouseFilter = MouseFilterEnum.Ignore };
+            grid.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(6 * s));
+            grid.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(6 * s));
+            var tileW = Mathf.Floor((bodyW - (columns - 1) * 6 * s) / columns);
+            foreach (var (value, label) in v.Stats)
             {
-                Texture = ItemArt.Picture(n.Id) ?? Icons.Get(n.Id), CustomMinimumSize = new Vector2(20, 20) * s,
-                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                TextureFilter = TextureFilterEnum.LinearWithMipmaps, SizeFlagsVertical = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Ignore,
-            });
-            var name = Cell(n.Name, HudKit.Ink, false, false);
-            name.AutowrapMode = TextServer.AutowrapMode.Word;
-            row.AddChild(name);
-            table.AddChild(row);
-            table.AddChild(Cell(n.Each.ToString(), HudKit.Ink, false, true));
-            table.AddChild(Cell(n.Have.ToString(), n.Short ? new Color(1f, 0.48f, 0.42f) : HudKit.Good, false, true));
-        }
-        box.AddChild(table);
-
-        if (v.Description.Length > 0)
-        {
-            var desc = HudKit.Label(v.Description, 15 * s, HudKit.Ink);
-            desc.AutowrapMode = TextServer.AutowrapMode.Word;
-            desc.CustomMinimumSize = new Vector2(inner, 0);
-            box.AddChild(desc);
-        }
-        foreach (var (text, colour) in new[] { (v.StockLine, HudKit.Dim), (v.Note, HudKit.Dim), (v.CanMake || v.Problem.Length == 0 ? "" : $"Can't queue it: {v.Problem}", new Color(1f, 0.48f, 0.42f)) })
-        {
-            if (text.Length == 0) continue;
-            var l = HudKit.Label(text, 13.5f * s, colour);
-            l.AutowrapMode = TextServer.AutowrapMode.Word;
-            l.CustomMinimumSize = new Vector2(inner, 0);
-            box.AddChild(l);
+                var t = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(tileW, 0) };
+                t.AddThemeStyleboxOverride("panel", HudKit.Box(new Color(0.067f, 0.106f, 0.19f), HudKit.Line, 6 * s, 8 * s, 6 * s));
+                var col = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+                col.AddThemeConstantOverride("separation", Mathf.RoundToInt(2 * s));
+                var val = HudKit.Label(value, 17 * s, HudKit.Ink, bold: true);
+                val.AutowrapMode = TextServer.AutowrapMode.Word;
+                col.AddChild(val);
+                var cap = HudKit.Label(label.ToUpperInvariant(), 11.5f * s, HudKit.Dim, condensed: true);
+                cap.AutowrapMode = TextServer.AutowrapMode.Word;
+                col.AddChild(cap);
+                t.AddChild(col);
+                grid.AddChild(t);
+            }
+            box.AddChild(grid);
         }
 
-        // Buttons.
+        // Table: TableHead / Each / You have.
+        if (v.Rows.Count > 0)
+        {
+            var table = new GridContainer { Columns = 3, MouseFilter = MouseFilterEnum.Ignore };
+            table.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(18 * s));
+            table.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(5 * s));
+            Label Cell(string text, Color colour, bool head, bool right)
+            {
+                var l = head ? HudKit.Label(text, 12 * s, HudKit.Dim, condensed: true) : HudKit.Label(text, 15 * s, colour);
+                l.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+                if (!right) l.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+                l.CustomMinimumSize = new Vector2(right ? 80 * s : 0, 0);
+                return l;
+            }
+            table.AddChild(Cell(v.TableHead, HudKit.Dim, true, false));
+            table.AddChild(Cell("EACH", HudKit.Dim, true, true));
+            table.AddChild(Cell("YOU HAVE", HudKit.Dim, true, true));
+            foreach (var n in v.Rows)
+            {
+                var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+                row.AddThemeConstantOverride("separation", Mathf.RoundToInt(6 * s));
+                row.AddChild(new TextureRect
+                {
+                    Texture = ItemArt.Picture(n.Id) ?? Icons.Get(n.Id), CustomMinimumSize = new Vector2(20, 20) * s,
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                    TextureFilter = TextureFilterEnum.LinearWithMipmaps, SizeFlagsVertical = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Ignore,
+                });
+                var name = Cell(n.Name, HudKit.Ink, false, false);
+                name.AutowrapMode = TextServer.AutowrapMode.Word;
+                row.AddChild(name);
+                table.AddChild(row);
+                table.AddChild(Cell(n.Each.ToString(), HudKit.Ink, false, true));
+                table.AddChild(Cell(n.Have.ToString(), n.Short ? new Color(1f, 0.48f, 0.42f) : HudKit.Good, false, true));
+            }
+            box.AddChild(table);
+        }
+
+        // Bullets ("What it does").
+        if (v.Bullets.Count > 0)
+        {
+            var list = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+            list.AddThemeConstantOverride("separation", Mathf.RoundToInt(3 * s));
+            if (v.BulletsHead.Length > 0) list.AddChild(HudKit.Label(v.BulletsHead.ToUpperInvariant(), 12 * s, HudKit.Dim, condensed: true));
+            foreach (var b in v.Bullets)
+            {
+                var line = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+                line.AddThemeConstantOverride("separation", Mathf.RoundToInt(7 * s));
+                var dot = HudKit.Label("•", 15 * s, v.Colour);
+                dot.SizeFlagsVertical = SizeFlags.ShrinkBegin;
+                line.AddChild(dot);
+                line.AddChild(Wrapped(b, 15 * s, HudKit.Ink));
+                list.AddChild(line);
+            }
+            box.AddChild(list);
+        }
+
+        if (v.Description.Length > 0) box.AddChild(Wrapped(v.Description, 15 * s, HudKit.Ink, bodyW));
+        foreach (var (text, colour) in v.Notes) box.AddChild(Wrapped(text, 13.5f * s, colour, bodyW));
+        outer.AddChild(_scroll);
+
+        // Buttons + hint (stay put under the body).
         var buttons = new HFlowContainer { MouseFilter = MouseFilterEnum.Pass };
         buttons.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(8 * s));
         buttons.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(6 * s));
-        var canQueue = v.Problem.Length == 0;
-        var one = HudKit.ActionButton(v.CanMake ? "QUEUE ONE  [ENTER]" : "QUEUE ANYWAY (WAITS FOR INPUTS)  [ENTER]", true, s);
-        one.Disabled = !canQueue;
-        one.TooltipText = v.CanMake ? "Add one order to this shop's queue" : "The order waits in the queue until its inputs are in stock";
-        one.Pressed += () => QueuePressed?.Invoke(1);
-        buttons.AddChild(one);
-        var five = HudKit.ActionButton("QUEUE 5  [SHIFT+ENTER]", false, s);
-        five.Disabled = !canQueue;
-        five.Pressed += () => QueuePressed?.Invoke(5);
-        buttons.AddChild(five);
+        foreach (var b in v.Buttons)
+        {
+            var button = HudKit.ActionButton(b.Label, b.Primary, s);
+            button.Disabled = !b.Enabled;
+            if (b.Tip.Length > 0) button.TooltipText = b.Tip;
+            var action = b.Action;
+            button.Pressed += () => ActionPressed?.Invoke(action);
+            buttons.AddChild(button);
+        }
         var shut = HudKit.ActionButton("CLOSE  [ESC]", false, s);
         shut.Pressed += () => CloseRequested?.Invoke();
         buttons.AddChild(shut);
-        box.AddChild(buttons);
-        var hint = HudKit.Label("On the recipe tiles: click = this card · Shift+click = queue 5 · Ctrl+click = queue 1 · right-click = remove one · number keys queue 1 (Shift 5)", 12 * s, HudKit.Dim);
-        hint.AutowrapMode = TextServer.AutowrapMode.Word;
-        hint.CustomMinimumSize = new Vector2(inner, 0);
-        box.AddChild(hint);
+        outer.AddChild(buttons);
+        if (v.Hint.Length > 0) outer.AddChild(Wrapped(v.Hint, 12 * s, HudKit.Dim, inner));
     }
 }

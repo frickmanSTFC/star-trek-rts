@@ -319,7 +319,7 @@ public partial class PlanetDriver
     {
         _itemCard = new ItemCard { Name = "ItemCard" };
         _hud.AddOverlay(_itemCard); // over the map and the bottom panel, under F1 help and the tooltip
-        _itemCard.QueuePressed += n =>
+        _itemCard.ActionPressed += n =>
         {
             if (_itemCardId != null) Fabricate(_itemCardId, n);
         };
