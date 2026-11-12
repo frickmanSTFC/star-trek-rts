@@ -522,6 +522,9 @@ def person(c):
         if k == strongest and not REALISTIC:
             v *= 1.35
         M.pair(folder, b, lo, hi, v, side, asym)
+    if REALISTIC:   # owner 2026-11-12: "neck is too short"
+        M.pair("neck", "neck-scale-vert", "decr", "incr", 1.0)
+        M.pair("neck", "neck-scale-horiz", "decr", "incr", -0.25 if fem else -0.05)
     if not REALISTIC:
         M.pair("eyes", "eye-scale", "decr", "incr", 0.5 + n(99, 0.12), "lr")
         M.pair("nose", "nose-scale-vert", "decr", "incr", -0.25)
