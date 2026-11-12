@@ -340,6 +340,8 @@ SEEDS = [int(s) for s in (arg("--seed") or "").split(",") if s]
 NO_HAIR = "--no-hair" in argv
 SKIP = set((arg("--skip") or "").split(","))      # debug: skip strand groups (hair, brow, lash, beard)
 ORBIT = [float(x) for x in (arg("--orbit") or "").split(",") if x]
+REALISTIC = "--realistic" in argv   # owner 2026-11-12: plain realistic humans, no stylise pass
+YEARS = arg("--years")              # override every rendered person's age
 SK.update(fair=(0.86, 0.66, 0.55), light=(0.80, 0.59, 0.47), tan=(0.70, 0.49, 0.36), olive=(0.66, 0.49, 0.35),
           eastasian=(0.82, 0.63, 0.49), romulan=(0.80, 0.63, 0.51), ferengi=(0.84, 0.62, 0.46),
           brown=(0.52, 0.35, 0.24), dark=(0.37, 0.24, 0.17), deep=(0.27, 0.175, 0.13))
@@ -517,13 +519,14 @@ def person(c):
     style_keys = [k for k in feat if not k.startswith(("head_age", "eye_bag", "laugh", "neck_", "epic"))]
     strongest = max(style_keys, key=lambda k: abs(feat[k][4]))
     for k, (folder, b, lo, hi, v, side, asym) in feat.items():
-        if k == strongest:
+        if k == strongest and not REALISTIC:
             v *= 1.35
         M.pair(folder, b, lo, hi, v, side, asym)
-    M.pair("eyes", "eye-scale", "decr", "incr", 0.5 + n(99, 0.12), "lr")
-    M.pair("nose", "nose-scale-vert", "decr", "incr", -0.25)
-    M.pair("nose", "nose-scale-depth", "decr", "incr", -0.18)
-    M.pair("nose", "nose-point-width", "decr", "incr", 0.22)
+    if not REALISTIC:
+        M.pair("eyes", "eye-scale", "decr", "incr", 0.5 + n(99, 0.12), "lr")
+        M.pair("nose", "nose-scale-vert", "decr", "incr", -0.25)
+        M.pair("nose", "nose-scale-depth", "decr", "incr", -0.18)
+        M.pair("nose", "nose-point-width", "decr", "incr", 0.22)
     # asymmetry: two or three MakeHuman asym targets, small
     for j, part in enumerate(["brown-1", "cheek-1", "eye-2", "jaw-1", "nose-2", "ear-1", "temple-1"]):
         if h(110 + j) < 0.45:
@@ -583,7 +586,7 @@ def person(c):
 
 # ================================================================ the MakeHuman body in Blender
 
-HEAD_SCALE = 1.055      # stylise: a slightly bigger head (scaled about the top of the neck)
+HEAD_SCALE = 1.0 if "--realistic" in argv else 1.055      # stylise: a slightly bigger head (scaled about the top of the neck)
 
 
 def region(name):
@@ -2466,7 +2469,12 @@ def main():
             and (not ONLY_SEX or c["sex"] == ONLY_SEX) and (not ONLY or c["id"] in ONLY)]
     if "portraits" in SHOTS:
         for c in cast:
-            portrait(cam, dict(c), extras)
+            c = dict(c)
+            if YEARS:
+                c["years"] = float(YEARS)
+                if float(YEARS) < 40:
+                    c["grey"] = 0.0
+            portrait(cam, c, extras)
         for sd in SEEDS:
             for sp in (ONLY_SPECIES or bp.SPECIES_ORDER):
                 portrait(cam, bp.look(sd, sp, ONLY_SEX), extras)
