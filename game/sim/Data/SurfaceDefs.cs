@@ -9,8 +9,24 @@ public sealed record TerrainDef(int Index, string Id, string Name, string Color,
 /// <summary>Lowland terrain picked by moisture share: the first band whose Below is above the tile's moisture.</summary>
 public sealed record LowlandBand(Fix64 Below, string TerrainId);
 
-/// <summary>A deposit rule: on matching terrain, roll Chance per tile; amount in [Min, Max].</summary>
-public sealed record DepositRule(string ResourceId, IReadOnlyList<string> Terrain, bool Coastal, Fix64 Chance, int Min, int Max);
+/// <summary>
+/// A deposit rule on matching terrain (Coastal = the tile, or a field's first hex, touches water). Without Fields: roll
+/// Chance per tile, amount in [Min, Max]. With Fields (owner 2026-11-12: "fewer deposits, larger"): Fields.Count fields,
+/// each a contiguous blob of Fields.SizeMin..SizeMax neighbouring hexes, every hex its own deposit of [Min, Max].
+/// </summary>
+public sealed record DepositRule(string ResourceId, IReadOnlyList<string> Terrain, bool Coastal, Fix64 Chance, int Min, int Max)
+{
+    public FieldRule? Fields { get; init; }
+}
+
+/// <summary>Deposit fields (surfaces.json planets deposits fields): Count fields, or Per1000Tiles of the map's tiles
+/// (rounded, at least 1) when Count is 0; each SizeMin..SizeMax hexes; a field's first hex at least Spacing hexes from
+/// every hex of the fields placed before it (any resource).</summary>
+public sealed record FieldRule(int Count, Fix64 Per1000Tiles, int SizeMin, int SizeMax, int Spacing)
+{
+    /// <summary>How many fields a map of this many tiles gets.</summary>
+    public int CountFor(int tiles) => Count > 0 ? Count : System.Math.Max(1, (Per1000Tiles * Fix64.FromInt(tiles) / Fix64.FromInt(1000) + Fix64.Half).FloorToInt());
+}
 
 /// <summary>How to generate the surface of one planet class. Elevation thresholds are shares of the map.</summary>
 public sealed record PlanetSurfaceDef(

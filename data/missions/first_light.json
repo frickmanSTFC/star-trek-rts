@@ -4,12 +4,12 @@
       "trigger": { "any": [
         { "building": { "id": "refinery", "state": "any" } },
         { "time": { "after_seconds": 180, "since": "uplink" } } ] },
-      "briefing": "Moreau here, Earth Mission Control. The orbital pictures only tell us so much. Put your rovers on the ground and give us ground truth: sixty tiles surveyed, and at least three different resources confirmed.",
+      "briefing": "Moreau here, Earth Mission Control. The orbital pictures only tell us so much. Put your rovers on the ground and give us ground truth: sixty tiles surveyed, and at least two different resources confirmed.",
       "stages": [
         { "id": "survey", "title": "Survey the landing region",
           "objectives": [
             { "id": "tiles", "text": "Survey 60 tiles", "cond": { "surveyed": { "count": 60 } }, "hint": "Send the rovers out: every tile they drive past is surveyed." },
-            { "id": "resources", "text": "Find 3 different resources", "cond": { "deposits_found": { "count": 3 } } } ],
+            { "id": "resources", "text": "Find 2 different resources", "cond": { "deposits_found": { "count": 2 } } } ],
           "next": "complete" } ],
       "rewards": [ { "research": { "points": 30 } }, { "unlock_buildings": ["science_lab", "vehicle_bay"] } ],
       "debrief": "Good data, all of it. Earth has its first ground-truth map of this world, and we're sending down the plans for a Research Lab and a Vehicle Bay. Stand by: we have something else for you." },

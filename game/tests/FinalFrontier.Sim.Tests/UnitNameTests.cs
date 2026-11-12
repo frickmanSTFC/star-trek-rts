@@ -266,7 +266,8 @@ public class UnitNameTests
         var mk3 = Data.SurfaceUnit("survey_rover_mk3");
         Assert.True(mk1.Speed < mk2.Speed && mk2.Speed < mk3.Speed);
         Assert.True(mk1.SurveyRadius < mk2.SurveyRadius && mk2.SurveyRadius < mk3.SurveyRadius);
-        Assert.Contains(mk3.Cost, c => c.Resource == R("dilithium"));
+        Assert.DoesNotContain(mk3.Cost, c => c.Resource == R("dilithium")); // no dilithium deposits for now (owner 2026-11-12)
+        Assert.True(mk3.Cost.Single(c => c.Resource == R("tritanium")).Amount > mk2.Cost.Single(c => c.Resource == R("tritanium")).Amount);
         AssertNamedAndUnique(s.Units);
     }
 

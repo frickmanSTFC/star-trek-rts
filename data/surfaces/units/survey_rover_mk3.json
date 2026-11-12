@@ -1,6 +1,6 @@
 {
   "units": [
-    { "id": "survey_rover_mk3", "mark": 3, "description": "The Mk III Explorer: a long six-wheeler on big tyres with a sensor turret. The fastest rover, and it surveys the widest area, for long trips far from your bases. It needs a little dilithium to build. The toughest rover: it wears slower, hazards hurt it less, its big tyres puncture less often and it carries two spares (T to change one); repair it on a colony core's pad (R).", "speed": 2.6, "survey_radius": 4, "cost": { "duranium": 120, "tritanium": 60, "dilithium": 5 }, "build_seconds": 45,
+    { "id": "survey_rover_mk3", "mark": 3, "description": "The Mk III Explorer: a long six-wheeler on big tyres with a sensor turret. The fastest rover, and it surveys the widest area, for long trips far from your bases. It costs the most tritanium of the three (it used to need a little dilithium, which no world here yields for now). The toughest rover: it wears slower, hazards hurt it less, its big tyres puncture less often and it carries two spares (T to change one); repair it on a colony core's pad (R).", "speed": 2.6, "survey_radius": 4, "cost": { "duranium": 120, "tritanium": 80 }, "build_seconds": 45,
       "damage": {
         "terrain": { "plains": { "wear": 0.25, "hazard": 0.03, "flat": 0.02 }, "desert": { "wear": 0.35, "hazard": 0.05, "flat": 0.025 },
           "forest": { "wear": 0.7, "hazard": 0.08, "flat": 0.035 }, "hills": { "wear": 0.9, "hazard": 0.1, "flat": 0.05 }, "ice": { "wear": 0.9, "hazard": 0.1, "flat": 0.035 } },

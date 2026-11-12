@@ -285,7 +285,7 @@ public class LaneTests
         var map = s.Map;
         var crawler = s.Units.First(u => u.DefId == "mining_crawler");
         var deposit = Enumerable.Range(0, map.Grid.Count)
-            .Where(t => map.DepositResource[t] >= 0 && map.Grid.Distance(hub, t) is >= 2 and <= 6 && s.StructureAt(t) == null
+            .Where(t => map.DepositResource[t] >= 0 && map.Grid.Distance(hub, t) is >= 2 and <= 12 && s.StructureAt(t) == null
                 && map.Grid.Neighbours(t).Count(n => map.Terrain(n).Passable) == 6)
             .OrderBy(t => map.Grid.Distance(hub, t)).ThenBy(t => t).First();
         // A rover parked in the middle of the deposit gets out of the way when the crawler comes to unfurl there.
