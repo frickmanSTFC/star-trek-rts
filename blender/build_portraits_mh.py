@@ -1234,7 +1234,7 @@ def hair_setup(hm, c):
     h = lambda k: H(seed, 900 + k)  # noqa: E731
     fem = hm.fem
     yrs = hm.P["info"]["years"]
-    fore = 0.062 + (h(1) - 0.5) * 0.012 - 0.004 * fem
+    fore = 0.062 + (h(1) - 0.5) * 0.012 - 0.004 * fem + (0.016 if c["species"] == "cardassian" else 0.0)
     zf = ez + fore
     hm.hl_table = np.array([(0, zf), (22, zf - 0.002), (40, zf - 0.010 - 0.004 * (1 - fem)), (58, ez + 0.040),
                             (72, ez + 0.020), (80, ezc + 0.004), (86, hm.ear_top_z + 0.002),
@@ -1312,7 +1312,8 @@ def strands(hm, c, objs, body_ob):
         if "tie" in st0:
             st1["tie"] = onto(st0["tie"], 0.007)
             if "bun" in st0:
-                st1["bun"] = tuple(np.array(st1["tie"]) + (np.array(st0["bun"]) - np.array(st0["tie"])))
+                tt = np.array(st1["tie"])
+                st1["bun"] = tuple(tt + 1.6 * (np.array(st0["bun"]) - np.array(st0["tie"])) + tt / np.linalg.norm(tt) * 0.012)
         if "whorl" in st0:
             st1["whorl"] = onto(st0["whorl"], -0.012)
         bp.STYLES[c["style"]] = st1
@@ -1336,12 +1337,27 @@ def strands(hm, c, objs, body_ob):
         hr = st.get("rad", 1.0) * 0.000085
         objs.append(bp.curves_object("Hair", C, hr, hr * 0.25, bp.CHAR_MATS["HairS"], Dh, bvh))
         if st.get("bun"):
-            B = Dh @ (V(st["bun"]) + bp.HEAD_C)
-            bpy.ops.mesh.primitive_uv_sphere_add(radius=1.0, location=B, segments=20, ring_count=10)
-            o = bpy.context.active_object
-            o.scale = (0.022, 0.016, 0.019)
-            o.data.materials.append(bp.CHAR_MATS["hair_core"])
-            objs.append(o)
+            # the bun: strands coiled round a small core over the tie point (where the combed hair gathers)
+            T = np.array(st["tie"])
+            nT = T / np.linalg.norm(T)
+            Bc = T + nT * 0.013
+            e1 = nrm(np.cross(nT, np.array([0.0, 0.0, 1.0])) + 1e-9)
+            e2 = np.cross(nT, e1)
+            R = rng(seed + 31)
+            nb, npt = 2600, 26
+            rr = 0.019 * np.sqrt(R.uniform(0.02, 1.0, nb))
+            th0 = R.uniform(0, 2 * pi, nb)
+            turn = R.uniform(0.9, 1.6, nb) * 2 * pi
+            hh = R.uniform(-1, 1, nb) * (0.011 - 0.35 * rr)
+            u = np.linspace(0, 1, npt)
+            th = th0[:, None] + turn[:, None] * u[None, :]
+            rad_ = rr[:, None] * (1 + 0.08 * np.sin(u * pi)[None, :])
+            paths = (Bc[None, None, :] + e1[None, None, :] * (np.cos(th) * rad_)[..., None]
+                     + e2[None, None, :] * (np.sin(th) * rad_)[..., None]
+                     + nT[None, None, :] * (hh[:, None] * np.cos(u * pi * 0.5)[None, :] - 0.004 * (1 - u)[None, :])[..., None])
+            paths = paths + R.normal(0, 0.0004, paths.shape)
+            hr = st.get("rad", 1.0) * 0.000085
+            objs.append(bp.curves_object("Bun", paths, hr, hr * 0.5, bp.CHAR_MATS["HairS"], Dh))
     if "brow" not in SKIP:
         B_, kind = bp.brow_strands(c, seed)
         objs.append(bp.curves_object("Brow", B_, 0.00007, 0.00002, bp.CHAR_MATS["BrowS"], Dh))
@@ -1493,8 +1509,8 @@ def suit_fields(S, kind):
     p = S.co
     x, y, z = p[:, 0], p[:, 1], p[:, 2]
     t, da = S.arm_t(p, True)
-    on_arm = sm(0.0, 0.05, t) * sm(0.085, 0.065, da)
-    zl = S.neck_z - 0.085 - 0.03 * (np.abs(x) / 0.12) ** 2
+    on_arm = sm(0.0, 0.05, t) * np.maximum(sm(0.085, 0.065, da), sm(0.15, 0.2, np.abs(x)))
+    zl = S.neck_z - 0.085 - 0.03 * (np.minimum(np.abs(x), 0.13) / 0.12) ** 2
     yk = (1 - on_arm) * (z - zl) + on_arm * (0.075 - t)
     band = 0.010 - np.abs(t - 0.165) + (on_arm < 0.5) * -1.0
     belt = 0.022 - np.abs(z - (S.waist_z - 0.03))
