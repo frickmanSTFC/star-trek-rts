@@ -1,0 +1,545 @@
+{
+ "generator": "blender/build_portraits.py",
+ "note": "Mockup portraits (original designs; no canon uniforms or insignia).",
+ "size": [
+  640,
+  640
+ ],
+ "departments": {
+  "exploration": "#3E7FD6",
+  "defense": "#C8423A",
+  "maintenance": "#D9A23A",
+  "archaeology": "#4E9A5A"
+ },
+ "lineup": {
+  "file": "lineup.jpg",
+  "left_to_right": [
+   "bajoran_f_archaeology",
+   "human_m_maintenance",
+   "andorian_f_defense",
+   "vulcan_m_exploration"
+  ]
+ },
+ "portraits": [
+  {
+   "file": "human_f_exploration.jpg",
+   "species": "human",
+   "faction": "federation",
+   "sex": "f",
+   "department": "exploration",
+   "department_colour": "#3E7FD6",
+   "skin": "tan",
+   "skin_rgb": [
+    0.8,
+    0.6,
+    0.45
+   ],
+   "hair": "darkbrown",
+   "hair_style": "bun",
+   "beard": null,
+   "eyes": "brown",
+   "age_band": "30-40",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "human_m_defense.jpg",
+   "species": "human",
+   "faction": "federation",
+   "sex": "m",
+   "department": "defense",
+   "department_colour": "#C8423A",
+   "skin": "light",
+   "skin_rgb": [
+    0.9,
+    0.72,
+    0.6
+   ],
+   "hair": "brown",
+   "hair_style": "short",
+   "beard": null,
+   "eyes": "blue",
+   "age_band": "40-50",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "vulcan_f_archaeology.jpg",
+   "species": "vulcan",
+   "faction": "federation",
+   "sex": "f",
+   "department": "archaeology",
+   "department_colour": "#4E9A5A",
+   "skin": "olive",
+   "skin_rgb": [
+    0.74,
+    0.56,
+    0.4
+   ],
+   "hair": "black",
+   "hair_style": "vulcan_f",
+   "beard": null,
+   "eyes": "darkbrown",
+   "age_band": "40-60 (looks 30s)",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "vulcan_m_exploration.jpg",
+   "species": "vulcan",
+   "faction": "federation",
+   "sex": "m",
+   "department": "exploration",
+   "department_colour": "#3E7FD6",
+   "skin": "light",
+   "skin_rgb": [
+    0.9,
+    0.72,
+    0.6
+   ],
+   "hair": "darkbrown",
+   "hair_style": "bowl",
+   "beard": null,
+   "eyes": "brown",
+   "age_band": "60-90 (looks 40s)",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "andorian_f_defense.jpg",
+   "species": "andorian",
+   "faction": "federation",
+   "sex": "f",
+   "department": "defense",
+   "department_colour": "#C8423A",
+   "skin": "andorian",
+   "skin_rgb": [
+    0.42,
+    0.6,
+    0.86
+   ],
+   "hair": "white",
+   "hair_style": "bun",
+   "beard": null,
+   "eyes": "violet",
+   "age_band": "25-35",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "andorian_m_maintenance.jpg",
+   "species": "andorian",
+   "faction": "federation",
+   "sex": "m",
+   "department": "maintenance",
+   "department_colour": "#D9A23A",
+   "skin": "andorian",
+   "skin_rgb": [
+    0.42,
+    0.6,
+    0.86
+   ],
+   "hair": "white",
+   "hair_style": "swept",
+   "beard": null,
+   "eyes": "grey",
+   "age_band": "30-40",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "tellarite_f_maintenance.jpg",
+   "species": "tellarite",
+   "faction": "federation",
+   "sex": "f",
+   "department": "maintenance",
+   "department_colour": "#D9A23A",
+   "skin": "tellarite",
+   "skin_rgb": [
+    0.7,
+    0.52,
+    0.42
+   ],
+   "hair": "auburn",
+   "hair_style": "shaggy",
+   "beard": null,
+   "eyes": "darkbrown",
+   "age_band": "30-40",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "tellarite_m_defense.jpg",
+   "species": "tellarite",
+   "faction": "federation",
+   "sex": "m",
+   "department": "defense",
+   "department_colour": "#C8423A",
+   "skin": "tellarite",
+   "skin_rgb": [
+    0.7,
+    0.52,
+    0.42
+   ],
+   "hair": "brown",
+   "hair_style": "shaggy",
+   "beard": "tellarite",
+   "eyes": "darkbrown",
+   "age_band": "40-50",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "bajoran_f_archaeology.jpg",
+   "species": "bajoran",
+   "faction": "federation",
+   "sex": "f",
+   "department": "archaeology",
+   "department_colour": "#4E9A5A",
+   "skin": "light",
+   "skin_rgb": [
+    0.9,
+    0.72,
+    0.6
+   ],
+   "hair": "auburn",
+   "hair_style": "bob",
+   "beard": null,
+   "eyes": "hazel",
+   "age_band": "25-35",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "bajoran_m_exploration.jpg",
+   "species": "bajoran",
+   "faction": "federation",
+   "sex": "m",
+   "department": "exploration",
+   "department_colour": "#3E7FD6",
+   "skin": "brown",
+   "skin_rgb": [
+    0.58,
+    0.4,
+    0.28
+   ],
+   "hair": "black",
+   "hair_style": "crop",
+   "beard": null,
+   "eyes": "darkbrown",
+   "age_band": "35-45",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "trill_f_exploration.jpg",
+   "species": "trill",
+   "faction": "federation",
+   "sex": "f",
+   "department": "exploration",
+   "department_colour": "#3E7FD6",
+   "skin": "fair",
+   "skin_rgb": [
+    0.95,
+    0.79,
+    0.69
+   ],
+   "hair": "blond",
+   "hair_style": "long",
+   "beard": null,
+   "eyes": "green",
+   "age_band": "25-35",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "trill_m_archaeology.jpg",
+   "species": "trill",
+   "faction": "federation",
+   "sex": "m",
+   "department": "archaeology",
+   "department_colour": "#4E9A5A",
+   "skin": "light",
+   "skin_rgb": [
+    0.9,
+    0.72,
+    0.6
+   ],
+   "hair": "brown",
+   "hair_style": "swept",
+   "beard": null,
+   "eyes": "blue",
+   "age_band": "35-45",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "betazoid_f_defense.jpg",
+   "species": "betazoid",
+   "faction": "federation",
+   "sex": "f",
+   "department": "defense",
+   "department_colour": "#C8423A",
+   "skin": "olive",
+   "skin_rgb": [
+    0.74,
+    0.56,
+    0.4
+   ],
+   "hair": "black",
+   "hair_style": "curly",
+   "beard": null,
+   "eyes": "black",
+   "age_band": "25-35",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "betazoid_m_maintenance.jpg",
+   "species": "betazoid",
+   "faction": "federation",
+   "sex": "m",
+   "department": "maintenance",
+   "department_colour": "#D9A23A",
+   "skin": "tan",
+   "skin_rgb": [
+    0.8,
+    0.6,
+    0.45
+   ],
+   "hair": "black",
+   "hair_style": "short",
+   "beard": null,
+   "eyes": "black",
+   "age_band": "30-40",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "human_m_exploration.jpg",
+   "species": "human",
+   "faction": "federation",
+   "sex": "m",
+   "department": "exploration",
+   "department_colour": "#3E7FD6",
+   "skin": "deep",
+   "skin_rgb": [
+    0.29,
+    0.19,
+    0.13
+   ],
+   "hair": "grey",
+   "hair_style": "crop",
+   "beard": "full",
+   "eyes": "darkbrown",
+   "age_band": "55-60",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "human_f_defense.jpg",
+   "species": "human",
+   "faction": "federation",
+   "sex": "f",
+   "department": "defense",
+   "department_colour": "#C8423A",
+   "skin": "eastasian",
+   "skin_rgb": [
+    0.88,
+    0.71,
+    0.56
+   ],
+   "hair": "black",
+   "hair_style": "short",
+   "beard": null,
+   "eyes": "darkbrown",
+   "age_band": "25-30",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "human_m_maintenance.jpg",
+   "species": "human",
+   "faction": "federation",
+   "sex": "m",
+   "department": "maintenance",
+   "department_colour": "#D9A23A",
+   "skin": "dark",
+   "skin_rgb": [
+    0.4,
+    0.26,
+    0.18
+   ],
+   "hair": "black",
+   "hair_style": "curly",
+   "beard": null,
+   "eyes": "brown",
+   "age_band": "25-30",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "human_f_archaeology.jpg",
+   "species": "human",
+   "faction": "federation",
+   "sex": "f",
+   "department": "archaeology",
+   "department_colour": "#4E9A5A",
+   "skin": "fair",
+   "skin_rgb": [
+    0.95,
+    0.79,
+    0.69
+   ],
+   "hair": "ash",
+   "hair_style": "bun",
+   "beard": null,
+   "eyes": "grey",
+   "age_band": "50-60",
+   "outfit": "colony-service jumpsuit, department yoke"
+  },
+  {
+   "file": "klingon_f.jpg",
+   "species": "klingon",
+   "faction": "klingon",
+   "sex": "f",
+   "department": null,
+   "department_colour": null,
+   "skin": "klingon",
+   "skin_rgb": [
+    0.5,
+    0.33,
+    0.24
+   ],
+   "hair": "black",
+   "hair_style": "wild",
+   "beard": null,
+   "eyes": "brown",
+   "age_band": "30-40",
+   "outfit": "dark leather, metal pauldrons and chest plates"
+  },
+  {
+   "file": "klingon_m.jpg",
+   "species": "klingon",
+   "faction": "klingon",
+   "sex": "m",
+   "department": null,
+   "department_colour": null,
+   "skin": "klingon",
+   "skin_rgb": [
+    0.5,
+    0.33,
+    0.24
+   ],
+   "hair": "darkbrown",
+   "hair_style": "wild",
+   "beard": "klingon",
+   "eyes": "darkbrown",
+   "age_band": "40-50",
+   "outfit": "dark leather, metal pauldrons and chest plates"
+  },
+  {
+   "file": "romulan_f.jpg",
+   "species": "romulan",
+   "faction": "romulan",
+   "sex": "f",
+   "department": null,
+   "department_colour": null,
+   "skin": "romulan",
+   "skin_rgb": [
+    0.86,
+    0.72,
+    0.6
+   ],
+   "hair": "black",
+   "hair_style": "bowl",
+   "beard": null,
+   "eyes": "green",
+   "age_band": "40-60 (looks 30s)",
+   "outfit": "grey-green tunic, quilted padded shoulders"
+  },
+  {
+   "file": "romulan_m.jpg",
+   "species": "romulan",
+   "faction": "romulan",
+   "sex": "m",
+   "department": null,
+   "department_colour": null,
+   "skin": "tan",
+   "skin_rgb": [
+    0.8,
+    0.6,
+    0.45
+   ],
+   "hair": "darkbrown",
+   "hair_style": "bowl",
+   "beard": null,
+   "eyes": "brown",
+   "age_band": "60-90 (looks 40s)",
+   "outfit": "grey-green tunic, quilted padded shoulders"
+  },
+  {
+   "file": "cardassian_f.jpg",
+   "species": "cardassian",
+   "faction": "cardassian",
+   "sex": "f",
+   "department": null,
+   "department_colour": null,
+   "skin": "cardassian",
+   "skin_rgb": [
+    0.5,
+    0.48,
+    0.44
+   ],
+   "hair": "black",
+   "hair_style": "slick_bun",
+   "beard": null,
+   "eyes": "blue",
+   "age_band": "30-40",
+   "outfit": "grey-brown ribbed armour, raised shoulder plates"
+  },
+  {
+   "file": "cardassian_m.jpg",
+   "species": "cardassian",
+   "faction": "cardassian",
+   "sex": "m",
+   "department": null,
+   "department_colour": null,
+   "skin": "cardassian",
+   "skin_rgb": [
+    0.5,
+    0.48,
+    0.44
+   ],
+   "hair": "black",
+   "hair_style": "slick",
+   "beard": null,
+   "eyes": "grey",
+   "age_band": "40-50",
+   "outfit": "grey-brown ribbed armour, raised shoulder plates"
+  },
+  {
+   "file": "ferengi_f.jpg",
+   "species": "ferengi",
+   "faction": "ferengi",
+   "sex": "f",
+   "department": null,
+   "department_colour": null,
+   "skin": "ferengi",
+   "skin_rgb": [
+    0.86,
+    0.66,
+    0.5
+   ],
+   "hair": "none (bald)",
+   "hair_style": "bald",
+   "beard": null,
+   "eyes": "blue",
+   "age_band": "25-35",
+   "outfit": "patterned jacket, gold flared collar"
+  },
+  {
+   "file": "ferengi_m.jpg",
+   "species": "ferengi",
+   "faction": "ferengi",
+   "sex": "m",
+   "department": null,
+   "department_colour": null,
+   "skin": "ferengi",
+   "skin_rgb": [
+    0.86,
+    0.66,
+    0.5
+   ],
+   "hair": "none (bald)",
+   "hair_style": "bald",
+   "beard": null,
+   "eyes": "grey",
+   "age_band": "40-50",
+   "outfit": "patterned jacket, gold flared collar"
+  }
+ ]
+}
