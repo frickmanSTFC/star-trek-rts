@@ -550,7 +550,8 @@ public partial class PlanetDriver
         foreach (var d in Surface.Map.Def.Deposits)
         {
             var terrain = d.Terrain.Select(t => _data.Terrain.FirstOrDefault(x => x.Id == t)?.Name.ToLowerInvariant() ?? t).ToList();
-            list.Add((_data.Resource(d.ResourceId).Name, $"on {Join(terrain)}" + (d.Coastal ? " by the water" : "") + $", {d.Min}–{d.Max} a deposit"));
+            var size = d.Fields is { } f ? $", fields of {f.SizeMin}–{f.SizeMax} hexes, {d.Min}–{d.Max} a hex" : $", {d.Min}–{d.Max} a deposit";
+            list.Add((_data.Resource(d.ResourceId).Name, $"on {Join(terrain)}" + (d.Coastal ? " by the water" : "") + size));
         }
         return list;
     }

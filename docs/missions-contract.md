@@ -169,7 +169,8 @@ Engine (S2, `sim/Missions/`, data `data/missions/` = a new optional document lik
   (item, count since start), outpost (count of finished cores), weather (forecast storm near a base), time, flag,
   mission state, all/any/not. Actions: message, grant (stock through Store; never power), research points, reveal
   (tile, radius), place_site (a site kind on a hashed tile matching rules: distance from the hub, terrain, passable or
-  not, unsurveyed), marker, set_flag, start_mission, complete, fail.
+  not, unsurveyed), marker, set_flag, start_mission, unlock_buildings (2026-11-12: opens build-menu buildings for the
+  player; a campaign starts with surfaces.json start_menu, see `sim/Surface/Unlocks.cs`), complete, fail.
 - Sites: `sim/Surface/MissionSites.cs` (partial PlanetSurface, or inside the book): placed by actions, Found when
   surveyed or seen; hashed.
 - Checks in `Validate()`: ids exist (resources, buildings, units, items, techs), stages reachable, bindings bound
