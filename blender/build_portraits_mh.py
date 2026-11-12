@@ -23,7 +23,7 @@ Shot: 640 x 640, body turned 24 deg, head turned back toward the lens, eyes on t
 rims + weak fill + a small eye light, dark gradient backdrop with a faint faction element (build_portraits'), Cycles 64
 samples denoised, JPEG 86.
 
-Run (bpy 5.x venv; ~20 s a portrait at 64 samples on 4 cores, the whole set + lineup ~12-15 min):
+Run (bpy 5.x venv; ~45 s a portrait at 64 samples on 4 cores, the whole set + lineup ~22 min):
   /home/user/.bpyvenv/bin/python blender/build_portraits_mh.py
   /home/user/.bpyvenv/bin/python blender/build_portraits_mh.py --only human_f_defense,vulcan_m_exploration --samples 24
   python3 blender/build_portraits_mh.py --sheet docs/mockups/character/portraits
@@ -65,7 +65,7 @@ How a person is generated from a seed (person()):
     volume / height, chin prominence / width / height, jaw width and drop, prognathism, cleft, ear size / wing / lobe /
     rotation, neck width/depth, a double chin with weight or age; face shape (oval, round, square, long, heart, diamond)
     from MakeHuman's head shape targets; 2-4 of MakeHuman's asym targets.
-  * stylise pass: eyes ~+10% (eye-scale), nose a little shorter and shallower with a rounder tip, the head 5.5% bigger
+  * stylise pass: bigger eyes (eye-scale +0.5), nose shorter and shallower with a rounder tip, the head 5.5% bigger
     (scaled about the top of the neck), the person's strongest face feature x1.35; skin painted with soft occlusion in
     creases and a warm flush, lid margins darkened.
   * expression from MakeHuman's expression units (blended by the same ethnicity mix): smile = corner puller + upper lip
