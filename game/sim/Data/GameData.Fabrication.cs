@@ -192,7 +192,10 @@ public sealed partial class GameData
             if (Flattened(r.Id) == null && f.Recipe(r.Id) != null) problems.Add($"{where}: its inputs go round in a cycle.");
         }
         foreach (var r in Resources.Where(r => r.IsPartItem))
+        {
             if (f.Recipe(r.Id) == null) problems.Add($"Resource {r.Id}: a {r.Tier} item with no fabrication recipe.");
+            if (string.IsNullOrWhiteSpace(r.Description)) problems.Add($"Resource {r.Id}: a {r.Tier} item needs a description (its item card).");
+        }
         foreach (var id in f.Hub.Recipes)
             if (f.Recipe(id) == null || !IsSpare(id)) problems.Add($"Fabrication hub: '{id}' must be a recipe of a spare kit.");
         if (f.Hub.Speed <= Fix64.Zero || f.Hub.Speed > Fix64.One || f.Hub.TimeFactor <= Fix64.Zero)

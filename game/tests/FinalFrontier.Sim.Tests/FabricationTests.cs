@@ -91,6 +91,23 @@ public class FabricationTests
     }
 
     [Fact]
+    public void EveryPartItemHasADescription()
+    {
+        // The Machine Shop's item card shows it (resources/parts.json description).
+        Assert.All(Data.Resources.Where(r => r.IsPartItem), r => Assert.False(string.IsNullOrWhiteSpace(r.Description), r.Id));
+        Assert.StartsWith("A crate of bearings", Data.Resource("mechanical_spares").Description);
+        Assert.Equal("", Data.Resource("duranium").Description); // optional elsewhere
+    }
+
+    [Fact]
+    public void APartItemWithoutADescriptionIsAProblem()
+    {
+        var d = TestData.Patched(("resources/parts.json",
+            "\"description\": \"Gaskets, O-rings and sealant. Goes into environmental spares.\"", "\"description\": \"\""));
+        Assert.Contains(d.Validate(), p => p.Contains("seal_kit") && p.Contains("description"));
+    }
+
+    [Fact]
     public void TheHubFlattensAKitToMaterials()
     {
         // Mechanical Spares = 2 Mechanism (2 dur + 1 tri each) + 1 Structural Frame (4 dur + 1 tri) = 8 dur + 3 tri;
