@@ -73,7 +73,7 @@ BEFORE / AFTER (2026-11-12 pass, owner: "they look like dolls"):
             strands too (stubble, short, full, Klingon, Tellarite).
           * Species: Ferengi ears are big scalloped shells with concentric ridges and a lobed rim, pointed teeth show in
             a grin; Cardassian spoon, brow-temple ridges and cobra neck ridges are deeper and warmer; Klingon crest
-            ridges deeper; Romulan woman has her own cut (long sleek bob, angled fringe) and outfit (high collar, sash)
+            ridges deeper; Romulan woman has her own cut (long sleek bob, angled fringe) and outfit (high stand collar, slim shoulder caps, V trim, clasp)
             vs the man's bowl cut and quilted shoulders.
           * Lineup: a curved cyclorama sweep (no hard horizon), darker floor with soft light pools.
 
@@ -138,7 +138,7 @@ def hexrgb(h):
 # skin albedo presets (sRGB) and the subsurface radius colour for each
 SK = dict(fair=(0.93, 0.76, 0.66), light=(0.88, 0.68, 0.56), tan=(0.78, 0.57, 0.43), olive=(0.73, 0.56, 0.41),
           brown=(0.55, 0.38, 0.27), dark=(0.39, 0.26, 0.19), deep=(0.28, 0.185, 0.14), eastasian=(0.89, 0.72, 0.57),
-          andorian=(0.44, 0.60, 0.86), cardassian=(0.55, 0.49, 0.41), ferengi=(0.88, 0.67, 0.50),
+          andorian=(0.44, 0.60, 0.86), cardassian=(0.47, 0.42, 0.35), ferengi=(0.88, 0.67, 0.50),
           tellarite=(0.74, 0.53, 0.43), klingon=(0.52, 0.34, 0.24), klingon2=(0.40, 0.26, 0.19),
           romulan=(0.86, 0.71, 0.59))
 SSS_RADIUS = {"andorian": (0.55, 0.65, 1.0), "cardassian": (0.9, 0.55, 0.35), "default": (1.0, 0.36, 0.2)}
@@ -399,8 +399,8 @@ def face_params(seed, species, sex, years, ov=None):
     nb = dict(straight=(0.0195, 0.0172, 0.0092, 0.0000, 0.000, 1.0, 1.0),
               aquiline=(0.0215, 0.0168, 0.0088, 0.0011, -0.0012, 0.9, 1.04),
               roman=(0.0215, 0.0180, 0.0100, 0.0016, -0.0004, 1.0, 1.04),
-              snub=(0.0170, 0.0170, 0.0088, -0.0009, 0.0020, 1.15, 0.93),
-              button=(0.0158, 0.0160, 0.0084, -0.0005, 0.0012, 1.3, 0.9),
+              snub=(0.0170, 0.0170, 0.0088, -0.0009, 0.0009, 1.1, 0.93),
+              button=(0.0158, 0.0160, 0.0084, -0.0005, 0.0005, 1.2, 0.9),
               broad=(0.0180, 0.0212, 0.0112, 0.0000, 0.0004, 1.25, 1.0),
               flat=(0.0148, 0.0196, 0.0108, -0.0004, 0.0006, 1.15, 0.96),
               hooked=(0.0222, 0.0170, 0.0090, 0.0014, -0.0020, 0.95, 1.06),
@@ -766,14 +766,15 @@ def species_np(x, y, z, la, lo, F):
         d += 0.0020 * ga(la + 34 - 6 * sm(70, 30, ang), 3.0) * sm(25, 45, ang) * sm(85, 65, ang)
     elif sp == "ferengi":
         s = sm(-0.02, 0.10, z)
-        x = x * (1 + 0.17 * s)
-        y = np.where(y < 0, y * (1 + 0.16 * s), y)
-        z = z * (1 + 0.07 * s)
-        d -= 0.0045 * ga(x, 0.009) * sm(0.07, 0.105, z) * sm(-0.06, 0.0, y)                    # cranial furrow
-        for i in range(5):
+        lobe = 1.0 - 0.45 * fem
+        x = x * (1 + 0.17 * lobe * s)
+        y = np.where(y < 0, y * (1 + 0.16 * lobe * s), y)
+        z = z * (1 + 0.07 * lobe * s)
+        d -= 0.0045 * lobe * ga(x, 0.009) * sm(0.07, 0.105, z) * sm(-0.06, 0.0, y)            # cranial furrow
+        for i in range(5 if not fem else 3):
             zc = bz + 0.013 + 0.0125 * i + 0.0025 * np.sin(x * 140 + i)
-            d += 0.0021 * ga(z - zc, 0.0026) * sm(0.06, 0.02, ax) * front
-        d += 0.0034 * ga(z - (bz + 0.002), 0.007) * sm(0.062, 0.03, ax) * front
+            d += 0.0021 * lobe * ga(z - zc, 0.0026) * sm(0.06, 0.02, ax) * front
+        d += 0.0034 * lobe * ga(z - (bz + 0.002), 0.007) * sm(0.062, 0.03, ax) * front
         for zr in (F["nz"] - 0.002, F["nz"] - 0.007, F["nz"] - 0.012, F["nz"] - 0.017):        # nose ridges
             d += 0.0011 * ga(z - zr, 0.0011) * sm(0.012, 0.004, ax) * front
     elif sp == "tellarite":
@@ -1360,7 +1361,7 @@ def skin_masks(Q, LA=None, LO=None):
         col = np.asarray(col, float)
         tint = tint * (1 - amt[:, None]) + tint * col[None, :] * amt[:, None]
     # warmth: cheeks, nose, chin, ears (or species flush)
-    flush = np.array({"andorian": (0.90, 0.84, 1.08), "cardassian": (1.07, 0.96, 0.84), "klingon": (1.07, 0.88, 0.84),
+    flush = np.array({"andorian": (0.90, 0.84, 1.08), "cardassian": (1.10, 0.95, 0.80), "klingon": (1.07, 0.88, 0.84),
                       "tellarite": (1.08, 0.80, 0.78)}.get(sp, (1.05, 0.73, 0.71)))
     cheek = ga(ax - 0.040, 0.016) * ga(z - (ez - 0.028), 0.018) * fy
     nose = ga(x, 0.010) * ga(z - (tz + 0.002), 0.009) * fy
@@ -1389,7 +1390,7 @@ def skin_masks(Q, LA=None, LO=None):
     nos = np.exp(-0.5 * (((ax - F["nose_w"] * 0.36) / 0.0022) ** 2 + ((z - (sz + 0.0020)) / 0.0013) ** 2)) * fy
     if F["nose"] == "snout":
         nos = np.exp(-0.5 * (((ax - 0.0068) / 0.0028) ** 2 + ((z - (tz + 0.0005)) / 0.0036) ** 2)) * fy
-    toward((0.35, 0.20, 0.18), np.clip(nos * 0.9, 0, 1))
+    toward((0.45, 0.28, 0.25), np.clip(nos * 0.75, 0, 1))
     # beard shadow (men) / stubble zone
     bz_ = beard_zone(Q)
     if F["fem"] == 0 and sp not in ("andorian", "ferengi", "cardassian"):
@@ -1771,7 +1772,7 @@ def ears(mb, kind="human"):
     for sx in (-1, 1):
         root, ax, ay, az = ear_frame(sx, kind)
         if kind == "ferengi":
-            out[sx] = ferengi_ear(mb, sx, root, ax, ay, az, 1.0 if not F["fem"] else 0.86)
+            out[sx] = ferengi_ear(mb, sx, root, ax, ay, az, 1.22 if not F["fem"] else 0.98)
             continue
         radii = (0.009 * scale, 0.019 * scale, 0.031 * scale)
         cc = root + ax * 0.002 - ay * 0.002
@@ -2268,13 +2269,13 @@ def children(Pg, groots, croots, cidx, st, field, bodyc, seed, tie_at=None):
     wave = st.get("wave")
     if wave:
         a, per = wave
-        ph = R.uniform(0, 2 * pi, len(C))[:, None] * 0.3 + (cidx % 7)[:, None] * 0.9
+        ph = R.uniform(0, 0.6, len(C))[:, None] + ((cidx * 2.399) % (2 * pi))[:, None]
         C = C + e1 * (a * np.sin(2 * pi * s / per + ph))[..., None] * ramp
     curl = st.get("curl")
     if curl:
         a, per = curl
-        ph = R.uniform(0, 2 * pi, len(C))[:, None]
-        av = a * R.uniform(0.7, 1.3, len(C))[:, None]
+        ph = R.uniform(0, 0.9, len(C))[:, None] + ((cidx * 2.399) % (2 * pi))[:, None]
+        av = a * R.uniform(0.8, 1.2, len(C))[:, None]
         C = C + (e1 * (av * np.cos(2 * pi * s / per + ph))[..., None] + e2 * (av * np.sin(2 * pi * s / per + ph))[..., None]) * ramp
     fr = st.get("frizz", 0.1)
     if fr:
@@ -2340,8 +2341,8 @@ STYLES = {
                      wave=(0.003, 0.03)),
     "side_part": dict(hug=0.012, comb="part", part=62, L=dict(top=0.065, front=0.07, side=0.018, back=0.014), lift=0.007, grav=0.2,
                       stiff=0.78, frizz=0.12, clump=0.6, S=14, n=28000, guides=1000, rise=0.3),
-    "swept": dict(comb="part", part=118, L=dict(top=0.085, front=0.10, side=0.03, back=0.026), lift=0.010, grav=0.25,
-                  stiff=0.8, frizz=0.18, clump=0.65, S=16, n=30000, guides=1000, rise=0.35, wave=(0.002, 0.05)),
+    "swept": dict(hug=0.014, comb="part", part=118, L=dict(top=0.085, front=0.10, side=0.03, back=0.026), lift=0.009, grav=0.3,
+                  stiff=0.8, frizz=0.12, clump=0.65, S=16, n=30000, guides=1000, rise=0.2, wave=(0.002, 0.05)),
     "swept_back": dict(comb="back", L=dict(top=0.09, front=0.10, side=0.035, back=0.04), lift=0.013, grav=0.25,
                        stiff=0.82, frizz=0.15, clump=0.65, S=16, n=30000, guides=1000, rise=0.5, wave=(0.002, 0.06)),
     "slick": dict(hug=0.003, comb="back", L=dict(top=0.07, front=0.075, side=0.03, back=0.03), lift=0.0028, grav=0.3, stiff=0.88,
@@ -2713,7 +2714,7 @@ def details_portrait(mb, role, body):
             bc.surface_panel(mb, fn, nf, [z0, z0 + 0.02, z0 + 0.04], [D(62 + 56 * j / 10) for j in range(11)],
                              lambda z, t: 0.008 + 0.003 * math.sin(t) ** 4, "kl_metal" if k % 2 == 0 else "kl_leather", bc.T_CAND)
     elif f == "romulan" and CUR["sex"] == "f":
-        # her own cut: a tall stand collar, slim quilted shoulder caps, a V yoke and a wide sash with a clasp
+        # her own cut: a tall stand collar, slim quilted shoulder caps, a V trim and a shoulder clasp
         collar(mb, body, "rom_trim", h=0.030, out=0.004, flare=0.004)
         zs = [1.38 + (1.515 - 1.38) * i / 12 for i in range(13)]
         ths = [2 * pi * j / 72 for j in range(72)]
@@ -2722,7 +2723,6 @@ def details_portrait(mb, role, body):
         for sx in (1, -1):
             bc.ribbon(mb, fn, nf, lambda t, sx=sx: (1.49 - 0.17 * t, D(90 + sx * (34 - 30 * t))), 16, 0.010, 0.0075,
                       "rom_trim", bc.T_CAND, depth=0.002)
-        bc.ribbon(mb, fn, nf, lambda t: (1.44 - 0.32 * t, D(44 + 86 * t)), 40, 0.034, 0.0075, "rom_sash", bc.T_CAND, depth=0.004)
         p = body.torso(1.455, D(40), 0.014)
         n = body.torso_n(1.455, D(40))
         bc.tube(mb, p - n * 0.004, p + n * 0.004, 0.011, 0.010, 16, "rom_metal", bc.T_CAND)
@@ -2861,6 +2861,12 @@ def build_character(c, loc=V((0, 0, 0)), yaw=0.0, head_turn=0.0, cam=None, t_idl
         bajoran_earring(xm, es[1])
     if sp == "ferengi":
         ferengi_teeth(xm)
+        if c["sex"] == "f":
+            for sx in (-1, 1):
+                C_, ax_, ay_, az_, _ = es[sx]
+                for k_ in range(3):
+                    pc = C_ + ay_ * (-0.030 + 0.006 * k_) + az_ * (-0.030 + 0.012 * k_) + ax_ * 0.004
+                    bc.tube(xm, pc - ax_ * 0.004, pc + ax_ * 0.006, 0.0032, 0.0032, 14, "chain_gold", RIG_HEAD)
     if sp == "andorian":
         antennae(xm)
     if sp == "trill":
@@ -3269,7 +3275,7 @@ def write_json(cast):
                             seed=zlib.crc32(c["id"].encode()),
                             outfit="colony-service jumpsuit, department yoke" if FACTION_OF[c["species"]] == "federation"
                             else {"klingon": "dark leather, metal pauldrons and chest plates",
-                                  "romulan": ("grey-green tunic, high stand collar, quilted shoulder caps, sash with a clasp"
+                                  "romulan": ("grey-green tunic, high stand collar, slim quilted shoulder caps, V trim, shoulder clasp"
                                               if c["sex"] == "f" else "grey-green tunic, quilted padded shoulders"),
                                   "cardassian": "grey-brown ribbed armour, raised shoulder plates",
                                   "ferengi": "patterned jacket, gold flared collar"}[FACTION_OF[c["species"]]]))
