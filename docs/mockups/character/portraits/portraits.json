@@ -1,6 +1,6 @@
 {
- "generator": "blender/build_portraits.py",
- "note": "Mockup portraits (original designs; no canon uniforms or insignia).",
+ "generator": "blender/build_portraits_mh.py",
+ "note": "Mockup portraits on the MakeHuman 1.x base mesh (CC0); original designs, no canon uniforms or insignia.",
  "size": [
   640,
   640
@@ -30,9 +30,9 @@
    "department_colour": "#3E7FD6",
    "skin": "tan",
    "skin_rgb": [
-    0.78,
-    0.57,
-    0.43
+    0.7,
+    0.49,
+    0.36
    ],
    "hair": "darkbrown",
    "hair_style": "ponytail",
@@ -43,6 +43,19 @@
    "face_shape": "heart",
    "nose": "straight",
    "seed": 2590378543,
+   "expression": "smile",
+   "stylised_feature": "jaw",
+   "makehuman": {
+    "gender": 0.017,
+    "age": 0.562,
+    "muscle": 0.389,
+    "weight": 0.529,
+    "ethnicity": {
+     "african": 0.224,
+     "asian": 0.129,
+     "caucasian": 0.647
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -54,9 +67,9 @@
    "department_colour": "#C8423A",
    "skin": "light",
    "skin_rgb": [
-    0.88,
-    0.68,
-    0.56
+    0.8,
+    0.59,
+    0.47
    ],
    "hair": "brown",
    "hair_style": "side_part",
@@ -67,6 +80,19 @@
    "face_shape": "square",
    "nose": "roman",
    "seed": 3822977157,
+   "expression": "friendly",
+   "stylised_feature": "nose_hump",
+   "makehuman": {
+    "gender": 0.961,
+    "age": 0.669,
+    "muscle": 0.643,
+    "weight": 0.633,
+    "ethnicity": {
+     "african": 0.06,
+     "asian": 0.125,
+     "caucasian": 0.814
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -78,9 +104,9 @@
    "department_colour": "#4E9A5A",
    "skin": "olive",
    "skin_rgb": [
-    0.73,
-    0.56,
-    0.41
+    0.66,
+    0.49,
+    0.35
    ],
    "hair": "black",
    "hair_style": "vulcan_f",
@@ -91,6 +117,19 @@
    "face_shape": "oval",
    "nose": "straight",
    "seed": 717087073,
+   "expression": "calm",
+   "stylised_feature": "llip",
+   "makehuman": {
+    "gender": 0.013,
+    "age": 0.562,
+    "muscle": 0.401,
+    "weight": 0.587,
+    "ethnicity": {
+     "african": 0.125,
+     "asian": 0.205,
+     "caucasian": 0.67
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -102,9 +141,9 @@
    "department_colour": "#3E7FD6",
    "skin": "light",
    "skin_rgb": [
-    0.88,
-    0.68,
-    0.56
+    0.8,
+    0.59,
+    0.47
    ],
    "hair": "darkbrown",
    "hair_style": "bowl",
@@ -115,6 +154,19 @@
    "face_shape": "long",
    "nose": "aquiline",
    "seed": 1350448853,
+   "expression": "calm",
+   "stylised_feature": "chin_w",
+   "makehuman": {
+    "gender": 0.962,
+    "age": 0.662,
+    "muscle": 0.594,
+    "weight": 0.366,
+    "ethnicity": {
+     "african": 0.0,
+     "asian": 0.087,
+     "caucasian": 0.913
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -139,6 +191,19 @@
    "face_shape": "diamond",
    "nose": "button",
    "seed": 941526423,
+   "expression": "smile",
+   "stylised_feature": "nose_scale_vert",
+   "makehuman": {
+    "gender": 0.035,
+    "age": 0.515,
+    "muscle": 0.382,
+    "weight": 0.514,
+    "ethnicity": {
+     "african": 0.082,
+     "asian": 0.268,
+     "caucasian": 0.65
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -163,6 +228,19 @@
    "face_shape": "square",
    "nose": "broad",
    "seed": 3505075104,
+   "expression": "friendly",
+   "stylised_feature": "nose_flaring",
+   "makehuman": {
+    "gender": 0.971,
+    "age": 0.592,
+    "muscle": 0.672,
+    "weight": 0.541,
+    "ethnicity": {
+     "african": 0.081,
+     "asian": 0.181,
+     "caucasian": 0.738
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -185,8 +263,21 @@
    "age_band": "30-40",
    "apparent_age": 36,
    "face_shape": "round",
-   "nose": null,
+   "nose": "snout",
    "seed": 417545471,
+   "expression": "friendly",
+   "stylised_feature": "eye_c2",
+   "makehuman": {
+    "gender": 0.018,
+    "age": 0.585,
+    "muscle": 0.638,
+    "weight": 0.805,
+    "ethnicity": {
+     "african": 0.296,
+     "asian": 0.068,
+     "caucasian": 0.637
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -209,8 +300,21 @@
    "age_band": "40-50",
    "apparent_age": 47,
    "face_shape": "square",
-   "nose": null,
+   "nose": "snout",
    "seed": 1620075759,
+   "expression": "calm",
+   "stylised_feature": "cleft",
+   "makehuman": {
+    "gender": 0.964,
+    "age": 0.669,
+    "muscle": 0.752,
+    "weight": 0.897,
+    "ethnicity": {
+     "african": 0.312,
+     "asian": 0.07,
+     "caucasian": 0.618
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -222,12 +326,12 @@
    "department_colour": "#4E9A5A",
    "skin": "light",
    "skin_rgb": [
-    0.88,
-    0.68,
-    0.56
+    0.8,
+    0.59,
+    0.47
    ],
    "hair": "auburn",
-   "hair_style": "bob",
+   "hair_style": "ponytail",
    "beard": null,
    "eyes": "hazel",
    "age_band": "25-35",
@@ -235,6 +339,19 @@
    "face_shape": "heart",
    "nose": "snub",
    "seed": 3366975773,
+   "expression": "smile",
+   "stylised_feature": "nose_point",
+   "makehuman": {
+    "gender": 0.013,
+    "age": 0.515,
+    "muscle": 0.494,
+    "weight": 0.433,
+    "ethnicity": {
+     "african": 0.071,
+     "asian": 0.114,
+     "caucasian": 0.815
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -246,9 +363,9 @@
    "department_colour": "#3E7FD6",
    "skin": "brown",
    "skin_rgb": [
-    0.55,
-    0.38,
-    0.27
+    0.52,
+    0.35,
+    0.24
    ],
    "hair": "black",
    "hair_style": "fade",
@@ -259,6 +376,19 @@
    "face_shape": "long",
    "nose": "straight",
    "seed": 2993434281,
+   "expression": "friendly",
+   "stylised_feature": "ulip",
+   "makehuman": {
+    "gender": 0.989,
+    "age": 0.623,
+    "muscle": 0.552,
+    "weight": 0.564,
+    "ethnicity": {
+     "african": 0.563,
+     "asian": 0.107,
+     "caucasian": 0.329
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -270,9 +400,9 @@
    "department_colour": "#3E7FD6",
    "skin": "fair",
    "skin_rgb": [
-    0.93,
-    0.76,
-    0.66
+    0.86,
+    0.66,
+    0.55
    ],
    "hair": "blond",
    "hair_style": "long",
@@ -283,6 +413,19 @@
    "face_shape": "oval",
    "nose": "button",
    "seed": 1510473505,
+   "expression": "smile",
+   "stylised_feature": "nose_scale_vert",
+   "makehuman": {
+    "gender": 0.023,
+    "age": 0.508,
+    "muscle": 0.476,
+    "weight": 0.483,
+    "ethnicity": {
+     "african": 0.023,
+     "asian": 0.067,
+     "caucasian": 0.91
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -294,9 +437,9 @@
    "department_colour": "#4E9A5A",
    "skin": "light",
    "skin_rgb": [
-    0.88,
-    0.68,
-    0.56
+    0.8,
+    0.59,
+    0.47
    ],
    "hair": "chestnut",
    "hair_style": "swept",
@@ -307,6 +450,19 @@
    "face_shape": "diamond",
    "nose": "hooked",
    "seed": 549726357,
+   "expression": "friendly",
+   "stylised_feature": "nose_hump",
+   "makehuman": {
+    "gender": 0.988,
+    "age": 0.608,
+    "muscle": 0.539,
+    "weight": 0.509,
+    "ethnicity": {
+     "african": 0.001,
+     "asian": 0.08,
+     "caucasian": 0.919
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -318,9 +474,9 @@
    "department_colour": "#C8423A",
    "skin": "olive",
    "skin_rgb": [
-    0.73,
-    0.56,
-    0.41
+    0.66,
+    0.49,
+    0.35
    ],
    "hair": "black",
    "hair_style": "curly_long",
@@ -331,6 +487,19 @@
    "face_shape": "round",
    "nose": "straight",
    "seed": 458853781,
+   "expression": "friendly",
+   "stylised_feature": "dimples",
+   "makehuman": {
+    "gender": 0.024,
+    "age": 0.531,
+    "muscle": 0.593,
+    "weight": 0.514,
+    "ethnicity": {
+     "african": 0.135,
+     "asian": 0.206,
+     "caucasian": 0.659
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -342,9 +511,9 @@
    "department_colour": "#D9A23A",
    "skin": "tan",
    "skin_rgb": [
-    0.78,
-    0.57,
-    0.43
+    0.7,
+    0.49,
+    0.36
    ],
    "hair": "black",
    "hair_style": "textured",
@@ -355,6 +524,19 @@
    "face_shape": "oval",
    "nose": "straight",
    "seed": 1740460955,
+   "expression": "smile",
+   "stylised_feature": "chin_prom",
+   "makehuman": {
+    "gender": 0.982,
+    "age": 0.569,
+    "muscle": 0.617,
+    "weight": 0.519,
+    "ethnicity": {
+     "african": 0.237,
+     "asian": 0.169,
+     "caucasian": 0.594
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -366,9 +548,9 @@
    "department_colour": "#3E7FD6",
    "skin": "deep",
    "skin_rgb": [
-    0.28,
-    0.185,
-    0.14
+    0.27,
+    0.175,
+    0.13
    ],
    "hair": "black",
    "hair_style": "crop",
@@ -379,6 +561,19 @@
    "face_shape": "round",
    "nose": "broad",
    "seed": 2108667276,
+   "expression": "smile",
+   "stylised_feature": "nose_nostrils_width",
+   "makehuman": {
+    "gender": 0.992,
+    "age": 0.754,
+    "muscle": 0.638,
+    "weight": 0.644,
+    "ethnicity": {
+     "african": 0.972,
+     "asian": 0.007,
+     "caucasian": 0.021
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -390,9 +585,9 @@
    "department_colour": "#C8423A",
    "skin": "eastasian",
    "skin_rgb": [
-    0.89,
-    0.72,
-    0.57
+    0.82,
+    0.63,
+    0.49
    ],
    "hair": "black",
    "hair_style": "undercut",
@@ -403,6 +598,19 @@
    "face_shape": "diamond",
    "nose": "flat",
    "seed": 1636539992,
+   "expression": "calm",
+   "stylised_feature": "nose_scale_depth",
+   "makehuman": {
+    "gender": 0.003,
+    "age": 0.508,
+    "muscle": 0.462,
+    "weight": 0.365,
+    "ethnicity": {
+     "african": 0.005,
+     "asian": 0.889,
+     "caucasian": 0.107
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -414,9 +622,9 @@
    "department_colour": "#D9A23A",
    "skin": "dark",
    "skin_rgb": [
-    0.39,
-    0.26,
-    0.19
+    0.37,
+    0.24,
+    0.17
    ],
    "hair": "black",
    "hair_style": "coils",
@@ -427,6 +635,19 @@
    "face_shape": "oval",
    "nose": "broad",
    "seed": 4263790550,
+   "expression": "smile",
+   "stylised_feature": "nose_scale_horiz",
+   "makehuman": {
+    "gender": 0.994,
+    "age": 0.515,
+    "muscle": 0.554,
+    "weight": 0.438,
+    "ethnicity": {
+     "african": 0.728,
+     "asian": 0.071,
+     "caucasian": 0.202
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -438,9 +659,9 @@
    "department_colour": "#4E9A5A",
    "skin": "fair",
    "skin_rgb": [
-    0.93,
-    0.76,
-    0.66
+    0.86,
+    0.66,
+    0.55
    ],
    "hair": "chestnut",
    "hair_style": "bun",
@@ -451,6 +672,19 @@
    "face_shape": "long",
    "nose": "straight",
    "seed": 124543544,
+   "expression": "smile",
+   "stylised_feature": "ulip",
+   "makehuman": {
+    "gender": 0.027,
+    "age": 0.746,
+    "muscle": 0.589,
+    "weight": 0.671,
+    "ethnicity": {
+     "african": 0.032,
+     "asian": 0.034,
+     "caucasian": 0.934
+    }
+   },
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -475,7 +709,20 @@
    "face_shape": "diamond",
    "nose": "broad",
    "seed": 4716267,
-   "outfit": "dark leather, metal pauldrons and chest plates"
+   "expression": "calm",
+   "stylised_feature": "nose_flaring",
+   "makehuman": {
+    "gender": 0.024,
+    "age": 0.569,
+    "muscle": 0.518,
+    "weight": 0.389,
+    "ethnicity": {
+     "african": 0.47,
+     "asian": 0.092,
+     "caucasian": 0.439
+    }
+   },
+   "outfit": "dark leather, layered metal pauldrons and chest plates, red-trimmed collar"
   },
   {
    "file": "klingon_m.jpg",
@@ -499,7 +746,20 @@
    "face_shape": "square",
    "nose": "broad",
    "seed": 2543136611,
-   "outfit": "dark leather, metal pauldrons and chest plates"
+   "expression": "calm",
+   "stylised_feature": "nose_flaring",
+   "makehuman": {
+    "gender": 0.99,
+    "age": 0.669,
+    "muscle": 0.699,
+    "weight": 0.848,
+    "ethnicity": {
+     "african": 0.598,
+     "asian": 0.004,
+     "caucasian": 0.398
+    }
+   },
+   "outfit": "dark leather, layered metal pauldrons and chest plates, red-trimmed collar"
   },
   {
    "file": "romulan_f.jpg",
@@ -510,9 +770,9 @@
    "department_colour": null,
    "skin": "romulan",
    "skin_rgb": [
-    0.86,
-    0.71,
-    0.59
+    0.8,
+    0.63,
+    0.51
    ],
    "hair": "black",
    "hair_style": "romulan_f",
@@ -523,7 +783,20 @@
    "face_shape": "heart",
    "nose": "straight",
    "seed": 2231014731,
-   "outfit": "grey-green tunic, high stand collar, slim quilted shoulder caps, V trim, shoulder clasp"
+   "expression": "friendly",
+   "stylised_feature": "ear_wing",
+   "makehuman": {
+    "gender": 0.035,
+    "age": 0.577,
+    "muscle": 0.588,
+    "weight": 0.513,
+    "ethnicity": {
+     "african": 0.039,
+     "asian": 0.287,
+     "caucasian": 0.674
+    }
+   },
+   "outfit": "grey-green tunic, high stand collar, slim quilted shoulder caps"
   },
   {
    "file": "romulan_m.jpg",
@@ -534,9 +807,9 @@
    "department_colour": null,
    "skin": "tan",
    "skin_rgb": [
-    0.78,
-    0.57,
-    0.43
+    0.7,
+    0.49,
+    0.36
    ],
    "hair": "darkbrown",
    "hair_style": "bowl",
@@ -547,6 +820,19 @@
    "face_shape": "long",
    "nose": "roman",
    "seed": 321408195,
+   "expression": "calm",
+   "stylised_feature": "nose_hump",
+   "makehuman": {
+    "gender": 0.979,
+    "age": 0.669,
+    "muscle": 0.692,
+    "weight": 0.562,
+    "ethnicity": {
+     "african": 0.179,
+     "asian": 0.171,
+     "caucasian": 0.65
+    }
+   },
    "outfit": "grey-green tunic, quilted padded shoulders"
   },
   {
@@ -571,7 +857,20 @@
    "face_shape": "oval",
    "nose": "straight",
    "seed": 3322169112,
-   "outfit": "grey-brown ribbed armour, raised shoulder plates"
+   "expression": "friendly",
+   "stylised_feature": "jaw",
+   "makehuman": {
+    "gender": 0.02,
+    "age": 0.569,
+    "muscle": 0.573,
+    "weight": 0.429,
+    "ethnicity": {
+     "african": 0.123,
+     "asian": 0.173,
+     "caucasian": 0.704
+    }
+   },
+   "outfit": "grey-brown ribbed armour, shoulder plates rising to a flared neck plate"
   },
   {
    "file": "cardassian_m.jpg",
@@ -595,7 +894,20 @@
    "face_shape": "square",
    "nose": "roman",
    "seed": 1373019792,
-   "outfit": "grey-brown ribbed armour, raised shoulder plates"
+   "expression": "friendly",
+   "stylised_feature": "nose_hump",
+   "makehuman": {
+    "gender": 0.978,
+    "age": 0.677,
+    "muscle": 0.756,
+    "weight": 0.7,
+    "ethnicity": {
+     "african": 0.158,
+     "asian": 0.232,
+     "caucasian": 0.61
+    }
+   },
+   "outfit": "grey-brown ribbed armour, shoulder plates rising to a flared neck plate"
   },
   {
    "file": "ferengi_f.jpg",
@@ -606,9 +918,9 @@
    "department_colour": null,
    "skin": "ferengi",
    "skin_rgb": [
-    0.88,
-    0.67,
-    0.5
+    0.84,
+    0.62,
+    0.46
    ],
    "hair": "none (bald)",
    "hair_style": "bald",
@@ -617,9 +929,22 @@
    "age_band": "25-35",
    "apparent_age": 27,
    "face_shape": "heart",
-   "nose": null,
+   "nose": "button",
    "seed": 749891195,
-   "outfit": "patterned jacket, gold flared collar"
+   "expression": "grin",
+   "stylised_feature": "nose_scale_vert",
+   "makehuman": {
+    "gender": 0.037,
+    "age": 0.515,
+    "muscle": 0.494,
+    "weight": 0.48,
+    "ethnicity": {
+     "african": 0.058,
+     "asian": 0.331,
+     "caucasian": 0.611
+    }
+   },
+   "outfit": "patterned jacket, cream shirt front, gold flared collar"
   },
   {
    "file": "ferengi_m.jpg",
@@ -630,9 +955,9 @@
    "department_colour": null,
    "skin": "ferengi",
    "skin_rgb": [
-    0.88,
-    0.67,
-    0.5
+    0.84,
+    0.62,
+    0.46
    ],
    "hair": "none (bald)",
    "hair_style": "bald",
@@ -641,9 +966,22 @@
    "age_band": "40-50",
    "apparent_age": 47,
    "face_shape": "round",
-   "nose": null,
+   "nose": "flat",
    "seed": 3143677939,
-   "outfit": "patterned jacket, gold flared collar"
+   "expression": "grin",
+   "stylised_feature": "jaw",
+   "makehuman": {
+    "gender": 0.991,
+    "age": 0.669,
+    "muscle": 0.576,
+    "weight": 0.566,
+    "ethnicity": {
+     "african": 0.062,
+     "asian": 0.353,
+     "caucasian": 0.585
+    }
+   },
+   "outfit": "patterned jacket, cream shirt front, gold flared collar"
   }
  ]
 }
