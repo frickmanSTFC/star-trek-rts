@@ -389,6 +389,10 @@ public sealed class Satellite
     /// <summary>Columns swept so far (keeps counting past the width as it goes round again).</summary>
     public int Swept { get; internal set; }
 
+    /// <summary>The map column it unfolded over (the spot the player clicked) and its first sweep starts from: column
+    /// swept n is (StartColumn + n) mod width. Set once at launch.</summary>
+    public int StartColumn { get; init; }
+
     /// <summary>Swept when the current run of sweeping began (at ReadyTick): the sweep's target counts on from here.</summary>
     public int SweepBase { get; internal set; }
 
@@ -454,6 +458,7 @@ public sealed class Satellite
             h.Add(f.Detail);
             h.Add(f.First);
         }
+        if (StartColumn != 0) h.Add(StartColumn); // only when set, so satellites over column 0 hash as before
         if (Kind != SatelliteKind.Survey || StationTile != -1) // relays only, so games without them hash as before
         {
             h.Add((int)Kind);

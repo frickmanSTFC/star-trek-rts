@@ -69,6 +69,9 @@ public sealed partial class PlanetSurface
         return all == 0 ? Fix64.Zero : Fix64.FromInt(done) / Fix64.FromInt(all);
     }
 
+    /// <summary>The map column a satellite is over now: where it unfolded plus the columns it has swept since.</summary>
+    public int SatelliteColumn(Satellite sat) => (sat.StartColumn + sat.Swept) % Map.Grid.Width;
+
     /// <summary>Progress 0..1 through the current lap (0 while deploying before the first sweep).</summary>
     public Fix64 SatelliteLapProgress(Satellite sat) =>
         Fix64.FromInt(sat.Swept % Map.Grid.Width) / Fix64.FromInt(Map.Grid.Width);
@@ -100,7 +103,7 @@ public sealed partial class PlanetSurface
         foreach (var s in _satellites)
             if (s.Owner == command.Player && s.Kind == SatelliteKind.Survey) ordinal++;
         _satellites.Add(new Satellite(_nextSatelliteId++, command.Player, command.Row, sim.Tick, sim.Tick + Ticks(orbit.SatelliteDeploySeconds),
-            ordinal, SatelliteCallSign(command.Player, ordinal)));
+            ordinal, SatelliteCallSign(command.Player, ordinal)) { StartColumn = command.Column });
     }
 
     private bool ApplyRetask(Simulation sim, RetaskSatelliteCommand command)
@@ -135,7 +138,7 @@ public sealed partial class PlanetSurface
             var (first, last) = SatelliteBand(sat);
             for (; sat.Swept < target; sat.Swept++)
             {
-                var col = sat.Swept % g.Width;
+                var col = (sat.StartColumn + sat.Swept) % g.Width; // it unfolded over StartColumn
                 for (var r = first; r <= last; r++) SurveyFromOrbit(sim, sat, g.Index(col, r));
                 WeatherUnder(sim, sat, g.Index(col, System.Math.Clamp(sat.Row, 0, g.Height - 1)));
                 sat.Passes = (sat.Swept + 1) / g.Width;

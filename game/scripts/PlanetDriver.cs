@@ -368,7 +368,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (tile < 0) return "pick a spot on the planet";
         if (action == "land") return Surface.LandProblem(_sim, LocalPlayer, tile); // incl. "a storm over the site …" (climate)
         if (action == "outpost") return Surface.OutpostProblem(_sim, LocalPlayer, tile);
-        if (action == "satellite") return Surface.SatelliteProblem(_sim, LocalPlayer, Surface.Map.Grid.Row(tile));
+        if (action == "satellite") return Surface.SatelliteProblem(_sim, LocalPlayer, Surface.Map.Grid.Row(tile), Surface.Map.Grid.Column(tile));
         if (action == "relay") return RelayOrbitProblem(tile);
         if (action.StartsWith("shuttle:")) return Surface.ShuttleProblem(_sim, LocalPlayer, tile, action[8..]);
         if (action.StartsWith("beam:")) return Surface.BeamProblem(_sim, LocalPlayer, tile, action[5..]);
@@ -403,7 +403,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         Sfx.Ui("confirm");
         if (a == "land") _sim.Schedule(when, new LandColonyCommand(LocalPlayer, tile));
         else if (a == "outpost") _sim.Schedule(when, new OutpostDropCommand(LocalPlayer, tile));
-        else if (a == "satellite") _sim.Schedule(when, new SatelliteCommand(LocalPlayer, Surface.Map.Grid.Row(tile)));
+        else if (a == "satellite") SendSatellite(when, tile); // PlanetDriver.Satellites.cs
         else if (a == "relay") SendRelay(tile);
         else if (a.StartsWith("shuttle:")) _sim.Schedule(when, new ShuttleCommand(LocalPlayer, tile, a[8..]));
         else if (a.StartsWith("beam:")) _sim.Schedule(when, new BeamCommand(LocalPlayer, tile, a[5..]));

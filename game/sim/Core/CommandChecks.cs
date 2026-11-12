@@ -194,7 +194,7 @@ public static class CommandHash
             case OutpostDropCommand c: h.Add(c.Tile); break;
             case ShuttleCommand c: h.Add(c.Tile); Text(ref h, c.UnitId); break;
             case BeamCommand c: h.Add(c.Tile); Text(ref h, c.Payload); break;
-            case SatelliteCommand c: h.Add(c.Row); break;
+            case SatelliteCommand c: h.Add(c.Row); h.Add(c.Column); break;
             case RetaskSatelliteCommand c: h.Add(c.SatelliteId); h.Add(c.Row); break;
             case ResearchCommand c: Text(ref h, c.TechId); break;
             case MaintainCommand c: h.Add(c.StructureId); break;

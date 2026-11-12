@@ -182,7 +182,7 @@ public class CommandFuzzTests
                 case 10: return new OutpostDropCommand(p, Tile());
                 case 11: return new ShuttleCommand(p, Tile(), SurfaceUnitId()!);
                 case 12: return new BeamCommand(p, Tile(), SurfaceUnitId()!);
-                case 13: return new SatelliteCommand(p, Chance(80) ? N(S.Map.Grid.Height) : AnyInt());
+                case 13: return new SatelliteCommand(p, Chance(80) ? N(S.Map.Grid.Height) : AnyInt(), Chance(50) ? 0 : Chance(80) ? N(S.Map.Grid.Width) : AnyInt());
                 case 14: return new ResearchCommand(p, TechId()!);
                 case 15: return new MaintainCommand(p, StructureId());
                 case 16: return new RepairCommand(p, UnitIds());
