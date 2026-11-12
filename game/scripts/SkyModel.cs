@@ -68,6 +68,14 @@ public static class SkyModel
         return new Color(1f, Mathf.Lerp(0.56f, 1f, k), Mathf.Lerp(0.34f, 1f, k));
     }
 
+    /// <summary>sky_shade's sky light at full night: a moonlit floor, ~0.34 of noon's luminance, so from far up the night
+    /// side reads darker and bluer but plainly readable (owner 2026-11-12, third "too dark"; was (0.13, 0.15, 0.22), before
+    /// that (0.05, 0.065, 0.12)). Keep in step with sky.gdshaderinc.</summary>
+    public static readonly Vector3 NightShade = new(0.36f, 0.42f, 0.6f);
+
+    /// <summary>sky_shade's sky light once the sun is up (unchanged).</summary>
+    public static readonly Vector3 DayShade = new(0.22f, 0.23f, 0.25f);
+
     /// <summary>How lit a daylight value looks (sky.gdshaderinc sky_shade(): keep the two the same).</summary>
     public static Vector3 Shade(float daylight)
     {
@@ -75,7 +83,7 @@ public static class SkyModel
         var sunOn = Mathf.SmoothStep(0f, 0.08f, d);
         var warm = Warm(d);
         var a = Mathf.SmoothStep(0f, 0.3f, d);
-        var ambient = new Vector3(Mathf.Lerp(0.13f, 0.22f, a), Mathf.Lerp(0.15f, 0.23f, a), Mathf.Lerp(0.22f, 0.25f, a)); // = sky_shade (night floor, 2026-11-10)
+        var ambient = NightShade.Lerp(DayShade, a); // = sky_shade
         return new Vector3(warm.R, warm.G, warm.B) * Mathf.Sqrt(d) * sunOn + ambient;
     }
 

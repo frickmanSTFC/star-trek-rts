@@ -49,8 +49,69 @@ public partial class PlanetDriver
     private float _forcedSubsolar, _forcedHourSeen = float.NaN;
     private double _skyHudAt = -10;
 
-    private static readonly Color NightAmbient = new(0.42f, 0.5f, 0.8f); // lighter moonlit blue (owner 2026-11-10: "still way too dark"; was 0.3, 0.4, 0.75)
-    private static readonly Color MoonColour = new(0.62f, 0.72f, 1f);
+    // ---- Night (owner 2026-11-12, the third time: "The darkness is still way too dark"). A bright moonlit night: terrain,
+    // buildings and vehicles read plainly with a cool tint, ~45-60% of the day's readability, while lamps and windows
+    // (x2.4 / x2.6 at night, PlanetView.Sky) and headlights (VehicleLights, 7.5-11) still stand out. History: ambient 0.1 -> 0.13 -> 0.3
+    // (2026-11-10) -> 0.45; moon 0.2 -> 0.26 -> 0.6 -> 0.8. Estimated with ACES (Classic): ground at the screen centre
+    // L* ~24 -> ~39 against ~56 by day (0.43 -> ~0.68 of the day's lightness; the old 0.43 read as "way too dark").
+    // SkyModel.Shade / sky.gdshaderinc sky_shade (the far view's night side) were raised to match.
+
+    /// <summary>Ambient light energy at full night (the day's comes from Planet.tscn, 0.38).</summary>
+    private const float NightAmbientEnergy = 0.45f;
+    /// <summary>Ambient colour at night: a moonlit blue, less saturated than before so warm ground still reads warm-ish
+    /// (was (0.42, 0.5, 0.8), before that (0.3, 0.4, 0.75)).</summary>
+    private static readonly Color NightAmbient = new(0.5f, 0.58f, 0.82f);
+    /// <summary>Clouds at night scatter a little light back: the night ambient is x (1 + this x cloud).</summary>
+    private const float NightCloudAmbient = 0.15f;
+    /// <summary>The moon: a no-shadow directional key light at night (was 0.6).</summary>
+    private const float MoonEnergy = 0.8f;
+    /// <summary>How much full cloud cover dims the moon (was 0.6: overcast nights went nearly black).</summary>
+    private const float MoonCloudDim = 0.4f;
+    /// <summary>Moonlight colour (was (0.62, 0.72, 1): so blue that green and brown ground reflected little of it).</summary>
+    private static readonly Color MoonColour = new(0.7f, 0.78f, 1f);
+    /// <summary>The sky dome's horizon and zenith at night (were (0.02, 0.03, 0.06) and (0.004, 0.006, 0.018)): a moonlit
+    /// sky, still dark enough for the stars.</summary>
+    private static readonly Color NightHorizon = new(0.05f, 0.07f, 0.13f);
+    private static readonly Color NightZenith = new(0.012f, 0.018f, 0.045f);
+    /// <summary>The haze never goes darker than this at night (before, the near-black (0.03, 0.04, 0.08) haze took 36% of
+    /// the ground at the view's centre and more toward the horizon, which made the night look darker than its light).</summary>
+    private static readonly Color NightHaze = new(0.07f, 0.09f, 0.15f);
+    /// <summary>Weather haze (fog, rain, snow, dust) brightness at night, x its day colour (was 0.08: a black wall), and the
+    /// moonlit tint it takes on.</summary>
+    private const float NightWeatherLight = 0.25f;
+    private static readonly Color NightWeatherTint = new(0.82f, 0.9f, 1.15f);
+    /// <summary>Classic: the glow threshold at full night (was 0.7; 0.8 keeps moonlit snow from blooming, lamps still do).</summary>
+    private const float NightGlowThreshold = 0.8f;
+    /// <summary>Enhanced (AgX): exposure by day and at full night (unchanged: the lights themselves are brighter now) and the
+    /// glow threshold at night (was 0.72).</summary>
+    private const float EnhancedDayExposure = 1.05f, EnhancedNightExposure = 1.22f, EnhancedNightGlowThreshold = 0.8f;
+
+    // ---- Weather haze (owner 2026-11-12: "When fog (not fog of war) is there, it is also too thick. It should be there,
+    // but not prevent you from seeing anything"). MoveCamera sets the clear-air haze (density x camera distance =
+    // HazeDepth, ~36% at the view's centre); the weather adds to it, softly capped so the ground at the view's centre (up
+    // close: WeatherHazeReach away) never fades by more than 1 - e^-WeatherHazeMaxDepth (~46%): a visible grey haze, the
+    // distance fading, your base and vehicles clear. Before: x (1 + 5 fog + 3 dust + 0.8 rain + 1.2 snow), about x5.5 in
+    // thick fog (92% at the centre), plus a ~45% height-fog floor everywhere, and in Enhanced a fixed volumetric
+    // 0.004 x fog that was a wall at the default zoom.
+
+    /// <summary>MoveCamera's clear-air haze: density = HazeDepth / max(60, camera distance).</summary>
+    private const float HazeDepth = 0.45f;
+    /// <summary>How much each kind of weather thickens the haze (x the clear density, before the cap; less from far up).</summary>
+    private const float WeatherFog = 1.2f, WeatherDust = 1.0f, WeatherRain = 0.35f, WeatherSnow = 0.5f;
+    /// <summary>The cap: optical depth at the view's centre the weather can bring it to (close/default zoom, far overview).</summary>
+    private const float WeatherHazeMaxDepth = 0.62f, WeatherHazeMaxDepthFar = 0.5f;
+    /// <summary>Up close the cap holds out to this distance (your base, not just the vehicle in front of the camera).</summary>
+    private const float WeatherHazeReach = 100f;
+    /// <summary>Weather may always be this much thicker than clear air (so fog shows up close, where clear air already
+    /// fades the base a little).</summary>
+    private const float WeatherHazeMinBoost = 1.25f;
+    /// <summary>Low ground fog: Godot's height fog adds 1 - e^-(depth below FogHeight x density) to everything under
+    /// FogHeight whatever its distance, so it is a floor: ~21% on the ground in thick fog, ~12% in a dust storm, less from
+    /// far up (was 0.03 / 0.015, ~45%).</summary>
+    private const float HeightFogFog = 0.012f, HeightFogDust = 0.006f, HeightFogAbove = 22f;
+    /// <summary>Enhanced: the share of the capped haze drawn as volumetric fog, and what the exponential fog keeps (total
+    /// ~1, so the cap holds; was 0.3 + 0.85 plus a fixed 0.004 fog + 0.002 dust).</summary>
+    private const float VolumetricShare = 0.3f, ExponentialShareWithVolumetric = 0.75f;
 
     private void SetupSky()
     {
@@ -356,7 +417,7 @@ public partial class PlanetDriver
             var on = sunEnergy > 0.005f;
             if (_sun.Visible != on) _sun.Visible = on;
         }
-        var moonEnergy = 0.6f * (1f - Mathf.SmoothStep(0f, 0.08f, dayRef)) * (1f - 0.6f * _cloudEased); // night brighter (owner 2026-11-10 twice; was 0.2, then 0.26)
+        var moonEnergy = MoonEnergy * (1f - Mathf.SmoothStep(0f, 0.08f, dayRef)) * (1f - MoonCloudDim * _cloudEased);
         _moonLight.LightEnergy = moonEnergy;
         _moonLight.Basis = Basis.LookingAt(-SkyModel.SunDirection(50f, azimuth + 180f), Vector3.Up);
         var moonOn = moonEnergy > 0.003f;
@@ -367,12 +428,17 @@ public partial class PlanetDriver
         var wide = Mathf.SmoothStep(150f, 900f, _distance);
         var grey = new Color(0.62f, 0.65f, 0.7f);
         var dayHorizon = _skyColour.Lightened(0.25f).Lerp(grey, 0.7f * _cloudEased) * SkyModel.Warm(Mathf.Max(dayRef, 0.2f));
-        var nightHorizon = new Color(0.02f, 0.03f, 0.06f);
-        var horizon = nightHorizon.Lerp(dayHorizon, light);
-        var weatherTint = (_look.Dust > Mathf.Max(_look.Fog, Mathf.Max(_look.Rain, _look.Snow)) ? _view.Look.FogDust : grey) * Mathf.Max(light, 0.08f);
+        var horizon = NightHorizon.Lerp(dayHorizon, light);
+        // Weather haze: grey (or the world's dust); at night dimmed but moonlit, never black.
+        var weatherTint = (_look.Dust > Mathf.Max(_look.Fog, Mathf.Max(_look.Rain, _look.Snow)) ? _view.Look.FogDust : grey)
+                          * Colors.White.Lerp(NightWeatherTint, night) * Mathf.Max(light, NightWeatherLight);
         var thick = Mathf.Clamp(Mathf.Max(Mathf.Max(_look.Fog, _look.Rain * 0.5f), Mathf.Max(_look.Snow * 0.6f, _look.Dust)), 0f, 1f) * (1f - 0.5f * wide);
         // Close up the haze takes on the sky (darkened: it fills the near air too), so far ground fades into the horizon.
-        var fogColour = _baseFogColour.Lerp(horizon * 0.65f, tilt * 0.75f).Lerp(weatherTint, thick) + new Color(0.5f, 0.55f, 0.7f) * flash * 0.3f;
+        var fogColour = _baseFogColour.Lerp(horizon * 0.65f, tilt * 0.75f).Lerp(weatherTint, thick);
+        // At night the haze is moonlit, not a black curtain over the ground (scaled by the night, so days are unchanged).
+        var hazeFloor = NightHaze * night;
+        fogColour = new Color(Mathf.Max(fogColour.R, hazeFloor.R), Mathf.Max(fogColour.G, hazeFloor.G), Mathf.Max(fogColour.B, hazeFloor.B))
+                    + new Color(0.5f, 0.55f, 0.7f) * flash * 0.3f;
         // Visual pass (PlanetDriver.Graphics.cs): Enhanced = the world class's haze tint (PlanetLook grade); Classic as above.
         var grading = GraphicsQuality.Grading;
         if (grading) fogColour *= _view.Look.GradeFogTint;
@@ -382,31 +448,32 @@ public partial class PlanetDriver
         if (_environment != null)
         {
             var a = Mathf.SmoothStep(0f, 0.3f, dayRef);
-            _environment.AmbientLightEnergy = Mathf.Lerp(0.3f, _baseAmbientEnergy, a) /* night floor (owner 2026-11-10: "still way too dark"; was 0.1, then 0.13) */ * (1f + 0.25f * _cloudEased * a) + flash * 0.8f;
+            _environment.AmbientLightEnergy = Mathf.Lerp(NightAmbientEnergy * (1f + NightCloudAmbient * _cloudEased), _baseAmbientEnergy, a)
+                                              * (1f + 0.25f * _cloudEased * a) + flash * 0.8f;
             _environment.AmbientLightColor = NightAmbient.Lerp(_baseAmbientColour, a).Lerp(grey, 0.3f * _cloudEased);
-            // MoveCamera set this frame's haze for the zoom; thicken it for the weather (less so from high above).
-            _environment.FogDensity *= 1f + (5f * _look.Fog + 3f * _look.Dust + 0.8f * _look.Rain + 1.2f * _look.Snow) * (1f - 0.6f * wide);
+            // MoveCamera set this frame's clear haze for the zoom; the weather thickens it, softly capped (see the constants).
+            _environment.FogDensity = WeatherHaze(_environment.FogDensity, wide);
             if (_volFogOn)
             {
-                // Enhanced fog: part of the haze becomes volumetric (lit by the sun, moon, lamps and headlights), the
-                // exponential/height fog keeps the far look a little thinner. Classic: neither line runs.
-                _gfxVolDensity = _environment.FogDensity * 0.3f + 0.004f * _look.Fog + 0.002f * _look.Dust;
-                _environment.FogDensity *= 0.85f;
+                // Enhanced fog: part of the (capped) haze becomes volumetric (lit by the sun, moon, lamps and headlights),
+                // the exponential/height fog keeps the rest. Classic: neither line runs.
+                _gfxVolDensity = _environment.FogDensity * VolumetricShare;
+                _environment.FogDensity *= ExponentialShareWithVolumetric;
             }
             _environment.FogLightColor = fogColour;
-            _environment.FogHeight = _view.GroundAt(site) + 22f;
-            _environment.FogHeightDensity = 0.03f * _look.Fog + 0.015f * _look.Dust;
+            _environment.FogHeight = _view.GroundAt(site) + HeightFogAbove;
+            _environment.FogHeightDensity = (HeightFogFog * _look.Fog + HeightFogDust * _look.Dust) * (1f - 0.5f * wide);
             if (grading)
             {
                 // Enhanced: nothing lit by daylight blooms (threshold above 1), lamps still do; night exposure lifted
                 // (owner 2026-11-10: nights too dark) on top of the same ambient.
-                _environment.GlowHdrThreshold = Mathf.Lerp(1.08f, 0.72f, night);
+                _environment.GlowHdrThreshold = Mathf.Lerp(1.08f, EnhancedNightGlowThreshold, night);
                 _environment.GlowIntensity = Mathf.Lerp(0.72f, 0.95f, night);
-                _environment.TonemapExposure = Mathf.Lerp(1.05f, 1.22f, night);
+                _environment.TonemapExposure = Mathf.Lerp(EnhancedDayExposure, EnhancedNightExposure, night);
             }
             else
             {
-                _environment.GlowHdrThreshold = Mathf.Lerp(_baseGlowThreshold, 0.7f, night);
+                _environment.GlowHdrThreshold = Mathf.Lerp(_baseGlowThreshold, NightGlowThreshold, night);
                 _environment.GlowIntensity = Mathf.Lerp(_baseGlowIntensity, _baseGlowIntensity * 1.3f, night);
             }
         }
@@ -414,7 +481,7 @@ public partial class PlanetDriver
         // Sky dome around the camera (only the part above the horizon is drawn).
         if (!_skyDome.Visible) _skyDome.Visible = true;
         _skyDome.GlobalPosition = _camera.GlobalPosition;
-        var zenith = new Color(0.004f, 0.006f, 0.018f).Lerp(_skyColour.Darkened(0.35f), light);
+        var zenith = NightZenith.Lerp(_skyColour.Darkened(0.35f), light);
         _skyDomeMaterial.SetShaderParameter("haze_colour", fogColour);
         _skyDomeMaterial.SetShaderParameter("horizon_colour", horizon.Lerp(weatherTint, thick));
         _skyDomeMaterial.SetShaderParameter("zenith_colour", zenith);
@@ -427,6 +494,20 @@ public partial class PlanetDriver
 
         if (!_weatherView.Visible) _weatherView.Visible = true;
         _weatherView.Update(_look, _focus with { Y = _view.GroundAt(_focus) }, _camera.GlobalPosition, _distance, _groundAt, delta);
+    }
+
+    /// <summary>The haze density for this frame's weather: the clear density (MoveCamera's, for the zoom) thickened by fog,
+    /// dust, rain and snow, then softly capped: the extra saturates toward the density at which the ground at the view's
+    /// centre (up close: WeatherHazeReach away) fades by at most 1 - e^-WeatherHazeMaxDepth. Clear air is unchanged.</summary>
+    private float WeatherHaze(float clear, float wide)
+    {
+        var weather = (WeatherFog * _look.Fog + WeatherDust * _look.Dust + WeatherRain * _look.Rain + WeatherSnow * _look.Snow) * (1f - 0.6f * wide);
+        var extra = clear * weather;
+        if (extra <= 0f) return clear;
+        var depth = Mathf.Lerp(WeatherHazeMaxDepth, WeatherHazeMaxDepthFar, wide);
+        var cap = Mathf.Max(depth / Mathf.Max(_distance, WeatherHazeReach), clear * WeatherHazeMinBoost);
+        var room = cap - clear;
+        return room <= 0f ? clear : clear + room * (1f - Mathf.Exp(-extra / room));
     }
 
     /// <summary>In orbit: put back what the orbit view shares with the surface (ambient colour, ground fog) and stop the

@@ -423,6 +423,12 @@ public partial class SurfaceFeed : Control
         if (_cam == 2 && vehicles == 0) _cam = 0;
     }
 
+    /// <summary>The feed's ambient at full night (was 0.2) and its colour by night / day.</summary>
+    private const float FeedNightAmbient = 0.38f;
+    private static readonly Color FeedNightAmbientColour = new(0.5f, 0.58f, 0.82f), FeedDayAmbientColour = new(0.55f, 0.6f, 0.72f);
+    /// <summary>Weather haze on the feed: 0.0035 + this × (1 − visibility) (was 0.012: thick fog hid the outpost ~40 away).</summary>
+    private const float FeedWeatherFog = 0.0055f;
+
     /// <summary>Sky colour from the planet class, dimmed at night and greyed by cloud; the Sun follows the local time.</summary>
     public void SetSkyColour(Color sky) => _skyColour = sky;
 
@@ -442,11 +448,14 @@ public partial class SurfaceFeed : Control
         _crt.SetShaderParameter("dust", dustStorm ? 1f : 0f);
         if (_sun != null && _sunSaved is { } saved)
             _sun.LightEnergy = climate is { } lc ? lc.SunEnergy : saved.Energy * Mathf.Lerp(0.18f, 1f, daylight) * (1f - 0.35f * cloud);
-        _environment.AmbientLightEnergy = Mathf.Lerp(0.2f, 0.45f, daylight);
+        // Moonlit at night like the surface (owner 2026-11-12: "still way too dark"; was 0.2 and the day's grey-blue), so
+        // the low-light imaging has something to amplify; the weather haze is capped so the outpost stays in view.
+        _environment.AmbientLightEnergy = Mathf.Lerp(FeedNightAmbient, 0.45f, daylight);
+        _environment.AmbientLightColor = FeedNightAmbientColour.Lerp(FeedDayAmbientColour, daylight);
         var vacuum = r?.Sky == SkyCondition.Vacuum;
         _environment.FogDensity = climate is { } fc
-            ? (vacuum ? 0.0004f : 0.0035f + 0.012f * (1f - fc.Visibility))
-            : vacuum ? 0.0004f : r?.Sky == SkyCondition.Fog ? 0.012f : r?.Sky == SkyCondition.DustStorm ? 0.009f : 0.0035f;
+            ? (vacuum ? 0.0004f : 0.0035f + FeedWeatherFog * (1f - fc.Visibility))
+            : vacuum ? 0.0004f : r?.Sky == SkyCondition.Fog ? 0.0075f : r?.Sky == SkyCondition.DustStorm ? 0.0065f : 0.0035f; // were 0.012 / 0.009
 
         // The sky only re-renders its radiance when its colours change, so step them.
         if (Mathf.Abs(daylight - _skyDaylight) < 0.03f && Mathf.Abs(cloud - _skyCloud) < 0.05f) return;

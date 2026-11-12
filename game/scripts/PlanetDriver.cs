@@ -2506,7 +2506,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _distance = Mathf.Lerp(_distance, _distanceTarget, k);
 
         // Haze and shadows follow the zoom: thick close up, thin from high above so the whole map stays readable.
-        if (_environment != null) _environment.FogDensity = 0.45f / Mathf.Max(60f, _distance);
+        if (_environment != null) _environment.FogDensity = HazeDepth / Mathf.Max(60f, _distance); // weather: PlanetDriver.Sky.cs WeatherHaze
         if (_sun != null) _sun.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 2.2f, 400f, 6000f);
 
         // Keep the focus over the map.
