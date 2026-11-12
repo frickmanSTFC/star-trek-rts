@@ -67,6 +67,7 @@ public static class CommandChecks
                 return c.Values.Count <= MaxIds ? null : "too many values";
             case DebugFlagCommand c: return Enum.IsDefined(c.Flag) ? null : "unknown flag";
             case DebugTechCommand c: return Id(c.TechId);
+            case DebugUnlockCommand c: return Id(c.BuildingId);
             case DebugAddPlayerCommand c: return Id(c.FactionId);
             case DebugDataCommand c:
                 if (c.Edits == null) return "no edits";
@@ -171,6 +172,7 @@ public static class CommandHash
         DebugRuinCommand => 118,
         DebugMissionCommand => 119,
         DebugJackCommand => 120,
+        DebugUnlockCommand => 121,
         _ => UnknownTag,
     };
 
@@ -243,6 +245,7 @@ public static class CommandHash
                 break;
             case DebugFlagCommand c: h.Add(c.Target); h.Add((int)c.Flag); h.Add(c.On); break;
             case DebugJackCommand c: h.Add(c.Target); break;
+            case DebugUnlockCommand c: h.Add(c.Target); Text(ref h, c.BuildingId); h.Add(c.Unlocked); break;
             case DebugTechCommand c: h.Add(c.Target); Text(ref h, c.TechId); h.Add(c.Known); h.Add(c.Progress); break;
             case DebugSurveyAllCommand c: h.Add(c.Target); break;
             case DebugDepositCommand c: h.Add(c.Tile); h.Add(c.Amount); break;

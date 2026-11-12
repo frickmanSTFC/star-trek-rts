@@ -78,6 +78,7 @@ public sealed partial class GameData
         ["marker"] = new[] { "at", "style", "radius", "offset", "label" },
         ["set_flag"] = new[] { "name" },
         ["start_mission"] = new[] { "id" },
+        ["unlock_buildings"] = new[] { "ids" },
         ["complete"] = Array.Empty<string>(),
         ["fail"] = Array.Empty<string>(),
     };
@@ -212,7 +213,12 @@ public sealed partial class GameData
             var fields = new Dictionary<string, string>(StringComparer.Ordinal);
             var lists = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
             var amounts = new List<(string, Fix64)>();
-            if (p.Value.ValueKind == JsonValueKind.Object)
+            if (p.Name == "unlock_buildings" && p.Value.ValueKind == JsonValueKind.Array) // shorthand: { "unlock_buildings": ["science_lab"] }
+            {
+                if (p.Value.EnumerateArray().All(x => x.ValueKind == JsonValueKind.String)) lists["ids"] = p.Value.EnumerateArray().Select(x => x.GetString()!).ToList();
+                else problems.Add($"{where} unlock_buildings: a list of building ids.");
+            }
+            else if (p.Value.ValueKind == JsonValueKind.Object)
                 foreach (var f in p.Value.EnumerateObject())
                 {
                     if (p.Name == "grant")
@@ -632,6 +638,12 @@ public sealed partial class GameData
                 break;
             case "start_mission":
                 if (a.F("id") is not { } mid || data.Find(mid) == null) problems.Add($"{aw}: unknown mission '{a.F("id")}'.");
+                break;
+            case "unlock_buildings":
+                if (a.L("ids").Count == 0) problems.Add($"{aw}: needs ids (the buildings it opens).");
+                foreach (var id in a.L("ids"))
+                    if (available && !EveryBuildMenu.Contains(id)) problems.Add($"{aw}: '{id}' is not in the build menu.");
+                    else if (available && StartMenu.Contains(id)) problems.Add($"{aw}: '{id}' is in start_menu already.");
                 break;
         }
     }

@@ -41,4 +41,7 @@ public enum PlacementProblem
 
     /// <summary>Any other building on a ruin site that isn't dug out (text: <see cref="PlanetSurface.RuinPlacementText"/>).</summary>
     RuinInTheWay,
+
+    /// <summary>Not unlocked yet: a campaign opens it with a mission (text: <see cref="PlanetSurface.LockedText"/>).</summary>
+    NotUnlocked,
 }

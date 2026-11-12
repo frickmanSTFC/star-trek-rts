@@ -40,8 +40,8 @@
           "objectives": [
             { "id": "overfly", "text": "Fly a drone over the marked area", "cond": { "drone_at": { "at": "ruin", "radius": 4 } } } ],
           "next": "complete" } ],
-      "rewards": [ { "reveal": { "at": "ruin", "radius": 1 } }, { "research": { "points": 20 } } ],
-      "debrief": "Ruins. Old ones, and not built by anyone we know. They're on the map now." },
+      "rewards": [ { "reveal": { "at": "ruin", "radius": 1 } }, { "research": { "points": 20 } }, { "unlock_buildings": ["excavation_site"] } ],
+      "debrief": "Ruins. Old ones, and not built by anyone we know. They're on the map now, and an Excavation Site can dig them." },
 
     { "id": "sky_survey", "chain": "first_light", "kind": "side", "title": "Sky Survey", "giver": "science",
       "trigger": { "satellite_share": { "share": 0.25 } },

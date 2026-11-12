@@ -59,7 +59,9 @@ public class VeyraTests
         var biomass = Enumerable.Range(0, s.Map.Grid.Count).Sum(t => s.Map.Biomass[t].ToDouble());
         var mBiomass = Enumerable.Range(0, m.Grid.Count).Sum(t => m.Biomass[t].ToDouble());
         Assert.True(biomass / s.Map.Grid.Count < mBiomass / m.Grid.Count / 2, "sparse life");
-        Assert.Contains(Enumerable.Range(0, s.Map.Grid.Count), t => s.Map.DepositResource[t] == Data.Resource("dilithium").Index);
+        // Only the three basic deposits for now (owner 2026-11-12; dilithium and zenite come back later).
+        var mined = Enumerable.Range(0, s.Map.Grid.Count).Where(t => s.Map.DepositResource[t] >= 0).Select(t => Data.Resources[s.Map.DepositResource[t]].Id).Distinct().OrderBy(x => x);
+        Assert.Equal(new[] { "deuterium", "duranium_ore", "tritanium_ore" }, mined);
     }
 
     [Fact]

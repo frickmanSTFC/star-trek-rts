@@ -1040,6 +1040,8 @@ public sealed partial class PlanetSurface
         if (def.RequiresDeposit && (Map.DepositResource[tile] < 0 || Map.DepositAmount[tile] <= Fix64.Zero)) return PlacementProblem.NeedsDeposit;
         if (def.RequiresDepleted && (!Map.IsDepleted(tile) || Map.DepositReopened[tile])) return PlacementProblem.NeedsDepletedDeposit;
         if (def.Crewed && !Covered(player, tile)) return PlacementProblem.NeedsDome; // Domes worlds only (Habitability.cs)
+        // Checked after the tile rules (so a locked building's tiles still read right): a campaign opens it with a mission (Unlocks.cs).
+        if (!BuildingUnlocked(player, buildingId)) return PlacementProblem.NotUnlocked;
         if (!_players[player].FreeBuilding && !sim.Players[player].Stock.CanAfford(BuildCostOf(buildingId))) return PlacementProblem.CannotAfford;
         return PlacementProblem.None;
     }
@@ -1417,7 +1419,7 @@ public sealed partial class PlanetSurface
             case PlaceBuildingCommand place:
             {
                 if (CheckPlacement(sim, place.Player, place.BuildingId, place.Tile) is var placement and not PlacementProblem.None)
-                    return sim.Refuse(place, placement.ToString());
+                    return sim.Refuse(place, placement == PlacementProblem.NotUnlocked ? LockedText(sim, place.Player, place.BuildingId)! : placement.ToString());
                 var free = _players[place.Player].FreeBuilding;
                 if (!free) sim.Players[place.Player].Stock.TrySpend(BuildCostOf(place.BuildingId));
                 PlaceStructure(place.Player, place.BuildingId, place.Tile, ((place.Facing % 6) + 6) % 6,

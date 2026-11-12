@@ -459,11 +459,22 @@ public sealed partial class GameData
                     regions[0].GetInt32(), regions[1].GetInt32(),
                     p.GetProperty("deposits").EnumerateArray().Select(d =>
                     {
-                        var amount = d.GetProperty("amount");
+                        // Fields (amount per hex inside "fields") or the older per-tile roll (chance + amount).
+                        var fields = d.TryGetProperty("fields", out var f) ? f : (JsonElement?)null;
+                        var amount = fields is { } fe ? fe.GetProperty("amount") : d.GetProperty("amount");
+                        var size = fields?.TryGetProperty("size", out var sz) == true ? sz : (JsonElement?)null;
                         return new DepositRule(Str(d, "resource"),
                             d.GetProperty("terrain").EnumerateArray().Select(t => t.GetString()!).ToList(),
                             d.TryGetProperty("coastal", out var coastal) && coastal.GetBoolean(),
-                            Num(d.GetProperty("chance")), amount[0].GetInt32(), amount[1].GetInt32());
+                            d.TryGetProperty("chance", out var chance) ? Num(chance) : Fix64.Zero, amount[0].GetInt32(), amount[1].GetInt32())
+                        {
+                            Fields = fields is { } fr
+                                ? new FieldRule(fr.TryGetProperty("count", out var fc) ? fc.GetInt32() : 0,
+                                    fr.TryGetProperty("per_1000_tiles", out var pt) ? Num(pt) : Fix64.Zero,
+                                    size?[0].GetInt32() ?? 1, size?[1].GetInt32() ?? 1,
+                                    fr.TryGetProperty("spacing", out var sp) ? sp.GetInt32() : 0)
+                                : null,
+                        };
                     }).ToList(),
                     p.TryGetProperty("life", out var life) ? ReadLife(life) : null);
             })
@@ -553,6 +564,7 @@ public sealed partial class GameData
             Achievements = roots.TryGetValue("achievements", out var achievementsRoot) ? ReadAchievements(achievementsRoot, problems) : null,
             Civilizations = roots.TryGetValue("civilizations", out var civRoot) ? ReadCivilizations(civRoot, Amounts, problems) : null,
             Missions = roots.TryGetValue("missions", out var missionsRoot) ? ReadMissions(missionsRoot, problems) : null,
+            StartMenu = ReadStartMenu(surfacesRoot) ?? surfacesRoot.GetProperty("build_menu").EnumerateArray().Select(b => b.GetString()!).ToList(),
             Eras = ReadEras(erasRoot),
             TechTree = ReadTechTree(techTreeRoot),
             StartingSetRefs = ReadStartingSetRefs(buildingsRoot, Amounts),
@@ -658,6 +670,7 @@ public sealed partial class GameData
         ValidateAchievements(problems);
         ValidateCivilizations(problems);
         ValidateMissions(problems);
+        ValidateUnlocks(problems);
         return problems;
     }
 
@@ -688,7 +701,15 @@ public sealed partial class GameData
                 if (!_resources.ContainsKey(d.ResourceId)) problems.Add($"{where}: unknown deposit resource '{d.ResourceId}'.");
                 foreach (var t in d.Terrain) CheckTerrain(t, $"{where} deposit {d.ResourceId}");
                 if (d.Min < 1 || d.Max < d.Min) problems.Add($"{where} deposit {d.ResourceId}: amount range is invalid.");
-                if (d.Chance <= Fix64.Zero || d.Chance > Fix64.One) problems.Add($"{where} deposit {d.ResourceId}: chance must be in (0, 1].");
+                if (d.Fields is { } fr)
+                {
+                    if (d.Chance != Fix64.Zero) problems.Add($"{where} deposit {d.ResourceId}: fields or chance, not both.");
+                    if (fr.Count < 0 || fr.Per1000Tiles < Fix64.Zero || (fr.Count == 0 && fr.Per1000Tiles <= Fix64.Zero))
+                        problems.Add($"{where} deposit {d.ResourceId}: fields need count or per_1000_tiles above 0.");
+                    if (fr.SizeMin < 1 || fr.SizeMax < fr.SizeMin || fr.SizeMax > 19) problems.Add($"{where} deposit {d.ResourceId}: fields size must be [min, max] with 1 <= min <= max <= 19.");
+                    if (fr.Spacing < 0 || fr.Spacing > 12) problems.Add($"{where} deposit {d.ResourceId}: fields spacing must be 0..12.");
+                }
+                else if (d.Chance <= Fix64.Zero || d.Chance > Fix64.One) problems.Add($"{where} deposit {d.ResourceId}: chance must be in (0, 1].");
             }
             if (s.Life is { } life)
             {

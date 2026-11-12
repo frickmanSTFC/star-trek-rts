@@ -5,7 +5,7 @@
   "planet": "class_m",
   "landing": { "prefer": ["duranium_ore", "tritanium_ore"] },
   "survey": { "max_distance": 22 },
-  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 12, "refuel": { "resource": "deuterium", "below": 60, "until": 200 } },
+  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 16, "refuel": { "resource": "deuterium", "below": 60, "until": 200 } },
   "upkeep": { "maintain_below": 55, "repair_below": 45 },
   "research": ["improved_smelting", "preventive_maintenance", "ore_conveyors", "alloy_metallurgy", "automated_maintenance", "reinforced_drills", "deep_core_mining"],
   "pause": [

@@ -44,7 +44,7 @@ public readonly record struct RegionHint(int Resource, HintStrength Strength);
 /// The terrain, deposits and life of one planet surface. Generated once, deterministically, from a seed.
 /// The map wraps east–west in its noise (so the orbital globe has no seam), though units can't cross the edge.
 /// </summary>
-public sealed class SurfaceMap
+public sealed partial class SurfaceMap
 {
     public PlanetSurfaceDef Def { get; }
 
@@ -245,22 +245,26 @@ public sealed class SurfaceMap
             map.TerrainOf[t] = terrain;
         }
 
-        // Deposits: tiles in index order, rules in file order, at most one deposit per tile.
+        // Deposits: fields first (rules in file order, Fields.cs), then the per-tile rolls (tiles in index order, rules in
+        // file order); at most one deposit per tile.
         var rng = new DeterministicRng(seed ^ 0xDE9051751UL);
-        for (var t = 0; t < grid.Count; t++)
-        {
-            var terrainId = map.Terrain(t).Id;
-            foreach (var rule in def.Deposits)
+        if (def.Deposits.Any(r => r.Fields != null)) map.PlaceFields(data, new DeterministicRng(seed ^ 0xF1E1D5UL));
+        if (def.Deposits.Any(r => r.Fields == null))
+            for (var t = 0; t < grid.Count; t++)
             {
-                if (!rule.Terrain.Contains(terrainId)) continue;
-                if (rule.Coastal && !map.TouchesWater(t)) continue;
-                if (rng.NextFix() >= rule.Chance) continue;
-                map.DepositResource[t] = data.Resource(rule.ResourceId).Index;
-                map.DepositAmount[t] = Fix64.FromInt(rng.NextInt(rule.Min, rule.Max + 1));
-                map.DepositStart[t] = map.DepositAmount[t];
-                break;
+                if (map.DepositResource[t] >= 0) continue;
+                var terrainId = map.Terrain(t).Id;
+                foreach (var rule in def.Deposits)
+                {
+                    if (rule.Fields != null || !rule.Terrain.Contains(terrainId)) continue;
+                    if (rule.Coastal && !map.TouchesWater(t)) continue;
+                    if (rng.NextFix() >= rule.Chance) continue;
+                    map.DepositResource[t] = data.Resource(rule.ResourceId).Index;
+                    map.DepositAmount[t] = Fix64.FromInt(rng.NextInt(rule.Min, rule.Max + 1));
+                    map.DepositStart[t] = map.DepositAmount[t];
+                    break;
+                }
             }
-        }
         if (def.Life != null) GenerateLife(def.Life, map, moisture, seed);
         return map;
     }

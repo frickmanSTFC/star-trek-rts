@@ -180,8 +180,13 @@ public partial class PlanetDriver
         foreach (var s in surface.Structures)
             if (s.Owner == LocalPlayer) f.Placed.Add(s.DefId);
         f.Available.Clear();
+        f.Unlocked.Clear();
         foreach (var id in surface.BuildMenu)
-            if (f.Names.ContainsKey(id)) f.Available.Add(id);
+            if (f.Names.ContainsKey(id))
+            {
+                f.Available.Add(id);
+                if (surface.BuildingUnlocked(LocalPlayer, id)) f.Unlocked.Add(id);
+            }
 
         f.RoverDriving = f.RoverSelected = f.CrawlerOrdered = f.CrawlerSelected = false;
         foreach (var u in surface.Units)

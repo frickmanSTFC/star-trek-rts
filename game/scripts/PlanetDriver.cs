@@ -2448,7 +2448,9 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (def.Storage > Fix64.Zero) sb.Append("\nStorage +").Append(Hud.Whole(def.Storage));
         foreach (var r in def.Recipes) sb.Append("\nTurns ").Append(Amounts(r.In, false)).Append(" → ").Append(Amounts(r.Out, false));
         if (def.UpkeepPerMinute.Count > 0) sb.Append("\nUpkeep ").Append(Amounts(def.UpkeepPerMinute, true));
-        sb.Append(problem == PlacementProblem.None ? "\nClick to build here" : "\nCan't build here: " + Reason(problem));
+        sb.Append(problem == PlacementProblem.None ? "\nClick to build here"
+            : problem == PlacementProblem.NotUnlocked ? "\nNot yet: " + Surface.LockedText(_sim, LocalPlayer, buildingId)
+            : "\nCan't build here: " + Reason(problem));
         return sb.ToString();
     }
 
@@ -2477,6 +2479,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         PlacementProblem.CoreAssembling => PlanetSurface.AssemblingProblem,
         PlacementProblem.CoreUnderConstruction => "the new outpost is still being built (exocomps)",
         PlacementProblem.NeedsDome => PlanetSurface.NeedsDomeProblem,
+        PlacementProblem.NotUnlocked => "not unlocked yet (a mission opens it)",
         _ => OtherReason(p), // e.g. an Excavation Site off a ruin tile (PlanetDriver.Excavation.cs)
     };
 

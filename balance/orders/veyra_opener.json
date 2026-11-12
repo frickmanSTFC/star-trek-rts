@@ -6,7 +6,7 @@
   "world": "veyra",
   "landing": { "prefer": ["duranium_ore", "tritanium_ore"] },
   "survey": { "max_distance": 22 },
-  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 12, "refuel": { "resource": "deuterium", "below": 60, "until": 200 } },
+  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 16, "refuel": { "resource": "deuterium", "below": 60, "until": 200 } },
   "upkeep": { "maintain_below": 55, "repair_below": 45 },
   "research": ["improved_smelting", "ore_conveyors", "preventive_maintenance", "alloy_metallurgy", "reinforced_drills", "automated_maintenance", "deep_core_mining"],
   "pause": [

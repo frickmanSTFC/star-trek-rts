@@ -75,7 +75,7 @@ order; a step waits until it can be done (and its conditions hold), then the bot
   "planet": "class_m",
   "landing":  { "prefer": ["duranium_ore", "tritanium_ore"] },
   "survey":   { "max_distance": 22 },
-  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 12,
+  "crawlers": { "prefer": ["duranium_ore", "tritanium_ore"], "max_distance": 16,
                 "refuel": { "resource": "deuterium", "below": 60, "until": 200 } },
   "upkeep":   { "maintain_below": 55, "repair_below": 45 },
   "research": ["improved_smelting", "ore_conveyors", "preventive_maintenance"],
@@ -395,6 +395,55 @@ median of seeds 1 / 1701 / 99999:
 - Next to try: a Machine Shop in the standard opener (65 s a Mechanical Spares kit instead of 130 s, at 12 power and
   its own wear), and whether default targets of 2 are enough for a crawler explosion (up to 7 kits).
 
+
+## Deposit fields + the 4-building start (2026-11-12, 3 seeds × 30 min, `reports/deposit_fields/`)
+
+The owner: "limit the number of buildings that can be built to the bare minimum. Also restrict the amount of mining
+types there are, and make them larger." Two changes, only one of which the bot sees:
+
+- **Unlocks** (campaign only): a campaign starts with Storage Container, Ore Refinery, Mine and Fusion Reactor
+  (`data/surfaces/economy.json` `start_menu`) and the First Light missions unlock the rest. Missions are off in the
+  balance runner, so every build order still has the whole menu: nothing below comes from the unlocks.
+- **Fields**: the landable worlds now hold only duranium ore, tritanium ore and deuterium (dilithium, topaline,
+  cormaline and zenite deposits are off for now), each in fields of 3–7 neighbouring hexes (`data/surfaces/planets.json`
+  `fields`). Per map, averaged over seeds 1 / 1701 / 99999 (old = scattered single tiles):
+
+| Tarsis (class M) | deposits (fields) | hexes | ore in total | ore a hex |
+|---|---|---|---|---|
+| Duranium ore | 309 → 101 | 448 → 507 | 949k → 1,217k | 2,116 → 2,398 |
+| Tritanium ore | 97 → 32 | 122 → 152 | 194k → 258k | 1,578 → 1,692 |
+| Deuterium | 55 → 34 | 62 → 134 | 22k → 58k | 357 → 435 |
+
+  Landing sites with a duranium hex inside the hub's radius (4): 86% → 78%; tritanium within 12: 87% → 76%;
+  deuterium within 12: 84% → 86%. Veyra (class L): duranium 847k → 868k (1,790 → 2,247 a hex), tritanium 308k → 302k
+  (1,596 → 1,700), deuterium 23k → 45k; duranium within 4 of a landing site 90% → 74%.
+
+**Bot orders:** the crawlers' `max_distance` went from 12 (14 in fast_expand) to 16 in every order: with fewer,
+bigger fields the nearest tritanium is often 13–14 hexes out (seed 1's landing site: 13), and at 12 the standard
+opener's second crawler found none, made 0.5 tritanium a minute on seed 1 and never reached Colonial Administration.
+Before = the commit before this change (old data, old orders), after = fields + the new orders; median of seeds:
+
+| Measure | standard_opener | fast_expand | tech_rush | storage_skip | veyra_opener |
+|---|---|---|---|---|---|
+| Targets in window | 11 of 11 → 11 of 11 | 6 of 6 → 6 of 6 | 5 of 5 → 5 of 5 | 4 of 4 → 4 of 4 | 3 of 7 → 3 of 7 |
+| Metal made by minute 30 | 2,282 → 2,300 | 1,776 → 1,788 | 1,314 → 1,314 | 1,344 → 1,336 | 1,306 → 1,309 |
+| Duranium made a minute | 48.6 → 59.5 | 39.1 → 41.0 | 42.3 → 42.3 | 32.8 → 27.4 | 37.7 → 37.4 |
+| Tritanium made a minute | 27.2 → 16.9 | 20.8 → 19.2 | 0.5 → 0.5 | 10.9 → 16.0 | 6.3 → 6.6 |
+| First parasteel | 16:02 → 15:46 | – | 5:15 → 5:15 | 19:14 → 21:13 | – |
+| Colonial Administration (seeds) | 21:14 (2) → 20:57 (2) | – | – | 25:13 (2) → 25:35 (1) | – |
+| Crawler time digging | 85.5% → 87.1% | 75.1% → 75.2% | 58.2% → 58.4% | 59.0% → 46.6% | 88.5% → 93.0% |
+
+- **The economy is where it was** (every target that was in its window still is; Veyra's four misses are the ones it
+  had before). Duranium is easier (a duranium field next to the hub feeds the mine and the first crawler for the whole
+  match), tritanium a little harder (further out, in hills); the standard opener ends with twice the duranium and a
+  third less tritanium. storage_skip lost a seed's Colonial Administration (its crawlers dig less, 59% → 47% of the
+  match: without containers the vault is full and the further tritanium means longer trips).
+- **Targets:** unchanged (`targets.json`): nothing moved out of its window.
+- **Hashes:** every landed game's map and final hash changed (new deposits), so the committed reports'
+  hashes are stale; `reports/deposit_fields/` is the A/B (standard opener).
+- Next to try: whether tritanium fields belong a little nearer the plains (or a few more of them), and a landing scan
+  that tells a field from traces (every region with a field reads "rich" now: hints are region totals, `hints.likely`
+  400 / `rich` 1500, and one field holds 5,000–15,000).
 
 ## Writing new measures
 

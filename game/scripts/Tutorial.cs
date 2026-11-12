@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using FinalFrontier.Sim.Surface;
 
 namespace FinalFrontier;
@@ -57,6 +58,9 @@ public sealed record TutorialFacts
 
     /// <summary>Building ids in this world's build menu that the data has.</summary>
     public HashSet<string> Available { get; set; } = new();
+
+    /// <summary>Of those, the ones the player may place now (a campaign starts with four; the missions unlock the rest).</summary>
+    public HashSet<string> Unlocked { get; set; } = new();
 
     public bool DrawerOpen { get; set; }
     public string? Placing { get; set; }
@@ -194,17 +198,27 @@ public sealed class Tutorial
             Reacted: (f, start) => f.PodArrivals > start.PodArrivals,
             OnSurface: true),
 
+        new("missions", "Missions bring new buildings",
+            "The outpost starts with the basics: storage, the refinery, mines and the {fusion_reactor}. Everything else comes " +
+            "with the missions: Mission Control sends the plans as you go. The tracker at the top right shows the current mission " +
+            "(Y reads its transmission, N opens the log).\n\nFinish Ground Truth (survey the ground round the outpost) for a " +
+            "{science_lab} and a {vehicle_bay}.",
+            GotIt, TutorialAnchor.None,
+            f => f.Available.All(f.Unlocked.Contains), // nothing locked (missions off): nothing to explain
+            OnSurface: true),
+
         new("lab", "Research",
             "A {science_lab} earns research points. Build one, then select it to pick a tech: faster mines, tougher rovers, " +
             "deep-core mining and more.",
             null, TutorialAnchor.Build,
             f => f.Placed.Contains("science_lab"),
-            Hint: f => BuildHint(f, "science_lab"),
+            Hint: f => f.Unlocked.Contains("science_lab") ? BuildHint(f, "science_lab")
+                : "Not unlocked yet: finish Ground Truth (the tracker, top right) and its plans come down.",
             Building: "science_lab", OnSurface: true),
 
         new("done", "You're on your own",
-            "That is a working colony. From here: more ore, a Fusion Reactor when power runs short, a Vehicle Bay for more vehicles, " +
-            "and outposts dropped from orbit (O).\n\nPress F1 any time for the controls.",
+            "That is a working colony. From here: more ore, a {fusion_reactor} when power runs short, a {vehicle_bay} for more " +
+            "vehicles, the missions for new buildings, and outposts dropped from orbit (O).\n\nPress F1 any time for the controls.",
             "FINISH", TutorialAnchor.None,
             _ => false),
     };

@@ -119,6 +119,11 @@ public sealed partial class MissionBook
                 foreach (var t in tiles) s.MissionReveal(p, t, radius);
                 return tiles.Count > 0 ? $"map revealed round {(tiles.Count == 1 ? TileText(s, tiles[0]) : $"{tiles.Count} spots")}" : "";
             }
+            case "unlock_buildings":
+            {
+                var added = s.UnlockBuildings(p, GameData.UnlockIds(a));
+                return added.Count > 0 ? "new buildings: " + string.Join(", ", added.Select(id => data.Building(id).Name)) : "";
+            }
             case "set_flag":
             {
                 var book = Track(p);
@@ -153,6 +158,11 @@ public sealed partial class MissionBook
                 return $"+{Whole(a.N("points", Fix64.Zero))} research";
             case "reveal":
                 return $"map revealed ({a.I("radius", 1)} hexes round {(a.F("at") is { } at && run.Find(at) is { } b && b.Text.Length > 0 ? b.Text : "the spot")})";
+            case "unlock_buildings":
+            {
+                var ids = GameData.UnlockIds(a).Where(data.EveryBuildMenu.Contains).ToList();
+                return ids.Count > 0 ? "unlocks " + string.Join(", ", ids.Select(id => data.Building(id).Name)) : "";
+            }
             default:
                 return "";
         }

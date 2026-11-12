@@ -65,6 +65,10 @@ public partial class PlanetDriver
     /// <summary>Research-gated and not yet researched.</summary>
     private bool Locked(string id) => _data.Building(id).RequiresTech is { Length: > 0 } t && !KnowsTech(t);
 
+    /// <summary>Not unlocked yet in this campaign (a mission opens it: Surface/Unlocks.cs). Always hidden from the drawer
+    /// and the number keys, even with ShowLockedBuildings.</summary>
+    private bool MissionLocked(string id) => !Surface.BuildingUnlocked(LocalPlayer, id);
+
     /// <summary>The buildings on the menu now, in build_menu order (which is also number-key order).</summary>
     private List<string> MenuBuildings()
     {
@@ -76,7 +80,7 @@ public partial class PlanetDriver
             _menuData = _data;
             _menu.Clear();
             foreach (var id in Surface.BuildMenu)
-                if (ShowLockedBuildings || !Locked(id)) _menu.Add(id);
+                if (!MissionLocked(id) && (ShowLockedBuildings || !Locked(id))) _menu.Add(id);
         }
         return _menu;
     }
@@ -117,6 +121,11 @@ public partial class PlanetDriver
     private void PickBuilding(string id, bool shift)
     {
         if (Me.Phase != LandingPhase.Landed) return;
+        if (MissionLocked(id)) // a recent tile of a building the test panel locked again
+        {
+            _hud.PushEvent($"{BuildingName(id)}: {Surface.LockedText(_sim, LocalPlayer, id)}", new Color(1f, 0.7f, 0.42f));
+            return;
+        }
         if (shift)
         {
             if (_placing != id) ArmPlacement(id, quiet: true);
@@ -203,6 +212,27 @@ public partial class PlanetDriver
         while (_recent.Count > 3) _recent.RemoveAt(_recent.Count - 1);
     }
 
+    private string? _unlockKey;
+    private List<string>? _unlockSeen;
+
+    /// <summary>An event-feed line when buildings unlock (a mission's reward or start, the test panel): "New buildings:
+    /// Research Lab, Vehicle Bay". The mission's debrief says it too; this line also covers the test panel.</summary>
+    private void NoteUnlocks()
+    {
+        var open = Me.UnlockedBuildings;
+        var key = open == null ? "*" : string.Join(",", open);
+        if (key == _unlockKey) return;
+        var first = _unlockKey == null;
+        var before = _unlockSeen;
+        _unlockKey = key;
+        _unlockSeen = open?.ToList();
+        if (first || before == null) return; // the start of the game, or missions just came on
+        var added = Surface.BuildMenu.Where(id => !before.Contains(id) && Surface.BuildingUnlocked(LocalPlayer, id)).ToList();
+        if (added.Count == 0) return;
+        _hud.PushEvent($"New buildings: {string.Join(", ", added.Select(BuildingName))}  ·  B to build", new Color(0.98f, 0.8f, 0.4f));
+        _menuFrame = ulong.MaxValue; // the drawer and the number keys pick them up at once
+    }
+
     private bool BuildMenuBlocksMouse(Vector2 mouse) => _bigCard.IsOpen || _drawer.IsOverUi(mouse) || _strip.IsOverUi(mouse);
 
     // ---------------------------------------------------------------- per frame
@@ -212,6 +242,7 @@ public partial class PlanetDriver
     private void UpdateBuildMenu()
     {
         var delta = (float)GetProcessDeltaTime();
+        NoteUnlocks();
         if (_inOrbit || Me.Phase != LandingPhase.Landed)
         {
             if (_drawer.IsOpen) CloseDrawer();
@@ -519,7 +550,8 @@ public partial class PlanetDriver
         foreach (var d in Surface.Map.Def.Deposits)
         {
             var terrain = d.Terrain.Select(t => _data.Terrain.FirstOrDefault(x => x.Id == t)?.Name.ToLowerInvariant() ?? t).ToList();
-            list.Add((_data.Resource(d.ResourceId).Name, $"on {Join(terrain)}" + (d.Coastal ? " by the water" : "") + $", {d.Min}–{d.Max} a deposit"));
+            var size = d.Fields is { } f ? $", fields of {f.SizeMin}–{f.SizeMax} hexes, {d.Min}–{d.Max} a hex" : $", {d.Min}–{d.Max} a deposit";
+            list.Add((_data.Resource(d.ResourceId).Name, $"on {Join(terrain)}" + (d.Coastal ? " by the water" : "") + size));
         }
         return list;
     }
@@ -642,7 +674,7 @@ public partial class PlanetDriver
         var gives = new List<string>();
         var outs = def.Recipes.SelectMany(x => x.Out).Select(a => a.Resource).Concat(def.OutputPerMinute.Select(a => a.Resource)).Distinct().ToList();
         foreach (var r in outs) gives.Add($"{ResName(r)} into storage: {Users(r)}");
-        if (def.IsMine) gives.Add("ore into storage for the Ore Refinery; deuterium, dilithium and strategics ready to use");
+        if (def.IsMine) gives.Add("ore into storage for the Ore Refinery; deuterium ready to use");
         if (def.PowerSupply > Fix64.Zero) gives.Add($"{Hud.Whole(def.PowerSupply)} power for every working building at its base");
         if (def.Storage > Fix64.Zero) gives.Add("room for everything mined and refined; cargo pods land at the nearest building with storage");
         if (def.IsLab) gives.Add("research points toward the tech you pick");
@@ -829,7 +861,8 @@ public partial class PlanetDriver
         if (_hoverTile >= 0)
         {
             var problem = Surface.CheckPlacement(_sim, LocalPlayer, id, _hoverTile);
-            if (problem != PlacementProblem.None) warning = $"Can't build on this tile: {Reason(problem)}";
+            if (problem == PlacementProblem.NotUnlocked) warning = $"Not yet: {Surface.LockedText(_sim, LocalPlayer, id)}";
+            else if (problem != PlacementProblem.None) warning = $"Can't build on this tile: {Reason(problem)}";
         }
         return new StripView(id, $"Placing {def.Name}", ShortCost(def.Cost), warning,
             "Click a tile in the blue area  ·  R rotate  ·  Shift+click place more  ·  I card  ·  Esc / right-click stop");

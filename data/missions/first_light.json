@@ -2,17 +2,17 @@
   "missions": [
     { "id": "ground_truth", "chain": "first_light", "kind": "main", "title": "Ground Truth", "giver": "control",
       "trigger": { "any": [
-        { "building": { "id": "science_lab", "state": "any" } },
-        { "time": { "after_seconds": 600, "since": "uplink" } } ] },
-      "briefing": "Moreau here, Earth Mission Control. The orbital pictures only tell us so much. Put your rovers on the ground and give us ground truth: sixty tiles surveyed, and at least three different resources confirmed.",
+        { "building": { "id": "refinery", "state": "any" } },
+        { "time": { "after_seconds": 180, "since": "uplink" } } ] },
+      "briefing": "Moreau here, Earth Mission Control. The orbital pictures only tell us so much. Put your rovers on the ground and give us ground truth: sixty tiles surveyed, and at least two different resources confirmed.",
       "stages": [
         { "id": "survey", "title": "Survey the landing region",
           "objectives": [
             { "id": "tiles", "text": "Survey 60 tiles", "cond": { "surveyed": { "count": 60 } }, "hint": "Send the rovers out: every tile they drive past is surveyed." },
-            { "id": "resources", "text": "Find 3 different resources", "cond": { "deposits_found": { "count": 3 } } } ],
+            { "id": "resources", "text": "Find 2 different resources", "cond": { "deposits_found": { "count": 2 } } } ],
           "next": "complete" } ],
-      "rewards": [ { "research": { "points": 30 } } ],
-      "debrief": "Good data, all of it. Earth has its first ground-truth map of this world. Stand by: we have something else for you." },
+      "rewards": [ { "research": { "points": 30 } }, { "unlock_buildings": ["science_lab", "vehicle_bay"] } ],
+      "debrief": "Good data, all of it. Earth has its first ground-truth map of this world, and we're sending down the plans for a Research Lab and a Vehicle Bay. Stand by: we have something else for you." },
 
     { "id": "lost_pathfinder", "chain": "first_light", "kind": "main", "title": "The Lost Pathfinder", "giver": "control",
       "briefing": "Before anyone built warp engines, Earth sent the uncrewed Pathfinder IV probe out here. It came down on this world decades ago and went silent. Its last fix puts it inside the marked search area. Find the wreck and recover the data recorder.",
@@ -33,8 +33,9 @@
             { "id": "recorder", "text": "Park a rover beside the wreck", "cond": { "site": { "site": "wreck", "state": "reached", "radius": 1 } },
               "hold_seconds": 20, "hint": "Keep it parked there while the crew pull the recorder." } ],
           "next": "complete" } ],
-      "rewards": [ { "research": { "points": 60 } }, { "grant": { "control_module": 2 } }, { "reveal": { "at": "wreck", "radius": 6 } } ],
-      "debrief": "The recorder survived. Forty years of surface readings, and the probe's own map of the ground round {wreck}. Earth will want every byte of it." },
+      "rewards": [ { "research": { "points": 60 } }, { "grant": { "control_module": 2 } }, { "reveal": { "at": "wreck", "radius": 6 } },
+        { "unlock_buildings": ["prefab_habitat", "deep_core_mine"] } ],
+      "debrief": "The recorder survived. Forty years of surface readings, and the probe's own map of the ground round {wreck}. Its core samples show where the deep veins run: you have the Deep-Core Mine plans (it still needs the research), and a Prefab Habitat for more crew. Earth will want every byte of it." },
 
     { "id": "calling_home", "chain": "first_light", "kind": "main", "title": "Calling Home", "giver": "control",
       "imports": ["lost_pathfinder.wreck"],
@@ -56,17 +57,18 @@
 
     { "id": "wings", "chain": "first_light", "kind": "main", "title": "Wings", "giver": "ops",
       "needs": ["machine_shop", "drone_pad", "scout_drone"],
-      "briefing": "Okafor here. The rovers can't cross half of what's out there. We can build scout drones from parts: a Machine Shop to make them, a Drone Pad to fly them from. Two drones to start.",
+      "briefing": "Okafor here. The rovers can't cross half of what's out there. We can build scout drones from parts: a Machine Shop to make them, a Drone Pad to fly them from. Both are in your build menu now. Two drones to start.",
       "stages": [
         { "id": "build", "title": "Build the drone kit",
+          "on_enter": [ { "unlock_buildings": ["machine_shop", "drone_pad"] } ],
           "objectives": [
             { "id": "shop", "text": "Build a Machine Shop", "cond": { "building": { "id": "machine_shop" } } },
             { "id": "pad", "text": "Build a Drone Pad", "cond": { "building": { "id": "drone_pad" } } },
             { "id": "drones", "text": "Fabricate 2 scout drones", "cond": { "fabricated": { "item": "scout_drone", "count": 2 } },
               "hint": "Machine Shop: order Scout Drones (frame, power coupling, control modules)." } ],
           "next": "complete" } ],
-      "rewards": [ { "grant": { "power_coupling": 2 } }, { "research": { "points": 20 } } ],
-      "debrief": "Two drones on the pad and charging. Mind the batteries and keep them inside comms coverage." },
+      "rewards": [ { "grant": { "power_coupling": 2 } }, { "research": { "points": 20 } }, { "unlock_buildings": ["foundry"] } ],
+      "debrief": "Two drones on the pad and charging. Mind the batteries and keep them inside comms coverage. Better frames need parasteel: the Alloy Foundry plans are yours." },
 
     { "id": "first_flight", "chain": "first_light", "kind": "main", "title": "First Flight", "giver": "science",
       "needs": ["drone_pad", "scout_drone"],
@@ -112,8 +114,8 @@
           "objectives": [
             { "id": "reach", "text": "Reach the signal source with a rover", "cond": { "site": { "site": "source", "state": "reached", "radius": 1 } }, "hold_seconds": 5 } ],
           "next": "complete" } ],
-      "rewards": [ { "research": { "points": 100 } } ],
-      "debrief": "A small transmitter, half sunk in the rock, still running on something we don't understand. It's not human. Not anything we know." },
+      "rewards": [ { "research": { "points": 100 } }, { "unlock_buildings": ["excavation_site"] } ],
+      "debrief": "A small transmitter, half sunk in the rock, still running on something we don't understand. It's not human. Not anything we know. If anyone else ever built here, we want to know: the Excavation Site plans are on their way." },
 
     { "id": "foothold", "chain": "first_light", "kind": "main", "title": "Foothold", "giver": "ops",
       "briefing": "One outpost is a landing. Two is a colony. Found a second outpost, by construction rover or by an outpost drop, somewhere our comms reach.",
