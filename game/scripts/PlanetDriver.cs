@@ -891,9 +891,10 @@ public partial class PlanetDriver : Node3D, ITestHost
         {
             title = "Survey Satellite";
             sub = $"{Surface.Satellites.Count(x => x.Owner == LocalPlayer && x.Kind != SatelliteKind.Relay)} of {orbit.SatelliteMax} in orbit";
-            body = $"Put a survey satellite into orbit over a band of the planet. It circles the world every {orbit.SatelliteSweepSeconds} s, surveying every tile it passes, so deposits in its band show up without a rover. Click the latitude you want it to cover.";
+            body = $"Put a survey satellite into orbit over a band of the planet. It circles the world every {orbit.SatelliteSweepSeconds} s, surveying every tile it passes, so deposits in its band show up without a rover. Click where you want it: it rises from the ship, unfolds over that spot and sweeps east round that latitude.";
             rows.Add(("Covers", $"{orbit.SatelliteBandRows} rows of tiles, all the way round"));
             rows.Add(("Works", "from orbit, even before you land"));
+            rows.Add(("Deploy", $"{orbit.SatelliteDeploySeconds} s rising from the ship and unfolding, then it sweeps"));
         }
         else if (a.StartsWith("shuttle:"))
         {
