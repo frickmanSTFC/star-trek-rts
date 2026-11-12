@@ -34,6 +34,8 @@ happens in one place. Release exports read one packed copy instead (`gamedata.pa
 | `sim/Data/EraDefs.cs`, `GameData.Eras.cs` | Eras (`data/eras/`) and the strategic tech tree (`data/tech_tree/`), loaded read-only and checked (era factions agree with `data/factions/`, the match era, tech ids and prerequisites, the Borg `research: false` rule); nothing plays them yet |
 | `scripts/SystemPlot.cs`, `OrbitLines.cs` | The helm's top-down star-system plot from the map's bodies; thin line meshes for tracks, rings and the grid |
 | `textures/planet/` | Tileable ground photos for the orbit globe, cut from NASA's Blue Marble Next Generation (public domain; credit: NASA Earth Observatory). Read at runtime, not imported (`.gdignore`) |
+| `textures/items/` | The 13 Machine Shop item renders (`<recipe id>.png`, 384×384 RGBA, imported normally), drawn on the recipe tiles, queue rows, cost chips and item cards (`scripts/ItemArt.cs`; a missing one falls back to the line icon). Made in Blender by `blender/build_items.py`, which writes `docs/mockups/machine-shop-panel/items/` by default: regenerate with `/home/user/.bpyvenv/bin/python blender/build_items.py --out game/textures/items` (or copy the mockup's PNGs here) |
+| `scripts/FabPanel.cs`, `ItemCard.cs`, `ItemArt.cs`, `PlanetDriver.Parts.cs`, `PlanetHud.Parts.cs` | A selected Machine Shop (or a colony core's workshop, K): the bottom panel's tabbed view (name, status and buttons on the left; **Overview**, **Queue · n**, **Recipes · n** on the right, the last tab remembered) and the modal item card a recipe tile opens; the inventory screen (I) is `InventoryScreen.cs` |
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
 | `scripts/BuildingModels.cs`, `BuildingModels.Outpost.cs` | Primitive-built models (hub levels 2–3, mine, reactor, habitat, …) and the imported glb models: the Level 1 outpost (`models/buildings/outpost_l1.glb`), rovers, crawler, drop ship |
 | `scripts/PlanetHud.cs`, `Minimap.cs`, `Icons.cs` | Planet HUD: icon resource bar, event feed, tooltip, bottom panel (minimap, selected base or object, command card); icons are SVG paths drawn at runtime |
@@ -92,6 +94,15 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    Day and night sweep across the map (a Tarsis day is 12 minutes, its year 8 days with four seasons), and weather
    drifts over it with the seasons: rain, snow, fog and storms slow vehicles, shorten their surveys and wear rovers
    faster, and storms keep drop ships and outpost drops (and the first landing) from coming down under them.
+   A **Machine Shop** makes parts, spare kits, construction parts and scout drones from metal. Select it and the
+   bottom panel grows into its own view: name, status and buttons on the left, and three tabs on the right:
+   **Overview** (what it is making, crew and power, condition, next level, and every queued item that can't start with
+   its reason, e.g. "needs 2 Mechanism · have 0"), **Queue** (each order with its inputs, red when short, its time and
+   × to remove it) and **Recipes** (a tile per item with its picture, name, key and inputs). Items you can't make right
+   now are greyed out; click any tile for its full card (needs vs have, time at Mk I and Mk II, what it is for, links to
+   the missing parts, Queue one [Enter] / Queue 5 [Shift+Enter] / Close [Esc]). Quick keys: the number keys queue one
+   (Shift: five), Shift+click a tile queues five, Ctrl+click one, right-click removes one, Backspace the last order.
+   The colony core's small workshop (**K**, or WORKSHOP on the base tabs) uses the same view for its four kits.
    Build a **Vehicle Bay** for more vehicles: select it and the command card shows its orders, each with a picture
    (survey rover Mk I Scout, mining crawler, Mk II Surveyor, Mk III Explorer, construction rover; keys 1–5). Orders are paid up front and queue up to 5; **Backspace** cancels
    the last one. Each vehicle rolls out of the bay's door when it's done.

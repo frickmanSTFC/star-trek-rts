@@ -13,11 +13,13 @@ namespace FinalFrontier;
 // goes through commands (FabricateCommand, CancelFabricateCommand, StockTargetCommand, JuryRigCommand,
 // JuryRigUnitsCommand) and everything shown comes from the sim's Fabrication API, so the panels just show less while the
 // stubs return empty lists / null.
-//  - A selected Machine Shop (IsFabricator, not IsHubWorkshop): recipe tiles on the command card (click +1, Shift+click
-//    +5, keys 1–9 and 0, tooltip with inputs red when short), its queue in the building panel's right column (× cancels),
-//    status / crew · power / condition / short-input rows.
+//  - A selected Machine Shop (IsFabricator, not IsHubWorkshop): the tabbed panel (FabPanel.cs, owner's option 2 of
+//    docs/mockups/machine-shop-panel): name, status and buttons on the left; Overview / Queue · n / Recipes · n on the
+//    right (the command card is hidden). Recipe tiles: click = the item's full card (ItemCard.cs), Shift+click +5,
+//    Ctrl+click +1, right-click removes one; keys 1–9 and 0 queue (+1, Shift +5), Backspace cancels the last order;
+//    anything you can't make right now is greyed out but still opens its card.
 //  - A colony core's workshop: the selected base's WORKSHOP [K] chip (right of the base tabs) or K swaps the base panel
-//    for the same fabricator panel and the command card for its kits; K / the chip / Esc go back to the base.
+//    for the same tabbed panel (its four kits on the Recipes tab); K / the chip / Esc go back to the base.
 //  - Inventory screen (InventoryScreen.cs): I (not while placing), the INVENTORY chip; − / + send StockTargetCommand.
 //  - Repairs: kits rows, "waiting for kits" + ETA, JURY-RIG [J] on the building and rover panels, jury-rigged labels.
 //  - Event lines: a repair starts waiting for kits, a fabricator finishes an order, something is jury-rigged.
@@ -68,6 +70,7 @@ public partial class PlanetDriver
         _hud.WorkshopPressed += ToggleWorkshop;
         _hud.InventoryPressed += ToggleInventory;
         _hud.KitsShortPressed += () => { if (!_inventory.IsOpen) ToggleInventory(); };
+        SetupItemCard();
     }
 
     // ---------------------------------------------------------------- items
@@ -259,89 +262,149 @@ public partial class PlanetDriver
         else CancelOrder(last.Id);
     }
 
-    // ---------------------------------------------------------------- command card + tooltip
+    // ---------------------------------------------------------------- the tabbed panel's recipes + the item card
 
-    /// <summary>The selected fabricator's recipes as command tiles; false = no fabricator selected.</summary>
-    private bool ShowFabCommands()
+    /// <summary>A selected fabricator's recipes live on the panel's Recipes tab (FabPanel), so the command card is hidden
+    /// while it shows; true = a fabricator is selected (nothing else goes on the command card).</summary>
+    private bool ShowFabCommands() => SelectedFabricator() != null;
+
+    /// <summary>The number key of a recipe here: "1"–"9", "0" for the 10th, "" after that.</summary>
+    private static string RecipeKey(int index) => index < 9 ? $"{index + 1}" : index == 9 ? "0" : "";
+
+    /// <summary>A recipe's inputs with what we have (Started orders took theirs already: never short).</summary>
+    private List<FabCost> CostOf(SurfaceStructure fab, string recipe, bool taken = false)
     {
-        if (SelectedFabricator() is not { } fab) return false;
-        var recipes = Surface.RecipesAt(fab);
-        var hub = Surface.IsHubWorkshop(fab);
         var stock = _sim.Players[LocalPlayer].Stock;
-        var tiles = new List<CommandView>();
-        for (var i = 0; i < recipes.Count; i++)
+        return Surface.InputsAt(fab, recipe).Select(a =>
         {
-            var r = recipes[i];
-            var id = $"fab:{r}";
-            _hud.EnsureCommand(id, ItemName(r), i < 9 ? $"[{i + 1}]" : i == 9 ? "[0]" : "");
-            var inputs = Surface.InputsAt(fab, r);
-            var have = inputs.All(a => stock[a.Resource] >= a.Amount);
-            var here = fab.Fabrication.Count(o => o.RecipeId == r);
-            tiles.Add(new CommandView(id, "", "", InputsShort(inputs), have && Surface.FabricateProblem(LocalPlayer, fab.Id, r) == null, false, here > 0 ? $"×{here}" : ""));
+            var r = _data.Resources[a.Resource];
+            var need = Mathf.CeilToInt(a.Amount.ToFloat());
+            var have = Mathf.FloorToInt(stock[a.Resource].ToFloat());
+            return new FabCost(r.Id, r.Name, need, have, !taken && stock[a.Resource] < a.Amount);
+        }).ToList();
+    }
+
+    /// <summary>"needs 2 Mechanism · have 0; needs 1 Hull Plating · have 0" (every short input), "" when none is short.</summary>
+    private static string ShortReason(IEnumerable<FabCost> cost) =>
+        string.Join("; ", cost.Where(c => c.Short).Select(c => $"needs {c.Amount} {c.Name} · have {c.Have}"));
+
+    /// <summary>A recipe tile on the panel: 0 = open its card, 1 / 5 = queue that many, -1 = remove one queued order of it.</summary>
+    private void OnFabRecipe(string recipe, int mode)
+    {
+        var fab = SelectedFabricator();
+        if (fab == null) return;
+        if (mode == 0)
+        {
+            _itemCardId = recipe;
+            return;
         }
-        var name = (hub ? "Workshop" : _data.Building(fab.DefId).Name).ToUpperInvariant();
-        var title = recipes.Count == 0 ? $"{name} · NO RECIPES (PARTS ECONOMY NOT IN THIS BUILD YET)"
-            : hub ? $"WORKSHOP · SPARE KITS · ½ SPEED · {fab.Fabrication.Count} QUEUED"
-            : $"{name} · RECIPES · {fab.Fabrication.Count} QUEUED";
-        _hud.ShowCommands(title, tiles, true, Mathf.Max(5, (recipes.Count + 1) / 2));
+        if (mode > 0)
+        {
+            Fabricate(recipe, mode);
+            return;
+        }
+        var q = fab.Fabrication;
+        var last = q.LastOrDefault(o => o.RecipeId == recipe && !o.Started && !o.Auto) ?? q.LastOrDefault(o => o.RecipeId == recipe && !o.Started)
+                   ?? q.LastOrDefault(o => o.RecipeId == recipe);
+        if (last == null) _hud.PushEvent($"No {ItemName(recipe)} queued here", PartsWarn);
+        else CancelOrder(last.Id);
+    }
+
+    private ItemCard _itemCard = null!;
+
+    /// <summary>The item whose full card is open (a recipe tile was clicked), null = none.</summary>
+    private string? _itemCardId;
+
+    private void SetupItemCard()
+    {
+        _itemCard = new ItemCard { Name = "ItemCard" };
+        _hud.AddOverlay(_itemCard); // over the map and the bottom panel, under F1 help and the tooltip
+        _itemCard.QueuePressed += n =>
+        {
+            if (_itemCardId != null) Fabricate(_itemCardId, n);
+        };
+        _itemCard.LinkPressed += id => _itemCardId = id; // refilled next frame (UpdateItemCard), not inside the link's own signal
+        _itemCard.CloseRequested += () => _itemCardId = null;
+        _hud.FabRecipePressed += OnFabRecipe;
+    }
+
+    /// <summary>Once a frame: the open item card follows the stock; it closes when its fabricator is no longer shown.</summary>
+    private void UpdateItemCard()
+    {
+        var fab = SelectedFabricator();
+        if (_itemCardId != null && (fab == null || _inOrbit || !Surface.RecipesAt(fab).Contains(_itemCardId))) _itemCardId = null;
+        if (_itemCardId == null)
+        {
+            _itemCard.Close();
+            return;
+        }
+        _itemCard.Show(ItemCardViewOf(fab!, _itemCardId));
+    }
+
+    /// <summary>While the item card is open: Esc closes it, Enter queues one (Shift+Enter five); no other key reaches the game.</summary>
+    private bool ItemCardInput(InputEvent e)
+    {
+        if (!_itemCard.IsOpen || e is not InputEventKey key) return false;
+        if (key is not { Pressed: true, Echo: false }) return true;
+        switch (key.Keycode)
+        {
+            case Key.Escape:
+                Sfx.Ui("back");
+                _itemCardId = null;
+                _itemCard.Close();
+                break;
+            case Key.Enter or Key.KpEnter when _itemCardId != null:
+                Fabricate(_itemCardId, key.ShiftPressed ? 5 : 1);
+                break;
+        }
         return true;
     }
 
-    /// <summary>BBCode for a recipe tile under the mouse: inputs (red when short), time, storage, what it is for, stock.</summary>
-    private string? FabTooltip()
+    private static string KindName(string tier) => tier switch
     {
-        if (_inOrbit || _bigCard.IsOpen) return null;
-        var id = _hud.BlocksMouse(GetViewport().GetMousePosition()) ? _hud.HoveredCommand : null;
-        if (id == null || !id.StartsWith("fab:") || SelectedFabricator() is not { } fab) return null;
-        var r = id[4..];
-        var recipes = Surface.RecipesAt(fab);
-        var index = recipes.ToList().IndexOf(r);
-        if (index < 0) return null;
-        var stock = _sim.Players[LocalPlayer].Stock;
-        var warn = $"#{PartsWarn.ToHtml(false)}";
-        var dim = $"#{HudKit.Dim.ToHtml(false)}";
-        var sb = new StringBuilder();
-        var key = index < 9 ? $"  [lb]{index + 1}]" : index == 9 ? "  [lb]0]" : "";
-        sb.Append("[b]").Append(Esc(ItemName(r))).Append("[/b]").Append(key).Append($"  [color={dim}]").Append(TierName(ItemTier(r))).Append("[/color]\n");
-        var inputs = Surface.InputsAt(fab, r);
-        sb.Append("Needs ");
-        sb.Append(inputs.Count == 0 ? "nothing" : string.Join(" + ", inputs.Select(a =>
-        {
-            var have = stock[a.Resource];
-            var text = $"{Hud.Whole(a.Amount)} {Esc(_data.Resources[a.Resource].Name)} (have {Hud.Whole(have)})";
-            return have < a.Amount ? $"[color={warn}]{text}[/color]" : text;
-        })));
-        sb.Append('\n');
-        var seconds = Surface.SecondsAt(fab, r).ToFloat();
-        sb.Append(seconds > 0 ? $"{Clock(seconds)} here at full speed" : "time not known yet");
-        if (Surface.IsHubWorkshop(fab)) sb.Append(" (workshop: straight from materials, half speed)");
-        sb.Append($"  ·  {Num(VolumeOf(r))} storage each\n");
-        var use = UsedFor(r, fab);
-        if (use.Length > 0) sb.Append("For ").Append(Esc(use)).Append('\n');
-        var target = Surface.StockTarget(LocalPlayer, r);
-        sb.Append($"Stock {Have(r)}  ·  keep {(target > 0 ? target.ToString() : "–")}  ·  queued {Surface.Queued(LocalPlayer, r)}\n");
-        if (Surface.FabricateProblem(LocalPlayer, fab.Id, r) is { } problem) sb.Append($"[color={warn}]Can't queue: {Esc(problem)}[/color]\n");
-        sb.Append($"[color={dim}]Click +1  ·  Shift+click +5  ·  Backspace cancels the last order[/color]");
-        return sb.ToString();
-    }
-
-    private static string Esc(string text) => text.Replace("[", "[lb]");
-
-    private static string TierName(string tier) => tier switch
-    {
-        "part" => "part",
-        "spare" => "spare kit",
-        "construction" => "construction part · phase 4",
+        "part" => "Part",
+        "spare" => "Spare kit",
+        "construction" => "Construction part",
+        "drone" => "Drone",
         _ => tier,
     };
+
+    private ItemCardView ItemCardViewOf(SurfaceStructure fab, string id)
+    {
+        var recipes = Surface.RecipesAt(fab);
+        var index = recipes.ToList().IndexOf(id);
+        var hub = Surface.IsHubWorkshop(fab);
+        var cost = CostOf(fab, id);
+        var problem = Surface.FabricateProblem(LocalPlayer, fab.Id, id) ?? "";
+        var seconds = Surface.SecondsAt(fab, id).ToFloat();
+        string times;
+        if (hub) times = seconds > 0 ? $"Makes 1 in {Clock(seconds)} at this workshop (from materials, half speed)" : "";
+        else
+        {
+            var def = _data.Building(fab.DefId);
+            var mk2 = def.Levels.Count > 0 ? def.Levels[0].Modifiers.Where(m => m.Stat == Modifier.Speed).Sum(m => m.Add.ToFloat()) : 0f;
+            times = $"Makes 1 in {Clock(seconds)} at Mk I" + (def.Levels.Count > 0 && mk2 > 0 ? $"  ·  {Clock(seconds / (1f + mk2))} at {def.Levels[0].Name}" : "")
+                    + $"  ·  this shop: {Surface.LevelName(fab)}";
+        }
+        var needs = cost.Select(c => new ItemNeed(c.ResourceId, c.Name, c.Amount, c.Have, c.Short, recipes.Contains(c.ResourceId))).ToList();
+        var here = fab.Fabrication.Count(o => o.RecipeId == id);
+        var target = Surface.StockTarget(LocalPlayer, id);
+        var stockLine = $"In stock {Have(id)}  ·  {here} in the queue here  ·  takes {Num(VolumeOf(id))} storage each" + (target > 0 ? $"  ·  keep {target} in stock" : "");
+        var use = UsedFor(id, fab);
+        var description = Item(id)?.Description is { Length: > 0 } d ? d : use.Length > 0 ? $"For {use}." : "";
+        return new ItemCardView(id, ItemName(id), KindName(ItemTier(id)), index >= 0 ? RecipeKey(index) : "", ItemColour(id), times,
+            cost.All(c => !c.Short) && problem.Length == 0, needs, description, stockLine, problem,
+            use.Length > 0 && ItemTier(id) == "spare" ? $"Used for {use}." : "");
+    }
 
     // ---------------------------------------------------------------- building panel
 
     /// <summary>
-    /// For a finished fabricator: its status, rows at the top (making, crew · power, condition — the right column holds
-    /// the queue instead of the condition bar — and the first short input) and the queue column. Null for anything else.
+    /// For a finished fabricator (a Machine Shop, or a colony core in workshop view): the tabbed panel (FabPanel) with
+    /// its name, status and buttons on the left and Overview / Queue / Recipes on the right. Null for anything else.
     /// </summary>
-    private FabView? FabPanel(SurfaceStructure s, List<(string, string)> rows, ref string status, ref Color statusColour, string conditionText, string maintenance)
+    private FabPanelView? FabPanelOf(SurfaceStructure s, string title, string subtitle, string status, Color statusColour, List<(string Label, string Value)> rows,
+        string conditionText, string maintenance, float condition, float progress, string progressLabel, string progressText, List<ActionView> actions)
     {
         if (s.State != StructureState.Complete || !Surface.IsFabricator(s)) return null;
         var def = _data.Building(s.DefId);
@@ -351,10 +414,11 @@ public partial class PlanetDriver
         var power = Surface.PowerOf(s.BaseId);
         var powerShare = def.PowerUse > Fix64.Zero || hub ? power.Efficiency : Fix64.One;
         var rate = Surface.SpeedMultiplier(s) * Surface.ConditionFactor(s) * powerShare;
+        var red = new Color(1f, 0.48f, 0.42f);
         switch (Surface.FabricatorStatus(s))
         {
             case FabStatus.Idle:
-                (status, statusColour) = (hub ? "Workshop idle: pick a kit on the right" : "Idle: queue empty (pick a recipe on the right)", HudKit.Dim);
+                (status, statusColour) = (hub ? "Workshop idle: pick a kit on the Recipes tab" : "Idle: queue empty (pick a recipe on the Recipes tab)", HudKit.Dim);
                 break;
             case FabStatus.Working:
                 (status, statusColour) = ($"Working: {(current != null ? ItemName(current.RecipeId) : "an order")}", RoverGood);
@@ -365,51 +429,88 @@ public partial class PlanetDriver
             case FabStatus.NoInput:
                 (status, statusColour) = ("Waiting: every order is short of inputs", PartsWarn);
                 break;
+            case FabStatus.StorageFull:
+                (status, statusColour) = ("Waiting: no room in storage for the finished item", PartsWarn);
+                break;
             // Broken, Paused, Building, None: the building's own status line stays
         }
-
-        var fabRows = new List<(string, string)>
+        if (hub)
         {
-            ("Making", current != null ? $"{ItemName(current.RecipeId)}" + (UsedFor(current.RecipeId, s) is { Length: > 0 } use ? $"  →  {use}" : "")
-                : queue.Count > 0 ? $"{queue.Count} queued, none can start" : hub ? "nothing: spare kits from materials, one at a time" : "nothing queued"),
-        };
-        var crew = new List<string>();
-        if (hub) crew.Add("core workshop · ½ speed");
-        else if (def.Crewed) crew.Add("crewed");
-        if (def.PowerUse > Fix64.Zero && !hub) crew.Add($"{Hud.Whole(def.PowerUse)} power");
-        crew.Add($"runs at {Mathf.RoundToInt(rate.ToFloat() * 100)}%" + (powerShare < Fix64.One ? $" (power {Mathf.RoundToInt(powerShare.ToFloat() * 100)}%)" : ""));
-        fabRows.Add(("Crew · power", string.Join("  ·  ", crew)));
-        if (def.Wears && conditionText.Length > 0) fabRows.Add(("Condition", conditionText + (maintenance.Length > 0 ? $"  ·  {maintenance}" : "")));
-        var shorts = queue.Select(o => (Order: o, Problem: Surface.OrderProblem(s, o))).Where(p => p.Problem != null).ToList();
-        if (shorts.Count > 0)
-            fabRows.Add(("Short", $"{ItemName(shorts[0].Order.RecipeId)}: {shorts[0].Problem}" + (shorts.Count > 1 ? $"  (+{shorts.Count - 1} more)" : "")));
-        rows.InsertRange(0, fabRows);
-
-        // queue column
-        var left = Surface.QueueSecondsLeft(s).ToFloat();
-        var caption = queue.Count == 0 ? (hub ? "WORKSHOP QUEUE · EMPTY" : "QUEUE · EMPTY")
-            : $"{(hub ? "WORKSHOP QUEUE" : "QUEUE")} · {queue.Count}" + (left > 0 ? $" · {Clock(left)} LEFT" : "");
-        var progress = current?.Progress.ToFloat() ?? 0f;
-        var progressText = "";
-        if (current != null)
-        {
-            var seconds = Surface.SecondsAt(s, current.RecipeId).ToFloat();
-            var eta = rate > Fix64.Zero && seconds > 0 ? Clock(seconds * (1f - progress) / rate.ToFloat()) + " left" : "stopped";
-            progressText = $"{Mathf.FloorToInt(progress * 100)}%  ·  {eta}" + (current.Auto ? "  ·  keep in stock" : "");
+            title = $"{BaseName(s.BaseId)} workshop";
+            subtitle = $"{def.Name}  ·  spare kits  ·  K back to the base";
         }
-        var waiting = queue.Where(o => o != current).ToList();
-        var next = waiting.Take(3).Select(o =>
+        else subtitle = $"{subtitle}  ·  {BaseName(s.BaseId)}";
+
+        // Queue rows (and the short ones for the Overview).
+        var queueRows = new List<FabQueueView>();
+        var shorts = new List<(string, string)>();
+        foreach (var o in queue)
         {
-            var problem = Surface.OrderProblem(s, o);
-            return new FabOrderView(o.Id, ItemCode(o.RecipeId), ItemColour(o.RecipeId), ItemName(o.RecipeId),
-                problem != null ? "SHORT" : o.Auto ? "AUTO" : "", problem != null ? PartsWarn : PartsBlue);
-        }).ToList();
-        var empty = queue.Count == 0
-            ? hub ? "No kits queued. Pick one on the right (+1, Shift +5); keep-in-stock targets queue kits here while the base has no Machine Shop."
-                : "Queue empty. Pick a recipe on the right (+1, Shift +5), or raise keep-in-stock targets (I)."
-            : "Nothing can start: every order is short of inputs (SHORT).";
-        return new FabView(caption, current?.Id ?? 0, current != null ? ItemCode(current.RecipeId) : "", current != null ? ItemColour(current.RecipeId) : Icons.PartColour,
-            current != null ? ItemName(current.RecipeId) : "", progress, progressText, next, waiting.Count > 3 ? $"+ {waiting.Count - 3} more" : "", empty);
+            var cost = CostOf(s, o.RecipeId, o.Started);
+            var seconds = Surface.SecondsAt(s, o.RecipeId).ToFloat();
+            var reason = o.Started ? (Surface.OrderProblem(s, o) ?? "") : ShortReason(cost);
+            if (!o.Started && reason.Length == 0 && Surface.OrderProblem(s, o) is { } other) reason = other;
+            string time;
+            var orderProgress = -1f;
+            if (o.Started)
+            {
+                orderProgress = o.Progress.ToFloat();
+                time = rate > Fix64.Zero && seconds > 0 ? $"{Mathf.FloorToInt(orderProgress * 100)}%  ·  {Clock(seconds * (1f - orderProgress) / rate.ToFloat())} left" : $"{Mathf.FloorToInt(orderProgress * 100)}%  ·  stopped";
+            }
+            else time = seconds > 0 ? Clock(seconds) : "";
+            queueRows.Add(new FabQueueView(o.Id, o.RecipeId, ItemName(o.RecipeId), ItemColour(o.RecipeId), cost, reason, time, orderProgress,
+                o.Started ? "MAKING" : o.Auto ? "KEEP IN STOCK" : ""));
+            if (reason.Length > 0) shorts.Add((ItemName(o.RecipeId), reason));
+        }
+
+        // Overview: Making, Crew · power, Condition, Next level, then the building's other rows.
+        var facts = new List<FabFactView>();
+        var canStart = queue.Count(o => !o.Started && ShortReason(CostOf(s, o.RecipeId)).Length == 0);
+        facts.Add(new FabFactView("Making", current != null
+            ? $"{ItemName(current.RecipeId)}  ·  {Mathf.FloorToInt(current.Progress.ToFloat() * 100)}%" + (queue.Count > 1 ? $"  ·  {queue.Count - 1} more queued" : "")
+            : queue.Count > 0 ? $"{queue.Count} queued  ·  " + (canStart > 0 ? $"{canStart} can start" : "none can start")
+            : hub ? "nothing: spare kits from materials, one at a time" : "nothing queued", current == null && queue.Count > 0 && canStart == 0 ? red : null));
+        var crew = new List<string>();
+        if (hub) crew.Add("core workshop, half speed");
+        else if (def.Crewed) crew.Add("Crewed");
+        if (def.PowerUse > Fix64.Zero && !hub) crew.Add($"{Hud.Whole(def.PowerUse)} power");
+        var pct = Mathf.RoundToInt(rate.ToFloat() * 100);
+        crew.Add((pct == 100 ? "full speed" : $"runs at {pct}%") + (powerShare < Fix64.One ? $" (power {Mathf.RoundToInt(powerShare.ToFloat() * 100)}%)" : ""));
+        facts.Add(new FabFactView("Crew · power", string.Join("  ·  ", crew)));
+        if (def.Wears && conditionText.Length > 0)
+            facts.Add(new FabFactView("Condition", conditionText + (maintenance.Length > 0 ? $"  ·  {maintenance}" : ""), condition >= 70 ? HudKit.Good : condition >= 50 ? PlanetHud.Accent : red));
+        var next = rows.FirstOrDefault(r => r.Label == "Next").Value;
+        facts.Add(new FabFactView("Next level", progress >= 0 && progressLabel.Length > 0 ? $"{progressLabel}: {progressText}"
+            : next ?? (def.Levels.Count > 0 ? "top level" : "no upgrades")));
+        foreach (var (label, value) in rows)
+            if (label != "Next" && label.Length > 0 && value.Length > 0) facts.Add(new FabFactView(label, value));
+
+        // Recipes.
+        var recipes = Surface.RecipesAt(s);
+        var tiles = new List<FabTileView>();
+        for (var i = 0; i < recipes.Count; i++)
+        {
+            var r = recipes[i];
+            var cost = CostOf(s, r);
+            var problem = Surface.FabricateProblem(LocalPlayer, s.Id, r);
+            var seconds = Surface.SecondsAt(s, r).ToFloat();
+            var tip = new StringBuilder(ItemName(r)).Append(" · ").Append(KindName(ItemTier(r)));
+            tip.Append("\nNeeds ").Append(string.Join(" + ", cost.Select(c => $"{c.Amount} {c.Name} (have {c.Have})")));
+            if (seconds > 0) tip.Append($"\n{Clock(seconds)} at full speed");
+            if (problem != null) tip.Append($"\nCan't queue: {problem}");
+            tip.Append("\nClick: its card  ·  Shift+click: queue 5  ·  Ctrl+click: queue 1  ·  right-click: remove one");
+            if (RecipeKey(i).Length > 0) tip.Append($"  ·  key {RecipeKey(i)} queues 1 (Shift 5)");
+            tiles.Add(new FabTileView(r, ItemName(r), RecipeKey(i), ItemColour(r), cost, queue.Count(o => o.RecipeId == r), cost.All(c => !c.Short) && problem == null, tip.ToString()));
+        }
+
+        var left = Surface.QueueSecondsLeft(s).ToFloat();
+        var queueNote = queue.Count == 0
+            ? (hub ? "No kits queued. Click a kit on the Recipes tab for its card, or press its number key to queue one (Shift: 5); keep-in-stock targets (I) queue kits here while the base has no Machine Shop."
+                : "Queue empty. Click a recipe on the Recipes tab for its card, or press its number key to queue one (Shift: 5); keep-in-stock targets (I) queue parts by themselves.")
+            : (left > 0 ? $"{Clock(left)} left in all  ·  " : "") + "× removes an order (what it took comes back)  ·  Backspace removes the last one";
+        var recipeNote = recipes.Count == 0 ? "No recipes: the parts economy is not in this build yet."
+            : hub ? "The colony core's workshop makes spare kits straight from materials, one at a time, at half a Machine Shop's speed." : "";
+        return new FabPanelView(title, subtitle, s.DefId, status, statusColour, actions, facts, shorts, queueRows, queueNote, tiles, recipeNote, hub);
     }
 
     // ---------------------------------------------------------------- repairs
@@ -644,6 +745,7 @@ public partial class PlanetDriver
         var landed = Me.Phase == LandingPhase.Landed && !_inOrbit;
         _hud.ShowTools(landed, landed && WorkshopAvailable(), WorkshopShown());
         UpdateKitsShort(landed);
+        UpdateItemCard();
     }
 
     private double _kitsShortAt;

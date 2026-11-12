@@ -330,6 +330,7 @@ public sealed partial class GameData
             .Select((r, i) => new ResourceDef(i, Str(r, "id"), Str(r, "name"), Str(r, "tier"))
             {
                 Volume = r.TryGetProperty("volume", out var vol) ? Num(vol) : Fix64.One,
+                Description = r.TryGetProperty("description", out var rd) && rd.ValueKind == JsonValueKind.String ? rd.GetString()! : "",
             })
             .ToList();
         var resourceIndex = new Dictionary<string, int>(StringComparer.Ordinal);

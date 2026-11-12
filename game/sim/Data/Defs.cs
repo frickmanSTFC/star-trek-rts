@@ -10,6 +10,10 @@ public sealed record ResourceDef(int Index, string Id, string Name, string Tier)
     /// construction parts 2).</summary>
     public Fix64 Volume { get; init; } = Fix64.One;
 
+    /// <summary>What the item is and what it goes into (resources.json description; the Machine Shop's item card).
+    /// Empty when not given; every part item has one (Validate).</summary>
+    public string Description { get; init; } = "";
+
     /// <summary>A part, spare kit, construction part or packed drone (the parts economy's items: a Machine Shop makes them).</summary>
     public bool IsPartItem => Tier is "part" or "spare" or "construction" or "drone";
 }

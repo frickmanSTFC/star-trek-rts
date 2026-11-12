@@ -4,29 +4,9 @@ using Godot;
 
 namespace FinalFrontier;
 
-/// <summary>One order in a fabricator's queue as the building panel shows it (Id = the sim's FabOrder.Id, for ×).</summary>
-public sealed record FabOrderView(int Id, string Code, Color Colour, string Name, string Tag, Color TagColour);
-
-/// <summary>
-/// A fabricator's queue (Machine Shop, or a colony core's workshop) in the building panel's right column: a caption
-/// with the count and time left, the running order with its bar (CurrentId 0 = nothing running: Empty says why), and
-/// the next few orders with × (cancel; the sim refunds what it took).
-/// </summary>
-public sealed record FabView(
-    string Caption,
-    int CurrentId,
-    string CurrentCode,
-    Color CurrentColour,
-    string CurrentName,
-    float Progress,
-    string ProgressText,
-    IReadOnlyList<FabOrderView> Next,
-    string More,
-    string Empty);
-
-// Parts economy on the HUD (docs/parts-contract.md "UI"): the fabricator queue column of the building panel, the
-// WORKSHOP / INVENTORY chips at the right of the base tabs, command tiles made on demand (recipes), and a tooltip that
-// can colour words (inputs red when short).
+// Parts economy on the HUD (docs/parts-contract.md "UI"): a selected fabricator's tabbed panel (FabPanel.cs: it takes
+// the bottom panel's centre and command card, and the bottom panel grows to fit it), the WORKSHOP / INVENTORY chips at
+// the right of the base tabs, command tiles made on demand, and a tooltip that can colour words.
 public partial class PlanetHud
 {
     /// <summary>× on a queued or running order (FabOrder.Id).</summary>
@@ -38,142 +18,65 @@ public partial class PlanetHud
     /// <summary>The INVENTORY [I] chip.</summary>
     public event Action? InventoryPressed;
 
-    private Control _fabBox = null!;
-    private Label _fabCaption = null!;
-    private Control _fabCurrentRow = null!;
-    private HudKit.CodeChip _fabCurrentChip = null!;
-    private Label _fabCurrentName = null!;
-    private Button _fabCurrentCancel = null!;
-    private Bar _fabBar = null!;
-    private Label _fabProgressText = null!;
-    private Label _fabEmpty = null!;
-    private readonly List<(Control Row, HudKit.CodeChip Chip, Label Name, Label Tag, Button Cancel)> _fabRows = new();
-    private readonly int[] _fabRowIds = new int[FabRows];
-    private int _fabCurrentId;
-    private Label _fabMore = null!;
-    private const int FabRows = 3;
-
     private Control _tabRow = null!;
     private HBoxContainer _tools = null!;
     private Button _workshopChip = null!;
     private Button _inventoryChip = null!;
     private RichTextLabel? _tooltipRich;
 
-    // ---------------------------------------------------------------- fabricator queue
+    // ---------------------------------------------------------------- fabricator panel
 
-    private Control BuildFabBox()
+    /// <summary>A recipe tile on the fabricator panel: (item id, mode) — 0 = its card, 1 / 5 = queue that many, -1 = remove one.</summary>
+    public event Action<string, int>? FabRecipePressed;
+
+    private FabPanel _fabPanel = null!;
+    private Control _centreBox = null!;
+    private Control _commandBox = null!;
+    private Control _mapFrame = null!;
+
+    /// <summary>The bottom panel's height right now (taller while the fabricator panel shows).</summary>
+    public float BottomNow => _bottom == null ? BottomHeight : -_bottom.OffsetTop;
+
+    private FabPanel BuildFabPanel()
     {
-        var box = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
-        box.AddThemeConstantOverride("separation", 3);
-        _fabCaption = Caption("");
-        _fabCaption.ClipText = true;
-        box.AddChild(_fabCaption);
-
-        var current = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        current.AddThemeConstantOverride("separation", 6);
-        _fabCurrentChip = new HudKit.CodeChip(12);
-        current.AddChild(_fabCurrentChip.Root);
-        _fabCurrentName = MakeLabel("", 14, Ink);
-        _fabCurrentName.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _fabCurrentName.ClipText = true;
-        current.AddChild(_fabCurrentName);
-        _fabCurrentCancel = CancelButton("Cancel the running order (the inputs it took come back)");
-        _fabCurrentCancel.Pressed += () =>
-        {
-            if (_fabCurrentId != 0) FabCancelPressed?.Invoke(_fabCurrentId);
-        };
-        current.AddChild(_fabCurrentCancel);
-        _fabCurrentRow = current;
-        box.AddChild(current);
-        _fabBar = new Bar { Colour = new Color(0.31f, 0.71f, 1f), CustomMinimumSize = new Vector2(0, 7) };
-        box.AddChild(_fabBar);
-        _fabProgressText = MakeLabel("", 12, Dim);
-        _fabProgressText.ClipText = true;
-        box.AddChild(_fabProgressText);
-        _fabEmpty = MakeLabel("", 12, Dim);
-        _fabEmpty.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        _fabEmpty.CustomMinimumSize = new Vector2(210, 0);
-        box.AddChild(_fabEmpty);
-
-        for (var i = 0; i < FabRows; i++)
-        {
-            var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-            row.AddThemeConstantOverride("separation", 6);
-            var chip = new HudKit.CodeChip(11);
-            row.AddChild(chip.Root);
-            var name = MakeLabel("", 13, Ink);
-            name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            name.ClipText = true;
-            row.AddChild(name);
-            var tag = MakeLabel("", 11, Dim);
-            row.AddChild(tag);
-            var cancel = CancelButton("Cancel this order");
-            var index = i;
-            cancel.Pressed += () =>
-            {
-                if (_fabRowIds[index] != 0) FabCancelPressed?.Invoke(_fabRowIds[index]);
-            };
-            row.AddChild(cancel);
-            box.AddChild(row);
-            _fabRows.Add((row, chip, name, tag, cancel));
-        }
-        _fabMore = MakeLabel("", 11, Dim);
-        box.AddChild(_fabMore);
-        _fabBox = box;
-        return box;
+        _fabPanel = new FabPanel { Name = "FabPanel", Visible = false };
+        _fabPanel.RecipePressed += (id, mode) => FabRecipePressed?.Invoke(id, mode);
+        _fabPanel.CancelPressed += id => FabCancelPressed?.Invoke(id);
+        _fabPanel.ActionPressed += id => _onAction?.Invoke(id);
+        _fabPanel.InventoryPressed += () => InventoryPressed?.Invoke();
+        _fabPanel.WorkshopPressed += () => WorkshopPressed?.Invoke();
+        return _fabPanel;
     }
 
-    private static Button CancelButton(string tip)
+    /// <summary>A selected Machine Shop / core workshop: the tabbed panel in place of the centre and the command card.</summary>
+    public void ShowFabPanel(FabPanelView v)
     {
-        var b = new Button { Text = "×", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(22, 20), TooltipText = tip };
-        b.AddThemeFontSizeOverride("font_size", 13);
-        StyleButton(b, Line, new Color(0.04f, 0.06f, 0.11f));
-        foreach (var state in new[] { "normal", "hover", "pressed", "hover_pressed", "disabled" })
-            if (b.GetThemeStylebox(state) is StyleBoxFlat f)
-            {
-                f.ContentMarginLeft = 4;
-                f.ContentMarginRight = 4;
-                f.SetCornerRadiusAll(5);
-            }
-        return b;
+        if (_centreBox.Visible) _centreBox.Visible = false;
+        if (_commandBox.Visible) _commandBox.Visible = false;
+        if (!_fabPanel.Visible) _fabPanel.Visible = true;
+        var screen = GetViewport().GetVisibleRect().Size;
+        // The minimap's frame has been laid out since the start (it never hides), so its real width is known.
+        var mapWidth = Mathf.Max(286f, _mapFrame.Size.X);
+        _fabPanel.Show(v, screen, screen.X - mapWidth);
+        // The estimate, or what the panel's content really needs once laid out (wrapped labels), whichever is taller.
+        // (Not in the first frames after a rebuild: wrapped labels have no width yet and would report a tall minimum.)
+        var need = _fabPanel.LaidOut ? Mathf.Max(_fabPanel.NeededHeight, _fabPanel.GetCombinedMinimumSize().Y + 2) : _fabPanel.NeededHeight;
+        SetBottomHeight(Mathf.Min(need, screen.Y * 0.6f));
     }
 
-    /// <summary>Fills the queue column (null hides it; the condition / progress boxes come back).</summary>
-    private void ShowFab(FabView? v)
+    /// <summary>Back to the usual centre + command card (every other bottom-panel view calls this).</summary>
+    private void HideFabPanel()
     {
-        if (_fabBox.Visible != (v != null)) _fabBox.Visible = v != null;
-        if (v == null) return;
-        _fabCaption.Text = v.Caption;
-        _fabCurrentId = v.CurrentId;
-        var running = v.CurrentId != 0;
-        _fabCurrentRow.Visible = running;
-        _fabBar.Visible = running;
-        _fabProgressText.Visible = running;
-        _fabEmpty.Visible = !running && v.Empty.Length > 0;
-        if (running)
-        {
-            _fabCurrentChip.Set(v.CurrentCode, v.CurrentColour);
-            _fabCurrentName.Text = v.CurrentName;
-            _fabBar.Fraction = v.Progress;
-            _fabBar.Colour = v.CurrentColour;
-            _fabProgressText.Text = v.ProgressText;
-        }
-        else _fabEmpty.Text = v.Empty;
-        for (var i = 0; i < _fabRows.Count; i++)
-        {
-            var r = _fabRows[i];
-            var show = i < v.Next.Count;
-            if (r.Row.Visible != show) r.Row.Visible = show;
-            _fabRowIds[i] = show ? v.Next[i].Id : 0;
-            if (!show) continue;
-            var o = v.Next[i];
-            r.Chip.Set(o.Code, o.Colour);
-            r.Name.Text = o.Name;
-            r.Tag.Text = o.Tag;
-            r.Tag.AddThemeColorOverride("font_color", o.TagColour);
-        }
-        _fabMore.Visible = v.More.Length > 0;
-        _fabMore.Text = v.More;
+        if (!_fabPanel.Visible) return;
+        _fabPanel.Visible = false;
+        _centreBox.Visible = true;
+        _commandBox.Visible = true;
+        SetBottomHeight(BottomHeight);
+    }
+
+    private void SetBottomHeight(float height)
+    {
+        if (!Mathf.IsEqualApprox(-_bottom.OffsetTop, height)) _bottom.OffsetTop = -height;
     }
 
     // ---------------------------------------------------------------- base tab row chips

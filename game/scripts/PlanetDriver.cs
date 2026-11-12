@@ -1207,6 +1207,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (GraphicsInput(@event)) return; // F7: Classic ↔ Enhanced compare, surface and orbit (PlanetDriver.Graphics.cs)
         if (AchievementInput(@event)) return; // F3, and Esc / other keys while the achievements screen is open
         if (InventoryInput(@event)) return; // I / Esc close the inventory; other keys wait (PlanetDriver.Parts.cs)
+        if (ItemCardInput(@event)) return; // a Machine Shop item's card: Esc closes, Enter / Shift+Enter queue (PlanetDriver.Parts.cs)
         if (CivInput(@event)) return; // C toggles the civilization dossier; Esc closes it (PlanetDriver.Civ.cs)
         if (MissionInput(@event)) return; // N mission log, Y comms card; Esc closes them (PlanetDriver.Missions.cs)
         if (_test != null && @event is InputEventKey { Pressed: true, Echo: false } testKey)
@@ -1832,12 +1833,9 @@ public partial class PlanetDriver : Node3D, ITestHost
         });
 
         // Tooltip: what's under the mouse (or why the building can't go there).
-        if (FabTooltip() is { } fabTip) _hud.ShowRichTooltip(fabTip, GetViewport().GetMousePosition()); // a recipe tile: inputs red when short
-        else
-        {
-            _hud.ShowTooltip(_hoverTile < 0 ? "" : _placing != null ? DescribePlacement(_placing, _hoverTile) : _founding != 0 ? FoundTooltip(_hoverTile) : _launchPad != 0 ? LaunchTooltip(_hoverTile) : DescribeTile(_hoverTile), GetViewport().GetMousePosition());
-            if (BuildTooltip() is { } buildTip) _hud.ShowTooltip(buildTip, GetViewport().GetMousePosition()); // a drawer / recent tile under the mouse
-        }
+        // (A Machine Shop's recipe tiles carry their own hover text: FabPanel.cs.)
+        _hud.ShowTooltip(_hoverTile < 0 ? "" : _placing != null ? DescribePlacement(_placing, _hoverTile) : _founding != 0 ? FoundTooltip(_hoverTile) : _launchPad != 0 ? LaunchTooltip(_hoverTile) : DescribeTile(_hoverTile), GetViewport().GetMousePosition());
+        if (BuildTooltip() is { } buildTip) _hud.ShowTooltip(buildTip, GetViewport().GetMousePosition()); // a drawer / recent tile under the mouse
 
         // Bottom centre.
         var bases = Surface.Bases(LocalPlayer);
@@ -2385,16 +2383,14 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         DronePadPanel(s, complete, rows, actions, ref status, ref statusColour); // a Drone Pad's bays, LAUNCH / RECALL (PlanetDriver.Drones.cs)
         var subtitle = def.Levels.Count > 0 ? $"{Surface.LevelName(s)} of {def.MaxLevel switch { 2 => "Mk II", 3 => "Mk III", _ => $"{def.MaxLevel}" }}" : def.Category.Replace('_', ' ');
-        // A Machine Shop or a core's workshop: its queue takes the right column, its rows go first (PlanetDriver.Parts.cs).
-        var fab = FabPanel(s, rows, ref status, ref statusColour, conditionText, maintenance);
-        var title = def.Name;
-        if (fab != null && Surface.IsHubWorkshop(s))
+        // A Machine Shop or a core's workshop: the tabbed panel (Overview / Queue / Recipes) instead (PlanetDriver.Parts.cs).
+        if (FabPanelOf(s, def.Name, subtitle, status, statusColour, rows, conditionText, maintenance, condition, progress, progressLabel, progressText, actions) is { } fab)
         {
-            title = $"{BaseName(s.BaseId)} workshop";
-            subtitle = $"{def.Name} · spare kits · K back to the base";
+            _hud.ShowFabPanel(fab);
+            return;
         }
-        _hud.ShowStructure(new StructureView(title, subtitle, s.DefId, status, statusColour, rows.Take(6).ToList(),
-            condition, conditionText, maintenance, progress, progressLabel, progressText, actions, fab));
+        _hud.ShowStructure(new StructureView(def.Name, subtitle, s.DefId, status, statusColour, rows.Take(6).ToList(),
+            condition, conditionText, maintenance, progress, progressLabel, progressText, actions));
     }
 
     private string DescribeTile(int tile)
