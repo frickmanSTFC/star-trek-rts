@@ -786,6 +786,8 @@ public partial class FabPanel : MarginContainer
         tile.Line.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         text.AddChild(tile.Line);
         tile.Status = HudKit.Label("", 12 * s, HudKit.Dim, condensed: true, bold: true);
+        tile.Status.AutowrapMode = TextServer.AutowrapMode.Word;
+        tile.Status.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         text.AddChild(tile.Status);
         row.AddChild(text);
         root.AddChild(row);
