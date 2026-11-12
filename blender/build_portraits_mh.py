@@ -343,6 +343,8 @@ ORBIT = [float(x) for x in (arg("--orbit") or "").split(",") if x]
 SK.update(fair=(0.86, 0.66, 0.55), light=(0.80, 0.59, 0.47), tan=(0.70, 0.49, 0.36), olive=(0.66, 0.49, 0.35),
           eastasian=(0.82, 0.63, 0.49), romulan=(0.80, 0.63, 0.51), ferengi=(0.84, 0.62, 0.46),
           brown=(0.52, 0.35, 0.24), dark=(0.37, 0.24, 0.17), deep=(0.27, 0.175, 0.13))
+bp.BROWS["upswept"] = dict(arch=0.15, ap=0.62, tail=0.0, up=0.55, thick=1.0)
+bp.STYLES["swept_back"] = dict(bp.STYLES["swept_back"], hug=0.016, rise=0.3)
 D = None          # MHData, loaded in main()
 CUR = bp.CUR      # shared with build_portraits' hair / brow / lash code
 
@@ -1257,7 +1259,7 @@ def hair_setup(hm, c):
     bp.head_xyz = hm.field.xyz
     bp.hairline = hairline_mh
     bp.ear_push = ear_push_mh
-    bp.face_clear = face_clear_mh
+    bp.face_clear = lambda p, F, fringe=False: p      # strands are trimmed at the face afterwards (strands())
     q0 = hm.field.xyz(np.array([5.0, -15.0]), np.array([90 - 38.0, 90 - 38.0]))
     hm.face_half = float(max(0.062, q0[:, 0].max() + 0.004))
     bp.BodyClear = BodyClearMH
@@ -1318,6 +1320,19 @@ def strands(hm, c, objs, body_ob):
             C, w, st = bp.scalp_strands(c, seed)
         finally:
             bp.STYLES[c["style"]] = st0
+        # strands end where they would enter the face (a fringe stops above the brows, side hair beside the cheeks)
+        Fp = CUR["F"]
+        top = Fp["bz"] + (0.010 if st.get("cut") in ("bowl", "vulcan_f", "romulan_f") else 0.006)
+        xx, yy, zz = C[..., 0], C[..., 1], C[..., 2]
+        bad = (yy > 0.035) & (zz < top) & (zz > Fp["cz"] - 0.03) & (np.abs(xx) < hm.face_half - 0.004)
+        bad[:, 0] = False
+        if bad.any():
+            first = np.where(bad.any(1), np.argmax(bad, 1), C.shape[1])
+            seg = np.linalg.norm(np.diff(C, axis=1), axis=-1)
+            cum = np.concatenate([np.zeros((len(C), 1)), np.cumsum(seg, 1)], 1)
+            tot = np.maximum(cum[:, -1], 1e-9)
+            frac = np.where(first < C.shape[1], cum[np.arange(len(C)), np.maximum(first - 1, 0)] / tot, 1.0)
+            C = bp.trim(C, np.maximum(frac, 0.02))
         hr = st.get("rad", 1.0) * 0.000085
         objs.append(bp.curves_object("Hair", C, hr, hr * 0.25, bp.CHAR_MATS["HairS"], Dh, bvh))
         if st.get("bun"):
@@ -1456,25 +1471,29 @@ class Suit:
         self.waist_z = float(hm.joint("spine03____head")[2])
         self.chest_y = float(co[(np.abs(co[:, 0]) < 0.03) & (np.abs(co[:, 2] - self.armpit_z) < 0.02)][:, 1].max())
 
-    def arm_t(self, p):
-        """Distance along each upper arm from the shoulder joint (negative on the torso), max of both sides."""
+    def arm_t(self, p, with_dist=False):
+        """Distance along each upper arm from the shoulder joint (negative on the torso), max of both sides; with
+        with_dist also the distance from the arm's axis."""
         out = np.full(len(p), -1.0)
+        dist = np.full(len(p), 9.0)
         for s in "lr":
             a = self.hm.joint(f"upperarm01.{s.upper()}____head")
             b = self.hm.joint(f"lowerarm01.{s.upper()}____head")
             ax = (b - a) / np.linalg.norm(b - a)
             t = (p - a) @ ax
+            dd = np.linalg.norm((p - a) - t[:, None] * ax, axis=1)
             side = (p[:, 0] * np.sign(a[0])) > 0
             out = np.where(side, np.maximum(out, t), out)
-        return out
+            dist = np.where(side, dd, dist)
+        return (out, dist) if with_dist else out
 
 
 def suit_fields(S, kind):
     """Per-vertex fields for the suit shader (sign = inside): yoke, sleeve band, belt, boots, front seam."""
     p = S.co
     x, y, z = p[:, 0], p[:, 1], p[:, 2]
-    t = S.arm_t(p)
-    on_arm = sm(0.0, 0.05, t) * (np.abs(x) > 0.11)
+    t, da = S.arm_t(p, True)
+    on_arm = sm(0.0, 0.05, t) * sm(0.085, 0.065, da)
     zl = S.neck_z - 0.085 - 0.03 * (np.abs(x) / 0.12) ** 2
     yk = (1 - on_arm) * (z - zl) + on_arm * (0.105 - t)
     band = 0.012 - np.abs(t - 0.19) + (on_arm < 0.5) * -1.0
@@ -1539,23 +1558,38 @@ def ring_band(hm, S, h0, h1, out0, out1, th0=0.0, th1=360.0, nth=96, rows=6, thi
     z_s = np.concatenate([z_s, z_s, z_s])
     full = abs((th1 - th0) - 360) < 1e-6
     ths = np.linspace(th0, th1, nth, endpoint=not full)
+    # neck radius by row and angle (ray cast from the neck axis, only near the suit line), smoothed round the ring
+    nr = rows + 1
+    Rr = np.zeros((nr, len(ths)))
+    Zz = np.zeros((nr, len(ths)))
+    for r_ in range(nr):
+        u = r_ / rows
+        for j, th in enumerate(ths):
+            zb = np.interp(th % 360, ang_s, z_s)
+            back = 0.5 + 0.5 * math.sin(rad(th)) * -1.0      # 1 at the back (-y)
+            zz = zb + h0 + (h1 - h0 + rise_back * back) * u
+            d = V((math.cos(rad(th)), math.sin(rad(th)), 0))
+            zcast = min(zz, zb + 0.016)
+            hit = bvh.ray_cast(V((0, cy, zcast)), d, 0.2)[0]
+            Rr[r_, j] = (hit - V((0, cy, zcast))).length if hit is not None else 0.06
+            Zz[r_, j] = zz
+    k = 7
+    for _ in range(3):
+        if full:
+            Rr = sum(np.roll(Rr, i, 1) for i in range(-k // 2 + 1, k // 2 + 1)) / k
+        else:
+            Rp = np.pad(Rr, ((0, 0), (k // 2, k // 2)), mode="edge")
+            Rr = np.stack([Rp[:, i:i + len(ths)] for i in range(k)]).mean(0)
     layers = []
     for shell in (0, 1):
         grid = []
-        for r_ in range(rows + 1):
+        for r_ in range(nr):
             u = r_ / rows
             row = []
-            for th in ths:
-                zb = np.interp(th % 360, ang_s, z_s)
-                back = 0.5 + 0.5 * math.sin(rad(th)) * -1.0      # 1 at the back (-y)
-                zz = zb + h0 + (h1 - h0 + rise_back * back) * u
+            for j, th in enumerate(ths):
                 d = V((math.cos(rad(th)), math.sin(rad(th)), 0))
-                zcast = min(zz, zb + 0.016)
-                hit = bvh.ray_cast(V((0, cy, zcast)), d, 0.2)[0]
-                q = hit if hit is not None else V((0, cy, zcast)) + d * 0.06
-                q = V((q.x, q.y, zz))
                 off = out0 + (out1 - out0) * u + flare * u * u + shell * thick
-                row.append(tuple(q + d * off))
+                row.append(tuple(V((0, cy, Zz[r_, j])) + d * (Rr[r_, j] + off)))
             grid.append(row)
         layers.append(grid)
     co, faces = [], []
@@ -1584,11 +1618,35 @@ def ring_band(hm, S, h0, h1, out0, out1, th0=0.0, th1=360.0, nth=96, rows=6, thi
     return np.array(co), np.array(faces)
 
 
+_CUT = {}
+
+
+def cut_material(base):
+    """A copy of base that is transparent where the 'pm' attribute is below zero: shells get crisp smooth outlines
+    from the mask field instead of the suit's face edges."""
+    if base.name in _CUT:
+        return _CUT[base.name]
+    m = base.copy()
+    m.name = base.name + "_cut"
+    nt = m.node_tree
+    out = nt.nodes["Material Output"]
+    src = out.inputs["Surface"].links[0].from_socket
+    tr = bp.node(nt, "ShaderNodeBsdfTransparent")
+    mix = bp.node(nt, "ShaderNodeMixShader")
+    fac = bp.math_node(nt, "GREATER_THAN", bp.attr(nt, "pm").outputs["Fac"], 0.0)
+    nt.links.new(fac, mix.inputs["Fac"])
+    nt.links.new(tr.outputs["BSDF"], mix.inputs[1])
+    nt.links.new(src, mix.inputs[2])
+    nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
+    _CUT[base.name] = m
+    return m
+
+
 def shell(S, mask, offset, name, mat, rig, thick=0.004, subsurf=2, feather=0.0):
     """A raised part: the suit faces where mask > 0 (all four corners), pushed out by offset (per vertex); with
     feather (mask units) the offset eases to 1.5 mm at the edge so the part blends into the suit."""
-    sel = (mask[S.faces] > 0).all(1)
-    if not sel.any():
+    sel = (mask[S.faces] > -0.012).any(1) & (mask[S.faces] > -0.03).all(1)
+    if not (mask[S.faces] > 0).any():
         return None
     f = S.faces[sel]
     used = np.unique(f.ravel())
@@ -1598,7 +1656,10 @@ def shell(S, mask, offset, name, mat, rig, thick=0.004, subsurf=2, feather=0.0):
     if feather > 0:
         off = 0.0015 + (off - 0.0015) * sm(0.0, feather, mask)
     co = S.co[used] + S.n[used] * off[used][:, None]
-    ob = skinned_object(name, co, remap[f], S.W[used], rig, [mat], subsurf=subsurf)
+    ob = skinned_object(name, co, remap[f], S.W[used], rig, [cut_material(mat)], subsurf=subsurf)
+    a = ob.data.attributes.new("pm", "FLOAT", "POINT")
+    a.data.foreach_set("value", mask[used].astype(np.float32))
+    bp.set_attr(ob.data, "rest", co - S.hm.head_c, "FLOAT_VECTOR")
     so = ob.modifiers.new("Solid", "SOLIDIFY")
     so.thickness = thick
     so.offset = 1.0
@@ -1607,6 +1668,26 @@ def shell(S, mask, offset, name, mat, rig, thick=0.004, subsurf=2, feather=0.0):
     while ob.modifiers[0].name != "Solid":
         bpy.ops.object.modifier_move_up(modifier="Solid")
     return ob
+
+
+def ribbed_material():
+    """Cardassian chest plate: dull bronze ribs (rest z bands) with darker grooves and a bump."""
+    if "car_ribbed" in bp.MATS:
+        return bp.MATS["car_ribbed"]
+    m, p = bp.principled("car_ribbed", srgb_lin((0.30, 0.24, 0.17)), 0.42, 0.45)
+    nt = m.node_tree
+    rest = bp.sep(nt, bp.attr(nt, "rest").outputs["Vector"])
+    w = bp.math_node(nt, "SINE", bp.math_node(nt, "MULTIPLY", rest[2], 2 * pi / 0.022))
+    band = bp.math_node(nt, "MULTIPLY", bp.math_node(nt, "ADD", w, 0.75), 3.0, clamp_=True)
+    col = bp.mix_rgb(nt, band, srgb_lin((0.08, 0.07, 0.06)), srgb_lin((0.36, 0.28, 0.19)))
+    nt.links.new(col, p.inputs["Base Color"])
+    bm = bp.node(nt, "ShaderNodeBump")
+    bm.inputs["Strength"].default_value = 0.8
+    bm.inputs["Distance"].default_value = 0.003
+    nt.links.new(band, bm.inputs["Height"])
+    nt.links.new(bm.outputs["Normal"], p.inputs["Normal"])
+    bp.MATS["car_ribbed"] = m
+    return m
 
 
 def badge(hm, S, rig, objs):
@@ -1681,7 +1762,7 @@ def hide_covered_body(hm, S, keep_band=0.015):
         loc, nn, _, dist = bvh.find_nearest(p, 0.04)
         if loc is None:
             continue
-        if (p - loc).dot(nn) < 0.003 and kd.find(p)[2] > keep_band:
+        if (p - loc).dot(nn) < 0.003 and kd.find(p)[2] > keep_band and p.z < S.neck_z - 0.012:
             cov[i] = True
     return cov
 
@@ -1762,27 +1843,33 @@ def outfit(hm, c, rig, objs):
         if o:
             objs.append(o)
     elif f == "cardassian":
-        collar(-0.008, 0.010, 0.005, 0.009, coll_mat, thick=0.004)
-        # shoulder plates sweeping up toward the neck (a V cowl front and back), ribbed chest panel between them
-        zc = S.neck_z - 0.02
-        m_ = np.minimum(np.minimum(z - (S.armpit_z - 0.02), np.abs(x) - (0.035 + 0.5 * np.maximum(0, zc - z))), 0.10 - t)
-        off = 0.008 + 0.020 * sm(S.armpit_z, S.neck_z, z) * sm(0.03, 0.08, np.abs(x))
-        o = shell(S, m_, off, "Shoulders", bp.material("car_armour"), rig, 0.005, feather=0.02)
+        collar(-0.008, 0.008, 0.005, 0.008, coll_mat, thick=0.004)
+        # shoulder plates over the outer shoulders (the neck and its cords stay free), rising toward the neck
+        m_ = np.minimum(np.minimum(z - (S.armpit_z - 0.03), np.abs(x) - 0.095), 0.11 - t)
+        off = 0.010 + 0.016 * sm(S.armpit_z, S.neck_z, z)
+        o = shell(S, m_, off, "Shoulders", bp.material("car_armour"), rig, 0.005)
         if o:
             objs.append(o)
-        for k in range(7):     # chest ribs
-            z0 = S.neck_z - 0.075 - 0.024 * k
-            m_ = np.minimum(np.minimum(z - z0, z0 + 0.015 - z), 0.034 + 0.5 * np.maximum(0, zc - z) - np.abs(x))
-            m_ = np.where(y > S.chest_y - 0.08, m_, -1)
-            o = shell(S, m_, 0.006, f"Rib{k}", bp.material("car_rib" if k % 2 == 0 else "car_armour"), rig, 0.003,
-                      feather=0.004)
-            if o:
-                objs.append(o)
+        # ribbed chest panel: a V-topped plate with horizontal ribs
+        vtop = S.neck_z - 0.03 - 0.55 * np.abs(x)
+        m_ = np.minimum(np.minimum(vtop - z, 0.085 - np.abs(x)), z - (S.armpit_z - 0.16))
+        m_ = np.where(y > S.chest_y - 0.09, m_, -1)
+        o = shell(S, m_, 0.007, "Ribs", ribbed_material(), rig, 0.004)
+        if o:
+            objs.append(o)
     else:  # ferengi
         collar(-0.006, 0.010, 0.005, 0.006, bp.material("fer_shirt"), thick=0.003)
         collar(0.004, 0.050, 0.012, 0.045, coll_mat, name="Flare", th0=118, th1=422, thick=0.003, flare=0.02, rows=8)
         m_ = (np.abs(x) < 0.035) & (y > 0) & (z > S.waist_z - 0.1) & (z < S.neck_z)
         o = shell(S, m_.astype(float) - 0.5, 0.003, "ShirtFront", bp.material("fer_shirt"), rig, 0.002)
+        if o:
+            objs.append(o)
+    if hm.full:
+        # boots: the suit's feet and shins a little thicker, with a sole
+        o = shell(S, 0.30 - z, 0.0035, "Boots", bp.material("boot"), rig, 0.002, feather=0.01)
+        if o:
+            objs.append(o)
+        o = shell(S, 0.022 - z, 0.007, "Soles", bp.material("sole"), rig, 0.004, feather=0.004)
         if o:
             objs.append(o)
     cov = hide_covered_body(hm, S)
@@ -1887,10 +1974,13 @@ def species_sculpt(hm, c, q, nrm_):
         # snout: the lower nose pushed forward and up and widened, nostrils turned to the front; heavy brow
         nt = hm.nose_tip - hc
         dn = np.linalg.norm((q - nt) * np.array([0.8, 1.0, 1.0]), axis=1)
-        w = ga(dn, 0.015)
-        vec[:, 1] = 0.011 * w
-        vec[:, 2] = 0.005 * w
-        vec[:, 0] = x * 0.35 * ga(dn, 0.017)
+        nb = nt + np.array([0, -0.012, -0.012])                     # nose base (nostrils)
+        db = np.linalg.norm((q - nb) * np.array([0.7, 1.0, 1.0]), axis=1)
+        w = ga(dn, 0.016)
+        wb = ga(db, 0.011) * sm(-0.03, 0.0, q[:, 1] - nb[1])
+        vec[:, 1] = 0.012 * w + 0.014 * wb
+        vec[:, 2] = 0.004 * w - 0.001 * wb
+        vec[:, 0] = x * (0.45 * ga(dn, 0.018) + 0.3 * wb)
         disp = 0.0065 * ga(z - (bz - 0.001), 0.007) * ga(x, 0.048) * front
         for k in range(3):     # brow-to-nose folds
             disp = disp + 0.0016 * ga(z - (ez - 0.004 - 0.006 * k), 0.0015) * ga(x, 0.006) * front
@@ -1918,13 +2008,17 @@ def species_sculpt(hm, c, q, nrm_):
             d, t = polyline_dist(P2, pts)
             disp = disp + 0.0032 * ga(d, 0.0033) * (x * sx > 0) * sm(-0.02, 0.01, y)
         # cobra neck: two cords each side from behind the ear down and out to the shoulder
+        # (lines in the side view, y-z, on each side of the neck)
         for sx in (-1, 1):
             ec, ext = hm.ears_local["l" if sx * hm.ears_local["l"][0][0] > 0 else "r"]
-            a = ec + np.array([sx * -0.004, -0.012, -0.022])
-            for k, (bo, r_, h_) in enumerate(((np.array([sx * 0.085, -0.030, -0.135]), 0.0085, 0.0075),
-                                             (np.array([sx * 0.060, 0.008, -0.140]), 0.006, 0.004))):
-                d, t = seg_dist(q, a + np.array([0, 0.012 * k, -0.005 * k]), bo)
-                disp = disp + h_ * ga(d, r_) * sm(0.0, 0.15, t) * sm(1.0, 0.85, t)
+            side = sm(0.015, 0.035, x * sx)
+            yz = np.stack([np.zeros_like(y), y, z], 1)
+            for k, (a, bo, r_, h_) in enumerate((
+                    (np.array([0.0, ec[1] - 0.016, ec[2] - 0.006]), np.array([0.0, -0.046, -0.15]), 0.0050, 0.0090),
+                    (np.array([0.0, ec[1] + 0.008, ec[2] - 0.034]), np.array([0.0, 0.016, -0.15]), 0.0038, 0.0050))):
+                d, t = seg_dist(yz, a, bo)
+                off_ear = np.linalg.norm((q - ec) / (ext * 1.25 + 0.004), axis=1)
+                disp = disp + h_ * ga(d, r_) * sm(0.0, 0.035, t) * side * sm(0.9, 1.15, off_ear)
         ridge = np.clip(disp / 0.003, 0, 1)
     elif sp == "ferengi":
         # nose-bridge folds climbing the forehead, a central lobe line, lumpy brow
@@ -1947,7 +2041,32 @@ def species_sculpt(hm, c, q, nrm_):
 
 
 def needs_sculpt(sp):
-    return sp in ("klingon", "romulan", "tellarite", "bajoran", "cardassian", "ferengi")
+    return sp in ("klingon", "romulan", "tellarite", "bajoran", "cardassian", "ferengi", "trill")
+
+
+def trill_spot_list(hm):
+    """Two loose columns of spots each side: temple behind the eye corner, down the side of the face in front of the
+    ear, down the side of the neck; getting smaller as they go. (head-local centre, radius)"""
+    R = rng(hm.P["seed"] + 77)
+    out = []
+    ez = hm.ez - hm.head_c[2]
+    for s in "lr":
+        ec, ext = hm.ears_local[s]
+        sx = np.sign(ec[0])
+        line = np.array([[sx * 0.058, 0.058, ez + 0.032], [sx * 0.064, 0.042, ez - 0.004],
+                         [sx * 0.066, 0.022, ez - 0.040], [sx * 0.056, 0.006, -0.085], [sx * 0.052, -0.004, -0.14]])
+        for k in range(30):
+            t = k / 29
+            seg_ = min(int(t * 4), 3)
+            u = t * 4 - seg_
+            p = line[seg_] * (1 - u) + line[seg_ + 1] * u
+            for col in (-1, 1):
+                if R.uniform() < 0.3:
+                    continue
+                pp = p + np.array([0, col * 0.0048 * (1 - 0.4 * t), 0]) + R.normal(0, 0.0016, 3)
+                loc, _ = surface_point(hm, pp + hm.head_c)
+                out.append((loc - hm.head_c, (0.0030 - 0.0016 * t) * R.uniform(0.7, 1.25)))
+    return out
 
 
 def sculpt_body(body, hm, c):
@@ -1977,6 +2096,15 @@ def sculpt_body(body, hm, c):
     me.color_attributes["tint"].data.foreach_get("color", t)
     t = t.reshape(-1, 4)
     t[:, :3] *= 1 + (np.array(sk) - 1)[None, :] * ridge[:, None]
+    if c["species"] == "trill":
+        q = co - hm.head_c
+        spot = np.zeros(n)
+        for cc, r in trill_spot_list(hm):
+            d = np.linalg.norm((q - cc) * np.array([1.0, 0.8, 1.0]), axis=1)
+            spot = np.maximum(spot, sm(r * 1.5, r * 0.8, d))
+        sk_ = np.array(SK[c["skin"]])
+        want = np.array((0.36, 0.20, 0.12)) / np.maximum(sk_, 0.05)
+        t[:, :3] = t[:, :3] * (1 - 0.92 * spot[:, None]) + want[None, :] * 0.92 * spot[:, None]
     me.color_attributes["tint"].data.foreach_set("color", t.ravel())
 
 
@@ -2066,44 +2194,6 @@ def species_extras(hm, c, rig, objs):
             radii = 0.0040 * (1 - 0.5 * ts) + 0.0042 * ga(ts - 0.95, 0.045) * (ts > 0.8) + 0.0012 * ga(ts, 0.08)
             co, fc = tube(path, radii)
             skin_extra(f"Antenna{sx}", co, fc, rig, hm, objs)
-    if sp == "trill":
-        R = rng(hm.P["seed"] + 77)
-        cents, rads = [], []
-        for s in "lr":
-            ec, ext = hm.ears_local[s]
-            sx = np.sign(ec[0])
-            # temple (beside the brow, behind the eye corner) -> in front of the ear -> down the side of the neck
-            line = np.array([[sx * 0.060, 0.050, hm.brow_z - hc[2] + 0.012], [sx * 0.066, 0.030, hm.ez - hc[2] - 0.01],
-                             [ec[0] * 0.98, ec[1] + 0.018, ec[2] - 0.03], [sx * 0.050, 0.005, -0.10],
-                             [sx * 0.050, -0.005, -0.15]])
-            for k in range(26):
-                t = k / 25
-                seg_ = min(int(t * 4), 3)
-                u = t * 4 - seg_
-                p = line[seg_] * (1 - u) + line[seg_ + 1] * u
-                for col in (-1, 1):
-                    jit = R.normal(0, 0.0018, 3)
-                    pp = p + np.array([0, col * 0.0045, 0]) + jit + hc
-                    if R.uniform() < 0.25:
-                        continue
-                    loc, nn = surface_point(hm, pp)
-                    r = (0.0032 - 0.0018 * t) * R.uniform(0.7, 1.2)
-                    cents.append((loc, nn, r))
-        co, fc = [], []
-        for loc, nn, r in cents:
-            e1 = nrm(np.cross(nn, [0, 0, 1.0]))
-            e2 = np.cross(nn, e1)
-            b = len(co)
-            co.append(loc + nn * 0.0011)
-            for j in range(10):
-                a = 2 * pi * j / 10
-                rr = r * (1 + 0.15 * math.sin(3 * a + r * 1e4))
-                co.append(loc + nn * 0.0008 + (e1 * math.cos(a) * 1.2 + e2 * math.sin(a)) * rr)
-            for j in range(10):
-                fc.append((b, b + 1 + j, b + 1 + (j + 1) % 10))
-        co = np.array(co)
-        W = nearest_rows(co, hm.body_idx, hm.co)
-        objs.append(skinned_object("TrillSpots", co, fc, W, rig, [bp.material("trill_spot")], subsurf=0))
     if sp == "bajoran":
         # the right ear (+x): a cuff at the top of the helix, beads down the rim to the lobe and a short drop
         s = "r" if hm.ears_local["r"][0][0] > 0 else "l"
@@ -2157,6 +2247,7 @@ def build_character(c, loc=(0, 0, 0), yaw=0.0, head_turn=0.0, cam=None, t=0.0, h
     c.setdefault("faction", FACTION_OF[c["species"]])
     P = person(c)
     hm = Human(c, P)
+    hm.full = full
     landmarks(hm)
     species_base(hm, c)
     CUR.clear()
@@ -2254,7 +2345,7 @@ def lineup(cam, chars, extras):
     camp = V((2.2, 6.6, 1.55))
     for k, c in enumerate(chars):
         objs, _ = build_character(c, loc=(xs[k], 0.15 * (k % 2), 0), yaw=28 + 4 * k, head_turn=-6, cam=camp,
-                                  t=0.1 + 0.2 * k, height=heights[k])
+                                  t=0.1 + 0.2 * k, height=heights[k], full=True)
         objs_all += objs
     cy = bp.cyclorama("Cyc", 18, 9.0, 8.0, 2.2, bp.cyc_material(bp.backdrop_image("federation", 1600, 900, side=1)))
     cy.location = (-0.6, -3.4, 0)
