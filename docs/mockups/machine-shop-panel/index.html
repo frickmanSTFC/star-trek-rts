@@ -1,0 +1,322 @@
+<title>Machine Shop Panel Options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: a review page. Each option is the game's bottom panel at true size (1600 px wide, the owner's screen), scaled
+   down to fit the page width; a short pros/cons line under each. The page shell follows the viewer's theme; the game
+   frames keep the game HUD's own colours (PlanetHud / HudKit) in both themes. */
+:root {
+  color-scheme: dark;
+  --page: #070a12; --page-2: #0e1424; --ink: #e6ebf5; --dim: #97a3bd; --rule: #232c44; --mark: #f0a24a; --focus: #9ed1ff;
+  /* HUD (fixed in both themes) */
+  --g-bg: #0a101d; --g-bg2: #0f1728; --g-line: #26324d; --g-line2: #33415f; --g-ink: #e3e9f3; --g-dim: #8e9ab2; --g-faint: #5f6b84;
+  --g-orange: #f0a24a; --g-red: #ec6a5c; --g-green: #8fd67a; --g-sky: #8cc0f2; --g-amber: #f4c45a;
+  --k-mech: #e0a33c; --k-elec: #e8d24a; --k-rover: #e08a3c; --k-env: #6cc4d8; --k-part: #9aa8c4; --k-con: #b48ce0; --k-drone: #7fd0a0;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { color-scheme: light; --page: #eceff5; --page-2: #ffffff; --ink: #151b29; --dim: #4e5970; --rule: #cdd3e0; --mark: #a8561a; --focus: #1f5fbf; }
+}
+:root[data-theme="light"] { color-scheme: light; --page: #eceff5; --page-2: #ffffff; --ink: #151b29; --dim: #4e5970; --rule: #cdd3e0; --mark: #a8561a; --focus: #1f5fbf; }
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+.wrap { max-width: 1320px; margin: 0 auto; display: grid; gap: 30px; }
+header h1 { font: 700 clamp(30px, 4.4vw, 46px)/1.05 var(--display); letter-spacing: .03em; text-transform: uppercase; margin: 0 0 8px; text-wrap: balance; }
+header p { margin: 0; color: var(--dim); max-width: 72ch; }
+.eyebrow { display: inline-block; font: 600 13px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--mark);
+  border: 1px solid var(--mark); border-radius: 12px; padding: 5px 10px; margin-bottom: 12px; }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; }
+.jump a { font: 600 14px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); text-decoration: none;
+  border: 1px solid var(--rule); background: var(--page-2); border-radius: 14px; padding: 7px 12px; }
+.jump a b { color: var(--mark); margin-right: 6px; }
+section.opt { display: grid; gap: 10px; scroll-margin-top: 16px; }
+section.opt h2 { margin: 0; font: 700 26px/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+section.opt h2 b { color: var(--mark); margin-right: 8px; }
+section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
+.proscons { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 24px; font-size: 14px; color: var(--dim); }
+.proscons b { color: var(--ink); font-weight: 600; }
+@media (max-width: 700px) { .proscons { grid-template-columns: minmax(0, 1fr); } }
+.fit { width: 100%; overflow: hidden; border-radius: 10px; border: 1px solid var(--rule); background: #000; }
+.stage { width: 1600px; transform-origin: 0 0; }
+.cap { font: 600 12px/1.3 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+.notes h2 { font: 700 22px/1.1 var(--display); letter-spacing: .05em; text-transform: uppercase; margin: 0 0 8px; }
+.notes li { color: var(--dim); max-width: 78ch; }
+.notes li b { color: var(--ink); }
+
+/* ---------------------------------------------------------------- game HUD look (fixed colours) */
+.hud { position: relative; width: 1600px; color: var(--g-ink); font: 400 15px/1.35 var(--body); background:
+  linear-gradient(180deg, #23314a 0, #1a2436 60%, #101826 100%); }
+.world { height: 120px; background: radial-gradient(120% 140% at 30% 0%, #4d5d3e 0, #39462f 35%, #232b22 70%, #151a17 100%); position: relative; }
+.world::after { content: "the map"; position: absolute; left: 24px; top: 16px; font: 600 12px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: rgba(255,255,255,.35); }
+.bar { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 0; background: var(--g-bg); border-top: 2px solid var(--g-orange); }
+.mini { border-right: 1px solid var(--g-line); padding: 12px 14px; display: grid; gap: 8px; align-content: start; }
+.mini .t { font: 600 13px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--g-dim); }
+.mini .map { height: 112px; border: 1px solid var(--g-line2); background:
+  repeating-linear-gradient(90deg, rgba(0,0,0,.25) 0 3px, transparent 3px 7px), linear-gradient(90deg, #5a4a2e, #3d4a2c 40%, #6a5634 70%, #4b4330); }
+.mini .k { font-size: 12.5px; color: var(--g-dim); }
+.main { padding: 0 14px 12px; min-width: 0; }
+.tagline { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.basechip { border: 1.5px solid var(--g-orange); border-radius: 6px; padding: 4px 12px; font: 600 16px/1.2 var(--display); letter-spacing: .1em; text-transform: uppercase; background: #2a1d0e; }
+.navbtn { border: 1px solid var(--g-line2); border-radius: 6px; padding: 5px 11px; font: 600 14px/1.2 var(--display); letter-spacing: .08em; text-transform: uppercase; background: var(--g-bg2); color: var(--g-ink); }
+.tagline .sp { flex: 1; }
+.bname { display: flex; gap: 12px; align-items: center; }
+.bname .ic { width: 42px; height: 42px; border: 1.5px solid var(--g-sky); border-radius: 8px; display: grid; place-items: center; color: var(--g-sky); flex: none; }
+.bname h3 { margin: 0; font: 600 25px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.bname small { color: var(--g-dim); font-size: 13.5px; }
+.status { color: var(--g-orange); font-size: 15px; margin: 6px 0; }
+.act { display: flex; align-items: baseline; gap: 10px; border: 1px solid var(--g-line2); background: var(--g-bg2); border-radius: 6px; padding: 6px 10px;
+  font: 600 14px/1.25 var(--display); letter-spacing: .07em; text-transform: uppercase; color: var(--g-ink); }
+.act span { font: 400 13.5px/1.25 var(--body); letter-spacing: 0; text-transform: none; color: var(--g-dim); }
+.acts { display: grid; gap: 5px; }
+.lab { font: 600 12px/1.2 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--g-dim); }
+.val { font-size: 14.5px; }
+.short { color: var(--g-orange); font: 600 12.5px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; }
+.red { color: var(--g-red); }
+.ok { color: var(--g-green); }
+.dim { color: var(--g-dim); }
+.kchip { display: inline-grid; place-items: center; min-width: 22px; height: 18px; padding: 0 4px; border-radius: 4px; background: var(--c, var(--k-part)); color: #10131a;
+  font: 700 11px/1 var(--display); letter-spacing: .04em; }
+.key { font: 600 12px/1 var(--display); color: var(--g-dim); border: 1px solid var(--g-line2); border-radius: 4px; padding: 2px 5px; }
+.qbadge { font: 700 12px/1 var(--display); color: #10131a; background: var(--g-orange); border-radius: 9px; padding: 3px 7px; }
+.x { width: 22px; height: 22px; border: 1px solid var(--g-line2); border-radius: 5px; display: inline-grid; place-items: center; color: var(--g-dim); font-size: 13px; flex: none; }
+.cost { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.cost i { font-style: normal; font: 500 12.5px/1.3 var(--body); background: #172238; border: 1px solid var(--g-line); border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.cost i.lack { border-color: rgba(236,106,92,.6); color: #ffb3a9; background: #2b1414; }
+.grp { font: 600 12px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--g-dim); margin: 2px 0 6px; }
+.panelbox { border: 1px solid var(--g-line); background: var(--g-bg2); border-radius: 8px; padding: 9px 11px; min-width: 0; }
+
+/* option 1: list */
+.o1 { display: grid; grid-template-columns: 300px 380px minmax(0, 1fr); gap: 14px; align-items: start; }
+.facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 7px 14px; }
+.facts .wide { grid-column: 1 / -1; }
+.rlist { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 10px; max-height: 176px; overflow: auto; padding-right: 6px; scrollbar-color: var(--g-orange) #0c1322; scrollbar-width: thin; }
+.more { font: 600 12px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--g-orange); margin-top: 6px; }
+.rrow { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: center; border: 1px solid var(--g-line); border-radius: 6px; padding: 5px 8px; background: #0c1322; }
+.rrow .n { font: 600 15px/1.15 var(--display); letter-spacing: .04em; }
+.rrow .s { font-size: 12.5px; color: var(--g-dim); }
+.rrow.queued { border-color: rgba(240,162,74,.6); }
+
+/* option 2: tabs */
+.o2 { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--g-line2); margin-bottom: 9px; }
+.tabs button { background: none; border: 0; border-bottom: 3px solid transparent; color: var(--g-dim); padding: 6px 14px 7px; cursor: pointer;
+  font: 600 15px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; }
+.tabs button[aria-selected="true"] { color: var(--g-ink); border-bottom-color: var(--g-orange); }
+.tiles { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+.tile { border: 1px solid var(--g-line); border-radius: 7px; background: #0c1322; padding: 7px 8px; display: grid; gap: 4px; align-content: start; min-height: 96px; position: relative; }
+.tile .top { display: flex; justify-content: space-between; align-items: center; }
+.tile .n { font: 600 15px/1.12 var(--display); letter-spacing: .03em; }
+.tile.queued { border-color: rgba(240,162,74,.7); }
+.tile .qb { position: absolute; top: -7px; right: -6px; }
+.qtable { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.qtable td { padding: 6px 8px; border-bottom: 1px solid var(--g-line); }
+.qtable td.r { text-align: right; }
+
+/* option 3: drawer */
+.drawer { position: absolute; left: 270px; right: 0; bottom: 100%; background: rgba(10,16,29,.97); border: 1px solid var(--g-line2); border-bottom: 0; border-radius: 10px 10px 0 0; padding: 12px 16px; }
+.drawer .cols { display: grid; grid-template-columns: 1.3fr 1.35fr 1.15fr 1fr; gap: 16px; }
+.dcard { border: 1px solid var(--g-line); border-radius: 8px; background: #0c1322; padding: 7px 9px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.dcard .ic2 { width: 34px; height: 34px; border-radius: 6px; background: color-mix(in srgb, var(--c) 22%, #0c1322); border: 1px solid var(--c); display: grid; place-items: center; color: var(--c); font: 700 13px/1 var(--display); }
+.dcard .n { font: 600 15.5px/1.1 var(--display); letter-spacing: .03em; }
+.dstack { display: grid; gap: 5px; }
+.o3 { display: grid; grid-template-columns: 300px minmax(0, 1fr) 420px; gap: 16px; align-items: start; }
+
+/* option 4: side dock */
+.o4wrap { display: grid; grid-template-columns: minmax(0, 1fr) 400px; }
+.dock { background: var(--g-bg); border-left: 2px solid var(--g-orange); padding: 12px 14px; display: grid; gap: 10px; align-content: start; }
+.dock .sec { border-top: 1px solid var(--g-line); padding-top: 8px; display: grid; gap: 6px; }
+.drow { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 14.5px; }
+.o4bar { display: grid; grid-template-columns: 270px minmax(0, 1fr); background: var(--g-bg); border-top: 2px solid var(--g-orange); }
+
+/* option 5: icon grid */
+.o5 { display: grid; grid-template-columns: 300px 330px minmax(0, 1fr); gap: 14px; align-items: start; }
+.igrid { display: grid; grid-template-columns: repeat(7, 70px); gap: 7px; }
+.itile { width: 70px; height: 70px; border: 1px solid var(--g-line2); border-radius: 8px; background: #0c1322; display: grid; place-items: center; position: relative; cursor: default; }
+.itile .gl { width: 30px; height: 30px; border-radius: 6px; border: 1.5px solid var(--c); color: var(--c); display: grid; place-items: center; font: 700 12px/1 var(--display); }
+.itile .k { position: absolute; left: 4px; top: 3px; font: 600 11px/1 var(--display); color: var(--g-dim); }
+.itile .qb { position: absolute; right: -6px; top: -7px; }
+.itile .dot { position: absolute; right: 5px; bottom: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--g-red); }
+.itile .nm { position: absolute; left: 0; right: 0; bottom: 3px; text-align: center; font: 600 10.5px/1 var(--display); letter-spacing: .04em; color: var(--g-dim); }
+.itile[data-on="1"] { border-color: var(--g-orange); box-shadow: 0 0 0 1px var(--g-orange); }
+.tip { position: absolute; width: 300px; background: #0b1324; border: 1px solid var(--g-orange); border-radius: 8px; padding: 9px 11px; box-shadow: 0 10px 30px rgba(0,0,0,.6); z-index: 3; display: grid; gap: 5px; pointer-events: none; }
+.tip h4 { margin: 0; font: 600 18px/1.1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.legend { display: flex; gap: 14px; font-size: 12.5px; color: var(--g-dim); margin-top: 8px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Mockup · bottom panel</span>
+    <h1>Machine Shop panel: five fixes</h1>
+    <p>Today the selected Machine Shop crams its status, queue and 13 recipes into one strip, so words get cut off ("Mechani cal Spares", "running at fu…", "Rover Spares: needs 1 H…"). Each option below shows the same moment at your screen size (1600 px wide): three kits queued, none can start because parasteel ran out. Every name and number is the real game data.</p>
+  </header>
+  <nav class="jump" aria-label="Options">
+    <a href="#o1"><b>1</b>Readable list</a><a href="#o2"><b>2</b>Tabs</a><a href="#o3"><b>3</b>Recipe drawer</a><a href="#o4"><b>4</b>Side dock</a><a href="#o5"><b>5</b>Icons + hover card</a>
+  </nav>
+  <div id="options"></div>
+  <section class="notes">
+    <h2>Applies to every option</h2>
+    <ul>
+      <li><b>No cut-off text, anywhere.</b> Labels sit above values, long lines wrap, and anything that still can't fit gets a hover card, never an ellipsis in the middle of a word.</li>
+      <li><b>Short means red with the reason.</b> "Needs 2 Seal Kit · you have 0", not just "SHORT".</li>
+      <li><b>Same layout for the Vehicle Bay and Research Lab,</b> which have the same problem with their order and tech lists.</li>
+      <li><b>Scales with the UI scale setting</b> (85–125%) and is checked at 1280×720 and 1600×900.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const RES = { duranium: "Duranium", tritanium: "Tritanium", parasteel: "Parasteel", structural_frame: "Structural Frame", hull_plating: "Hull Plating",
+    mechanism: "Mechanism", power_coupling: "Power Coupling", control_module: "Control Module", seal_kit: "Seal Kit" };
+  const STOCK = { duranium: 412, tritanium: 63, parasteel: 0, structural_frame: 1, hull_plating: 0, mechanism: 0, power_coupling: 0, control_module: 1, seal_kit: 0 };
+  // data/surfaces/fabrication.json recipes (in, seconds); keys as the game gives them today
+  const R = [
+    { id: "mechanical_spares", n: "Mechanical Spares", g: "kit", c: "var(--k-mech)", ab: "MS", key: "7", t: 15, in: { mechanism: 2, structural_frame: 1 }, have: 2, q: 1 },
+    { id: "electrical_spares", n: "Electrical Spares", g: "kit", c: "var(--k-elec)", ab: "ES", key: "8", t: 15, in: { power_coupling: 1, control_module: 1 }, have: 3 },
+    { id: "rover_spares", n: "Rover Spares", g: "kit", c: "var(--k-rover)", ab: "RS", key: "9", t: 12, in: { mechanism: 1, hull_plating: 1 }, have: 0, q: 1 },
+    { id: "environmental_spares", n: "Environmental Spares", g: "kit", c: "var(--k-env)", ab: "EN", key: "0", t: 15, in: { seal_kit: 2, control_module: 1 }, have: 1, q: 1 },
+    { id: "structural_frame", n: "Structural Frame", g: "part", c: "var(--k-part)", ab: "SF", key: "1", t: 20, in: { duranium: 4, tritanium: 1 }, have: 1 },
+    { id: "hull_plating", n: "Hull Plating", g: "part", c: "var(--k-part)", ab: "HP", key: "2", t: 25, in: { parasteel: 2 }, have: 0 },
+    { id: "mechanism", n: "Mechanism", g: "part", c: "var(--k-part)", ab: "ME", key: "3", t: 15, in: { duranium: 2, tritanium: 1 }, have: 0 },
+    { id: "power_coupling", n: "Power Coupling", g: "part", c: "var(--k-part)", ab: "PC", key: "4", t: 20, in: { parasteel: 1, duranium: 1 }, have: 0 },
+    { id: "control_module", n: "Control Module", g: "part", c: "var(--k-part)", ab: "CM", key: "5", t: 30, in: { duranium: 2, tritanium: 1 }, have: 1 },
+    { id: "seal_kit", n: "Seal Kit", g: "part", c: "var(--k-part)", ab: "SK", key: "6", t: 20, in: { parasteel: 1, tritanium: 1 }, have: 0 },
+    { id: "prefab_module", n: "Prefab Module", g: "con", c: "var(--k-con)", ab: "PM", key: "", t: 30, in: { structural_frame: 2, hull_plating: 2 }, have: 0 },
+    { id: "machinery_set", n: "Machinery Set", g: "con", c: "var(--k-con)", ab: "MY", key: "", t: 35, in: { mechanism: 2, power_coupling: 1, control_module: 1 }, have: 0 },
+    { id: "scout_drone", n: "Scout Drone", g: "drone", c: "var(--k-drone)", ab: "SD", key: "", t: 40, in: { structural_frame: 1, power_coupling: 1, control_module: 2 }, have: 0 },
+  ];
+  const SHORT = { mechanical_spares: "Mech kit", electrical_spares: "Elec kit", rover_spares: "Rover kit", environmental_spares: "Env kit", structural_frame: "Frame", hull_plating: "Plating", mechanism: "Mechanism", power_coupling: "Coupling", control_module: "Control", seal_kit: "Seal", prefab_module: "Prefab", machinery_set: "Machinery", scout_drone: "Drone" };
+  const GROUPS = [["kit", "Spare kits"], ["part", "Parts"], ["con", "Construction parts"], ["drone", "Drones"]];
+  const Q = R.filter((r) => r.q);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const lacks = (r) => Object.entries(r.in).filter(([k, v]) => (STOCK[k] ?? 0) < v);
+  const costChips = (r, full = true) => `<span class="cost">${Object.entries(r.in).map(([k, v]) =>
+    `<i class="${(STOCK[k] ?? 0) < v ? "lack" : ""}">${v} ${esc(full ? RES[k] : RES[k].split(" ")[0])}</i>`).join("")}</span>`;
+  const needLine = (r) => lacks(r).map(([k, v]) => `needs ${v} ${RES[k]} · have ${STOCK[k] ?? 0}`).join("; ");
+  const icon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20h18M5 20V9l7-4 7 4v11M9 20v-6h6v6"/></svg>`;
+
+  const tagline = `<div class="tagline"><span class="basechip">Dunmore Colony</span><span class="sp"></span><span class="navbtn">Workshop [K]</span><span class="navbtn">Inventory [I]</span></div>`;
+  const nameBlock = `<div class="bname"><div class="ic">${icon}</div><div><h3>Machine Shop</h3><small>Mk I of Mk II · Base 1</small></div></div>
+    <div class="status">Waiting: every order is short of inputs</div>`;
+  const acts = `<div class="acts"><div class="act">Upgrade → Mk II [U] <span>120 duranium</span></div><div class="act">Maintain [M] <span>in perfect condition</span></div>
+    <div class="act">Pause [P] <span>stops orders; no power used</span></div></div>`;
+  const mini = `<div class="mini"><div class="t">Survey map</div><div class="map"></div><div class="k">Squares: bases · dots: vehicles · frame: view</div></div>`;
+  const factsHtml = (cls = "facts") => `<div class="${cls}">
+    <div><div class="lab">Making</div><div class="val">3 queued · <span class="red">none can start</span></div></div>
+    <div><div class="lab">Crew · power</div><div class="val">Crewed · 12 power · full speed</div></div>
+    <div><div class="lab">Condition</div><div class="val ok">100% · no wear while idle</div></div>
+    <div><div class="lab">Next level</div><div class="val">Mk II: 1.5× speed</div></div>
+    <div class="wide"><div class="lab">Short</div><div class="val">${Q.map((r) => `<div><b>${esc(r.n)}</b> <span class="red">${esc(needLine(r))}</span></div>`).join("")}</div></div></div>`;
+  const queueRows = Q.map((r, i) => `<div class="drow"><span class="kchip" style="--c:${r.c}">${r.ab}</span><span>${i + 1}. ${esc(r.n)}<br><span class="red" style="font-size:12.5px">${esc(needLine(r))}</span></span><span class="x">×</span></div>`).join("");
+
+  // ---- 1: readable list
+  function o1() {
+    const rows = GROUPS.map(([g, label]) => R.filter((r) => r.g === g).map((r) => `<div class="rrow ${r.q ? "queued" : ""}">
+      <span class="kchip" style="--c:${r.c}">${r.ab}</span>
+      <span style="min-width:0"><span class="n">${esc(r.n)}</span> ${r.key ? `<span class="key">${r.key}</span>` : ""}<br>${costChips(r)}</span>
+      <span style="text-align:right">${r.q ? `<span class="qbadge">×${r.q}</span><br>` : ""}<span class="s">have ${r.have} · ${r.t} s</span></span></div>`).join("")).join("");
+    return `<div class="main o1"><div>${nameBlock}${acts}</div>
+      <div class="panelbox">${factsHtml()}</div>
+      <div style="min-width:0"><div class="grp">Recipes · click to queue · right-click to remove · 3 queued</div><div class="rlist">${rows}</div><div class="more">▼ scroll for 7 more recipes</div></div></div>`;
+  }
+  // ---- 2: tabs
+  let tab2 = "recipes";
+  function o2() {
+    const tabs = [["overview", "Overview"], ["queue", "Queue · 3"], ["recipes", "Recipes · 13"]];
+    let body = "";
+    if (tab2 === "overview") body = factsHtml("facts") + "";
+    if (tab2 === "queue") body = `<table class="qtable"><tbody>${Q.map((r, i) => `<tr><td>${i + 1}</td><td><span class="kchip" style="--c:${r.c}">${r.ab}</span> <b>${esc(r.n)}</b></td><td>${costChips(r)}</td><td class="red">${esc(needLine(r))}</td><td class="r">${r.t} s</td><td class="r"><span class="x">×</span></td></tr>`).join("")}</tbody></table>`;
+    if (tab2 === "recipes") body = `<div class="tiles">${R.map((r) => `<div class="tile ${r.q ? "queued" : ""}">${r.q ? `<span class="qb qbadge">×${r.q}</span>` : ""}
+      <div class="top"><span class="kchip" style="--c:${r.c}">${r.ab}</span>${r.key ? `<span class="key">${r.key}</span>` : ""}</div>
+      <div class="n">${esc(r.n)}</div>${costChips(r, false)}</div>`).join("")}</div>`;
+    return `<div class="main o2"><div>${nameBlock}${acts}</div><div style="min-width:0"><div class="tabs" role="tablist">${tabs.map(([id, l]) =>
+      `<button role="tab" data-t2="${id}" aria-selected="${tab2 === id}">${l}</button>`).join("")}</div>${body}</div></div>`;
+  }
+  // ---- 3: drawer
+  let drawer3 = true;
+  function o3() {
+    return `<div class="main o3"><div>${nameBlock}${acts}</div><div class="panelbox">${factsHtml()}</div>
+      <div class="panelbox"><div class="grp">Queue · 3 · 0:42 left</div>${queueRows}<div style="margin-top:8px"><span class="act" style="display:inline-flex;cursor:pointer" data-d3="1">${drawer3 ? "Close recipes [K]" : "Add to queue… [K]"}</span></div></div></div>`;
+  }
+  function o3drawer() {
+    if (!drawer3) return "";
+    return `<div class="drawer"><div class="cols">${GROUPS.map(([g, label]) => `<div><div class="grp">${label}</div><div class="dstack">${R.filter((r) => r.g === g).map((r) =>
+      `<div class="dcard" style="--c:${r.c}"><span class="ic2">${r.ab}</span><span style="min-width:0"><span class="n">${esc(r.n)}</span><br>${costChips(r)}</span>
+      <span style="text-align:right">${r.key ? `<span class="key">${r.key}</span>` : ""}${r.q ? ` <span class="qbadge">×${r.q}</span>` : ""}<br><span class="dim" style="font-size:12px">have ${r.have}</span></span></div>`).join("")}</div></div>`).join("")}</div></div>`;
+  }
+  // ---- 4: side dock
+  function o4() {
+    const rec = GROUPS.map(([g, label]) => `<div class="grp" style="margin-top:4px">${label}</div>` + R.filter((r) => r.g === g).map((r) =>
+      `<div class="drow"><span class="kchip" style="--c:${r.c}">${r.ab}</span><span><b style="font-weight:600">${esc(r.n)}</b> ${r.key ? `<span class="key">${r.key}</span>` : ""}<br>${costChips(r)}</span><span>${r.q ? `<span class="qbadge">×${r.q}</span>` : `<span class="dim" style="font-size:12.5px">have ${r.have}</span>`}</span></div>`).join("")).join("");
+    return `<div class="o4wrap"><div><div class="world" style="height:${520}px"></div>
+      <div class="o4bar">${mini}<div style="min-width:0"><div style="padding:10px 14px 0">${tagline}</div><div class="main" style="display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px"><div>${nameBlock}</div><div>${acts}</div></div></div></div></div>
+      <aside class="dock"><div class="bname"><div class="ic">${icon}</div><div><h3>Machine Shop</h3><small>Waiting: every order is short of inputs</small></div></div>
+      <div class="sec">${factsHtml()}</div><div class="sec"><div class="grp">Queue · 3</div>${queueRows}</div><div class="sec" style="max-height:330px;overflow:auto">${rec}</div></aside></div>`;
+  }
+  // ---- 5: icons + hover card
+  let hover5 = "rover_spares";
+  function o5() {
+    const tiles = R.map((r) => `<div class="itile" data-h5="${r.id}" data-on="${hover5 === r.id ? 1 : 0}" tabindex="0" aria-label="${esc(r.n)}">
+      ${r.key ? `<span class="k">${r.key}</span>` : ""}<span class="gl" style="--c:${r.c}">${r.ab}</span>${r.q ? `<span class="qb qbadge">×${r.q}</span>` : ""}${lacks(r).length ? `<span class="dot"></span>` : ""}
+      <span class="nm">${esc(SHORT[r.id])}</span></div>`).join("");
+    const h = R.find((r) => r.id === hover5);
+    const idx = R.indexOf(h), col = idx % 7, row = Math.floor(idx / 7);
+    const tip = `<div class="tip" style="left:${700 + col * 77 - 100}px;bottom:${236 - row * 77}px"><h4>${esc(h.n)}</h4>
+      <div>${costChips(h)}</div><div class="dim" style="font-size:13.5px">${h.t} s at Mk I · you have ${h.have}${h.q ? ` · ${h.q} queued` : ""}</div>
+      ${lacks(h).length ? `<div class="red" style="font-size:13.5px">${esc(needLine(h))}</div>` : `<div class="ok" style="font-size:13.5px">Can start now</div>`}
+      <div class="dim" style="font-size:12.5px">Click: queue one · Shift+click: five · right-click: remove</div></div>`;
+    return `<div class="main o5" style="position:relative"><div>${nameBlock}${acts}</div><div class="panelbox">${factsHtml()}</div>
+      <div><div class="grp">Recipes · hover for details</div><div class="igrid">${tiles}</div>
+      <div class="legend"><span><span class="qbadge">×1</span> queued</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--g-red)"></span> short of inputs</span><span>number = hotkey</span></div></div>${tip}</div>`;
+  }
+
+  const OPTS = [
+    { id: "o1", n: "Readable list", d: "Same single strip, rebuilt: labels above values so nothing truncates, the queue folded into the recipe list (queued rows glow and show ×N), and recipes as a scrolling two-column list with full names and spelled-out costs.",
+      pro: "Everything visible at once, closest to today, no new controls.", con: "13 recipes need a short scroll; the panel is busy.", render: () => `${frame(o1())}` },
+    { id: "o2", n: "Tabs", d: "The building's name and buttons stay on the left; the rest of the strip switches between Overview, Queue and Recipes, so each gets the full width. Try the tabs.",
+      pro: "Lots of room per view; the recipe tiles fit two-line names and costs.", con: "You can't see the queue and the recipes at the same time.", render: () => frame(o2()) },
+    { id: "o3", n: "Recipe drawer", d: "The strip shows status and the queue; the 13 recipes move into a drawer that slides up over the map (like the build drawer, K), grouped as spare kits, parts, construction parts and drones. Toggle it with the button in the queue box.",
+      pro: "Matches the build menu you already use; the biggest, clearest recipe cards.", con: "Covers part of the map while open.", render: () => frame(o3(), o3drawer(), drawer3 ? 400 : 120) },
+    { id: "o4", n: "Side dock", d: "Selecting a production building opens a tall panel on the right (like the helm's data panel). Facts, queue and every recipe fit with room to spare; the bottom strip keeps just the name and buttons.",
+      pro: "Never cramped, scrolls if it ever needs to; works for any building with lists.", con: "Takes a strip off the right of the map while selected.", render: () => frame4(o4()) },
+    { id: "o5", n: "Icons + hover card", d: "The strip stays one row high: recipes become square icon tiles with a hotkey, a ×N badge when queued and a red dot when short. Hover (or focus) a tile for the full card with costs, stock and why it can't start.",
+      pro: "Most compact; the map stays clear; fast once you know the icons.", con: "Needs real icons per recipe; you have to hover to read names and costs.", render: () => frame(o5()) },
+  ];
+
+  function frame(main, over = "", worldH = 120) {
+    return `<div class="hud"><div class="world" style="height:${worldH}px"></div><div class="bar" style="position:relative">${over}${mini}<div style="min-width:0"><div style="padding:10px 14px 0">${tagline}</div>${main}</div></div></div>`;
+  }
+  function frame4(inner) { return `<div class="hud">${inner}</div>`; }
+
+  const host = document.getElementById("options");
+  function render() {
+    host.innerHTML = OPTS.map((o, i) => `<section class="opt" id="${o.id}"><h2><b>${i + 1}</b>${esc(o.n)}</h2><p>${esc(o.d)}</p>
+      <div class="fit"><div class="stage">${o.render()}</div></div>
+      <div class="proscons"><div><b>Good:</b> ${esc(o.pro)}</div><div><b>Watch:</b> ${esc(o.con)}</div></div></section>`).join("");
+    fit();
+  }
+  function fit() {
+    document.querySelectorAll(".fit").forEach((f) => {
+      const st = f.firstElementChild, s = Math.min(1, f.clientWidth / 1600);
+      st.style.transform = `scale(${s})`;
+      f.style.height = st.scrollHeight * s + "px";
+    });
+  }
+  addEventListener("resize", fit);
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-t2],[data-d3]"); if (!t) return;
+    if (t.dataset.t2) tab2 = t.dataset.t2; else drawer3 = !drawer3;
+    render();
+  });
+  const hov = (e) => { const t = e.target.closest("[data-h5]"); if (t && t.dataset.h5 !== hover5) { hover5 = t.dataset.h5; const sec = document.getElementById("o5");
+    sec.querySelector(".stage").innerHTML = OPTS[4].render(); fit(); } };
+  document.addEventListener("mouseover", hov); document.addEventListener("focusin", hov);
+  render();
+  if (document.fonts) document.fonts.ready.then(fit);
+})();
+</script>
