@@ -145,6 +145,31 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
 .itile[data-on="1"] { border-color: var(--g-orange); box-shadow: 0 0 0 1px var(--g-orange); }
 .tip { position: absolute; width: 300px; background: #0b1324; border: 1px solid var(--g-orange); border-radius: 8px; padding: 9px 11px; box-shadow: 0 10px 30px rgba(0,0,0,.6); z-index: 3; display: grid; gap: 5px; pointer-events: none; }
 .tip h4 { margin: 0; font: 600 18px/1.1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.stage { position: relative; }
+.cant { opacity: .42; filter: grayscale(.9); }
+.cant:hover, .cant:focus-visible { opacity: .7; }
+[data-card] { cursor: pointer; }
+[data-card]:focus-visible { outline: 2px solid var(--g-sky); outline-offset: 1px; }
+.cardback { position: absolute; inset: 0; background: rgba(3,6,12,.55); z-index: 5; }
+.rcard { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); width: 560px; z-index: 6; background: #0b1324; border: 1px solid var(--g-line2);
+  border-top: 4px solid var(--c); border-radius: 10px; padding: 16px 18px; display: grid; gap: 11px; color: var(--g-ink); box-shadow: 0 18px 50px rgba(0,0,0,.7); font: 400 15px/1.4 var(--body); }
+.rcard .hd { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.rcard .big { width: 48px; height: 48px; border-radius: 9px; border: 1.5px solid var(--c); color: var(--c); display: grid; place-items: center; font: 700 17px/1 var(--display); background: color-mix(in srgb, var(--c) 15%, #0b1324); }
+.rcard h4 { margin: 0; font: 600 26px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.rcard .sub { color: var(--g-dim); font-size: 13.5px; }
+.rcard table { width: 100%; border-collapse: collapse; font-size: 14.5px; font-variant-numeric: tabular-nums; color: var(--g-ink); }
+.rcard th { text-align: left; font: 600 12px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--g-dim); padding: 0 8px 5px 0; }
+.rcard td { padding: 5px 8px 5px 0; border-top: 1px solid var(--g-line); }
+.rcard .num { text-align: right; }
+.rcard .stat { border-radius: 7px; padding: 8px 10px; font-size: 14.5px; }
+.rcard .stat.no { background: #2b1414; border: 1px solid rgba(236,106,92,.5); color: #ffc2ba; }
+.rcard .stat.yes { background: #13261a; border: 1px solid rgba(143,214,122,.5); color: #c8f1bc; }
+.rcard .btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.rcard .btn { border-radius: 6px; padding: 7px 14px; font: 600 15px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--g-orange); background: var(--g-orange); color: #160d02; cursor: pointer; }
+.rcard .btn.ghost { background: transparent; color: var(--g-ink); border-color: var(--g-line2); }
+.rcard .btn:disabled { background: #2a2f3c; border-color: #3a4152; color: #7d8598; cursor: not-allowed; }
+.rcard .link { color: var(--g-sky); text-decoration: underline; cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
+.rcard .close { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--g-line2); background: none; color: var(--g-dim); font-size: 16px; cursor: pointer; }
 .legend { display: flex; gap: 14px; font-size: 12.5px; color: var(--g-dim); margin-top: 8px; }
 </style>
 
@@ -152,7 +177,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   <header>
     <span class="eyebrow">Mockup · bottom panel</span>
     <h1>Machine Shop panel: five fixes</h1>
-    <p>Today the selected Machine Shop crams its status, queue and 13 recipes into one strip, so words get cut off ("Mechani cal Spares", "running at fu…", "Rover Spares: needs 1 H…"). Each option below shows the same moment at your screen size (1600 px wide): three kits queued, none can start because parasteel ran out. Every name and number is the real game data.</p>
+    <p>Click any recipe to open its full card; greyed-out recipes are ones you can't make right now. Today the selected Machine Shop crams its status, queue and 13 recipes into one strip, so words get cut off ("Mechani cal Spares", "running at fu…", "Rover Spares: needs 1 H…"). Each option below shows the same moment at your screen size (1600 px wide): three kits queued, none can start because parasteel ran out. Every name and number is the real game data.</p>
   </header>
   <nav class="jump" aria-label="Options">
     <a href="#o1"><b>1</b>Readable list</a><a href="#o2"><b>2</b>Tabs</a><a href="#o3"><b>3</b>Recipe drawer</a><a href="#o4"><b>4</b>Side dock</a><a href="#o5"><b>5</b>Icons + hover card</a>
@@ -162,6 +187,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
     <h2>Applies to every option</h2>
     <ul>
       <li><b>No cut-off text, anywhere.</b> Labels sit above values, long lines wrap, and anything that still can't fit gets a hover card, never an ellipsis in the middle of a word.</li>
+      <li><b>Can't make it right now? It's greyed out.</b> Every recipe whose inputs you don't have is dimmed (3 of 13 can be made in this example). Clicking any recipe, greyed or not, opens its full card: what it needs against what you have, how long it takes, what it's for, and links to make the missing parts. Try it in any option.</li>
       <li><b>Short means red with the reason.</b> "Needs 2 Seal Kit · you have 0", not just "SHORT".</li>
       <li><b>Same layout for the Vehicle Bay and Research Lab,</b> which have the same problem with their order and tech lists.</li>
       <li><b>Scales with the UI scale setting</b> (85–125%) and is checked at 1280×720 and 1600×900.</li>
@@ -191,9 +217,16 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
     { id: "scout_drone", n: "Scout Drone", g: "drone", c: "var(--k-drone)", ab: "SD", key: "", t: 40, in: { structural_frame: 1, power_coupling: 1, control_module: 2 }, have: 0 },
   ];
   const SHORT = { mechanical_spares: "Mech kit", electrical_spares: "Elec kit", rover_spares: "Rover kit", environmental_spares: "Env kit", structural_frame: "Frame", hull_plating: "Plating", mechanism: "Mechanism", power_coupling: "Coupling", control_module: "Control", seal_kit: "Seal", prefab_module: "Prefab", machinery_set: "Machinery", scout_drone: "Drone" };
+  const USES = { mechanical_spares: "Repairs mining crawlers and most buildings (mine, refinery, storage, Machine Shop).",
+    electrical_spares: "Repairs the Fusion Reactor and the Research Lab.", rover_spares: "Repairs survey rovers and the construction rover; also fits new tyres on the pad.",
+    environmental_spares: "Repairs Pressure Domes and Life Support Plants.", prefab_module: "Construction part for bigger buildings (coming with later missions).",
+    machinery_set: "Construction part for industry upgrades (coming with later missions).", scout_drone: "A packed scout drone: a Drone Pad takes one into each empty bay." };
   const GROUPS = [["kit", "Spare kits"], ["part", "Parts"], ["con", "Construction parts"], ["drone", "Drones"]];
   const Q = R.filter((r) => r.q);
+  const BYID = Object.fromEntries(R.map((r) => [r.id, r]));
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const cant = (r) => lacks(r).length > 0;
+  const tag = (r) => `${cant(r) ? "cant" : ""}" data-card="${r.id}" tabindex="0" title="${cant(r) ? "Can't make yet: click for details" : "Click for details"}`;
   const lacks = (r) => Object.entries(r.in).filter(([k, v]) => (STOCK[k] ?? 0) < v);
   const costChips = (r, full = true) => `<span class="cost">${Object.entries(r.in).map(([k, v]) =>
     `<i class="${(STOCK[k] ?? 0) < v ? "lack" : ""}">${v} ${esc(full ? RES[k] : RES[k].split(" ")[0])}</i>`).join("")}</span>`;
@@ -216,7 +249,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
 
   // ---- 1: readable list
   function o1() {
-    const rows = GROUPS.map(([g, label]) => R.filter((r) => r.g === g).map((r) => `<div class="rrow ${r.q ? "queued" : ""}">
+    const rows = GROUPS.map(([g, label]) => R.filter((r) => r.g === g).map((r) => `<div class="rrow ${r.q ? "queued" : ""} ${tag(r)}">
       <span class="kchip" style="--c:${r.c}">${r.ab}</span>
       <span style="min-width:0"><span class="n">${esc(r.n)}</span> ${r.key ? `<span class="key">${r.key}</span>` : ""}<br>${costChips(r)}</span>
       <span style="text-align:right">${r.q ? `<span class="qbadge">×${r.q}</span><br>` : ""}<span class="s">have ${r.have} · ${r.t} s</span></span></div>`).join("")).join("");
@@ -231,7 +264,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
     let body = "";
     if (tab2 === "overview") body = factsHtml("facts") + "";
     if (tab2 === "queue") body = `<table class="qtable"><tbody>${Q.map((r, i) => `<tr><td>${i + 1}</td><td><span class="kchip" style="--c:${r.c}">${r.ab}</span> <b>${esc(r.n)}</b></td><td>${costChips(r)}</td><td class="red">${esc(needLine(r))}</td><td class="r">${r.t} s</td><td class="r"><span class="x">×</span></td></tr>`).join("")}</tbody></table>`;
-    if (tab2 === "recipes") body = `<div class="tiles">${R.map((r) => `<div class="tile ${r.q ? "queued" : ""}">${r.q ? `<span class="qb qbadge">×${r.q}</span>` : ""}
+    if (tab2 === "recipes") body = `<div class="tiles">${R.map((r) => `<div class="tile ${r.q ? "queued" : ""} ${tag(r)}">${r.q ? `<span class="qb qbadge">×${r.q}</span>` : ""}
       <div class="top"><span class="kchip" style="--c:${r.c}">${r.ab}</span>${r.key ? `<span class="key">${r.key}</span>` : ""}</div>
       <div class="n">${esc(r.n)}</div>${costChips(r, false)}</div>`).join("")}</div>`;
     return `<div class="main o2"><div>${nameBlock}${acts}</div><div style="min-width:0"><div class="tabs" role="tablist">${tabs.map(([id, l]) =>
@@ -246,13 +279,13 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   function o3drawer() {
     if (!drawer3) return "";
     return `<div class="drawer"><div class="cols">${GROUPS.map(([g, label]) => `<div><div class="grp">${label}</div><div class="dstack">${R.filter((r) => r.g === g).map((r) =>
-      `<div class="dcard" style="--c:${r.c}"><span class="ic2">${r.ab}</span><span style="min-width:0"><span class="n">${esc(r.n)}</span><br>${costChips(r)}</span>
+      `<div class="dcard ${tag(r)}" style="--c:${r.c}"><span class="ic2">${r.ab}</span><span style="min-width:0"><span class="n">${esc(r.n)}</span><br>${costChips(r)}</span>
       <span style="text-align:right">${r.key ? `<span class="key">${r.key}</span>` : ""}${r.q ? ` <span class="qbadge">×${r.q}</span>` : ""}<br><span class="dim" style="font-size:12px">have ${r.have}</span></span></div>`).join("")}</div></div>`).join("")}</div></div>`;
   }
   // ---- 4: side dock
   function o4() {
     const rec = GROUPS.map(([g, label]) => `<div class="grp" style="margin-top:4px">${label}</div>` + R.filter((r) => r.g === g).map((r) =>
-      `<div class="drow"><span class="kchip" style="--c:${r.c}">${r.ab}</span><span><b style="font-weight:600">${esc(r.n)}</b> ${r.key ? `<span class="key">${r.key}</span>` : ""}<br>${costChips(r)}</span><span>${r.q ? `<span class="qbadge">×${r.q}</span>` : `<span class="dim" style="font-size:12.5px">have ${r.have}</span>`}</span></div>`).join("")).join("");
+      `<div class="drow ${tag(r)}"><span class="kchip" style="--c:${r.c}">${r.ab}</span><span><b style="font-weight:600">${esc(r.n)}</b> ${r.key ? `<span class="key">${r.key}</span>` : ""}<br>${costChips(r)}</span><span>${r.q ? `<span class="qbadge">×${r.q}</span>` : `<span class="dim" style="font-size:12.5px">have ${r.have}</span>`}</span></div>`).join("")).join("");
     return `<div class="o4wrap"><div><div class="world" style="height:${520}px"></div>
       <div class="o4bar">${mini}<div style="min-width:0"><div style="padding:10px 14px 0">${tagline}</div><div class="main" style="display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px"><div>${nameBlock}</div><div>${acts}</div></div></div></div></div>
       <aside class="dock"><div class="bname"><div class="ic">${icon}</div><div><h3>Machine Shop</h3><small>Waiting: every order is short of inputs</small></div></div>
@@ -261,7 +294,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   // ---- 5: icons + hover card
   let hover5 = "rover_spares";
   function o5() {
-    const tiles = R.map((r) => `<div class="itile" data-h5="${r.id}" data-on="${hover5 === r.id ? 1 : 0}" tabindex="0" aria-label="${esc(r.n)}">
+    const tiles = R.map((r) => `<div class="itile ${tag(r)}" data-h5="${r.id}" data-on="${hover5 === r.id ? 1 : 0}" aria-label="${esc(r.n)}">
       ${r.key ? `<span class="k">${r.key}</span>` : ""}<span class="gl" style="--c:${r.c}">${r.ab}</span>${r.q ? `<span class="qb qbadge">×${r.q}</span>` : ""}${lacks(r).length ? `<span class="dot"></span>` : ""}
       <span class="nm">${esc(SHORT[r.id])}</span></div>`).join("");
     const h = R.find((r) => r.id === hover5);
@@ -293,10 +326,25 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   }
   function frame4(inner) { return `<div class="hud">${inner}</div>`; }
 
+  let card = null; // { opt, id }
+  function cardHtml(r) {
+    const usedIn = R.filter((x) => x.in[r.id]).map((x) => x.n);
+    const uses = USES[r.id] || (usedIn.length ? `Part for: ${usedIn.join(", ")}.` : "");
+    const miss = lacks(r);
+    const fixes = miss.map(([k, v]) => BYID[k] ? `<button class="link" data-card="${k}">${esc(RES[k])}</button>${BYID[k].key ? ` [${BYID[k].key}]` : ""}` : `${esc(RES[k])} (from the refinery or foundry)`).join(", ");
+    return `<div class="cardback" data-close="1"></div><div class="rcard" style="--c:${r.c}" role="dialog" aria-label="${esc(r.n)}">
+      <div class="hd"><span class="big">${r.ab}</span><div><h4>${esc(r.n)}</h4><div class="sub">${{ kit: "Spare kit", part: "Part", con: "Construction part", drone: "Drone" }[r.g]}${r.key ? ` · hotkey ${r.key}` : ""} · makes 1 in ${r.t} s (Mk II: ${Math.round(r.t / 1.5)} s)</div></div><button class="close" data-close="1" aria-label="Close">×</button></div>
+      ${miss.length ? `<div class="stat no"><b>Can't make yet.</b> Missing ${miss.map(([k, v]) => `${v - (STOCK[k] ?? 0)} ${esc(RES[k])}`).join(" and ")}. Make or get: ${fixes}.</div>` : `<div class="stat yes"><b>Can make now.</b> Starts as soon as the shop is free.</div>`}
+      <table><thead><tr><th>Needs</th><th class="num">Each</th><th class="num">You have</th></tr></thead><tbody>${Object.entries(r.in).map(([k, v]) =>
+        `<tr><td>${esc(RES[k])}</td><td class="num">${v}</td><td class="num ${(STOCK[k] ?? 0) < v ? "red" : "ok"}">${STOCK[k] ?? 0}</td></tr>`).join("")}</tbody></table>
+      <div class="sub" style="color:var(--g-ink)">${esc(uses)}</div>
+      <div class="sub">In stock: ${r.have}${r.q ? ` · ${r.q} in the queue` : ""} · takes ${r.g === "part" ? 1 : 2} storage each</div>
+      <div class="btns"><button class="btn" ${miss.length ? "disabled" : ""}>${miss.length ? "Queue · needs inputs" : "Queue one [Enter]"}</button><button class="btn ghost" ${miss.length ? "disabled" : ""}>Queue 5 [Shift+Enter]</button><button class="btn ghost" data-close="1">Close [Esc]</button></div></div>`;
+  }
   const host = document.getElementById("options");
   function render() {
     host.innerHTML = OPTS.map((o, i) => `<section class="opt" id="${o.id}"><h2><b>${i + 1}</b>${esc(o.n)}</h2><p>${esc(o.d)}</p>
-      <div class="fit"><div class="stage">${o.render()}</div></div>
+      <div class="fit"><div class="stage">${o.render()}${card && card.opt === o.id ? cardHtml(BYID[card.id]) : ""}</div></div>
       <div class="proscons"><div><b>Good:</b> ${esc(o.pro)}</div><div><b>Watch:</b> ${esc(o.con)}</div></div></section>`).join("");
     fit();
   }
@@ -308,13 +356,23 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
     });
   }
   addEventListener("resize", fit);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && card) { card = null; render(); }
+    if (e.key === "Enter" && e.target.dataset && e.target.dataset.card) e.target.click();
+  });
   document.addEventListener("click", (e) => {
+    const c = e.target.closest("[data-close],[data-card]");
+    if (c) {
+      if (c.dataset.close) card = null;
+      else card = { opt: c.closest("section.opt").id, id: c.dataset.card };
+      render(); return;
+    }
     const t = e.target.closest("[data-t2],[data-d3]"); if (!t) return;
     if (t.dataset.t2) tab2 = t.dataset.t2; else drawer3 = !drawer3;
     render();
   });
   const hov = (e) => { const t = e.target.closest("[data-h5]"); if (t && t.dataset.h5 !== hover5) { hover5 = t.dataset.h5; const sec = document.getElementById("o5");
-    sec.querySelector(".stage").innerHTML = OPTS[4].render(); fit(); } };
+    sec.querySelector(".stage").innerHTML = OPTS[4].render() + (card && card.opt === "o5" ? cardHtml(BYID[card.id]) : ""); fit(); } };
   document.addEventListener("mouseover", hov); document.addEventListener("focusin", hov);
   render();
   if (document.fonts) document.fonts.ready.then(fit);
