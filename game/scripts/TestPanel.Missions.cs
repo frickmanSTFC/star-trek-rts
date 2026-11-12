@@ -94,6 +94,24 @@ public partial class TestPanel
                 ApplyMission("missions: on", MissionsOnCommand(GameSetup.MissionChain ?? "dawn_of_warp")), 0, 34));
         }
 
+        // Building unlocks (a campaign starts with surfaces.json start_menu; missions open the rest): DebugUnlockCommand.
+        _content.AddChild(Section("BUILDINGS"));
+        var unlocks = Wrapped("", 13, Soft);
+        _content.AddChild(unlocks);
+        _refreshers.Add(() =>
+        {
+            if (Sim.Surface is not { } s) return;
+            var locked = s.BuildMenu.Where(id => !s.BuildingUnlocked(Me, id)).Select(id => Data.Building(id).Name).ToList();
+            unlocks.Text = s.Players[Me].UnlockedBuildings == null ? "Every building is open (missions off: no unlocks)."
+                : locked.Count == 0 ? "Every building is unlocked." : $"Locked ({locked.Count}): {string.Join(", ", locked)}.";
+        });
+        var unlockGrid = Grid(2);
+        unlockGrid.AddChild(MakeButton("Unlock all buildings", Green, () =>
+            Apply("buildings: all unlocked", new DebugCommand[] { new DebugUnlockCommand(Me, Me, "", true) }, null), 0, 34));
+        unlockGrid.AddChild(MakeButton("Start menu only", Yellow, () =>
+            Apply("buildings: start menu only", new DebugCommand[] { new DebugUnlockCommand(Me, Me, "", false) }, null), 0, 34));
+        _content.AddChild(unlockGrid);
+
         var ids = MissionIds();
         _content.AddChild(Section("MISSIONS"));
         if (ids.Count == 0)
