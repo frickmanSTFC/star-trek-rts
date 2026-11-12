@@ -190,7 +190,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
     <a href="#o1"><b>1</b>Readable list</a><a href="#o2"><b>2</b>Tabs</a><a href="#o3"><b>3</b>Recipe drawer</a><a href="#o4"><b>4</b>Side dock</a><a href="#o5"><b>5</b>Icons + hover card</a>
   </nav>
   <section class="opt" id="items"><h2>The 13 Machine Shop items</h2>
-    <p>One illustration per item, in one style (3/4 view, light from the top left, kits as crates in their kit colour). These go on every recipe tile and on the full card, and can become the game's icons.</p>
+    <p>One 3D render per item (Blender, real materials: painted and bare steel with worn edges, rubber, circuit boards, glass), same studio light and 3/4 view. These go on every recipe tile and on the full card, and the same images can be the game's icons.</p>
     <div class="itemgal" id="itemgal"></div></section>
   <div id="options"></div>
   <section class="notes">
@@ -208,7 +208,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
 <script src="items.js"></script>
 <script>
 (() => {
-  const G = (id, size) => (window.ITEM_GFX && window.ITEM_GFX[id] ? window.ITEM_GFX[id](size) : "");
+  const G = (id, size) => `<img src="items/${id}.png" width="${size}" height="${size}" alt="" loading="lazy" style="display:block">`;
   const DESC = window.ITEM_DESC || {};
   const RES = { duranium: "Duranium", tritanium: "Tritanium", parasteel: "Parasteel", structural_frame: "Structural Frame", hull_plating: "Hull Plating",
     mechanism: "Mechanism", power_coupling: "Power Coupling", control_module: "Control Module", seal_kit: "Seal Kit" };
