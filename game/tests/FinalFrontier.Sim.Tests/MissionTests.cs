@@ -32,7 +32,7 @@ public class MissionTests
         return sim;
     }
 
-    private static void Do(Simulation sim, Command c)
+    internal static void Do(Simulation sim, Command c)
     {
         var refused = sim.RefusedCommands;
         sim.Schedule(sim.Tick, c);
@@ -40,7 +40,7 @@ public class MissionTests
         Assert.True(refused == sim.RefusedCommands, $"refused: {sim.LastRefusal}");
     }
 
-    private static string Refused(Simulation sim, Command c)
+    internal static string Refused(Simulation sim, Command c)
     {
         var refused = sim.RefusedCommands;
         sim.Schedule(sim.Tick, c);
@@ -49,21 +49,21 @@ public class MissionTests
         return sim.LastRefusal ?? "";
     }
 
-    private static void Seconds(Simulation sim, int seconds)
+    internal static void Seconds(Simulation sim, int seconds)
     {
         for (var i = 0; i < seconds * Simulation.TickRate; i++) sim.Step();
     }
 
-    private static void StepUntil(Simulation sim, Func<bool> done, int maxSeconds, string what)
+    internal static void StepUntil(Simulation sim, Func<bool> done, int maxSeconds, string what)
     {
         for (var i = 0; i < maxSeconds * Simulation.TickRate && !done(); i++) sim.Step();
         Assert.True(done(), $"timed out: {what}");
     }
 
-    private static MissionState State(Simulation sim, string id, int player = 0) =>
+    internal static MissionState State(Simulation sim, string id, int player = 0) =>
         sim.Missions.States(player).FirstOrDefault(x => x.Id == id).State;
 
-    private static MissionView View(Simulation sim, string id, int player = 0) => sim.Missions.View(player, id)!;
+    internal static MissionView View(Simulation sim, string id, int player = 0) => sim.Missions.View(player, id)!;
 
     private static DebugMissionCommand Debug(string mission, DebugMissionAction action, string stage = "", string objective = "", int tile = -1, int target = 0) =>
         new(0, target, mission, action, stage, objective, tile);
@@ -119,7 +119,7 @@ public class MissionTests
     /// Plays First Light along a scripted path of real orders until the mission stopAfter completes (null: all seven).
     /// The test panel only places buildings at once (lab, Machine Shop, Drone Pad, the second outpost) and tops up stock.
     /// </summary>
-    private static Simulation PlayFirstLight(string? stopAfter, List<ulong>? hashes = null)
+    internal static Simulation PlayFirstLight(string? stopAfter, List<ulong>? hashes = null)
     {
         var sim = Game();
         var s = sim.Surface!;
@@ -263,7 +263,7 @@ public class MissionTests
     }
 
     /// <summary>Plenty of metal and drone parts in stock (relays, drone recipes).</summary>
-    private static void TopUp(Simulation sim)
+    internal static void TopUp(Simulation sim)
     {
         var stock = sim.Players[0].Stock;
         var values = new[] { ("duranium", 2000), ("tritanium", 1000), ("structural_frame", 4), ("power_coupling", 4), ("control_module", 8) }

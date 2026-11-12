@@ -38,17 +38,18 @@
 
     { "id": "calling_home", "chain": "first_light", "kind": "main", "title": "Calling Home", "giver": "control",
       "imports": ["lost_pathfinder.wreck"],
-      "briefing": "The recorder's data has to come home, and the outpost's antenna can't reach Earth on its own. Deploy a relay satellite whose coverage includes the base, then bring the Pathfinder wreck under coverage too, with the same relay or another.",
+      "briefing": "The recorder's data has to come home, and the outpost's antenna can't reach Earth on its own. Put a relay satellite up over the outpost, then bring the Pathfinder wreck under relay coverage too: the same relay if it reaches that far, or a second one over the wreck.",
       "stages": [
         { "id": "relay", "title": "Put up a relay",
           "objectives": [
-            { "id": "base", "text": "Deploy a relay satellite covering the base", "cond": { "relay": { "covers": "base" } },
-              "hint": "Helm: RELAY, then pick a tile over the outpost." } ],
+            { "id": "base", "text": "Put a relay satellite over the outpost", "cond": { "relay": { "covers": "hub" } },
+              "hint": "From orbit (O): RELAY, then click on or near the outpost. It counts once it has drifted onto its station." } ],
           "next": "wreck" },
         { "id": "wreck", "title": "Link the wreck",
           "on_enter": [ { "marker": { "at": "wreck", "style": "site", "radius": 1, "label": "Pathfinder IV" } } ],
           "objectives": [
-            { "id": "wreck", "text": "Bring the Pathfinder wreck under relay coverage", "cond": { "relay": { "covers": "wreck" } } } ],
+            { "id": "wreck", "text": "Bring the Pathfinder wreck under relay coverage", "cond": { "relay": { "covers": "wreck" } },
+              "hint": "The wreck is {wreck.distance} hexes from the outpost. From orbit: RELAY, then click on or near its gold marker. G on the surface shows coverage." } ],
           "next": "complete" } ],
       "rewards": [ { "research": { "points": 40 } }, { "set_flag": { "name": "earth_link" } } ],
       "debrief": "Link confirmed. Earth is reading Pathfinder IV's recorder as we speak, and the outpost has a voice of its own now." },

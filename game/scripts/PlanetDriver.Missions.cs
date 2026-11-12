@@ -348,7 +348,9 @@ public partial class PlanetDriver
                 if (!wanted) continue;
                 var offer = m.State == MissionState.Offered;
                 var locatable = HasMapPoint(m.Id);
-                var hint = offer ? "Click or Y: read the offer, accept or decline" : m.Options.Count > 0 ? "A decision is waiting: click to answer" : "";
+                var hint = offer ? "Click or Y: read the offer, accept or decline" : m.Options.Count > 0 ? "A decision is waiting: click to answer"
+                    : m.Objectives.FirstOrDefault(o => !o.Done && o.Detail.Length > 0).Detail is { Length: > 0 } detail ? detail // live: what is out of coverage, how far
+                    : m.Hint; // the first unfinished objective's hint (data)
                 list.Add(new TrackerEntry(m.Id, offer ? "OFFER" : m.Kind == MissionKind.Main ? "MAIN" : "SIDE", m.Title,
                     offer ? "" : m.StageTitle, offer ? System.Array.Empty<MissionObjectiveLine>() : ObjectiveLines(m), TimerText(m.TimerEndTick), hint,
                     offer ? MissionOffer : m.Kind == MissionKind.Main ? MissionGold : MissionSide, locatable && !offer));

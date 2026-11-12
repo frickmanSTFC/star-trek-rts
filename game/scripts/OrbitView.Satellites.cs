@@ -115,12 +115,12 @@ public partial class OrbitView
             Vector3 dir;
             var radius = SatelliteOrbit;
             var deploying = now < sat.ReadyTick;
-            var trackCols = sat.SweepBase + Mathf.Max(0f, now - sat.ReadyTick) * g.Width / lapTicks;
+            var trackCols = sat.StartColumn + sat.SweepBase + Mathf.Max(0f, now - sat.ReadyTick) * g.Width / lapTicks; // unfolded over StartColumn
             if (deploying && sat.Retasks == 0)
             {
                 // Rise from the ship (wings folded), then unfold over the band's start.
                 var f = Mathf.Clamp((now - sat.LaunchTick) / Mathf.Max(1f, sat.ReadyTick - sat.LaunchTick), 0f, 1f);
-                var end = SatDirection(sat.Row, sat.SweepBase, g.Height, g.Width);
+                var end = SatDirection(sat.Row, sat.StartColumn, g.Height, g.Width); // over the spot that was clicked
                 var from = _globe.ToLocal(_shipMarker.GlobalPosition);
                 var rise = Mathf.SmoothStep(0f, 1f, Mathf.Clamp(f / 0.6f, 0f, 1f));
                 dir = from.Normalized().Slerp(end, rise).Normalized();

@@ -172,12 +172,45 @@ public partial class PlanetDriver
     private string? SatelliteHint() =>
         _retasking && SelectedSatellite is { } sat ? $"CLICK A LATITUDE FOR {sat.CallSign} · RIGHT-CLICK CANCELS" : null;
 
+    // ---------------------------------------------------------------- launch (OrbitClick)
+
+    private readonly HashSet<int> _satsDeploying = new(); // survey satellites seen deploying, not yet reported up
+
+    /// <summary>The SATELLITE action's click (checked just before): a survey satellite over the clicked latitude that
+    /// unfolds over the clicked spot (SatelliteCommand.Column), so it is seen leaving the ship and arriving there.</summary>
+    private void SendSatellite(long when, int tile)
+    {
+        var g = Surface.Map.Grid;
+        _sim.Schedule(when, new SatelliteCommand(LocalPlayer, g.Row(tile), g.Column(tile)));
+        var ordinal = Surface.Satellites.Count(x => x.Owner == LocalPlayer && x.Kind == SatelliteKind.Survey) + 1;
+        var orbit = _data.Orbit!;
+        _hud.PushEvent($"{Surface.SatelliteCallSign(LocalPlayer, ordinal)} launching: rising from the ship to {Coordinates(tile)}, " +
+            $"unfolds and starts sweeping {LatitudeText(g.Row(tile))} in {orbit.SatelliteDeploySeconds} s", HelmScreen.Cyan);
+    }
+
+    /// <summary>"SAT-2 · OSPREY is sweeping …" once each satellite (launched while we watched) finishes deploying.</summary>
+    private void SatelliteUpEvents()
+    {
+        foreach (var sat in Surface.Satellites)
+        {
+            if (sat.Owner != LocalPlayer || sat.Kind != SatelliteKind.Survey || sat.Retasks > 0) continue;
+            if (sat.Deploying(_sim.Tick))
+            {
+                _satsDeploying.Add(sat.Id); // seen deploying: report it once it is up
+                continue;
+            }
+            if (!_satsDeploying.Remove(sat.Id)) continue; // already up when first seen, or reported
+            _hud.PushEvent($"{sat.CallSign} unfolded over {LatitudeText(sat.Row)}: sweeping its band, a lap every {_data.Orbit!.SatelliteSweepSeconds} s", HelmScreen.Cyan);
+        }
+    }
+
     // ---------------------------------------------------------------- per frame
 
     /// <summary>Every frame after the uplink: first-find events, the flash and pictures, the window.</summary>
     private void UpdateSatellites(float delta)
     {
         _satClock += delta;
+        SatelliteUpEvents();
         if (!_inOrbit)
         {
             _retasking = false;
@@ -288,7 +321,8 @@ public partial class PlanetDriver
         if (sat.Deploying(tick) && sat.Retasks == 0)
         {
             var f = (tick - sat.LaunchTick) / (float)System.Math.Max(1, sat.ReadyTick - sat.LaunchTick);
-            return f < 0.6f ? $"deploying · rising from the ship ({Mathf.RoundToInt(f * 100)}%)" : $"deploying · unfolding its wings ({Mathf.RoundToInt(f * 100)}%)";
+            var left = (sat.ReadyTick - tick + Simulation.TickRate - 1) / Simulation.TickRate;
+            return f < 0.6f ? $"deploying · rising from the ship ({left} s to its first sweep)" : $"deploying · unfolding its wings ({left} s to its first sweep)";
         }
         if (sat.Deploying(tick)) return $"manoeuvring to {LatitudeText(sat.Row)} · {(sat.ReadyTick - tick + Simulation.TickRate - 1) / Simulation.TickRate} s";
         var lap = orbit.SatelliteSweepSeconds;

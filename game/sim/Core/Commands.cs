@@ -48,8 +48,9 @@ public sealed record ShuttleCommand(int Player, int Tile, string UnitId) : Comma
 /// <summary>Beam a team (a unit id) or "supplies" from the hold down to a tile.</summary>
 public sealed record BeamCommand(int Player, int Tile, string Payload) : Command(Player);
 
-/// <summary>Put a survey satellite into orbit over the band of rows centred on Row.</summary>
-public sealed record SatelliteCommand(int Player, int Row) : Command(Player);
+/// <summary>Put a survey satellite into orbit over the band of rows centred on Row; it unfolds over Column (the spot
+/// the player clicked, so it is seen arriving there) and its first sweep starts from that column.</summary>
+public sealed record SatelliteCommand(int Player, int Row, int Column = 0) : Command(Player);
 
 /// <summary>Move one of your survey satellites to the band centred on Row (refused while it is deploying or manoeuvring).</summary>
 public sealed record RetaskSatelliteCommand(int Player, int SatelliteId, int Row) : Command(Player);

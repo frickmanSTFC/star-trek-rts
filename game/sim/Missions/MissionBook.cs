@@ -17,8 +17,9 @@ public enum MissionState { Locked, Offered, Active, Completed, Failed, Declined 
 public enum MissionKind { Main, Side }
 
 /// <summary>One objective of the current stage for the view: Text already filled ({unit}, {tile}… placeholders
-/// replaced); Progress / Target for counters (Target 0 = a plain yes/no objective); Optional = bonus only.</summary>
-public readonly record struct ObjectiveView(string Id, string Text, bool Done, bool Optional, Fix64 Progress, Fix64 Target);
+/// replaced); Progress / Target for counters (Target 0 = a plain yes/no objective); Optional = bonus only; Detail = a live
+/// line while it is unfinished (relay / covered objectives: what is out of coverage and how far; "" = none).</summary>
+public readonly record struct ObjectiveView(string Id, string Text, bool Done, bool Optional, Fix64 Progress, Fix64 Target, string Detail = "");
 
 /// <summary>A choice button (a branch option, or accept / decline on an offer).</summary>
 public readonly record struct MissionOption(string Id, string Text);
@@ -549,7 +550,8 @@ public sealed partial class MissionBook
                 var done = active && run.Done[k];
                 var target = o.HoldSeconds > 0 ? Fix64.FromInt(o.HoldSeconds) : Target(p, run, o.Cond);
                 var progress = active ? (done && target > Fix64.Zero ? target : run.Progress[k]) : Fix64.Zero;
-                objectives.Add(new ObjectiveView(o.Id, Fill(p, run, o.Text), done, o.Optional, progress, target));
+                var detail = active && !done ? Detail(p, run, o.Cond) : ""; // MissionConditions.cs
+                objectives.Add(new ObjectiveView(o.Id, Fill(p, run, o.Text), done, o.Optional, progress, target, detail));
                 if (!done && hint.Length == 0 && o.Hint.Length > 0) hint = Fill(p, run, o.Hint);
             }
             if (hint.Length == 0) hint = Fill(p, run, stage.Hint);

@@ -563,14 +563,15 @@ public sealed partial class PlanetSurface
         return null;
     }
 
-    /// <summary>Why another survey satellite can't go up over this row (null = it can). Allowed before landing too.</summary>
-    public string? SatelliteProblem(Simulation sim, int player, int row)
+    /// <summary>Why another survey satellite can't go up over this row, unfolding over this column (null = it can).
+    /// Allowed before landing too.</summary>
+    public string? SatelliteProblem(Simulation sim, int player, int row, int column = 0)
     {
         var orbit = _data.Orbit;
         if (!IsPlayer(player)) return "no such player";
         if (orbit == null) return "no ship in orbit";
         if (sim.System?.OrbitProblem(player) is { } away) return away;
-        if (row < 0 || row >= Map.Grid.Height) return "off the map";
+        if (row < 0 || row >= Map.Grid.Height || column < 0 || column >= Map.Grid.Width) return "off the map";
         if (_satellites.Count(x => x.Owner == player && x.Kind == SatelliteKind.Survey) >= orbit.SatelliteMax) return $"all {orbit.SatelliteMax} satellites are up";
         if (!sim.Players[player].Stock.CanAfford(orbit.SatelliteCost)) return "not enough resources";
         return null;
@@ -1275,7 +1276,7 @@ public sealed partial class PlanetSurface
             }
 
             case SatelliteCommand satellite:
-                if (SatelliteProblem(sim, satellite.Player, satellite.Row) is { } satelliteProblem) return sim.Refuse(satellite, satelliteProblem);
+                if (SatelliteProblem(sim, satellite.Player, satellite.Row, satellite.Column) is { } satelliteProblem) return sim.Refuse(satellite, satelliteProblem);
                 LaunchSatellite(sim, satellite); // Satellites.cs
                 return true;
 

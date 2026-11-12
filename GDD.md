@@ -75,7 +75,7 @@ layer above it once the surface game is fun.
     from your others; the ground route is the construction rover, see Vehicle Bay); **shuttle** (flies a rover, crawler or survey team to any safe spot; away for the round trip);
     **transporter** (beams a survey team, or supplies from the ship's hold into a base; level set by faction and era:
     Enterprise era people only within 6 tiles, TOS cargo within 12, TNG and later anywhere; the Borg always level 3);
-    **survey satellites** (up to 3; each sweeps a band of 9 rows around the planet every 60 s, surveying it, even before landing).
+    **survey satellites** (up to 3; each sweeps a band of 9 rows around the planet every 60 s, surveying it, even before landing; it unfolds over the spot clicked and sweeps east from there).
 - **Scan → land → survey:**
   1. *Orbit:* the scan shows all terrain plus rough deposit hints per region ("Rich: Duranium · Likely: Deuterium").
   2. *Land:* pick a flat site (plains or desert with passable land on all six sides). The colony pod falls for a few

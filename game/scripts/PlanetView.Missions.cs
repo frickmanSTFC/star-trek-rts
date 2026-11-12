@@ -159,11 +159,15 @@ public partial class PlanetView
     private void RefreshMarkers(MissionBook book)
     {
         var markers = book.Markers(_localPlayer);
-        var signature = 29L;
+        // With the comms overlay up (G, or a drone order armed), a site / target marker says whether it is inside comms
+        // coverage, so a relay mission's target reads at a glance.
+        var comms = _commsOn || _commsArmed;
+        var signature = comms ? 31L : 29L;
         for (var i = 0; i < markers.Count; i++)
         {
             var m = markers[i];
             signature = (((signature * 31 + m.Tile) * 31 + m.RadiusTiles) * 31 + m.UnitId) * 31 + m.Style.Length * 7 + m.Label.Length;
+            if (comms && CommsTagged(m)) signature = signature * 2 + (_surface.CommsCovered(_localPlayer, m.Tile) ? 1 : 0);
         }
         if (signature == _markerSignature) return;
         _markerSignature = signature;
@@ -233,9 +237,20 @@ public partial class PlanetView
                 _markerRoot.AddChild(pillar);
                 _markerPillars.Add((pillar, material));
             }
-            if (m.Label.Length > 0) MarkerLabel(m.Label, c with { Y = ground + (area ? 10f : m.Style == "target" ? 20f : 12f) });
+            if (m.Label.Length == 0) continue;
+            var labelAt = c with { Y = ground + (area ? 10f : m.Style == "target" ? 20f : 12f) };
+            if (comms && CommsTagged(m))
+            {
+                var covered = _surface.CommsCovered(_localPlayer, m.Tile);
+                MarkerLabel($"{m.Label} · {(covered ? "IN COMMS" : "NO COMMS")}", labelAt).Modulate = covered ? RelayCommsColour : new Color(1f, 0.5f, 0.42f);
+            }
+            else MarkerLabel(m.Label, labelAt);
         }
     }
+
+    /// <summary>Markers that get the comms overlay's IN COMMS / NO COMMS tag: a site or target on a tile.</summary>
+    private bool CommsTagged(MissionMarker m) =>
+        m.Style != "area" && m.UnitId <= 0 && m.Tile >= 0 && m.Tile < _surface.Map.Grid.Count && m.Label.Length > 0;
 
     private Label3D MarkerLabel(string text, Vector3 at)
     {

@@ -235,7 +235,7 @@ public class SatelliteTests
             Assert.Equal(before, sim.StateHash());
             checkedNames.Add(p.Name);
         }
-        Assert.Equal(new[] { "FindingsTotal", "Passes", "ReadyTick", "Retasks", "Row", "StationTile", "SweepBase", "Swept", "TilesSurveyed", "WeatherLast" },
+        Assert.Equal(new[] { "FindingsTotal", "Passes", "ReadyTick", "Retasks", "Row", "StartColumn", "StationTile", "SweepBase", "Swept", "TilesSurveyed", "WeatherLast" },
             checkedNames.OrderBy(n => n, StringComparer.Ordinal));
 
         // The log itself (each field of a line) and the owner's firsts.
