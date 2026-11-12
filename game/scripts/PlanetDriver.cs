@@ -1185,7 +1185,11 @@ public partial class PlanetDriver : Node3D, ITestHost
         var me = Surface.Players[LocalPlayer];
         for (var t = 0; t < me.Known.Length; t++)
         {
-            if (me.Known[t] && !_knownTechs[t]) ColonyReport($"Research complete: {_data.Techs[t].Name} — {_data.Techs[t].Effect}", new Color(0.55f, 0.88f, 1f));
+            if (me.Known[t] && !_knownTechs[t])
+            {
+                ColonyReport($"Research complete: {_data.Techs[t].Name} — {_data.Techs[t].Effect}" + (me.ActiveTech < 0 ? "  ·  pick the next tech at a Research Lab" : ""), new Color(0.55f, 0.88f, 1f));
+                FabPanel.SelectTab("lab", "tree"); // the lab's panel opens on its tree, ready for the next pick
+            }
             _knownTechs[t] = me.Known[t];
         }
 
@@ -1415,15 +1419,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 {
                     if (index == 0) OnCommand(FoundCard);
                 }
-                else if (SelectedBay() is { } orderAt)
-                {
-                    var produces = _data.Building(orderAt.DefId).Produces;
-                    if (index < produces.Count) OnCommand($"unit:{produces[index]}");
-                }
-                else if (SelectedLab() != null)
-                {
-                    if (index < _data.Techs.Count) OnCommand($"tech:{_data.Techs[index].Id}");
-                }
+                else if (SelectedBay() != null || SelectedLab() != null) BayLabKey(index, key.ShiftPressed); // bay: order 1 (Shift 5); lab: the tech's card (PlanetDriver.BayLab.cs)
                 else PickBuildingByKey(index, key.ShiftPressed);
                 break;
             case Key.Backspace when landed && SelectedBay() != null:
@@ -1592,6 +1588,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void ClearSelection()
     {
         _info = null;
+        _panelCard = null;
         _workshop = false;
         _view.SelectedUnits.Clear();
         _selectedTile = -1;
@@ -1848,41 +1845,14 @@ public partial class PlanetDriver : Node3D, ITestHost
         else if (_selectedBase != 0 && WorkshopShown()) ShowStructure(Surface.FindStructure(_selectedBase)!); // its core's workshop (K)
         else if (_selectedBase != 0) ShowBase(Surface.FindStructure(_selectedBase)!);
 
-        var stock = _sim.Players[LocalPlayer].Stock;
-        if (SelectedLab() != null)
-        {
-            var me = Surface.Players[LocalPlayer];
-            _hud.ShowCommands($"RESEARCH · {Mathf.RoundToInt(Surface.ResearchPerMinute(LocalPlayer).ToFloat())} POINTS A MINUTE",
-                _data.Techs.Select(t =>
-                {
-                    var known = me.Known[t.Index];
-                    var locked = !known && Surface.ResearchProblem(LocalPlayer, t.Id) != null;
-                    var active = me.ActiveTech == t.Index;
-                    var done = me.ResearchProgress[t.Index].ToFloat() / t.Cost.ToFloat();
-                    var tag = known ? "DONE" : active ? $"{Mathf.FloorToInt(done * 100)}%" : locked ? "LOCKED" : done > 0 ? $"{Mathf.FloorToInt(done * 100)}%" : "";
-                    return new CommandView($"tech:{t.Id}", "", "", $"{Hud.Whole(t.Cost)} RP", !locked, active || _info == $"tech:{t.Id}", tag, false);
-                }).Concat(SharedTechTiles(me)).ToList(), true);
-            return;
-        }
+        // A selected lab's techs and a bay's vehicles live on their tabbed panels (PlanetDriver.BayLab.cs), which hide the command card.
+        if (SelectedLab() != null || SelectedBay() != null) return;
         if (SelectedFounder() is { } founder)
         {
             ShowFoundCommands(founder); // PlanetDriver.Founding.cs
             return;
         }
         if (ShowFabCommands()) return; // a Machine Shop's recipes or a core workshop's kits (PlanetDriver.Parts.cs)
-        if (SelectedBay() is { } bay)
-        {
-            var bayDef = _data.Building(bay.DefId);
-            _hud.ShowCommands($"{bayDef.Name.ToUpperInvariant()} · ORDERS ({bay.Production.Count}/{bayDef.ProductionQueue})",
-                bayDef.Produces.Select(u =>
-                {
-                    var ud = _data.SurfaceUnit(u);
-                    var problem = Surface.ProductionProblem(_sim, LocalPlayer, bay.Id, u);
-                    return new CommandView($"unit:{u}", "", "", Amounts(ud.Cost, false, shortNames: true), problem == null, _info == $"unit:{u}");
-                }).ToList(), true);
-            ShowOrderPictures(bayDef); // vehicle renders on the order tiles
-            return;
-        }
         // Nothing can be placed until a base has assembled (the first hub, or an outpost dropped from orbit).
         var readyBase = Surface.Bases(LocalPlayer).Any(b => b.State == StructureState.Complete);
         var selectedCore = Surface.FindStructure(_selectedBase);
@@ -2060,8 +2030,8 @@ public partial class PlanetDriver : Node3D, ITestHost
                 ? $"{keys}Backspace cancel last  ·  {jury}K / Esc back to the base  ·  I inventory  ·  F1 controls"
                 : $"{keys}Backspace cancel last  ·  U upgrade  ·  M maintain  ·  {jury}P pause  ·  X salvage  ·  I inventory  ·  Esc back  ·  F1 controls";
         }
-        if (SelectedBay() != null) return $"1–{_data.Building(SelectedBay()!.DefId).Produces.Count} vehicle info (again to order)  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
-        if (SelectedLab() != null) return $"1–{_data.Techs.Count} tech info (again to start)  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
+        if (SelectedBay() != null) return $"1–{_data.Building(SelectedBay()!.DefId).Produces.Count} order one (Shift 5)  ·  click a tile: its card  ·  Backspace cancel order  ·  U upgrade  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
+        if (SelectedLab() != null) return $"1–{_data.Techs.Count} a tech's card (again: research it)  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (_selectedStructure != 0) return $"U upgrade  ·  M maintain  ·  {jury}P pause  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
         if (_view.SelectedUnits.Count > 0) return $"Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  {jury}V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
         return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  {(WorkshopAvailable() ? "K workshop  ·  " : "")}I inventory  ·  {(CivWorlds().Count > 0 ? "C civilizations  ·  " : "")}Tab next base  ·  H home  ·  F1 controls";
@@ -2383,6 +2353,12 @@ public partial class PlanetDriver : Node3D, ITestHost
 
         DronePadPanel(s, complete, rows, actions, ref status, ref statusColour); // a Drone Pad's bays, LAUNCH / RECALL (PlanetDriver.Drones.cs)
         var subtitle = def.Levels.Count > 0 ? $"{Surface.LevelName(s)} of {def.MaxLevel switch { 2 => "Mk II", 3 => "Mk III", _ => $"{def.MaxLevel}" }}" : def.Category.Replace('_', ' ');
+        // A Vehicle Bay or Research Lab: the same tabbed panel (Overview / Queue / Vehicles, Overview / Tech tree / Done) (PlanetDriver.BayLab.cs).
+        if (BayLabPanelOf(s, subtitle, status, statusColour, rows, conditionText, maintenance, condition, actions) is { } bayLab)
+        {
+            _hud.ShowFabPanel(bayLab);
+            return;
+        }
         // A Machine Shop or a core's workshop: the tabbed panel (Overview / Queue / Recipes) instead (PlanetDriver.Parts.cs).
         if (FabPanelOf(s, def.Name, subtitle, status, statusColour, rows, conditionText, maintenance, condition, progress, progressLabel, progressText, actions) is { } fab)
         {

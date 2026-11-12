@@ -88,6 +88,8 @@ public partial class ItemCard : Control
     private ScrollContainer? _scroll;
     private Control? _body;
     private float _maxBody;
+    private string _lastId = "";
+    private int _settle;
 
     public bool IsOpen => Visible;
 
@@ -116,7 +118,10 @@ public partial class ItemCard : Control
         // The body scrolls only when it is taller than the room on screen.
         if (!Visible || _scroll == null || _body == null) return;
         var want = Mathf.Min(_body.GetCombinedMinimumSize().Y, _maxBody);
+        _settle++;
         if (!Mathf.IsEqualApprox(_scroll.CustomMinimumSize.Y, want)) _scroll.CustomMinimumSize = new Vector2(_scroll.CustomMinimumSize.X, want);
+        else if (Modulate.A < 1 && _settle > 1) Modulate = Colors.White; // a new card shows once its body has its height (no jump)
+        if (_settle > 5 && Modulate.A < 1) Modulate = Colors.White;
     }
 
     /// <summary>The Machine Shop's item card (as before the generic card existed).</summary>
@@ -182,6 +187,11 @@ public partial class ItemCard : Control
 
     private void Build(PanelCard v, Vector2 screen, float s)
     {
+        // The body starts at the last build's height when it is the same card (a refresh when the stock changes must not jump).
+        var lastBody = _scroll != null && IsInstanceValid(_scroll) && v.Id == _lastId ? _scroll.CustomMinimumSize.Y : 0f;
+        _lastId = v.Id;
+        _settle = 0;
+        if (lastBody <= 0) Modulate = new Color(1, 1, 1, 0);
         HudKit.Clear(this);
         var dim = new ColorRect { Color = new Color(0.005f, 0.01f, 0.025f, 0.6f), MouseFilter = MouseFilterEnum.Ignore };
         AddChild(dim);
@@ -236,12 +246,12 @@ public partial class ItemCard : Control
         outer.AddChild(head);
 
         // The body scrolls if it is taller than the screen allows (sized in _Process).
+        _maxBody = Mathf.Max(120 * s, screen.Y - 2 * pad - picH - 11 * s - 2 * 20 * s - 10 * s - 34 * s - 11 * s);
         _scroll = new ScrollContainer
         {
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
-            MouseFilter = MouseFilterEnum.Pass, FollowFocus = false, CustomMinimumSize = new Vector2(inner, 0),
+            MouseFilter = MouseFilterEnum.Pass, FollowFocus = false, CustomMinimumSize = new Vector2(inner, Mathf.Min(lastBody, _maxBody)),
         };
-        _maxBody = Mathf.Max(120 * s, screen.Y - 2 * pad - picH - 11 * s - 2 * 20 * s - 10 * s - 34 * s - 11 * s);
         var box = new VBoxContainer { MouseFilter = MouseFilterEnum.Pass, CustomMinimumSize = new Vector2(inner - 12 * s, 0), SizeFlagsHorizontal = SizeFlags.ExpandFill };
         box.AddThemeConstantOverride("separation", Mathf.RoundToInt(11 * s));
         _scroll.AddChild(box);

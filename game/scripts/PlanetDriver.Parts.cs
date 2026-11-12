@@ -66,7 +66,11 @@ public partial class PlanetDriver
         layer.AddChild(_inventory);
         _inventory.Source = InventoryNow;
         _inventory.TargetChanged += SetStockTarget;
-        _hud.FabCancelPressed += CancelOrder;
+        _hud.FabCancelPressed += id =>
+        {
+            if (SelectedFabricator() == null && SelectedBay() is { } bay) CancelBayRow(bay, id); // a bay's queue row (1-based)
+            else CancelOrder(id);
+        };
         _hud.WorkshopPressed += ToggleWorkshop;
         _hud.InventoryPressed += ToggleInventory;
         _hud.KitsShortPressed += () => { if (!_inventory.IsOpen) ToggleInventory(); };
@@ -292,7 +296,11 @@ public partial class PlanetDriver
     private void OnFabRecipe(string recipe, int mode)
     {
         var fab = SelectedFabricator();
-        if (fab == null) return;
+        if (fab == null)
+        {
+            OnBayLabTile(recipe, mode); // a Vehicle Bay's vehicle or a Research Lab's tech (PlanetDriver.BayLab.cs)
+            return;
+        }
         if (mode == 0)
         {
             _itemCardId = recipe;
@@ -322,26 +330,44 @@ public partial class PlanetDriver
         _itemCard.ActionPressed += n =>
         {
             if (_itemCardId != null) Fabricate(_itemCardId, n);
+            else BayLabCardAction(n); // a vehicle's or a tech's card (PlanetDriver.BayLab.cs)
         };
-        _itemCard.LinkPressed += id => _itemCardId = id; // refilled next frame (UpdateItemCard), not inside the link's own signal
-        _itemCard.CloseRequested += () => _itemCardId = null;
+        // refilled next frame (UpdateItemCard), not inside the link's own signal
+        _itemCard.LinkPressed += id =>
+        {
+            if (id.StartsWith("tech:")) _panelCard = id;
+            else _itemCardId = id;
+        };
+        _itemCard.CloseRequested += () =>
+        {
+            _itemCardId = null;
+            _panelCard = null;
+        };
         _hud.FabRecipePressed += OnFabRecipe;
+        ItemArt.VehicleFallback = id => _thumbs.Thumb($"unit:{id}"); // a bay vehicle without a picture: its runtime render
     }
 
-    /// <summary>Once a frame: the open item card follows the stock; it closes when its fabricator is no longer shown.</summary>
+    /// <summary>Once a frame: the open item / vehicle / tech card follows the stock; it closes when its building is no longer shown.</summary>
     private void UpdateItemCard()
     {
         var fab = SelectedFabricator();
         if (_itemCardId != null && (fab == null || _inOrbit || !Surface.RecipesAt(fab).Contains(_itemCardId))) _itemCardId = null;
-        if (_itemCardId == null)
+        if (_itemCardId != null)
         {
-            _itemCard.Close();
+            _panelCard = null;
+            _itemCard.Show(ItemCardViewOf(fab!, _itemCardId));
             return;
         }
-        _itemCard.Show(ItemCardViewOf(fab!, _itemCardId));
+        if (BayLabCard() is { } card)
+        {
+            _itemCard.Show(card);
+            return;
+        }
+        _itemCard.Close();
     }
 
-    /// <summary>While the item card is open: Esc closes it, Enter queues one (Shift+Enter five); no other key reaches the game.</summary>
+    /// <summary>While the card is open: Esc closes it, Enter queues / orders one (Shift+Enter five) or researches; on a
+    /// bay or lab the number keys and Backspace work as on its panel; no other key reaches the game.</summary>
     private bool ItemCardInput(InputEvent e)
     {
         if (!_itemCard.IsOpen || e is not InputEventKey key) return false;
@@ -351,10 +377,20 @@ public partial class PlanetDriver
             case Key.Escape:
                 Sfx.Ui("back");
                 _itemCardId = null;
+                _panelCard = null;
                 _itemCard.Close();
                 break;
             case Key.Enter or Key.KpEnter when _itemCardId != null:
                 Fabricate(_itemCardId, key.ShiftPressed ? 5 : 1);
+                break;
+            case Key.Enter or Key.KpEnter when _panelCard != null:
+                BayLabCardAction(key.ShiftPressed ? 5 : 1);
+                break;
+            case >= Key.Key1 and <= Key.Key9 when _panelCard != null:
+                BayLabKey((int)(key.Keycode - Key.Key1), key.ShiftPressed);
+                break;
+            case Key.Backspace when _panelCard != null && SelectedBay() is { } bay:
+                _sim.Schedule(_sim.Tick + InputDelayTicks, new CancelUnitCommand(LocalPlayer, bay.Id));
                 break;
         }
         return true;

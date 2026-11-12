@@ -584,7 +584,7 @@ public partial class PlanetHud : CanvasLayer
             new[]
             {
                 ("B", "build drawer: every building with its picture, cost and key"),
-                ("1–9", "a building's card (again or Enter: place it; Shift+key: place at once); a bay's / lab's card when one is selected"),
+                ("1–9", "a building's card (again or Enter: place it; Shift+key: place at once); a bay: order one (Shift 5); a lab: a tech's card (again: research)"),
                 ("Enter", "the card's button: place the building, order the vehicle, start the research"),
                 ("I (placing)", "while placing: the building's card again"), ("R / Shift+R", "rotate while placing"),
                 ("U", "upgrade the selected building or base"), ("M", "maintain the selected building"), ("P", "pause / resume the selected building (no input, no power)"), ("X", "cancel a build or upgrade / salvage (an unfinished founded hub: the rover comes back)"),
