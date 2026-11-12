@@ -24,14 +24,7 @@ public static partial class BuildingModels
     public static Node3D Constructor(Color owner)
     {
         var n = Imported("construction_rover", owner) ?? PrimitiveConstructor(owner);
-        n.AddChild(new MeshInstance3D
-        {
-            Name = "Selected",
-            Mesh = new TorusMesh { InnerRadius = 4.0f, OuterRadius = 4.3f, Rings = 32 },
-            Position = new Vector3(0, 0.15f, 0),
-            MaterialOverride = Glow(new Color(1f, 0.95f, 0.5f), 2f),
-            Visible = false,
-        });
+        // Selection ring: PlanetView.Selection.cs.
         // Headlights: VehicleLights adds them to live units in PlanetView (not to the build-menu renders or the founder prop).
         return n;
     }

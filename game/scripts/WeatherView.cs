@@ -237,13 +237,13 @@ public partial class WeatherView : Node3D
         _rainProcess.Direction = rainDir;
         _rain.GlobalPosition = centre + Vector3.Up * height * 0.4f;
         SetAmount(_rain, w.Rain * near);
-        var light = Mathf.Lerp(0.12f, 1f, w.Light) * (1f + 2f * _flashLevel);
+        var light = Mathf.Lerp(0.28f, 1f, w.Light) * (1f + 2f * _flashLevel); // night floors raised with the moonlit nights (were 0.12 / 0.18 / 0.1)
         _rainDraw.AlbedoColor = new Color(0.72f * light, 0.8f * light, 0.9f * light, 0.18f + 0.22f * w.Rain);
 
         _snowProcess.Direction = (Vector3.Down * 3f + windH * 0.35f).Normalized();
         _snow.GlobalPosition = centre + Vector3.Up * height * 0.4f;
         SetAmount(_snow, w.Snow * near);
-        var snowLight = Mathf.Lerp(0.18f, 1f, w.Light) * (1f + 1.5f * _flashLevel);
+        var snowLight = Mathf.Lerp(0.34f, 1f, w.Light) * (1f + 1.5f * _flashLevel);
         _snowDraw.AlbedoColor = new Color(snowLight, snowLight, snowLight * 1.03f, 0.9f);
 
         // Dust: low over the ground at the view's centre, blowing downwind.
@@ -256,7 +256,7 @@ public partial class WeatherView : Node3D
         _dustProcess.ScaleMax = scale * 1.6f;
         _dust.GlobalPosition = focus with { Y = groundAt(focus) + Mathf.Min(height, 6f + scale * 3f) * 0.6f };
         SetAmount(_dust, w.Dust * near);
-        var dustLight = Mathf.Lerp(0.1f, 1f, w.Light);
+        var dustLight = Mathf.Lerp(0.24f, 1f, w.Light);
         _dustDraw.AlbedoColor = new Color(DustColour.R * dustLight, DustColour.G * dustLight, DustColour.B * dustLight, 0.08f + 0.14f * w.Dust);
 
         // Splashes where it rains near the camera (not from far up).

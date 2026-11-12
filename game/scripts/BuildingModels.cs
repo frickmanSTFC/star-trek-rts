@@ -577,7 +577,7 @@ public static partial class BuildingModels
         return n;
     }
 
-    /// <summary>Survey rover: six wheels, cabin with a lit window, spinning sensor dish ("Dish"), selection ring ("Selected").</summary>
+    /// <summary>Survey rover: six wheels, cabin with a lit window, spinning sensor dish ("Dish").</summary>
     /// <summary>
     /// A vehicle model made in Blender (blender/build_vehicles.py → models/vehicles/&lt;id&gt;.glb), wrapped in a plain
     /// Node3D, with the "Owner" material recoloured and the named animated parts (e.g. "Dish") moved up to be direct
@@ -656,16 +656,7 @@ public static partial class BuildingModels
     {
         if ((Imported(unitId, owner, "Dish", "Drone") ?? Imported("survey_rover", owner, "Dish")) is { } made)
         {
-            var mk3 = unitId.EndsWith("mk3");
-            made.AddChild(new MeshInstance3D
-            {
-                Name = "Selected",
-                Mesh = new TorusMesh { InnerRadius = mk3 ? 3.4f : 3.0f, OuterRadius = mk3 ? 3.7f : 3.3f, Rings = 32 },
-                Position = new Vector3(0, 0.15f, 0),
-                MaterialOverride = Glow(new Color(1f, 0.95f, 0.5f), 2f),
-                Visible = false,
-            });
-            return made; // headlights: VehicleLights (live units only, not the build-menu renders)
+            return made; // headlights: VehicleLights (live units only); selection ring: PlanetView.Selection.cs
         }
         var n = new Node3D();
         var hull = Metal(HullColour, 0.45f, 0.4f);
@@ -686,16 +677,7 @@ public static partial class BuildingModels
         Add(dish, new CylinderMesh { TopRadius = 0.08f, BottomRadius = 0.08f, Height = 1f }, new Vector3(0, 0.4f, 0), hull);
         Add(dish, new CylinderMesh { TopRadius = 0.7f, BottomRadius = 0.1f, Height = 0.35f, RadialSegments = 12 }, new Vector3(0, 1f, 0), hull, new Vector3(25, 0, 0));
         n.AddChild(dish);
-        var ring = new MeshInstance3D
-        {
-            Name = "Selected",
-            Mesh = new TorusMesh { InnerRadius = 2.6f, OuterRadius = 2.9f, Rings = 32 },
-            Position = new Vector3(0, 0.15f, 0),
-            MaterialOverride = Glow(new Color(1f, 0.95f, 0.5f), 2f),
-            Visible = false,
-        };
-        n.AddChild(ring);
-        return n;
+        return n; // selection ring: PlanetView.Selection.cs
     }
 
     /// <summary>
@@ -706,7 +688,7 @@ public static partial class BuildingModels
     /// about X up to DeployedBoom), "Drill" under the boom tip (keep it upright, scale "String" Y to reach the ground,
     /// spin "Bit"), "Body" (shakes while digging; holds "Fill" = ore in the hopper, scale Y 0..1, and in the glb the
     /// lift-ram barrels "RamL"/"RamR" that aim at "RamRodL"/"RamRodR" on the Boom), "Dust" (particles while digging),
-    /// "WorkLight", "Selected", and "Smoke"/"Sparks"/"Fire" for breakdowns. "Beacon", the "TailLamp" material,
+    /// "WorkLight", and "Smoke"/"Sparks"/"Fire" for breakdowns. "Beacon", the "TailLamp" material,
     /// "Wiper0/1" and the decal markers (glb only) are RoverLook's. Front is -Z, like the rover.
     /// </summary>
     public static Node3D Crawler(Color owner)
@@ -720,16 +702,7 @@ public static partial class BuildingModels
         var fireAt = glb ? new Vector3(0.45f, 2.6f, -0.3f) : new Vector3(0.2f, 2.1f, 0.9f);
         AddCrawlerEffects(n, smokeAt, sparksAt, fireAt);
         // Headlights: VehicleLights adds them to live units in PlanetView (not to the build-menu renders).
-        // Selection ring: round the hull, the boom tip (z -4.3 folded) and the braced pads (glb: their outer corners
-        // land at x 3.1, z -2.9 / 2.6, up to 4.24 from the centre).
-        n.AddChild(new MeshInstance3D
-        {
-            Name = "Selected",
-            Mesh = glb ? new TorusMesh { InnerRadius = 4.25f, OuterRadius = 4.55f, Rings = 32 } : new TorusMesh { InnerRadius = 3.6f, OuterRadius = 3.9f, Rings = 32 },
-            Position = new Vector3(0, 0.15f, 0),
-            MaterialOverride = Glow(new Color(1f, 0.95f, 0.5f), 2f),
-            Visible = false,
-        });
+        // Selection ring: PlanetView.Selection.cs (round the model's own box, so the boom tip and braced pads are inside it).
         return n;
     }
 

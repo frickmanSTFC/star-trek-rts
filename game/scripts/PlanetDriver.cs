@@ -1020,6 +1020,8 @@ public partial class PlanetDriver : Node3D, ITestHost
         }
         _view.Heard = !_inOrbit; // vehicle sounds only on the surface (PlanetView.Sounds.cs)
         _view.Refresh(alpha);
+        _view.SelectedStructure = _inOrbit ? 0 : _selectedStructure;
+        _view.UpdateSelection(_inOrbit ? null : _camera, _distance); // selection / hover rings and far markers (PlanetView.Selection.cs)
         UpdateSky((float)delta); // PlanetDriver.Sky.cs: before the uplink, which hands the feed the outpost's sky
         UpdateGraphics((float)delta); // visual pass: zoom-fitted GI / fog / shadows, F7 banner, frame time (PlanetDriver.Graphics.cs)
         UpdateUplink((float)delta);
@@ -1734,6 +1736,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var mouse = GetViewport().GetMousePosition();
         _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse) || MissionsBlockMouse(mouse);
         _hoverTile = -1;
+        _view.HoveredUnit = 0;
         if (!_mouseOverUi)
         {
             _hoverTile = _view.PickTile(_camera.ProjectRayOrigin(mouse), _camera.ProjectRayNormal(mouse));
@@ -1755,6 +1758,8 @@ public partial class PlanetDriver : Node3D, ITestHost
             return;
         }
         _view.SetGhost(null, -1, 0, false);
+        // Our vehicle under the mouse gets the dim hover ring (the one a click would pick).
+        if (_hoverTile >= 0 && Me.Phase == LandingPhase.Landed) _view.HoveredUnit = _view.UnitOnTile(_hoverTile, LocalPlayer)?.Id ?? 0;
 
         var colour = new Color(1, 1, 1, 0.3f);
         if (_hoverTile >= 0 && Me.Phase == LandingPhase.InOrbit)
@@ -2501,7 +2506,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _distance = Mathf.Lerp(_distance, _distanceTarget, k);
 
         // Haze and shadows follow the zoom: thick close up, thin from high above so the whole map stays readable.
-        if (_environment != null) _environment.FogDensity = 0.45f / Mathf.Max(60f, _distance);
+        if (_environment != null) _environment.FogDensity = HazeDepth / Mathf.Max(60f, _distance); // weather: PlanetDriver.Sky.cs WeatherHaze
         if (_sun != null) _sun.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 2.2f, 400f, 6000f);
 
         // Keep the focus over the map.
