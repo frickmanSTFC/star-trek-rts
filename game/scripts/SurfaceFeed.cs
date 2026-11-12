@@ -317,7 +317,7 @@ public partial class SurfaceFeed : Control
 
     private static bool IsOverlay(VisualInstance3D node) =>
         node is Label3D label && (label.Billboard != BaseMaterial3D.BillboardModeEnum.Disabled || label.NoDepthTest)
-        || node.Name == "Selected";
+        || node.Name.ToString().StartsWith("Selected"); // PlanetView.Selection.cs: SelectedRings, SelectedMarkers
 
     /// <summary>Anything added under PlanetView while the feed shows (a rover rolling out, a drop ship, dust) joins the feed
     /// layer at once; a light added to the orbit view never lights it.</summary>

@@ -40,7 +40,6 @@ public partial class PlanetView
         public Basis CameraRest;
         public Vector3 SkidScale = Vector3.One;
         public readonly List<(BaseMaterial3D Material, float Energy)> Beacon = new(), Strobe = new(), Nav = new(), Lens = new();
-        public required MeshInstance3D Ring;
         public required Label3D Label;
         public Vector3 Pos;
         public bool Placed;
@@ -110,19 +109,6 @@ public partial class PlanetView
         model.Scale = Vector3.One * DroneScale;
         var holder = new Node3D { Name = $"Drone{u.Id}" };
         holder.AddChild(model);
-        var ring = new MeshInstance3D
-        {
-            Name = "Selected",
-            Mesh = new TorusMesh { InnerRadius = 2.3f, OuterRadius = 2.55f, Rings = 32 },
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = new Color(1f, 0.95f, 0.5f), EmissionEnabled = true, Emission = new Color(1f, 0.95f, 0.5f),
-                EmissionEnergyMultiplier = 2f, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            },
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-            Visible = false,
-        };
-        holder.AddChild(ring);
         _droneRoot.AddChild(holder);
         var label = new Label3D
         {
@@ -131,7 +117,7 @@ public partial class PlanetView
         };
         _droneRoot.AddChild(label);
 
-        var v = new DroneVisual { Holder = holder, Model = model, Ring = ring, Label = label, Seed = (u.Id * 0.6180339f) % 1f };
+        var v = new DroneVisual { Holder = holder, Model = model, Label = label, Seed = (u.Id * 0.6180339f) % 1f };
         for (var k = 0; k < 4; k++)
         {
             v.Rotors[k] = model.FindChild($"Rotor{k}", true, false) as Node3D;
@@ -372,9 +358,7 @@ public partial class PlanetView
         foreach (var (m, e) in v.Nav) m.EmissionEnergyMultiplier = e * (lit ? 1f : 0.12f);
         foreach (var (m, e) in v.Lens) m.EmissionEnergyMultiplier = e * (v.Crashed ? 0f : 1f);
 
-        // Selection ring, label.
-        v.Ring.Visible = SelectedUnits.Contains(u.Id) && v.Holder.Visible;
-        if (v.Ring.Visible) v.Ring.Position = new Vector3(0, 0.7f, 0);
+        // Label (the selection ring and far marker: PlanetView.Selection.cs, flat under the drone).
         var text = state switch
         {
             DroneState.Lost => "Signal lost",

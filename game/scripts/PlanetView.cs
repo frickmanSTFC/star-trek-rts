@@ -1082,7 +1082,7 @@ public partial class PlanetView : Node3D
                 if (carried.Basis is { } pose) model.Basis = pose;
                 pos = carried.Origin;
                 rolling = driving;
-                aboard = carried.Basis != null && !driving; // still in the bay (maybe flying): no selection ring
+                aboard = carried.Basis != null && !driving; // still in the bay (maybe flying): no selection ring (PlanetView.Selection.cs)
             }
             model.Position = pos + new Vector3(0, 0.1f, 0);
             if (def.CanFound) AnimateConstructor(model, u, delta); // unfolding on its site (PlanetView.Founding.cs)
@@ -1105,7 +1105,7 @@ public partial class PlanetView : Node3D
             }
             UnitHeadlights(u, def); // PlanetView.Headlights.cs: broken / damaged / out of sight / crawler deployed
             NoteVehicleSound(u, def, model, ground, onPad, delivering, shown, lamps, delta); // PlanetView.Sounds.cs: speed, wiper strokes, who is heard
-            if (model.GetNodeOrNull<Node3D>("Selected") is { } ring) ring.Visible = SelectedUnits.Contains(u.Id) && !aboard;
+            if (aboard) _aboard.Add(u.Id); else _aboard.Remove(u.Id); // in the bay: no ring, the far marker only (PlanetView.Selection.cs)
             if (model.GetNodeOrNull<Node3D>("Dish") is { } dish) dish.RotateY(delta * (moving ? 3f : 1f));
 
             var text = "";
@@ -1138,6 +1138,7 @@ public partial class PlanetView : Node3D
             ForgetHeadlights(id);
             ForgetRover(id);
             ForgetVehicleSound(id);
+            _aboard.Remove(id);
             _unitLabels[id].QueueFree();
             _unitLabels.Remove(id);
         }

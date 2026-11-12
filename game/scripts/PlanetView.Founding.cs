@@ -136,7 +136,6 @@ public partial class PlanetView
                 var model = BuildingModels.Constructor(PlanetDriver.ColorOf(s.Owner));
                 RoverLook.Paint(model, rover.Name, rover.Number);
                 if (s.Owner == _localPlayer) CosmeticLook.Dress(model, PlanetDriver.ColorOf(s.Owner)); // our livery stays on
-                if (model.FindChild("Selected", false, false) is Node3D ring) ring.Visible = false;
                 AddChild(model);
                 model.Position = FoundSpot(s.Tile) + new Vector3(0, 0.1f, 0);
                 model.Basis = new Basis(Vector3.Up, Mathf.DegToRad(BuildingModels.RepairPadYaw));
