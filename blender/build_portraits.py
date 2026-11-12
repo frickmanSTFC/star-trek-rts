@@ -29,29 +29,38 @@ Run (bpy 5.x venv; ~10-15 min for everything on 4 cores):
 Flags: --species <id>[,<id>] (human, vulcan, andorian, tellarite, bajoran, trill, betazoid, klingon, romulan,
 cardassian, ferengi), --sex f|m, --res 640, --samples 40, --out DIR, --shots portraits,lineup, --only <file stem>
 [,<stem>], --sheet DIR (contact sheet only, no bpy), --seed N (also render look(N) for each picked species: the
-future generator's random person, <species>_<sex>_seedN.jpg, not listed in portraits.json).
+future generator's random person, <species>_<sex>_seedN.jpg, not listed in portraits.json), --orbit A[,B] (debug:
+extra unframed views round the head from these angles, <id>_orbitA.jpg).
 
 How it is built:
   * build_crew.py is loaded with importlib (with a clean sys.argv, so its own flags stay at their defaults). Its
     palette, skeleton, Body, torso/limb/hand/boot meshes, jumpsuit details (collar, Owner yoke, seams, pockets,
     badge, name tape, belt, cuffs, sleeve bands) and Idle pose are used unchanged; the role used is "engineer" with
     its harness/tool belt switched off (bc.engineer -> no-op), bare hands, and finer mesh resolution (TORSO_SEGS,
-    LIMB_SEGS, BAND_T, BAND_L raised in this process only). Other powers swap bc.details for their outfit.
+    LIMB_SEGS, BAND_T, BAND_L, TORSO_Z rows, a thicker neck_limb, a 17-row shoulder yoke so it no longer cuts into
+    the finer torso; all patched in this process only, build_crew.py and its --game export are untouched). Other
+    powers swap bc.details for their outfit.
   * Heads: bc.head_local (the sculpted ellipsoid) is wrapped: the species adds its forehead/brow shapes as smooth
-    displacements of that surface (Klingon crest + five transverse ridges, Romulan V ridge, Cardassian spoon with a
+    displacements of that surface (Klingon crest + four transverse ridges, Romulan V ridge, Cardassian spoon with a
     raised rim and brow-to-temple ridges, Ferengi enlarged cranium with a central furrow and wavy forehead ridges,
     a grin crease, Tellarite heavy brow and jowls), so everything that samples the head (hair shells, brows, nose,
-    eyes) follows it. The head is meshed much finer than the game's (128 longitudes, 0.6 deg rows over the face).
+    eyes) follows it. Everyone also gets portrait refinements (fuller jaw and chin, cheekbones, shaped lips,
+    philtrum, nasion, deeper eye sockets) scaled by a per-character face variation (crc32 of the id through h32:
+    face width, jaw, chin, lips, cheekbones, brow, nose width and length). The head is meshed much finer than the
+    game's (128 longitudes, 0.6 deg rows over the face).
   * Face parts are this script's own (higher resolution than crew's face_features): a lofted nose (wider/longer per
     species, Bajoran and Ferengi ridges across the bridge, a Tellarite snout with two nostrils instead), eyeballs
     with sclera, iris, pupil and a clear cornea (built after posing, turned to look into the lens; Betazoid irises
-    all black), upper and lower lids, a lash line, eyebrows (natural, bushy, thin or upswept), ears (human, pointed,
-    Ferengi), teeth for the Ferengi grin, lip/cheek tint as a vertex colour on the skin.
+    all black), a lid shell with an almond opening and a lash line, eyebrows (natural, bushy, thin or upswept), a
+    mouth line, nostrils, ears (human, pointed, Ferengi) with a helix rim and antihelix, teeth for the Ferengi grin,
+    lip/cheek/eye-shadow tint as a vertex colour on the skin.
   * Hair: one generalised shell per style (crop, short, swept, bun, curly, bowl with a straight fringe, slick,
     shaggy, bob, long, wild) running from the hairline over the crown; long styles hang straight below the widest
-    part of the skull and keep clear of the neck, collar and shoulders (body surface + the outfit's gap); hairlines
-    notch round pointed ears so the tips never go through hair. Beards are a shell on the jaw (full, Klingon with
-    a chin point, Tellarite shaggy with sideburns).
+    part of the skull and keep clear of the neck, collar and shoulders (body surface + the outfit's gap) and outside
+    round ears; the bob and pointed-ear hairlines notch round the ears so tips never go through hair; strand grooves
+    follow the flow, natural hairlines taper thin. Beards are a shell on the jaw (full, Klingon with a chin point,
+    Tellarite with sideburns) that sinks under the skin outside a soft mask, so the edges and the mouth opening
+    are smooth (no cut-out holes).
   * Extras: Andorian antennae (tapered, segmented, bulb tips, rooted in the hair), Trill spots (two staggered rows
     from each temple down past the ear and the side of the neck), Bajoran ear chain on the right ear (cuff, chain
     to the lobe, dangling strand), Cardassian neck ridges (ears to shoulders, flaring).
@@ -109,7 +118,7 @@ def hexrgb(h):
 # skin / hair / iris presets (sRGB)
 SK = dict(fair=(0.95, 0.79, 0.69), light=(0.90, 0.72, 0.60), tan=(0.80, 0.60, 0.45), olive=(0.74, 0.56, 0.40),
           brown=(0.58, 0.40, 0.28), dark=(0.40, 0.26, 0.18), deep=(0.29, 0.19, 0.13), eastasian=(0.88, 0.71, 0.56),
-          andorian=(0.42, 0.60, 0.86), cardassian=(0.56, 0.55, 0.52), ferengi=(0.86, 0.66, 0.50),
+          andorian=(0.42, 0.60, 0.86), cardassian=(0.50, 0.48, 0.44), ferengi=(0.86, 0.66, 0.50),
           tellarite=(0.70, 0.52, 0.42), klingon=(0.50, 0.33, 0.24), romulan=(0.86, 0.72, 0.60))
 HC = dict(black=(0.05, 0.045, 0.045), darkbrown=(0.16, 0.10, 0.07), brown=(0.32, 0.20, 0.11), auburn=(0.45, 0.20, 0.10),
           blond=(0.72, 0.58, 0.36), ash=(0.55, 0.50, 0.44), grey=(0.62, 0.61, 0.60), white=(0.92, 0.93, 0.95),
@@ -1277,10 +1286,14 @@ def beard(mb, body, kind):
     def mask(la, lo):
         p = bc.head_local(la, lo, body)
         a = abs(adiff(lo, 90))
-        ztop = (-0.012 + 0.03 * smooth(42, 82, a)) if kind != "tellarite" else (0.002 + 0.03 * smooth(40, 80, a))
-        m = smooth(ztop + 0.003, ztop - 0.003, p.z) * smooth(96, 86, a)
-        hole = smooth(0.030, 0.021, abs(p.x)) * smooth(0.0105, 0.0065, abs(p.z + 0.0535)) * smooth(0.02, 0.04, p.y)
-        nose_clear = smooth(0.026, 0.018, abs(p.x)) * smooth(-0.044, -0.040, p.z)
+        # top edge: moustache under the nose, down round the mouth corners, up the cheeks to the sideburns
+        ztop = -0.041 + 0.006 * smooth(8, 26, a) - 0.004 * gauss(a - 34, 8) + 0.030 * smooth(42, 78, a) + 0.018 * smooth(72, 90, a)
+        if kind == "tellarite":
+            ztop += 0.006 + 0.008 * smooth(30, 70, a)
+        m = smooth(ztop + 0.005, ztop - 0.005, p.z) * smooth(98, 86, a)
+        e = math.sqrt((p.x / 0.027) ** 2 + ((p.z + 0.0535) / 0.0105) ** 2)
+        hole = smooth(1.05, 0.8, e) * smooth(0.02, 0.04, p.y)
+        nose_clear = smooth(0.024, 0.016, abs(p.x)) * smooth(-0.045, -0.039, p.z)
         return clamp(m * (1 - hole) * (1 - nose_clear), 0, 1), p, a
 
     def vol(la, lo):
@@ -1716,7 +1729,7 @@ def portrait(cam, c, extras):
     yaw = YAW
     camp = V((0.0, CAM_DIST, 1.62))
     objs, head = build_character(c, yaw=yaw, head_turn=-4.0, cam=camp)
-    tall = 0.045 if c["species"] == "andorian" else 0.0
+    tall = 0.06 if c["species"] == "andorian" else 0.0
     target = head + V((0, -0.03, -0.10 + tall))
     camp = V((target.x + 0.0, target.y + CAM_DIST + 2.2 * tall, target.z + 0.06))
     # eyes were aimed at the first guess; the camera only moves by centimetres
@@ -1750,8 +1763,8 @@ def lineup(cam, chars, extras):
     floor_mat = bpy.data.materials.new("Floor")
     floor_mat.use_nodes = True
     p = floor_mat.node_tree.nodes["Principled BSDF"]
-    p.inputs["Base Color"].default_value = (0.018, 0.021, 0.028, 1)
-    p.inputs["Roughness"].default_value = 0.6
+    p.inputs["Base Color"].default_value = (0.006, 0.007, 0.010, 1)
+    p.inputs["Roughness"].default_value = 0.75
     me = bpy.data.meshes.new("Floor")
     me.from_pydata([(-20, -20, 0), (20, -20, 0), (20, 20, 0), (-20, 20, 0)], [], [(0, 1, 2, 3)])
     me.materials.append(floor_mat)
@@ -1820,7 +1833,7 @@ def write_json(cast):
                                   "cardassian": "grey-brown ribbed armour, raised shoulder plates",
                                   "ferengi": "patterned jacket, gold flared collar"}[FACTION_OF[c["species"]]]))
     doc = dict(generator="blender/build_portraits.py", note="Mockup portraits (original designs; no canon uniforms or insignia).",
-               size=[RES, RES], departments=DEPTS, lineup=dict(file="lineup.jpg", characters=LINEUP) if os.path.exists(
+               size=[RES, RES], departments=DEPTS, lineup=dict(file="lineup.jpg", left_to_right=LINEUP[::-1]) if os.path.exists(
                    os.path.join(OUT, "lineup.jpg")) else None, portraits=entries)
     with open(os.path.join(OUT, "portraits.json"), "w") as fh:
         json.dump(doc, fh, indent=1)
