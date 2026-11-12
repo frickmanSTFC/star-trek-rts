@@ -30,15 +30,19 @@
    "department_colour": "#3E7FD6",
    "skin": "tan",
    "skin_rgb": [
-    0.8,
-    0.6,
-    0.45
+    0.78,
+    0.57,
+    0.43
    ],
    "hair": "darkbrown",
-   "hair_style": "bun",
+   "hair_style": "ponytail",
    "beard": null,
    "eyes": "brown",
    "age_band": "30-40",
+   "apparent_age": 33,
+   "face_shape": "heart",
+   "nose": "straight",
+   "seed": 2590378543,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -50,15 +54,19 @@
    "department_colour": "#C8423A",
    "skin": "light",
    "skin_rgb": [
-    0.9,
-    0.72,
-    0.6
+    0.88,
+    0.68,
+    0.56
    ],
    "hair": "brown",
-   "hair_style": "short",
-   "beard": null,
+   "hair_style": "side_part",
+   "beard": "stubble",
    "eyes": "blue",
    "age_band": "40-50",
+   "apparent_age": 47,
+   "face_shape": "square",
+   "nose": "roman",
+   "seed": 3822977157,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -70,15 +78,19 @@
    "department_colour": "#4E9A5A",
    "skin": "olive",
    "skin_rgb": [
-    0.74,
+    0.73,
     0.56,
-    0.4
+    0.41
    ],
    "hair": "black",
    "hair_style": "vulcan_f",
    "beard": null,
    "eyes": "darkbrown",
    "age_band": "40-60 (looks 30s)",
+   "apparent_age": 33,
+   "face_shape": "oval",
+   "nose": "straight",
+   "seed": 717087073,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -90,15 +102,19 @@
    "department_colour": "#3E7FD6",
    "skin": "light",
    "skin_rgb": [
-    0.9,
-    0.72,
-    0.6
+    0.88,
+    0.68,
+    0.56
    ],
    "hair": "darkbrown",
    "hair_style": "bowl",
    "beard": null,
    "eyes": "brown",
    "age_band": "60-90 (looks 40s)",
+   "apparent_age": 46,
+   "face_shape": "long",
+   "nose": "aquiline",
+   "seed": 1350448853,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -110,15 +126,19 @@
    "department_colour": "#C8423A",
    "skin": "andorian",
    "skin_rgb": [
-    0.42,
+    0.44,
     0.6,
     0.86
    ],
    "hair": "white",
-   "hair_style": "bun",
+   "hair_style": "pixie",
    "beard": null,
    "eyes": "violet",
    "age_band": "25-35",
+   "apparent_age": 27,
+   "face_shape": "diamond",
+   "nose": "button",
+   "seed": 941526423,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -130,15 +150,19 @@
    "department_colour": "#D9A23A",
    "skin": "andorian",
    "skin_rgb": [
-    0.42,
+    0.44,
     0.6,
     0.86
    ],
    "hair": "white",
-   "hair_style": "swept",
+   "hair_style": "swept_back",
    "beard": null,
    "eyes": "grey",
    "age_band": "30-40",
+   "apparent_age": 37,
+   "face_shape": "square",
+   "nose": "broad",
+   "seed": 3505075104,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -150,15 +174,19 @@
    "department_colour": "#D9A23A",
    "skin": "tellarite",
    "skin_rgb": [
-    0.7,
-    0.52,
-    0.42
+    0.74,
+    0.53,
+    0.43
    ],
    "hair": "auburn",
    "hair_style": "shaggy",
    "beard": null,
    "eyes": "darkbrown",
    "age_band": "30-40",
+   "apparent_age": 36,
+   "face_shape": "round",
+   "nose": null,
+   "seed": 417545471,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -170,15 +198,19 @@
    "department_colour": "#C8423A",
    "skin": "tellarite",
    "skin_rgb": [
-    0.7,
-    0.52,
-    0.42
+    0.74,
+    0.53,
+    0.43
    ],
    "hair": "brown",
    "hair_style": "shaggy",
    "beard": "tellarite",
    "eyes": "darkbrown",
    "age_band": "40-50",
+   "apparent_age": 47,
+   "face_shape": "square",
+   "nose": null,
+   "seed": 1620075759,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -190,15 +222,19 @@
    "department_colour": "#4E9A5A",
    "skin": "light",
    "skin_rgb": [
-    0.9,
-    0.72,
-    0.6
+    0.88,
+    0.68,
+    0.56
    ],
    "hair": "auburn",
    "hair_style": "bob",
    "beard": null,
    "eyes": "hazel",
    "age_band": "25-35",
+   "apparent_age": 27,
+   "face_shape": "heart",
+   "nose": "snub",
+   "seed": 3366975773,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -210,15 +246,19 @@
    "department_colour": "#3E7FD6",
    "skin": "brown",
    "skin_rgb": [
-    0.58,
-    0.4,
-    0.28
+    0.55,
+    0.38,
+    0.27
    ],
    "hair": "black",
-   "hair_style": "crop",
-   "beard": null,
+   "hair_style": "fade",
+   "beard": "short",
    "eyes": "darkbrown",
    "age_band": "35-45",
+   "apparent_age": 41,
+   "face_shape": "long",
+   "nose": "straight",
+   "seed": 2993434281,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -230,15 +270,19 @@
    "department_colour": "#3E7FD6",
    "skin": "fair",
    "skin_rgb": [
-    0.95,
-    0.79,
-    0.69
+    0.93,
+    0.76,
+    0.66
    ],
    "hair": "blond",
    "hair_style": "long",
    "beard": null,
    "eyes": "green",
    "age_band": "25-35",
+   "apparent_age": 26,
+   "face_shape": "oval",
+   "nose": "button",
+   "seed": 1510473505,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -250,15 +294,19 @@
    "department_colour": "#4E9A5A",
    "skin": "light",
    "skin_rgb": [
-    0.9,
-    0.72,
-    0.6
+    0.88,
+    0.68,
+    0.56
    ],
-   "hair": "brown",
+   "hair": "chestnut",
    "hair_style": "swept",
    "beard": null,
    "eyes": "blue",
    "age_band": "35-45",
+   "apparent_age": 39,
+   "face_shape": "diamond",
+   "nose": "hooked",
+   "seed": 549726357,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -270,15 +318,19 @@
    "department_colour": "#C8423A",
    "skin": "olive",
    "skin_rgb": [
-    0.74,
+    0.73,
     0.56,
-    0.4
+    0.41
    ],
    "hair": "black",
-   "hair_style": "curly",
+   "hair_style": "curly_long",
    "beard": null,
    "eyes": "black",
    "age_band": "25-35",
+   "apparent_age": 29,
+   "face_shape": "round",
+   "nose": "straight",
+   "seed": 458853781,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -290,15 +342,19 @@
    "department_colour": "#D9A23A",
    "skin": "tan",
    "skin_rgb": [
-    0.8,
-    0.6,
-    0.45
+    0.78,
+    0.57,
+    0.43
    ],
    "hair": "black",
-   "hair_style": "short",
-   "beard": null,
+   "hair_style": "textured",
+   "beard": "short",
    "eyes": "black",
    "age_band": "30-40",
+   "apparent_age": 34,
+   "face_shape": "oval",
+   "nose": "straight",
+   "seed": 1740460955,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -310,15 +366,19 @@
    "department_colour": "#3E7FD6",
    "skin": "deep",
    "skin_rgb": [
-    0.29,
-    0.19,
-    0.13
+    0.28,
+    0.185,
+    0.14
    ],
-   "hair": "grey",
+   "hair": "black",
    "hair_style": "crop",
    "beard": "full",
    "eyes": "darkbrown",
    "age_band": "55-60",
+   "apparent_age": 58,
+   "face_shape": "round",
+   "nose": "broad",
+   "seed": 2108667276,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -330,15 +390,19 @@
    "department_colour": "#C8423A",
    "skin": "eastasian",
    "skin_rgb": [
-    0.88,
-    0.71,
-    0.56
+    0.89,
+    0.72,
+    0.57
    ],
    "hair": "black",
-   "hair_style": "short",
+   "hair_style": "undercut",
    "beard": null,
    "eyes": "darkbrown",
    "age_band": "25-30",
+   "apparent_age": 26,
+   "face_shape": "diamond",
+   "nose": "flat",
+   "seed": 1636539992,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -350,15 +414,19 @@
    "department_colour": "#D9A23A",
    "skin": "dark",
    "skin_rgb": [
-    0.4,
+    0.39,
     0.26,
-    0.18
+    0.19
    ],
    "hair": "black",
-   "hair_style": "curly",
+   "hair_style": "coils",
    "beard": null,
    "eyes": "brown",
    "age_band": "25-30",
+   "apparent_age": 27,
+   "face_shape": "oval",
+   "nose": "broad",
+   "seed": 4263790550,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -370,15 +438,19 @@
    "department_colour": "#4E9A5A",
    "skin": "fair",
    "skin_rgb": [
-    0.95,
-    0.79,
-    0.69
+    0.93,
+    0.76,
+    0.66
    ],
-   "hair": "ash",
+   "hair": "chestnut",
    "hair_style": "bun",
    "beard": null,
    "eyes": "grey",
    "age_band": "50-60",
+   "apparent_age": 57,
+   "face_shape": "long",
+   "nose": "straight",
+   "seed": 124543544,
    "outfit": "colony-service jumpsuit, department yoke"
   },
   {
@@ -390,8 +462,8 @@
    "department_colour": null,
    "skin": "klingon",
    "skin_rgb": [
-    0.5,
-    0.33,
+    0.52,
+    0.34,
     0.24
    ],
    "hair": "black",
@@ -399,6 +471,10 @@
    "beard": null,
    "eyes": "brown",
    "age_band": "30-40",
+   "apparent_age": 34,
+   "face_shape": "diamond",
+   "nose": "broad",
+   "seed": 4716267,
    "outfit": "dark leather, metal pauldrons and chest plates"
   },
   {
@@ -408,17 +484,21 @@
    "sex": "m",
    "department": null,
    "department_colour": null,
-   "skin": "klingon",
+   "skin": "klingon2",
    "skin_rgb": [
-    0.5,
-    0.33,
-    0.24
+    0.4,
+    0.26,
+    0.19
    ],
-   "hair": "darkbrown",
+   "hair": "black",
    "hair_style": "wild",
    "beard": "klingon",
    "eyes": "darkbrown",
    "age_band": "40-50",
+   "apparent_age": 47,
+   "face_shape": "square",
+   "nose": "broad",
+   "seed": 2543136611,
    "outfit": "dark leather, metal pauldrons and chest plates"
   },
   {
@@ -431,15 +511,19 @@
    "skin": "romulan",
    "skin_rgb": [
     0.86,
-    0.72,
-    0.6
+    0.71,
+    0.59
    ],
    "hair": "black",
-   "hair_style": "bowl",
+   "hair_style": "romulan_f",
    "beard": null,
    "eyes": "green",
    "age_band": "40-60 (looks 30s)",
-   "outfit": "grey-green tunic, quilted padded shoulders"
+   "apparent_age": 35,
+   "face_shape": "heart",
+   "nose": "straight",
+   "seed": 2231014731,
+   "outfit": "grey-green tunic, high stand collar, slim quilted shoulder caps, V trim, shoulder clasp"
   },
   {
    "file": "romulan_m.jpg",
@@ -450,15 +534,19 @@
    "department_colour": null,
    "skin": "tan",
    "skin_rgb": [
-    0.8,
-    0.6,
-    0.45
+    0.78,
+    0.57,
+    0.43
    ],
    "hair": "darkbrown",
    "hair_style": "bowl",
    "beard": null,
    "eyes": "brown",
    "age_band": "60-90 (looks 40s)",
+   "apparent_age": 47,
+   "face_shape": "long",
+   "nose": "roman",
+   "seed": 321408195,
    "outfit": "grey-green tunic, quilted padded shoulders"
   },
   {
@@ -470,15 +558,19 @@
    "department_colour": null,
    "skin": "cardassian",
    "skin_rgb": [
-    0.5,
-    0.48,
-    0.44
+    0.47,
+    0.42,
+    0.35
    ],
    "hair": "black",
    "hair_style": "slick_bun",
    "beard": null,
    "eyes": "blue",
    "age_band": "30-40",
+   "apparent_age": 34,
+   "face_shape": "oval",
+   "nose": "straight",
+   "seed": 3322169112,
    "outfit": "grey-brown ribbed armour, raised shoulder plates"
   },
   {
@@ -490,15 +582,19 @@
    "department_colour": null,
    "skin": "cardassian",
    "skin_rgb": [
-    0.5,
-    0.48,
-    0.44
+    0.47,
+    0.42,
+    0.35
    ],
    "hair": "black",
    "hair_style": "slick",
    "beard": null,
    "eyes": "grey",
    "age_band": "40-50",
+   "apparent_age": 48,
+   "face_shape": "square",
+   "nose": "roman",
+   "seed": 1373019792,
    "outfit": "grey-brown ribbed armour, raised shoulder plates"
   },
   {
@@ -510,8 +606,8 @@
    "department_colour": null,
    "skin": "ferengi",
    "skin_rgb": [
-    0.86,
-    0.66,
+    0.88,
+    0.67,
     0.5
    ],
    "hair": "none (bald)",
@@ -519,6 +615,10 @@
    "beard": null,
    "eyes": "blue",
    "age_band": "25-35",
+   "apparent_age": 27,
+   "face_shape": "heart",
+   "nose": null,
+   "seed": 749891195,
    "outfit": "patterned jacket, gold flared collar"
   },
   {
@@ -530,8 +630,8 @@
    "department_colour": null,
    "skin": "ferengi",
    "skin_rgb": [
-    0.86,
-    0.66,
+    0.88,
+    0.67,
     0.5
    ],
    "hair": "none (bald)",
@@ -539,6 +639,10 @@
    "beard": null,
    "eyes": "grey",
    "age_band": "40-50",
+   "apparent_age": 47,
+   "face_shape": "round",
+   "nose": null,
+   "seed": 3143677939,
    "outfit": "patterned jacket, gold flared collar"
   }
  ]
