@@ -35,7 +35,8 @@ happens in one place. Release exports read one packed copy instead (`gamedata.pa
 | `scripts/SystemPlot.cs`, `OrbitLines.cs` | The helm's top-down star-system plot from the map's bodies; thin line meshes for tracks, rings and the grid |
 | `textures/planet/` | Tileable ground photos for the orbit globe, cut from NASA's Blue Marble Next Generation (public domain; credit: NASA Earth Observatory). Read at runtime, not imported (`.gdignore`) |
 | `textures/items/` | The 13 Machine Shop item renders (`<recipe id>.png`, 384×384 RGBA, imported normally), drawn on the recipe tiles, queue rows, cost chips and item cards (`scripts/ItemArt.cs`; a missing one falls back to the line icon). Made in Blender by `blender/build_items.py`, which writes `docs/mockups/machine-shop-panel/items/` by default: regenerate with `/home/user/.bpyvenv/bin/python blender/build_items.py --out game/textures/items` (or copy the mockup's PNGs here) |
-| `scripts/FabPanel.cs`, `ItemCard.cs`, `ItemArt.cs`, `PlanetDriver.Parts.cs`, `PlanetHud.Parts.cs` | A selected Machine Shop (or a colony core's workshop, K): the bottom panel's tabbed view (name, status and buttons on the left; **Overview**, **Queue · n**, **Recipes · n** on the right, the last tab remembered) and the modal item card a recipe tile opens; the inventory screen (I) is `InventoryScreen.cs` |
+| `scripts/FabPanel.cs`, `ItemCard.cs`, `ItemArt.cs`, `PlanetDriver.Parts.cs`, `PlanetHud.Parts.cs` | A selected Machine Shop (or a colony core's workshop, K): the bottom panel's tabbed view (name, status and buttons on the left; **Overview**, **Queue · n**, **Recipes · n** on the right, the last tab remembered) and the modal item card a recipe tile opens; the inventory screen (I) is `InventoryScreen.cs`. The same panel and card show a selected Vehicle Bay and Research Lab (next row) |
+| `scripts/PlanetDriver.BayLab.cs`, `textures/vehicles/`, `textures/techs/` | A selected Vehicle Bay (**Overview**, **Queue · n** with × on each order, **Vehicles · n** picture tiles) and Research Lab (**Overview**, **Tech tree · n** in three columns: start here / needs an earlier tech / situational (ruins), **Done · n**), each with the full card a tile opens (vehicle: stats, costs vs what you have, BUILD ONE / BUILD 5; tech: status with links to prerequisites, "What it does" from its modifiers, RESEARCH THIS). Pictures `textures/vehicles/<unit id>.jpg` and `textures/techs/<tech id>.jpg` (480×360, copied from `docs/mockups/bay-lab-panel/img/`; a vehicle without one uses its runtime render, a tech the line icon). Only the existing commands are used (`BuildUnitCommand`, `CancelUnitCommand`, `ResearchCommand`) |
 | `scenes/System.tscn`, `scripts/SimDriver.cs`, `SystemView.cs` | Star-system view, kept for later (star, planets, moons, asteroid fields, orbits, fleets) |
 | `scripts/BuildingModels.cs`, `BuildingModels.Outpost.cs` | Primitive-built models (hub levels 2–3, mine, reactor, habitat, …) and the imported glb models: the Level 1 outpost (`models/buildings/outpost_l1.glb`), rovers, crawler, drop ship |
 | `scripts/PlanetHud.cs`, `Minimap.cs`, `Icons.cs` | Planet HUD: icon resource bar, event feed, tooltip, bottom panel (minimap, selected base or object, command card); icons are SVG paths drawn at runtime |
@@ -103,9 +104,13 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    the missing parts, Queue one [Enter] / Queue 5 [Shift+Enter] / Close [Esc]). Quick keys: the number keys queue one
    (Shift: five), Shift+click a tile queues five, Ctrl+click one, right-click removes one, Backspace the last order.
    The colony core's small workshop (**K**, or WORKSHOP on the base tabs) uses the same view for its four kits.
-   Build a **Vehicle Bay** for more vehicles: select it and the command card shows its orders, each with a picture
-   (survey rover Mk I Scout, mining crawler, Mk II Surveyor, Mk III Explorer, construction rover; keys 1–5). Orders are paid up front and queue up to 5; **Backspace** cancels
-   the last one. Each vehicle rolls out of the bay's door when it's done.
+   Build a **Vehicle Bay** for more vehicles: select it and the bottom panel shows the same tabs as the Machine Shop:
+   **Overview**, **Queue · n** and **Vehicles · n** (survey rover Mk I Scout, mining crawler, Mk II Surveyor, Mk III
+   Explorer, construction rover: keys 1–5, each with its picture, cost, build time, speed and survey radius). Click a vehicle for
+   its card (**Enter** builds one, **Shift+Enter** five); **Ctrl+click** or its number key orders one (Shift: five),
+   right-click cancels one of it. Orders are paid up front and queue up to 5; × on a queued order or **Backspace** (the
+   last one) cancels with a full refund. Vehicles you can't afford or order right now are greyed out but still open
+   their card. Each vehicle rolls out of the bay's door when it's done.
    **A second base on the ground:** select a **construction rover** and press **FOUND OUTPOST** (the card, **F** or **1**),
    then click a site: surveyed, buildable, safe ground at least 8 tiles from your other bases (a ghost of the outpost
    shows green or red with the reason; the red ring marks where it's too close). It drives there, pays the founding
@@ -116,7 +121,10 @@ outpost drops, shuttles, transporter beams and survey satellites. **O** switches
    a research tech opens a smaller card. Order or start research from the card's button, with **Enter**, or by picking
    the same card (or number key) again. **Esc** closes it. Research-gated buildings (the Deep-Core Mine) stay out of the
    drawer until their tech is done, and the number keys follow what the drawer shows.
-7. **Research and upkeep:** build a **Research Lab**, select it and pick a tech (keys 1–7). Buildings wear
+7. **Research and upkeep:** build a **Research Lab** and select it: the **Tech tree** tab shows every tech in three
+   columns (start here, needs an earlier tech, situational ones for ruins); locked ones are greyed out with what they
+   need. Click a tech (or press its number key) for its card, then **RESEARCH THIS** / **Enter** (or the same key again);
+   **Ctrl+click** researches at once. Progress on a tech you switch away from is kept. Buildings wear
    while they work: below 50% they slow down and may break. Select one and press **M** to send the base's crew,
    or **U** to upgrade it (Mk II, Mk III: faster, wears less; Mk III and the Automated Maintenance tech add
    drones that keep it running). The building panel shows what it's doing, its stats and where bonuses come from.
@@ -138,7 +146,7 @@ selected base or object in the middle, and the build card bottom-right. Fog: bri
 near-black = unexplored (set `FogDarkness` on the root node).
 
 Controls: left-click selects a vehicle, building, base or tile (Shift adds vehicles; selected vehicles and buildings get a bright green ring, and from far out a marker over each vehicle), **A** selects all vehicles, right-click
-drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair; a construction rover: found an outpost), **R** send damaged vehicles to the repair pad, **T** change a rover's flat tyre, **B** build drawer, **1–8** a building's card (again or **Enter** to place, **Shift** places at once; or order vehicles when a Vehicle Bay is selected), **I** the card again while placing, **Backspace** cancel the bay's last order, **R** rotate,
+drives (a crawler right-clicked onto a deposit mines it), **F** unfurl / pack up the crawler (or send a broken one for repair; a construction rover: found an outpost), **R** send damaged vehicles to the repair pad, **T** change a rover's flat tyre, **B** build drawer, **1–8** a building's card (again or **Enter** to place, **Shift** places at once; or order one vehicle (Shift: five) when a Vehicle Bay is selected, or a tech's card when a Research Lab is), **I** the card again while placing, **Backspace** cancel the bay's last order, **R** rotate,
 **U** upgrade the selected building (or the base), **M** maintain the selected building, **P** pause / resume the selected building (a paused building uses no input and no power: e.g. stop the Alloy Foundry eating your duranium), **F1** all controls, **X** cancel a build or upgrade / salvage a finished building, **Tab** next base, **Esc** back to the base,
 WASD/arrows or middle-mouse drag pan, **Q / E** turn the view 90°, mouse wheel zooms, **H** returns to the colony.
 
