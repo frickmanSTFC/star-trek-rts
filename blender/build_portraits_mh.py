@@ -366,15 +366,15 @@ FACE_SHAPES = ["oval", "round", "square", "long", "heart", "diamond"]
 # nose type -> MakeHuman nose modifiers (value -1..1 on each decr|incr / down|up ... pair)
 NOSE_MODS = {
     "straight": {"hump": -0.25, "point_width": 0.15, "curve": -0.05},
-    "aquiline": {"hump": 0.55, "point": -0.35, "curve": 0.45, "septumangle": 0.2},
-    "roman": {"hump": 0.85, "width1": 0.25, "scale_vert": 0.1, "point": -0.1},
+    "aquiline": {"hump": 0.45, "point": -0.25, "curve": 0.35, "septumangle": 0.15, "point_width": 0.15},
+    "roman": {"hump": 0.6, "width1": 0.25, "point": -0.05, "point_width": 0.2},
     "snub": {"point": 0.75, "curve": -0.55, "scale_vert": -0.35, "septumangle": -0.3, "point_width": 0.25},
     "button": {"scale_vert": -0.55, "scale_depth": -0.35, "volume": -0.15, "point_width": 0.45, "point": 0.35,
                "nostrils_width": -0.2},
     "broad": {"scale_horiz": 0.45, "flaring": 0.65, "nostrils_width": 0.55, "width3": 0.45, "width2": 0.3,
               "point_width": 0.35},
     "flat": {"scale_depth": -0.6, "width1": 0.35, "flaring": 0.45, "compression": -0.3, "point_width": 0.3},
-    "hooked": {"hump": 0.6, "point": -0.75, "septumangle": 0.45, "scale_depth": 0.1},
+    "hooked": {"hump": 0.5, "point": -0.45, "septumangle": 0.3, "point_width": 0.25},
     "greek": {"greek": 0.85, "hump": -0.2, "point_width": 0.1},
 }
 NOSE_PAIRS = dict(hump=("nose-hump", "decr", "incr"), point=("nose-point", "down", "up"),
@@ -521,9 +521,9 @@ def person(c):
             v *= 1.35
         M.pair(folder, b, lo, hi, v, side, asym)
     M.pair("eyes", "eye-scale", "decr", "incr", 0.5 + n(99, 0.12), "lr")
-    M.pair("nose", "nose-scale-vert", "decr", "incr", -0.18)
-    M.pair("nose", "nose-scale-depth", "decr", "incr", -0.12)
-    M.pair("nose", "nose-point-width", "decr", "incr", 0.18)
+    M.pair("nose", "nose-scale-vert", "decr", "incr", -0.25)
+    M.pair("nose", "nose-scale-depth", "decr", "incr", -0.18)
+    M.pair("nose", "nose-point-width", "decr", "incr", 0.22)
     # asymmetry: two or three MakeHuman asym targets, small
     for j, part in enumerate(["brown-1", "cheek-1", "eye-2", "jaw-1", "nose-2", "ear-1", "temple-1"]):
         if h(110 + j) < 0.45:
@@ -563,9 +563,9 @@ def person(c):
     elif smile > 0.0:
         # a real smile: corners up and back (zygomaticus), the upper lip lifting off the teeth once it is broad,
         # cheeks pushing the lower lids up; small values = a friendly resting face
-        s = min(1.0, smile * 1.4)
+        s = min(0.85, smile * 1.3)
         units.update({"mouth-corner-puller": 0.35 + 0.65 * s if s > 0.05 else 0.0,
-                      "mouth-upward-retraction": 0.85 * float(sm(0.25, 0.9, s)),
+                      "mouth-upward-retraction": 0.62 * float(sm(0.25, 0.9, s)),
                       "eye-left-slit": 0.32 * float(sm(0.15, 0.8, s)), "eye-right-slit": 0.32 * float(sm(0.15, 0.8, s)),
                       "mouth-parling": 0.15 * float(sm(0.5, 1.0, s))})
     if sp in ("vulcan", "romulan"):
@@ -1073,14 +1073,14 @@ def ear_push_mh(p, gap=0.004):
         rad_ = np.array([max(ext[0], 0.008) + 0.004, ext[1] + 0.006, ext[2] + 0.006]) + gap
         tuck = CUR.get("species") == "bajoran" and c[0] > 0       # hair behind the ear with the chain
         if tuck:
-            rad_ = rad_ + np.array([0.012, 0.012, 0.010])
+            rad_ = rad_ + np.array([0.030, 0.016, 0.026])
         q = (p - c) / rad_
         d = np.linalg.norm(q, axis=-1)
         inside = d < 1.0
         if inside.any():
             if tuck:
                 # out along (out, back): solve |q + s*dq| = 1
-                dq = np.array([0.35, -1.0, 0.0]) / rad_
+                dq = np.array([0.15, -1.0, 0.1]) / rad_
                 qi = q[inside]
                 a_ = dq @ dq
                 b_ = 2 * qi @ dq
@@ -1495,8 +1495,8 @@ def suit_fields(S, kind):
     t, da = S.arm_t(p, True)
     on_arm = sm(0.0, 0.05, t) * sm(0.085, 0.065, da)
     zl = S.neck_z - 0.085 - 0.03 * (np.abs(x) / 0.12) ** 2
-    yk = (1 - on_arm) * (z - zl) + on_arm * (0.105 - t)
-    band = 0.012 - np.abs(t - 0.19) + (on_arm < 0.5) * -1.0
+    yk = (1 - on_arm) * (z - zl) + on_arm * (0.075 - t)
+    band = 0.010 - np.abs(t - 0.165) + (on_arm < 0.5) * -1.0
     belt = 0.022 - np.abs(z - (S.waist_z - 0.03))
     boot = 0.30 - z
     seam = 0.0016 - np.abs(x) + (y < 0) * -1.0 + (z > zl + 0.002) * -1.0
@@ -1624,8 +1624,9 @@ _CUT = {}
 def cut_material(base):
     """A copy of base that is transparent where the 'pm' attribute is below zero: shells get crisp smooth outlines
     from the mask field instead of the suit's face edges."""
-    if base.name in _CUT:
-        return _CUT[base.name]
+    key = "cut:" + base.name
+    if key in bp.MATS:
+        return bp.MATS[key]
     m = base.copy()
     m.name = base.name + "_cut"
     nt = m.node_tree
@@ -1638,7 +1639,7 @@ def cut_material(base):
     nt.links.new(tr.outputs["BSDF"], mix.inputs[1])
     nt.links.new(src, mix.inputs[2])
     nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
-    _CUT[base.name] = m
+    bp.MATS[key] = m          # kept between characters (build_portraits.remove spares MATS)
     return m
 
 
@@ -1791,6 +1792,11 @@ def outfit(hm, c, rig, objs):
         coll_mat = bp.material("car_armour")
     else:  # ferengi
         pat = bp.pattern_material("fer_jacket_" + c["id"], (0.62, 0.36, 0.12), (0.30, 0.12, 0.26))
+        for nd in pat.node_tree.nodes:
+            if nd.type == "TEX_VORONOI":
+                nd.inputs["Scale"].default_value = 75
+            elif nd.type == "TEX_WAVE":
+                nd.inputs["Scale"].default_value = 150
         mat = suit_material("Suit_" + c["id"], None, pattern=pat, belt=srgb_lin((0.85, 0.62, 0.22)))
         coll_mat = bp.material("fer_trim")
     suit = skinned_object("Suit", S.co, S.faces, S.W, rig, [mat])
@@ -1859,7 +1865,7 @@ def outfit(hm, c, rig, objs):
             objs.append(o)
     else:  # ferengi
         collar(-0.006, 0.010, 0.005, 0.006, bp.material("fer_shirt"), thick=0.003)
-        collar(0.004, 0.050, 0.012, 0.045, coll_mat, name="Flare", th0=118, th1=422, thick=0.003, flare=0.02, rows=8)
+        collar(0.004, 0.034, 0.012, 0.036, coll_mat, name="Flare", th0=118, th1=422, thick=0.003, flare=0.016, rows=8)
         m_ = (np.abs(x) < 0.035) & (y > 0) & (z > S.waist_z - 0.1) & (z < S.neck_z)
         o = shell(S, m_.astype(float) - 0.5, 0.003, "ShirtFront", bp.material("fer_shirt"), rig, 0.002)
         if o:
@@ -1896,12 +1902,14 @@ def species_base(hm, c):
         sx = np.sign(ec[0])
         root = ec + np.array([-sx * ext[0] * 1.2, 0.0, 0.0])
         if sp == "ferengi":
-            k = 1.0 + 1.25 * sm(0.15, 0.9, w)
+            k = 1.0 + 1.0 * sm(0.15, 0.9, w)
             q = co - root
-            q[:, 2] *= 1.0 + 0.15 * sm(0.15, 0.9, w)            # a little taller still
+            q[:, 1] *= 1.0 + 0.25 * sm(0.15, 0.9, w)            # rounder: deeper front-back
+            q[:, 2] *= 1.0 - 0.08 * sm(0.15, 0.9, w)
             new = root + q * k[:, None]
-            new[:, 0] += sx * 0.012 * sm(0.3, 1.0, w)           # stand out from the head
-            new[:, 1] -= 0.004 * sm(0.3, 1.0, w)
+            new[:, 0] += sx * 0.016 * sm(0.3, 1.0, w)           # stand out from the head
+            new[:, 1] -= 0.006 * sm(0.3, 1.0, w)
+            new[:, 2] += 0.004 * sm(0.3, 1.0, w)
             co[:] = np.where((w > 0)[:, None], new, co)
         else:
             top = ec[2] + ext[2]
@@ -1978,8 +1986,8 @@ def species_sculpt(hm, c, q, nrm_):
         db = np.linalg.norm((q - nb) * np.array([0.7, 1.0, 1.0]), axis=1)
         w = ga(dn, 0.016)
         wb = ga(db, 0.011) * sm(-0.03, 0.0, q[:, 1] - nb[1])
-        vec[:, 1] = 0.012 * w + 0.014 * wb
-        vec[:, 2] = 0.004 * w - 0.001 * wb
+        vec[:, 1] = 0.015 * w + 0.017 * wb
+        vec[:, 2] = 0.005 * w - 0.001 * wb
         vec[:, 0] = x * (0.45 * ga(dn, 0.018) + 0.3 * wb)
         disp = 0.0065 * ga(z - (bz - 0.001), 0.007) * ga(x, 0.048) * front
         for k in range(3):     # brow-to-nose folds
@@ -2053,8 +2061,8 @@ def trill_spot_list(hm):
     for s in "lr":
         ec, ext = hm.ears_local[s]
         sx = np.sign(ec[0])
-        line = np.array([[sx * 0.058, 0.058, ez + 0.032], [sx * 0.064, 0.042, ez - 0.004],
-                         [sx * 0.066, 0.022, ez - 0.040], [sx * 0.056, 0.006, -0.085], [sx * 0.052, -0.004, -0.14]])
+        line = np.array([[sx * 0.050, 0.080, ez + 0.030], [sx * 0.058, 0.066, ez - 0.004],
+                         [sx * 0.062, 0.050, ez - 0.040], [sx * 0.056, 0.024, -0.085], [sx * 0.050, 0.010, -0.14]])
         for k in range(30):
             t = k / 29
             seg_ = min(int(t * 4), 3)
@@ -2065,7 +2073,7 @@ def trill_spot_list(hm):
                     continue
                 pp = p + np.array([0, col * 0.0048 * (1 - 0.4 * t), 0]) + R.normal(0, 0.0016, 3)
                 loc, _ = surface_point(hm, pp + hm.head_c)
-                out.append((loc - hm.head_c, (0.0030 - 0.0016 * t) * R.uniform(0.7, 1.25)))
+                out.append((loc - hm.head_c, (0.0036 - 0.0018 * t) * R.uniform(0.75, 1.25)))
     return out
 
 
@@ -2103,8 +2111,8 @@ def sculpt_body(body, hm, c):
             d = np.linalg.norm((q - cc) * np.array([1.0, 0.8, 1.0]), axis=1)
             spot = np.maximum(spot, sm(r * 1.5, r * 0.8, d))
         sk_ = np.array(SK[c["skin"]])
-        want = np.array((0.36, 0.20, 0.12)) / np.maximum(sk_, 0.05)
-        t[:, :3] = t[:, :3] * (1 - 0.92 * spot[:, None]) + want[None, :] * 0.92 * spot[:, None]
+        want = np.array((0.28, 0.14, 0.075)) / np.maximum(sk_, 0.05)
+        t[:, :3] = t[:, :3] * (1 - spot[:, None]) + want[None, :] * spot[:, None]
     me.color_attributes["tint"].data.foreach_set("color", t.ravel())
 
 
@@ -2241,10 +2249,17 @@ def species_extras(hm, c, rig, objs):
 
 # ================================================================ one character
 
+# changes to build_portraits' cast for this script (file, species, sex and department stay the same)
+CAST_OVERRIDES = {
+    "bajoran_f_archaeology": dict(style="ponytail"),      # the ear chain shows (a bob hid it)
+}
+
+
 def build_character(c, loc=(0, 0, 0), yaw=0.0, head_turn=0.0, cam=None, t=0.0, height=1.0, full=False):
     """Build one person (body, face, eyes, teeth, hair, brows, lashes, beard, species features, outfit), posed.
     Returns (objects, posed head centre)."""
     c.setdefault("faction", FACTION_OF[c["species"]])
+    c.update(CAST_OVERRIDES.get(c["id"], {}))
     P = person(c)
     hm = Human(c, P)
     hm.full = full
@@ -2380,6 +2395,7 @@ def write_json(cast):
             continue
         c = dict(c)
         c.setdefault("faction", FACTION_OF[c["species"]])
+        c.update(CAST_OVERRIDES.get(c["id"], {}))
         P = person(c)
         info = P["info"]
         fac = FACTION_OF[c["species"]]
