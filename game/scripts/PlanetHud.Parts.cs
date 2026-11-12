@@ -32,6 +32,7 @@ public partial class PlanetHud
     private FabPanel _fabPanel = null!;
     private Control _centreBox = null!;
     private Control _commandBox = null!;
+    private Control _mapFrame = null!;
 
     /// <summary>The bottom panel's height right now (taller while the fabricator panel shows).</summary>
     public float BottomNow => _bottom == null ? BottomHeight : -_bottom.OffsetTop;
@@ -54,8 +55,13 @@ public partial class PlanetHud
         if (_commandBox.Visible) _commandBox.Visible = false;
         if (!_fabPanel.Visible) _fabPanel.Visible = true;
         var screen = GetViewport().GetVisibleRect().Size;
-        _fabPanel.Show(v, screen);
-        SetBottomHeight(Mathf.Min(_fabPanel.NeededHeight, screen.Y * 0.6f));
+        // The minimap's frame has been laid out since the start (it never hides), so its real width is known.
+        var mapWidth = Mathf.Max(286f, _mapFrame.Size.X);
+        _fabPanel.Show(v, screen, screen.X - mapWidth);
+        // The estimate, or what the panel's content really needs once laid out (wrapped labels), whichever is taller.
+        // (Not in the first frames after a rebuild: wrapped labels have no width yet and would report a tall minimum.)
+        var need = _fabPanel.LaidOut ? Mathf.Max(_fabPanel.NeededHeight, _fabPanel.GetCombinedMinimumSize().Y + 2) : _fabPanel.NeededHeight;
+        SetBottomHeight(Mathf.Min(need, screen.Y * 0.6f));
     }
 
     /// <summary>Back to the usual centre + command card (every other bottom-panel view calls this).</summary>

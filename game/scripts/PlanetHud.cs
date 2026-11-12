@@ -570,7 +570,7 @@ public partial class PlanetHud : CanvasLayer
                 ("R", "send damaged vehicles to the repair pad"), ("T", "rovers: change a flat tyre (uses a spare)"),
                 ("I", "inventory: parts, spare kits, construction parts, keep-in-stock targets"),
                 ("J", "jury-rig the selected building or vehicles: no kits, capped, wears faster"),
-                ("1–9, 0", "Machine Shop / workshop: queue a recipe (Shift +5); Backspace cancels the last order"),
+                ("1–9, 0", "Machine Shop / workshop: queue a recipe (Shift +5); click a tile: its card; Backspace: cancel last"),
                 ("K", "selected base: its colony core's workshop (spare kits), K again: the base"),
                 ("F / 1", "construction rover: found an outpost (pick a site 8+ tiles from your bases)"),
                 ("Tab", "next base (in orbit: next scan)"), ("Esc", "stop placing / close the card / close the drawer / back to the base"),
@@ -948,7 +948,8 @@ public partial class PlanetHud : CanvasLayer
         mapBox.AddChild(Minimap);
         var legend = MakeLabel("Squares: bases · dots: vehicles · frame: view\nClick or drag to move the camera", 12, Dim);
         mapBox.AddChild(legend);
-        row.AddChild(Framed(mapBox, 286));
+        _mapFrame = Framed(mapBox, 286);
+        row.AddChild(_mapFrame);
 
         // Centre
         var centre = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore };

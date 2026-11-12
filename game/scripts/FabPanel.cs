@@ -60,7 +60,7 @@ public partial class FabPanel : MarginContainer
     public event Action? InventoryPressed;
     public event Action? WorkshopPressed;
 
-    private const float MapWidth = 286; // PlanetHud's minimap frame, left of this panel
+    private float _width = 1000; // the room right of the minimap
 
     private float _s = 1;
     private Vector2 _builtFor;
@@ -69,6 +69,11 @@ public partial class FabPanel : MarginContainer
     private int _columns = 6;
     private float _tileW, _tileH, _bodyH;
     private float _nameSize;
+
+    private int _shown;
+
+    /// <summary>Shown for a few frames since its last rebuild, so wrapped labels have their widths and its minimum size is real.</summary>
+    public bool LaidOut => _shown > 2;
 
     /// <summary>The bottom panel's height this panel needs (border included).</summary>
     public float NeededHeight { get; private set; } = PlanetHud.BottomHeight;
@@ -103,17 +108,21 @@ public partial class FabPanel : MarginContainer
     }
 
     /// <summary>Fills the panel (rebuilding the skeleton when the screen size or UI scale changed).</summary>
-    public void Show(FabPanelView v, Vector2 screen)
+    /// <param name="width">The room right of the minimap (the screen width minus its frame's real width).</param>
+    public void Show(FabPanelView v, Vector2 screen, float width)
     {
         var s = HudKit.ScaleFor(screen);
         var signature = string.Join(",", v.Recipes.Select(r => r.Id + ":" + r.Name + ":" + r.Cost.Count));
-        if (screen != _builtFor || !Mathf.IsEqualApprox(s, _builtScale) || _icon == null)
+        if (screen != _builtFor || !Mathf.IsEqualApprox(width, _width) || !Mathf.IsEqualApprox(s, _builtScale) || _icon == null)
         {
+            _width = width;
             Build(screen, s, v);
             _tileSignature = "";
         }
+        _shown = _icon == null || _shown > 1000 ? _shown : _shown + 1;
         if (signature != _tileSignature)
         {
+            _shown = 0;
             Measure(v);
             BuildTiles(v);
             _tileSignature = signature;
@@ -142,7 +151,7 @@ public partial class FabPanel : MarginContainer
 
         var leftW = Mathf.Round(250 * s);
         var gap = Mathf.Round(18 * s);
-        _rightW = Mathf.Max(200 * s, screen.X - MapWidth - 32 * s - leftW - gap);
+        _rightW = Mathf.Max(200 * s, _width - 32 * s - leftW - gap);
 
         var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
         row.AddThemeConstantOverride("separation", Mathf.RoundToInt(gap));
@@ -230,7 +239,7 @@ public partial class FabPanel : MarginContainer
         _overviewScroll = Scroll();
         var overview = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore };
         overview.AddThemeConstantOverride("separation", Mathf.RoundToInt(6 * s));
-        _facts = new GridContainer { Columns = _rightW > 560 * s ? 4 : 2, SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore };
+        _facts = new GridContainer { Columns = _rightW >= 600 * s ? 3 : 2, SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore };
         _facts.AddThemeConstantOverride("h_separation", Mathf.RoundToInt(16 * s));
         _facts.AddThemeConstantOverride("v_separation", Mathf.RoundToInt(7 * s));
         overview.AddChild(_facts);
@@ -319,7 +328,8 @@ public partial class FabPanel : MarginContainer
 
     // ---------------------------------------------------------------- sizes
 
-    private float LineHeight(float size) => HudKit.Condensed(true).GetHeight(Mathf.RoundToInt(size));
+    // A label line: the font height plus the theme's line spacing (and a pixel), so two-line names never overrun the tile.
+    private float LineHeight(float size) => HudKit.Condensed(true).GetHeight(Mathf.RoundToInt(size)) + 4;
 
     /// <summary>Columns, tile size, the tab bodies' height and the panel height, from the screen and the recipes.</summary>
     private void Measure(FabPanelView v)
@@ -339,7 +349,7 @@ public partial class FabPanel : MarginContainer
         var chipRows = 1;
         foreach (var r in v.Recipes) chipRows = Mathf.Max(chipRows, ChipRows(r.Cost, inner));
         var chipH = ChipHeight();
-        _tileH = Mathf.Ceil(pad * 2 + 36 * s + 3 * s + 2 * LineHeight(_nameSize) + 4 * s + chipRows * chipH + (chipRows - 1) * 3 * s);
+        _tileH = Mathf.Ceil(pad * 2 + 36 * s + 3 * s + 2 * LineHeight(_nameSize) + 4 * s + chipRows * chipH + (chipRows - 1) * 3 * s + 4 * s);
         var shown = Mathf.Clamp(rows, 1, 2);
         _bodyH = Mathf.Ceil(shown * _tileH + (shown - 1) * gap + (v.RecipeNote.Length > 0 ? 18 * s : 0));
         var headerH = 30 * s + Mathf.Max(1, s) + 8 * s;
@@ -590,7 +600,7 @@ public partial class FabPanel : MarginContainer
             if (_queueRows[i].Root.Visible != show) _queueRows[i].Root.Visible = show;
             if (show) _queueRows[i].Fill(i + 1, v.Queue[i]);
         }
-        _queueList.MoveChild(_queueNote, _queueList.GetChildCount() - 1);
+        if (_queueNote.GetIndex() != _queueList.GetChildCount() - 1) _queueList.MoveChild(_queueNote, _queueList.GetChildCount() - 1);
         Set(_queueNote, v.QueueNote);
         if (_queueNote.Visible != (v.QueueNote.Length > 0)) _queueNote.Visible = v.QueueNote.Length > 0;
 

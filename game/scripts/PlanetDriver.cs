@@ -2384,7 +2384,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         DronePadPanel(s, complete, rows, actions, ref status, ref statusColour); // a Drone Pad's bays, LAUNCH / RECALL (PlanetDriver.Drones.cs)
         var subtitle = def.Levels.Count > 0 ? $"{Surface.LevelName(s)} of {def.MaxLevel switch { 2 => "Mk II", 3 => "Mk III", _ => $"{def.MaxLevel}" }}" : def.Category.Replace('_', ' ');
         // A Machine Shop or a core's workshop: the tabbed panel (Overview / Queue / Recipes) instead (PlanetDriver.Parts.cs).
-        if (FabPanel(s, def.Name, subtitle, status, statusColour, rows, conditionText, maintenance, condition, progress, progressLabel, progressText, actions) is { } fab)
+        if (FabPanelOf(s, def.Name, subtitle, status, statusColour, rows, conditionText, maintenance, condition, progress, progressLabel, progressText, actions) is { } fab)
         {
             _hud.ShowFabPanel(fab);
             return;

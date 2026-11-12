@@ -64,6 +64,7 @@ After changing data, regenerate the pages (`python3 tools/gen_*_page.py`), then 
 - Early Era, Parts & Maintenance (design doc): https://claude.ai/artifact/UX7xT6yVWHZPingVsUErCH
 - First contact mockup (`docs/mockups/first-contact/`): https://claude.ai/artifact/H6Y5rVyMDZYUTe2jREiVvY
 - Parts economy mockup (`docs/mockups/parts/`): https://claude.ai/artifact/5Uo4yRzX4b6eCZvXm5jHs9
+- Machine Shop panel mockup (`docs/mockups/machine-shop-panel/`, five layouts; the owner picked option 2, Tabs, now in the game): https://claude.ai/artifact/VuNKVSzajkXvryzgMfGZRb
 - Final Frontier Test Run (tickable shared test checklist, `docs/test-script/`): https://claude.ai/artifact/NV2J3FPfPQrhiYhKv9v3k2
 
 These links only open for people the owner has shared them with (Share menu on each page).
@@ -74,7 +75,7 @@ Each data document is a folder of small files, one per table or record family (o
 
 | Document (folder) | Contents |
 |---|---|
-| `resources/` | Raw materials, refined components, faction resources, trade goods, and the parts economy's parts, spare kits and construction parts (with their storage volume). Files: notes, one file per tier, parts |
+| `resources/` | Raw materials, refined components, faction resources, trade goods, and the parts economy's parts, spare kits and construction parts (with their storage volume and the item card's description). Files: notes, one file per tier, parts |
 | `factions/` | Playable, minor, pirate and crisis factions with signature mechanics. Files: one file per great power, the rest by group |
 | `eras/` | Eight starting eras with their playable and AI-only factions, events and stardate formats (the game loads and checks it against `factions/`, read-only for now). Files: one file |
 | `planet_classes/` | Planet classes and other celestial bodies with yields and hazards. Files: notes + classes |

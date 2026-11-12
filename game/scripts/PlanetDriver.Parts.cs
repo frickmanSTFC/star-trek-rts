@@ -403,7 +403,7 @@ public partial class PlanetDriver
     /// For a finished fabricator (a Machine Shop, or a colony core in workshop view): the tabbed panel (FabPanel) with
     /// its name, status and buttons on the left and Overview / Queue / Recipes on the right. Null for anything else.
     /// </summary>
-    private FabPanelView? FabPanel(SurfaceStructure s, string title, string subtitle, string status, Color statusColour, List<(string Label, string Value)> rows,
+    private FabPanelView? FabPanelOf(SurfaceStructure s, string title, string subtitle, string status, Color statusColour, List<(string Label, string Value)> rows,
         string conditionText, string maintenance, float condition, float progress, string progressLabel, string progressText, List<ActionView> actions)
     {
         if (s.State != StructureState.Complete || !Surface.IsFabricator(s)) return null;
