@@ -44,6 +44,11 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
 .fit { width: 100%; overflow: hidden; border-radius: 10px; border: 1px solid var(--rule); background: #000; }
 .stage { width: 1600px; transform-origin: 0 0; }
 .cap { font: 600 12px/1.3 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+.itemgal { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.itemgal figure { margin: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: center; background: #0b1324; border: 1px solid #26324d; border-radius: 10px; padding: 8px 12px 8px 6px; color: #e3e9f3; }
+.itemgal figcaption b { display: block; font: 600 17px/1.15 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.itemgal figcaption i { font-style: normal; font: 600 11px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: #8e9ab2; }
+.itemgal figcaption span { display: block; font-size: 13.5px; color: #b9c3d6; margin-top: 4px; }
 .notes h2 { font: 700 22px/1.1 var(--display); letter-spacing: .05em; text-transform: uppercase; margin: 0 0 8px; }
 .notes li { color: var(--dim); max-width: 78ch; }
 .notes li b { color: var(--ink); }
@@ -96,7 +101,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
 .facts .wide { grid-column: 1 / -1; }
 .rlist { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 10px; max-height: 176px; overflow: auto; padding-right: 6px; scrollbar-color: var(--g-orange) #0c1322; scrollbar-width: thin; }
 .more { font: 600 12px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--g-orange); margin-top: 6px; }
-.rrow { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: center; border: 1px solid var(--g-line); border-radius: 6px; padding: 5px 8px; background: #0c1322; }
+.rrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; border: 1px solid var(--g-line); border-radius: 6px; padding: 5px 8px; background: #0c1322; }
 .rrow .n { font: 600 15px/1.15 var(--display); letter-spacing: .04em; }
 .rrow .s { font-size: 12.5px; color: var(--g-dim); }
 .rrow.queued { border-color: rgba(240,162,74,.6); }
@@ -120,7 +125,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
 /* option 3: drawer */
 .drawer { position: absolute; left: 270px; right: 0; bottom: 100%; background: rgba(10,16,29,.97); border: 1px solid var(--g-line2); border-bottom: 0; border-radius: 10px 10px 0 0; padding: 12px 16px; }
 .drawer .cols { display: grid; grid-template-columns: 1.3fr 1.35fr 1.15fr 1fr; gap: 16px; }
-.dcard { border: 1px solid var(--g-line); border-radius: 8px; background: #0c1322; padding: 7px 9px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.dcard { border: 1px solid var(--g-line); border-radius: 8px; background: #0c1322; padding: 7px 9px; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .dcard .ic2 { width: 34px; height: 34px; border-radius: 6px; background: color-mix(in srgb, var(--c) 22%, #0c1322); border: 1px solid var(--c); display: grid; place-items: center; color: var(--c); font: 700 13px/1 var(--display); }
 .dcard .n { font: 600 15.5px/1.1 var(--display); letter-spacing: .03em; }
 .dstack { display: grid; gap: 5px; }
@@ -146,14 +151,16 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
 .tip { position: absolute; width: 300px; background: #0b1324; border: 1px solid var(--g-orange); border-radius: 8px; padding: 9px 11px; box-shadow: 0 10px 30px rgba(0,0,0,.6); z-index: 3; display: grid; gap: 5px; pointer-events: none; }
 .tip h4 { margin: 0; font: 600 18px/1.1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
 .stage { position: relative; }
-.cant { opacity: .42; filter: grayscale(.9); }
+.cant { opacity: .5; filter: grayscale(.65); }
 .cant:hover, .cant:focus-visible { opacity: .7; }
 [data-card] { cursor: pointer; }
 [data-card]:focus-visible { outline: 2px solid var(--g-sky); outline-offset: 1px; }
 .cardback { position: absolute; inset: 0; background: rgba(3,6,12,.55); z-index: 5; }
-.rcard { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); width: 560px; z-index: 6; background: #0b1324; border: 1px solid var(--g-line2);
+.rcard { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); width: 600px; z-index: 6; background: #0b1324; border: 1px solid var(--g-line2);
   border-top: 4px solid var(--c); border-radius: 10px; padding: 16px 18px; display: grid; gap: 11px; color: var(--g-ink); box-shadow: 0 18px 50px rgba(0,0,0,.7); font: 400 15px/1.4 var(--body); }
-.rcard .hd { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.rcard .hd { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.gfx { display: grid; place-items: center; line-height: 0; }
+.biggfx { display: block; line-height: 0; background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--c) 22%, #0b1324), #0b1324 70%); border-radius: 12px; }
 .rcard .big { width: 48px; height: 48px; border-radius: 9px; border: 1.5px solid var(--c); color: var(--c); display: grid; place-items: center; font: 700 17px/1 var(--display); background: color-mix(in srgb, var(--c) 15%, #0b1324); }
 .rcard h4 { margin: 0; font: 600 26px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
 .rcard .sub { color: var(--g-dim); font-size: 13.5px; }
@@ -182,6 +189,9 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   <nav class="jump" aria-label="Options">
     <a href="#o1"><b>1</b>Readable list</a><a href="#o2"><b>2</b>Tabs</a><a href="#o3"><b>3</b>Recipe drawer</a><a href="#o4"><b>4</b>Side dock</a><a href="#o5"><b>5</b>Icons + hover card</a>
   </nav>
+  <section class="opt" id="items"><h2>The 13 Machine Shop items</h2>
+    <p>One illustration per item, in one style (3/4 view, light from the top left, kits as crates in their kit colour). These go on every recipe tile and on the full card, and can become the game's icons.</p>
+    <div class="itemgal" id="itemgal"></div></section>
   <div id="options"></div>
   <section class="notes">
     <h2>Applies to every option</h2>
@@ -195,8 +205,11 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   </section>
 </div>
 
+<script src="items.js"></script>
 <script>
 (() => {
+  const G = (id, size) => (window.ITEM_GFX && window.ITEM_GFX[id] ? window.ITEM_GFX[id](size) : "");
+  const DESC = window.ITEM_DESC || {};
   const RES = { duranium: "Duranium", tritanium: "Tritanium", parasteel: "Parasteel", structural_frame: "Structural Frame", hull_plating: "Hull Plating",
     mechanism: "Mechanism", power_coupling: "Power Coupling", control_module: "Control Module", seal_kit: "Seal Kit" };
   const STOCK = { duranium: 412, tritanium: 63, parasteel: 0, structural_frame: 1, hull_plating: 0, mechanism: 0, power_coupling: 0, control_module: 1, seal_kit: 0 };
@@ -250,7 +263,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   // ---- 1: readable list
   function o1() {
     const rows = GROUPS.map(([g, label]) => R.filter((r) => r.g === g).map((r) => `<div class="rrow ${r.q ? "queued" : ""} ${tag(r)}">
-      <span class="kchip" style="--c:${r.c}">${r.ab}</span>
+      <span class="gfx">${G(r.id, 34)}</span>
       <span style="min-width:0"><span class="n">${esc(r.n)}</span> ${r.key ? `<span class="key">${r.key}</span>` : ""}<br>${costChips(r)}</span>
       <span style="text-align:right">${r.q ? `<span class="qbadge">×${r.q}</span><br>` : ""}<span class="s">have ${r.have} · ${r.t} s</span></span></div>`).join("")).join("");
     return `<div class="main o1"><div>${nameBlock}${acts}</div>
@@ -265,7 +278,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
     if (tab2 === "overview") body = factsHtml("facts") + "";
     if (tab2 === "queue") body = `<table class="qtable"><tbody>${Q.map((r, i) => `<tr><td>${i + 1}</td><td><span class="kchip" style="--c:${r.c}">${r.ab}</span> <b>${esc(r.n)}</b></td><td>${costChips(r)}</td><td class="red">${esc(needLine(r))}</td><td class="r">${r.t} s</td><td class="r"><span class="x">×</span></td></tr>`).join("")}</tbody></table>`;
     if (tab2 === "recipes") body = `<div class="tiles">${R.map((r) => `<div class="tile ${r.q ? "queued" : ""} ${tag(r)}">${r.q ? `<span class="qb qbadge">×${r.q}</span>` : ""}
-      <div class="top"><span class="kchip" style="--c:${r.c}">${r.ab}</span>${r.key ? `<span class="key">${r.key}</span>` : ""}</div>
+      <div class="top"><span class="gfx">${G(r.id, 44)}</span>${r.key ? `<span class="key">${r.key}</span>` : ""}</div>
       <div class="n">${esc(r.n)}</div>${costChips(r, false)}</div>`).join("")}</div>`;
     return `<div class="main o2"><div>${nameBlock}${acts}</div><div style="min-width:0"><div class="tabs" role="tablist">${tabs.map(([id, l]) =>
       `<button role="tab" data-t2="${id}" aria-selected="${tab2 === id}">${l}</button>`).join("")}</div>${body}</div></div>`;
@@ -279,13 +292,13 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   function o3drawer() {
     if (!drawer3) return "";
     return `<div class="drawer"><div class="cols">${GROUPS.map(([g, label]) => `<div><div class="grp">${label}</div><div class="dstack">${R.filter((r) => r.g === g).map((r) =>
-      `<div class="dcard ${tag(r)}" style="--c:${r.c}"><span class="ic2">${r.ab}</span><span style="min-width:0"><span class="n">${esc(r.n)}</span><br>${costChips(r)}</span>
+      `<div class="dcard ${tag(r)}" style="--c:${r.c}"><span class="gfx">${G(r.id, 40)}</span><span style="min-width:0"><span class="n">${esc(r.n)}</span><br>${costChips(r)}</span>
       <span style="text-align:right">${r.key ? `<span class="key">${r.key}</span>` : ""}${r.q ? ` <span class="qbadge">×${r.q}</span>` : ""}<br><span class="dim" style="font-size:12px">have ${r.have}</span></span></div>`).join("")}</div></div>`).join("")}</div></div>`;
   }
   // ---- 4: side dock
   function o4() {
     const rec = GROUPS.map(([g, label]) => `<div class="grp" style="margin-top:4px">${label}</div>` + R.filter((r) => r.g === g).map((r) =>
-      `<div class="drow ${tag(r)}"><span class="kchip" style="--c:${r.c}">${r.ab}</span><span><b style="font-weight:600">${esc(r.n)}</b> ${r.key ? `<span class="key">${r.key}</span>` : ""}<br>${costChips(r)}</span><span>${r.q ? `<span class="qbadge">×${r.q}</span>` : `<span class="dim" style="font-size:12.5px">have ${r.have}</span>`}</span></div>`).join("")).join("");
+      `<div class="drow ${tag(r)}" style="grid-template-columns:30px minmax(0,1fr) auto"><span class="gfx">${G(r.id, 30)}</span><span><b style="font-weight:600">${esc(r.n)}</b> ${r.key ? `<span class="key">${r.key}</span>` : ""}<br>${costChips(r)}</span><span>${r.q ? `<span class="qbadge">×${r.q}</span>` : `<span class="dim" style="font-size:12.5px">have ${r.have}</span>`}</span></div>`).join("")).join("");
     return `<div class="o4wrap"><div><div class="world" style="height:${520}px"></div>
       <div class="o4bar">${mini}<div style="min-width:0"><div style="padding:10px 14px 0">${tagline}</div><div class="main" style="display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px"><div>${nameBlock}</div><div>${acts}</div></div></div></div></div>
       <aside class="dock"><div class="bname"><div class="ic">${icon}</div><div><h3>Machine Shop</h3><small>Waiting: every order is short of inputs</small></div></div>
@@ -295,11 +308,11 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   let hover5 = "rover_spares";
   function o5() {
     const tiles = R.map((r) => `<div class="itile ${tag(r)}" data-h5="${r.id}" data-on="${hover5 === r.id ? 1 : 0}" aria-label="${esc(r.n)}">
-      ${r.key ? `<span class="k">${r.key}</span>` : ""}<span class="gl" style="--c:${r.c}">${r.ab}</span>${r.q ? `<span class="qb qbadge">×${r.q}</span>` : ""}${lacks(r).length ? `<span class="dot"></span>` : ""}
+      ${r.key ? `<span class="k">${r.key}</span>` : ""}<span class="gfx" style="margin-top:-8px">${G(r.id, 46)}</span>${r.q ? `<span class="qb qbadge">×${r.q}</span>` : ""}${lacks(r).length ? `<span class="dot"></span>` : ""}
       <span class="nm">${esc(SHORT[r.id])}</span></div>`).join("");
     const h = R.find((r) => r.id === hover5);
     const idx = R.indexOf(h), col = idx % 7, row = Math.floor(idx / 7);
-    const tip = `<div class="tip" style="left:${700 + col * 77 - 100}px;bottom:${236 - row * 77}px"><h4>${esc(h.n)}</h4>
+    const tip = `<div class="tip" style="left:${700 + col * 77 - 100}px;bottom:${236 - row * 77}px"><div style="display:flex;gap:10px;align-items:center">${G(h.id, 54)}<h4>${esc(h.n)}</h4></div>
       <div>${costChips(h)}</div><div class="dim" style="font-size:13.5px">${h.t} s at Mk I · you have ${h.have}${h.q ? ` · ${h.q} queued` : ""}</div>
       ${lacks(h).length ? `<div class="red" style="font-size:13.5px">${esc(needLine(h))}</div>` : `<div class="ok" style="font-size:13.5px">Can start now</div>`}
       <div class="dim" style="font-size:12.5px">Click: queue one · Shift+click: five · right-click: remove</div></div>`;
@@ -333,11 +346,11 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
     const miss = lacks(r);
     const fixes = miss.map(([k, v]) => BYID[k] ? `<button class="link" data-card="${k}">${esc(RES[k])}</button>${BYID[k].key ? ` [${BYID[k].key}]` : ""}` : `${esc(RES[k])} (from the refinery or foundry)`).join(", ");
     return `<div class="cardback" data-close="1"></div><div class="rcard" style="--c:${r.c}" role="dialog" aria-label="${esc(r.n)}">
-      <div class="hd"><span class="big">${r.ab}</span><div><h4>${esc(r.n)}</h4><div class="sub">${{ kit: "Spare kit", part: "Part", con: "Construction part", drone: "Drone" }[r.g]}${r.key ? ` · hotkey ${r.key}` : ""} · makes 1 in ${r.t} s (Mk II: ${Math.round(r.t / 1.5)} s)</div></div><button class="close" data-close="1" aria-label="Close">×</button></div>
+      <div class="hd"><span class="biggfx">${G(r.id, 112)}</span><div><h4>${esc(r.n)}</h4><div class="sub">${{ kit: "Spare kit", part: "Part", con: "Construction part", drone: "Drone" }[r.g]}${r.key ? ` · hotkey ${r.key}` : ""} · makes 1 in ${r.t} s (Mk II: ${Math.round(r.t / 1.5)} s)</div></div><button class="close" data-close="1" aria-label="Close">×</button></div>
       ${miss.length ? `<div class="stat no"><b>Can't make yet.</b> Missing ${miss.map(([k, v]) => `${v - (STOCK[k] ?? 0)} ${esc(RES[k])}`).join(" and ")}. Make or get: ${fixes}.</div>` : `<div class="stat yes"><b>Can make now.</b> Starts as soon as the shop is free.</div>`}
       <table><thead><tr><th>Needs</th><th class="num">Each</th><th class="num">You have</th></tr></thead><tbody>${Object.entries(r.in).map(([k, v]) =>
         `<tr><td>${esc(RES[k])}</td><td class="num">${v}</td><td class="num ${(STOCK[k] ?? 0) < v ? "red" : "ok"}">${STOCK[k] ?? 0}</td></tr>`).join("")}</tbody></table>
-      <div class="sub" style="color:var(--g-ink)">${esc(uses)}</div>
+      <div style="color:var(--g-ink);font-size:15px">${esc(DESC[r.id] || uses)}</div>
       <div class="sub">In stock: ${r.have}${r.q ? ` · ${r.q} in the queue` : ""} · takes ${r.g === "part" ? 1 : 2} storage each</div>
       <div class="btns"><button class="btn" ${miss.length ? "disabled" : ""}>${miss.length ? "Queue · needs inputs" : "Queue one [Enter]"}</button><button class="btn ghost" ${miss.length ? "disabled" : ""}>Queue 5 [Shift+Enter]</button><button class="btn ghost" data-close="1">Close [Esc]</button></div></div>`;
   }
@@ -374,6 +387,8 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   const hov = (e) => { const t = e.target.closest("[data-h5]"); if (t && t.dataset.h5 !== hover5) { hover5 = t.dataset.h5; const sec = document.getElementById("o5");
     sec.querySelector(".stage").innerHTML = OPTS[4].render() + (card && card.opt === "o5" ? cardHtml(BYID[card.id]) : ""); fit(); } };
   document.addEventListener("mouseover", hov); document.addEventListener("focusin", hov);
+  const gal = document.getElementById("itemgal");
+  if (gal) gal.innerHTML = R.map((r) => `<figure>${G(r.id, 96)}<figcaption><i>${{ kit: "Spare kit", part: "Part", con: "Construction part", drone: "Drone" }[r.g]}</i><b>${esc(r.n)}</b><span>${esc(DESC[r.id] || "")}</span></figcaption></figure>`).join("");
   render();
   if (document.fonts) document.fonts.ready.then(fit);
 })();
