@@ -138,7 +138,7 @@ def hexrgb(h):
 # skin albedo presets (sRGB) and the subsurface radius colour for each
 SK = dict(fair=(0.93, 0.76, 0.66), light=(0.88, 0.68, 0.56), tan=(0.78, 0.57, 0.43), olive=(0.73, 0.56, 0.41),
           brown=(0.55, 0.38, 0.27), dark=(0.39, 0.26, 0.19), deep=(0.28, 0.185, 0.14), eastasian=(0.89, 0.72, 0.57),
-          andorian=(0.44, 0.60, 0.86), cardassian=(0.60, 0.55, 0.48), ferengi=(0.88, 0.67, 0.50),
+          andorian=(0.44, 0.60, 0.86), cardassian=(0.55, 0.49, 0.41), ferengi=(0.88, 0.67, 0.50),
           tellarite=(0.74, 0.53, 0.43), klingon=(0.52, 0.34, 0.24), klingon2=(0.40, 0.26, 0.19),
           romulan=(0.86, 0.71, 0.59))
 SSS_RADIUS = {"andorian": (0.55, 0.65, 1.0), "cardassian": (0.9, 0.55, 0.35), "default": (1.0, 0.36, 0.2)}
@@ -392,7 +392,7 @@ def face_params(seed, species, sex, years, ov=None):
     F["brow"] = 0.0016 + 0.0042 * m + n(25, 0.0012)
     # eyes
     F["open"] = 1.06 + 0.06 * fem + n(26, 0.10)
-    F["tilt"] = 1.5 + 2.5 * fem + n(27, 5.0)
+    F["tilt"] = 3.0 + 2.0 * fem + n(27, 3.5)
     F["hood"] = H(28)
     F["sock"] = 0.0040 + n(29, 0.0010) + 0.0010 * age
     # nose by type, then noise
@@ -405,7 +405,7 @@ def face_params(seed, species, sex, years, ov=None):
               flat=(0.0148, 0.0196, 0.0108, -0.0004, 0.0006, 1.15, 0.96),
               hooked=(0.0222, 0.0170, 0.0090, 0.0014, -0.0020, 0.95, 1.06),
               snout=(0.024, 0.0215, 0.0120, 0.0, 0.003, 1.0, 1.0))[nose]
-    F["nose_proj"] = nb[0] * (0.92 + 0.06 * m) + n(30, 0.0013)
+    F["nose_proj"] = nb[0] * (0.88 + 0.10 * m) + n(30, 0.0012)
     F["nose_w"] = nb[1] * (1.0 + 0.05 * m) + n(31, 0.0012)
     F["bridge_w"] = nb[2] + n(32, 0.0006)
     F["hump"] = nb[3] + n(33, 0.0005)
@@ -416,10 +416,10 @@ def face_params(seed, species, sex, years, ov=None):
     F["nose_dev"] = n(37, 0.0009)
     # mouth
     F["mouth_w"] = 0.0238 + 0.0006 * m + n(38, 0.0022)
-    F["ul"] = (0.0064 + 0.0012 * fem + n(39, 0.0014)) * (1 - 0.3 * age)
-    F["ll"] = (0.0090 + 0.0016 * fem + n(40, 0.0018)) * (1 - 0.22 * age)
+    F["ul"] = (0.0064 + 0.0019 * fem + n(39, 0.0014)) * (1 - 0.3 * age)
+    F["ll"] = (0.0090 + 0.0024 * fem + n(40, 0.0018)) * (1 - 0.22 * age)
     F["lip_proj"] = 0.0014 + 0.0005 * fem + n(41, 0.0004)
-    F["corner"] = n(42, 0.0006) - 0.0008 * age
+    F["corner"] = n(42, 0.0005) + 0.0009 - 0.0008 * age
     # chin
     F["chin_proj"] = 0.0052 + 0.0020 * m + n(43, 0.0016)
     F["chin_w"] = 0.0150 + 0.0022 * m + n(44, 0.0025)
@@ -521,7 +521,7 @@ def lips_at(x, F):
     smile = F["smile"]
     mw = F["mouth_w"] * (1 + 0.07 * smile)
     u = ax / mw
-    corner = (F["corner"] + 0.0034 * smile + 0.0022 * F["smirk"] * sx + F["a_mouth"] * sx) * np.minimum(u, 1.3) ** 2.2
+    corner = (F["corner"] + 0.0068 * smile + 0.0022 * F["smirk"] * sx + F["a_mouth"] * sx) * np.minimum(u, 1.3) ** 2.2
     zm = F["mz"] + corner
     o = F["open_mouth"] * np.clip(1 - u ** 2, 0, 1) ** 0.7
     zu = zm + 0.62 * o
@@ -545,7 +545,7 @@ def nose_profile(F):
     else:
         zs = [nz + 0.005, nz, nz - 0.40 * L, nz - 0.62 * L, tz + 0.0075 + up * 0.6, tz + 0.0015 + up, tz - 0.0022 + up * 0.6,
               sz + 0.0016, sz, sz - 0.004]
-        ps = [0.0, Pn, Pn + 0.36 * (P - Pn) + F["hump"], Pn + 0.58 * (P - Pn) + F["hump"] * 0.6, P - 0.0030 - max(0.0, up) * 0.4,
+        ps = [0.0, Pn, Pn + 0.30 * (P - Pn) + F["hump"], Pn + 0.52 * (P - Pn) + F["hump"] * 0.6, P - 0.0030 - max(0.0, up) * 0.4,
               P, P - 0.0022, 0.0068, 0.0, 0.0]
         bw = F["bridge_w"]
         nw = F["nose_w"] / 0.0172
@@ -575,7 +575,7 @@ def nose_y(x, z, F):
         return main - nos * sm(0.9, 0.6, e)
     # tip bulb with the two domes
     tipz = tz + 0.0012 + F["tip_up"]
-    main = main + 0.0016 * F["bulb"] * np.exp(-0.5 * ((xd / 0.0050) ** 2 + ((z - tipz) / 0.0046) ** 2)) \
+    main = main + 0.0011 * F["bulb"] * np.exp(-0.5 * ((xd / 0.0050) ** 2 + ((z - tipz) / 0.0046) ** 2)) \
         - 0.00035 * ga(xd, 0.0011) * ga(z - tipz, 0.003)
     # alae
     out = main
@@ -584,13 +584,13 @@ def nose_y(x, z, F):
         cx = s * F["nose_w"] * 0.74
         rx = 0.0072 * F["nose_w"] / 0.0172
         e = np.sqrt(((xd - cx) / rx) ** 2 + ((z - cz) / 0.0060) ** 2)
-        a = 0.0068 * np.clip(1 - e * e, 0, 1) ** 0.55
+        a = 0.0058 * np.clip(1 - e * e, 0, 1) ** 0.55
         out = smax(out, a, 0.0016)
         # alar crease round the outer side and the back of the wing
         lateral = sm(0.0, 0.6, (np.abs(xd) - np.abs(cx)) / rx + 0.4 * (z - cz) / 0.006)
         out = out - 0.0010 * ga(e - 1.0, 0.12) * lateral
-    nos = np.exp(-0.5 * (((np.abs(xd) - F["nose_w"] * 0.38) / 0.0030) ** 2 + ((z - (sz + 0.0026)) / 0.0018) ** 2))
-    return out - 0.0042 * nos
+    nos = np.exp(-0.5 * (((np.abs(xd) - F["nose_w"] * 0.36) / 0.0025) ** 2 + ((z - (sz + 0.0022)) / 0.0014) ** 2))
+    return out - 0.0040 * nos
 
 
 def head_np(la, lo):
@@ -674,7 +674,7 @@ def head_np(la, lo):
     d += 0.00045 * ga(z - (zu + ulh), 0.0006) * env                                 # vermilion border roll
     d += 1.15 * lp * (llh / 0.009) ** 0.7 * ga(z - (zl - 0.5 * llh), 0.5 * llh + 1e-4) * env
     d -= 0.0016 * ga(z - zm, 0.0007) * sm(1.15, 0.85, u) * (1 - sm(0.0005, 0.002, F["open_mouth"]))
-    d -= (0.0007 + 0.0006 * smile) * ga(ax - (F["mouth_w"] + 0.0025), 0.0021) * ga(z - zm, 0.0032)   # corners
+    d -= (0.0004 + 0.0006 * smile) * ga(ax - (F["mouth_w"] + 0.0025), 0.0021) * ga(z - (zm + 0.004 * smile), 0.0032)
     d -= 0.0024 * ga(z - (zl - llh - 0.0055), 0.0034) * ga(x, 0.013)                                    # sulcus
     if F["open_mouth"] > 0:
         cav = sm(zl - 0.0004, zl + 0.0012, z) * sm(zu + 0.0004, zu - 0.0012, z) * sm(1.0, 0.82, u)
@@ -685,8 +685,8 @@ def head_np(la, lo):
     xc = F["nose_w"] + 0.0028 + (F["mouth_w"] + 0.0062 + 0.0025 * smile - F["nose_w"] - 0.0028) * t + 0.0035 * np.sin(pi * t)
     dd = ax - xc
     envf = sm(z0 + 0.003, z0 - 0.002, z) * sm(z1 - 0.006, z1 + 0.002, z)
-    nlA = 0.0005 + 0.0016 * age + 0.0014 * smile + 0.0006 * F["fat"]
-    nlC = 0.00025 + 0.0011 * age + 0.0007 * smile
+    nlA = 0.0004 + 0.0016 * age + 0.0012 * smile + 0.0005 * F["fat"]
+    nlC = 0.0001 + 0.0011 * age + 0.0004 * smile
     d += nlA * ga(dd - 0.0045, 0.0042) * envf - nlC * ga(dd, 0.0011) * envf
     # under the eyes
     d -= F["trough"] * ga(ax - (ex - 0.007), 0.008) * ga(z - (ez - 0.0145), 0.0028)
@@ -900,6 +900,26 @@ class HeadField:
         need = R + h
         k = np.where(r < need, need / np.maximum(r, 1e-9), 1.0)
         return p * k[..., None]
+
+    def hug(self, p, hmax):
+        """Pull points that float more than hmax above the scalp back down (slick styles)."""
+        R, r = self.R(p)
+        lim = R + hmax
+        k = np.where(r > lim, lim / np.maximum(r, 1e-9), 1.0)
+        return p * k[..., None]
+
+
+def face_clear(p, F, fringe=False):
+    """Keep hair off the face: points in front of the face below the hairline go out to the side."""
+    x, y, z = p[..., 0], p[..., 1], p[..., 2]
+    top = F["bz"] + (0.012 if fringe else 0.004)
+    zone = (y > 0.035) & (z < top) & (z > F["cz"] - 0.03)
+    half = 0.058
+    inside = zone & (np.abs(x) < half)
+    if inside.any():
+        sx = np.where(x[inside] >= 0, 1.0, -1.0)
+        p[inside, 0] = sx * half
+    return p
 
 
 # ---------------------------------------------------------------- materials
@@ -1234,8 +1254,8 @@ OUTFIT_MATS = {
     "rom_sash": ((0.16, 0.30, 0.24), 0.5, 0.0, "cloth"),
     "rom_metal": ((0.62, 0.64, 0.62), 0.3, 1.0, "metal"),
     "car_under": ((0.17, 0.15, 0.13), 0.7, 0.0, "cloth"),
-    "car_armour": ((0.38, 0.34, 0.29), 0.42, 0.25, "leather"),
-    "car_rib": ((0.27, 0.24, 0.20), 0.45, 0.25, "leather"),
+    "car_armour": ((0.20, 0.19, 0.18), 0.42, 0.3, "leather"),
+    "car_rib": ((0.36, 0.27, 0.17), 0.38, 0.55, "leather"),
     "fer_shirt": ((0.80, 0.70, 0.48), 0.7, 0.0, "cloth"),
     "fer_trim": ((0.85, 0.62, 0.22), 0.3, 1.0, "metal"),
     "teeth": ((0.80, 0.72, 0.52), 0.35, 0.0, "plain"),
@@ -1366,10 +1386,10 @@ def skin_masks(Q, LA=None, LO=None):
     under = ga(ax - (ex - 0.002), 0.011) * ga(z - (ez - 0.012), 0.0045) * fy
     toward((0.93, 0.80, 0.84) if not alien else (0.85, 0.85, 0.95), np.clip(0.6 * lid, 0, 1))
     toward((0.86, 0.80, 0.86) if not alien else (0.85, 0.85, 0.92), np.clip((0.45 + 0.4 * F["age"]) * under, 0, 1))
-    nos = np.exp(-0.5 * (((ax - F["nose_w"] * 0.36) / 0.0028) ** 2 + ((z - (sz + 0.0024)) / 0.0019) ** 2)) * fy
+    nos = np.exp(-0.5 * (((ax - F["nose_w"] * 0.36) / 0.0022) ** 2 + ((z - (sz + 0.0020)) / 0.0013) ** 2)) * fy
     if F["nose"] == "snout":
         nos = np.exp(-0.5 * (((ax - 0.0068) / 0.0028) ** 2 + ((z - (tz + 0.0005)) / 0.0036) ** 2)) * fy
-    toward((0.25, 0.14, 0.13), np.clip(nos * 1.2, 0, 1))
+    toward((0.35, 0.20, 0.18), np.clip(nos * 0.9, 0, 1))
     # beard shadow (men) / stubble zone
     bz_ = beard_zone(Q)
     if F["fem"] == 0 and sp not in ("andorian", "ferengi", "cardassian"):
@@ -1560,7 +1580,7 @@ def lid_edges(sx):
     F = CUR["F"]
     o = F["open"]
     sq = F["squint"]
-    up = 23.0 * o * (1 - 0.12 * sq) - 2.5 * F["age"] - (3.0 if F["monolid"] else 0.0)
+    up = 25.0 * o * (1 - 0.12 * sq) - 2.5 * F["age"] - (3.0 if F["monolid"] else 0.0)
     lo_ = -27.0 * o * (1 - 0.30 * sq) + 1.0 * F["age"]
     tilt = F["tilt"]
 
@@ -1573,7 +1593,7 @@ def lid_edges(sx):
         oo = outer(lo)
         if which > 0:
             # apex a little medial; the outer third flatter (hooding with age)
-            shape = math.sin(pi * t) ** 0.55 * (1 + 0.12 * (0.5 - oo)) * (1 - 0.10 * F["hood"] * smooth(0.4, 0.9, oo))
+            shape = math.sin(pi * t) ** 0.55 * (1 + 0.06 * (oo - 0.5)) * (1 - 0.04 * F["hood"] * smooth(0.4, 0.9, oo))
             e = up * shape
         else:
             shape = math.sin(pi * t) ** 0.8 * (1 + 0.10 * (oo - 0.5))
@@ -1975,7 +1995,7 @@ def neck_ridges(mb):
     cand = [("Neck", 0), ("Head", 0.01), ("UpperChest", 0.0)]
     for sx in (-1, 1):
         th_side = 0 if sx > 0 else pi
-        for k_, (lo_off, th_off, wk, hk) in enumerate(((112, 0, 1.0, 1.0), (96, 24, 0.55, 0.6))):
+        for k_, (lo_off, th_off, wk, hk) in enumerate(((106, 6, 1.3, 1.25), (92, 30, 0.6, 0.7))):
             pts, ns = [], []
             lo = 90 - sx * lo_off
             for la in (-4, -16, -28):
@@ -2107,8 +2127,8 @@ def ear_push(p, gap=0.004):
     for sx in (-1, 1):
         r = np.array(tuple(ear_root(sx) - HEAD_C))
         c = r + np.array([sx * 0.006, -0.008, 0.0])
-        sc = F["ear"] * (1.25 if CUR.get("pointed") else 1.0)
-        rad_ = np.array([0.016, 0.026, 0.036 if not CUR.get("pointed") else 0.05]) * sc + gap
+        sc = F["ear"]
+        rad_ = np.array([0.012, 0.022, 0.034 if not CUR.get("pointed") else 0.042]) * sc + gap
         q = (p - c) / rad_
         d = np.linalg.norm(q, axis=-1)
         inside = d < 1.0
@@ -2206,6 +2226,10 @@ def grow_guides(roots, normals, lens, st, field, bodyc, seed):
         if tie is not None:
             h = np.where(tied, h * 0.3, h * 0.35)
         p = field.push(p, h)
+        if st.get("hug"):
+            p = field.hug(p, h + st["hug"])
+        if mode != "down":
+            p = face_clear(p, CUR["F"], st.get("cut") in ("bowl", "vulcan_f", "romulan_f"))
         if st.get("ears", True):
             p = ear_push(p)
         if bodyc is not None:
@@ -2258,6 +2282,10 @@ def children(Pg, groots, croots, cidx, st, field, bodyc, seed, tie_at=None):
     # collide again (children sit a little off their guide)
     flat = C.reshape(-1, 3)
     flat = field.push(flat, 0.0004)
+    if st.get("hug"):
+        flat = field.hug(flat, st.get("lift", 0.005) + st["hug"])
+    if st.get("comb") != "down":
+        flat = face_clear(flat, CUR["F"], st.get("cut") in ("bowl", "vulcan_f", "romulan_f"))
     if st.get("ears", True):
         flat = ear_push(flat, 0.003)
     if bodyc is not None:
@@ -2310,26 +2338,26 @@ STYLES = {
     "textured": dict(comb="whorl", whorl=(0.0, -0.06, 0.09), L=dict(top=0.045, front=0.042, side=0.012, back=0.010),
                      lift=0.010, grav=0.1, stiff=0.65, frizz=0.45, clump=0.75, S=12, n=26000, guides=900, rise=0.55,
                      wave=(0.003, 0.03)),
-    "side_part": dict(comb="part", part=62, L=dict(top=0.065, front=0.07, side=0.018, back=0.014), lift=0.007, grav=0.2,
+    "side_part": dict(hug=0.012, comb="part", part=62, L=dict(top=0.065, front=0.07, side=0.018, back=0.014), lift=0.007, grav=0.2,
                       stiff=0.78, frizz=0.12, clump=0.6, S=14, n=28000, guides=1000, rise=0.3),
     "swept": dict(comb="part", part=118, L=dict(top=0.085, front=0.10, side=0.03, back=0.026), lift=0.010, grav=0.25,
                   stiff=0.8, frizz=0.18, clump=0.65, S=16, n=30000, guides=1000, rise=0.35, wave=(0.002, 0.05)),
     "swept_back": dict(comb="back", L=dict(top=0.09, front=0.10, side=0.035, back=0.04), lift=0.013, grav=0.25,
                        stiff=0.82, frizz=0.15, clump=0.65, S=16, n=30000, guides=1000, rise=0.5, wave=(0.002, 0.06)),
-    "slick": dict(comb="back", L=dict(top=0.07, front=0.075, side=0.03, back=0.03), lift=0.0028, grav=0.3, stiff=0.88,
+    "slick": dict(hug=0.003, comb="back", L=dict(top=0.07, front=0.075, side=0.03, back=0.03), lift=0.0028, grav=0.3, stiff=0.88,
                   frizz=0.03, clump=0.85, S=14, n=26000, guides=900, rise=0.1),
-    "bowl": dict(rad=1.15, comb="whorl", whorl=(0.0, -0.03, 0.118), L=dict(top=0.16, front=0.16, side=0.16, back=0.16),
+    "bowl": dict(hug=0.006, rad=1.15, comb="whorl", whorl=(0.0, -0.03, 0.118), L=dict(top=0.16, front=0.16, side=0.16, back=0.16),
                  lift=0.0045, grav=0.75, stiff=0.6, frizz=0.03, clump=0.85, S=18, n=32000, guides=1100, rise=0.12,
                  cut="bowl"),
-    "vulcan_f": dict(rad=1.15, comb="whorl", whorl=(0.0, -0.03, 0.118), L=dict(top=0.22, front=0.22, side=0.22, back=0.22),
+    "vulcan_f": dict(hug=0.006, rad=1.15, comb="whorl", whorl=(0.0, -0.03, 0.118), L=dict(top=0.22, front=0.22, side=0.22, back=0.22),
                      lift=0.005, grav=0.85, stiff=0.6, frizz=0.03, clump=0.85, S=22, n=34000, guides=1100, rise=0.12,
                      cut="vulcan_f", body=True),
-    "romulan_f": dict(rad=1.15, comb="part", part=104, L=dict(top=0.30, front=0.30, side=0.30, back=0.30), lift=0.006, grav=0.85,
+    "romulan_f": dict(hug=0.006, rad=1.15, comb="part", part=104, L=dict(top=0.30, front=0.30, side=0.30, back=0.30), lift=0.006, grav=0.85,
                       stiff=0.6, frizz=0.03, clump=0.85, S=24, n=36000, guides=1200, rise=0.15, cut="romulan_f",
                       body=True),
     "pixie": dict(comb="part", part=112, L=dict(top=0.055, front=0.075, side=0.02, back=0.014), lift=0.009, grav=0.3,
                   stiff=0.72, frizz=0.25, clump=0.7, S=14, n=26000, guides=900, rise=0.35, wave=(0.002, 0.03)),
-    "undercut": dict(comb="part", part=58, L=dict(top=0.10, front=0.115, side=0.003, back=0.003), lift=0.010, grav=0.4,
+    "undercut": dict(hug=0.02, comb="part", part=58, L=dict(top=0.10, front=0.115, side=0.003, back=0.003), lift=0.010, grav=0.4,
                      stiff=0.75, frizz=0.08, clump=0.75, S=18, n=26000, guides=900, rise=0.3, shaved_sides=28),
     "bob": dict(rad=1.15, comb="part", part=70, L=dict(top=0.24, front=0.24, side=0.24, back=0.24), lift=0.008, grav=0.85,
                 stiff=0.6, frizz=0.08, clump=0.7, S=22, n=36000, guides=1200, rise=0.25, cut="bob", body=True),
@@ -2338,13 +2366,13 @@ STYLES = {
     "curly_long": dict(rad=1.35, comb="part", part=74, L=dict(top=0.32, front=0.30, side=0.32, back=0.32), lift=0.022, grav=0.75,
                        stiff=0.55, frizz=0.35, clump=0.7, S=34, n=36000, guides=1300, rise=0.5, curl=(0.0065, 0.032),
                        body=True),
-    "ponytail": dict(rad=1.15, tie=(0.0, -0.098, 0.035), after="pony", L=dict(top=0.36, front=0.36, side=0.36, back=0.36),
+    "ponytail": dict(hug=0.004, rad=1.15, tie=(0.0, -0.098, 0.035), after="pony", L=dict(top=0.36, front=0.36, side=0.36, back=0.36),
                      lift=0.0018, stiff=0.55, frizz=0.08, clump=0.5, S=30, n=32000, guides=1100, rise=0.08,
                      wave=(0.004, 0.07), spread=0.008, body=True, tail=0.20),
-    "bun": dict(tie=(0.0, -0.104, 0.052), after="bun", L=dict(top=0.30, front=0.30, side=0.30, back=0.30), lift=0.002,
+    "bun": dict(hug=0.005, tie=(0.0, -0.104, 0.052), after="bun", L=dict(top=0.30, front=0.30, side=0.30, back=0.30), lift=0.002,
                 stiff=0.55, frizz=0.15, clump=0.5, S=26, n=30000, guides=1000, rise=0.08, bun=(0.0, -0.118, 0.058),
                 wave=(0.002, 0.05)),
-    "slick_bun": dict(tie=(0.0, -0.100, 0.072), after="bun", L=dict(top=0.30, front=0.30, side=0.30, back=0.30),
+    "slick_bun": dict(hug=0.003, tie=(0.0, -0.100, 0.072), after="bun", L=dict(top=0.30, front=0.30, side=0.30, back=0.30),
                       lift=0.0012, stiff=0.6, frizz=0.03, clump=0.7, S=26, n=30000, guides=1000, rise=0.05,
                       bun=(0.0, -0.112, 0.082)),
     "shaggy": dict(rad=1.25, comb="whorl", L=dict(top=0.08, front=0.07, side=0.075, back=0.085), lift=0.016, grav=0.6, stiff=0.6,
@@ -2546,7 +2574,7 @@ def brow_strands(c, seed):
         # growth direction: medial up, then along (+x outward); rows converge
         along = tdir.copy()
         upv = np.array([0.0, 0.0, 1.0])
-        med = sm(0.22, 0.0, t)[:, None]
+        med = sm(0.13, 0.0, t)[:, None]
         conv = (-0.45 * v)[:, None] * upv[None, :]
         dirv = nrm(along * (1 - med) + (upv + np.array([sx * 0.35, 0, 0])) * med + conv * (1 - med))
         L = (0.0055 + 0.0035 * R.uniform(0, 1, len(t))) * (0.75 + 0.25 * B["thick"]) * (1 - 0.35 * med[:, 0])
@@ -2694,7 +2722,7 @@ def details_portrait(mb, role, body):
         for sx in (1, -1):
             bc.ribbon(mb, fn, nf, lambda t, sx=sx: (1.49 - 0.17 * t, D(90 + sx * (34 - 30 * t))), 16, 0.010, 0.0075,
                       "rom_trim", bc.T_CAND, depth=0.002)
-        bc.ribbon(mb, fn, nf, lambda t: (1.47 - 0.42 * t, D(32 + 116 * t)), 28, 0.05, 0.008, "rom_sash", bc.T_CAND, depth=0.004)
+        bc.ribbon(mb, fn, nf, lambda t: (1.44 - 0.32 * t, D(44 + 86 * t)), 40, 0.034, 0.0075, "rom_sash", bc.T_CAND, depth=0.004)
         p = body.torso(1.455, D(40), 0.014)
         n = body.torso_n(1.455, D(40))
         bc.tube(mb, p - n * 0.004, p + n * 0.004, 0.011, 0.010, 16, "rom_metal", bc.T_CAND)
@@ -3143,7 +3171,8 @@ def cyc_material(img):
     im = bpy.data.images.new("CycImg", w, h, alpha=False, float_buffer=True)
     rgba = np.concatenate([img[::-1], np.ones((h, w, 1), np.float32)], axis=2)
     im.pixels.foreach_set(rgba.ravel())
-    m, p = principled("Cyc", (0.010, 0.011, 0.014), 0.62)
+    m, p = principled("Cyc", (0.0045, 0.005, 0.0065), 0.85)
+    p.inputs["Specular IOR Level"].default_value = 0.12
     nt = m.node_tree
     uv = node(nt, "ShaderNodeUVMap")
     tx = node(nt, "ShaderNodeTexImage")
@@ -3176,7 +3205,7 @@ def lineup(cam, chars, extras):
           light("LRim2", "AREA", 450, 2.0, (-3.6, -2.2, 3.0), (0, 0, 1.2), (0.9, 0.92, 1.0)),
           light("LFill", "AREA", 160, 5.0, (4.0, 5.0, 2.0), (0, 0, 1.0), (0.88, 0.93, 1.0))]
     for x in xs:   # soft pools on the floor under each officer
-        ls.append(light("LPool", "SPOT", 260, 0.6, (x + 0.2, 0.6, 5.2), (x, 0.1, 0.0), (1.0, 0.96, 0.9)))
+        ls.append(light("LPool", "SPOT", 90, 0.6, (x + 0.2, 0.6, 5.2), (x, 0.1, 0.0), (1.0, 0.96, 0.9)))
         ls[-1].data.spot_size = rad(38)
         ls[-1].data.spot_blend = 0.9
     aim(cam, camp, V((0.0, 0.0, 0.93)), 50)
