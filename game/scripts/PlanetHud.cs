@@ -68,8 +68,7 @@ public sealed record StructureView(
     float Progress,
     string ProgressLabel,
     string ProgressText,
-    IReadOnlyList<ActionView> Actions,
-    FabView? Fab = null); // a fabricator's queue in place of the condition / progress column (PlanetHud.Parts.cs)
+    IReadOnlyList<ActionView> Actions);
 
 /// <summary>
 /// Planet-surface HUD (layout from the mockup): resource bar with icons across the top, event feed,
@@ -392,7 +391,7 @@ public partial class PlanetHud : CanvasLayer
         _info.ResetSize();
         var size = _info.GetCombinedMinimumSize();
         var screen = GetViewport().GetVisibleRect().Size;
-        _info.Position = new Vector2(screen.X - size.X - 16, Mathf.Max(TopHeight + 8, screen.Y - BottomHeight - 12 - size.Y));
+        _info.Position = new Vector2(screen.X - size.X - 16, Mathf.Max(TopHeight + 8, screen.Y - BottomNow - 12 - size.Y));
     }
 
     private PanelContainer BuildInfoCard()
@@ -686,7 +685,7 @@ public partial class PlanetHud : CanvasLayer
         var size = _tooltip.GetCombinedMinimumSize();
         var pos = mouse + new Vector2(20, 20);
         if (pos.X + size.X > screen.X - 8) pos.X = mouse.X - size.X - 12;
-        if (pos.Y + size.Y > screen.Y - BottomHeight - 8) pos.Y = mouse.Y - size.Y - 12;
+        if (pos.Y + size.Y > screen.Y - BottomNow - 8) pos.Y = mouse.Y - size.Y - 12;
         _tooltip.Position = pos;
     }
 
@@ -719,6 +718,7 @@ public partial class PlanetHud : CanvasLayer
 
     public void ShowBase(BaseView v)
     {
+        HideFabPanel();
         _baseView.Visible = true;
         _detailView.Visible = false;
         _structureView.Visible = false;
@@ -761,6 +761,7 @@ public partial class PlanetHud : CanvasLayer
     /// <summary>Building, rovers, tile or orbit info in place of the base view.</summary>
     public void ShowDetail(string title, string subtitle, string body)
     {
+        HideFabPanel();
         _baseView.Visible = false;
         _structureView.Visible = false;
         _orbitPanel.Visible = false;
@@ -773,6 +774,7 @@ public partial class PlanetHud : CanvasLayer
     /// <summary>The selected building: stats, condition, progress and its buttons.</summary>
     public void ShowStructure(StructureView v)
     {
+        HideFabPanel();
         _baseView.Visible = false;
         _detailView.Visible = false;
         _orbitPanel.Visible = false;
@@ -793,8 +795,7 @@ public partial class PlanetHud : CanvasLayer
             _structRows[i].Value.Text = v.Rows[i].Value;
         }
 
-        ShowFab(v.Fab); // PlanetHud.Parts.cs: a Machine Shop's / core workshop's queue
-        _conditionBox.Visible = v.Condition >= 0 && v.Fab == null;
+        _conditionBox.Visible = v.Condition >= 0;
         if (v.Condition >= 0)
         {
             _conditionBar.Fraction = v.Condition / 100f;
@@ -802,7 +803,7 @@ public partial class PlanetHud : CanvasLayer
             _conditionText.Text = v.ConditionText;
             _maintenanceText.Text = v.MaintenanceText;
         }
-        _progressBox.Visible = v.Progress >= 0 && v.Fab == null;
+        _progressBox.Visible = v.Progress >= 0;
         if (v.Progress >= 0)
         {
             _progressLabel.Text = v.ProgressLabel.ToUpperInvariant();
@@ -969,6 +970,8 @@ public partial class PlanetHud : CanvasLayer
         centreMargin.AddThemeConstantOverride("margin_bottom", 12);
         centreMargin.AddChild(centre);
         row.AddChild(centreMargin);
+        _centreBox = centreMargin;
+        row.AddChild(BuildFabPanel()); // a selected Machine Shop's tabbed panel, in place of the centre and the card (PlanetHud.Parts.cs)
 
         // Command card
         var width = CommandColumns * CommandWidth + (CommandColumns - 1) * 5;
@@ -979,7 +982,8 @@ public partial class PlanetHud : CanvasLayer
         _commandGrid.AddThemeConstantOverride("h_separation", 5);
         _commandGrid.AddThemeConstantOverride("v_separation", 5);
         card.AddChild(_commandGrid);
-        row.AddChild(Framed(card, width + 32));
+        _commandBox = Framed(card, width + 32);
+        row.AddChild(_commandBox);
 
         panel.AddChild(row);
         return panel;
@@ -990,6 +994,7 @@ public partial class PlanetHud : CanvasLayer
     /// <summary>The orbit view's panel in place of the base / building views.</summary>
     public void ShowOrbit(OrbitPanelView v)
     {
+        HideFabPanel();
         _baseView.Visible = false;
         _detailView.Visible = false;
         _structureView.Visible = false;
@@ -1122,7 +1127,6 @@ public partial class PlanetHud : CanvasLayer
         prog.AddChild(_progressText);
         _progressBox = prog;
         side.AddChild(prog);
-        side.AddChild(BuildFabBox()); // PlanetHud.Parts.cs, hidden unless a fabricator is shown
         grid.AddChild(side);
         return grid;
     }

@@ -233,7 +233,7 @@ public partial class PlanetDriver
         _menuFrame = ulong.MaxValue; // the drawer and the number keys pick them up at once
     }
 
-    private bool BuildMenuBlocksMouse(Vector2 mouse) => _bigCard.IsOpen || _drawer.IsOverUi(mouse) || _strip.IsOverUi(mouse);
+    private bool BuildMenuBlocksMouse(Vector2 mouse) => _bigCard.IsOpen || _itemCard.IsOpen || _drawer.IsOverUi(mouse) || _strip.IsOverUi(mouse);
 
     // ---------------------------------------------------------------- per frame
 
@@ -252,6 +252,8 @@ public partial class PlanetDriver
             _strip.Display(null, null);
             return;
         }
+
+        _drawer.SetBottom(_hud.BottomNow); // the bottom panel is taller while a Machine Shop's tabbed panel shows
 
         // Drawer: its tiles are rebuilt only when the list changes (research, data tuning).
         if (_drawer.IsOpen || _drawer.Visible)
