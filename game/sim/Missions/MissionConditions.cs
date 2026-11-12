@@ -447,6 +447,84 @@ public sealed partial class MissionBook
         return false;
     }
 
+    // ---------------------------------------------------------------- live detail (the tracker's line under an objective)
+
+    /// <summary>What still stands between the player and an unfinished coverage objective, in words, filled now ("" =
+    /// nothing to add): for relay / covered conditions, which target is outside coverage, how far it is from the nearest
+    /// relay station and how far a relay reaches, or that a relay is still drifting to its station. View only: never
+    /// read by the step, not hashed.</summary>
+    private string Detail(int p, MissionRun run, MissionCondDef c)
+    {
+        if (_sim?.Surface is not { } s || p < 0 || p >= s.Players.Count) return "";
+        switch (c.Kind)
+        {
+            case "all":
+            case "any":
+                foreach (var child in c.Children) // never Check here: drone_at remembers visits, and this is the view
+                    if (Detail(p, run, child) is { Length: > 0 } line) return line;
+                return "";
+            case "relay":
+            {
+                var relays = World.Sources(s, p).Where(x => x.Kind == CommsSourceKind.Relay).ToList();
+                var ready = relays.Where(x => x.Ready).ToList();
+                var reach = _sim.Data.Comms?.Relay?.Radius ?? (relays.Count > 0 ? relays[0].Radius : 0);
+                var drifting = Drifting(s, relays);
+                var need = c.I("count", 1);
+                if (ready.Count == 0)
+                    return drifting.Length > 0 ? drifting
+                        : $"No relay satellite up yet. From orbit: RELAY, then click the planet; it covers {reach} hexes round that spot.";
+                if (ready.Count < need) return $"{ready.Count} of {need} relays on station." + (drifting.Length > 0 ? " " + drifting : "");
+                if (c.F("covers") is not { } cov) return "";
+                foreach (var t in TilesOf(p, run, cov))
+                {
+                    var nearest = ready.Min(x => s.Map.Grid.Distance(x.Tile, t));
+                    if (nearest <= ready.Where(x => s.Map.Grid.Distance(x.Tile, t) == nearest).Max(x => x.Radius)) continue;
+                    var name = TargetName(s, run, cov, t);
+                    return $"{name} is {nearest} hexes from the nearest relay station; a relay reaches {reach}. " +
+                        (drifting.Length > 0 ? drifting : $"From orbit: RELAY, then click within {reach} hexes of {(cov is "base" or "hub" ? "it" : "its marker")}.");
+                }
+                return "";
+            }
+            case "covered":
+            {
+                if (c.F("at") is not { } at) return "";
+                foreach (var t in TilesOf(p, run, at))
+                {
+                    if (World.Covered(s, p, t)) continue;
+                    var relays = World.Sources(s, p).Where(x => x.Kind == CommsSourceKind.Relay).ToList();
+                    var drifting = Drifting(s, relays);
+                    return $"{TargetName(s, run, at, t)} is outside comms coverage. " +
+                        (drifting.Length > 0 ? drifting : "A relay satellite over it (from orbit: RELAY) or a base near it covers it.");
+                }
+                return "";
+            }
+        }
+        return "";
+    }
+
+    /// <summary>"RELAY-2 · LANTERN is drifting to its station (6 s)." for the first relay not yet on station, else "".</summary>
+    private string Drifting(PlanetSurface s, List<CommsSource> relays)
+    {
+        foreach (var r in relays)
+        {
+            if (r.Ready) continue;
+            var sat = s.SatelliteById(r.SatelliteId);
+            var left = sat == null ? 0 : (int)((sat.ReadyTick - Now + Simulation.TickRate - 1) / Simulation.TickRate);
+            return $"{sat?.CallSign ?? "A relay"} is drifting to its station{(left > 0 ? $" ({left} s)" : "")}.";
+        }
+        return "";
+    }
+
+    /// <summary>What a target tile is called in a detail line: "The outpost", a marker's label on it ("Pathfinder IV"),
+    /// else the binding's name and hex.</summary>
+    private static string TargetName(PlanetSurface s, MissionRun run, string reference, int tile)
+    {
+        if (reference is "base" or "hub") return "The outpost";
+        foreach (var m in run.Markers)
+            if (m.Tile == tile && m.Label.Length > 0) return m.Label;
+        return $"The {reference.Replace('_', ' ')} ({TileText(s, tile)})";
+    }
+
     /// <summary>One of the player's drones is loitering within radius of the tile.</summary>
     private bool DroneOver(PlanetSurface s, int p, int tile, int radius)
     {

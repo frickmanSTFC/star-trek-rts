@@ -58,10 +58,13 @@ public sealed partial class MissionBook
                 for (var k = 0; k < tiles.Count; k++)
                 {
                     var centre = offset > 0 ? Offset(s, p, run.Id, at, k, tiles[k], offset) : tiles[k];
+                    // A marker on a site goes when that site is done, but only for a site still open: a site imported
+                    // from an earlier mission and done there (Calling Home's Pathfinder wreck) keeps its marker.
+                    var site = k < sites.Count && style != "area" ? Site(sites[k]) : null;
                     run.Markers.Add(new MarkerRun
                     {
                         Style = style, Tile = centre, Radius = radius, Label = label,
-                        SiteId = k < sites.Count && style != "area" ? sites[k] : 0,
+                        SiteId = site is { Done: false } ? site.Id : 0,
                     });
                 }
                 break;
