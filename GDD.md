@@ -82,8 +82,23 @@ layer above it once the surface game is fun.
      seconds, then the Colony Hub stands there and income starts.
   3. *Survey:* survey rovers roll out; exact deposits are revealed around the landing site and wherever rovers drive.
      One **Mining Crawler** lands too (decided 2026-11-03: exactly one for now).
-- **Deposits** are rolled per tile by terrain (duranium ore in hills and plains, tritanium ore in hills, deuterium on
-  coasts, dilithium in deserts…).
+- **Deposits** (decided 2026-11-12: "restrict the amount of mining types there are, and make them larger") come in
+  **fields**: fewer deposits, each a blob of 3–7 neighbouring hexes with more ore a hex; every hex is its own deposit,
+  so a mine or the crawler works one hex and a field feeds several. For now the landable worlds hold only three kinds:
+  duranium ore (hills and plains, about 100 fields of 2,000–2,800 a hex on Tarsis; about four landing sites in five
+  have one inside the hub's radius), tritanium ore (hills, about 30 fields of 1,400–2,000 a hex, usually a crawler
+  drive away) and deuterium (fields along the shore, plains and desert by the water, 360–520 a hex, for the Fusion
+  Reactor). Dilithium and the rare minerals (topaline, cormaline, zenite) come back later.
+- **Start menu** (decided 2026-11-12: "limit the number of buildings that can be built to the bare minimum"): a
+  campaign's first outpost can build only the **Storage Container, Ore Refinery, Mining Complex and Fusion Reactor**
+  (`data/surfaces/economy.json` `start_menu`; on a Domes world the Life Support Plant and Pressure Dome too, since the
+  colony can't live without them). Everything else unlocks **through the missions** of First Light, so the menu grows
+  with the story: Ground Truth (starts with the first refinery or 3 minutes after the uplink) → Research Lab + Vehicle
+  Bay; The Lost Pathfinder → Prefab Habitat + Deep-Core Mine (which still needs its research); Wings, as it starts →
+  Machine Shop + Drone Pad, and as its reward → Alloy Foundry; Beyond the Ridge (or the Lost Signal side job, ruins
+  found by drone) → Excavation Site. Locked buildings stay out of the build drawer; the feed says "New buildings: …"
+  when they unlock. With missions off (the DEBUG sandbox) everything is open; the test panel's MISSIONS tab can unlock
+  everything or go back to the start menu.
 - **Building** (from the build bar once landed): one building per hex, on surveyed, buildable tiles within the Colony
   Hub's build radius (4). The cost is paid on placement; the hub's single build queue builds one at a time, the rest
   wait in order; unfinished buildings can be cancelled for a full refund. Buildings turn in 60° steps (hex sides).
@@ -100,7 +115,7 @@ layer above it once the surface game is fun.
   - A building that can't pay its upkeep, has no ore to refine, or has nowhere to store output idles and draws no power.
   - **Salvage** (X on a finished building, not a core): returns 50% of its cost and frees the tile.
 - **Storage and ore** (decided 2026-11-03): hills and plains hold *raw ore* (Duranium Ore, Tritanium Ore) that must
-  be refined; deuterium, dilithium and strategics are mined as they are. Everything stockpiled except crew and
+  be refined; deuterium (and later dilithium and strategics) is mined as it is. Everything stockpiled except crew and
   latinum shares one storage capacity: the Colony Hub's small vault (1500, about 1000 used at landing) plus Storage
   Containers and refineries. When it's full, mines and crawlers stop. The colony core makes only a small trickle of
   metal, so a new colony's first builds are storage and a refinery.
@@ -117,7 +132,7 @@ layer above it once the surface game is fun.
   restoring 5 integrity a second for 1 duranium a point; repair pauses if you can't pay.
 - **Vehicle Bay** (built 2026-11-03): a surface building (180 duranium, 60 tritanium, uses power) that assembles
   survey rovers in three marks (Mk I Scout 60 duranium, 20 s; Mk II Surveyor 90 duranium + 20 tritanium, 30 s, faster
-  with a wider survey; Mk III Explorer 120 duranium + 60 tritanium + 5 dilithium, 45 s, fastest and widest; which
+  with a wider survey; Mk III Explorer 120 duranium + 80 tritanium (was + 5 dilithium until the 2026-11-12 deposit change), 45 s, fastest and widest; which
   research unlocks Mk II and III is still to be decided), mining crawlers (150 duranium + 50 tritanium, 45 s) and
   **construction rovers** (120 duranium + 40 tritanium, 50 s; a slow six-wheeler carrying a folded Colony Hub, a crane
   and an exocomp dock: drive it to a surveyed, buildable, safe site at least 8 tiles from your other colony cores, press
