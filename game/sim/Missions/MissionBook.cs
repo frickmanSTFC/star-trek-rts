@@ -123,6 +123,8 @@ public sealed partial class MissionBook
         if (EnableProblem(chainOrEra) is { } problem) return problem;
         ChainId = ResolveChain(Defs!, chainOrEra ?? "")!.Id;
         Enabled = true;
+        if (_sim!.Surface is { } s) // a campaign starts with surfaces.json start_menu; missions unlock the rest (Surface/Unlocks.cs)
+            for (var p = 0; p < s.Players.Count; p++) s.LockToStartMenu(p);
         return null;
     }
 
@@ -257,6 +259,7 @@ public sealed partial class MissionBook
         for (var p = 0; p < _sim.Players.Count && p < s.Players.Count; p++)
         {
             var book = Track(p);
+            s.LockToStartMenu(p); // a player added after missions came on (no-op once restricted)
             if (!s.UplinkOnline(p, Now)) continue;
             UpdateSites(s, p);
             // Offers that lapsed.

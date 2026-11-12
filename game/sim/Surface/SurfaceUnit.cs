@@ -842,6 +842,14 @@ public sealed class SurfacePlayer
 
     internal readonly List<UniqueTechDef> _sharedTechs = new();
 
+    /// <summary>The buildings this player may place, sorted (ordinal), or null = every building in the build menu (missions
+    /// off: the DEBUG sandbox, tests, the balance runner). A campaign start sets it to surfaces.json start_menu; missions'
+    /// unlock_buildings and the test panel (DebugUnlockCommand) add to it. The domes kit is open on top of it
+    /// (Surface/Unlocks.cs).</summary>
+    public IReadOnlyList<string>? UnlockedBuildings => _unlocked;
+
+    internal List<string>? _unlocked;
+
     // Test-panel limits (DebugFlagCommand).
 
     /// <summary>Storage never fills.</summary>
@@ -902,6 +910,12 @@ public sealed class SurfacePlayer
         {
             h.Add(_sharedTechs.Count);
             foreach (var t in _sharedTechs) h.Add(t.Id);
+        }
+        if (_unlocked != null) // only once restricted (missions on), so other games hash as before
+        {
+            h.Add("unlocked");
+            h.Add(_unlocked.Count);
+            foreach (var id in _unlocked) h.Add(id);
         }
         if (_extraNames.Count > 0 || _extraNumbers.Count > 0) // only with cosmetics, so other games hash as before
         {

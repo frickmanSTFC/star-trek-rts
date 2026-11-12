@@ -169,6 +169,8 @@ public sealed partial class PlanetSurface
                 return RuinDebugProblem(c); // Excavation.cs
             case DebugJackCommand c:
                 return JackDebugProblem(sim, c); // Jack.cs
+            case DebugUnlockCommand c:
+                return UnlockDebugProblem(c); // Unlocks.cs
             default:
                 return "not a surface command";
         }
@@ -312,6 +314,9 @@ public sealed partial class PlanetSurface
                 break;
             case DebugDepositCommand c:
                 Map.DepositAmount[c.Tile] = c.Amount;
+                break;
+            case DebugUnlockCommand c:
+                ApplyUnlockDebug(c);
                 break;
         }
     }

@@ -553,6 +553,7 @@ public sealed partial class GameData
             Achievements = roots.TryGetValue("achievements", out var achievementsRoot) ? ReadAchievements(achievementsRoot, problems) : null,
             Civilizations = roots.TryGetValue("civilizations", out var civRoot) ? ReadCivilizations(civRoot, Amounts, problems) : null,
             Missions = roots.TryGetValue("missions", out var missionsRoot) ? ReadMissions(missionsRoot, problems) : null,
+            StartMenu = ReadStartMenu(surfacesRoot) ?? surfacesRoot.GetProperty("build_menu").EnumerateArray().Select(b => b.GetString()!).ToList(),
             Eras = ReadEras(erasRoot),
             TechTree = ReadTechTree(techTreeRoot),
             StartingSetRefs = ReadStartingSetRefs(buildingsRoot, Amounts),
@@ -658,6 +659,7 @@ public sealed partial class GameData
         ValidateAchievements(problems);
         ValidateCivilizations(problems);
         ValidateMissions(problems);
+        ValidateUnlocks(problems);
         return problems;
     }
 

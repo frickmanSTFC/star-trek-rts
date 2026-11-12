@@ -188,3 +188,7 @@ public enum DebugMissionAction
 /// used); Tile binds a trigger's missing bindings on Start (-1 = the hub).</summary>
 public sealed record DebugMissionCommand(int Player, int Target, string MissionId, DebugMissionAction Action, string Stage, string Objective, int Tile)
     : DebugCommand(Player);
+
+/// <summary>Test panel: open (Unlocked) or close one building for the Target player; BuildingId "" = every building
+/// (Unlocked) or back to surfaces.json start_menu (locked). Works with missions off too (then nothing else opens them).</summary>
+public sealed record DebugUnlockCommand(int Player, int Target, string BuildingId, bool Unlocked) : DebugCommand(Player);

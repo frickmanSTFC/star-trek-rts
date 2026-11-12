@@ -71,7 +71,9 @@ public class MissionTests
     private static int FreeTile(Simulation sim, string building, int skip = 0)
     {
         var hub = sim.Surface!.Bases(0)[0];
-        return sim.Surface.Map.Grid.Within(hub.Tile, 3).Where(t => sim.Surface.CheckPlacement(sim, 0, building, t) == PlacementProblem.None).Skip(skip).First();
+        // A locked building still has a free tile (the test panel places it anyway).
+        return sim.Surface.Map.Grid.Within(hub.Tile, 3).Where(t => sim.Surface.CheckPlacement(sim, 0, building, t) is PlacementProblem.None or PlacementProblem.NotUnlocked)
+            .Skip(skip).First();
     }
 
     private static int R(string id) => Data.Resource(id).Index;
@@ -130,9 +132,13 @@ public class MissionTests
             hashes?.Add(sim.StateHash());
         }
 
-        // 1. Ground Truth: starts when a Research Lab is placed; survey 60 tiles and find 3 different resources.
+        // The campaign starts with the four basic buildings (surfaces.json start_menu); the missions open the rest.
+        Assert.Equal(new[] { "fusion_reactor", "mine", "refinery", "storage_container" }, s.Players[0].UnlockedBuildings);
+        Assert.Equal(PlacementProblem.NotUnlocked, s.CheckPlacement(sim, 0, "science_lab", FreeTile(sim, "science_lab")));
+
+        // 1. Ground Truth: starts when the first Ore Refinery is placed; survey 60 tiles and find 3 different resources.
         Assert.Equal(MissionState.Locked, State(sim, "ground_truth"));
-        Do(sim, new DebugPlaceBuildingCommand(0, 0, "science_lab", FreeTile(sim, "science_lab"), 0));
+        Do(sim, new DebugPlaceBuildingCommand(0, 0, "refinery", FreeTile(sim, "refinery"), 0));
         Seconds(sim, 1);
         Assert.Equal(MissionState.Active, State(sim, "ground_truth"));
         Assert.True(View(sim, "ground_truth").Objectives[0].Progress < Fix64.FromInt(60)); // the landing alone doesn't do it
@@ -140,6 +146,9 @@ public class MissionTests
         Assert.Contains(sim.Missions.Messages(0), m => m.MissionId == "ground_truth" && m.Channel == "comms" && m.GiverName == "Flight Director Moreau");
         Explore(sim, () => State(sim, "ground_truth") == MissionState.Completed, 900);
         Done("ground_truth");
+        Assert.True(s.BuildingUnlocked(0, "science_lab") && s.BuildingUnlocked(0, "vehicle_bay")); // its reward
+        Assert.False(s.BuildingUnlocked(0, "machine_shop"));
+        Assert.Contains(sim.Missions.Messages(0), m => m.MissionId == "ground_truth" && m.Text.Contains("new buildings: Research Lab, Vehicle Bay"));
         Assert.True(sim.Tick - exploreFrom > 20 * Simulation.TickRate); // the rovers had to drive
         Assert.Equal(Fix64.FromInt(30), s.DigResearchBank(0)); // no tech started: banked
         if (stopAfter == "ground_truth") return sim;
@@ -160,6 +169,7 @@ public class MissionTests
         Assert.True(sim.Missions.Sites(0)[0].Found);
         StepUntil(sim, () => State(sim, "lost_pathfinder") == MissionState.Completed, 40, "recorder recovered");
         Done("lost_pathfinder");
+        Assert.True(s.BuildingUnlocked(0, "prefab_habitat") && s.BuildingUnlocked(0, "deep_core_mine"));
         Assert.True(sim.Missions.Sites(0)[0].Done);
         Assert.Equal(modules + Fix64.FromInt(2), sim.Players[0].Stock[R("control_module")]);
         Assert.True(s.Map.Grid.Within(wreck.Tile, 6).All(t => s.Players[0].Surveyed[t])); // reveal 6
@@ -191,6 +201,8 @@ public class MissionTests
         Seconds(sim, 1);
         Assert.Equal(MissionState.Active, State(sim, "wings"));
         Assert.Equal("Chief Okafor", View(sim, "wings").GiverName);
+        Assert.True(s.BuildingUnlocked(0, "machine_shop") && s.BuildingUnlocked(0, "drone_pad")); // opened as Wings starts
+        Assert.False(s.BuildingUnlocked(0, "foundry"));
         Do(sim, new DebugPlaceBuildingCommand(0, 0, "machine_shop", FreeTile(sim, "machine_shop"), 0));
         Do(sim, new DebugPlaceBuildingCommand(0, 0, "drone_pad", FreeTile(sim, "drone_pad"), 0));
         var shop = s.Structures.First(x => x.Owner == 0 && x.DefId == "machine_shop");
@@ -202,6 +214,7 @@ public class MissionTests
         Assert.False(drones.Done);
         StepUntil(sim, () => State(sim, "wings") == MissionState.Completed, 200, "two scout drones fabricated");
         Done("wings");
+        Assert.True(s.BuildingUnlocked(0, "foundry"));
         Assert.Contains(sim.Missions.Messages(0), m => m.MissionId == "wings" && m.Text.Contains("2 Power Coupling")); // paid into storage
         StepUntil(sim, () => s.DronesOf(pad.Id).Count == 2, 10, "both drones on the pad");
         if (stopAfter == "wings") return sim;
@@ -242,6 +255,8 @@ public class MissionTests
         DriveTo(sim, Rover(sim), source.Tile, 1200);
         StepUntil(sim, () => State(sim, "beyond_the_ridge") == MissionState.Completed, 10, "signal source reached");
         Done("beyond_the_ridge");
+        Assert.True(s.BuildingUnlocked(0, "excavation_site"));
+        Assert.All(s.BuildMenu, id => Assert.True(s.BuildingUnlocked(0, id), id)); // the whole menu is open by now
         if (stopAfter == "beyond_the_ridge") return sim;
 
         // 7. Foothold: a second outpost outside coverage doesn't count (its own antenna doesn't); a relay moved over it does.
@@ -353,10 +368,10 @@ public class MissionTests
     }
 
     [Fact]
-    public void TheTimeTriggerStartsGroundTruthTenMinutesAfterTheUplink()
+    public void TheTimeTriggerStartsGroundTruthThreeMinutesAfterTheUplink()
     {
         var sim = Game();
-        Seconds(sim, 590);
+        Seconds(sim, 170);
         Assert.Equal(MissionState.Locked, State(sim, "ground_truth"));
         Seconds(sim, 12);
         Assert.Equal(MissionState.Active, State(sim, "ground_truth"));
@@ -682,7 +697,10 @@ public class MissionTests
     [InlineData("\"next\": \"recover\"", "\"next\": \"nowhere\"", "next 'nowhere'")]
     [InlineData("{ \"grant\": { \"duranium\": 150 } }", "{ \"grant\": { \"energy\": 150 } }", "never energy")]
     [InlineData("\"site\": { \"site\": \"wreck\", \"state\": \"found\" }", "\"site\": { \"site\": \"wrek\", \"state\": \"found\" }", "'wrek' is not bound")]
-    [InlineData("{ \"building\": { \"id\": \"science_lab\", \"state\": \"any\" } }", "{ \"building\": { \"id\": \"science_labb\", \"state\": \"any\" } }", "unknown building 'science_labb'")]
+    [InlineData("{ \"building\": { \"id\": \"refinery\", \"state\": \"any\" } }", "{ \"building\": { \"id\": \"refineryy\", \"state\": \"any\" } }", "unknown building 'refineryy'")]
+    [InlineData("{ \"unlock_buildings\": [\"science_lab\", \"vehicle_bay\"] }", "{ \"unlock_buildings\": [\"science_lab\", \"warp_core\"] }", "'warp_core' is not in the build menu")]
+    [InlineData("{ \"unlock_buildings\": [\"science_lab\", \"vehicle_bay\"] }", "{ \"unlock_buildings\": [\"science_lab\", \"mine\"] }", "'mine' is in start_menu already")]
+    [InlineData("{ \"unlock_buildings\": [\"science_lab\", \"vehicle_bay\"] }", "{ \"unlock_buildings\": [\"science_lab\"] }", "vehicle_bay is not in start_menu and no mission")]
     [InlineData("\"giver\": \"ops\",\n      \"briefing\": \"One outpost", "\"giver\": \"nobody\",\n      \"briefing\": \"One outpost", "unknown giver 'nobody'")]
     [InlineData("\"text\": \"Reyes: That's it, Pathfinder IV, {wreck.distance}", "\"text\": \"Reyes: That's it, Pathfinder IV, {source.distance}", "{source} is not bound")]
     [InlineData("\"surveyed\": { \"count\": 60 }", "\"surveyed\": { \"count\": 60, \"colour\": 1 }", "unknown field 'colour'")]
