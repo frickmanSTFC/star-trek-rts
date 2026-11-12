@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using FinalFrontier.Sim.Core;
 using FinalFrontier.Sim.Surface;
 using Godot;
@@ -39,7 +40,7 @@ public partial class OrbitView
     private readonly Dictionary<int, RelayView> _relays = new();
     private readonly HashSet<int> _relayIds = new();
     private readonly List<int> _relayGone = new();
-    private readonly Dictionary<int, ArrayMesh> _capMeshes = new(); // by radius in hexes
+    private readonly Dictionary<long, ArrayMesh> _coverMeshes = new(); // by station tile and radius (CoverageMesh)
     private MeshInstance3D? _relayPreview;
     private StandardMaterial3D? _relayPreviewMaterial;
 
@@ -58,9 +59,8 @@ public partial class OrbitView
             _relayPreview = new MeshInstance3D { Name = "RelayPreview", MaterialOverride = _relayPreviewMaterial, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
             _globe.AddChild(_relayPreview);
         }
-        _relayPreview.Mesh = CapMesh(radiusTiles > 0 ? radiusTiles : 14);
-        _relayPreview.Basis = new Basis(new Quaternion(Vector3.Up, TileDirection(tile)));
-        _relayPreview.Position = Vector3.Zero;
+        _relayPreview.Mesh = CoverageMesh(tile, radiusTiles > 0 ? radiusTiles : 14);
+        _relayPreview.Transform = Transform3D.Identity;
         var pulse = 0.6f + 0.4f * Mathf.Sin(_time * 4f);
         _relayPreviewMaterial!.AlbedoColor = (ok ? new Color(0.85f, 1f, 0.95f) : new Color(1f, 0.45f, 0.4f)) * pulse;
         _relayPreview.Visible = true;
@@ -176,16 +176,17 @@ public partial class OrbitView
     private void PoseRelay(CommsSource c, RelayView v, float now, float delta)
     {
         var station = TileDirection(c.Tile);
-        if (c.Tile != v.Tile)
+        var moved = c.Tile != v.Tile;
+        if (moved)
         {
             v.FromDir = v.Tile < 0 ? station : (v.Dir == Vector3.Zero ? station : v.Dir);
             v.MoveStart = v.Tile < 0 ? -100f : _time;
             v.Tile = c.Tile;
         }
-        if (c.Radius != v.Radius)
+        if (moved || c.Radius != v.Radius)
         {
             v.Radius = c.Radius;
-            v.Cap.Mesh = CapMesh(Mathf.Max(1, c.Radius));
+            v.Cap.Mesh = CoverageMesh(c.Tile, Mathf.Max(0, c.Radius)); // the exact hexes it covers, round its station
         }
 
         float fold = 0f, thrust = 0f;
@@ -235,7 +236,6 @@ public partial class OrbitView
         // Coverage cap over the station (always the station, not where it drifts).
         var shown = Display != OrbitDisplay.System && _atColony;
         v.Cap.Visible = shown;
-        v.Cap.Basis = new Basis(new Quaternion(Vector3.Up, station));
         v.CapMaterial.AlbedoColor = c.Ready ? new Color(1f, 1f, 1f) * (0.85f + 0.15f * pulse) : new Color(1f, 1f, 1f) * (0.2f + 0.25f * pulse);
 
         // Link line to the ship marker.
@@ -256,6 +256,52 @@ public partial class OrbitView
         }
     }
 
+    // ---------------------------------------------------------------- mission marks on the globe
+
+    /// <summary>A mission marker as the globe draws it: the hexes within RadiusTiles of Tile (an "area" marker = only its
+    /// rim hexes; others = all of them, the centre brightest).</summary>
+    public readonly record struct GlobeMark(int Tile, int RadiusTiles, bool Area);
+
+    private readonly List<(MeshInstance3D Mesh, StandardMaterial3D Material)> _marks = new();
+    private long _marksSignature = long.MinValue;
+
+    /// <summary>Every frame from the driver: our missions' markers on the globe (the surface's markers can't be seen
+    /// from orbit, and the relay missions are aimed from here), each tinted (gold; green / red while the RELAY preview
+    /// does / doesn't reach it), pulsing. Meshes are rebuilt only when the marks change.</summary>
+    public void ShowMissionMarks(IReadOnlyList<GlobeMark> marks, IReadOnlyList<Color> tints)
+    {
+        if (marks.Count == 0 && _marks.Count == 0) return; // nothing to draw or clear (also before the globe is built)
+        var g = _surface.Map.Grid;
+        var signature = 17L;
+        foreach (var m in marks) signature = ((signature * 31 + m.Tile) * 31 + m.RadiusTiles) * 2 + (m.Area ? 1 : 0);
+        if (signature != _marksSignature)
+        {
+            _marksSignature = signature;
+            foreach (var (mesh, _) in _marks) mesh.QueueFree();
+            _marks.Clear();
+            foreach (var m in marks)
+            {
+                if (m.Tile < 0 || m.Tile >= g.Count) continue;
+                var radius = Mathf.Clamp(m.RadiusTiles, 0, 12);
+                var white = new Color(1f, 1f, 1f);
+                var mesh = HexPatchMesh(g.Within(m.Tile, radius).Where(t => !m.Area || g.Distance(m.Tile, t) == radius),
+                    t => (t == m.Tile && !m.Area ? white * 0.75f : white * (m.Area ? 0.35f : 0.28f)) with { A = 1f }, m.Area ? 0.8f : 0.9f, 0.8f);
+                var material = CapMaterial();
+                material.RenderPriority = 4; // over the relays' coverage
+                var node = new MeshInstance3D { Name = $"MissionMark{_marks.Count}", Mesh = mesh, MaterialOverride = material, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+                _globe.AddChild(node);
+                _marks.Add((node, material));
+            }
+        }
+        var shown = Display != OrbitDisplay.System && _atColony;
+        var pulse = 0.65f + 0.35f * Mathf.Sin(_time * 3f);
+        for (var i = 0; i < _marks.Count; i++)
+        {
+            _marks[i].Mesh.Visible = shown;
+            _marks[i].Material.AlbedoColor = (i < tints.Count ? tints[i] : new Color(0.98f, 0.8f, 0.4f)) * pulse;
+        }
+    }
+
     private static StandardMaterial3D CapMaterial() => new()
     {
         ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
@@ -266,58 +312,86 @@ public partial class OrbitView
         RenderPriority = 3, // after the clouds, like the satellites' swath
     };
 
-    /// <summary>A soft spherical cap round +Y at R+0.65 covering `hexes` + ½ hexes of longitude at the equator: faint
-    /// inside, a brighter band at the rim (vertex colours, additive). Cached by radius.</summary>
-    private ArrayMesh CapMesh(int hexes)
+    /// <summary>The hexes a relay over `station` covers (every tile within `hexes`, the sim's PlanetSurface.CommsCovered
+    /// rule), each drawn as a hexagon on the globe at R+0.65 through the same row / column mapping as the textures: a
+    /// faint fill, the rim hexes brighter (vertex colours, additive). The old round cap was sized by equator longitude,
+    /// so it reached about twice as far north and south as the real coverage (rows are packed tighter on the globe than
+    /// columns) and further east–west away from the equator: a target could sit inside the drawn circle and still be out
+    /// of reach. Cached by station and radius (a few dozen kept: the RELAY preview makes one per hovered tile).</summary>
+    private ArrayMesh CoverageMesh(int station, int hexes)
     {
-        if (_capMeshes.TryGetValue(hexes, out var cached)) return cached;
+        var key = (long)station * 1024 + hexes;
+        if (_coverMeshes.TryGetValue(key, out var cached)) return cached;
+        if (_coverMeshes.Count > 48) _coverMeshes.Clear();
         var g = _surface.Map.Grid;
-        var angle = Mathf.Min(1.4f, (hexes + 0.5f) * Mathf.Tau / Mathf.Max(1, g.Width));
-        const int rings = 14, segs = 64;
+        var tiles = station >= 0 && station < g.Count ? g.Within(station, hexes) : new List<int>();
+        var inner = RelayColour * 0.07f;
+        var rim = RelayColour * 0.42f;
+        inner.A = rim.A = 1f;
+        var mesh = HexPatchMesh(tiles, t => g.Distance(station, t) >= hexes || !AllNeighboursWithin(g, t, station, hexes) ? rim : inner, 0.92f, 0.65f);
+        _coverMeshes[key] = mesh;
+        return mesh;
+    }
+
+    private static bool AllNeighboursWithin(HexGrid g, int tile, int centre, int hexes)
+    {
+        var n = 0;
+        foreach (var t in g.Neighbours(tile))
+        {
+            if (g.Distance(centre, t) > hexes) return false;
+            n++;
+        }
+        return n == 6; // a hex at the map's edge is a rim hex too
+    }
+
+    /// <summary>One hexagon per tile on the globe (pointy-top, odd rows half a column east, like the map; `inset` 0..1
+    /// shrinks each about its centre so the grid shows) at R + lift, coloured per tile: an additive vertex-colour mesh.</summary>
+    private ArrayMesh HexPatchMesh(IEnumerable<int> tiles, System.Func<int, Color> colour, float inset, float lift)
+    {
+        var g = _surface.Map.Grid;
         var verts = new List<Vector3>();
         var colours = new List<Color>();
         var index = new List<int>();
-        var r = Radius + 0.65f;
-        verts.Add(Vector3.Up * r);
-        colours.Add((RelayColour * 0.05f) with { A = 1f });
-        for (var j = 1; j <= rings; j++)
+        var r = Radius + lift;
+        foreach (var t in tiles)
         {
-            var t = j / (float)rings;
-            var th = angle * t;
-            var rimBand = Mathf.SmoothStep(0.78f, 0.97f, t) * (1f - Mathf.SmoothStep(0.97f, 1f, t) * 0.6f);
-            var c = RelayColour * (0.05f + 0.08f * t + 0.32f * rimBand);
-            c.A = 1f;
-            for (var i = 0; i < segs; i++)
+            var row = g.Row(t);
+            var cu = g.Column(t) + 0.5f + ((row & 1) == 1 ? 0.5f : 0f);
+            var cv = row + 0.5f;
+            var c = colour(t);
+            var centre = verts.Count;
+            verts.Add(GlobeDirection(cu, cv, g.Width, g.Height) * r);
+            colours.Add(c);
+            for (var k = 0; k < 6; k++)
             {
-                var ph = Mathf.Tau * i / segs;
-                verts.Add(new Vector3(Mathf.Sin(th) * Mathf.Cos(ph), Mathf.Cos(th), Mathf.Sin(th) * Mathf.Sin(ph)) * r);
+                // A pointy-top hex one column wide: corners at 30° + 60°·k, ±½ column, ±⅓ / ±⅔ of a row.
+                var a = Mathf.DegToRad(30f + 60f * k);
+                verts.Add(GlobeDirection(cu + Mathf.Cos(a) / Mathf.Sqrt(3f) * inset, cv + Mathf.Sin(a) * (2f / 3f) * inset, g.Width, g.Height) * r);
                 colours.Add(c);
             }
-        }
-        for (var i = 0; i < segs; i++)
-        {
-            index.Add(0);
-            index.Add(1 + (i + 1) % segs);
-            index.Add(1 + i);
-        }
-        for (var j = 1; j < rings; j++)
-            for (var i = 0; i < segs; i++)
+            for (var k = 0; k < 6; k++)
             {
-                var a = 1 + (j - 1) * segs + i;
-                var b = 1 + (j - 1) * segs + (i + 1) % segs;
-                var cc = 1 + j * segs + i;
-                var d = 1 + j * segs + (i + 1) % segs;
-                index.Add(a); index.Add(b); index.Add(cc);
-                index.Add(b); index.Add(d); index.Add(cc);
+                index.Add(centre);
+                index.Add(centre + 1 + k);
+                index.Add(centre + 1 + (k + 1) % 6);
             }
+        }
+        var mesh = new ArrayMesh();
+        if (verts.Count == 0) return mesh;
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
         arrays[(int)Mesh.ArrayType.Vertex] = verts.ToArray();
         arrays[(int)Mesh.ArrayType.Color] = colours.ToArray();
         arrays[(int)Mesh.ArrayType.Index] = index.ToArray();
-        var mesh = new ArrayMesh();
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-        _capMeshes[hexes] = mesh;
         return mesh;
+    }
+
+    /// <summary>Globe-local direction of a point in map units (column + fraction, row + fraction), as TileDirection.</summary>
+    private static Vector3 GlobeDirection(float column, float row, int width, int height)
+    {
+        var theta = (VTop + row / height * (VBottom - VTop)) * Mathf.Pi;
+        var phi = column / width * Mathf.Tau;
+        return new Vector3(Mathf.Sin(theta) * Mathf.Sin(phi), Mathf.Cos(theta), Mathf.Sin(theta) * Mathf.Cos(phi));
     }
 }

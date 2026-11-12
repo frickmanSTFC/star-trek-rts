@@ -68,10 +68,11 @@ public partial class PlanetDriver
         {
             ("Covers", radius > 0 ? $"{radius} tiles round the tile you click, once it is on station" : "a wide circle round the tile you click, once it is on station"),
             ("Why", "drones only fly inside comms coverage; your colony cores' antennas reach a few tiles, relays reach the rest"),
-            ("Needs", "landed, with the outpost's uplink online; paid from the ship's hold"),
+            ("Needs", "landed, with the outpost's uplink online; paid from the colony's stock"),
         };
         float? deploy = _data.Comms?.Relay?.DeploySeconds;
-        if (deploy is { } ds) rows.Add(("Deploy", $"{Mathf.RoundToInt(ds)} s drifting to station"));
+        if (deploy is { } ds) rows.Add(("Deploy", $"{Mathf.RoundToInt(ds)} s drifting to station (it covers nothing until then)"));
+        if (_orbitAction == "relay") AddRelayReachRows(rows, _orbitHover);
         var hover = _orbitHover >= 0 ? RelayOrbitProblem(_orbitHover) : "pick a spot on the planet";
         var footer = _orbitAction == "relay"
             ? (_orbitHover < 0 ? "Click the planet where it should hang  ·  right-click / Esc cancel" : hover == null ? "Click to put it over this tile  ·  Shift+click to keep going" : $"Can't put it here: {hover}")
@@ -96,6 +97,8 @@ public partial class PlanetDriver
             _orbit.PreviewRelay(tile, tile >= 0 ? RelayRadius() : 14, tile >= 0 && RelayOrbitProblem(tile) == null);
         }
 
+        UpdateGlobeMarks(tile);
+
         foreach (var c in MyRelays())
         {
             if (_relaysKnown.Add(c.SatelliteId) && c.Ready) _relaysReady.Add(c.SatelliteId); // already up when first seen
@@ -103,6 +106,47 @@ public partial class PlanetDriver
             var name = Surface.SatelliteById(c.SatelliteId)?.CallSign ?? "Relay";
             _hud.PushEvent($"{name} on station over {Surface.Map.Terrain(c.Tile).Name.ToLowerInvariant()}: comms {c.Radius} tiles round it", HelmScreen.Cyan);
         }
+    }
+
+    private readonly List<OrbitView.GlobeMark> _globeMarks = new();
+    private readonly List<Color> _globeTints = new();
+
+    /// <summary>Our missions' markers on the globe (the wreck to link, the search area …), gold; while RELAY is armed
+    /// over a tile, green for the ones a relay there would reach and red for the rest.</summary>
+    private void UpdateGlobeMarks(int previewTile)
+    {
+        _globeMarks.Clear();
+        _globeTints.Clear();
+        if (_inOrbit && _orbit.AtColony)
+        {
+            var g = Surface.Map.Grid;
+            var reach = RelayRadius();
+            foreach (var m in _missionMarkers)
+            {
+                if (m.Tile < 0 || m.Tile >= g.Count) continue;
+                var area = m.Style == "area";
+                _globeMarks.Add(new OrbitView.GlobeMark(m.Tile, area ? m.RadiusTiles : System.Math.Min(1, m.RadiusTiles), area));
+                _globeTints.Add(previewTile >= 0 && !area ? (g.Distance(previewTile, m.Tile) <= reach ? HelmScreen.Green : MissionBad) : MissionGold);
+            }
+        }
+        _orbit.ShowMissionMarks(_globeMarks, _globeTints);
+    }
+
+    /// <summary>The RELAY card's rows for the hovered tile: does a relay here reach the outpost and each mission marker
+    /// (the targets the comms missions ask for), and how far each is.</summary>
+    private void AddRelayReachRows(List<(string, string)> rows, int tile)
+    {
+        if (tile < 0) return;
+        var g = Surface.Map.Grid;
+        var reach = RelayRadius();
+        string Reach(int target)
+        {
+            var d = g.Distance(tile, target);
+            return d <= reach ? $"in reach ({d} hexes)" : $"OUT OF REACH ({d} hexes; a relay reaches {reach})";
+        }
+        if (Surface.Bases(LocalPlayer).FirstOrDefault() is { } hub) rows.Add(("Outpost", Reach(hub.Tile)));
+        foreach (var m in _missionMarkers)
+            if (m.Style != "area" && m.Label.Length > 0 && m.Tile >= 0 && m.Tile < g.Count) rows.Add((m.Label, Reach(m.Tile)));
     }
 
     // ---------------------------------------------------------------- SATELLITES window (PlanetDriver.Satellites.cs)
