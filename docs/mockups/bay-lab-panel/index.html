@@ -1,0 +1,380 @@
+<title>Bay &amp; Lab Panels</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: a review page. Each option is the game's bottom panel at true size (1600 px wide, the owner's screen), scaled
+   down to fit the page width; a short pros/cons line under each. The page shell follows the viewer's theme; the game
+   frames keep the game HUD's own colours (PlanetHud / HudKit) in both themes. */
+:root {
+  color-scheme: dark;
+  --page: #070a12; --page-2: #0e1424; --ink: #e6ebf5; --dim: #97a3bd; --rule: #232c44; --mark: #f0a24a; --focus: #9ed1ff;
+  /* HUD (fixed in both themes) */
+  --g-bg: #0a101d; --g-bg2: #0f1728; --g-line: #26324d; --g-line2: #33415f; --g-ink: #e3e9f3; --g-dim: #8e9ab2; --g-faint: #5f6b84;
+  --g-orange: #f0a24a; --g-red: #ec6a5c; --g-green: #8fd67a; --g-sky: #8cc0f2; --g-amber: #f4c45a;
+  --k-mech: #e0a33c; --k-elec: #e8d24a; --k-rover: #e08a3c; --k-env: #6cc4d8; --k-part: #9aa8c4; --k-con: #b48ce0; --k-drone: #7fd0a0;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { color-scheme: light; --page: #eceff5; --page-2: #ffffff; --ink: #151b29; --dim: #4e5970; --rule: #cdd3e0; --mark: #a8561a; --focus: #1f5fbf; }
+}
+:root[data-theme="light"] { color-scheme: light; --page: #eceff5; --page-2: #ffffff; --ink: #151b29; --dim: #4e5970; --rule: #cdd3e0; --mark: #a8561a; --focus: #1f5fbf; }
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+.wrap { max-width: 1320px; margin: 0 auto; display: grid; gap: 30px; }
+header h1 { font: 700 clamp(30px, 4.4vw, 46px)/1.05 var(--display); letter-spacing: .03em; text-transform: uppercase; margin: 0 0 8px; text-wrap: balance; }
+header p { margin: 0; color: var(--dim); max-width: 72ch; }
+.eyebrow { display: inline-block; font: 600 13px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--mark);
+  border: 1px solid var(--mark); border-radius: 12px; padding: 5px 10px; margin-bottom: 12px; }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; }
+.jump a { font: 600 14px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); text-decoration: none;
+  border: 1px solid var(--rule); background: var(--page-2); border-radius: 14px; padding: 7px 12px; }
+.jump a b { color: var(--mark); margin-right: 6px; }
+section.opt { display: grid; gap: 10px; scroll-margin-top: 16px; }
+section.opt h2 { margin: 0; font: 700 26px/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+section.opt h2 b { color: var(--mark); margin-right: 8px; }
+section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
+.proscons { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 24px; font-size: 14px; color: var(--dim); }
+.proscons b { color: var(--ink); font-weight: 600; }
+@media (max-width: 700px) { .proscons { grid-template-columns: minmax(0, 1fr); } }
+.fit { width: 100%; overflow: hidden; border-radius: 10px; border: 1px solid var(--rule); background: #000; }
+.stage { width: 1600px; transform-origin: 0 0; }
+.cap { font: 600 12px/1.3 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+.itemgal { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.itemgal figure { margin: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: center; background: #0b1324; border: 1px solid #26324d; border-radius: 10px; padding: 8px 12px 8px 6px; color: #e3e9f3; }
+.itemgal figcaption b { display: block; font: 600 17px/1.15 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.itemgal figcaption i { font-style: normal; font: 600 11px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: #8e9ab2; }
+.itemgal figcaption span { display: block; font-size: 13.5px; color: #b9c3d6; margin-top: 4px; }
+.notes h2 { font: 700 22px/1.1 var(--display); letter-spacing: .05em; text-transform: uppercase; margin: 0 0 8px; }
+.notes li { color: var(--dim); max-width: 78ch; }
+.notes li b { color: var(--ink); }
+
+/* ---------------------------------------------------------------- game HUD look (fixed colours) */
+.hud { position: relative; width: 1600px; color: var(--g-ink); font: 400 15px/1.35 var(--body); background:
+  linear-gradient(180deg, #23314a 0, #1a2436 60%, #101826 100%); }
+.world { height: 120px; background: radial-gradient(120% 140% at 30% 0%, #4d5d3e 0, #39462f 35%, #232b22 70%, #151a17 100%); position: relative; }
+.world::after { content: "the map"; position: absolute; left: 24px; top: 16px; font: 600 12px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: rgba(255,255,255,.35); }
+.bar { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 0; background: var(--g-bg); border-top: 2px solid var(--g-orange); }
+.mini { border-right: 1px solid var(--g-line); padding: 12px 14px; display: grid; gap: 8px; align-content: start; }
+.mini .t { font: 600 13px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--g-dim); }
+.mini .map { height: 112px; border: 1px solid var(--g-line2); background:
+  repeating-linear-gradient(90deg, rgba(0,0,0,.25) 0 3px, transparent 3px 7px), linear-gradient(90deg, #5a4a2e, #3d4a2c 40%, #6a5634 70%, #4b4330); }
+.mini .k { font-size: 12.5px; color: var(--g-dim); }
+.main { padding: 0 14px 12px; min-width: 0; }
+.tagline { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.basechip { border: 1.5px solid var(--g-orange); border-radius: 6px; padding: 4px 12px; font: 600 16px/1.2 var(--display); letter-spacing: .1em; text-transform: uppercase; background: #2a1d0e; }
+.navbtn { border: 1px solid var(--g-line2); border-radius: 6px; padding: 5px 11px; font: 600 14px/1.2 var(--display); letter-spacing: .08em; text-transform: uppercase; background: var(--g-bg2); color: var(--g-ink); }
+.tagline .sp { flex: 1; }
+.bname { display: flex; gap: 12px; align-items: center; }
+.bname .ic { width: 42px; height: 42px; border: 1.5px solid var(--g-sky); border-radius: 8px; display: grid; place-items: center; color: var(--g-sky); flex: none; }
+.bname h3 { margin: 0; font: 600 25px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.bname small { color: var(--g-dim); font-size: 13.5px; }
+.status { color: var(--g-orange); font-size: 15px; margin: 6px 0; }
+.act { display: flex; align-items: baseline; gap: 10px; border: 1px solid var(--g-line2); background: var(--g-bg2); border-radius: 6px; padding: 6px 10px;
+  font: 600 14px/1.25 var(--display); letter-spacing: .07em; text-transform: uppercase; color: var(--g-ink); }
+.act span { font: 400 13.5px/1.25 var(--body); letter-spacing: 0; text-transform: none; color: var(--g-dim); }
+.acts { display: grid; gap: 5px; }
+.lab { font: 600 12px/1.2 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--g-dim); }
+.val { font-size: 14.5px; }
+.short { color: var(--g-orange); font: 600 12.5px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; }
+.red { color: var(--g-red); }
+.ok { color: var(--g-green); }
+.dim { color: var(--g-dim); }
+.kchip { display: inline-grid; place-items: center; min-width: 22px; height: 18px; padding: 0 4px; border-radius: 4px; background: var(--c, var(--k-part)); color: #10131a;
+  font: 700 11px/1 var(--display); letter-spacing: .04em; }
+.key { font: 600 12px/1 var(--display); color: var(--g-dim); border: 1px solid var(--g-line2); border-radius: 4px; padding: 2px 5px; }
+.qbadge { font: 700 12px/1 var(--display); color: #10131a; background: var(--g-orange); border-radius: 9px; padding: 3px 7px; }
+.x { width: 22px; height: 22px; border: 1px solid var(--g-line2); border-radius: 5px; display: inline-grid; place-items: center; color: var(--g-dim); font-size: 13px; flex: none; }
+.cost { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.cost i { font-style: normal; font: 500 12.5px/1.3 var(--body); background: #172238; border: 1px solid var(--g-line); border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.cost i.lack { border-color: rgba(236,106,92,.6); color: #ffb3a9; background: #2b1414; }
+.grp { font: 600 12px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--g-dim); margin: 2px 0 6px; }
+.panelbox { border: 1px solid var(--g-line); background: var(--g-bg2); border-radius: 8px; padding: 9px 11px; min-width: 0; }
+
+/* option 1: list */
+.o1 { display: grid; grid-template-columns: 300px 380px minmax(0, 1fr); gap: 14px; align-items: start; }
+.facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 7px 14px; }
+.facts .wide { grid-column: 1 / -1; }
+.rlist { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 10px; max-height: 176px; overflow: auto; padding-right: 6px; scrollbar-color: var(--g-orange) #0c1322; scrollbar-width: thin; }
+.more { font: 600 12px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--g-orange); margin-top: 6px; }
+.rrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; border: 1px solid var(--g-line); border-radius: 6px; padding: 5px 8px; background: #0c1322; }
+.rrow .n { font: 600 15px/1.15 var(--display); letter-spacing: .04em; }
+.rrow .s { font-size: 12.5px; color: var(--g-dim); }
+.rrow.queued { border-color: rgba(240,162,74,.6); }
+
+/* option 2: tabs */
+.o2 { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--g-line2); margin-bottom: 9px; }
+.tabs button { background: none; border: 0; border-bottom: 3px solid transparent; color: var(--g-dim); padding: 6px 14px 7px; cursor: pointer;
+  font: 600 15px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; }
+.tabs button[aria-selected="true"] { color: var(--g-ink); border-bottom-color: var(--g-orange); }
+.tiles { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+.tile { border: 1px solid var(--g-line); border-radius: 7px; background: #0c1322; padding: 7px 8px; display: grid; gap: 4px; align-content: start; min-height: 96px; position: relative; }
+.tile .top { display: flex; justify-content: space-between; align-items: center; }
+.tile .n { font: 600 15px/1.12 var(--display); letter-spacing: .03em; }
+.tile.queued { border-color: rgba(240,162,74,.7); }
+.tile .qb { position: absolute; top: -7px; right: -6px; }
+.qtable { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.qtable td { padding: 6px 8px; border-bottom: 1px solid var(--g-line); }
+.qtable td.r { text-align: right; }
+
+/* option 3: drawer */
+.drawer { position: absolute; left: 270px; right: 0; bottom: 100%; background: rgba(10,16,29,.97); border: 1px solid var(--g-line2); border-bottom: 0; border-radius: 10px 10px 0 0; padding: 12px 16px; }
+.drawer .cols { display: grid; grid-template-columns: 1.3fr 1.35fr 1.15fr 1fr; gap: 16px; }
+.dcard { border: 1px solid var(--g-line); border-radius: 8px; background: #0c1322; padding: 7px 9px; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.dcard .ic2 { width: 34px; height: 34px; border-radius: 6px; background: color-mix(in srgb, var(--c) 22%, #0c1322); border: 1px solid var(--c); display: grid; place-items: center; color: var(--c); font: 700 13px/1 var(--display); }
+.dcard .n { font: 600 15.5px/1.1 var(--display); letter-spacing: .03em; }
+.dstack { display: grid; gap: 5px; }
+.o3 { display: grid; grid-template-columns: 300px minmax(0, 1fr) 420px; gap: 16px; align-items: start; }
+
+/* option 4: side dock */
+.o4wrap { display: grid; grid-template-columns: minmax(0, 1fr) 400px; }
+.dock { background: var(--g-bg); border-left: 2px solid var(--g-orange); padding: 12px 14px; display: grid; gap: 10px; align-content: start; }
+.dock .sec { border-top: 1px solid var(--g-line); padding-top: 8px; display: grid; gap: 6px; }
+.drow { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 14.5px; }
+.o4bar { display: grid; grid-template-columns: 270px minmax(0, 1fr); background: var(--g-bg); border-top: 2px solid var(--g-orange); }
+
+/* option 5: icon grid */
+.o5 { display: grid; grid-template-columns: 300px 330px minmax(0, 1fr); gap: 14px; align-items: start; }
+.igrid { display: grid; grid-template-columns: repeat(7, 70px); gap: 7px; }
+.itile { width: 70px; height: 70px; border: 1px solid var(--g-line2); border-radius: 8px; background: #0c1322; display: grid; place-items: center; position: relative; cursor: default; }
+.itile .gl { width: 30px; height: 30px; border-radius: 6px; border: 1.5px solid var(--c); color: var(--c); display: grid; place-items: center; font: 700 12px/1 var(--display); }
+.itile .k { position: absolute; left: 4px; top: 3px; font: 600 11px/1 var(--display); color: var(--g-dim); }
+.itile .qb { position: absolute; right: -6px; top: -7px; }
+.itile .dot { position: absolute; right: 5px; bottom: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--g-red); }
+.itile .nm { position: absolute; left: 0; right: 0; bottom: 3px; text-align: center; font: 600 10.5px/1 var(--display); letter-spacing: .04em; color: var(--g-dim); }
+.itile[data-on="1"] { border-color: var(--g-orange); box-shadow: 0 0 0 1px var(--g-orange); }
+.tip { position: absolute; width: 300px; background: #0b1324; border: 1px solid var(--g-orange); border-radius: 8px; padding: 9px 11px; box-shadow: 0 10px 30px rgba(0,0,0,.6); z-index: 3; display: grid; gap: 5px; pointer-events: none; }
+.tip h4 { margin: 0; font: 600 18px/1.1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.stage { position: relative; }
+.cant { opacity: .5; filter: grayscale(.65); }
+.cant:hover, .cant:focus-visible { opacity: .7; }
+[data-card] { cursor: pointer; }
+[data-card]:focus-visible { outline: 2px solid var(--g-sky); outline-offset: 1px; }
+.cardback { position: absolute; inset: 0; background: rgba(3,6,12,.55); z-index: 5; }
+.rcard { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); width: 600px; z-index: 6; background: #0b1324; border: 1px solid var(--g-line2);
+  border-top: 4px solid var(--c); border-radius: 10px; padding: 16px 18px; display: grid; gap: 11px; color: var(--g-ink); box-shadow: 0 18px 50px rgba(0,0,0,.7); font: 400 15px/1.4 var(--body); }
+.rcard .hd { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.gfx { display: grid; place-items: center; line-height: 0; }
+.biggfx { display: block; line-height: 0; background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--c) 22%, #0b1324), #0b1324 70%); border-radius: 12px; }
+.rcard .big { width: 48px; height: 48px; border-radius: 9px; border: 1.5px solid var(--c); color: var(--c); display: grid; place-items: center; font: 700 17px/1 var(--display); background: color-mix(in srgb, var(--c) 15%, #0b1324); }
+.rcard h4 { margin: 0; font: 600 26px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.rcard .sub { color: var(--g-dim); font-size: 13.5px; }
+.rcard table { width: 100%; border-collapse: collapse; font-size: 14.5px; font-variant-numeric: tabular-nums; color: var(--g-ink); }
+.rcard th { text-align: left; font: 600 12px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--g-dim); padding: 0 8px 5px 0; }
+.rcard td { padding: 5px 8px 5px 0; border-top: 1px solid var(--g-line); }
+.rcard .num { text-align: right; }
+.rcard .stat { border-radius: 7px; padding: 8px 10px; font-size: 14.5px; }
+.rcard .stat.no { background: #2b1414; border: 1px solid rgba(236,106,92,.5); color: #ffc2ba; }
+.rcard .stat.yes { background: #13261a; border: 1px solid rgba(143,214,122,.5); color: #c8f1bc; }
+.rcard .btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.rcard .btn { border-radius: 6px; padding: 7px 14px; font: 600 15px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--g-orange); background: var(--g-orange); color: #160d02; cursor: pointer; }
+.rcard .btn.ghost { background: transparent; color: var(--g-ink); border-color: var(--g-line2); }
+.rcard .btn:disabled { background: #2a2f3c; border-color: #3a4152; color: #7d8598; cursor: not-allowed; }
+.rcard .link { color: var(--g-sky); text-decoration: underline; cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
+.rcard .close { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--g-line2); background: none; color: var(--g-dim); font-size: 16px; cursor: pointer; }
+.legend { display: flex; gap: 14px; font-size: 12.5px; color: var(--g-dim); margin-top: 8px; }
+</style>
+<style>
+/* additions for the Vehicle Bay and Research Lab panels (same HUD colours as the Machine Shop panel) */
+.vtiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
+.vtile { border: 1px solid var(--g-line); border-radius: 8px; background: #0c1322; overflow: hidden; display: grid; position: relative; }
+.vtile img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+.vtile .b { padding: 6px 9px 8px; display: grid; gap: 4px; }
+.vtile .n { font: 600 16px/1.1 var(--display); letter-spacing: .04em; }
+.vtile .m { font-size: 12.5px; color: var(--g-dim); }
+.vtile.queued { border-color: rgba(240,162,74,.7); }
+.vtile .qb { position: absolute; top: 6px; right: 6px; }
+.vtile .key { position: absolute; top: 6px; left: 6px; background: rgba(10,16,29,.85); }
+.prog { height: 6px; border-radius: 3px; background: #1a2438; overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--g-orange); }
+.tree { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 26px; position: relative; }
+.tcol { display: grid; gap: 8px; align-content: start; }
+.tcol h5 { margin: 0; font: 600 12px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--g-dim); }
+.tech { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 9px; align-items: center; border: 1px solid var(--g-line); border-radius: 8px; background: #0c1322; padding: 6px 9px 6px 6px; position: relative; }
+.tech img { width: 64px; height: 48px; object-fit: cover; border-radius: 5px; display: block; }
+.tech .n { font: 600 15.5px/1.12 var(--display); letter-spacing: .03em; }
+.tech .e { font-size: 12.5px; color: var(--g-dim); }
+.tech.done { border-color: rgba(143,214,122,.55); }
+.tech.active { border-color: var(--g-orange); box-shadow: 0 0 0 1px var(--g-orange); }
+.tech .st { font: 600 12px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; text-align: right; }
+.tech .req { position: absolute; left: -22px; top: 50%; width: 22px; border-top: 2px solid var(--g-line2); }
+.pill2 { font: 600 11px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; border: 1px solid currentColor; border-radius: 8px; padding: 2px 6px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.stats div { background: #111b30; border: 1px solid var(--g-line); border-radius: 6px; padding: 6px 8px; }
+.stats b { display: block; font: 600 18px/1.1 var(--display); }
+.stats span { font: 600 11px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--g-dim); }
+.rcard .hero { width: 100%; aspect-ratio: 16 / 7; object-fit: cover; border-radius: 8px; display: block; }
+.rcard.wide { width: 640px; }
+.effects { margin: 0; padding-left: 18px; color: var(--g-green); font-size: 14.5px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Mockup · bottom panel</span>
+    <h1>Vehicle Bay and Research Lab panels</h1>
+    <p>The tabbed layout you picked for the Machine Shop, applied to the other two buildings with lists. Same rules: nothing cut off, anything you can't do right now is greyed out, and clicking any tile opens its full card. Vehicles use their real renders; each research tech shows the building or vehicle it improves. Names, costs, times and effects are the game's real data.</p>
+  </header>
+  <nav class="jump" aria-label="Panels"><a href="#bay"><b>1</b>Vehicle Bay</a><a href="#lab"><b>2</b>Research Lab</a></nav>
+  <div id="panels"></div>
+  <section class="notes">
+    <h2>How these behave</h2>
+    <ul>
+      <li><b>Vehicle Bay.</b> Tabs Overview · Queue · Vehicles. A vehicle you can't afford is greyed out with the reason (here the Mk III Explorer: needs 80 tritanium, you have 63). Click a tile for its card; Ctrl+click or a number key orders one, Shift orders five, right-click cancels one, as in the Machine Shop.</li>
+      <li><b>Research Lab.</b> Tabs Overview · Tech tree · Done. Techs whose prerequisite isn't researched yet (here Automated Maintenance, which needs Preventive Maintenance) are greyed out with "needs …" and a line to the tech they wait on; finished techs show a green tick; the one being researched glows orange with its progress. Click any tech for its card; the card says what it changes in numbers and how long it takes at this lab's speed.</li>
+      <li><b>Situational techs</b> (Artifact Analysis, Xenomedicine) are marked, since they only matter with ruins.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const STOCK = { duranium: 412, tritanium: 63, crew: 40 };
+  const RES = { duranium: "Duranium", tritanium: "Tritanium" };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const icon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20h18M5 20V9l7-4 7 4v11M9 20v-6h6v6"/></svg>`;
+  // data/surfaces/units/*.json (Vehicle Bay produces)
+  const V = [
+    { id: "survey_rover", n: "Mk I Scout", kind: "Survey rover", key: "1", cost: { duranium: 60 }, t: 20, speed: 2, survey: 2, wheels: "4 · 1 spare",
+      d: "A light four-wheeled rover with a sensor puck on a whip antenna. It reveals the exact deposits around wherever it drives, and it's the cheapest way to find ground worth mining. Rough ground wears it down; below half integrity it drives slower, and at 0 it is disabled until it limps to a repair pad (R). Change a flat in the field with its spare (T)." },
+    { id: "survey_rover_mk2", n: "Mk II Surveyor", kind: "Survey rover", key: "2", cost: { duranium: 90, tritanium: 20 }, t: 30, speed: 2.2, survey: 3, wheels: "6 · 1 spare", q: 1,
+      d: "A six-wheeled rover with a spinning sensor dish. A little faster than the Scout, and it surveys a wider ring of ground around it, so it maps new land quicker." },
+    { id: "survey_rover_mk3", n: "Mk III Explorer", kind: "Survey rover", key: "3", cost: { duranium: 120, tritanium: 80 }, t: 45, speed: 2.6, survey: 4, wheels: "6 · 2 spares",
+      d: "A long six-wheeler on big tyres with a sensor turret. The fastest rover with the widest survey, for long trips far from your bases. The toughest rover: it wears slower, hazards hurt it less and its big tyres puncture less often." },
+    { id: "mining_crawler", n: "Mining Crawler", kind: "Mining vehicle", key: "4", cost: { duranium: 150, tritanium: 50 }, t: 45, speed: 1, survey: 1, wheels: "tracks", q: 1,
+      d: "A tracked mining rig that drives to a deposit anywhere on the map, unfurls and mines it. Each full hopper flies home as a cargo pod to your nearest storage. It can break down while mining and is repaired on the Colony Hub's pad." },
+    { id: "construction_rover", n: "Construction Rover", kind: "Builder", key: "5", cost: { duranium: 120, tritanium: 40 }, t: 50, speed: 1.7, survey: 1, wheels: "6 · 1 spare",
+      d: "A heavy six-wheeler that carries a folded Colony Hub on its back. Drive it to an open, surveyed site at least 8 tiles from your other bases and press FOUND OUTPOST: it unfolds its crane, lowers the panels, and its exocomps build a new Colony Hub around it. The rover is used up." },
+  ];
+  // data/surfaces/research.json
+  const T = [
+    { id: "improved_smelting", n: "Improved Smelting", cost: 60, req: [], fx: ["Refineries: +20% metal from the same ore"], done: true,
+      d: "Better furnace control and slag recovery pull more metal out of every load, so each crawler load goes further." },
+    { id: "preventive_maintenance", n: "Preventive Maintenance", cost: 60, req: [], fx: ["Every building wears 30% slower"],
+      d: "Inspection rounds and replacement schedules catch worn parts before they fail, so breakdowns are rarer and the crew is needed less often." },
+    { id: "ore_conveyors", n: "Ore Conveyors", cost: 80, req: [], fx: ["Mines, deep-core mines and refineries: 20% faster"], prog: 48,
+      d: "Automated conveyor lines move ore from the drill heads into storage and from storage into the smelters, without crews hauling it by hand." },
+    { id: "reinforced_drills", n: "Reinforced Drills", cost: 80, req: [], fx: ["Mining crawlers break down half as often"],
+      d: "Tougher drill strings, shock mounts and better cooling for the mining crawler's rig." },
+    { id: "deep_core_mining", n: "Deep-Core Mining", cost: 100, req: [], fx: ["Unlocks the Deep-Core Mine: reopens a used-up deposit once at half its size"],
+      d: "Drilling techniques that reach past the depleted upper layers of a deposit." },
+    { id: "alloy_metallurgy", n: "Alloy Metallurgy", cost: 100, req: ["improved_smelting"], fx: ["Alloy Foundries: 25% faster", "Alloy Foundries: +10% parasteel"],
+      d: "Refined alloy recipes and better crucibles for parasteel production." },
+    { id: "automated_maintenance", n: "Automated Maintenance", cost: 150, req: ["preventive_maintenance"], fx: ["Drones repair any building below 70% condition (still uses spare kits)"],
+      d: "Small maintenance drones patrol your bases and repair buildings without waiting for the crew." },
+    { id: "artifact_analysis", n: "Artifact Analysis", cost: 90, req: [], fx: ["Ruin defence systems found disarmed far more often", "One that fires does half the damage"], opt: true,
+      d: "Study of the dead species' machines from what the digs bring up." },
+    { id: "xenomedicine", n: "Xenomedicine", cost: 80, req: [], fx: ["A pathogen from a dig keeps the crew sick for a much shorter time"], opt: true,
+      d: "Field medicine for alien pathogens: isolation tents, broad-spectrum antivirals and biofilters." },
+  ];
+  // a lock for the demo: Alloy Metallurgy is open (smelting done); make Automated Maintenance wait on something not done
+  const TB = Object.fromEntries(T.map((x) => [x.id, x]));
+  const RATE = 16; // research points a minute at a Mk I lab
+  const clock = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+  const vshort = (v) => Object.entries(v.cost).filter(([k, n]) => (STOCK[k] ?? 0) < n);
+  const tlocked = (t) => t.req.filter((r) => !TB[r].done);
+  const chips = (cost) => `<span class="cost">${Object.entries(cost).map(([k, n]) => `<i class="${(STOCK[k] ?? 0) < n ? "lack" : ""}">${n} ${RES[k]}</i>`).join("")}</span>`;
+
+  let tabBay = "items", tabLab = "items", card = null;
+  const mini = `<div class="mini"><div class="t">Survey map</div><div class="map"></div><div class="k">Squares: bases · dots: vehicles · frame: view</div></div>`;
+  const tagline = `<div class="tagline"><span class="basechip">Dunmore Colony</span><span class="sp"></span><span class="navbtn">Inventory [I]</span></div>`;
+  const acts = (a) => `<div class="acts">${a.map(([k, v]) => `<div class="act">${k} <span>${v}</span></div>`).join("")}</div>`;
+  const tabs = (which, cur, list) => `<div class="tabs" role="tablist">${list.map(([id, l]) => `<button role="tab" data-tab="${which}:${id}" aria-selected="${cur === id}">${l}</button>`).join("")}</div>`;
+  const frame = (left, right) => `<div class="hud"><div class="world" style="height:${card ? 330 : 110}px"></div><div class="bar">${mini}<div style="min-width:0"><div style="padding:10px 14px 0">${tagline}</div>
+    <div class="main" style="display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px">${left}<div style="min-width:0">${right}</div></div></div></div></div>`;
+
+  function bay() {
+    const left = `<div><div class="bname"><div class="ic">${icon}</div><div><h3>Vehicle Bay</h3><small>Base 1</small></div></div>
+      <div class="status">Building Mk II Surveyor · 18 s left</div>${acts([["Maintain [M]", "92% condition"], ["Pause [P]", "stop orders; no power used"]])}</div>`;
+    const qd = V.filter((v) => v.q);
+    let body = "";
+    if (tabBay === "overview") body = `<div class="facts"><div><div class="lab">Making</div><div class="val">Mk II Surveyor · 40% · 18 s left</div></div>
+      <div><div class="lab">Crew · power</div><div class="val">Crewed · 6 power · full speed</div></div><div><div class="lab">Condition</div><div class="val ok">92% · wears while working</div></div>
+      <div><div class="lab">Queue</div><div class="val">2 of 5 slots used</div></div>
+      <div class="wide"><div class="lab">Roll-out</div><div class="val">New vehicles drive out of the door onto the apron and wait for orders.</div></div></div>`;
+    if (tabBay === "queue") body = `<table class="qtable"><tbody>${qd.map((v, i) => `<tr><td>${i + 1}</td><td><b>${esc(v.n)}</b>${i === 0 ? `<div class="prog" style="margin-top:4px;width:180px"><i style="width:40%"></i></div>` : ""}</td><td>${chips(v.cost)} <span class="dim" style="font-size:12.5px">paid</span></td><td>${i === 0 ? "40% · 18 s left" : `waiting · ${v.t} s`}</td><td class="r"><span class="x">×</span></td></tr>`).join("")}</tbody></table>
+      <p class="dim" style="margin:8px 0 0;font-size:13.5px">Cancelling refunds the cost in full.</p>`;
+    if (tabBay === "items") body = `<div class="vtiles">${V.map((v) => `<div class="vtile ${v.q ? "queued" : ""} ${vshort(v).length ? "cant" : ""}" data-card="v:${v.id}" tabindex="0">
+      <img src="img/${v.id}.jpg" alt=""><span class="key">${v.key}</span>${v.q ? `<span class="qb qbadge">×${v.q}</span>` : ""}
+      <div class="b"><span class="n">${esc(v.n)}</span>${chips(v.cost)}<span class="m">${v.t} s · speed ${v.speed} · survey ${v.survey}</span></div></div>`).join("")}</div>`;
+    return frame(left, tabs("bay", tabBay, [["overview", "Overview"], ["queue", `Queue · ${qd.length}`], ["items", `Vehicles · ${V.length}`]]) + body);
+  }
+
+  function lab() {
+    const act = T.find((t) => t.prog != null);
+    const left = `<div><div class="bname"><div class="ic">${icon}</div><div><h3>Research Lab</h3><small>Base 1</small></div></div>
+      <div class="status" style="color:var(--g-ink)">Researching ${esc(act.n)} · ${act.prog}/${act.cost} · ${clock((act.cost - act.prog) / RATE * 60)} left</div>
+      <div class="prog" style="margin:0 0 8px"><i style="width:${act.prog / act.cost * 100}%"></i></div>${acts([["Maintain [M]", "in perfect condition"], ["Pause [P]", "stop research; no power used"]])}</div>`;
+    let body = "";
+    const tile = (t) => {
+      const lk = tlocked(t), st = t.done ? `<span class="st ok">✓ Done</span>` : t.prog != null ? `<span class="st" style="color:var(--g-orange)">${Math.round(t.prog / t.cost * 100)}%</span>` : lk.length ? `<span class="st red">Locked</span>` : `<span class="st dim">${t.cost} pts</span>`;
+      return `<div class="tech ${t.done ? "done" : ""} ${t.prog != null ? "active" : ""} ${lk.length ? "cant" : ""}" data-card="t:${t.id}" tabindex="0">${t.req.length ? `<span class="req"></span>` : ""}
+        <img src="img/${t.id}.jpg" alt=""><span style="min-width:0"><span class="n">${esc(t.n)}</span>${t.opt ? ` <span class="pill2 dim">ruins</span>` : ""}<br><span class="e">${lk.length ? `<span class="red">needs ${lk.map((r) => esc(TB[r].n)).join(", ")}</span>` : esc(t.fx[0])}</span></span>${st}</div>`;
+    };
+    if (tabLab === "overview") body = `<div class="facts"><div><div class="lab">Researching</div><div class="val">${esc(act.n)} · ${act.prog}/${act.cost} points</div></div>
+      <div><div class="lab">Speed</div><div class="val">${RATE} points a minute · ${clock((act.cost - act.prog) / RATE * 60)} left</div></div>
+      <div><div class="lab">Done</div><div class="val ok">${T.filter((t) => t.done).length} of ${T.length} · ${T.filter((t) => t.done).map((t) => esc(t.n)).join(", ")}</div></div>
+      <div><div class="lab">Crew · power</div><div class="val">Crewed · 8 power · full speed</div></div>
+      <div class="wide"><div class="lab">On finishing</div><div class="val">The lab waits for you to pick the next tech (the tree tab opens and the event feed says so).</div></div></div>`;
+    if (tabLab === "items") {
+      const roots = T.filter((t) => !t.req.length && !t.opt), kids = T.filter((t) => t.req.length), opts = T.filter((t) => t.opt);
+      body = `<div class="tree"><div class="tcol"><h5>Start here</h5>${roots.map(tile).join("")}</div><div class="tcol"><h5>Needs an earlier tech</h5>${kids.map(tile).join("")}</div><div class="tcol"><h5>Situational · ruins</h5>${opts.map(tile).join("")}</div></div>`;
+    }
+    if (tabLab === "done") body = `<div class="tree" style="grid-template-columns:repeat(2,minmax(0,1fr))">${T.filter((t) => t.done).map(tile).join("")}</div>`;
+    return frame(left, tabs("lab", tabLab, [["overview", "Overview"], ["items", `Tech tree · ${T.length}`], ["done", `Done · ${T.filter((t) => t.done).length}`]]) + body);
+  }
+
+  function cardHtml() {
+    if (!card) return "";
+    const [kind, id] = card.id.split(":");
+    if (kind === "v") {
+      const v = V.find((x) => x.id === id), miss = vshort(v);
+      return `<div class="cardback" data-close="1"></div><div class="rcard wide" style="--c:var(--g-sky)" role="dialog" aria-label="${esc(v.n)}">
+        <img class="hero" src="img/${v.id}.jpg" alt="">
+        <div class="hd" style="grid-template-columns:minmax(0,1fr) auto"><div><h4>${esc(v.n)}</h4><div class="sub">${v.kind} · hotkey ${v.key} · assembles in ${v.t} s</div></div><button class="close" data-close="1" aria-label="Close">×</button></div>
+        ${miss.length ? `<div class="stat no"><b>Can't build yet.</b> Missing ${miss.map(([k, n]) => `${n - (STOCK[k] ?? 0)} ${RES[k]}`).join(" and ")} (refine more ore, or wait for the crawlers).</div>` : `<div class="stat yes"><b>Can build now.</b> Paid when you order it; refunded if you cancel.</div>`}
+        <div class="stats"><div><b>${v.speed}</b><span>Speed</span></div><div><b>${v.survey}</b><span>Survey radius</span></div><div><b>${v.wheels}</b><span>Wheels</span></div><div><b>${v.t} s</b><span>Build time</span></div></div>
+        <table><thead><tr><th>Costs</th><th class="num">Each</th><th class="num">You have</th></tr></thead><tbody>${Object.entries(v.cost).map(([k, n]) => `<tr><td>${RES[k]}</td><td class="num">${n}</td><td class="num ${(STOCK[k] ?? 0) < n ? "red" : "ok"}">${STOCK[k]}</td></tr>`).join("")}</tbody></table>
+        <div style="font-size:15px">${esc(v.d)}</div>
+        <div class="btns"><button class="btn" ${miss.length ? "disabled" : ""}>Build one [Enter]</button><button class="btn ghost" ${miss.length ? "disabled" : ""}>Build 5 [Shift+Enter]</button><button class="btn ghost" data-close="1">Close [Esc]</button></div></div>`;
+    }
+    const t = TB[id], lk = tlocked(t), left = t.cost - (t.prog || 0);
+    const status = t.done ? `<div class="stat yes"><b>Researched.</b> Its effects are on for every building it touches.</div>`
+      : t.prog != null ? `<div class="stat yes" style="border-color:rgba(240,162,74,.6);background:#2a1d0e;color:#ffd9a8"><b>Researching now:</b> ${t.prog} of ${t.cost} points · ${clock(left / RATE * 60)} left.</div>`
+      : lk.length ? `<div class="stat no"><b>Locked.</b> Research ${lk.map((r) => `<button class="link" data-card="t:${r}">${esc(TB[r].n)}</button>`).join(" and ")} first.</div>`
+      : `<div class="stat yes"><b>Can research now.</b> ${t.cost} points · about ${clock(t.cost / RATE * 60)} at this lab.</div>`;
+    return `<div class="cardback" data-close="1"></div><div class="rcard wide" style="--c:var(--g-green)" role="dialog" aria-label="${esc(t.n)}">
+      <img class="hero" src="img/${t.id}.jpg" alt="">
+      <div class="hd" style="grid-template-columns:minmax(0,1fr) auto"><div><h4>${esc(t.n)}</h4><div class="sub">Surface research · ${t.cost} points${t.req.length ? ` · needs ${t.req.map((r) => TB[r].n).join(", ")}` : ""}${t.opt ? " · situational (ruins)" : ""}</div></div><button class="close" data-close="1" aria-label="Close">×</button></div>
+      ${status}<div><div class="lab" style="margin-bottom:4px">What it does</div><ul class="effects">${t.fx.map((f) => `<li>${esc(f)}</li>`).join("")}</ul></div>
+      <div style="font-size:15px">${esc(t.d)}</div>
+      <div class="btns">${t.done ? "" : `<button class="btn" ${lk.length || t.prog != null ? "disabled" : ""}>${t.prog != null ? "Researching" : lk.length ? "Locked" : "Research this [Enter]"}</button>`}<button class="btn ghost" data-close="1">Close [Esc]</button></div></div>`;
+  }
+
+  const host = document.getElementById("panels");
+  function render() {
+    const P = [["bay", "Vehicle Bay", "Tabs Overview · Queue · Vehicles. The tiles show each vehicle's render, cost, time, speed and survey radius; the Mk III Explorer is greyed out (needs 80 tritanium, you have 63). Click any tile for its card.", bay],
+               ["lab", "Research Lab", "Tabs Overview · Tech tree · Done. The tree has three columns: start-here techs, techs that need an earlier one (greyed with \"needs …\" until then), and the ruins-only ones. Done techs are ticked; the active one glows with its progress. Click any tech for its card.", lab]];
+    host.innerHTML = P.map(([id, n, d, f], i) => `<section class="opt" id="${id}"><h2><b>${i + 1}</b>${n}</h2><p>${d}</p><div class="fit"><div class="stage">${f()}${card && card.opt === id ? cardHtml() : ""}</div></div></section>`).join("");
+    fit();
+  }
+  function fit() {
+    document.querySelectorAll(".fit").forEach((f) => { const st = f.firstElementChild, s = Math.min(1, f.clientWidth / 1600); st.style.transform = `scale(${s})`; f.style.height = st.scrollHeight * s + "px"; });
+  }
+  addEventListener("resize", fit);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && card) { card = null; render(); } if (e.key === "Enter" && e.target.dataset && e.target.dataset.card) e.target.click(); });
+  document.addEventListener("click", (e) => {
+    const c = e.target.closest("[data-close],[data-card],[data-tab]"); if (!c) return;
+    if (c.dataset.tab) { const [w, t] = c.dataset.tab.split(":"); if (w === "bay") tabBay = t; else tabLab = t; }
+    else if (c.dataset.close) card = null;
+    else card = { opt: c.closest("section.opt").id, id: c.dataset.card };
+    render();
+  });
+  render();
+  if (document.fonts) document.fonts.ready.then(fit);
+})();
+</script>
