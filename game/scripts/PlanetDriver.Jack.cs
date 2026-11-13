@@ -17,13 +17,17 @@ public partial class PlanetDriver
     private Label _jackTitle = null!, _jackSub = null!;
     private ColorRect _jackEdge = null!;
 
+    /// <summary>The automatic raid a minute after landing. Off since owner 2026-11-13 ("stop jack from attacking our base
+    /// for now"); flip to true to bring it back. F9 › MAP › SUMMON JACK still starts one on demand.</summary>
+    private const bool JackRaidsEveryGame = false;
+
     private void UpdateJackUi(double delta)
     {
         if (_sim.Surface is not { } s) return;
         if (!_jackOn)
         {
             _jackOn = true;
-            s.JackEnabled = true; // a joke for Craig: every game (owner 2026-11-11)
+            s.JackEnabled = JackRaidsEveryGame; // was on for every game as a joke for Craig (owner 2026-11-11)
         }
         JackFeed(s);
         JackBanner(s);
