@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using FinalFrontier.Sim.Core;
 using FinalFrontier.Sim.Data;
 using FinalFrontier.Sim.Space;
 using FinalFrontier.Sim.Surface;
@@ -12,6 +13,9 @@ namespace FinalFrontier;
 // clickable for a card (class, gravity, habitability tier, map size, RECOMMENDED for the easiest); the others say why
 // they can't be landed on. LAND HERE → GameSetup.StartCampaign → Planet.tscn, where PlanetDriver starts
 // MatchSetup.CreateSystemGame on that seed and body (same data setup as here, so the same system).
+// The ship picked before (MainMenu.ShipPick.cs, docs/ship-pick-contract.md C2) decides the page: a colony ship as above;
+// any other ship never lands, so every body (gas giants and belts too) is a start orbit and the button is BEGIN MISSION.
+// A diplomacy ship (Meridian) only gets systems with a living civilization (MatchSetup.HasLivingCivilization).
 // With tutorial hints on, three TutorialCards explain the screen (once per run, unless left half-way).
 public partial class MainMenu
 {
@@ -28,10 +32,41 @@ public partial class MainMenu
     private int _tutorialStep = -1;
     private Rect2 _tutorialAnchor;
 
+    /// <summary>The picked ship lands a colony (or no ship was picked: the old start).</summary>
+    private bool Colonizer => PickedShip is not { Colonizes: false };
+
+    /// <summary>The picked ship wants a system with a living civilization (Meridian, role diplomacy).</summary>
+    private bool NeedsCivilization => PickedShip is { Role: "diplomacy" };
+
+    private static ulong RandomSeed() => (((ulong)GD.Randi() << 32) | GD.Randi()) % 999_999UL + 1UL;
+
+    /// <summary>A seed for the picker: random, and for a diplomacy ship rerolled until the system has a living
+    /// civilization (up to 64 tries; the last one is kept if none has, with a warning).</summary>
+    private ulong PickSeed(GameData? data)
+    {
+        var seed = RandomSeed();
+        if (data == null || !NeedsCivilization) return seed;
+        for (var i = 0; i < 64; i++)
+        {
+            try
+            {
+                if (MatchSetup.HasLivingCivilization(data, seed)) return seed;
+            }
+            catch (System.Exception e)
+            {
+                GD.PushWarning($"Main menu: civilization check failed for seed {seed}: {e.Message}");
+                return seed;
+            }
+            seed = RandomSeed();
+        }
+        GD.PushWarning("Main menu: no system with a living civilization in 64 tries; showing one without");
+        return seed;
+    }
+
     /// <summary>A new system for the picker (on entering it and on REROLL).</summary>
     private void Roll()
     {
-        _pickSeed = (((ulong)GD.Randi() << 32) | GD.Randi()) % 999_999UL + 1UL;
+        _pickSeed = PickSeed(Data);
         _system = null;
         _picked = null;
         _recommended = null;
@@ -71,6 +106,9 @@ public partial class MainMenu
     private bool Landable(string? id) =>
         id != null && Data is { } data && _system?.Body(id) is { } b && data.IsLandableClass(b.ClassId);
 
+    /// <summary>The body can be the start: a landable world for a colony ship, any body for the others.</summary>
+    private bool Pickable(string? id) => Colonizer ? Landable(id) : id != null && _system?.Body(id) != null;
+
     private Control BuildPickerPage()
     {
         var (root, column) = NewPage(0.42f, 40f);
@@ -87,8 +125,13 @@ public partial class MainMenu
         var planets = sys.Bodies.Count(x => x.Parent == null);
         var moons = sys.Bodies.Count - planets;
         var landable = sys.Landable(data).Count;
-        Header(column, "DAWN OF WARP  ·  2063  ·  CHOOSE A STARTING POINT", $"{sys.Star.Name.ToUpperInvariant()} SYSTEM",
-            $"Class {sys.Star.Class} star  ·  {planets} planets and belts  ·  {moons} moons  ·  {landable} landable  ·  seed {_pickSeed}");
+        var ship = PickedShip;
+        var eyebrow = ship == null ? "DAWN OF WARP  ·  2063  ·  CHOOSE A STARTING POINT"
+            : $"DAWN OF WARP  ·  2063  ·  {ship.Name.ToUpperInvariant()}  ·  {(ship.Colonizes ? "CHOOSE A WORLD TO LAND ON" : "CHOOSE A START ORBIT")}";
+        var sub = $"Class {sys.Star.Class} star  ·  {planets} planets and belts  ·  {moons} moons  ·  " +
+                  (Colonizer ? $"{landable} landable" : "your ship never lands: any body will do") +
+                  (NeedsCivilization ? "  ·  a living civilization" : "") + $"  ·  seed {_pickSeed}";
+        Header(column, eyebrow, $"{sys.Star.Name.ToUpperInvariant()} SYSTEM", sub);
 
         var main = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsVertical = Control.SizeFlags.ExpandFill };
         main.AddThemeConstantOverride("separation", Mathf.RoundToInt(12 * _s));
@@ -98,8 +141,8 @@ public partial class MainMenu
         mapBox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         mapBox.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
         main.AddChild(mapBox);
-        _map = new SystemMap { Name = "SystemMap", Scale1 = _s };
-        _map.Setup(data, sys, _recommended);
+        _map = new SystemMap { Name = "SystemMap", Scale1 = _s, AnyBody = !Colonizer };
+        _map.Setup(data, sys, Colonizer ? _recommended : null);
         _map.Selected = _picked;
         _map.BodyPicked += PickBody;
         mapBox.AddChild(_map);
@@ -114,20 +157,20 @@ public partial class MainMenu
         scroll.AddChild(_card);
 
         var bar = BottomBar(column);
-        bar.AddChild(Action("‹  BACK", false, () => ShowPage(Page.Era)));
+        bar.AddChild(Action("‹  BACK", false, () => ShowPage(BeforeSystem)));
         bar.AddChild(Spacer());
-        var hint = HudKit.Label("Click a world ringed in amber  ·  Esc: back", 13 * _s, HudKit.Dim);
+        var hint = HudKit.Label(Colonizer ? "Click a world ringed in amber  ·  Esc: back" : "Click any body: your ship starts in orbit there  ·  Esc: back", 13 * _s, HudKit.Dim);
         hint.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
         bar.AddChild(hint);
         var reroll = Action("REROLL", false, () =>
         {
             Roll();
             _dirty = true; // rebuilt next frame (this button goes with the page)
-            if (_tutorialStep == 2 && !Landable(_picked)) ShowTutorialStep(1); // the new system needs a pick again
+            if (_tutorialStep == 2 && !Pickable(_picked)) ShowTutorialStep(1); // the new system needs a pick again
         }, 130f);
-        reroll.TooltipText = "Chart another star system";
+        reroll.TooltipText = NeedsCivilization ? "Chart another star system with a living civilization" : "Chart another star system";
         bar.AddChild(reroll);
-        _landButton = Action("LAND HERE  ›", true, Land, 190f);
+        _landButton = Action(Colonizer ? "LAND HERE  ›" : "BEGIN MISSION  ›", true, Land, 190f);
         Sfx.Tag(_landButton, "confirm");
         bar.AddChild(_landButton);
         return root;
@@ -145,14 +188,17 @@ public partial class MainMenu
         _picked = id;
         if (_map != null) _map.Selected = id;
         _cardDirty = true; // next frame: the card's own buttons may be what was pressed
-        if (_tutorialStep == 1 && Landable(id)) ShowTutorialStep(2);
+        if (_tutorialStep == 1 && Pickable(id)) ShowTutorialStep(2);
     }
 
+    /// <summary>LAND HERE / BEGIN MISSION: the campaign start with the ship's pick and chain (6-argument start), or the
+    /// old start when the data has no ships.</summary>
     private void Land()
     {
-        if (!Landable(_picked)) return;
+        if (!Pickable(_picked)) return;
         CloseTutorial();
-        GameSetup.StartCampaign(CampaignFaction, CampaignEra, _pickSeed, _picked!);
+        if (PickedShip is { } ship) GameSetup.StartCampaign(CampaignFaction, CampaignEra, _pickSeed, _picked!, ship.Id, ship.Chain);
+        else GameSetup.StartCampaign(CampaignFaction, CampaignEra, _pickSeed, _picked!);
         GetTree().ChangeSceneToFile(GameSetup.PlanetScene);
     }
 
@@ -172,8 +218,9 @@ public partial class MainMenu
         HudKit.Clear(_card);
         if (_landButton != null)
         {
-            _landButton.Disabled = !Landable(_picked);
-            _landButton.TooltipText = _landButton.Disabled ? "Pick a world you can land on first" : $"Start the campaign in orbit of {sys.Body(_picked!)?.Name}";
+            _landButton.Disabled = !Pickable(_picked);
+            _landButton.TooltipText = _landButton.Disabled ? (Colonizer ? "Pick a world you can land on first" : "Pick a body to start in orbit of first")
+                : $"Start the campaign in orbit of {sys.Body(_picked!)?.Name}";
         }
         var body = _picked != null ? sys.Body(_picked) : null;
         if (body == null)
@@ -183,11 +230,13 @@ public partial class MainMenu
         }
 
         var landable = data.IsLandableClass(body.ClassId);
-        var recommended = body.Id == _recommended;
+        var recommended = Colonizer && body.Id == _recommended;
         _card.AddChild(HudKit.Label(body.Name.ToUpperInvariant(), 26 * _s, HudKit.Ink, condensed: true, bold: true));
-        _card.AddChild(HudKit.Label(ClassTitle(data, body.ClassId), 14 * _s, landable ? HudKit.Accent : HudKit.Dim, condensed: true, bold: true));
-        _card.AddChild(Tag(recommended ? "RECOMMENDED START" : landable ? "LANDABLE" : "NO LANDING",
-            recommended ? HudKit.Good : landable ? HudKit.Sky : HudKit.Warn));
+        _card.AddChild(HudKit.Label(ClassTitle(data, body.ClassId), 14 * _s, landable || !Colonizer ? HudKit.Accent : HudKit.Dim, condensed: true, bold: true));
+        if (Colonizer)
+            _card.AddChild(Tag(recommended ? "RECOMMENDED START" : landable ? "LANDABLE" : "NO LANDING",
+                recommended ? HudKit.Good : landable ? HudKit.Sky : HudKit.Warn));
+        else _card.AddChild(Tag("START ORBIT", HudKit.Sky));
 
         var rows = new List<(string, string)>();
         if (landable)
@@ -210,10 +259,10 @@ public partial class MainMenu
         if (body.Parent == null && moonCount > 0) rows.Add(("MOONS", moonCount.ToString()));
         _card.AddChild(Rows(rows));
 
-        var text = HudKit.Label(landable ? TierText(Tier(data, body.ClassId)) : WhyNot(data, body), 14 * _s, HudKit.Ink);
+        var text = HudKit.Label(!Colonizer ? OrbitText(body) : landable ? TierText(Tier(data, body.ClassId)) : WhyNot(data, body), 14 * _s, HudKit.Ink);
         text.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _card.AddChild(text);
-        if (landable && !recommended && _recommended != null && sys.Body(_recommended) is { } easy)
+        if (Colonizer && landable && !recommended && _recommended != null && sys.Body(_recommended) is { } easy)
         {
             var l = HudKit.Label($"Easier start: {easy.Name}.", 13 * _s, HudKit.Dim);
             l.AutowrapMode = TextServer.AutowrapMode.WordSmart;
@@ -230,9 +279,37 @@ public partial class MainMenu
         _card.AddChild(back);
     }
 
-    /// <summary>Nothing picked: what to do, and a button per landable world.</summary>
+    /// <summary>A non-colonizer's card text: it starts in orbit here and never lands.</summary>
+    private string OrbitText(BodyDef body)
+    {
+        var name = PickedShip?.Name ?? "ship";
+        var what = SystemPlot.IsRocks(body.ClassId) ? "on station at the belt" : $"in standard orbit of {body.Name}";
+        return $"The {name} begins its mission {what}. It never lands: everything happens from orbit, on the helm's system display.";
+    }
+
+    /// <summary>Nothing picked: what to do, and a button per landable world (a ship that doesn't land: every planet).</summary>
     private void Overview(GameData data, GeneratedSystem sys)
     {
+        if (!Colonizer)
+        {
+            _card!.AddChild(HudKit.Label("PICK A START ORBIT", 24 * _s, HudKit.Ink, condensed: true, bold: true));
+            var lead = HudKit.Label($"The {PickedShip?.Name ?? "ship"} never lands, so any body will do: planets, moons, gas giants, belts. Click one on the plot, or pick a planet here.", 14 * _s, HudKit.Dim);
+            lead.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            _card.AddChild(lead);
+            foreach (var b in sys.Bodies.Where(x => x.Parent == null))
+            {
+                var button = new Button { FocusMode = Control.FocusModeEnum.None, Alignment = HorizontalAlignment.Left, ClipText = true };
+                HudKit.StyleTile(button, 6 * _s, 8 * _s);
+                button.AddThemeFontOverride("font", HudKit.Condensed(true));
+                button.AddThemeFontSizeOverride("font_size", Mathf.RoundToInt(15 * _s));
+                button.AddThemeColorOverride("font_color", HudKit.Ink);
+                button.Text = $"{b.Name.ToUpperInvariant()}   {ShortClass(data, b.ClassId)}";
+                var bid = b.Id;
+                button.Pressed += () => PickBody(bid);
+                _card.AddChild(button);
+            }
+            return;
+        }
         _card!.AddChild(HudKit.Label("PICK A WORLD", 24 * _s, HudKit.Ink, condensed: true, bold: true));
         var intro = HudKit.Label("Worlds ringed in amber have ground a colony can stand on. Click any body on the plot to read about it.", 14 * _s, HudKit.Dim);
         intro.AutowrapMode = TextServer.AutowrapMode.WordSmart;
@@ -330,7 +407,7 @@ public partial class MainMenu
 
     // ---------------------------------------------------------------- tutorial
 
-    private TutorialStep TutorialStepFor(int step) => step switch
+    private TutorialStep TutorialStepFor(int step) => !Colonizer ? SpaceTutorialStepFor(step) : step switch
     {
         0 => new TutorialStep("menu_system", "A STAR SYSTEM",
             "Before you can build, you need somewhere to land. This is a newly charted star system: its star in the middle, planets on their orbits, moons beside them. Every visit charts a new one.",
@@ -340,6 +417,21 @@ public partial class MainMenu
             "2 / 3", _tutorialAnchor, null),
         _ => new TutorialStep("menu_land", "PICK YOUR STARTING POINT",
             "The card shows the world's class, its gravity and what your crews need to breathe. RECOMMENDED marks the easiest start. Press LAND HERE to begin, or REROLL for another system.",
+            "3 / 3", _tutorialAnchor, "GOT IT"),
+    };
+
+    /// <summary>The picker's cards for a ship that never lands.</summary>
+    private TutorialStep SpaceTutorialStepFor(int step) => step switch
+    {
+        0 => new TutorialStep("menu_system", "A STAR SYSTEM",
+            "This is a newly charted star system: its star in the middle, planets on their orbits, moons beside them. Every visit charts a new one." +
+            (NeedsCivilization ? " Your envoy ship only gets systems where someone lives." : ""),
+            "1 / 3", _tutorialAnchor, "GOT IT"),
+        1 => new TutorialStep("menu_landable", "PICK WHERE YOU START",
+            $"The {PickedShip?.Name ?? "ship"} never lands, so any body can be your start orbit: a planet, a moon, a gas giant or a belt. Click one to read its card.",
+            "2 / 3", _tutorialAnchor, null),
+        _ => new TutorialStep("menu_land", "BEGIN THE MISSION",
+            "The card shows what the sensors know of the body. Press BEGIN MISSION to start in orbit there, or REROLL for another system.",
             "3 / 3", _tutorialAnchor, "GOT IT"),
     };
 
@@ -369,7 +461,7 @@ public partial class MainMenu
         {
             case 0:
                 // Already picked a landable world (hints were turned on after the roll)? Then straight to the last card.
-                ShowTutorialStep(Landable(_picked) ? 2 : 1);
+                ShowTutorialStep(Pickable(_picked) ? 2 : 1);
                 break;
             case 1:
                 ShowTutorialStep(2);
@@ -411,7 +503,8 @@ public partial class MainMenu
             case 0:
                 return _map.GetGlobalRect();
             case 1:
-                var target = _recommended ?? (Data is { } d ? _system?.Landable(d).FirstOrDefault()?.Id : null);
+                var target = !Colonizer ? _picked ?? _system?.Bodies.FirstOrDefault(b => b.Parent == null)?.Id
+                    : _recommended ?? (Data is { } d ? _system?.Landable(d).FirstOrDefault()?.Id : null);
                 return target != null && _map.BodyRect(target) is { } r ? r : _map.GetGlobalRect();
             default:
                 return _landButton != null && _landButton.IsInsideTree() ? _landButton.GetGlobalRect() : new Rect2();
@@ -449,6 +542,9 @@ public partial class SystemMap : Control
 
     public string? Selected { get; set; }
 
+    /// <summary>Every body is a start (a ship that never lands): no amber landing rings.</summary>
+    public bool AnyBody { get; set; }
+
     public event System.Action<string>? BodyPicked;
 
     private static readonly Color Amber = HudKit.Accent;
@@ -470,7 +566,7 @@ public partial class SystemMap : Control
         QueueRedraw();
     }
 
-    private bool IsLandable(BodyDef b) => _data != null && _data.IsLandableClass(b.ClassId);
+    private bool IsLandable(BodyDef b) => !AnyBody && _data != null && _data.IsLandableClass(b.ClassId);
 
     private float _scale = 1f;
     private Vector2 _centre;

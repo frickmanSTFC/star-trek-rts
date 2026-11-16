@@ -8,13 +8,13 @@ namespace FinalFrontier;
 /// The main menu (scenes/MainMenu.tscn, the main scene; docs/menu-contract.md A). A slowly turning planet over a
 /// starfield behind code-built screens in the HUD's look (HudKit): the title (CAMPAIGN, MULTIPLAYER locked, SETTINGS,
 /// DEBUG, QUIT), then for the campaign the faction screen (MainMenu.Campaign.cs: seven great powers, only the
-/// Federation open), the era screen (only Dawn of Warp open) and the star-system picker (MainMenu.SystemPick.cs: LAND
-/// HERE → GameSetup.StartCampaign → Planet.tscn). DEBUG = GameSetup.StartDebug → Planet.tscn, the sandbox as before.
+/// Federation open), the era screen (only Dawn of Warp open), the ship pick (MainMenu.ShipPick.cs) and the star-system
+/// picker (MainMenu.SystemPick.cs: LAND HERE / BEGIN MISSION → GameSetup.StartCampaign → Planet.tscn). DEBUG = GameSetup.StartDebug → Planet.tscn, the sandbox as before.
 /// Each screen is rebuilt when shown and when the window's UI scale changes; Esc goes back one screen.
 /// </summary>
 public partial class MainMenu : Node3D
 {
-    private enum Page { Title, Faction, Era, System, Settings }
+    private enum Page { Title, Faction, Era, Ship, System, Settings }
 
     private Page _page = Page.Title;
     private Page _settingsBack = Page.Title;
@@ -126,12 +126,18 @@ public partial class MainMenu : Node3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (_page == Page.Ship && @event is InputEventKey { Pressed: true } shipKey && ShipKey(shipKey.Keycode, shipKey.Echo))
+        {
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }) return;
         switch (_page)
         {
             case Page.Faction: ShowPage(Page.Title); break;
             case Page.Era: ShowPage(Page.Faction); break;
-            case Page.System: ShowPage(Page.Era); break;
+            case Page.Ship: ShowPage(Page.Era); break;
+            case Page.System: ShowPage(BeforeSystem); break;
             case Page.Settings: ShowPage(_settingsBack); break;
             default: return;
         }
@@ -170,6 +176,7 @@ public partial class MainMenu : Node3D
         {
             Page.Faction => BuildFactionPage(),
             Page.Era => BuildEraPage(),
+            Page.Ship => BuildShipPage(),
             Page.System => BuildPickerPage(),
             Page.Settings => BuildSettingsPage(),
             _ => BuildTitlePage(),
