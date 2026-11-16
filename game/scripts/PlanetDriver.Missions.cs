@@ -440,7 +440,13 @@ public partial class PlanetDriver
                     tile = s.Tile;
                     break;
                 }
-        if (tile < 0 || tile >= Surface.Map.Grid.Count) return false;
+        if (tile < 0 || tile >= Surface.Map.Grid.Count)
+        {
+            // A ship that never lands: its markers are on the system plot (PlanetDriver.ShipPick.cs).
+            if (!LocateSpaceMarker()) return false;
+            if (_missionLog.IsOpen) _missionLog.Close();
+            return true;
+        }
         if (_missionLog.IsOpen) _missionLog.Close();
         if (_inOrbit)
         {

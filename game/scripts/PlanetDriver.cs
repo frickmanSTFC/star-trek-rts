@@ -251,8 +251,12 @@ public partial class PlanetDriver : Node3D, ITestHost
             _test.Setup(this);
         }
         EnterOrbit();
-        _orbitAction = "land";
-        _info = "orbit:land";
+        if (SpaceShip) BeginSpaceStart(); // a ship that never lands: the SYSTEM display, nothing armed (PlanetDriver.ShipPick.cs)
+        else
+        {
+            _orbitAction = "land";
+            _info = "orbit:land";
+        }
         foreach (var m in dataMessages) _hud.PushEvent($"Data refused: {m}", new Color(1f, 0.45f, 0.4f));
         BeginTutorial(); // the guided start when GameSetup.Tutorial is on (PlanetDriver.Tutorial.cs)
         SetupDebug(); // F8 debug overlay: frame time, rendering, memory, sim, cursor, selection, world draws (PlanetDriver.Debug.cs)
@@ -273,6 +277,8 @@ public partial class PlanetDriver : Node3D, ITestHost
             var payloads = orbit.TransporterLevels.SelectMany(l => l.Payloads).Distinct().ToList();
             foreach (var pl in payloads) list.Add(($"orbit:beam:{pl}", pl == OrbitRules.Supplies ? "Beam Supplies" : $"Beam: {ShortUnit(pl)}"));
         }
+        // A ship that never lands has no landing, outpost, drop ship or beam cards (PlanetDriver.ShipPick.cs).
+        if (SpaceShip) list.RemoveAll(c => IsColonyCard(c.Item1[6..]));
         return list;
     }
 
@@ -366,6 +372,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private string? OrbitProblem(string action, int tile)
     {
         if (tile < 0) return "pick a spot on the planet";
+        if (IsColonyCard(action) && _sim.ColonizeProblem(LocalPlayer) is { } noColony) return noColony; // a ship that never lands
         if (action == "land") return Surface.LandProblem(_sim, LocalPlayer, tile); // incl. "a storm over the site …" (climate)
         if (action == "outpost") return Surface.OutpostProblem(_sim, LocalPlayer, tile);
         if (action == "satellite") return Surface.SatelliteProblem(_sim, LocalPlayer, Surface.Map.Grid.Row(tile), Surface.Map.Grid.Column(tile));
@@ -421,8 +428,13 @@ public partial class PlanetDriver : Node3D, ITestHost
             _hud.PushEvent($"Deployments work in orbit of {PlanetName}, the colony's world", new Color(1f, 0.7f, 0.42f));
             return;
         }
-        if (_orbit.Display == OrbitDisplay.System) SetOrbitDisplay(OrbitDisplay.Planet); // deployments aim at the globe
         var action = cardId[6..];
+        if (IsColonyCard(action) && _sim.ColonizeProblem(LocalPlayer) is { } noColony)
+        {
+            _hud.PushEvent($"Can't do that: {noColony}", new Color(1f, 0.7f, 0.42f));
+            return;
+        }
+        if (_orbit.Display == OrbitDisplay.System) SetOrbitDisplay(OrbitDisplay.Planet); // deployments aim at the globe
         if (_orbitAction == action && _info == cardId)
         {
             _orbitAction = null; // picking it again disarms
@@ -476,7 +488,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     {
         switch (key.Keycode)
         {
-            case Key.O when Me.Phase == LandingPhase.Landed:
+            case Key.O when Me.Phase == LandingPhase.Landed && !SpaceShip:
                 LeaveOrbit();
                 break;
             case Key.Tab when _orbit.Display != OrbitDisplay.System && _orbit.AtColony:
@@ -616,7 +628,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     /// <summary>Down to the hex map at whatever tile is in the middle of the viewscreen (O, or the helm's SURFACE button).</summary>
     private void LeaveOrbit()
     {
-        if (Me.Phase != LandingPhase.Landed) return;
+        if (Me.Phase != LandingPhase.Landed || SpaceShip) return; // a ship that never lands has no surface to go to
         var centre = _orbit.PickTile(_orbit.ViewCentre);
         ExitOrbit(centre >= 0 ? centre : Me.LandingTile, 320f);
     }
@@ -821,8 +833,8 @@ public partial class PlanetDriver : Node3D, ITestHost
                 : a == "beam:" + OrbitRules.Supplies ? "BEAM SUPPLIES" : $"BEAM {ShortUnit(a[5..]).ToUpperInvariant()}";
             actions.Add(new HelmAction(id, (i + 1).ToString(), label + tag, !disabled || _orbitAction == a, _orbitAction == a)); // greyed ones still open their card
         }
-        if (me.Phase == LandingPhase.Landed) actions.Add(FeedPill());
-        if (me.Phase == LandingPhase.Landed) actions.Add(new HelmAction("surface", "O", "SURFACE", Colour: HelmScreen.Rust));
+        if (me.Phase == LandingPhase.Landed && !SpaceShip) actions.Add(FeedPill());
+        if (me.Phase == LandingPhase.Landed && !SpaceShip) actions.Add(new HelmAction("surface", "O", "SURFACE", Colour: HelmScreen.Rust));
         _helm.SetActions(actions);
 
         _helm.ShowInfo(_info != null && _info.StartsWith("orbit:") && AtColony ? OrbitInfo(_info) : null);
@@ -1039,7 +1051,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     {
         if (Me.Phase == _lastPhase) return;
         _lastPhase = Me.Phase;
-        if (Me.Phase == LandingPhase.Descending)
+        if (Me.Phase == LandingPhase.Descending && !SpaceShip) // a ship that never lands never flies the landing camera
         {
             FlyTo(Me.LandingTile, 170f); // close enough to watch the three drop ships and the outpost assemble
             // From orbit: swoop in on the landing site, then cut to the surface as the pod comes down.
