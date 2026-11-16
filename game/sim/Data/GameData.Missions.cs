@@ -64,6 +64,16 @@ public sealed partial class GameData
         ["ruin_hint"] = new[] { "bind" },
         ["satellite_share"] = new[] { "share" },
         ["near"] = new[] { "at", "radius" },
+        // Space chains (docs/ship-pick-contract.md; Missions/MissionSpace.cs): the player's flagship in the star system.
+        ["ship_at"] = new[] { "body", "hold_seconds" },
+        ["visited"] = new[] { "count" },
+        ["charted"] = new[] { "count", "share" },
+        ["scanned"] = new[] { "count" },
+        ["swept"] = new[] { "body", "count" },
+        ["system_satellites"] = new[] { "count" },
+        ["cargo"] = new[] { "id", "state", "count" },
+        ["with_ship"] = new[] { "ship", "hold_seconds", "at_arrival" },
+        ["contact"] = new[] { "body", "stage" },
     };
 
     /// <summary>Action kinds and their fields (grant: resource ids → amounts instead).</summary>
@@ -81,7 +91,25 @@ public sealed partial class GameData
         ["unlock_buildings"] = new[] { "ids" },
         ["complete"] = Array.Empty<string>(),
         ["fail"] = Array.Empty<string>(),
+        // Space chains (Missions/MissionSpace.cs).
+        ["bind_body"] = new[] { "as", "pick", "exclude" },
+        ["bind_ship"] = new[] { "as", "pick" },
+        ["place_beacon"] = new[] { "at", "label" },
+        ["load_cargo"] = new[] { "id", "label", "from", "to" },
     };
+
+    /// <summary>bind_body picks: farthest = the planet or belt farthest from the star; outermost_moon = the moon of the
+    /// outermost planet that has one; gas_or_ice = the nearest gas giant or ice body (not yet Charted first); civ = the
+    /// living civilization's world; random_other = any other body, by the hash; nearest_other = the nearest other body;
+    /// here = where the flagship is. Every pick but here skips the flagship's body and the excluded ones.</summary>
+    public static readonly IReadOnlyList<string> MissionBodyPicks = new[] { "farthest", "outermost_moon", "gas_or_ice", "civ", "random_other", "nearest_other", "here" };
+
+    /// <summary>bind_ship picks: freighter = a civilian freighter of the traffic; departing = the civilian ship whose next
+    /// arrival the flagship can beat by the most.</summary>
+    public static readonly IReadOnlyList<string> MissionShipPicks = new[] { "freighter", "departing" };
+
+    public static readonly IReadOnlyList<string> MissionCargoStates = new[] { "aboard", "delivered" };
+    public static readonly IReadOnlyList<string> MissionContactStages = new[] { "post", "studied", "met" };
 
     /// <summary>Unit states a unit condition can ask for (drone states: Surface/Drones.cs DroneState, lower case;
     /// "away" = any drone state but docked or lost).</summary>
@@ -167,8 +195,11 @@ public sealed partial class GameData
                                     problems.Add($"{sw} objective {S(o, "id")}: needs a cond.");
                                     continue;
                                 }
+                                // A space condition's hold_seconds (ship_at, with_ship) is the objective's when it has none of its own.
+                                var hold = I(o, "hold_seconds", 0);
+                                if (hold == 0 && cond.F("hold_seconds") is { } condHold && TryFix(condHold, out var hv)) hold = hv.FloorToInt();
                                 objectives.Add(new MissionObjectiveDef(S(o, "id"), S(o, "text"), cond,
-                                    o.TryGetProperty("optional", out var op) && op.ValueKind == JsonValueKind.True, I(o, "hold_seconds", 0), S(o, "hint")));
+                                    o.TryGetProperty("optional", out var op) && op.ValueKind == JsonValueKind.True, hold, S(o, "hint")));
                             }
                         var choices = s.TryGetProperty("choices", out var ch) && ch.ValueKind == JsonValueKind.Array
                             ? ch.EnumerateArray().Select(x => new MissionChoiceDef(S(x, "id"), S(x, "text"), S(x, "next"))).ToList()
@@ -402,14 +433,20 @@ public sealed partial class GameData
         {
             if (data.Find(from) is not { } source || source == m) problems.Add($"{w}: imports from unknown mission '{from}'.");
             else if (!Binds(source).Contains(name)) problems.Add($"{w}: mission {from} never binds '{name}'.");
+            else
+                foreach (var a in source.Stages.SelectMany(s => s.OnEnter))
+                    if (a.Kind is "bind_body" or "bind_ship" && a.F("as") == name) bound.Add((a.Kind == "bind_body" ? BodyRefTag : ShipRefTag) + name);
             if (!bound.Contains(name)) bound.Add(name);
         }
         if (m.Trigger != null) ValidateMissionCond(data, m.Trigger, $"{w} trigger", bound, available, problems, true);
-        CheckText(m.Briefing, $"{w} briefing", bound, problems);
+        var space = data.Chain(m.Chain) is { Space: true }; // a space chain briefs after the first stage's on_enter
+        if (!space) CheckText(m.Briefing, $"{w} briefing", bound, problems);
         foreach (var s in m.Stages)
         {
             var sw = $"{w} stage {s.Id}";
             foreach (var a in s.OnEnter) ValidateMissionAction(data, a, $"{sw} on_enter", bound, available, problems);
+            if (space && s == m.Stages[0]) CheckText(m.Briefing, $"{w} briefing", bound, problems);
+            if (MissionPlaceholders(s.Title).Any()) problems.Add($"{sw}: a stage title can't have placeholders (it isn't filled).");
             foreach (var o in s.Objectives)
             {
                 ValidateMissionCond(data, o.Cond, $"{sw} objective {o.Id}", bound, available, problems, false);
@@ -435,6 +472,7 @@ public sealed partial class GameData
         foreach (var s in m.Stages)
             foreach (var a in s.OnEnter)
                 if (a.Kind is "place_site" or "place_tiles" && a.F("bind") is { } b) names.Add(b);
+                else if (a.Kind is "bind_body" or "bind_ship" && a.F("as") is { } n) names.Add(n);
         foreach (var (_, name) in m.Imports) names.Add(name);
         return names;
     }
@@ -463,6 +501,22 @@ public sealed partial class GameData
             return;
         }
         if (!bound.Contains(reference)) problems.Add($"{where}: '{reference}' is not bound yet (bind it in the trigger or an earlier on_enter).");
+    }
+
+    /// <summary>Tags in the bound list marking a binding's kind (bind_body / bind_ship).</summary>
+    private const string BodyRefTag = "@body:", ShipRefTag = "@ship:";
+
+    /// <summary>A space reference: bound before, and by bind_body (a body) or bind_ship (a ship).</summary>
+    private void CheckSpaceRef(string? reference, string tag, string where, List<string> bound, List<string> problems)
+    {
+        var what = tag == BodyRefTag ? "a body (bind it with bind_body)" : "a ship (bind it with bind_ship)";
+        if (reference == null)
+        {
+            problems.Add($"{where}: needs {what}.");
+            return;
+        }
+        if (!bound.Contains(reference)) problems.Add($"{where}: '{reference}' is not bound yet (bind it in an earlier on_enter).");
+        else if (!bound.Contains(tag + reference)) problems.Add($"{where}: '{reference}' is not {what}.");
     }
 
     private void CheckFields(string kind, IReadOnlyDictionary<string, string> fields, IReadOnlyDictionary<string, IReadOnlyList<string>> lists,
@@ -494,7 +548,8 @@ public sealed partial class GameData
     {
         CheckFields(c.Kind, c.Fields, c.Lists, MissionConditionFields, where, problems);
         var cw = $"{where} {c.Kind}";
-        foreach (var f in new[] { "count", "radius", "far_from_pad", "within_seconds", "after_seconds", "before_seconds" }) CheckNumber(c.Fields, f, cw, problems);
+        foreach (var f in new[] { "count", "radius", "far_from_pad", "within_seconds", "after_seconds", "before_seconds", "hold_seconds" }) CheckNumber(c.Fields, f, cw, problems);
+        if (trigger && c.F("hold_seconds") != null) problems.Add($"{cw}: hold_seconds counts only on an objective's condition, not in a trigger.");
         foreach (var f in new[] { "amount", "extracted" }) CheckNumber(c.Fields, f, cw, problems, whole: false);
         if (c.F("share") is { } share && (!TryFix(share, out var sv) || sv <= Fix64.Zero || sv > Fix64.One)) problems.Add($"{cw}: share must be above 0 and at most 1.");
         if (c.F("bind") is { } bind)
@@ -583,6 +638,27 @@ public sealed partial class GameData
             case "tech":
                 if (available && (c.F("id") is not { } tid || !_techs.ContainsKey(tid))) problems.Add($"{cw}: unknown surface tech '{c.F("id")}'.");
                 break;
+            case "ship_at":
+                CheckSpaceRef(c.F("body"), BodyRefTag, cw, bound, problems);
+                break;
+            case "swept":
+                if (c.F("body") is { } sb) CheckSpaceRef(sb, BodyRefTag, cw, bound, problems);
+                break;
+            case "charted":
+                if (c.F("count") != null && c.F("share") != null) problems.Add($"{cw}: count or share, not both.");
+                break;
+            case "cargo":
+                if (c.F("id") is not { } cid || !SnakeId.IsMatch(cid)) problems.Add($"{cw}: needs id (the load_cargo id it counts).");
+                CheckOne(c.Fields, "state", MissionCargoStates, cw, problems);
+                break;
+            case "with_ship":
+                CheckSpaceRef(c.F("ship"), ShipRefTag, cw, bound, problems);
+                if (c.F("at_arrival") is { } aa && aa is not ("true" or "false")) problems.Add($"{cw}: at_arrival is true or false.");
+                break;
+            case "contact":
+                CheckSpaceRef(c.F("body"), BodyRefTag, cw, bound, problems);
+                CheckOne(c.Fields, "stage", MissionContactStages, cw, problems);
+                break;
         }
         foreach (var child in c.Children) ValidateMissionCond(data, child, where, bound, available, problems, trigger);
     }
@@ -639,6 +715,33 @@ public sealed partial class GameData
                 break;
             case "start_mission":
                 if (a.F("id") is not { } mid || data.Find(mid) == null) problems.Add($"{aw}: unknown mission '{a.F("id")}'.");
+                break;
+            case "bind_body":
+            case "bind_ship":
+            {
+                var picks = a.Kind == "bind_body" ? MissionBodyPicks : MissionShipPicks;
+                if (a.F("pick") is not { } pick || !picks.Contains(pick)) problems.Add($"{aw}: pick '{a.F("pick")}' is not one of {string.Join(", ", picks)}.");
+                var excluded = a.L("exclude").ToList();
+                if (a.F("exclude") is { } ex) excluded.Add(ex);
+                foreach (var x in excluded) CheckSpaceRef(x, BodyRefTag, aw, bound, problems);
+                if (a.F("as") is not { } name || !SnakeId.IsMatch(name) || MissionBuiltInRefs.Contains(name)) problems.Add($"{aw}: needs as (a lower-case id, not base/hub).");
+                else
+                {
+                    if (!bound.Contains(name)) bound.Add(name);
+                    bound.Add((a.Kind == "bind_body" ? BodyRefTag : ShipRefTag) + name);
+                }
+                break;
+            }
+            case "place_beacon":
+                CheckSpaceRef(a.F("at"), BodyRefTag, aw, bound, problems);
+                CheckText(a.F("label") ?? "", aw, bound, problems);
+                break;
+            case "load_cargo":
+                if (a.F("id") is not { } lid || !SnakeId.IsMatch(lid)) problems.Add($"{aw}: needs id (a lower-case id the cargo condition counts).");
+                CheckSpaceRef(a.F("to"), BodyRefTag, aw, bound, problems);
+                if (a.F("from") is { } lf) CheckSpaceRef(lf, BodyRefTag, aw, bound, problems);
+                if (a.F("label") is not { Length: > 0 } ll) problems.Add($"{aw}: needs a label (what the cargo is).");
+                else CheckText(ll, aw, bound, problems);
                 break;
             case "unlock_buildings":
                 if (a.L("ids").Count == 0) problems.Add($"{aw}: needs ids (the buildings it opens).");

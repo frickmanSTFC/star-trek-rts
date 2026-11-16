@@ -402,6 +402,7 @@ public sealed partial class MissionBook
                     if (sys.FindShip(m.Ship) is not { } s) continue;
                     list.Add(new SpaceMarker("ship", null, s.Id, m.Label));
                     if (s.AtBody == null && s.ToBody != null) list.Add(new SpaceMarker("target", s.ToBody, -1, $"{s.Name}: heading here"));
+                    else if (sys.NextDestination(s) is { } next) list.Add(new SpaceMarker("target", next, -1, $"{s.Name}: next stop"));
                 }
                 else list.Add(new SpaceMarker(m.Kind.Length > 0 ? m.Kind : "target", m.Body, -1, m.Label));
             }

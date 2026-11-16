@@ -54,7 +54,7 @@ public sealed partial class GameData
         // data set leaves out for missing needs: those games simply never open it).
         if (Missions is not { } data) return;
         var domes = Habitability?.Domes?.BuildMenu ?? new List<string>();
-        foreach (var chain in data.Chains)
+        foreach (var chain in data.Chains.Where(c => !c.Space)) // a space chain never lands: it leaves the build menu alone
             foreach (var id in BuildMenu)
                 if (!StartMenu.Contains(id) && !domes.Contains(id) && UnlockMission(id, chain.Id, availableOnly: false) == null)
                     problems.Add($"{w}: {id} is not in start_menu and no mission of chain {chain.Id} unlocks it (unlock_buildings).");

@@ -1,0 +1,73 @@
+{
+  "missions": [
+    { "id": "outbound", "chain": "long_survey", "kind": "main", "title": "Outbound", "giver": "science",
+      "briefing": "Reyes here, Tereshkova science. Nobody has ever looked at this system from closer than a telescope on Earth. Start with a long-range scan from where we are, then take us out and chart two more bodies: every orbit we enter gets a full sensor sweep.",
+      "stages": [
+        { "id": "scan", "title": "Long-range scan",
+          "objectives": [
+            { "id": "scan", "text": "Run a long-range scan from the start orbit", "cond": { "scanned": { "count": 1 } },
+              "hint": "Select the ship on the SYSTEM display and press SCAN: it identifies every body in range." } ],
+          "next": "chart" },
+        { "id": "chart", "title": "Chart two more bodies",
+          "objectives": [
+            { "id": "chart", "text": "Chart 2 more bodies", "cond": { "charted": { "count": 2 } },
+              "hint": "Set a course for a body: once in orbit, the sensor sweep charts it in a few seconds." } ],
+          "next": "complete" } ],
+      "debrief": "Three bodies charted, and the first long-range picture of the whole system. Earth has it already: they are asking for more." },
+
+    { "id": "eyes_everywhere", "chain": "long_survey", "kind": "main", "title": "Eyes Everywhere", "giver": "science",
+      "briefing": "We can't be everywhere at once, but our survey satellites can. Leave one at two different bodies: they keep reading them for good after we have gone.",
+      "stages": [
+        { "id": "satellites", "title": "Place two satellites",
+          "objectives": [
+            { "id": "satellites", "text": "Place survey satellites at 2 different bodies", "cond": { "system_satellites": { "count": 2 } },
+              "hint": "In orbit of a body: SATELLITE on the ship's card. One per body." } ],
+          "next": "complete" } ],
+      "debrief": "Both satellites are reporting. That's live data from two worlds at once, without us sitting in orbit." },
+
+    { "id": "close_look", "chain": "long_survey", "kind": "main", "title": "Close Look", "giver": "science",
+      "briefing": "The big ones are the strangest. {target} is the nearest gas giant or ice body we haven't swept: take us into orbit and give it a full sensor sweep for live data.",
+      "stages": [
+        { "id": "sweep", "title": "Sweep the target",
+          "on_enter": [
+            { "bind_body": { "as": "target", "pick": "gas_or_ice" } },
+            { "marker": { "at": "target", "label": "Close look" } } ],
+          "objectives": [
+            { "id": "sweep", "text": "Sweep {target} for live data", "cond": { "swept": { "body": "target" } },
+              "hint": "Set a course for {target} ({target.distance} s) and stay in orbit until the sweep is done." } ],
+          "next": "complete" } ],
+      "debrief": "Beautiful data. Storm bands, rings of ice, magnetic fields like nothing on the charts at home." },
+
+    { "id": "faint_signal", "chain": "long_survey", "kind": "main", "title": "A Faint Signal", "giver": "science",
+      "briefing": "Something just came through the static: a faint, regular signal from {signal}, the farthest body out. It isn't natural. Take us there and sweep the area.",
+      "stages": [
+        { "id": "reach", "title": "Reach the signal",
+          "on_enter": [
+            { "bind_body": { "as": "signal", "pick": "farthest" } },
+            { "place_beacon": { "at": "signal", "label": "Faint signal" } } ],
+          "objectives": [
+            { "id": "reach", "text": "Reach {signal}", "cond": { "ship_at": { "body": "signal" } },
+              "hint": "It's {signal.distance} s out. The beacon on the system plot marks it." } ],
+          "next": "sweep" },
+        { "id": "sweep", "title": "Sweep the area",
+          "on_enter": [
+            { "place_beacon": { "at": "signal", "label": "Faint signal" } },
+            { "message": { "giver": "science", "channel": "feed", "text": "Reyes: In orbit of {signal}. Hold here while the sweep runs: the signal is getting stronger." } } ],
+          "objectives": [
+            { "id": "sweep", "text": "Sweep {signal}", "cond": { "swept": { "body": "signal" } },
+              "hint": "Stay in orbit until the sensor sweep is done." } ],
+          "next": "complete" } ],
+      "debrief": "It's an old beacon, a probe's distress transponder, still ticking after decades. Earth is very interested in who left it here." },
+
+    { "id": "whole_map", "chain": "long_survey", "kind": "main", "title": "The Whole Map", "giver": "control",
+      "briefing": "Moreau, Earth Mission Control. You have done more in a few hours than our telescopes did in a century. Finish the job: chart every body in the system, moons and belts included.",
+      "stages": [
+        { "id": "chart", "title": "Chart every body",
+          "objectives": [
+            { "id": "all", "text": "Chart every body in the system", "cond": { "charted": { "share": 1 } },
+              "hint": "Every body you haven't swept yet is grey on the system plot: visit each one." } ],
+          "next": "complete" } ],
+      "rewards": [ { "set_flag": { "name": "long_survey_done" } } ],
+      "debrief": "The whole map. Every planet, every moon, every rock, charted by the Tereshkova. This chapter of the survey is closed, and the charts go out to every ship that comes after you." }
+  ]
+}

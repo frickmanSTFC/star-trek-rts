@@ -1,0 +1,92 @@
+{
+  "missions": [
+    { "id": "shakedown", "chain": "priority_run", "kind": "main", "title": "Shakedown", "giver": "courier",
+      "briefing": "Lindqvist, courier desk. Before I trust you with real cargo, show me what the Armstrong can do: out to {far}, the farthest planet, and back here to {start}. Each leg against the clock.",
+      "stages": [
+        { "id": "out", "title": "Out to the turn point", "timer_seconds": 100, "on_timeout": "out",
+          "on_enter": [
+            { "bind_body": { "as": "start", "pick": "here" } },
+            { "bind_body": { "as": "far", "pick": "farthest" } },
+            { "marker": { "at": "far", "label": "Turn point" } } ],
+          "objectives": [
+            { "id": "far", "text": "Reach {far}", "cond": { "ship_at": { "body": "far" } },
+              "hint": "Set a course for {far} ({far.distance} s). Out of time and the run starts again from where you are." } ],
+          "next": "back" },
+        { "id": "back", "title": "Back to the start", "timer_seconds": 100, "on_timeout": "out",
+          "on_enter": [ { "marker": { "at": "start", "label": "Home" } } ],
+          "objectives": [
+            { "id": "home", "text": "Back to {start}", "cond": { "ship_at": { "body": "start" } },
+              "hint": "Set a course back to {start} ({start.distance} s)." } ],
+          "next": "complete" } ],
+      "debrief": "Not bad at all. You'll do. I have a real job for you." },
+
+    { "id": "medicine_run", "chain": "priority_run", "kind": "main", "title": "Medicine Run", "giver": "courier",
+      "briefing": "A fever is spreading through the survey crew at {clinic}. The vaccine is at {depot}. Pick up the crates and get them there before the timer runs out.",
+      "stages": [
+        { "id": "run", "title": "The vaccine run", "timer_seconds": 150, "on_timeout": "run",
+          "on_enter": [
+            { "bind_body": { "as": "depot", "pick": "nearest_other" } },
+            { "bind_body": { "as": "clinic", "pick": "random_other", "exclude": "depot" } },
+            { "load_cargo": { "id": "vaccine", "label": "Vaccine crates", "from": "depot", "to": "clinic" } } ],
+          "objectives": [
+            { "id": "deliver", "text": "Pick up the vaccine at {depot} and deliver it to {clinic}", "cond": { "cargo": { "id": "vaccine", "state": "delivered" } },
+              "hint": "Orbit {depot} to load the crates, then set a course for {clinic}. Out of time and a new run is set up." } ],
+          "next": "complete" } ],
+      "debrief": "Crates delivered and the crew are on the mend. That's what this ship is for." },
+
+    { "id": "mail_circuit", "chain": "priority_run", "kind": "main", "title": "Mail Circuit", "giver": "courier",
+      "briefing": "Three parcels aboard for three bodies: {mail_a}, {mail_b} and {mail_c}. Any order you like, one timer for the lot.",
+      "stages": [
+        { "id": "round", "title": "Three parcels", "timer_seconds": 220, "on_timeout": "round",
+          "on_enter": [
+            { "bind_body": { "as": "mail_a", "pick": "random_other" } },
+            { "bind_body": { "as": "mail_b", "pick": "random_other", "exclude": "mail_a" } },
+            { "bind_body": { "as": "mail_c", "pick": "random_other", "exclude": ["mail_a", "mail_b"] } },
+            { "load_cargo": { "id": "mail", "label": "Parcel for {mail_a}", "to": "mail_a" } },
+            { "load_cargo": { "id": "mail", "label": "Parcel for {mail_b}", "to": "mail_b" } },
+            { "load_cargo": { "id": "mail", "label": "Parcel for {mail_c}", "to": "mail_c" } } ],
+          "objectives": [
+            { "id": "deliver", "text": "Deliver the 3 parcels", "cond": { "cargo": { "id": "mail", "state": "delivered", "count": 3 } },
+              "hint": "Each parcel is delivered when you enter orbit of its body. Plan the shortest round." } ],
+          "next": "complete" } ],
+      "debrief": "Every parcel signed for. Half the system has letters from home tonight." },
+
+    { "id": "diplomatic_pouch", "chain": "priority_run", "kind": "main", "title": "Diplomatic Pouch", "giver": "courier",
+      "briefing": "A sealed diplomatic pouch, for hand delivery only, to the station at {moon}, the outermost moon. Get there and hold orbit while they come up to collect it.",
+      "stages": [
+        { "id": "carry", "title": "The pouch",
+          "on_enter": [
+            { "bind_body": { "as": "moon", "pick": "outermost_moon" } },
+            { "load_cargo": { "id": "pouch", "label": "Sealed pouch", "to": "moon" } } ],
+          "objectives": [
+            { "id": "deliver", "text": "Carry the pouch to {moon}", "cond": { "cargo": { "id": "pouch", "state": "delivered" } },
+              "hint": "Set a course for {moon} ({moon.distance} s)." },
+            { "id": "hold", "text": "Hold orbit at {moon} for 30 s", "cond": { "ship_at": { "body": "moon", "hold_seconds": 30 } },
+              "hint": "Stay in orbit while the courier comes up for the pouch." } ],
+          "next": "complete" } ],
+      "debrief": "Pouch received, seal unbroken. Somebody important is very pleased with us." },
+
+    { "id": "against_the_clock", "chain": "priority_run", "kind": "main", "title": "Against the Clock", "giver": "courier",
+      "briefing": "Two jobs back to back and no slack in either. Reactor parts from {parts_from} to {parts_to}, and from there a medical team on to wherever they are needed. Go.",
+      "stages": [
+        { "id": "parts", "title": "Reactor parts", "timer_seconds": 120, "on_timeout": "parts",
+          "on_enter": [
+            { "bind_body": { "as": "parts_from", "pick": "nearest_other" } },
+            { "bind_body": { "as": "parts_to", "pick": "random_other", "exclude": "parts_from" } },
+            { "load_cargo": { "id": "parts", "label": "Reactor parts", "from": "parts_from", "to": "parts_to" } } ],
+          "objectives": [
+            { "id": "parts", "text": "Reactor parts from {parts_from} to {parts_to}", "cond": { "cargo": { "id": "parts", "state": "delivered" } },
+              "hint": "Load at {parts_from}, deliver at {parts_to}. Out of time and both jobs start again." } ],
+          "next": "team" },
+        { "id": "team", "title": "Medical team", "timer_seconds": 75, "on_timeout": "parts",
+          "on_enter": [
+            { "bind_body": { "as": "team_to", "pick": "random_other" } },
+            { "load_cargo": { "id": "team", "label": "Medical team", "to": "team_to" } } ],
+          "objectives": [
+            { "id": "team", "text": "The medical team to {team_to}", "cond": { "cargo": { "id": "team", "state": "delivered" } },
+              "hint": "They are aboard: set a course for {team_to} ({team_to.distance} s)." } ],
+          "next": "complete" } ],
+      "rewards": [ { "set_flag": { "name": "priority_run_done" } } ],
+      "debrief": "Both on time. Lindqvist signing off with a rare compliment: best courier I have had on this run. That's the chapter, Armstrong." }
+  ]
+}

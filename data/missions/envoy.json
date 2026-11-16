@@ -1,0 +1,67 @@
+{
+  "missions": [
+    { "id": "showing_the_flag", "chain": "envoy", "kind": "main", "title": "Showing the Flag", "giver": "envoy",
+      "briefing": "Osei, diplomatic corps. Earth's telescopes picked up something here nobody can explain: radio, perhaps, or city lights. Run a long-range scan, then take the Meridian to the world that shows signs of a civilization.",
+      "stages": [
+        { "id": "scan", "title": "Long-range scan",
+          "objectives": [
+            { "id": "scan", "text": "Run a long-range scan", "cond": { "scanned": { "count": 1 } },
+              "hint": "Select the ship on the SYSTEM display and press SCAN." } ],
+          "next": "reach" },
+        { "id": "reach", "title": "Find the civilization",
+          "on_enter": [
+            { "bind_body": { "as": "world", "pick": "civ" } },
+            { "marker": { "at": "world", "label": "Signs of a civilization" } },
+            { "message": { "giver": "envoy", "channel": "comms", "text": "There: {world}. Regular patterns on the night side, and something on the radio bands. Take us there, gently." } } ],
+          "objectives": [
+            { "id": "reach", "text": "Reach {world}", "cond": { "ship_at": { "body": "world" } },
+              "hint": "Set a course for {world} ({world.distance} s)." } ],
+          "next": "complete" } ],
+      "debrief": "In orbit of {world}, and they are real: towns, roads, fields. We are the first humans to see them." },
+
+    { "id": "listening_post", "chain": "envoy", "kind": "main", "title": "Listening Post", "giver": "envoy", "imports": ["showing_the_flag.world"],
+      "briefing": "Before we say a word to them we have to understand them. Put a hidden observation post on {world}: small, quiet, out of sight.",
+      "stages": [
+        { "id": "post", "title": "Hide a post",
+          "on_enter": [ { "marker": { "at": "world", "label": "Listening post" } } ],
+          "objectives": [
+            { "id": "post", "text": "Put an observation post on {world}", "cond": { "contact": { "body": "world", "stage": "post" } },
+              "hint": "In orbit of {world}, once the sensor sweep is done: OBSERVATION POST on its card." } ],
+          "next": "complete" } ],
+      "debrief": "The post is down and listening. Language, music, arguments in the market square: it's all coming in." },
+
+    { "id": "study", "chain": "envoy", "kind": "main", "title": "Study", "giver": "envoy", "imports": ["showing_the_flag.world"],
+      "briefing": "Now we listen. Stay in orbit of {world} and fill the dossier: who they are, how they live, how far along they are.",
+      "stages": [
+        { "id": "study", "title": "Fill the dossier",
+          "on_enter": [ { "marker": { "at": "world", "label": "Study" } } ],
+          "objectives": [
+            { "id": "study", "text": "Fill the dossier on {world}'s people", "cond": { "contact": { "body": "world", "stage": "studied" } },
+              "hint": "The ship's sensors study them while it is in orbit (or a satellite does)." } ],
+          "next": "complete" } ],
+      "debrief": "The dossier is full. We know who they are now, and we know what we would be walking into." },
+
+    { "id": "first_words", "chain": "envoy", "kind": "main", "title": "First Words", "giver": "envoy", "imports": ["showing_the_flag.world"],
+      "briefing": "This is what the Meridian was built for. There is no Prime Directive yet, only our judgement. Make first contact with {world}, and choose how: who goes, what we offer, what we share.",
+      "stages": [
+        { "id": "contact", "title": "First contact",
+          "on_enter": [ { "marker": { "at": "world", "label": "First contact" } } ],
+          "objectives": [
+            { "id": "contact", "text": "Make first contact with {world}", "cond": { "contact": { "body": "world", "stage": "met" } },
+              "hint": "In orbit of {world}: FIRST CONTACT on its card, then make the three choices. Leaving orbit calls it off." } ],
+          "next": "complete" } ],
+      "debrief": "First words spoken. Whatever comes of it, the people of {world} know now that they are not alone." },
+
+    { "id": "guests_aboard", "chain": "envoy", "kind": "main", "title": "Guests Aboard", "giver": "envoy", "imports": ["showing_the_flag.world"],
+      "briefing": "They have accepted our invitation: a delegation is coming up to the Meridian. Hold orbit of {world} while they are aboard.",
+      "stages": [
+        { "id": "guests", "title": "Host the delegation",
+          "on_enter": [ { "marker": { "at": "world", "label": "Delegation" } } ],
+          "objectives": [
+            { "id": "hold", "text": "Hold orbit at {world} for 60 s", "cond": { "ship_at": { "body": "world", "hold_seconds": 60 } },
+              "hint": "Stay in orbit while the delegation tours the ship." } ],
+          "next": "complete" } ],
+      "rewards": [ { "set_flag": { "name": "envoy_done" } } ],
+      "debrief": "The delegation has gone home with gifts, recordings and a standing invitation to Earth. Osei out: that's the chapter, Meridian, and a fine one." }
+  ]
+}

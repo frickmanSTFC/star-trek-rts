@@ -352,6 +352,13 @@ public sealed partial class MissionBook
         run.Start = Now;
         run.OfferEnd = -1;
         BindAll(p, run, d, bindings);
+        if (SpaceChain)
+        {
+            // A space chain briefs after the first stage's on_enter, so the briefing can name the bodies it binds.
+            EnterStage(p, run, d, 0);
+            if (brief) Say(p, run, d.Giver, Fill(p, run, d.Briefing), "comms");
+            return;
+        }
         if (brief) Say(p, run, d.Giver, Fill(p, run, d.Briefing), "comms");
         EnterStage(p, run, d, 0);
     }
