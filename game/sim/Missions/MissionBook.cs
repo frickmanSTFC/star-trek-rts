@@ -70,8 +70,19 @@ public readonly record struct MissionSite(int Id, int Owner, string MissionId, s
 /// rules.max_side_active are active) and lapse after offer_seconds. Choices arrive as MissionChoiceCommand. Randomness
 /// (where sites and search areas go) hashes the map seed, player, mission and binding, never sim.Rng.
 /// </summary>
+/// <summary>A space-chain marker: Kind "beacon" | "pickup" | "dropoff" | "target" | "ship"; BodyId (null for a ship);
+/// ShipId (-1 unless Kind is "ship"); Label for the plot.</summary>
+public sealed record SpaceMarker(string Kind, string? BodyId, int ShipId, string Label);
+
 public sealed partial class MissionBook
 {
+    /// <summary>Space-chain markers on the system plot (docs/ship-pick-contract.md): beacons, cargo pick-up and drop-off
+    /// bodies, bound bodies and ships. CONTRACT STUB: empty.</summary>
+    public IReadOnlyList<SpaceMarker> SpaceMarkers(int player) => System.Array.Empty<SpaceMarker>();
+
+    /// <summary>Mission cargo aboard this player's flagship (labels such as "Vaccine crates → Corsa"). CONTRACT STUB: empty.</summary>
+    public IReadOnlyList<string> CargoAboard(int player) => System.Array.Empty<string>();
+
     private readonly Simulation? _sim;
     private readonly List<PlayerBook> _players = new();
     private readonly List<SiteRun> _sites = new();

@@ -1,0 +1,201 @@
+<title>First Mission Ship Pick</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: a design-review page for the Dawn of Warp drop ship. Header with the request, the lineup against today's
+   Halyard (front and from the landing camera), then one section per option (renders, a two-line pitch, what it
+   needs in the game, pros and cons), a comparison table and the owner's open questions. */
+:root {
+  --bg: #f3f4f7; --panel: #ffffff; --ink: #161b28; --dim: #586178; --rule: #d8dce6;
+  --accent: #b5620d; --accent-soft: #f6e6d3;
+  --good: #1f7a4d; --good-soft: #dcefe4; --bad: #b3261e; --bad-soft: #f7dedb; --note: #6b7289; --note-soft: #e7e9ef;
+  --shot: #e9ebf0;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f18; --panel: #121827; --ink: #e5e9f2; --dim: #96a0b8; --rule: #252d42;
+    --accent: #f2a54a; --accent-soft: #33240f;
+    --good: #7fd3a6; --good-soft: #12301f; --bad: #ff8a80; --bad-soft: #3a1513; --note: #a3abc0; --note-soft: #1c2233;
+    --shot: #0f1420;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f18; --panel: #121827; --ink: #e5e9f2; --dim: #96a0b8; --rule: #252d42;
+  --accent: #f2a54a; --accent-soft: #33240f;
+  --good: #7fd3a6; --good-soft: #12301f; --bad: #ff8a80; --bad-soft: #3a1513; --note: #a3abc0; --note-soft: #1c2233;
+  --shot: #0f1420;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--body); overflow-x: hidden; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 72px; display: grid; gap: 44px; }
+header { display: grid; gap: 12px; }
+.eyebrow { font: 600 13px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+h1 { margin: 0; font: 700 clamp(36px, 7vw, 60px)/1 var(--display); letter-spacing: .01em; text-wrap: balance; }
+h2 { margin: 0; font: 700 clamp(26px, 4.4vw, 36px)/1.05 var(--display); letter-spacing: .01em; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; text-wrap: balance; }
+h2 .tag { color: var(--accent); }
+h2 small { font: 500 16px/1.2 var(--body); color: var(--dim); letter-spacing: 0; }
+h3 { margin: 0; font: 600 14px/1.2 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+p { margin: 0; }
+.lede { max-width: 70ch; font-size: 18px; }
+.muted { color: var(--dim); }
+code { font: .86em var(--mono); background: var(--note-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+blockquote { margin: 0; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; max-width: 70ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 600 13px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; padding: 6px 9px; border-radius: 6px; border: 1px solid var(--rule); background: var(--panel); color: var(--dim); }
+section { display: grid; gap: 16px; min-width: 0; }
+section.opt { border-top: 1px solid var(--rule); padding-top: 36px; }
+figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+figure img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: 8px; background: var(--shot); border: 1px solid var(--rule); }
+figure img.native { width: auto; justify-self: start; }
+figcaption { font-size: 14px; color: var(--dim); }
+figcaption b { color: var(--ink); font-weight: 600; }
+.shots { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
+.shots .side { display: grid; gap: 12px; align-content: start; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 760px) { .shots, .pair { grid-template-columns: minmax(0, 1fr); } }
+.pitch { max-width: 76ch; font-size: 17px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.card ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 15px; }
+.card.pro { border-top: 3px solid var(--good); }
+.card.con { border-top: 3px solid var(--bad); }
+.card.need { border-top: 3px solid var(--note); }
+.card.pro h3 { color: var(--good); }
+.card.con h3 { color: var(--bad); }
+dl.spec { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; font-size: 15px; }
+dl.spec dt { font: 600 13px/1.5 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+dl.spec dd { margin: 0; font-variant-numeric: tabular-nums; }
+.table { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+th { font: 600 13px/1.2 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); background: var(--note-soft); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+ol.qs { margin: 0; padding-left: 22px; display: grid; gap: 12px; max-width: 80ch; }
+ol.qs li::marker { font: 700 16px var(--display); color: var(--accent); }
+ol.qs b { font-weight: 600; }
+footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; color: var(--dim); display: grid; gap: 6px; }
+.decided { border: 1px solid var(--good); background: var(--good-soft); border-radius: 8px; padding: 14px 16px; display: grid; gap: 10px; max-width: 86ch; }
+.decided h3 { color: var(--good); }
+.decided ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.chip.ok { border-color: var(--good); color: var(--good); background: var(--good-soft); }
+ol.qs .ans { display: block; margin-top: 4px; color: var(--good); }
+ol.qs .ans::before { content: "Answered: "; font-weight: 600; }
+.quad { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 760px) { .quad { grid-template-columns: minmax(0, 1fr); } }
+
+.flow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.flow .step { background:var(--panel); border:1px solid var(--rule); border-radius:8px; padding:8px 12px; font:600 15px/1.2 var(--display); letter-spacing:.06em; text-transform:uppercase; }
+.flow .step.new { border-color:var(--accent); background:var(--accent-soft); }
+.flow .arr { color:var(--dim); font:600 18px var(--display); }
+.ships { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:12px; }
+.ship { background:var(--panel); border:1px solid var(--rule); border-radius:8px; overflow:hidden; display:grid; align-content:start; min-width:0; }
+.ship img { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; background:#05070a; }
+.ship .b { padding:12px 14px; display:grid; gap:6px; }
+.ship h3 { color:var(--ink); font-size:20px; letter-spacing:.04em; }
+.tag2 { display:inline-block; font:600 12px/1 var(--display); letter-spacing:.1em; text-transform:uppercase; padding:4px 7px; border-radius:4px; }
+.tag2.col { background:var(--good-soft); color:var(--good); }
+.tag2.spc { background:var(--note-soft); color:var(--note); }
+.ship .meta { font-size:14px; color:var(--dim); }
+.screen { background:#0b0f18; border-radius:10px; border:1px solid var(--rule); padding:16px; display:grid; gap:12px; color:#e5e9f2; }
+.screen .top { display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font:600 13px/1 var(--display); letter-spacing:.14em; text-transform:uppercase; color:#96a0b8; }
+.screen .row { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; }
+.screen .card { border:1px solid #252d42; border-radius:6px; overflow:hidden; background:#121827; }
+.screen .card.sel { border-color:#f2a54a; box-shadow:0 0 0 1px #f2a54a; }
+.screen .card img { width:100%; aspect-ratio:16/10; object-fit:cover; display:block; }
+.screen .card div { padding:6px 8px; font:600 13px/1.2 var(--display); letter-spacing:.06em; text-transform:uppercase; }
+.screen .card small { display:block; font:500 11px/1.2 var(--display); color:#96a0b8; letter-spacing:.08em; }
+.screen .detail { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:14px; border:1px solid #252d42; border-radius:8px; padding:12px; background:#121827; }
+.screen .detail img { width:100%; border-radius:6px; display:block; }
+.screen .detail h4 { margin:0 0 4px; font:700 26px/1 var(--display); letter-spacing:.03em; text-transform:uppercase; }
+.screen .detail p { color:#c9d0de; font-size:14px; margin:0 0 8px; }
+.screen .btns { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+.screen .btn { font:600 14px/1 var(--display); letter-spacing:.1em; text-transform:uppercase; padding:9px 14px; border-radius:6px; border:1px solid #252d42; color:#c9d0de; }
+.screen .btn.go { background:#f2a54a; border-color:#f2a54a; color:#0b0f18; }
+@media (max-width:760px){ .screen .row{grid-template-columns:repeat(3,minmax(0,1fr));} .screen .detail{grid-template-columns:minmax(0,1fr);} }
+ol.obj { margin:0; padding-left:20px; display:grid; gap:6px; font-size:15px; max-width:90ch; }
+</style>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Dawn of Warp · Campaign start · Decided 2026-11-16</div>
+    <h1>First Mission: Choose Your Ship</h1>
+    <blockquote>“When we start the first mission, the player will decide which ship they are going to use. Based on the ship, the mission is different. If they pick a ship that is meant to colonize the planet, then they will get the colonize mission; if they choose an explorer, or any other ship that doesn’t colonize, they will get a different mission and won’t go to a planet or body.”</blockquote>
+    <p class="lede">A new step in the campaign start lets the player pick one of the six pre-warp ship classes. Horizon and Cochrane carry drop ships and play the colony chain, First Light. The other four never land: each gets its own chain of missions on the helm’s star-system display, built on what the system layer already does (courses, scans, sweeps, satellites, cargo, civilizations).</p>
+    <div class="chips"><span class="chip ok">Colonizers: Horizon, Cochrane</span><span class="chip ok">One space chain per other ship</span><span class="chip">Design first, then code</span></div>
+  </header>
+
+  <section>
+    <h2><span class="tag">Flow</span> Where the pick sits</h2>
+    <div class="flow"><span class="step">Campaign</span><span class="arr">›</span><span class="step">Federation</span><span class="arr">›</span><span class="step">Dawn of Warp</span><span class="arr">›</span><span class="step new">Choose your ship</span><span class="arr">›</span><span class="step">Pick the system and start body</span><span class="arr">›</span><span class="step">First mission</span></div>
+    <p class="pitch">The pick comes before the system, because the ship decides what the system page asks for. A colony ship picks a world to land on (LAND HERE, as today). Any other ship picks the body it starts in orbit of (BEGIN MISSION); every body is allowed, gas giants included, because it never lands. Meridian’s system page only offers systems with a living civilization (REROLL skips the others).</p>
+  </section>
+
+  <section>
+    <h2><span class="tag">Screen</span> Choose your ship</h2>
+    <div class="screen">
+      <div class="top"><span>Campaign · Federation · Dawn of Warp</span><span>Choose your ship</span></div>
+      <div class="row"><div class="card"><img src="img/horizon.jpg" alt=""><div>Horizon<small>Colonize</small></div></div><div class="card"><img src="img/cochrane.jpg" alt=""><div>Cochrane<small>Colonize</small></div></div><div class="card sel"><img src="img/tereshkova.jpg" alt=""><div>Tereshkova<small>Survey</small></div></div><div class="card"><img src="img/armstrong.jpg" alt=""><div>Armstrong<small>Courier</small></div></div><div class="card"><img src="img/bastion.jpg" alt=""><div>Bastion<small>Patrol</small></div></div><div class="card"><img src="img/meridian.jpg" alt=""><div>Meridian<small>Diplomacy</small></div></div></div>
+      <div class="detail"><img src="img/tereshkova.jpg" alt="Tereshkova class">
+        <div><h4>Tereshkova class</h4>
+        <p>Long-range survey vessel · 310 m · 40 crew · ring 0.6 g</p>
+        <p><b>Your mission: The Long Survey.</b> Chart the system body by body, put satellites over the worlds that matter, sweep them for live data and run down a faint signal at the edge of the system.</p>
+        <p>Never lands. Five missions on the helm’s system display.</p>
+        <div class="btns"><span class="btn">‹ Back</span><span class="btn go">Choose Tereshkova ›</span></div></div></div>
+    </div>
+    <p class="muted">Six cards across (three on narrow screens); the selected card opens the detail with a still render, the stats, whether the ship lands, and the start of its chain. The card art is a still from each class page, shipped in the game as <code>game/textures/ships/&lt;id&gt;.jpg</code>.</p>
+  </section>
+
+  <section>
+    <h2><span class="tag">Ships</span> Which mission each ship gets</h2>
+    <div class="ships"><div class="ship"><img src="img/horizon.jpg" alt="Horizon class render" loading="lazy"><div class="b"><div><span class="tag2 col">Colonize</span></div><h3>Horizon class</h3><div class="meta">Colony transport · 120 crew, 4,000 colonists · 820 m</div><p>Six drop ships land the colony. First Light as it is today, with extra colonists and habitat stock at the start.</p></div></div><div class="ship"><img src="img/cochrane.jpg" alt="Cochrane class render" loading="lazy"><div class="b"><div><span class="tag2 col">Colonize</span></div><h3>Cochrane class</h3><div class="meta">Deep-space tender · 210 crew · 480 m</div><p>Four drop ships land the colony. First Light as it is today, with extra spare-part kits and a construction rover at the start.</p></div></div><div class="ship"><img src="img/tereshkova.jpg" alt="Tereshkova class render" loading="lazy"><div class="b"><div><span class="tag2 spc">Survey</span></div><h3>Tereshkova class</h3><div class="meta">Long-range survey vessel · 40 crew · 310 m</div><p>Never lands. Charts the system body by body, places satellites, sweeps worlds for live data and chases a faint signal to the edge.</p></div></div><div class="ship"><img src="img/armstrong.jpg" alt="Armstrong class render" loading="lazy"><div class="b"><div><span class="tag2 spc">Courier</span></div><h3>Armstrong class</h3><div class="meta">Fast courier · 6 crew · 140 m</div><p>Never lands. Timed runs between bodies: medicine, mail, a diplomatic pouch. The fastest ship, and the clock is always running.</p></div></div><div class="ship"><img src="img/bastion.jpg" alt="Bastion class render" loading="lazy"><div class="b"><div><span class="tag2 spc">Patrol</span></div><h3>Bastion class</h3><div class="meta">System patrol cutter · 85 crew · 260 m</div><p>Never lands. Patrols a route of bodies, inspects civilian traffic, answers a distress call and escorts a freighter home.</p></div></div><div class="ship"><img src="img/meridian.jpg" alt="Meridian class render" loading="lazy"><div class="b"><div><span class="tag2 spc">Diplomacy</span></div><h3>Meridian class</h3><div class="meta">Diplomatic and science flagship · 350 crew · 560 m</div><p>Never lands. Finds the system’s living civilization, sets up a listening post, studies them and makes first contact.</p></div></div></div>
+  </section>
+
+  <section class="opt">
+    <h2><span class="tag">Colonize</span> Horizon and Cochrane</h2>
+    <p class="pitch">Both play First Light exactly as it is today: land the outpost, survey, the Lost Pathfinder, Calling Home, Wings, First Flight, Beyond the Ridge, Foothold. Drop ships stay the decided random A/B/C pick per player. What differs is the start, from the ship’s data:</p>
+    <div class="cards">
+      <div class="card"><h3>Horizon</h3><ul><li>Extra colonists: +30 crew at landing.</li><li>Habitat stock: +200 duranium.</li></ul></div>
+      <div class="card"><h3>Cochrane</h3><ul><li>Extra spare-part kits at landing.</li><li>A construction rover lands with the colony.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="opt"><h2><span class="tag">Survey</span> Tereshkova · The Long Survey</h2><ol class="obj"><li><b>Outbound.</b> Run a long-range scan from the start orbit, then chart two more bodies. <code>scanned, charted</code></li><li><b>Eyes Everywhere.</b> Place survey satellites at two different bodies. <code>system_satellites</code></li><li><b>Close Look.</b> Sweep a gas giant or an ice body for live data. <code>bind_body, swept</code></li><li><b>A Faint Signal.</b> A signal appears at the farthest body. Reach it and sweep it. <code>place_beacon, ship_at, swept</code></li><li><b>The Whole Map.</b> Chart every body in the system. Chapter debrief. <code>charted share 1</code></li></ol></section><section class="opt"><h2><span class="tag">Courier</span> Armstrong · Priority Run</h2><ol class="obj"><li><b>Shakedown.</b> Fly to the farthest planet and back within the time limit. <code>ship_at, timer</code></li><li><b>Medicine Run.</b> Pick up vaccine crates at one body and deliver them to another before the timer runs out. <code>load_cargo, cargo</code></li><li><b>Mail Circuit.</b> Three parcels for three bodies, any order, one timer. <code>cargo count</code></li><li><b>Diplomatic Pouch.</b> Carry a sealed pouch to the outermost moon and hold orbit 30 s. <code>cargo, ship_at hold</code></li><li><b>Against the Clock.</b> Two deliveries back to back on a tight timer. Chapter debrief. <code>cargo, timer</code></li></ol></section><section class="opt"><h2><span class="tag">Patrol</span> Bastion · Watch Station</h2><ol class="obj"><li><b>Patrol Route.</b> Visit three named bodies in order within the time limit. <code>ship_at stages, timer</code></li><li><b>Traffic Check.</b> A civilian freighter is named. Meet it in orbit and stay with it 30 s. <code>bind_ship, with_ship hold</code></li><li><b>Distress Call.</b> A distress beacon at a body: get there before the timer and sweep the area. <code>place_beacon, swept</code></li><li><b>Escort.</b> Shadow a departing freighter: be at its destination when it arrives. <code>with_ship</code></li><li><b>Picket.</b> Hold orbit at the outermost body for 120 s and run two scans. Chapter debrief. <code>ship_at hold, scanned</code></li></ol></section><section class="opt"><h2><span class="tag">Diplomacy</span> Meridian · Envoy</h2><ol class="obj"><li><b>Showing the Flag.</b> Long-range scan, then reach the world with signs of a civilization. <code>scanned, ship_at civ body</code></li><li><b>Listening Post.</b> Put an observation post on it. <code>contact post</code></li><li><b>Study.</b> Fill the dossier on the species. <code>contact studied</code></li><li><b>First Words.</b> Make first contact and choose how. <code>contact met</code></li><li><b>Guests Aboard.</b> Hold orbit 60 s while the delegation visits. Chapter debrief. <code>ship_at hold</code></li></ol><p class="muted">Contact uses the existing civilizations system. The Envoy chain allows first contact in Dawn of Warp (the Prime Directive doesn’t exist yet in this era).</p></section>
+
+  <section class="opt">
+    <h2><span class="tag">Build</span> What changes in the game</h2>
+    <div class="cards">
+      <div class="card need"><h3>Data</h3><ul>
+        <li><code>data/missions/ship_choice.json</code>: the six ships (id, name, class, role, <code>colonizes</code>, <code>chain</code>, crew, length, travel speed, card, blurb, start bonus).</li>
+        <li>Four new chains (<code>long_survey</code>, <code>priority_run</code>, <code>watch_station</code>, <code>envoy</code>) next to <code>first_light</code>; new givers for the courier, patrol and envoy desks.</li></ul></div>
+      <div class="card need"><h3>Sim</h3><ul>
+        <li><code>GameSetup.ShipId</code> → <code>MatchSetup.CreateSystemGame(…, shipId)</code>: the flagship is that ship; travel time scales with its speed.</li>
+        <li>Non-colonizers: landing, outpost drops and drop ships refused (“the Tereshkova can’t land a colony”).</li>
+        <li>Space chains run without an uplink. New conditions <code>ship_at</code>, <code>visited</code>, <code>charted</code>, <code>scanned</code>, <code>swept</code>, <code>system_satellites</code>, <code>cargo</code>, <code>with_ship</code>, <code>contact</code>; actions <code>bind_body</code>, <code>bind_ship</code>, <code>place_beacon</code>, <code>load_cargo</code>.</li>
+        <li>Tests: every chain played to the end, twice, same hashes.</li></ul></div>
+      <div class="card need"><h3>Game screens</h3><ul>
+        <li>Main menu: the Choose Your Ship page with card art.</li>
+        <li>System page: LAND HERE for colonizers, BEGIN MISSION (any body) for the rest.</li>
+        <li>In game: space ships open on the SYSTEM display, landing and drop pills hidden, the mission tracker on the helm, beacons and cargo on the system plot.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="opt">
+    <h2><span class="tag">Open</span> Questions for later</h2>
+    <ol class="qs">
+      <li><b>After the chapter.</b> Can a space ship later support a colony (for example, Cochrane resupplying a Horizon colony), or does each campaign stay with its first ship?</li>
+      <li><b>Rewards.</b> Space chains have no outpost to stock. For now they end with a debrief; later they could unlock ships, techs or campaign standing.</li>
+      <li><b>Ship stats.</b> Travel speed differs per ship (Armstrong fastest, Horizon slowest). Should sensors, scan range or satellite count differ too?</li>
+      <li><b>Multiplayer.</b> Each player picks a ship; a colonizer and a space ship in the same system could meet.</li>
+    </ol>
+  </section>
+
+  <footer><p>Ship renders from each class page. This page is the record of the decision; the contract is <code>docs/ship-pick-contract.md</code>.</p></footer>
+</div>

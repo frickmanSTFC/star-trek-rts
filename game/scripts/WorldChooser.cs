@@ -45,9 +45,23 @@ public static class GameSetup
     /// PlanetDriver.BeginMissions hands it to the sim before tick 0.</summary>
     public static string? MissionChain { get; private set; }
 
+    /// <summary>The ship picked on the menu's Choose Your Ship page (GameData.ShipChoices id), or null (DEBUG, or no pick).
+    /// docs/ship-pick-contract.md: its chain replaces the era's (MissionChain), and a ship that doesn't colonize never lands.</summary>
+    public static string? ShipId { get; private set; }
+
+    /// <summary>A campaign start with a ship pick: <paramref name="homeBodyId"/> is the landing world for a colonizer, the
+    /// start orbit for any other ship; <paramref name="chain"/> is the ship's mission chain.</summary>
+    public static void StartCampaign(string faction, string era, ulong seed, string homeBodyId, string shipId, string chain)
+    {
+        StartCampaign(faction, era, seed, homeBodyId);
+        ShipId = shipId;
+        MissionChain = chain;
+    }
+
     /// <summary>The main menu's campaign start (not saved: chosen in the menu each time).</summary>
     public static void StartCampaign(string faction, string era, ulong seed, string homeBodyId)
     {
+        ShipId = null;
         Mode = GameMode.Campaign;
         Faction = faction;
         Era = era;
@@ -65,6 +79,7 @@ public static class GameSetup
         CampaignSeed = null;
         HomeBody = null;
         MissionChain = null;
+        ShipId = null;
     }
 
     public static void Choose(string world, ulong seed)
