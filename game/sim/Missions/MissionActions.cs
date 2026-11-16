@@ -16,6 +16,7 @@ public sealed partial class MissionBook
     private void Act(int p, MissionRun run, MissionDef d, MissionActionDef a)
     {
         if (_sim?.Surface is not { } s) return;
+        if (SpaceAct(p, run, d, a)) return; // MissionSpace.cs: bind_body, bind_ship, place_beacon, load_cargo
         switch (a.Kind)
         {
             case "message":
@@ -43,7 +44,7 @@ public sealed partial class MissionBook
             }
             case "marker":
             {
-                if (a.F("at") is not { } at) break;
+                if (a.F("at") is not { } at || SpaceMarker(p, run, a)) break; // a body / ship binding: MissionSpace.cs
                 var style = a.F("style") ?? "target";
                 var radius = a.I("radius", 1);
                 var offset = a.I("offset", 0);
@@ -139,6 +140,10 @@ public sealed partial class MissionBook
             case "place_tiles":
             case "marker":
             case "start_mission":
+            case "bind_body":
+            case "bind_ship":
+            case "place_beacon":
+            case "load_cargo":
                 if (Def(run) is { } d) Act(p, run, d, a);
                 return "";
             default:
@@ -184,6 +189,7 @@ public sealed partial class MissionBook
             var prop = m.Groups[2].Value;
             var tiles = TilesOf(p, run, name);
             var b = run.Find(name);
+            if (b != null && (b.Body != null || b.Ship > 0)) return SpaceFill(p, b, prop); // MissionSpace.cs
             switch (prop)
             {
                 case "res":

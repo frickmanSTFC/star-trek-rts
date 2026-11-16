@@ -53,22 +53,45 @@ public static class MatchSetup
 
     /// <summary>
     /// A system game with the campaign's ship pick (docs/ship-pick-contract.md): <paramref name="shipId"/> is a
-    /// <see cref="GameData.ShipChoices"/> id or null. A ship that doesn't colonize may start at any body (homeBody then
-    /// names its start orbit; the surface is the generator's pick and is never landed). CONTRACT STUB: the sim agent
-    /// fills in the flagship class, speed, start orbit and start bonus.
+    /// <see cref="GameData.ShipChoices"/> id or null (null = exactly the 4-argument game). The flagship is that ship (class
+    /// "prewarp.&lt;id&gt;", its name, a "UE-nn" registry, its speed dividing flight times). A colonizer plays as before on
+    /// <paramref name="homeBody"/> and gets its start bonus (resources added to the landing stock now; start units land with
+    /// the colony). A ship that doesn't colonize starts in orbit of <paramref name="homeBody"/> (any body of the system, by id
+    /// or name; null = the generator's landable pick), Charted; the game's surface is still the generator's landable pick,
+    /// which it never lands on. Throws for an unknown ship or body.
     /// </summary>
     public static Simulation CreateSystemGame(GameData data, ulong seed, string faction, string? homeBody, string? shipId)
     {
-        var ship = data.ShipChoice(shipId);
-        if (ship is { Colonizes: false }) homeBody = null; // stub: the start orbit isn't honoured yet
-        var sim = CreateSystemGameCore(data, seed, faction, homeBody);
-        if (ship != null) sim.SetShipChoice(0, ship.Id);
+        if (shipId == null) return CreateSystemGameCore(data, seed, faction, homeBody);
+        var ship = data.ShipChoice(shipId) ?? throw new ArgumentException($"No ship '{shipId}' to pick.");
+        var system = SystemGenerator.Generate(data, seed);
+        var home = HomeBody(data, system, ship.Colonizes ? homeBody : null);
+        string? start = null;
+        if (!ship.Colonizes && homeBody != null)
+            start = (system.Bodies.FirstOrDefault(b => string.Equals(b.Id, homeBody, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(b.Name, homeBody, StringComparison.OrdinalIgnoreCase))
+                    ?? throw new ArgumentException($"No body '{homeBody}' in this system.")).Id;
+        var sim = new Simulation(data, seed);
+        sim.LoadSurface(home.ClassId, SystemGenerator.SurfaceSeed(seed, home.Id), home.Id, system.Climate);
+        var state = new StarSystemState { Star = system.Star, Bodies = system.Bodies, SurfaceBody = home.Id, Seed = seed, Generated = system };
+        sim.LoadSystem(state);
+        sim.SetShipChoice(0, ship.Id);
+        if (start != null) state.SetStartBody(0, start);
+        var player = sim.AddPlayer(faction);
+        sim.System!.SpawnTraffic(data);
+        if (ship.Colonizes)
+            foreach (var (res, amount) in ship.StartBonus) // into the landing stock (StartUnits land at touchdown: PlanetSurface)
+                player.Stock.Add(data.Resource(res).Index, Fix64.FromInt(amount));
         return sim;
     }
 
-    /// <summary>Whether the system this seed generates has a living (not ruined) civilization: Meridian's system page
-    /// only offers those. CONTRACT STUB: true.</summary>
-    public static bool HasLivingCivilization(GameData data, ulong seed) => true;
+    /// <summary>Whether the system this seed generates has a living (not ruined) civilization (never on the generator's
+    /// landable pick, like every system game): Meridian's system page only offers those.</summary>
+    public static bool HasLivingCivilization(GameData data, ulong seed)
+    {
+        var system = SystemGenerator.Generate(data, seed);
+        return CivGenerator.Roll(data, system.Bodies, seed, HomeBody(data, system).Id).Any(s => s.Living);
+    }
 
     private static Simulation CreateSystemGameCore(GameData data, ulong seed, string faction, string? homeBody)
     {

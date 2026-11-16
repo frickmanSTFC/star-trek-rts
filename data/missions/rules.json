@@ -4,9 +4,16 @@
   "givers": [
     { "id": "control", "name": "Flight Director Moreau", "role": "Earth Mission Control", "initials": "FM" },
     { "id": "ops", "name": "Chief Okafor", "role": "Outpost operations", "initials": "CO" },
-    { "id": "science", "name": "Dr. Reyes", "role": "Science", "initials": "DR" }
+    { "id": "science", "name": "Dr. Reyes", "role": "Science", "initials": "DR" },
+    { "id": "courier", "name": "Dispatcher Lindqvist", "role": "Courier desk", "initials": "DL" },
+    { "id": "patrol", "name": "Commodore Hale", "role": "System patrol", "initials": "CH" },
+    { "id": "envoy", "name": "Ambassador Osei", "role": "Diplomatic corps", "initials": "AO" }
   ],
   "chains": [
-    { "id": "first_light", "name": "First Light", "era": "dawn_of_warp" }
+    { "id": "first_light", "name": "First Light", "era": "dawn_of_warp" },
+    { "id": "long_survey", "name": "The Long Survey", "era": "dawn_of_warp", "space": true },
+    { "id": "priority_run", "name": "Priority Run", "era": "dawn_of_warp", "space": true },
+    { "id": "watch_station", "name": "Watch Station", "era": "dawn_of_warp", "space": true },
+    { "id": "envoy", "name": "Envoy", "era": "dawn_of_warp", "space": true }
   ]
 }

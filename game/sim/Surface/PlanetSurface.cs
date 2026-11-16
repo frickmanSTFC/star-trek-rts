@@ -444,6 +444,7 @@ public sealed partial class PlanetSurface
     {
         var orbit = _data.Orbit;
         if (!IsPlayer(player)) return "no such player";
+        if (sim.ColonizeProblem(player) is { } colonize) return colonize; // a picked ship that never lands
         if (orbit == null) return "no ship in orbit";
         if (sim.System?.OrbitProblem(player) is { } away) return away;
         if (_players[player].Phase != LandingPhase.Landed) return "land the colony first";
@@ -470,6 +471,7 @@ public sealed partial class PlanetSurface
     {
         var orbit = _data.Orbit;
         if (!IsPlayer(player)) return "no such player";
+        if (sim.ColonizeProblem(player) is { } colonize) return colonize; // a picked ship that never lands
         if (orbit == null) return "no ship in orbit";
         if (sim.System?.OrbitProblem(player) is { } away) return away;
         if (!orbit.ShuttlePayloads.Contains(unitId)) return "the drop ship can't carry that";
@@ -541,6 +543,7 @@ public sealed partial class PlanetSurface
     public string? BeamProblem(Simulation sim, int player, int tile, string payload)
     {
         if (!IsPlayer(player)) return "no such player";
+        if (sim.ColonizeProblem(player) is { } colonize) return colonize; // a picked ship that never lands
         if (sim.System?.OrbitProblem(player) is { } away) return away;
         var p = _players[player];
         var level = _data.Orbit?.Transporter(p.TransporterLevel);
@@ -1234,6 +1237,7 @@ public sealed partial class PlanetSurface
             }
 
             case FoundOutpostCommand found:
+                if (sim.ColonizeProblem(found.Player) is { } colonize) return sim.Refuse(found, colonize); // a picked ship that never lands
                 FoundOutpost(sim, found);
                 return true;
 
@@ -1907,6 +1911,10 @@ public sealed partial class PlanetSurface
             if (Map.Terrain(n).Passable && _structureAt[n] == 0) spots.Add(n);
         for (var i = 0; i < _data.Landing.Units.Count && spots.Count > 0; i++)
             SpawnUnit(player, _data.Landing.Units[i], spots[i % spots.Count]);
+        // The campaign's ship pick: a colonizer's start units land too (ship_choice.json start_units; Cochrane's construction rover).
+        if (sim.ShipChoiceOf(player) is { Colonizes: true } pick)
+            for (var i = 0; i < pick.StartUnits.Count && spots.Count > 0; i++)
+                SpawnUnit(player, pick.StartUnits[i], spots[(_data.Landing.Units.Count + i) % spots.Count]);
     }
 
     /// <summary>baseId 0 = this structure is a new base of its own.</summary>

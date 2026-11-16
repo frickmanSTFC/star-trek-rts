@@ -65,24 +65,13 @@ public readonly record struct MissionSite(int Id, int Owner, string MissionId, s
 /// Every player's campaign missions (sim state, hashed once enabled). Off by default: a game turns them on before tick 0
 /// with <see cref="Enable"/> (a campaign start), or the test panel with DebugMissionCommand Enable. Stepped once a second
 /// (Simulation.Step, after the surface), players in order, missions in file order; nothing runs for a player before
-/// their outpost's uplink is online. Main missions of the chain start by themselves, one at a time, each once the earlier
+/// their outpost's uplink is online (a space chain, for a picked ship that never lands: from the start; MissionSpace.cs). Main missions of the chain start by themselves, one at a time, each once the earlier
 /// ones have ended and its trigger holds; side jobs are offered when their trigger holds (while fewer than
 /// rules.max_side_active are active) and lapse after offer_seconds. Choices arrive as MissionChoiceCommand. Randomness
 /// (where sites and search areas go) hashes the map seed, player, mission and binding, never sim.Rng.
 /// </summary>
-/// <summary>A space-chain marker: Kind "beacon" | "pickup" | "dropoff" | "target" | "ship"; BodyId (null for a ship);
-/// ShipId (-1 unless Kind is "ship"); Label for the plot.</summary>
-public sealed record SpaceMarker(string Kind, string? BodyId, int ShipId, string Label);
-
 public sealed partial class MissionBook
 {
-    /// <summary>Space-chain markers on the system plot (docs/ship-pick-contract.md): beacons, cargo pick-up and drop-off
-    /// bodies, bound bodies and ships. CONTRACT STUB: empty.</summary>
-    public IReadOnlyList<SpaceMarker> SpaceMarkers(int player) => System.Array.Empty<SpaceMarker>();
-
-    /// <summary>Mission cargo aboard this player's flagship (labels such as "Vaccine crates → Corsa"). CONTRACT STUB: empty.</summary>
-    public IReadOnlyList<string> CargoAboard(int player) => System.Array.Empty<string>();
-
     private readonly Simulation? _sim;
     private readonly List<PlayerBook> _players = new();
     private readonly List<SiteRun> _sites = new();
@@ -99,6 +88,10 @@ public sealed partial class MissionBook
 
     /// <summary>The mission chain this game plays ("first_light"), "" while off.</summary>
     public string ChainId { get; private set; } = "";
+
+    /// <summary>The chain is a space chain (rules.json "space": a picked ship that never lands, docs/ship-pick-contract.md):
+    /// its missions run from the start with no outpost uplink, and the build menu is left alone.</summary>
+    public bool SpaceChain => Enabled && Defs?.Chain(ChainId) is { Space: true };
 
     /// <summary>Where drone and comms facts come from (tests replace it; see MissionWorld).</summary>
     internal MissionWorld World { get; set; } = MissionWorld.Default;
@@ -135,7 +128,7 @@ public sealed partial class MissionBook
         if (EnableProblem(chainOrEra) is { } problem) return problem;
         ChainId = ResolveChain(Defs!, chainOrEra ?? "")!.Id;
         Enabled = true;
-        if (_sim!.Surface is { } s) // a campaign starts with surfaces.json start_menu; missions unlock the rest (Surface/Unlocks.cs)
+        if (_sim!.Surface is { } s && !SpaceChain) // a campaign starts with surfaces.json start_menu; missions unlock the rest (Surface/Unlocks.cs)
             for (var p = 0; p < s.Players.Count; p++) s.LockToStartMenu(p);
         return null;
     }
@@ -161,9 +154,13 @@ public sealed partial class MissionBook
         public string Text = "";
         public string Res = "";
 
+        /// <summary>Space chains (MissionSpace.cs): a body of the star system (bind_body), or a ship (bind_ship).</summary>
+        public string? Body;
+        public int Ship;
+
         public Binding Copy()
         {
-            var b = new Binding { Name = Name, UnitId = UnitId, Text = Text, Res = Res };
+            var b = new Binding { Name = Name, UnitId = UnitId, Text = Text, Res = Res, Body = Body, Ship = Ship };
             b.Tiles.AddRange(Tiles);
             b.Sites.AddRange(Sites);
             return b;
@@ -178,6 +175,13 @@ public sealed partial class MissionBook
         public int UnitId;
         public int SiteId;
         public string Label = "";
+
+        /// <summary>Space chains: a marker on a body or a ship of the star system ("target", "beacon", "ship").</summary>
+        public string? Body;
+        public int Ship;
+        public string Kind = "";
+
+        public bool InSpace => Body != null || Ship > 0;
     }
 
     internal sealed class SiteRun
@@ -202,6 +206,10 @@ public sealed partial class MissionBook
 
         public readonly List<Binding> Bindings = new();
         public readonly List<MarkerRun> Markers = new();
+
+        /// <summary>Space chains: what this stage has seen happen, per objective (objective × 2^40 + a tick: scans run).</summary>
+        public readonly List<long> Marks = new();
+
         public bool Rewarded;
         public string Outcome = "";
 
@@ -226,6 +234,9 @@ public sealed partial class MissionBook
         public readonly List<MissionRun> Runs = new();
         public readonly List<string> Flags = new(); // sorted
         public readonly List<MissionMessage> Messages = new();
+
+        /// <summary>Space chains: mission cargo (load_cargo), in the order it was loaded (MissionSpace.cs).</summary>
+        public readonly List<CargoRun> Cargo = new();
     }
 
     /// <summary>A player's book (made on first use: the chain's missions available in this data set, in file order).</summary>
@@ -271,9 +282,14 @@ public sealed partial class MissionBook
         for (var p = 0; p < _sim.Players.Count && p < s.Players.Count; p++)
         {
             var book = Track(p);
-            s.LockToStartMenu(p); // a player added after missions came on (no-op once restricted)
-            if (!s.UplinkOnline(p, Now)) continue;
-            UpdateSites(s, p);
+            if (SpaceChain)
+                StepCargo(p, book); // MissionSpace.cs: a space chain runs from the start (no landing, no uplink, no build menu)
+            else
+            {
+                s.LockToStartMenu(p); // a player added after missions came on (no-op once restricted)
+                if (!s.UplinkOnline(p, Now)) continue;
+                UpdateSites(s, p);
+            }
             // Offers that lapsed.
             foreach (var run in book.Runs)
                 if (run.State == MissionState.Offered && Now >= run.OfferEnd)
@@ -350,6 +366,7 @@ public sealed partial class MissionBook
         run.Base = new Fix64[stage.Objectives.Count];
         run.Visited.Clear();
         run.Markers.Clear();
+        run.Marks.Clear();
         run.TimerEnd = stage.TimerSeconds > 0 ? Now + (long)stage.TimerSeconds * Simulation.TickRate : -1;
         if (index > 0) Say(p, run, d.Giver, $"{d.Title}: {stage.Title}.", "feed");
         foreach (var a in stage.OnEnter)
@@ -411,6 +428,7 @@ public sealed partial class MissionBook
         run.End = Now;
         run.TimerEnd = -1;
         run.Markers.Clear();
+        DropCargo(p, run); // MissionSpace.cs
         var paid = new List<string>();
         if (!run.Rewarded)
         {
@@ -428,6 +446,7 @@ public sealed partial class MissionBook
         run.End = Now;
         run.TimerEnd = -1;
         run.Markers.Clear();
+        DropCargo(p, run); // MissionSpace.cs
         Say(p, run, d.Giver, $"Mission failed: {d.Title}.", "comms");
     }
 
@@ -604,6 +623,7 @@ public sealed partial class MissionBook
             if (run.State is not (MissionState.Active or MissionState.Offered)) continue;
             foreach (var m in run.Markers)
             {
+                if (m.InSpace) continue; // SpaceMarkers (MissionSpace.cs)
                 if (m.SiteId > 0 && Site(m.SiteId) is { Done: true }) continue;
                 var tile = m.Tile;
                 if (m.UnitId > 0)
@@ -665,6 +685,12 @@ public sealed partial class MissionBook
                 h.Add(m.MissionId);
                 h.Add(m.Channel);
             }
+            if (p.Cargo.Count > 0)
+            {
+                h.Add("cargo");
+                h.Add(p.Cargo.Count);
+                foreach (var c in p.Cargo) c.AddToHash(ref h);
+            }
             h.Add(p.Runs.Count);
             foreach (var r in p.Runs)
             {
@@ -698,6 +724,13 @@ public sealed partial class MissionBook
                     foreach (var t in b.Tiles) h.Add(t);
                     h.Add(b.Sites.Count);
                     foreach (var t in b.Sites) h.Add(t);
+                    if (b.Body != null || b.Ship != 0) // space chains only (First Light keeps its hashes)
+                    {
+                        h.Add("space");
+                        h.Add(b.Body != null);
+                        if (b.Body != null) h.Add(b.Body);
+                        h.Add(b.Ship);
+                    }
                 }
                 h.Add(r.Markers.Count);
                 foreach (var m in r.Markers)
@@ -708,6 +741,20 @@ public sealed partial class MissionBook
                     h.Add(m.UnitId);
                     h.Add(m.SiteId);
                     h.Add(m.Label);
+                    if (m.InSpace)
+                    {
+                        h.Add("space");
+                        h.Add(m.Body != null);
+                        if (m.Body != null) h.Add(m.Body);
+                        h.Add(m.Ship);
+                        h.Add(m.Kind);
+                    }
+                }
+                if (r.Marks.Count > 0)
+                {
+                    h.Add("marks");
+                    h.Add(r.Marks.Count);
+                    foreach (var m in r.Marks) h.Add(m);
                 }
             }
         }

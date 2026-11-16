@@ -81,8 +81,10 @@ public sealed record MissionDef(string Id, string Chain, string Kind, string Tit
 /// ("Earth Mission Control"), Initials for the portrait placeholder.</summary>
 public sealed record MissionGiverDef(string Id, string Name, string Role, string Initials);
 
-/// <summary>A mission chain (rules.json chains): Id ("first_light"), Name ("First Light"), the era it belongs to.</summary>
-public sealed record MissionChainDef(string Id, string Name, string Era);
+/// <summary>A mission chain (rules.json chains): Id ("first_light"), Name ("First Light"), the era it belongs to. Space =
+/// a chain for a ship that never lands (docs/ship-pick-contract.md): its missions run from the start, with no outpost uplink,
+/// and the build menu is left alone.</summary>
+public sealed record MissionChainDef(string Id, string Name, string Era, bool Space = false);
 
 /// <summary>rules.json: MaxSideActive 2 side jobs at once, OfferSeconds 90 for an offer to stand, MessageLog lines kept
 /// per player, RichDeposit = a deposit at least this big counts as rich (deposits_found rich), SiteKinds the view draws.</summary>

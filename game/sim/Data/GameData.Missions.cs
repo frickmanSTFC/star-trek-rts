@@ -142,7 +142,8 @@ public sealed partial class GameData
             ? gs.EnumerateArray().Select(g => new MissionGiverDef(S(g, "id"), S(g, "name"), S(g, "role"), S(g, "initials"))).ToList()
             : new List<MissionGiverDef>();
         var chains = root.TryGetProperty("chains", out var cs) && cs.ValueKind == JsonValueKind.Array
-            ? cs.EnumerateArray().Select(c => new MissionChainDef(S(c, "id"), S(c, "name"), S(c, "era"))).ToList()
+            ? cs.EnumerateArray().Select(c => new MissionChainDef(S(c, "id"), S(c, "name"), S(c, "era"),
+                c.ValueKind == JsonValueKind.Object && c.TryGetProperty("space", out var sp) && sp.ValueKind == JsonValueKind.True)).ToList()
             : new List<MissionChainDef>();
         var list = new List<MissionDef>();
         if (root.TryGetProperty("missions", out var ms) && ms.ValueKind == JsonValueKind.Array)
