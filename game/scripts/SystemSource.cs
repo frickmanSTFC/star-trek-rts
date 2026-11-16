@@ -185,7 +185,7 @@ public sealed class SystemSource
     {
         var f = Flagship;
         if (State == null || f?.AtBody == null || f.AtBody == toBody) return null;
-        var ticks = State.TravelTicks(f.AtBody, toBody);
+        var ticks = State.TravelTicksFor(f, f.AtBody, toBody); // the picked ship's speed counts (Armstrong ×2)
         return ticks <= 0 ? null : (ticks + Simulation.TickRate - 1) / Simulation.TickRate;
     }
 
@@ -234,6 +234,7 @@ public sealed class SystemSource
     /// <summary>"Galaxy class" style text for a ship's class (the id itself when ships.json doesn't have it).</summary>
     public string ShipClassText(SystemShip ship)
     {
+        if (State?.PickedShip(ship) is { } picked) return $"{picked.Name} class {picked.ClassLabel.ToLowerInvariant()}"; // the campaign's ship pick
         var c = ShipClass(ship.ClassId);
         if (c == null) return NativeClassText(ship) ?? ship.ClassId;
         return c.Role is GameData.CombatRole or "" ? $"{c.Name} class" : $"{c.Name} class {c.Role}";
