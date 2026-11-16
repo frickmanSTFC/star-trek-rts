@@ -43,12 +43,17 @@ public partial class PlanetDriver
             _sim = MatchSetup.CreatePlanetLanding(data, Seed, StartFaction, null, world);
             return id;
         }
-        if (world.Length > 0 && home == null && !Is(world, MatchSetup.DefaultWorld))
+        if (world.Length > 0 && home == null && !Is(world, MatchSetup.DefaultWorld) && !(GameSetup.Mode == GameMode.Campaign && data.ShipChoice(GameSetup.ShipId) is { Colonizes: false }))
         {
             if (landable.Count > 0) GD.Print($"World '{world}' (saved from an earlier game) isn't a landable body of seed {Seed}'s system; starting on the system's own pick.");
             else GD.PushError($"World '{world}' isn't a playable world (try \"tarsis\" or \"veyra\"); starting on {MatchSetup.DefaultWorld}.");
         }
-        _sim = MatchSetup.CreateSystemGame(data, Seed, StartFaction, home?.Id);
+        // The campaign's ship pick (docs/ship-pick-contract.md): a colony ship lands on the chosen world as before; any other
+        // ship starts in orbit of the chosen body (any body of the system) and never lands (the surface is the generator's).
+        var ship = GameSetup.Mode == GameMode.Campaign ? data.ShipChoice(GameSetup.ShipId) : null;
+        var startBody = ship is { Colonizes: false } ? (world.Length > 0 ? world : null) : home?.Id;
+        if (ship != null) GD.Print($"Ship: {ship.Name} ({ship.Id}, {(ship.Colonizes ? "colony ship" : "never lands")}), chain {ship.Chain}, start {startBody ?? "the system's pick"}");
+        _sim = MatchSetup.CreateSystemGame(data, Seed, StartFaction, startBody, ship?.Id);
         var sys = _sim.System;
         var body = sys?.Bodies.FirstOrDefault(b => b.Id == sys.SurfaceBody) ?? home;
         var classId = _sim.Surface?.Map.Def.ClassId ?? "?";
@@ -344,6 +349,7 @@ public partial class PlanetDriver
         var selected = _system.Body(_selectedBody ?? bodies.FirstOrDefault(b => b.Current)?.Id);
         if (selected != null && _system.Known(selected.Id))
             sections.Add(new HelmSection(_system.KnownName(selected).ToUpperInvariant(), _system.Identified(selected.Id) ? HelmScreen.Peach : DetectedGrey, BodyRows(selected, true)));
+        AddCargoSection(sections); // MISSION CARGO while the flagship carries any (PlanetDriver.ShipPick.cs)
         sections.Add(new HelmSection("BODIES", HelmScreen.Sky, bodies.Where(b => b.ParentId == null).Select(b => new HelmRow(
             b.Name.ToUpperInvariant(),
             b.Charted ? b.ClassName + (b.Live ? " · live" : "") : b.Identified ? $"{b.ClassName} · uncharted" : $"detected · size ~{b.Size}",
@@ -424,6 +430,7 @@ public partial class PlanetDriver
         rows.Add(new HelmRow("OWNER", _system.OwnerText(s), s.Owner == LocalPlayer ? HelmScreen.Peach : s.Owner < 0 ? null : PlanetDriver.ColorOf(s.Owner)));
         rows.Add(new HelmRow("HEADING", HeadingText(s)));
         rows.Add(new HelmRow("CARGO", string.IsNullOrEmpty(s.Cargo) ? "none declared" : s.Cargo));
+        AddCargoRows(s, rows); // the mission cargo aboard our flagship (PlanetDriver.ShipPick.cs)
         if (SystemSource.InFlight(s)) rows.Add(new HelmRow("ETA", $"{_system.SecondsToArrival(s)} s"));
         var buttons = new List<HelmAction>();
         if (s.Owner == LocalPlayer) buttons.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null));

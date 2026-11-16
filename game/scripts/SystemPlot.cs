@@ -101,6 +101,7 @@ public partial class SystemPlot : Node3D
             BuildCourses(source, ownerColour);
         }
         MoveShips(source, alpha, ownerColour);
+        UpdateMarkers(source); // space-chain mission markers (SystemPlot.Markers.cs)
         PlaceHighlight();
     }
 

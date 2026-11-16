@@ -198,7 +198,7 @@ public partial class MainMenu
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             CustomMinimumSize = new Vector2(0, (open ? 92 : 80) * _s),
             Disabled = !open,
-            TooltipText = open ? "Begin: choose a star system" : "Locked: later in the campaign",
+            TooltipText = open ? "Begin: choose your ship" : "Locked: later in the campaign",
             ClipContents = true,
         };
         var r = 6 * _s;
@@ -207,7 +207,7 @@ public partial class MainMenu
         b.AddThemeStyleboxOverride("pressed", HudKit.Box(HudKit.Pressed, HudKit.Accent, r, 0, 0, 2));
         b.AddThemeStyleboxOverride("disabled", HudKit.Box(new Color(0.03f, 0.04f, 0.08f, 0.9f), new Color(0.11f, 0.14f, 0.2f), r, 0, 0, 1));
         b.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
-        if (open) b.Pressed += () => ShowPage(Page.System);
+        if (open) b.Pressed += AfterEra; // the ship pick (MainMenu.ShipPick.cs), else the system
 
         var pad = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         pad.SetAnchorsPreset(Control.LayoutPreset.FullRect);
