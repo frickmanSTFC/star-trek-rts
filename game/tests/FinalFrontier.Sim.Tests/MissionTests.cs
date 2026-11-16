@@ -686,8 +686,8 @@ public class MissionTests
         Assert.Contains("missions", GameData.Documents);
         Assert.Equal(2, m.Rules.MaxSideActive);
         Assert.Equal(90, m.Rules.OfferSeconds);
-        Assert.Equal(new[] { "control", "ops", "science" }, m.Givers.Select(g => g.Id));
-        Assert.Equal(7, m.List.Count(x => x.IsMain));
+        Assert.Equal(new[] { "control", "ops", "science", "courier", "patrol", "envoy" }, m.Givers.Select(g => g.Id));
+        Assert.Equal(7, m.List.Count(x => x.IsMain && x.Chain == "first_light"));
         Assert.Equal(5, m.List.Count(x => !x.IsMain));
         Assert.Equal(new[] { ("lost_pathfinder", "wreck") }, m.Find("calling_home")!.Imports);
         Assert.Empty(Data.Validate());

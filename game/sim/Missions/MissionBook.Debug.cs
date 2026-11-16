@@ -97,6 +97,8 @@ public sealed partial class MissionBook
         run.Visited.Clear();
         run.Bindings.Clear();
         run.Markers.Clear();
+        run.Marks.Clear();
+        DropCargo(p, run);
         run.Rewarded = false;
         run.Outcome = "";
     }

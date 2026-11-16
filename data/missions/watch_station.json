@@ -1,0 +1,95 @@
+{
+  "missions": [
+    { "id": "patrol_route", "chain": "watch_station", "kind": "main", "title": "Patrol Route", "giver": "patrol",
+      "briefing": "Hale, system patrol. The Bastion is the only patrol cutter out here, so the route is yours: {way_1}, then {way_2}, then {way_3}, in that order, each leg on the clock.",
+      "stages": [
+        { "id": "leg_1", "title": "First waypoint", "timer_seconds": 110, "on_timeout": "leg_1",
+          "on_enter": [
+            { "bind_body": { "as": "way_1", "pick": "random_other" } },
+            { "bind_body": { "as": "way_2", "pick": "random_other", "exclude": "way_1" } },
+            { "bind_body": { "as": "way_3", "pick": "random_other", "exclude": ["way_1", "way_2"] } },
+            { "marker": { "at": "way_1", "label": "Waypoint 1" } },
+            { "marker": { "at": "way_2", "label": "Waypoint 2" } },
+            { "marker": { "at": "way_3", "label": "Waypoint 3" } } ],
+          "objectives": [
+            { "id": "way_1", "text": "Reach {way_1}", "cond": { "ship_at": { "body": "way_1" } },
+              "hint": "Set a course for {way_1} ({way_1.distance} s). Out of time and a new route is drawn up." } ],
+          "next": "leg_2" },
+        { "id": "leg_2", "title": "Second waypoint", "timer_seconds": 110, "on_timeout": "leg_1",
+          "on_enter": [
+            { "marker": { "at": "way_2", "label": "Waypoint 2" } },
+            { "marker": { "at": "way_3", "label": "Waypoint 3" } } ],
+          "objectives": [
+            { "id": "way_2", "text": "Reach {way_2}", "cond": { "ship_at": { "body": "way_2" } },
+              "hint": "On to {way_2} ({way_2.distance} s)." } ],
+          "next": "leg_3" },
+        { "id": "leg_3", "title": "Third waypoint", "timer_seconds": 110, "on_timeout": "leg_1",
+          "on_enter": [ { "marker": { "at": "way_3", "label": "Waypoint 3" } } ],
+          "objectives": [
+            { "id": "way_3", "text": "Reach {way_3}", "cond": { "ship_at": { "body": "way_3" } },
+              "hint": "Last leg: {way_3} ({way_3.distance} s)." } ],
+          "next": "complete" } ],
+      "debrief": "Route flown, on time, every leg. That's the standard. Now the real work." },
+
+    { "id": "traffic_check", "chain": "watch_station", "kind": "main", "title": "Traffic Check", "giver": "patrol",
+      "briefing": "Routine inspection. The civilian freighter {freighter} is due a check of its manifest. Meet it, in orbit or on its course, and stay with it for thirty seconds while the boarding team does its work.",
+      "stages": [
+        { "id": "inspect", "title": "Inspect the freighter",
+          "on_enter": [
+            { "bind_ship": { "as": "freighter", "pick": "freighter" } },
+            { "marker": { "at": "freighter", "label": "Inspect" } } ],
+          "objectives": [
+            { "id": "inspect", "text": "Stay with {freighter} for 30 s", "cond": { "with_ship": { "ship": "freighter", "hold_seconds": 30 } },
+              "hint": "Same orbit, or flying to the same body: if it leaves, set a course for where it is heading." } ],
+          "next": "complete" } ],
+      "debrief": "Manifest checks out: deuterium, ore and a crate of Andorian ale nobody declared. We let them off with a warning." },
+
+    { "id": "distress_call", "chain": "watch_station", "kind": "main", "title": "Distress Call", "giver": "patrol",
+      "briefing": "Priority one: a distress beacon just lit up at {distress}. Get there before it is too late, then sweep the area for survivors.",
+      "stages": [
+        { "id": "reach", "title": "Answer the call", "timer_seconds": 120,
+          "on_enter": [
+            { "bind_body": { "as": "distress", "pick": "random_other" } },
+            { "place_beacon": { "at": "distress", "label": "Distress beacon" } } ],
+          "objectives": [
+            { "id": "reach", "text": "Reach {distress} before the timer runs out", "cond": { "ship_at": { "body": "distress" } },
+              "hint": "Set a course for {distress} at once ({distress.distance} s)." } ],
+          "next": "sweep" },
+        { "id": "sweep", "title": "Sweep for survivors",
+          "on_enter": [ { "place_beacon": { "at": "distress", "label": "Distress beacon" } } ],
+          "objectives": [
+            { "id": "sweep", "text": "Sweep {distress}", "cond": { "swept": { "body": "distress" } },
+              "hint": "Stay in orbit while the sensors sweep the area." } ],
+          "next": "complete" } ],
+      "debrief": "We found them: a survey skiff with a dead reactor and six people in suits. All aboard, all alive." },
+
+    { "id": "escort", "chain": "watch_station", "kind": "main", "title": "Escort", "giver": "patrol",
+      "briefing": "There have been reports of trouble on the shipping lanes. Shadow the freighter {convoy}: be in orbit at its destination when it gets there.",
+      "stages": [
+        { "id": "shadow", "title": "Shadow the freighter", "timer_seconds": 300, "on_timeout": "shadow",
+          "on_enter": [
+            { "bind_ship": { "as": "convoy", "pick": "departing" } },
+            { "marker": { "at": "convoy", "label": "Escort" } } ],
+          "objectives": [
+            { "id": "arrive", "text": "Be at {convoy}'s destination when it arrives", "cond": { "with_ship": { "ship": "convoy", "at_arrival": true } },
+              "hint": "The system plot marks where {convoy} is heading next: get there first and wait." } ],
+          "next": "complete" } ],
+      "debrief": "Freighter in safe and sound, and nothing on the lanes dared show itself with the Bastion waiting." },
+
+    { "id": "picket", "chain": "watch_station", "kind": "main", "title": "Picket", "giver": "patrol",
+      "briefing": "Last duty of the watch: picket at {edge}, the outermost body. Hold orbit there for two minutes and keep the long-range scanners busy.",
+      "stages": [
+        { "id": "picket", "title": "Hold the picket",
+          "on_enter": [
+            { "bind_body": { "as": "edge", "pick": "farthest" } },
+            { "marker": { "at": "edge", "label": "Picket" } } ],
+          "objectives": [
+            { "id": "hold", "text": "Hold orbit at {edge} for 120 s", "cond": { "ship_at": { "body": "edge", "hold_seconds": 120 } },
+              "hint": "Set a course for {edge} ({edge.distance} s) and stay there." },
+            { "id": "scans", "text": "Run 2 long-range scans", "cond": { "scanned": { "count": 2 } },
+              "hint": "SCAN whenever the scanners have recharged." } ],
+          "next": "complete" } ],
+      "rewards": [ { "set_flag": { "name": "watch_station_done" } } ],
+      "debrief": "Picket stood down. Quiet watch, the way we like them. Hale out: that's the chapter, Bastion." }
+  ]
+}

@@ -329,7 +329,7 @@ public sealed partial class MissionBook
                 return MissionEval.No;
             }
             default:
-                return MissionEval.No;
+                return SpaceCheck(p, run, obj, c); // MissionSpace.cs: ship_at, visited, charted, scanned, swept, cargo, …
         }
     }
 
@@ -344,7 +344,7 @@ public sealed partial class MissionBook
         "drone_at" => Fix64.FromInt(c.F("count") != null ? c.I("count", 1) : System.Math.Max(1, c.F("at") is { } a ? TilesOf(p, run, a).Count : 1)),
         "building" or "unit" or "drone_launched" when c.I("count", 1) > 1 => Fix64.FromInt(c.I("count", 1)),
         "satellite_share" => (c.N("share", Fix64.One) * Fix64.FromInt(100)),
-        _ => Fix64.Zero,
+        _ => SpaceTarget(c), // MissionSpace.cs
     };
 
     /// <summary>What a counter that counts "since the stage began" starts from.</summary>
@@ -358,7 +358,7 @@ public sealed partial class MissionBook
             case "deposit":
                 return c.F("at") is { } ar && TilesOf(p, run, ar) is { Count: > 0 } tiles ? Extracted(s, tiles[0]) : Fix64.Zero;
             default:
-                return Fix64.Zero;
+                return SpaceBaseline(p, c); // MissionSpace.cs
         }
     }
 

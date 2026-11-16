@@ -99,6 +99,10 @@ public sealed class SystemShip
     /// <summary>A sensor sweep is running.</summary>
     public bool Sweeping => SweepBody != null;
 
+    /// <summary>Flight-time divisor (docs/ship-pick-contract.md: the picked ship's speed; 1 = the system's normal flight
+    /// times, 2 = twice as fast). Only a player's flagship from a campaign ship pick has anything but 1.</summary>
+    public Fix64 Speed { get; internal set; } = Fix64.One;
+
     internal void AddToHash(ref StateHasher h)
     {
         h.Add(Id);
@@ -134,6 +138,11 @@ public sealed class SystemShip
         {
             Text(ref h, TradeHome);
             h.Add(TradeArriveTick);
+        }
+        if (Speed != Fix64.One) // a picked ship's speed (games without a ship pick keep their hashes)
+        {
+            h.Add("speed");
+            h.Add(Speed);
         }
     }
 
@@ -361,6 +370,15 @@ public sealed partial class StarSystemState
         return System.Math.Max(1L, (seconds * Simulation.TickRate).FloorToInt());
     }
 
+    /// <summary>Flight time of this ship from one body to another in ticks: <see cref="TravelTicks(string, string)"/>
+    /// divided by the ship's <see cref="SystemShip.Speed"/> (a picked ship's speed; at least 1 tick).</summary>
+    public long TravelTicksFor(SystemShip ship, string fromBody, string toBody)
+    {
+        var ticks = TravelTicks(fromBody, toBody);
+        if (ticks <= 0 || ship.Speed == Fix64.One || ship.Speed <= Fix64.Zero) return ticks;
+        return System.Math.Max(1L, (Fix64.FromInt((int)System.Math.Min(int.MaxValue, ticks)) / ship.Speed).FloorToInt());
+    }
+
     /// <summary>Why the ship can't set course there now, or null.</summary>
     public string? CourseProblem(int player, int shipId, string bodyId)
     {
@@ -570,15 +588,70 @@ public sealed partial class StarSystemState
         var key = orbitShip != null && sim.Data.HasShipClass($"{faction}.{orbitShip.ClassName}") ? $"{faction}.{orbitShip.ClassName}" : orbitShip?.ClassName ?? "";
         var role = key.Length > 0 && sim.Data.HasShipClass(key) ? sim.Data.ShipClass(key).Role : GameData.CombatRole;
         var home = SurfaceBody ?? (Bodies.Count > 0 ? Bodies[0].Id : null);
-        _ships.Add(new SystemShip
+        if (sim.ShipChoiceOf(slot) is { } pick)
         {
-            Id = _nextShipId++, Owner = slot, ClassId = key, Name = orbitShip?.Name ?? $"{faction} ship", Faction = faction, Role = role,
-            AtBody = home,
-        });
+            // The campaign's ship pick (docs/ship-pick-contract.md): the flagship is that ship; one that doesn't colonize
+            // starts in orbit of the body MatchSetup chose (any body of the system).
+            _ships.Add(new SystemShip
+            {
+                Id = _nextShipId++, Owner = slot, ClassId = PickedClassPrefix + pick.Id, Name = pick.Name, Faction = faction, Role = pick.Role,
+                Registry = $"UE-{SystemGenerator.Int(Hash(RegistrySalt, slot), 10, 99)}", AtBody = StartBodyOf(slot) ?? home, Speed = pick.Speed,
+            });
+            home = StartBodyOf(slot) ?? home;
+        }
+        else
+            _ships.Add(new SystemShip
+            {
+                Id = _nextShipId++, Owner = slot, ClassId = key, Name = orbitShip?.Name ?? $"{faction} ship", Faction = faction, Role = role,
+                AtBody = home,
+            });
         if (home != null) Chart(slot, home, report: false); // the home body is known from the start: no achievement event
         AddCivPlayer(slot, faction); // Civilizations.cs
         Version++;
     }
+
+    /// <summary>A picked ship's class id: "prewarp." + its ship_choice.json id (GameData.ShipChoice for its text).</summary>
+    public const string PickedClassPrefix = "prewarp.";
+
+    /// <summary>The ship_choice.json record of a flagship from a campaign ship pick ("prewarp.tereshkova"), or null.</summary>
+    public ShipChoiceDef? PickedShip(SystemShip ship) =>
+        ship.ClassId.StartsWith(PickedClassPrefix, System.StringComparison.Ordinal) ? Data?.ShipChoice(ship.ClassId[PickedClassPrefix.Length..]) : null;
+
+    /// <summary>Start orbits chosen by MatchSetup for players whose picked ship doesn't colonize (by slot; null = the colony's
+    /// body). Read once when the player is added (their flagship's orbit, which is hashed).</summary>
+    private readonly List<string?> _startBodies = new();
+
+    internal void SetStartBody(int slot, string bodyId)
+    {
+        while (_startBodies.Count <= slot) _startBodies.Add(null);
+        _startBodies[slot] = bodyId;
+    }
+
+    private string? StartBodyOf(int slot) => slot >= 0 && slot < _startBodies.Count && Body(_startBodies[slot]) != null ? _startBodies[slot] : null;
+
+    /// <summary>Where a neutral ship goes next (its next trip's destination: the same hash <see cref="Step"/> uses when it
+    /// leaves), or null for a ship that isn't neutral traffic or a system with one body. Pure.</summary>
+    public string? NextDestination(SystemShip ship)
+    {
+        if (!ship.IsNeutral || Bodies.Count < 2) return null;
+        if (ship.AtBody == null) return ship.ToBody;
+        var pick = (int)(Hash(TripSalt ^ 0x77, ship.Id * 1024L + ship.Trips) % (ulong)(Bodies.Count - 1));
+        var from = IndexOf(ship.AtBody);
+        return Bodies[pick >= from ? pick + 1 : pick].Id;
+    }
+
+    /// <summary>When a neutral ship in orbit will reach <see cref="NextDestination"/> (its LeaveTick plus its flight), or
+    /// its ArriveTick in flight. Pure.</summary>
+    public long NextArrivalTick(SystemShip ship)
+    {
+        if (ship.AtBody == null) return ship.ArriveTick;
+        if (NextDestination(ship) is not { } to || Data?.SystemRules is not { } rules) return long.MaxValue;
+        var ticks = (Fix64.FromInt((int)TravelTicks(ship.AtBody, to)) * rules.NeutralScale).FloorToInt();
+        return System.Math.Max(Now, ship.LeaveTick) + System.Math.Max(1, ticks);
+    }
+
+    /// <summary>A mission names a body to the player (Detected → Scanned, so its name shows; never lowers what they know).</summary>
+    internal void MissionIdentify(int player, string bodyId) => Identify(player, bodyId);
 
     /// <summary>Puts the neutral traffic in (maps/system.json traffic): civilian ships at random bodies, leaving at staggered times.</summary>
     internal void SpawnTraffic(GameData data)
@@ -620,7 +693,7 @@ public sealed partial class StarSystemState
                     return;
                 }
                 var ship = FindShip(course.ShipId)!;
-                Depart(ship, course.BodyId, sim.Tick, TravelTicks(ship.AtBody!, course.BodyId));
+                Depart(ship, course.BodyId, sim.Tick, TravelTicksFor(ship, ship.AtBody!, course.BodyId));
                 return;
             }
             case LongRangeScanCommand scan:
@@ -721,7 +794,7 @@ public sealed partial class StarSystemState
 
     // ---------------------------------------------------------------- helpers
 
-    private const ulong TrafficSalt = 0x7AFF1C0001UL, TripSalt = 0x7AFF1C0002UL, CargoSalt = 0x7AFF1C0003UL;
+    private const ulong TrafficSalt = 0x7AFF1C0001UL, TripSalt = 0x7AFF1C0002UL, CargoSalt = 0x7AFF1C0003UL, RegistrySalt = 0x7AFF1C0004UL;
 
     private ulong Hash(ulong salt, long index) => SystemGenerator.H(Seed, salt, index);
 

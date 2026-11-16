@@ -47,6 +47,7 @@ public sealed partial class PlanetSurface
     public string? LandProblem(Simulation sim, int player, int tile)
     {
         if (player < 0 || player >= _players.Count) return "no such player";
+        if (sim.ColonizeProblem(player) is { } colonize) return colonize; // a picked ship that never lands
         if (_players[player].Phase != LandingPhase.InOrbit) return "the colony has landed";
         if (sim.System?.OrbitProblem(player) is { } away) return away;
         if (!OnMap(tile)) return "off the map";
