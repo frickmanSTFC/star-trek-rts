@@ -99,7 +99,8 @@ public sealed partial class GameData
     };
 
     /// <summary>bind_body picks: farthest = the planet or belt farthest from the star; outermost_moon = the moon of the
-    /// outermost planet that has one; gas_or_ice = the nearest gas giant or ice body (not yet Charted first); civ = the
+    /// outermost planet that has one; gas_or_ice = the nearest gas giant or ice body (not yet Charted first; the biggest
+    /// bodies in a system without one); civ = the
     /// living civilization's world; random_other = any other body, by the hash; nearest_other = the nearest other body;
     /// here = where the flagship is. Every pick but here skips the flagship's body and the excluded ones.</summary>
     public static readonly IReadOnlyList<string> MissionBodyPicks = new[] { "farthest", "outermost_moon", "gas_or_ice", "civ", "random_other", "nearest_other", "here" };

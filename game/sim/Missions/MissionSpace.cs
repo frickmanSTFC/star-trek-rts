@@ -135,9 +135,7 @@ public sealed partial class MissionBook
             case "with_ship":
             {
                 if (ShipRef(run, c.F("ship")) is not { } other) return MissionEval.No;
-                if (c.F("at_arrival") == "true")
-                    return MissionEval.Of(run != null && other.AtBody != null && other.ArriveTick >= run.StageStart && ship.AtBody == other.AtBody
-                        && ship.ArriveTick <= other.ArriveTick);
+                if (c.F("at_arrival") == "true") return MissionEval.Of(run != null && obj >= 0 && WaitedForArrival(run, obj, ship, other));
                 var together = (ship.AtBody != null && ship.AtBody == other.AtBody)
                     || (ship.AtBody == null && other.AtBody == null && ship.ToBody != null && ship.ToBody == other.ToBody);
                 return MissionEval.Of(together);
@@ -161,6 +159,36 @@ public sealed partial class MissionBook
             default:
                 return MissionEval.No;
         }
+    }
+
+    /// <summary>Marks of with_ship at_arrival: "the flagship was waiting in orbit of body (index) for the ship's arrival at
+    /// tick", per objective (bit 62 set, so scanned's marks never match).</summary>
+    private static long WaitMark(int obj, int body, long tick) => (1L << 62) | ((long)obj << 48) | ((long)body << 32) | (tick & 0xFFFFFFFFL);
+
+    /// <summary>with_ship at_arrival: the flagship was in orbit of the ship's destination when it arrived there (during
+    /// this stage). Checked once a second, so it remembers seeing the flagship waiting there for that arrival (Marks):
+    /// a flagship that leaves right after the ship came in still counts.</summary>
+    private bool WaitedForArrival(MissionRun run, int obj, SystemShip me, SystemShip other)
+    {
+        // Both there now, the flagship first, the ship arrived this stage.
+        if (other.AtBody != null && other.ArriveTick >= run.StageStart && me.AtBody == other.AtBody && me.ArriveTick <= other.ArriveTick) return true;
+        // Waiting at its destination while it flies in: remember it.
+        if (other.AtBody == null && other.ToBody != null && me.AtBody == other.ToBody && me.ArriveTick <= other.ArriveTick
+            && BodyIndex(other.ToBody) is var at and >= 0 && WaitMark(obj, at, other.ArriveTick) is var mark && !run.Marks.Contains(mark))
+        {
+            run.Marks.Add(mark);
+            run.Marks.Sort();
+        }
+        foreach (var m in run.Marks)
+        {
+            if (m >> 62 != 1 || (int)((m >> 48) & 0x3FFF) != obj) continue;
+            var body = Sys!.Bodies[(int)((m >> 32) & 0xFFFF)].Id;
+            var tick = m & 0xFFFFFFFFL;
+            var arrived = (other.AtBody == body && other.ArriveTick == tick) || (other.FromBody == body && other.DepartTick >= tick);
+            var stayed = (me.AtBody == body && me.ArriveTick <= tick) || (me.FromBody == body && me.DepartTick >= tick);
+            if (arrived && stayed) return true;
+        }
+        return false;
     }
 
     private static void Remember(MissionRun run, int key)
@@ -293,6 +321,11 @@ public sealed partial class MissionBook
             case "gas_or_ice":
             {
                 var gas = options.Where(b => GasOrIce.Contains(b.ClassId)).ToList();
+                if (gas.Count == 0) // a system with none: the biggest bodies instead
+                {
+                    var biggest = options.Max(b => b.Size);
+                    gas = options.Where(b => b.Size == biggest).ToList();
+                }
                 return (Best(gas.Where(b => sys.KnowledgeOf(p, b.Id) < BodyKnowledge.Charted), FromShip, most: false) ?? Best(gas, FromShip, most: false) ?? nearest)?.Id;
             }
             case "civ":

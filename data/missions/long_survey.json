@@ -26,7 +26,7 @@
       "debrief": "Both satellites are reporting. That's live data from two worlds at once, without us sitting in orbit." },
 
     { "id": "close_look", "chain": "long_survey", "kind": "main", "title": "Close Look", "giver": "science",
-      "briefing": "The big ones are the strangest. {target} is the nearest gas giant or ice body we haven't swept: take us into orbit and give it a full sensor sweep for live data.",
+      "briefing": "The big ones are the strangest, and {target} is the one I want: the nearest gas giant or ice world we haven't swept, or the biggest body out here if there is none. Take us into orbit and give it a full sensor sweep for live data.",
       "stages": [
         { "id": "sweep", "title": "Sweep the target",
           "on_enter": [

@@ -1,7 +1,7 @@
 {
   "missions": [
     { "id": "shakedown", "chain": "priority_run", "kind": "main", "title": "Shakedown", "giver": "courier",
-      "briefing": "Lindqvist, courier desk. Before I trust you with real cargo, show me what the Armstrong can do: out to {far}, the farthest planet, and back here to {start}. Each leg against the clock.",
+      "briefing": "Lindqvist, courier desk. Before I trust you with real cargo, show me what the Armstrong can do: out to {far}, the farthest body from the sun, and back here to {start}. Each leg against the clock.",
       "stages": [
         { "id": "out", "title": "Out to the turn point", "timer_seconds": 100, "on_timeout": "out",
           "on_enter": [

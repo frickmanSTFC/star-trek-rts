@@ -298,6 +298,75 @@ public class ShipPickTests
         Assert.Empty(sim.Missions.Markers(0)); // no surface markers for a space chain
     }
 
+    private static void Debug(Simulation sim, string mission, DebugMissionAction action)
+    {
+        var c = new DebugMissionCommand(0, 0, mission, action, "", "", -1);
+        Assert.Null(sim.DebugProblem(c));
+        sim.Schedule(sim.Tick, c);
+        sim.Step();
+    }
+
+    private static void Seconds(Simulation sim, int seconds)
+    {
+        for (var i = 0; i < seconds * Simulation.TickRate; i++) sim.Step();
+    }
+
+    [Fact]
+    public void ACourierTimerStartsTheRunAgainAndADistressCallCanBeLost()
+    {
+        var courier = MatchSetup.CreateSystemGame(Campaign, Seed, "federation", null, "armstrong");
+        Assert.Null(courier.Missions.Enable("priority_run"));
+        Seconds(courier, 2);
+        var first = courier.Missions.View(0, "shakedown")!;
+        Assert.Equal(0, first.StageIndex);
+        Assert.True(first.TimerEndTick > 0);
+        Seconds(courier, 101); // never leaves orbit
+        var again = courier.Missions.View(0, "shakedown")!;
+        Assert.Equal(MissionState.Active, again.State);
+        Assert.Equal(0, again.StageIndex);
+        Assert.True(again.TimerEndTick > first.TimerEndTick);
+        Assert.Contains(courier.Missions.Messages(0), m => m.Text.Contains("out of time"));
+
+        var patrol = MatchSetup.CreateSystemGame(Campaign, Seed, "federation", null, "bastion");
+        Assert.Null(patrol.Missions.Enable("watch_station"));
+        Seconds(patrol, 1);
+        Debug(patrol, "patrol_route", DebugMissionAction.Complete);
+        Debug(patrol, "traffic_check", DebugMissionAction.Complete);
+        Seconds(patrol, 2);
+        Assert.Equal(MissionState.Active, patrol.Missions.View(0, "distress_call")!.State);
+        Assert.Contains(patrol.Missions.SpaceMarkers(0), m => m.Kind == "beacon" && m.Label == "Distress beacon");
+        Seconds(patrol, 121);
+        var lost = patrol.Missions.View(0, "distress_call")!;
+        Assert.Equal(MissionState.Failed, lost.State);
+        Assert.Equal("timeout", lost.Outcome);
+        Assert.Equal(MissionState.Active, patrol.Missions.View(0, "escort")!.State); // the chain goes on
+    }
+
+    [Fact]
+    public void CargoShowsAboardAndOnThePlot()
+    {
+        var sim = MatchSetup.CreateSystemGame(Campaign, Seed, "federation", null, "armstrong");
+        Assert.Null(sim.Missions.Enable("priority_run"));
+        Seconds(sim, 1);
+        Debug(sim, "shakedown", DebugMissionAction.Complete);
+        Seconds(sim, 1);
+        var sys = sim.System!;
+        var ship = sys.FlagshipOf(0)!;
+        var pickup = Assert.Single(sim.Missions.SpaceMarkers(0), m => m.Kind == "pickup");
+        Assert.Equal("Vaccine crates", pickup.Label);
+        Assert.Empty(sim.Missions.CargoAboard(0));
+        Ok(sim, new SetCourseCommand(0, ship.Id, pickup.BodyId!));
+        for (var i = 0; i < 120 * Simulation.TickRate && sim.Missions.CargoAboard(0).Count == 0; i++) sim.Step();
+        var dropoff = Assert.Single(sim.Missions.SpaceMarkers(0), m => m.Kind == "dropoff");
+        Assert.Equal($"Vaccine crates → {sys.Body(dropoff.BodyId)!.Name}", Assert.Single(sim.Missions.CargoAboard(0)));
+        Assert.DoesNotContain(sim.Missions.SpaceMarkers(0), m => m.Kind == "pickup");
+        Ok(sim, new SetCourseCommand(0, ship.Id, dropoff.BodyId!));
+        for (var i = 0; i < 120 * Simulation.TickRate && sim.Missions.View(0, "medicine_run")!.State == MissionState.Active; i++) sim.Step();
+        Assert.Equal(MissionState.Completed, sim.Missions.View(0, "medicine_run")!.State);
+        Assert.Empty(sim.Missions.CargoAboard(0));
+        Assert.Contains(sim.Missions.Messages(0), m => m.Text.StartsWith("Vaccine crates: delivered"));
+    }
+
     // ---------------------------------------------------------------- the four chains, played
 
     /// <summary>A campaign game with the ship picked and its chain on, played to the end by <see cref="Pilot"/> (commands
@@ -334,8 +403,34 @@ public class ShipPickTests
         Assert.Equal(0, a.Sim.DebugEdits);
     }
 
+    /// <summary>The first seed whose system has a gas giant and a moon (seed 1701's is all rocks and belts).</summary>
+    private static ulong RichSeed()
+    {
+        ulong seed = 1;
+        while (SystemGenerator.Generate(Real, seed) is var g && (!g.Bodies.Any(b => b.ClassId is "class_j" or "class_t") || !g.Bodies.Any(b => b.Parent != null))) seed++;
+        return seed;
+    }
+
     [Fact]
-    public void TheLongSurveyPlaysToTheEnd() => PlayTwice("tereshkova", Seed, 60);
+    public void TheLongSurveyPlaysToTheEnd()
+    {
+        var rich = RichSeed();
+        PlayTwice("tereshkova", rich, 60);
+        var (_, sim, _) = Play("tereshkova", Seed, 60);
+        Assert.All(sim.System!.Bodies, b => Assert.Equal(BodyKnowledge.Charted, sim.System.KnowledgeOf(0, b.Id)));
+        Assert.Contains("long_survey_done", sim.Missions.Flags(0));
+        // Close Look picks a gas giant or an ice body when the system has one, and names it.
+        var game = MatchSetup.CreateSystemGame(Campaign, rich, "federation", null, "tereshkova");
+        Assert.Null(game.Missions.Enable("long_survey"));
+        game.Step();
+        var start = new DebugMissionCommand(0, 0, "close_look", DebugMissionAction.Start, "", "", -1);
+        Assert.Null(game.DebugProblem(start));
+        game.Schedule(game.Tick, start);
+        game.Step();
+        var target = Assert.Single(game.Missions.SpaceMarkers(0));
+        Assert.Contains(game.System!.Body(target.BodyId)!.ClassId, new[] { "class_j", "class_t", "ice_moon" });
+        Assert.NotEqual(BodyKnowledge.Detected, game.System.KnowledgeOf(0, target.BodyId!));
+    }
 
     [Fact]
     public void PriorityRunPlaysToTheEnd()
@@ -351,7 +446,7 @@ public class ShipPickTests
     public void WatchStationPlaysToTheEnd()
     {
         PlayTwice("bastion", Seed, 60);
-        var (_, _, pilot) = Play("bastion", Seed, 60);
+        var (_, _, pilot) = Play("bastion", RichSeed(), 60);
         Assert.True(pilot.SawShipMarker && pilot.SawBeacon, "no ship marker or beacon");
     }
 
