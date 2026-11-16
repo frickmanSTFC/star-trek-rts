@@ -334,6 +334,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     /// <summary>Back down to the hex map, looking at this tile.</summary>
     private void ExitOrbit(int tile, float distance)
     {
+        if (SpaceShip) return; // a ship that never lands has no surface to show (PlanetDriver.ShipPick.cs)
         _inOrbit = false;
         _orbitAction = null;
         if (_info != null && _info.StartsWith("orbit:")) _info = null;

@@ -79,7 +79,11 @@ public partial class SystemPlot
 
     private void BuildMarkers(IReadOnlyList<SpaceMarker> markers)
     {
-        foreach (var m in _markerNodes) m.Root.QueueFree();
+        foreach (var m in _markerNodes)
+        {
+            _markerLayer?.RemoveChild(m.Root); // out of the tree now, so the new nodes' names are free
+            m.Root.QueueFree();
+        }
         _markerNodes.Clear();
         if (markers.Count == 0) return;
         if (_markerLayer == null)
