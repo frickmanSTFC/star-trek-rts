@@ -15,6 +15,20 @@ public sealed record TutorialFacts
 {
     public string World { get; set; } = "";
 
+    /// <summary>The player's ship never lands (a non-colonizer from the campaign's ship pick): the space steps run
+    /// instead of the colony ones (docs/ship-pick-contract.md).</summary>
+    public bool SpaceShip { get; set; }
+
+    /// <summary>The flagship's name ("{ship}" in the texts) and the body it is at ("{orbit}").</summary>
+    public string ShipName { get; set; } = "";
+    public string OrbitName { get; set; } = "";
+
+    /// <summary>The flagship is under way (a course was set).</summary>
+    public bool CourseSet { get; set; }
+
+    /// <summary>A body or ship card is open on the system plot.</summary>
+    public bool SystemCardOpen { get; set; }
+
     /// <summary>Building id → name, from the data (for "{refinery}" in the texts).</summary>
     public Dictionary<string, string> Names { get; set; } = new();
 
@@ -68,6 +82,13 @@ public sealed record TutorialFacts
     public string NameOf(string buildingId) => Names.TryGetValue(buildingId, out var n) ? n : buildingId.Replace('_', ' ');
 }
 
+/// <summary>Which games a step is for: a colony (lands; the default) or a ship that never lands.</summary>
+public enum TutorialFor
+{
+    Colony,
+    Space,
+}
+
 /// <summary>Where a step's card points: a HUD or helm area the driver can find a rect for, or nothing.</summary>
 public enum TutorialAnchor
 {
@@ -91,8 +112,9 @@ public enum TutorialAnchor
 /// early is skipped when its turn comes); <see cref="Reacted"/> = done while it shows, compared with the facts when it
 /// came up (e.g. "switched a scan since"); <see cref="NextText"/> = a GOT IT button for read-only steps (null = waits for
 /// the player). <see cref="Building"/>: the step is skipped when this world's build menu has no such building.
-/// <see cref="OnSurface"/>: a surface step (in orbit it says how to get back down). Texts may name buildings as
-/// "{building_id}" and the world as "{world}".
+/// <see cref="OnSurface"/>: a surface step (in orbit it says how to get back down). <see cref="For"/>: the colony steps
+/// (default) or the space ones (a ship that never lands); the others are skipped. Texts may name buildings as
+/// "{building_id}", the world as "{world}", the flagship as "{ship}" and the body it is at as "{orbit}".
 /// </summary>
 public sealed record TutorialStepDef(
     string Id,
@@ -104,7 +126,8 @@ public sealed record TutorialStepDef(
     Func<TutorialFacts, TutorialFacts, bool>? Reacted = null,
     Func<TutorialFacts, string?>? Hint = null,
     string? Building = null,
-    bool OnSurface = false);
+    bool OnSurface = false,
+    TutorialFor For = TutorialFor.Colony);
 
 /// <summary>
 /// The guided start (docs/menu-contract.md C): the steps as one list, and which one is showing. Progress lives only in
@@ -117,6 +140,32 @@ public sealed class Tutorial
     /// <summary>The steps, in order. Change the texts and conditions here.</summary>
     public static readonly IReadOnlyList<TutorialStepDef> Steps = new TutorialStepDef[]
     {
+        // A ship that never lands (docs/ship-pick-contract.md): three space steps instead of the colony ones.
+        new("space_welcome", "At the helm of the {ship}",
+            "You command the {ship}, in orbit of {orbit}. This ship never lands: its missions play out here, on the helm's " +
+            "SYSTEM display. The star sits in the middle, the bodies on their orbits, your ship is the peach chevron.\n\n" +
+            "Grey bodies are only detected: a long-range scan identifies them, a visit charts them.",
+            GotIt, TutorialAnchor.None,
+            _ => false,
+            For: TutorialFor.Space),
+
+        new("space_course", "Set a course",
+            "Click a body on the plot, or in the list on the left, to open its card. SET COURSE flies the ship there: the " +
+            "course shows as a dashed line with the time to arrival.\n\nIn orbit the sensors sweep the body; DEPLOY SATELLITE " +
+            "leaves live data behind, LONG-RANGE SCAN identifies what is in range.",
+            GotIt, TutorialAnchor.None,
+            f => f.CourseSet,
+            Hint: f => f.CourseSet ? null : f.SystemCardOpen ? "SET COURSE on the card flies the ship there." : "Click a body on the plot.",
+            For: TutorialFor.Space),
+
+        new("space_missions", "Your missions",
+            "The tracker at the top right lists the mission's objectives: Y reads the latest transmission, N opens the log.\n\n" +
+            "Missions mark the plot: a pulsing amber ring is a beacon to reach, green and blue arrows a pick-up and a " +
+            "drop-off, a red ring a target, a lavender ring the ship you're to meet. Cargo aboard shows on your ship's card.",
+            "FINISH", TutorialAnchor.None,
+            _ => false,
+            For: TutorialFor.Space),
+
         new("welcome", "Welcome to {world}",
             "You are at the helm, in standard orbit over {world}. This is where your colony starts: the ship's sensors can tell you a lot " +
             "about the world before anyone sets foot on it.\n\nThese cards walk you through the first steps. Most move on by themselves " +
@@ -239,8 +288,24 @@ public sealed class Tutorial
     /// <summary>The step showing, or null once finished.</summary>
     public TutorialStepDef? Current => Finished ? null : Steps[Index];
 
-    /// <summary>"3 / 12".</summary>
-    public string StepLabel => $"{System.Math.Min(Index + 1, Steps.Count)} / {Steps.Count}";
+    /// <summary>"3 / 12", counting only the steps for this game (colony or space, buildings it has).</summary>
+    public string StepLabel
+    {
+        get
+        {
+            if (_last == null) return $"{System.Math.Min(Index + 1, Steps.Count)} / {Steps.Count}";
+            int total = 0, before = 0;
+            for (var i = 0; i < Steps.Count; i++)
+            {
+                if (!Applies(Steps[i], _last)) continue;
+                total++;
+                if (i < Index) before++;
+            }
+            return $"{System.Math.Min(before + 1, System.Math.Max(1, total))} / {System.Math.Max(1, total)}";
+        }
+    }
+
+    private TutorialFacts? _last;
 
     /// <summary>Goes up whenever the step changes (the card re-shows then).</summary>
     public int Version { get; private set; }
@@ -249,6 +314,7 @@ public sealed class Tutorial
     public void Update(TutorialFacts now)
     {
         if (Finished) return;
+        _last = now with { };
         _start ??= now with { };
         for (var i = Index + 1; i < Steps.Count; i++)
             if (!_latched[i] && Applies(Steps[i], now) && Safe(Steps[i].Done, now)) _latched[i] = true;
@@ -277,7 +343,8 @@ public sealed class Tutorial
         Version++;
     }
 
-    private static bool Applies(TutorialStepDef step, TutorialFacts f) => step.Building == null || f.Available.Contains(step.Building);
+    private static bool Applies(TutorialStepDef step, TutorialFacts f) =>
+        step.For == (f.SpaceShip ? TutorialFor.Space : TutorialFor.Colony) && (step.Building == null || f.Available.Contains(step.Building));
 
     // A condition that throws (a renamed id, missing data) counts as not done rather than breaking the frame.
     private static bool Safe(Func<TutorialFacts, bool> test, TutorialFacts f)
@@ -306,7 +373,7 @@ public sealed class Tutorial
                 continue;
             }
             var key = text[(i + 1)..close];
-            sb.Append(key == "world" ? f.World : f.NameOf(key));
+            sb.Append(key switch { "world" => f.World, "ship" => f.ShipName, "orbit" => f.OrbitName, _ => f.NameOf(key) });
             i = close;
         }
         return sb.ToString();

@@ -160,6 +160,11 @@ public partial class PlanetDriver
         var me = Me;
         var surface = Surface;
         f.World = PlanetName;
+        f.SpaceShip = SpaceShip; // a ship that never lands: the space steps (PlanetDriver.ShipPick.cs)
+        f.ShipName = _system.Flagship?.Name ?? _sim.ShipChoiceOf(LocalPlayer)?.Name ?? "ship";
+        f.OrbitName = _system.Body(_system.OrbitBodyId) is { } orbitBody ? _system.KnownName(orbitBody) : PlanetName;
+        f.CourseSet = _system.FlagshipInFlight;
+        f.SystemCardOpen = _inOrbit && _orbit.Display == OrbitDisplay.System && _systemCard != null;
         f.InOrbit = _inOrbit;
         f.Phase = me.Phase;
         f.LandArmed = _orbitAction == "land";
