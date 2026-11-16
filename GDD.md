@@ -99,6 +99,25 @@ layer above it once the surface game is fun.
   found by drone) → Excavation Site. Locked buildings stay out of the build drawer; the feed says "New buildings: …"
   when they unlock. With missions off (the DEBUG sandbox) everything is open; the test panel's MISSIONS tab can unlock
   everything or go back to the start menu.
+- **Ship pick** (decided 2026-11-16: "the player will decide which ship they are going to use. Based on the ship, the
+  mission is different"; `data/missions/ship_choice.json`, `docs/ship-pick-contract.md`): the campaign start offers six
+  pre-warp ships. **Horizon** (colony transport, speed 0.8; +30 crew, +200 duranium) and **Cochrane** (deep-space
+  tender, 0.9; +4 of each spare kit, a construction rover lands too) colonize and play First Light. The other four never
+  land (landing, outpost drops, drop ships, transporters and founding are refused: "the Tereshkova can't land a
+  colony"), start in orbit of any body and play a space chain of five missions on the helm's system display:
+  **Tereshkova** (survey, 1.1) The Long Survey: Outbound (a long-range scan, then chart two more bodies), Eyes
+  Everywhere (satellites at two bodies), Close Look (sweep a gas giant or ice body), A Faint Signal (a beacon at the
+  farthest body: reach it, sweep it), The Whole Map (chart every body). **Armstrong** (courier, 2.0) Priority Run:
+  Shakedown (to the farthest body and back, each leg timed), Medicine Run (vaccine from one body to another on a
+  timer), Mail Circuit (three parcels, one timer), Diplomatic Pouch (to the outermost moon, hold orbit 30 s), Against
+  the Clock (two deliveries back to back); a timed leg that runs out starts the run again. **Bastion** (patrol, 1.2)
+  Watch Station: Patrol Route (three bodies in order, each leg timed), Traffic Check (stay with a named civilian
+  freighter 30 s), Distress Call (reach a beacon in time, then sweep; late = failed), Escort (be at a freighter's
+  destination when it arrives), Picket (hold orbit at the outermost body 120 s and run two scans). **Meridian**
+  (diplomacy, 0.9) Envoy, only in systems with a living civilization: Showing the Flag (scan, reach the world with
+  signs of a civilization), Listening Post (a hidden observation post), Study (the dossier), First Words (first
+  contact: no Prime Directive in the Dawn of Warp), Guests Aboard (hold orbit 60 s). Space chains end with a debrief
+  for now (open: later rewards, ship stats beyond speed, a space ship supporting a colony, multiplayer).
 - **Building** (from the build bar once landed): one building per hex, on surveyed, buildable tiles within the Colony
   Hub's build radius (4). The cost is paid on placement; the hub's single build queue builds one at a time, the rest
   wait in order; unfinished buildings can be cancelled for a full refund. Buildings turn in 60° steps (hex sides).
