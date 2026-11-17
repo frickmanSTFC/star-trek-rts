@@ -127,7 +127,7 @@ public partial class MainMenu
         var landable = sys.Landable(data).Count;
         var ship = PickedShip;
         var eyebrow = ship == null ? "DAWN OF WARP  ·  2063  ·  CHOOSE A STARTING POINT"
-            : $"DAWN OF WARP  ·  2063  ·  {ship.Name.ToUpperInvariant()}  ·  {(ship.Colonizes ? "CHOOSE A WORLD TO LAND ON" : "CHOOSE A START ORBIT")}";
+            : $"DAWN OF WARP  ·  2063  ·  {ship.Name.ToUpperInvariant()}{FitOutTag(ship)}  ·  {(ship.Colonizes ? "CHOOSE A WORLD TO LAND ON" : "CHOOSE A START ORBIT")}";
         var sub = $"Class {sys.Star.Class} star  ·  {planets} planets and belts  ·  {moons} moons  ·  " +
                   (Colonizer ? $"{landable} landable" : "your ship never lands: any body will do") +
                   (NeedsCivilization ? "  ·  a living civilization" : "") + $"  ·  seed {_pickSeed}";
@@ -191,13 +191,14 @@ public partial class MainMenu
         if (_tutorialStep == 1 && Pickable(id)) ShowTutorialStep(2);
     }
 
-    /// <summary>LAND HERE / BEGIN MISSION: the campaign start with the ship's pick and chain (6-argument start), or the
-    /// old start when the data has no ships.</summary>
+    /// <summary>LAND HERE / BEGIN MISSION: the campaign start with the ship's pick and chain, plus the fit-out when the
+    /// ship had that page (7-argument start; null = none, the game as it always was), or the old start when the data
+    /// has no ships.</summary>
     private void Land()
     {
         if (!Pickable(_picked)) return;
         CloseTutorial();
-        if (PickedShip is { } ship) GameSetup.StartCampaign(CampaignFaction, CampaignEra, _pickSeed, _picked!, ship.Id, ship.Chain);
+        if (PickedShip is { } ship) GameSetup.StartCampaign(CampaignFaction, CampaignEra, _pickSeed, _picked!, ship.Id, ship.Chain, ChosenFitOut());
         else GameSetup.StartCampaign(CampaignFaction, CampaignEra, _pickSeed, _picked!);
         GetTree().ChangeSceneToFile(GameSetup.PlanetScene);
     }

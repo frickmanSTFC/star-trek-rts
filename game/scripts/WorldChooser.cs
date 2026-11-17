@@ -92,6 +92,7 @@ public static class GameSetup
         HomeBody = null;
         MissionChain = null;
         ShipId = null;
+        FitOut = null;
     }
 
     public static void Choose(string world, ulong seed)

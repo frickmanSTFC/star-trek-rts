@@ -8,13 +8,13 @@ namespace FinalFrontier;
 /// The main menu (scenes/MainMenu.tscn, the main scene; docs/menu-contract.md A). A slowly turning planet over a
 /// starfield behind code-built screens in the HUD's look (HudKit): the title (CAMPAIGN, MULTIPLAYER locked, SETTINGS,
 /// DEBUG, QUIT), then for the campaign the faction screen (MainMenu.Campaign.cs: seven great powers, only the
-/// Federation open), the era screen (only Dawn of Warp open), the ship pick (MainMenu.ShipPick.cs) and the star-system
-/// picker (MainMenu.SystemPick.cs: LAND HERE / BEGIN MISSION → GameSetup.StartCampaign → Planet.tscn). DEBUG = GameSetup.StartDebug → Planet.tscn, the sandbox as before.
+/// Federation open), the era screen (only Dawn of Warp open), the ship pick (MainMenu.ShipPick.cs), for a colony ship
+/// the fit-out (MainMenu.FitOut.cs: focus, crew split, cargo) and the star-system picker (MainMenu.SystemPick.cs: LAND HERE / BEGIN MISSION → GameSetup.StartCampaign → Planet.tscn). DEBUG = GameSetup.StartDebug → Planet.tscn, the sandbox as before.
 /// Each screen is rebuilt when shown and when the window's UI scale changes; Esc goes back one screen.
 /// </summary>
 public partial class MainMenu : Node3D
 {
-    private enum Page { Title, Faction, Era, Ship, System, Settings }
+    private enum Page { Title, Faction, Era, Ship, FitOut, System, Settings }
 
     private Page _page = Page.Title;
     private Page _settingsBack = Page.Title;
@@ -81,6 +81,7 @@ public partial class MainMenu : Node3D
             RefreshCard();
         }
         if (_page == Page.System) UpdatePicker();
+        if (_page == Page.FitOut) UpdateFitOut();
     }
 
     public override void _ExitTree() => GraphicsQuality.Changed -= ApplyMenuGraphics;
@@ -137,6 +138,7 @@ public partial class MainMenu : Node3D
             case Page.Faction: ShowPage(Page.Title); break;
             case Page.Era: ShowPage(Page.Faction); break;
             case Page.Ship: ShowPage(Page.Era); break;
+            case Page.FitOut: ShowPage(Page.Ship); break;
             case Page.System: ShowPage(BeforeSystem); break;
             case Page.Settings: ShowPage(_settingsBack); break;
             default: return;
@@ -153,6 +155,7 @@ public partial class MainMenu : Node3D
     {
         var entering = page == Page.System && _page != Page.System;
         if (_page == Page.System && page != Page.System) LeavePicker();
+        if (_page == Page.FitOut && page != Page.FitOut) LeaveFitOut();
         _page = page;
         if (entering) Roll();
         _dirty = true;
@@ -177,6 +180,7 @@ public partial class MainMenu : Node3D
             Page.Faction => BuildFactionPage(),
             Page.Era => BuildEraPage(),
             Page.Ship => BuildShipPage(),
+            Page.FitOut => BuildFitOutPage(),
             Page.System => BuildPickerPage(),
             Page.Settings => BuildSettingsPage(),
             _ => BuildTitlePage(),
@@ -185,6 +189,7 @@ public partial class MainMenu : Node3D
         _ui.AddChild(_pageRoot);
         _ui.MoveChild(_pageRoot, _overlay.GetIndex()); // under the overlay
         if (_page == Page.System) AfterPickerBuilt();
+        if (_page == Page.FitOut) AfterFitOutBuilt();
     }
 
     /// <summary>A full-screen page: a dimming backdrop (more over the busy screens) and a margin box with a column inside.</summary>

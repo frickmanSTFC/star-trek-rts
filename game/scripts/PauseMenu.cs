@@ -16,6 +16,9 @@ public partial class PauseMenu : Control
     /// <summary>A line under PAUSED (world, mode).</summary>
     public string Subtitle { get; set; } = "";
 
+    /// <summary>More under the subtitle (the ship's fit-out: focus and crew split); lines split by \n, empty = none.</summary>
+    public string Detail { get; set; } = "";
+
     public bool IsOpen => Visible;
 
     public PauseMenu()
@@ -135,6 +138,13 @@ public partial class PauseMenu : Control
             var sub = HudKit.Label(Subtitle, 13 * s, HudKit.Dim, condensed: true);
             sub.HorizontalAlignment = HorizontalAlignment.Center;
             box.AddChild(sub);
+        }
+        if (Detail.Length > 0)
+        {
+            var detail = HudKit.Label(Detail, 12 * s, HudKit.Sky, condensed: true);
+            detail.HorizontalAlignment = HorizontalAlignment.Center;
+            detail.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            box.AddChild(detail);
         }
         box.AddChild(new Control { CustomMinimumSize = new Vector2(0, 4 * s), MouseFilter = MouseFilterEnum.Ignore });
         var resume = Button("RESUME", true, s, Close);
