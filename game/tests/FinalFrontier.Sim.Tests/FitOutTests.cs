@@ -76,6 +76,7 @@ public class FitOutTests
         var s = sim.Surface!;
         Do(sim, new LandColonyCommand(0, Enumerable.Range(0, s.Map.Grid.Count).First(t => s.CanLand(0, t))));
         Steps(sim, TestData.ReadyTicks(sim.Data));
+        StepUntil(sim, () => s.Bases(0).Count == 1 && s.Bases(0)[0].State == StructureState.Complete, Sec(60)); // (a longer descent off class M)
         var hub = s.Bases(0).Single();
         Assert.Equal(StructureState.Complete, hub.State);
         TestData.NoStockTargets(sim);
@@ -265,7 +266,7 @@ public class FitOutTests
         Assert.Equal("Building materials: at most 20 can be loaded", Why("horizon", "allround", even, ("mat", 21)));
         Assert.Equal("Extra survey rover: at most 2 can be loaded", Why("horizon", "allround", even, ("rover", 3)));
         Assert.Equal("Fuel: at least 4 must be loaded", Why("horizon", "allround", even, ("fuel", 0)));
-        Assert.Equal("Scout drone: at least 0 must be loaded", Why("horizon", "allround", even, ("drone", -1)));
+        Assert.Equal("Scout drone: the count can't be below 0", Why("horizon", "allround", even, ("drone", -1)));
         Assert.Equal("Defense stores needs at least 2 containers (it has 1)", Why("horizon", "allround", even, ("armour", 1)));
         Assert.Equal("Exploration gear needs at least 2 containers (it has 1)", Why("horizon", "allround", even, ("sat", 0), ("drone", 1)));
         Assert.Null(Why("horizon", "allround", even, ("sat", 0), ("drone", 2)));
@@ -917,6 +918,89 @@ public class FitOutTests
         }
         Assert.Equal(60, bites[0]);
         Assert.InRange(bites[1], 35, 59);
+    }
+
+    [Fact]
+    public void ExplorationMeetsFewerHazardsAndArmourSoftensThem()
+    {
+        const string rover = "surfaces/units/survey_rover.json";
+        // A hazard every tick on the landing ground (plains, desert), each of a fixed size (rock strike and sinkhole are the two there).
+        (string, string, string)[] Certain(int damage) => new[]
+        {
+            (rover, "\"plains\": { \"wear\": 0.4, \"hazard\": 0.03", "\"plains\": { \"wear\": 0.4, \"hazard\": 990"),
+            (rover, "\"desert\": { \"wear\": 0.6, \"hazard\": 0.05", "\"desert\": { \"wear\": 0.6, \"hazard\": 990"),
+            (rover, "\"weight\": 50, \"damage\": [4, 12]", $"\"weight\": 50, \"damage\": [{damage}, {damage}]"),
+            (rover, "\"weight\": 20, \"damage\": [10, 25]", $"\"weight\": 20, \"damage\": [{damage}, {damage}]"),
+        };
+
+        // Drives a Mk I rover five hexes over the landing ground: the ticks it drove on plains or desert, the hazards it
+        // met there and the first one's damage.
+        (int Ticks, int Hits, int First) Drive(GameData data, FitOut? fit)
+        {
+            var g = Game("horizon", fit, data);
+            Land(g);
+            var s = g.Surface!;
+            var unit = s.Units.First(u => u.DefId == "survey_rover");
+            var goal = s.Map.Grid.Within(unit.Tile, 5).First(t => s.Map.Grid.Distance(t, unit.Tile) == 5 && s.Map.Terrain(t).Id is "plains" or "desert" &&
+                s.StructureAt(t) == null && !s.IsLandingPad(t));
+            Do(g, new MoveUnitsCommand(0, new[] { unit.Id }, goal));
+            int ticks = 0, hits = 0, first = 0;
+            for (var i = 0; i < Sec(120) && unit.Path.Count > 0 && !unit.Broken; i++)
+            {
+                var open = s.Map.Terrain(unit.Tile).Id is "plains" or "desert";
+                g.Step();
+                if (!open) continue;
+                ticks++;
+                if (unit.HazardAtTick != g.Tick - 1) continue;
+                if (hits++ == 0) first = unit.LastHazardDamage;
+            }
+            return (ticks, hits, first);
+        }
+
+        // rover_hazard (the rate): at 1.1 a tick a rover with no fit-out meets one every tick of driving; x 0.82 (Exploration
+        // at 70% of the crew) it sometimes doesn't.
+        var often = TestData.Patched(Certain(1));
+        var plain = Drive(often, null);
+        var careful = Drive(often, Heavy("exploration"));
+        Assert.True(plain.Ticks >= 25, $"{plain.Ticks} ticks");
+        Assert.Equal(plain.Ticks, plain.Hits);
+        Assert.InRange(careful.Hits, careful.Ticks * 6 / 10, careful.Ticks - 1);
+
+        // hazard_damage: a 10-point hit is 9 with two cases of field armour and 8 with four; the Combatant's perk is not for hazards.
+        var hard = TestData.Patched(Certain(10));
+        var even = new[] { 30, 30, 30, 30 };
+        Assert.Equal(10, Drive(hard, null).First);
+        Assert.Equal(9, Drive(hard, new FitOut("allround", even, Cargo())).First);
+        Assert.Equal(8, Drive(hard, new FitOut("allround", even, Cargo(("armour", 4)))).First);
+        Assert.Equal(8, Drive(hard, Heavy("defense", ("armour", 4))).First);
+    }
+
+    private static readonly Lazy<ulong> DomesSeed = new(() =>
+    {
+        // A system whose landable world needs domes (Class L: about half of them).
+        for (var seed = Seed; seed < Seed + 60; seed++)
+            if (MatchSetup.CreateSystemGame(TestData.Real, seed).Surface!.NeedsDomes) return seed;
+        throw new InvalidOperationException("no seed with a Domes world");
+    });
+
+    [Fact]
+    public void DefenseLosesFewerCrewWhenTheAirFails()
+    {
+        // A hub without its own life support on a Domes world: no air from the start; after the grace time crew are lost.
+        var data = TestData.Patched(("buildings/surface/cores.json", "\"storage\": 1500, \"life_support\": 2,", "\"storage\": 1500, \"life_support\": 0,"));
+        var lost = new List<double>();
+        foreach (var fit in new[] { null, Heavy("defense") })
+        {
+            var g = Game("horizon", fit, data, DomesSeed.Value);
+            var hub = Land(g);
+            Assert.True(g.Surface!.NeedsDomes);
+            StepUntil(g, () => hub.LifeSupportFailing, Sec(data.Habitability!.Domes!.GraceSeconds + 5));
+            var before = hub.CrewLost;
+            Steps(g, Sec(60));
+            lost.Add((hub.CrewLost - before).ToDouble());
+        }
+        Assert.True(lost[0] > 1, $"{lost[0]}");
+        Assert.Equal(lost[0] * 0.82, lost[1], 5);
     }
 
     // ---------------------------------------------------------------- the mission reach check

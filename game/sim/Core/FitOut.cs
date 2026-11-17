@@ -158,7 +158,8 @@ public static class FitOutRules
         foreach (var l in rules.Cargo)
         {
             var n = CargoCount(fitOut, l.Id);
-            if (n < l.Min) return l.Min == 1 ? $"{l.Name}: at least 1 must be loaded" : $"{l.Name}: at least {l.Min} must be loaded";
+            if (n < 0) return $"{l.Name}: the count can't be below 0";
+            if (n < l.Min) return $"{l.Name}: at least {l.Min} must be loaded";
             if (n > l.Max) return $"{l.Name}: at most {l.Max} can be loaded";
             used += (long)n * l.Containers;
         }

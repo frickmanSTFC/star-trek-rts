@@ -117,3 +117,47 @@ focus tiles load presets; sliders and steppers hold the floors and the budget; B
 crew are unassigned); the summary is computed with `FitOutRules`. In game: the flagship's card and the pause card show the
 focus and the division percentages. `PlanetDriver.StartGame` passes `GameSetup.FitOut` to the 6-argument
 `CreateSystemGame`.
+
+## Sim side, filled in (2026-11-17)
+
+Data `data/missions/fit_out.json` (the missions document's `fit_out`; its `_notes_fit_out` explains every field), read
+and checked in `game/sim/Data/GameData.FitOut.cs`, shapes in `FitOutDefs.cs`, rules in `game/sim/Core/FitOut.cs`, the
+surface's helpers in `game/sim/Surface/PlanetSurface.FitOut.cs`, tests `FitOutTests`.
+
+- **Everything in the two tables above is in**: all 14 crew levers, the four perks and all 11 cargo lines (`sat`, `med`
+  and `armour` included), with the contract's floors. Nothing was left out of the data.
+- **Five more lever ids, with no division** (only perks and cargo move them; `FitOutLever.Division` is `""`):
+  `hazard_damage` and `wildlife_damage` (Field armour, -5% an item; the Combatant halves `wildlife_damage`),
+  `ruin_vehicle_damage` (the Combatant: x 0.5), `hub_workshop` (the Builder: x 1.3, on top of `fabrication`),
+  `mission_research` (the Scientist: x 1.2). `FitOutRules.KnownLevers` lists all 19; the data may only list those.
+- **Added to the records** (init properties, the positional signatures are unchanged): `FitOutFocus.PerkLevers`,
+  `.LandingReveal`; `FitOutCargoLine.Stock`, `.Unit`, `.Satellites`, `.Research`, `.Levers`; `FitOutShip.Base`,
+  `.Fill`; `FitOutData.ReplacesStartStock`, `.Lever(id)`, `.Line(id)`, `.Group(id)`, `.DivisionIndex(id)`,
+  `.EvenSharePct`.
+- **Added to `FitOutRules`**: `CargoCount(fitOut, line)`, `ContainersUsed(data, fitOut, group)`, `LandingReveal`,
+  `FreeSatellites`, `ResearchBanked`, `CargoUnits`, `CargoStock`, `KnownLevers`, the lever id constants.
+  `Factor` = crew strength x the focus's perk multiplier x (1 + the cargo's per-item amount x count), never below 0.05.
+- **Added to `Simulation`**: `FitOutFreeSatellites(player)` (ready satellites left), `FitOutLandingReveal(player)`,
+  `FitOutUnits(player)`. `FitOutOf(player)` returns the game's own copy, whose `Cargo` holds only the lines above 0:
+  read counts with `FitOutRules.CargoCount`.
+- **Added to `PlanetSurface`**: `BuildTicksOf(buildingId, owner)` and `LevelTicksOf(level, owner)` (with the owner's
+  build_time lever; the one-argument forms are the surface's own and unchanged, so a build-time readout for the player
+  should call the two-argument ones). `SpeedPerTick`, `WearPerMinute`, `ResearchPerMinute`, `SecondsAt`, `DigProgress`
+  already include the owner's fit-out. A fitted-out player's satellites lap their band in sweep_seconds x
+  `FitOutFactor(satellite_sweep)` and their drones' batteries last battery_seconds x `FitOutFactor(drone_battery)`.
+- **`CreateSystemGame(..., shipId, fitOut)`**: null, no ship, or a ship the data doesn't list (the four that never land)
+  = the 5-argument game. Otherwise a fit-out `Problem` refuses is replaced by the ship's suggested preset; the landing
+  stock's duranium, tritanium and deuterium are set from the cargo, the cargo's other stock is added, then the ship's
+  own start bonus as always; lab equipment goes into the research bank (paid into the first tech started); extra
+  vehicles land after the ship's start units, each in its own convoy drop ship.
+- **No fit-out = the game as it was**: with none, `FitOutFactor` returns exactly 1 at every site, nothing is stored and
+  nothing is added to the hash. Checked three ways: the 761 earlier tests pass unchanged; `FitOutTests` compares the
+  5-argument and 6-argument games tick for tick (no ship, both colony ships, two space ships); and, once, the base
+  commit and this branch were built side by side and gave the same final hashes for the balance runner (3 orders x 3
+  seeds x 30 min, Veyra included) and for 42 scripted system games (2 data set-ups x 3 seeds x no ship and all six
+  ships, 12 min each with landings, building, research, satellites, driving and flights).
+- **Mission reach check**: `GameData.Validate()` now also walks each colony chain with the leanest stock a fit-out can
+  land with (every cargo line at its minimum: 300 duranium, 180 tritanium, 100 deuterium; `LeanestFitOutStock()`),
+  reported as "With the leanest fit-out …". It passes: those three can all be mined.
+- **Open**: a hold full of building materials (15 or more on the Horizon) lands with more than the hub's 1500 vault
+  holds; nothing is lost, but income waits until some is spent. The crew_loss lever only matters on Domes worlds.
