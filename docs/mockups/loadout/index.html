@@ -1,0 +1,818 @@
+<title>Fit Out Your Ship</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@500;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: a design-review page like the ship-pick page. Header with the owner's request, where the new step sits,
+   the rules in four cards, then the working mock of the fitting-out screen (helm frame, always in the game's own dark
+   colours: focus + crew | cargo | summary), then why each focus exists, the table of levers, the ships that never
+   land, the build sketch and the open questions. The page shell follows the viewer's theme. */
+:root {
+  --bg: #f3f4f7; --panel: #ffffff; --ink: #161b28; --dim: #586178; --rule: #d8dce6;
+  --accent: #b5620d; --accent-soft: #f6e6d3;
+  --good: #1f7a4d; --good-soft: #dcefe4; --bad: #b3261e; --bad-soft: #f7dedb; --note: #6b7289; --note-soft: #e7e9ef;
+  --focus: #1f5fbf;
+  /* the game frame keeps the helm's colours in both themes */
+  --h-bg: #000000; --h-panel: #0a0c13; --h-panel-2: #11141d; --h-line: #272b38; --h-ink: #f2e6d8; --h-dim: #9a9da8;
+  --h-peach: #f2a65a; --h-lav: #a9a3e0; --h-sky: #7fb0e8; --h-grey: #3d404b; --h-green: #9be37a; --h-red: #f08a80; --h-amber: #f5c04a;
+  /* department colours from the officer mockup: fill, and a lighter one for text on the dark frame */
+  --c-exp: #3e7fd6; --c-eng: #d9a23a; --c-sci: #4e9a5a; --c-def: #c8423a; --c-ship: #8d909a;
+  --t-exp: #8dbbf2; --t-eng: #f0c35e; --t-sci: #8fd898; --t-def: #f39a90; --t-ship: #b9bcc6;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --helm: "Antonio", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f18; --panel: #121827; --ink: #e5e9f2; --dim: #96a0b8; --rule: #252d42;
+    --accent: #f2a54a; --accent-soft: #33240f;
+    --good: #7fd3a6; --good-soft: #12301f; --bad: #ff8a80; --bad-soft: #3a1513; --note: #a3abc0; --note-soft: #1c2233;
+    --focus: #9ed1ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f18; --panel: #121827; --ink: #e5e9f2; --dim: #96a0b8; --rule: #252d42;
+  --accent: #f2a54a; --accent-soft: #33240f;
+  --good: #7fd3a6; --good-soft: #12301f; --bad: #ff8a80; --bad-soft: #3a1513; --note: #a3abc0; --note-soft: #1c2233;
+  --focus: #9ed1ff;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--body); overflow-x: hidden; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 72px; display: grid; gap: 44px; }
+header { display: grid; gap: 12px; }
+.eyebrow { font: 600 13px/1.3 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+h1 { margin: 0; font: 700 clamp(36px, 7vw, 60px)/1 var(--display); letter-spacing: .01em; text-wrap: balance; }
+h2 { margin: 0; font: 700 clamp(26px, 4.4vw, 36px)/1.05 var(--display); letter-spacing: .01em; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; text-wrap: balance; }
+h2 .tag { color: var(--accent); }
+h3 { margin: 0; font: 600 14px/1.2 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+p { margin: 0; }
+.lede { max-width: 70ch; font-size: 18px; }
+.muted { color: var(--dim); }
+.pitch { max-width: 76ch; font-size: 17px; }
+code { font: .86em var(--mono); background: var(--note-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+blockquote { margin: 0; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; max-width: 70ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 600 13px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; padding: 6px 9px; border-radius: 6px; border: 1px solid var(--rule); background: var(--panel); color: var(--dim); }
+.chip.warn { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+section { display: grid; gap: 16px; min-width: 0; }
+section.opt { border-top: 1px solid var(--rule); padding-top: 36px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; }
+.cards.five { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.card ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 15px; }
+.card p { font-size: 15px; }
+.card.need { border-top: 3px solid var(--note); }
+.card.d { border-top: 4px solid var(--c); }
+.card.d h3 { color: var(--ink); font-size: 18px; letter-spacing: .06em; }
+.card .sub { font: 600 12px/1.3 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.table { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 860px; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--rule); }
+th { font: 600 13px/1.2 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); background: var(--note-soft); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; }
+tr.sec td { background: var(--note-soft); font: 600 14px/1.3 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--ink); }
+tr.sec td i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); margin-right: 8px; }
+.st { display: inline-block; white-space: nowrap; font: 600 12px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; padding: 4px 7px; border-radius: 4px; }
+.st.ok { background: var(--good-soft); color: var(--good); }
+.st.small { background: var(--accent-soft); color: var(--accent); }
+.st.no { background: var(--bad-soft); color: var(--bad); }
+ol.qs { margin: 0; padding-left: 22px; display: grid; gap: 14px; max-width: 84ch; }
+ol.qs li::marker { font: 700 16px var(--display); color: var(--accent); }
+ol.qs b { font-weight: 600; }
+ol.qs .rec { display: block; margin-top: 3px; }
+ol.qs .rec::before { content: "Recommended: "; font-weight: 600; color: var(--good); }
+ol.qs .alt { display: block; color: var(--dim); font-size: 15px; }
+footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 14px; color: var(--dim); display: grid; gap: 6px; }
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.flow .step { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font: 600 15px/1.2 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.flow .step.new { border-color: var(--accent); background: var(--accent-soft); }
+.flow .arr { color: var(--dim); font: 600 18px var(--display); }
+pre { margin: 0; overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; font: 13px/1.5 var(--mono); }
+.pick { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.pick .lbl { font: 600 13px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+.pick button { font: 600 14px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; padding: 8px 11px; border-radius: 16px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); cursor: pointer; }
+.pick button small { color: var(--dim); font-size: 12px; letter-spacing: .08em; margin-left: 4px; }
+.pick button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ------------------------------------------------------------------ the game frame (helm look, fixed colours) */
+.helm { color-scheme: dark; background: var(--h-bg); color: var(--h-ink); border-radius: 12px; overflow: hidden; display: grid; gap: 4px;
+  grid-template-columns: 118px minmax(0, 1fr); grid-template-areas: "top top" "rail body" "bot bot"; font: 400 14px/1.4 var(--body); }
+.helm button, .helm input { font: inherit; color: inherit; }
+.helm button { cursor: pointer; }
+.helm button:focus-visible, .helm input:focus-visible { outline: 2px solid var(--h-sky); outline-offset: 2px; }
+.h-top { grid-area: top; display: flex; gap: 4px; min-height: 34px; }
+.h-top .cap0 { width: 118px; flex: none; background: var(--h-peach); border-radius: 12px 0 0 0; }
+.h-top .bar { flex: 1; min-width: 0; background: var(--h-lav); color: #000; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 2px 12px; padding: 6px 14px;
+  font: 700 17px/1 var(--helm); letter-spacing: .12em; text-transform: uppercase; }
+.h-top .bar small { font: 600 12px/1 var(--display); letter-spacing: .14em; }
+.h-top .end { flex: none; min-width: 130px; padding: 0 12px; background: var(--fc, var(--h-grey)); color: #000; border-radius: 0 12px 0 0; display: flex; align-items: center; justify-content: center; font: 700 14px/1 var(--helm); letter-spacing: .12em; text-transform: uppercase; }
+.h-rail { grid-area: rail; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+.h-rail div { background: var(--h-grey); color: #000; text-align: right; padding: 20px 10px 5px; font: 600 13px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; }
+.h-rail div.done { background: #6b6e79; }
+.h-rail div.cur { background: var(--h-peach); }
+.h-rail div.next { background: #24262d; color: #6a6d79; }
+.h-rail div.fill { flex: 1; min-height: 20px; padding: 0; }
+.h-bot { grid-area: bot; display: flex; gap: 4px; }
+.h-bot .cap0 { width: 118px; flex: none; background: var(--h-lav); border-radius: 0 0 0 12px; }
+.h-bot .bar { flex: 1; min-width: 0; background: var(--h-grey); border-radius: 0 0 12px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; }
+.helm .pill { border: 0; background: var(--h-peach); color: #000; border-radius: 12px; padding: 6px 13px; font: 600 13px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+.helm .pill.alt { background: var(--h-sky); }
+.helm .pill.go { background: var(--h-green); }
+.helm .pill:disabled { background: #6b6e79; color: #2a2c33; cursor: not-allowed; }
+.h-bot .say { margin-left: auto; color: #fff; font: 600 13px/1.2 var(--display); letter-spacing: .08em; text-transform: uppercase; padding: 0 6px; min-width: 0; }
+.h-body { grid-area: body; min-width: 0; padding: 10px 12px 12px 8px; display: grid; gap: 10px; }
+.shipbar { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; align-items: center; }
+.shipbar img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; border: 1px solid var(--h-line); background: #05070a; }
+.shipbar .nm { margin: 0; font: 700 26px/1 var(--helm); letter-spacing: .06em; text-transform: uppercase; color: var(--h-peach); }
+.shipbar .meta { color: var(--h-dim); font-size: 13.5px; }
+.tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.tagx { font: 600 12px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; padding: 4px 7px; border-radius: 4px; background: var(--h-panel-2); border: 1px solid var(--h-line); color: var(--h-ink); }
+.tagx.k { color: var(--h-dim); }
+.cols3 { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: start; }
+.hp { background: var(--h-panel); border: 1px solid var(--h-line); border-left: 5px solid var(--h-lav); border-radius: 0 10px 10px 0; padding: 10px 12px; display: grid; gap: 9px; align-content: start; min-width: 0; }
+.col { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.h5 { margin: 0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 10px; font: 600 14px/1.2 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--h-lav); }
+.h5 span { color: var(--h-ink); font-variant-numeric: tabular-nums; letter-spacing: .08em; }
+.h5 span.short { color: var(--h-amber); }
+.hnote { font-size: 12.5px; color: var(--h-dim); }
+.hnote.flash { color: var(--h-amber); }
+.foci { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.foci button { text-align: left; background: var(--h-panel-2); border: 1px solid var(--h-line); border-top: 5px solid var(--c); border-radius: 0 0 8px 8px; padding: 6px 9px 7px; display: grid; gap: 2px; }
+.foci button b { font: 700 17px/1.1 var(--helm); letter-spacing: .06em; text-transform: uppercase; color: var(--t); }
+.foci button span { font-size: 12px; color: var(--h-dim); }
+.foci button span i { font-style: normal; color: var(--h-ink); }
+.foci button[aria-pressed="true"] { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); background: color-mix(in srgb, var(--c) 16%, var(--h-panel-2)); }
+.foci button.wide { grid-column: 1 / -1; }
+.perk { border: 1px dashed var(--c, var(--h-line)); border-radius: 8px; padding: 7px 9px; font-size: 13px; display: grid; gap: 3px; }
+.perk b { font: 600 12px/1.2 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--t, var(--h-dim)); }
+.stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: #1c1f29; }
+.stack i { display: block; height: 100%; background: var(--c); min-width: 0; transition: width .12s; }
+.stack i.free { background: repeating-linear-gradient(135deg, #2a2d38 0 4px, #1c1f29 4px 8px); }
+.div { display: grid; gap: 3px; padding-top: 7px; border-top: 1px solid var(--h-line); }
+.div .hd { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; }
+.div .hd b { font: 700 16px/1.1 var(--helm); letter-spacing: .08em; text-transform: uppercase; color: var(--t); }
+.div .hd .n { font: 600 14px/1 var(--display); letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.div .who { font-size: 12px; color: var(--h-dim); }
+.ctl { display: grid; grid-template-columns: 30px minmax(0, 1fr) 30px; gap: 6px; align-items: center; }
+.ctl input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; min-width: 0; height: 22px; margin: 0; background: transparent; cursor: pointer; }
+.ctl input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--c) var(--p, 0%), #2a2e3a var(--p, 0%)); }
+.ctl input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--c) var(--p, 0%), #2a2e3a var(--p, 0%)); }
+.ctl input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -5px; border-radius: 50%; background: var(--t); border: 2px solid #000; }
+.ctl input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--t); border: 2px solid #000; }
+.sq { width: 30px; height: 28px; border-radius: 6px; border: 1px solid #3a3f50; background: var(--h-panel-2); font: 700 17px/1 var(--display); padding: 0; }
+.sq:disabled { color: #5d606b; border-style: dashed; cursor: not-allowed; }
+.div .ft { display: flex; justify-content: space-between; gap: 8px; font: 600 12px/1.2 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--h-dim); }
+.pm { font-variant-numeric: tabular-nums; }
+.pm.up { color: var(--h-green); } .pm.dn { color: var(--h-red); } .pm.eq { color: var(--h-dim); }
+.grp { display: grid; gap: 5px; padding-top: 7px; border-top: 1px solid var(--h-line); }
+.grp .gh { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 8px; font: 600 13px/1.2 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--t); }
+.grp .gh span { color: var(--h-dim); letter-spacing: .08em; font-variant-numeric: tabular-nums; }
+.line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.line .nm { font-weight: 600; font-size: 13.5px; }
+.line .nm small { font: 600 11px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--h-dim); margin-left: 5px; white-space: nowrap; }
+.line .ds { font-size: 12px; color: var(--h-dim); }
+.line.lock { opacity: .62; }
+.stp { display: grid; grid-template-columns: 28px 26px 28px; align-items: center; text-align: center; gap: 3px; }
+.stp .sq { width: 28px; height: 26px; }
+.stp output { font: 700 16px/1 var(--display); font-variant-numeric: tabular-nums; }
+.later { font: 600 11px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; padding: 4px 6px; border-radius: 4px; border: 1px dashed #5d606b; color: var(--h-dim); white-space: nowrap; }
+.sum h6 { margin: 0; font: 600 12px/1.2 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--h-dim); }
+.kv { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; font-size: 13.5px; }
+.kv dt { min-width: 0; }
+.kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.kv dd small { font-weight: 400; color: var(--h-dim); }
+.kv .full { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 10px; }
+.kv .full b { font-weight: 600; text-align: right; margin-left: auto; }
+.kv .dv { grid-column: 1 / -1; margin-top: 4px; display: flex; justify-content: space-between; gap: 8px; font: 600 13px/1.2 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--t); }
+.hints { margin: 0; padding-left: 16px; display: grid; gap: 4px; font-size: 13px; }
+.hints li.warn { color: var(--h-amber); }
+.hints li.no { color: var(--h-dim); }
+@media (max-width: 1100px) {
+  .cols3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .cols3 > .sumcol { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .helm { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "body" "bot"; }
+  .h-rail, .h-top .cap0, .h-bot .cap0 { display: none; }
+  .h-top .bar { border-radius: 12px 0 0 0; font-size: 15px; }
+  .h-top .end { min-width: 0; }
+  .h-bot .bar { border-radius: 0 0 12px 12px; }
+  .h-body { padding: 10px; }
+  .cols3 { grid-template-columns: minmax(0, 1fr); }
+  .shipbar { grid-template-columns: 96px minmax(0, 1fr); }
+  .shipbar .nm { font-size: 22px; }
+  .h-bot .say { margin-left: 0; flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .stack i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Dawn of Warp · Campaign start · Proposal 2026-11-17 · Nothing built yet</div>
+    <h1>Fit Out Your Ship</h1>
+    <blockquote>“The game needs some additional options. You should decide if you are an explorer, a builder, a combatant, etc. Based on this, you can set the crewing/supplies of your ship before you leave home-base. You need to have some of each type of support, but you can go more with one type over another.”</blockquote>
+    <p class="lede">A new step before leaving home. You pick a focus, split the ship’s crew between four divisions and load the hold. Every division and every kind of cargo has a minimum, so no ship leaves without some of each. What you favour moves numbers the game already has by a few percent. An even split plays like today’s game.</p>
+    <div class="chips"><span class="chip warn">Proposal: needs your answers</span><span class="chip">Every number is a placeholder</span><span class="chip">The screen below works: try it</span></div>
+  </header>
+
+  <section>
+    <h2><span class="tag">Flow</span> Where it sits</h2>
+    <div class="flow"><span class="step">Campaign</span><span class="arr">›</span><span class="step">Federation</span><span class="arr">›</span><span class="step">Dawn of Warp</span><span class="arr">›</span><span class="step">Choose your ship</span><span class="arr">›</span><span class="step new">Fit out your ship</span><span class="arr">›</span><span class="step">Pick the system and start body</span><span class="arr">›</span><span class="step">First mission</span></div>
+    <p class="pitch">After the ship pick, because the ship sets the budget: its crew size, the size of its hold, and whether the cargo is for a colony or for a ship that never lands. Before the system pick, because you asked for it “before you leave home-base”. The system page can then say how the load suits each world, for example how many drop-ship trips the fuel covers on a heavy planet.</p>
+    <div class="cards">
+      <div class="card need"><h3>The ship is the job</h3><p>Nothing about the ship pick changes. The ship still decides the mission chain, whether you land, the flight speed and what comes with it (Horizon’s extra colonists and duranium, Cochrane’s spare kits and construction rover).</p></div>
+      <div class="card need"><h3>The focus is how you do the job</h3><p>Any focus can go on any ship. Each ship suggests one that fits its role and starts on that preset. A survey ship with a Scientist focus is allowed; it is still a survey ship.</p></div>
+      <div class="card need"><h3>The officer’s department</h3><p>The officer mockup has four departments: Exploration, Defense, Maintenance, Archaeology. The four crew divisions here are the same four things, in the same colours. I propose one pick, made here: your department is your focus’s division.</p></div>
+      <div class="card need"><h3>Fixed for the match</h3><p>The fit-out is set once, before the first mission. It is part of the game’s set-up, like the ship. The Earth supply ship, when it exists, can top up cargo later; it does not change the crew split.</p></div>
+    </div>
+  </section>
+
+  <section class="opt">
+    <h2><span class="tag">Rules</span> The whole idea in four steps</h2>
+    <div class="cards">
+      <div class="card"><h3>1 · Pick a focus</h3><p>Explorer, Builder, Combatant, Scientist or All-rounder. A focus loads a preset, gives one fixed perk, and its own division must hold at least 30% of the crew.</p></div>
+      <div class="card"><h3>2 · Split the crew</h3><p>The ship’s real crew goes into four divisions. Each needs at least 10%. A division’s numbers move 0.4% for every point its share is above or below a quarter: +10% at half the crew, −6% at the minimum.</p></div>
+      <div class="card"><h3>3 · Load the hold</h3><p>The hold is counted in containers and its size depends on the ship. Each kind of cargo has a minimum. Past that you choose: more satellites, more metal, more lab gear, more fuel.</p></div>
+      <div class="card"><h3>4 · Even is today</h3><p>A quarter in every division changes nothing. Tests, the sandbox and the balance runner keep playing the game as it is. A focus tilts a game; it does not decide it.</p></div>
+    </div>
+    <p class="muted">The crew’s effect depends on shares, not head counts, so a 40-person survey ship is not weaker than a 350-person flagship. Head count only sets how finely you can split: on the six-person Armstrong each person is a sixth of the ship.</p>
+  </section>
+
+  <section class="opt">
+    <h2><span class="tag">Screen</span> Fit out your ship</h2>
+    <div class="pick" role="group" aria-label="Ship for the mock"><span class="lbl">Ship (picked on the page before; switch here to compare)</span><span id="shipPick" class="pick"></span></div>
+
+    <div class="helm" id="helm">
+      <div class="h-top"><div class="cap0"></div><div class="bar"><span>Fit out your ship</span><small>Campaign · Federation · Dawn of Warp</small></div><div class="end" id="endcap">Focus</div></div>
+      <div class="h-rail"><div class="done">Faction</div><div class="done">Era</div><div class="done">Ship</div><div class="cur">Fit out</div><div class="next">System</div><div class="fill"></div></div>
+      <div class="h-body">
+        <div class="shipbar">
+          <img id="shipImg" src="img/horizon.jpg" alt="">
+          <div><p class="nm" id="shipName">Horizon</p><div class="meta" id="shipMeta"></div><div class="tags" id="shipTags"></div></div>
+        </div>
+        <div class="cols3">
+          <div class="col">
+            <div class="hp">
+              <div class="h5">Focus <span id="focusRule"></span></div>
+              <div class="foci" id="foci"></div>
+              <div class="perk" id="perk"></div>
+            </div>
+            <div class="hp">
+              <div class="h5">Crew <span id="crewTotal"></span></div>
+              <div class="stack" id="crewStack" aria-hidden="true"></div>
+              <div id="crewRows" class="col" style="gap:0"></div>
+              <div class="hnote" id="crewNote"></div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="hp">
+              <div class="h5">Cargo <span id="holdTotal"></span></div>
+              <div class="stack" id="holdStack" aria-hidden="true"></div>
+              <div id="cargoRows" class="col" style="gap:0"></div>
+              <div class="hnote" id="cargoNote"></div>
+            </div>
+          </div>
+          <div class="col sumcol">
+            <div class="hp sum" id="summary" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+      <div class="h-bot"><div class="cap0"></div><div class="bar">
+        <button class="pill alt" id="btnBack" type="button">‹ Ship</button>
+        <button class="pill" id="btnReset" type="button">Reset to preset</button>
+        <button class="pill go" id="btnGo" type="button">Launch ›</button>
+        <span class="say" id="say"></span>
+      </div></div>
+    </div>
+    <p class="muted">What to try: pick a focus and watch the preset load; drag a division up when nobody is unassigned (it will not move until you free people elsewhere); push a division down to its minimum; fill the hold; switch to Armstrong (6 crew) or Tereshkova (never lands, shorter cargo list). In the game this is one page with the same three columns. To fit 1280×720 the line under each cargo item moves into its hover text and the summary scrolls.</p>
+  </section>
+
+  <section class="opt">
+    <h2><span class="tag">Focus</span> Why each one exists</h2>
+    <div class="cards five">
+      <div class="card d" style="--c:var(--c-exp)"><h3>Explorer</h3><div class="sub">Leads with Exploration · your word</div><p>Finding things is half the colony game today: rovers surveying, satellites sweeping, scout drones, and missions that ask for exactly that (Ground Truth, First Flight, Beyond the Ridge). On a ship that never lands it is scanning and charting.</p><p><b>Perk.</b> The landing reveals 5 hexes around the hub instead of 3. In space: long-range scans reach 400 units instead of 320.</p></div>
+      <div class="card d" style="--c:var(--c-eng)"><h3>Builder</h3><div class="sub">Leads with Engineering · your word</div><p>Building, repairing and the parts economy are the other half: build times, repair crews, the Machine Shop, wear. On a ship that never lands the same people are the engine room, so it means shorter flights.</p><p><b>Perk.</b> The Colony Hub’s workshop makes spare kits 30% faster. In space: the engines are tuned before leaving, flights 8% shorter.</p></div>
+      <div class="card d" style="--c:var(--c-def)"><h3>Combatant</h3><div class="sub">Leads with Defense · your word</div><p>There is no combat yet, so this focus is thin today. It has a few real uses now: wildlife, ruin defences, losing crew when the air fails. It is the focus that grows most when combat is built.</p><p><b>Perk.</b> Vehicles take half damage from wildlife and ruin defences. In space: inspections and escorts need 20 s alongside instead of 30.</p></div>
+      <div class="card d" style="--c:var(--c-sci)"><h3>Scientist</h3><div class="sub">Leads with Science · added</div><p>Research, digs, studying a civilization and first contact are whole systems in the game, and none of your three covers them. Meridian’s entire mission is this. It is also the home for the Archaeology department.</p><p><b>Perk.</b> Research from mission rewards +20%. In space: studying a civilization takes a quarter less time.</p></div>
+      <div class="card d" style="--c:var(--c-ship)"><h3>All-rounder</h3><div class="sub">No lead division · added</div><p>An even split is today’s game exactly, so it needs a name. It is what you get if you skip the page, and what tests and the sandbox use. No perk and no 30% rule: you may still move people around.</p></div>
+    </div>
+    <p class="muted">Left out for now: a Trader or Diplomat focus (trade only exists after first contact, so it sits inside Scientist), and a Medic focus (too little for it to do; medics are part of Science).</p>
+  </section>
+
+  <section class="opt">
+    <h2><span class="tag">Levers</span> What each choice does in the game we have</h2>
+    <p class="pitch">Every row names a number or a function that is in the sim today. “In the sim” means the lever exists and only needs one more multiplier where gravity, weather or research already multiply it. “Small addition” means a few lines of new sim code. “Not built” waits for a system that does not exist.</p>
+    <div class="table" role="region" aria-label="Levers table" tabindex="0">
+      <table>
+        <thead><tr><th>Choice</th><th>What it moves</th><th>Where in the sim</th><th>Placeholder</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr class="sec" style="--c:var(--c-exp)"><td colspan="5"><i></i>Exploration crew · every row moves 0.4% per point of share above or below 25%</td></tr>
+          <tr><td>Drivers and pilots</td><td>Vehicle drive speed</td><td><code>PlanetSurface.SpeedPerTick</code> (already × gravity, weather, damage)</td><td>−6% … +18%</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Sensor crews</td><td>Survey satellite sweep time</td><td><code>orbit.satellite.sweep_seconds</code> 60</td><td>64 s … 49 s</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Drone operators</td><td>Scout drone battery</td><td><code>drone.battery</code> 180 s</td><td>169 s … 212 s</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Route finding</td><td>Rover hazard and flat-tyre chance</td><td><code>RoverWear</code> chances (already × weather)</td><td>+6% … −18%</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>In space</td><td>Long-range scan recharge; orbital sweep of a new body</td><td><code>system.scan.cooldown_seconds</code> 90, <code>system.sweep.seconds</code> 15</td><td>same rate</td><td><span class="st ok">In the sim</span></td></tr>
+
+          <tr class="sec" style="--c:var(--c-eng)"><td colspan="5"><i></i>Engineering crew · same rate</td></tr>
+          <tr><td>Construction crews</td><td>Build and upgrade time</td><td><code>BuildTicksOf</code>, <code>LevelTicksOf</code> (already × gravity)</td><td>+6% … −18%</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Mechanics</td><td>Repair and maintenance speed</td><td><code>repair_per_second</code> in <code>RepairTick</code> / <code>RepairWork</code></td><td>−6% … +18%</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Fabricators</td><td>Machine Shop and hub workshop speed</td><td><code>WorkRate</code> in <code>Fabrication.cs</code></td><td>−6% … +18%</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Upkeep</td><td>Building wear</td><td><code>WearMultiplier</code></td><td>+6% … −18%</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>In space</td><td>Flight time between bodies</td><td><code>SystemShip.Speed</code>, <code>TravelTicksFor</code></td><td>same rate</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Build cost</td><td>Not touched, on purpose</td><td>Cost is the economy. The Building materials cargo is the cost lever.</td><td>none</td><td><span class="st ok">No change</span></td></tr>
+
+          <tr class="sec" style="--c:var(--c-sci)"><td colspan="5"><i></i>Science crew · same rate</td></tr>
+          <tr><td>Researchers</td><td>Research rate</td><td>Research Lab <code>research_per_min</code> 16</td><td>15 … 18.9 a minute</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Archaeologists</td><td>Dig time per ruin layer</td><td><code>Excavation.cs</code>, 120 s a layer</td><td>127 s … 98 s</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Medics</td><td>How long the crew stay sick after a pathogen</td><td>excavation <code>pathogen</code> 300 s</td><td>318 s … 246 s</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>In space</td><td>Time to study a civilization; culture-shock chance at first contact</td><td><code>StudyOf</code> (120 / 60 / 30 s), <code>ShockChance</code></td><td>same rate</td><td><span class="st ok">In the sim</span></td></tr>
+
+          <tr class="sec" style="--c:var(--c-def)"><td colspan="5"><i></i>Defense crew · same rate</td></tr>
+          <tr><td>Escorts</td><td>Wildlife attacks on vehicles</td><td>rover <code>damage.wildlife</code> 0.4 a minute on predator ground</td><td>0.42 … 0.33</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Guards</td><td>Damage when a dig wakes a defence system</td><td>excavation <code>defence</code> 20–40 within 1 hex</td><td>+6% … −18%</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Damage control</td><td>Crew lost when life support fails on a dome world</td><td><code>domes.crew_loss_per_min</code> 2</td><td>2.1 … 1.6</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>In space</td><td>Time alongside a ship to inspect or escort it</td><td>mission condition <code>with_ship</code> <code>hold_seconds</code> 30</td><td>32 s … 25 s</td><td><span class="st small">Small addition</span></td></tr>
+          <tr><td>Fighting</td><td>Ground combat, garrisons, ship weapons, boarding</td><td>Nothing yet</td><td>later</td><td><span class="st no">Not built</span></td></tr>
+
+          <tr class="sec" style="--c:var(--c-ship)"><td colspan="5"><i></i>Focus perks · one fixed thing each</td></tr>
+          <tr><td>Explorer</td><td>Ground revealed at landing; scan reach in space</td><td><code>landing.reveal_radius</code> 3; <code>system.scan.range</code> 320</td><td>5 hexes; 400 units</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Builder</td><td>Hub workshop speed; flight time in space</td><td><code>fabrication.hub.time_factor</code> 2; <code>SystemShip.Speed</code></td><td>30% faster; 8% shorter</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Combatant</td><td>Wildlife and defence damage to vehicles; time alongside in space</td><td>rover <code>damage</code>, excavation <code>defence</code>; <code>hold_seconds</code></td><td>half; 20 s</td><td><span class="st small">Small addition</span></td></tr>
+          <tr><td>Scientist</td><td>Research from mission rewards; study time in space</td><td>mission action <code>research</code> (30–100 a mission); <code>StudyOf</code></td><td>+20%; a quarter less</td><td><span class="st ok">In the sim</span></td></tr>
+
+          <tr class="sec" style="--c:var(--c-eng)"><td colspan="5"><i></i>Cargo on a ship that lands</td></tr>
+          <tr><td>Building materials</td><td>Duranium and tritanium at landing</td><td><code>landing.start_stock</code>, added the way a ship’s <code>start_bonus</code> is</td><td>50 + 30 a container. 10 = today’s 500 + 300</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Spare kit set</td><td>Kits for repairs from the first minute</td><td><code>start_bonus</code> (Cochrane’s kits use it already)</td><td>1 of each kit a container</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Fuel</td><td>Deuterium: drop-ship trips and the Fusion Reactor</td><td><code>start_stock</code>; <code>orbit.shuttle.fuel</code> 5 × the lift curve</td><td>25 a container. 6 = today’s 150</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Provisions</td><td>Colonists awake at landing (the crew resource): outposts cost 30–40, the Dawn of Warp plan has buildings needing crew</td><td><code>start_bonus</code> crew (Horizon’s uses it already)</td><td>+5 a container</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Extra rover or crawler</td><td>Vehicles that land with the colony</td><td>ship <code>start_units</code> (Cochrane’s rover uses it)</td><td>3 or 4 containers</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Scout drone</td><td>Drones in storage, ready for the first Drone Pad</td><td>resource <code>scout_drone</code> in the landing stock</td><td>1 a container, up to 4</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Lab equipment</td><td>Research points toward the first tech</td><td><code>DigResearchBank</code> → active tech, as mission rewards do</td><td>20 a container</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Medical stores</td><td>Crew sickness length (small today: only digs cause it)</td><td>excavation <code>pathogen</code> 300 s</td><td>8% shorter each, up to 4</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Survey satellite aboard</td><td>That many satellites launch without paying from the colony</td><td><code>SatelliteCommand</code> cost 80 + 40, max 3</td><td>2 containers each</td><td><span class="st small">Small addition</span></td></tr>
+          <tr><td>Field armour</td><td>Hazard and wildlife damage to vehicles</td><td><code>RoverHazard</code> damage ranges</td><td>5% less each, up to 4</td><td><span class="st small">Small addition</span></td></tr>
+          <tr><td>Guard post kit</td><td>A defended post</td><td>Nothing yet</td><td>later</td><td><span class="st no">Not built</span></td></tr>
+
+          <tr class="sec" style="--c:var(--c-exp)"><td colspan="5"><i></i>Cargo on a ship that never lands</td></tr>
+          <tr><td>Reaction mass</td><td>Flight time</td><td><code>SystemShip.Speed</code></td><td>2% shorter each, up to 6</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>Medicine and gifts</td><td>Culture-shock chance at first contact</td><td><code>ShockChance</code> in <code>Contact.cs</code></td><td>3 points lower each, up to 4</td><td><span class="st ok">In the sim</span></td></tr>
+          <tr><td>System satellite aboard</td><td>That many satellites placed without paying from stock</td><td><code>SystemSatelliteCommand</code> cost 60 + 30, max 4</td><td>2 containers each</td><td><span class="st small">Small addition</span></td></tr>
+          <tr><td>Listening post aboard</td><td>That many observation posts placed without paying</td><td><code>ObservationPostCommand</code> cost 80 + 40, max 3</td><td>2 containers each</td><td><span class="st small">Small addition</span></td></tr>
+          <tr><td>Sensor probe</td><td>One long-range scan with no recharge wait</td><td><code>system.scan.cooldown_seconds</code> 90</td><td>1 container each, up to 4</td><td><span class="st small">Small addition</span></td></tr>
+          <tr><td>Boarding and rescue gear</td><td>Boarding, rescue under fire</td><td>Nothing yet</td><td>later</td><td><span class="st no">Not built</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">The ranges are the two ends of what the screen allows: a division at its 10% minimum (−6%) and at 70% with the other three at their minimums (+18%). A focus preset puts its division at about 45%, which is +8%.</p>
+  </section>
+
+  <section class="opt">
+    <h2><span class="tag">Space</span> The four ships that never land</h2>
+    <p class="pitch">Tereshkova, Armstrong, Bastion and Meridian use the same screen and the same four divisions. The crew’s numbers act on the star-system layer instead of the surface. The cargo list is shorter: no building materials, vehicles or colonists, because nothing goes down. Defense cargo has no minimum on these ships until combat gives it a use.</p>
+    <div class="cards">
+      <div class="card d" style="--c:var(--c-exp)"><h3>Tereshkova · survey</h3><div class="sub">40 crew · 12 containers · suggests Explorer</div><p>Exploration crew shorten the scan recharge and the 15 s sweep of each new body, which is most of The Long Survey. Satellites aboard matter directly: Eyes Everywhere asks for satellites at two bodies, and each one you did not bring costs stock.</p></div>
+      <div class="card d" style="--c:var(--c-eng)"><h3>Armstrong · courier</h3><div class="sub">6 crew · 6 containers · suggests Builder</div><p>Every run is on a clock, so engineers and reaction mass are the obvious load. With six people there is no fine tuning: three engineers is half the ship. The small hold is the point of the courier.</p></div>
+      <div class="card d" style="--c:var(--c-def)"><h3>Bastion · patrol</h3><div class="sub">85 crew · 14 containers · suggests Combatant</div><p>Defense crew shorten the time alongside a ship in Traffic Check and Escort. Exploration crew help the Picket’s scans. This is the ship that gains most when combat exists; until then its Combatant fit-out is honest but small.</p></div>
+      <div class="card d" style="--c:var(--c-sci)"><h3>Meridian · envoy</h3><div class="sub">350 crew · 20 containers · suggests Scientist</div><p>Science crew shorten the study of the civilization and lower the culture-shock chance. A listening post aboard covers the Listening Post mission; medicine and gifts make first contact safer.</p></div>
+    </div>
+    <p class="muted">Space chains have no rewards yet, so the Scientist perk is the study-time one on these ships. If the chains later pay out research or standing, the +20% applies there too.</p>
+  </section>
+
+  <section class="opt">
+    <h2><span class="tag">Build</span> What it would take</h2>
+    <div class="cards">
+      <div class="card need"><h3>Data</h3><ul>
+        <li>One new file, <code>data/missions/fit_out.json</code>, next to <code>ship_choice.json</code>: the rules, the four divisions, the focuses with their presets and perks, the cargo lines, and per ship the hold size and suggested focus.</li>
+        <li>Each lever is a named entry (<code>drive_speed</code>, <code>build_time</code>, <code>research_rate</code> …) with its division and direction, so tuning is a data edit and shows in the DATA tab.</li></ul></div>
+      <div class="card need"><h3>Sim</h3><ul>
+        <li>A <code>FitOut</code> record (focus, four crew counts, cargo counts) passed to <code>MatchSetup.CreateSystemGame(…, shipId, fitOut)</code>. Checked against the floors and budgets; a bad one falls back to the ship’s preset. Hashed only when set, like the ship pick.</li>
+        <li>One <code>FitOutProfile</code> per player, built once: a multiplier per lever, read at the places that already multiply (<code>SpeedPerTick</code>, <code>BuildTicksOf</code>, <code>WorkRate</code>, research, sweeps, <code>SystemShip.Speed</code>).</li>
+        <li>Cargo uses the ship pick’s <code>start_bonus</code> and <code>start_units</code> path. No new commands: it is set-up, not an order.</li></ul></div>
+      <div class="card need"><h3>Game screens</h3><ul>
+        <li><code>MainMenu.FitOut.cs</code>: this page, between Choose Your Ship and the system pick. <code>GameSetup.FitOut</code> carries it into the match.</li>
+        <li>System pick: one line per body on how the load suits it (drop-ship trips the fuel covers at that gravity).</li>
+        <li>In game: the focus and the division percentages on the ship’s card, so a tester can see why a number differs.</li></ul></div>
+      <div class="card need"><h3>Tests</h3><ul>
+        <li>An even split gives the same hashes as today for every balance order and every ship chain.</li>
+        <li>Floors and budgets refuse bad fit-outs; every lever moves the right way and by the data’s amount; same fit-out twice = same hashes.</li>
+        <li>Each focus preset on each ship still finishes its chain.</li></ul></div>
+    </div>
+    <pre aria-label="Data file sketch">{ "fit_out": {
+    "crew_floor_share": 0.10, "focus_floor_share": 0.30, "effect_per_point": 0.004,
+    "divisions": ["exploration", "engineering", "science", "defense"],
+    "focuses": [
+      { "id": "explorer", "division": "exploration", "crew_pct": [45, 25, 18, 12],
+        "perk": { "colony": { "landing_reveal_radius": 5 }, "space": { "scan_range": 400 } } } ],
+    "levers": [
+      { "id": "drive_speed", "division": "exploration", "more_is_better": true },
+      { "id": "build_time",  "division": "engineering", "more_is_better": false } ],
+    "cargo": [
+      { "id": "materials", "kind": "engineering", "containers": 1, "min": 6, "max": 20,
+        "lands": true, "gives": { "duranium": 50, "tritanium": 30 } } ],
+    "ships": { "horizon": { "hold": 30, "suggest": "allround" }, "tereshkova": { "hold": 12, "suggest": "explorer" } } } }</pre>
+    <p class="pitch"><b>Build first:</b> the two colony ships only. The focus, the crew split and five levers that already have a multiplier beside them (drive speed, build time, repair speed, research rate, satellite sweep), plus the cargo that needs no new code (materials, fuel, spare kits, provisions, extra rover). That is one sim session and one UI session, and it is enough to feel whether a focus tilts a game the right amount. Then the four space ships, then the small additions (satellites aboard, field armour, probes). Defense grows when combat is built.</p>
+  </section>
+
+  <section class="opt">
+    <h2><span class="tag">Open</span> Questions for you</h2>
+    <ol class="qs">
+      <li><b>Where does the step go?</b><span class="rec">After the ship, before the system pick.</span><span class="alt">Other answer: after the system pick, so you can load for the world you chose.</span></li>
+      <li><b>Is the focus the same pick as the officer’s department?</b><span class="rec">Yes, one pick.</span><span class="alt">Other answer: separate. You could be a Defense officer on an Explorer expedition.</span></li>
+      <li><b>Rename two departments to match: Maintenance → Engineering, Archaeology → Science?</b><span class="rec">Yes. Engineering builds as well as repairs; Science includes the digs.</span></li>
+      <li><b>Scientist and All-rounder besides your three?</b><span class="rec">Keep both.</span><span class="alt">Other answers: drop one, or add another (say which).</span></li>
+      <li><b>Combatant before combat exists?</b><span class="rec">Show it now, small as it is, with a note that it grows with combat.</span><span class="alt">Other answer: lock it until combat is built.</span></li>
+      <li><b>Any focus on any ship?</b><span class="rec">Yes. Each ship only suggests one.</span><span class="alt">Other answer: limit them, for example no Builder on a courier.</span></li>
+      <li><b>How strong?</b><span class="rec">Start here: about +8% on a preset, +18% at the most, −6% at the least.</span><span class="alt">Answer with: weaker, about right, or stronger.</span></li>
+      <li><b>How detailed is the cargo?</b><span class="rec">Line by line, as in the mock.</span><span class="alt">Other answer: simpler. One number per kind of cargo, with fixed contents.</span></li>
+    </ol>
+  </section>
+
+  <footer><p>Ship images from the ship-pick page. Ship names, crew sizes and missions are from <code>data/missions/ship_choice.json</code>; hold sizes, percentages and cargo contents are placeholders made for this page. Nothing here is in the game.</p></footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var DIVS = [
+    { id: 'exp', name: 'Exploration', who: 'Pilots, surveyors, sensor and drone operators' },
+    { id: 'eng', name: 'Engineering', who: 'Construction crews, mechanics, fabricators' },
+    { id: 'sci', name: 'Science', who: 'Researchers, archaeologists, medics, linguists' },
+    { id: 'def', name: 'Defense', who: 'Guards, escorts, damage control' }
+  ];
+  var FOCI = [
+    { id: 'explorer', name: 'Explorer', div: 'exp', line: 'Find things first', pct: { exp: 45, eng: 25, sci: 18, def: 12 },
+      perk: { colony: 'The landing reveals 5 hexes around the hub instead of 3.', space: 'Long-range scans reach 400 units instead of 320.' } },
+    { id: 'builder', name: 'Builder', div: 'eng', line: 'Build and repair faster', pct: { exp: 20, eng: 45, sci: 20, def: 15 },
+      perk: { colony: 'The Colony Hub’s workshop makes spare kits 30% faster.', space: 'The engines are tuned before leaving: flights 8% shorter.' } },
+    { id: 'combatant', name: 'Combatant', div: 'def', line: 'Guard what you have', pct: { exp: 18, eng: 25, sci: 12, def: 45 },
+      perk: { colony: 'Vehicles take half damage from wildlife and ruin defences. More when combat is built.', space: 'Inspections and escorts need 20 s alongside instead of 30. More when combat is built.' } },
+    { id: 'scientist', name: 'Scientist', div: 'sci', line: 'Learn faster', pct: { exp: 22, eng: 21, sci: 45, def: 12 },
+      perk: { colony: 'Research from mission rewards +20%.', space: 'Studying a civilization takes a quarter less time.' } },
+    { id: 'allround', name: 'All-rounder', div: null, line: 'An even split. Plays like today’s game', pct: { exp: 25, eng: 25, sci: 25, def: 25 }, perk: null }
+  ];
+  var SHIPS = [
+    { id: 'horizon', name: 'Horizon', cls: 'Colony transport', crew: 120, crewNote: '120 crew, 4,000 colonists in cryo', hold: 30, lands: true, suggest: 'allround', mission: 'First Light', speed: 0.8,
+      comes: ['+30 colonists awake', '+200 duranium'], bonus: { dur: 200, col: 30 } },
+    { id: 'cochrane', name: 'Cochrane', cls: 'Deep-space tender', crew: 210, crewNote: '210 crew', hold: 24, lands: true, suggest: 'builder', mission: 'First Light', speed: 0.9,
+      comes: ['4 of each spare kit', 'A construction rover'], bonus: { kits: 4, crover: 1 } },
+    { id: 'tereshkova', name: 'Tereshkova', cls: 'Long-range survey vessel', crew: 40, crewNote: '40 crew', hold: 12, lands: false, suggest: 'explorer', mission: 'The Long Survey', speed: 1.1, comes: [], bonus: {} },
+    { id: 'armstrong', name: 'Armstrong', cls: 'Fast courier', crew: 6, crewNote: '6 crew', hold: 6, lands: false, suggest: 'builder', mission: 'Priority Run', speed: 2.0, comes: [], bonus: {} },
+    { id: 'bastion', name: 'Bastion', cls: 'System patrol cutter', crew: 85, crewNote: '85 crew', hold: 14, lands: false, suggest: 'combatant', mission: 'Watch Station', speed: 1.2, comes: [], bonus: {} },
+    { id: 'meridian', name: 'Meridian', cls: 'Diplomatic and science flagship', crew: 350, crewNote: '350 crew', hold: 20, lands: false, suggest: 'scientist', mission: 'Envoy', speed: 0.9, comes: [], bonus: {} }
+  ];
+  var GROUPS = [
+    { id: 'exp', name: 'Exploration gear' }, { id: 'eng', name: 'Engineering stores' }, { id: 'sci', name: 'Science stores' },
+    { id: 'def', name: 'Defense stores' }, { id: 'ship', name: 'Ship’s stores' }
+  ];
+  var CARGO = {
+    colony: {
+      floors: { exp: 2, eng: 8, sci: 2, def: 2, ship: 4 },
+      base: { sat: 1, mat: 8, lab: 1, med: 1, armour: 2, fuel: 4 },
+      lines: [
+        { id: 'sat', g: 'exp', name: 'Survey satellite', cost: 2, min: 0, max: 3, ds: 'Ready to launch. No 80 duranium + 40 tritanium from the colony.' },
+        { id: 'drone', g: 'exp', name: 'Scout drone', cost: 1, min: 0, max: 4, ds: 'Waits in storage for the first Drone Pad.' },
+        { id: 'rover', g: 'exp', name: 'Extra survey rover', cost: 3, min: 0, max: 2, ds: 'Lands with the colony. Two land anyway.' },
+        { id: 'mat', g: 'eng', name: 'Building materials', cost: 1, min: 6, max: 20, ds: '50 duranium + 30 tritanium each.' },
+        { id: 'kits', g: 'eng', name: 'Spare kit set', cost: 1, min: 0, max: 6, ds: 'One each of the four spare kits.' },
+        { id: 'crawler', g: 'eng', name: 'Extra mining crawler', cost: 4, min: 0, max: 1, ds: 'Lands with the colony. One lands anyway.' },
+        { id: 'lab', g: 'sci', name: 'Lab equipment', cost: 1, min: 0, max: 6, ds: '20 research points toward your first tech.' },
+        { id: 'med', g: 'sci', name: 'Medical stores', cost: 1, min: 0, max: 4, ds: 'Crew sickness 8% shorter each.' },
+        { id: 'armour', g: 'def', name: 'Field armour', cost: 1, min: 0, max: 4, ds: 'Vehicles take 5% less hazard and wildlife damage each.' },
+        { id: 'guard', g: 'def', name: 'Guard post kit', cost: 2, locked: true, ds: 'Needs combat. Not built yet.' },
+        { id: 'fuel', g: 'ship', name: 'Fuel', cost: 1, min: 4, max: 12, ds: '25 deuterium each. A drop-ship trip burns 5 at 1 g.' },
+        { id: 'prov', g: 'ship', name: 'Provisions', cost: 1, min: 0, max: 8, ds: '5 more colonists awake at landing each.' }
+      ],
+      order: {
+        allround: ['mat', 'fuel', 'mat', 'kits', 'lab', 'fuel', 'drone', 'kits', 'prov', 'mat', 'armour', 'drone', 'mat', 'fuel'],
+        explorer: ['sat', 'rover', 'drone', 'drone', 'fuel', 'sat', 'mat', 'drone', 'fuel', 'mat', 'drone', 'kits'],
+        builder: ['mat', 'kits', 'mat', 'crawler', 'kits', 'mat', 'mat', 'kits', 'fuel', 'mat', 'mat', 'fuel'],
+        combatant: ['armour', 'armour', 'mat', 'kits', 'fuel', 'prov', 'med', 'mat', 'prov', 'fuel', 'mat', 'kits'],
+        scientist: ['lab', 'lab', 'med', 'lab', 'mat', 'fuel', 'lab', 'drone', 'mat', 'med', 'lab', 'kits']
+      }
+    },
+    space: {
+      floors: { exp: 1, eng: 1, sci: 1, def: 0, ship: 0 },
+      base: { probe: 1, mass: 1, gifts: 1 },
+      lines: [
+        { id: 'sat', g: 'exp', name: 'System satellite', cost: 2, min: 0, max: 4, ds: 'Ready to place. No 60 duranium + 30 tritanium from stock.' },
+        { id: 'probe', g: 'exp', name: 'Sensor probe', cost: 1, min: 0, max: 4, ds: 'One long-range scan with no 90 s recharge.' },
+        { id: 'mass', g: 'eng', name: 'Reaction mass', cost: 1, min: 0, max: 6, ds: 'Flights 2% shorter each.' },
+        { id: 'post', g: 'sci', name: 'Listening post', cost: 2, min: 0, max: 3, ds: 'Ready to place. No 80 duranium + 40 tritanium from stock.' },
+        { id: 'gifts', g: 'sci', name: 'Medicine and gifts', cost: 1, min: 0, max: 4, ds: 'Culture-shock chance at first contact 3 points lower each.' },
+        { id: 'gear', g: 'def', name: 'Boarding and rescue gear', cost: 1, locked: true, ds: 'Needs combat. Not built yet, so no minimum here.' }
+      ],
+      order: {
+        allround: ['sat', 'mass', 'post', 'probe', 'gifts', 'mass', 'sat', 'probe'],
+        explorer: ['sat', 'sat', 'probe', 'sat', 'probe', 'mass', 'sat', 'probe', 'gifts'],
+        builder: ['mass', 'mass', 'sat', 'mass', 'mass', 'post', 'mass', 'mass', 'probe'],
+        combatant: ['mass', 'sat', 'probe', 'mass', 'gifts', 'sat', 'mass', 'probe'],
+        scientist: ['post', 'gifts', 'post', 'gifts', 'sat', 'post', 'gifts', 'mass', 'probe']
+      }
+    }
+  };
+  // What a division's strength acts on. kind: rate (+ is better), less (− is better), time (seconds, shorter is better), more (a number, bigger is better), dn (a number, smaller is better).
+  var FX = {
+    exp: { colony: [ { t: 'Vehicle drive speed', kind: 'rate' }, { t: 'Satellite sweep of its band', kind: 'time', base: 60, u: ' s' }, { t: 'Scout drone battery', kind: 'more', base: 180, u: ' s' }, { t: 'Rover hazards and flat tyres', kind: 'less' } ],
+           space: [ { t: 'Long-range scan recharge', kind: 'time', base: 90, u: ' s' }, { t: 'Sweep of a new body', kind: 'time', base: 15, u: ' s' } ] },
+    eng: { colony: [ { t: 'Build time, a 60 s building', kind: 'time', base: 60, u: ' s' }, { t: 'Repairs and maintenance', kind: 'rate' }, { t: 'Machine Shop and hub workshop', kind: 'rate' }, { t: 'Building wear', kind: 'less' } ],
+           space: [ { t: 'Flight time, a 60 s flight', kind: 'flight' } ] },
+    sci: { colony: [ { t: 'Research Lab, points a minute', kind: 'more', base: 16, u: '' }, { t: 'Dig time per ruin layer', kind: 'time', base: 120, u: ' s' }, { t: 'Crew sickness after a pathogen', kind: 'sick' } ],
+           space: [ { t: 'Study of a civilization from orbit', kind: 'study' }, { t: 'Culture-shock chance at contact', kind: 'less' } ] },
+    def: { colony: [ { t: 'Wildlife attacks a minute', kind: 'dn', base: 0.4, u: '' }, { t: 'Damage from ruin defences', kind: 'less' }, { t: 'Crew lost a minute if the air fails', kind: 'dn', base: 2, u: '' }, { t: 'Ground combat', kind: 'none' } ],
+           space: [ { t: 'Time alongside to inspect or escort', kind: 'along' }, { t: 'Ship combat and boarding', kind: 'none' } ] }
+  };
+
+  var state = { ship: SHIPS[0], focus: FOCI[4], crew: {}, cargo: {} };
+  var flashTimer = 0, flashing = false;
+
+  function mode() { return state.ship.lands ? 'colony' : 'space'; }
+  function set() { return CARGO[mode()]; }
+  function line(id) { var L = set().lines; for (var i = 0; i < L.length; i++) if (L[i].id === id) return L[i]; return null; }
+  function floorOf(d) {
+    var c = state.ship.crew, share = (state.focus.div === d) ? 0.30 : 0.10;
+    return Math.max(1, Math.ceil(c * share - 1e-9));
+  }
+  function assigned() { var s = 0; DIVS.forEach(function (d) { s += state.crew[d.id]; }); return s; }
+  function free() { return state.ship.crew - assigned(); }
+  function maxOf(d) { var m = state.ship.crew; DIVS.forEach(function (o) { if (o.id !== d) m -= floorOf(o.id); }); return m; }
+  function share(d) { return 100 * state.crew[d] / state.ship.crew; }
+  function strength(d) { return 0.004 * (share(d) - 25); }
+  function used() { var s = 0; set().lines.forEach(function (l) { if (!l.locked) s += (state.cargo[l.id] || 0) * l.cost; }); return s; }
+  function groupUsed(g) { var s = 0; set().lines.forEach(function (l) { if (!l.locked && l.g === g) s += (state.cargo[l.id] || 0) * l.cost; }); return s; }
+  function n(id) { return state.cargo[id] || 0; }
+
+  function presetCrew() {
+    var c = state.ship.crew, t = {}, out = {}, sum = 0;
+    DIVS.forEach(function (d) { t[d.id] = state.focus.pct[d.id] * c / 100; out[d.id] = Math.max(floorOf(d.id), Math.floor(t[d.id])); sum += out[d.id]; });
+    var guard = 0;
+    while (sum !== c && guard++ < 2000) {
+      var best = null, bv = -1e9;
+      DIVS.forEach(function (d) {
+        var v = sum < c ? t[d.id] - out[d.id] : out[d.id] - t[d.id];
+        if (sum > c && out[d.id] <= floorOf(d.id)) return;
+        if (v > bv) { bv = v; best = d.id; }
+      });
+      if (!best) break;
+      out[best] += sum < c ? 1 : -1; sum += sum < c ? 1 : -1;
+    }
+    state.crew = out;
+  }
+  function presetCargo() {
+    var S = set(), hold = state.ship.hold, order = S.order[state.focus.id];
+    state.cargo = {};
+    S.lines.forEach(function (l) { state.cargo[l.id] = 0; });
+    Object.keys(S.base).forEach(function (k) { state.cargo[k] = S.base[k]; });
+    var added = true, guard = 0;
+    while (added && guard++ < 50) {
+      added = false;
+      for (var i = 0; i < order.length; i++) {
+        var l = line(order[i]);
+        if (!l || l.locked) continue;
+        if (state.cargo[l.id] < l.max && used() + l.cost <= hold) { state.cargo[l.id]++; added = true; }
+      }
+    }
+  }
+  function preset() { presetCrew(); presetCargo(); }
+
+  // ---------------------------------------------------------------- build (once per ship or focus)
+  function buildPick() {
+    var h = '';
+    SHIPS.forEach(function (s) { h += '<button type="button" data-ship="' + s.id + '" aria-pressed="' + (s === state.ship) + '">' + s.name + '<small>' + s.crew + ' crew</small></button>'; });
+    $('shipPick').innerHTML = h;
+  }
+  function buildFoci() {
+    var h = '';
+    FOCI.forEach(function (f) {
+      var c = f.div || 'ship';
+      h += '<button type="button" id="focus-' + f.id + '" data-focus="' + f.id + '" class="' + (f.div ? '' : 'wide') + '" style="--c:var(--c-' + c + ');--t:var(--t-' + c + ')" aria-pressed="' + (f === state.focus) + '"><b>' + f.name + '</b><span>' +
+        (state.ship.suggest === f.id ? '<i>Suggested for this ship.</i> ' : '') + f.line + '</span></button>';
+    });
+    $('foci').innerHTML = h;
+  }
+  function buildCrew() {
+    var h = '', c = state.ship.crew, step = c >= 100 ? 5 : 1;
+    DIVS.forEach(function (d) {
+      h += '<div class="div" style="--c:var(--c-' + d.id + ');--t:var(--t-' + d.id + ')">' +
+        '<div class="hd"><b>' + d.name + '</b><span class="n" id="n-' + d.id + '"></span></div>' +
+        '<div class="who">' + d.who + '</div>' +
+        '<div class="ctl"><button type="button" class="sq" id="dn-' + d.id + '" data-div="' + d.id + '" data-step="' + (-step) + '" aria-label="' + step + ' fewer in ' + d.name + '">−</button>' +
+        '<input type="range" id="crew-' + d.id + '" data-div="' + d.id + '" min="' + floorOf(d.id) + '" max="' + maxOf(d.id) + '" step="1" aria-label="' + d.name + ' crew">' +
+        '<button type="button" class="sq" id="up-' + d.id + '" data-div="' + d.id + '" data-step="' + step + '" aria-label="' + step + ' more in ' + d.name + '">+</button></div>' +
+        '<div class="ft"><span>At least ' + floorOf(d.id) + (state.focus.div === d.id ? ' · your focus' : '') + '</span><span class="pm" id="s-' + d.id + '"></span></div></div>';
+    });
+    $('crewRows').innerHTML = h;
+    var st = '';
+    DIVS.forEach(function (d) { st += '<i id="seg-' + d.id + '" style="--c:var(--c-' + d.id + ')"></i>'; });
+    $('crewStack').innerHTML = st + '<i class="free" id="seg-free"></i>';
+  }
+  function buildCargo() {
+    var S = set(), h = '', st = '';
+    GROUPS.forEach(function (g) {
+      var L = S.lines.filter(function (l) { return l.g === g.id; });
+      if (!L.length) return;
+      h += '<div class="grp" style="--t:var(--t-' + g.id + ')"><div class="gh">' + g.name + '<span id="g-' + g.id + '"></span></div>';
+      L.forEach(function (l) {
+        h += '<div class="line' + (l.locked ? ' lock' : '') + '"><div><div class="nm">' + l.name + '<small>' + (l.cost > 1 ? l.cost + ' containers' : '1 container') + '</small></div><div class="ds">' + l.ds + '</div></div>';
+        if (l.locked) h += '<span class="later">Later</span>';
+        else h += '<div class="stp"><button type="button" class="sq" id="cdn-' + l.id + '" data-line="' + l.id + '" data-step="-1" aria-label="One fewer: ' + l.name + '">−</button><output id="c-' + l.id + '"></output><button type="button" class="sq" id="cup-' + l.id + '" data-line="' + l.id + '" data-step="1" aria-label="One more: ' + l.name + '">+</button></div>';
+        h += '</div>';
+      });
+      h += '</div>';
+      st += '<i id="hseg-' + g.id + '" style="--c:var(--c-' + g.id + ')"></i>';
+    });
+    $('cargoRows').innerHTML = h;
+    $('holdStack').innerHTML = st + '<i class="free" id="hseg-free"></i>';
+  }
+  function build() {
+    var s = state.ship;
+    $('shipImg').src = 'img/' + s.id + '.jpg';
+    $('shipName').textContent = s.name;
+    $('shipMeta').textContent = s.cls + ' · ' + s.crewNote + ' · ' + (s.lands ? 'lands the colony' : 'never lands') + ' · mission: ' + s.mission;
+    var tags = '<span class="tagx k">Crew to assign ' + s.crew + '</span><span class="tagx k">Hold ' + s.hold + ' containers</span><span class="tagx k">Flight speed ×' + s.speed.toFixed(1) + '</span>';
+    s.comes.forEach(function (c) { tags += '<span class="tagx">With the ship: ' + c + '</span>'; });
+    $('shipTags').innerHTML = tags;
+    buildPick(); buildFoci(); buildCrew(); buildCargo();
+    update();
+  }
+
+  // ---------------------------------------------------------------- update (every change)
+  function pct(s) { var v = Math.round(s * 100); return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + '%'; }
+  function num(x) { var r = Math.round(x * 10) / 10; return Math.abs(r - Math.round(r)) < 0.05 ? String(Math.round(r)) : (r < 1 ? (Math.round(x * 100) / 100).toString() : r.toFixed(1)); }
+  function cls(s) { var v = Math.round(s * 100); return v > 0 ? 'up' : v < 0 ? 'dn' : 'eq'; }
+  function flightFactor() { return (1 - strength('eng')) * (1 - 0.02 * n('mass')) * (state.focus.id === 'builder' ? 0.92 : 1); }
+  function studyFactor() { return (1 - strength('sci')) * (state.focus.id === 'scientist' ? 0.75 : 1); }
+  function alongSeconds() { return (state.focus.id === 'combatant' ? 20 : 30) * (1 - strength('def')); }
+  function fxRow(d, f) {
+    var s = strength(d), c = cls(s), v;
+    if (f.kind === 'none') return '<dt>' + f.t + '</dt><dd><small>not built yet</small></dd>';
+    if (f.kind === 'rate') v = pct(s);
+    else if (f.kind === 'less') v = pct(-s);
+    else if (f.kind === 'time' || f.kind === 'dn') v = num(f.base * (1 - s)) + f.u;
+    else if (f.kind === 'more') v = num(f.base * (1 + s)) + f.u;
+    else if (f.kind === 'flight') { v = num(60 * flightFactor()) + ' s'; c = flightFactor() < 0.995 ? 'up' : flightFactor() > 1.005 ? 'dn' : 'eq'; }
+    else if (f.kind === 'study') { v = num(120 * studyFactor()) + ' s'; c = studyFactor() < 0.995 ? 'up' : studyFactor() > 1.005 ? 'dn' : 'eq'; }
+    else if (f.kind === 'along') { v = num(alongSeconds()) + ' s'; c = alongSeconds() < 29.9 ? 'up' : alongSeconds() > 30.1 ? 'dn' : 'eq'; }
+    else if (f.kind === 'sick') { var k = (1 - s) * (1 - 0.08 * n('med')); v = num(300 * k) + ' s'; c = k < 0.995 ? 'up' : k > 1.005 ? 'dn' : 'eq'; }
+    if (c === 'eq' && (f.kind === 'rate' || f.kind === 'less')) v = 'as today';
+    return '<dt>' + f.t + '</dt><dd class="pm ' + c + '">' + v + '</dd>';
+  }
+  function summary() {
+    var s = state.ship, m = mode(), h = '', b = s.bonus || {};
+    h += '<div class="h5">What this gives you</div>';
+    if (m === 'colony') {
+      var dur = 50 * n('mat') + (b.dur || 0), tri = 30 * n('mat'), deu = 25 * n('fuel'), col = 150 + 5 * n('prov') + (b.col || 0), kits = n('kits') + (b.kits || 0);
+      var veh = (2 + n('rover')) + ' survey rovers, ' + (1 + n('crawler')) + (n('crawler') ? ' mining crawlers' : ' mining crawler') + (b.crover ? ', 1 construction rover' : '');
+      h += '<h6>At landing</h6><dl class="kv">' +
+        '<dt>Duranium</dt><dd>' + dur + '</dd><dt>Tritanium</dt><dd>' + tri + '</dd><dt>Deuterium</dt><dd>' + deu + '</dd>' +
+        '<dt>Colonists awake</dt><dd>' + col + '</dd><dt>Spare kits</dt><dd>' + kits + ' <small>of each</small></dd>' +
+        '<div class="full"><span>Vehicles</span><b>' + veh + '</b></div>' +
+        '<dt>Satellites ready</dt><dd>' + n('sat') + '</dd><dt>Scout drones</dt><dd>' + n('drone') + '</dd>' +
+        '<dt>Research banked</dt><dd>' + 20 * n('lab') + ' <small>points</small></dd>' +
+        '<dt>Vehicle hazard damage</dt><dd>' + (n('armour') ? '−' + 5 * n('armour') + '%' : 'as today') + '</dd></dl>';
+    } else {
+      h += '<h6>Aboard</h6><dl class="kv">' +
+        '<dt>Satellites ready to place</dt><dd>' + n('sat') + '</dd><dt>Scans with no recharge wait</dt><dd>' + n('probe') + '</dd>' +
+        '<dt>Listening posts ready</dt><dd>' + n('post') + '</dd>' +
+        '<dt>Flights, from reaction mass</dt><dd>' + (n('mass') ? '−' + 2 * n('mass') + '%' : 'as today') + '</dd>' +
+        '<dt>Culture-shock chance</dt><dd>' + (n('gifts') ? '−' + 3 * n('gifts') + ' <small>points</small>' : 'as today') + '</dd></dl>';
+    }
+    h += '<h6>During play</h6><dl class="kv">';
+    DIVS.forEach(function (d) {
+      var st = strength(d.id);
+      h += '<div class="dv" style="--t:var(--t-' + d.id + ')"><span>' + d.name + ' ' + Math.round(share(d.id)) + '%</span><span class="pm ' + cls(st) + '">' + (Math.round(st * 100) === 0 ? 'as today' : pct(st)) + '</span></div>';
+      FX[d.id][m].forEach(function (f) { h += fxRow(d.id, f); });
+    });
+    h += '</dl>';
+    h += '<h6>Notes for this ship</h6><ul class="hints">' + hints().join('') + '</ul>';
+    $('summary').innerHTML = h;
+  }
+  function hints() {
+    var s = state.ship, out = [], f = free(), left = s.hold - used();
+    if (f > 0) out.push('<li class="warn">' + f + ' crew still unassigned. They do nothing until they have a division.</li>');
+    if (left > 0) out.push('<li class="warn">' + left + ' ' + (left === 1 ? 'container is' : 'containers are') + ' empty.</li>');
+    if (s.lands) {
+      var dur = 50 * n('mat') + (s.bonus.dur || 0);
+      out.push('<li>The first four buildings (Storage Container, Ore Refinery, Mine, Fusion Reactor) cost 340 duranium. You land with ' + dur + '.</li>');
+      out.push('<li>The fuel covers ' + Math.floor(25 * n('fuel') / 5) + ' drop-ship trips at 1 g, if the reactor burns none of it.</li>');
+      if (n('drone')) out.push('<li>The drones wait in storage until the Wings mission opens the Drone Pad.</li>');
+    } else if (s.id === 'tereshkova') {
+      out.push(n('sat') >= 2 ? '<li>You carry the two satellites Eyes Everywhere asks for.</li>' : '<li class="warn">Eyes Everywhere asks for satellites at two bodies. You carry ' + n('sat') + '. Each one short costs 60 duranium + 30 tritanium from stock.</li>');
+      out.push('<li>Charting a body takes a ' + num(15 * (1 - strength('exp'))) + ' s sweep with this crew.</li>');
+    } else if (s.id === 'armstrong') {
+      out.push('<li>Every run is timed. A 60 s flight takes ' + num(60 * flightFactor()) + ' s with this fit-out.</li>');
+      out.push('<li>Six people: each one moved is a sixth of the ship.</li>');
+    } else if (s.id === 'bastion') {
+      out.push('<li>Traffic Check and Escort need ' + num(alongSeconds()) + ' s alongside a ship with this crew.</li>');
+      out.push('<li class="no">Most of what Defense is for waits on combat.</li>');
+    } else if (s.id === 'meridian') {
+      out.push(n('post') >= 1 ? '<li>You carry a post for the Listening Post mission.</li>' : '<li class="warn">Listening Post needs a post. You carry none: it costs 80 duranium + 40 tritanium from stock.</li>');
+      out.push('<li>Studying the civilization from orbit takes ' + num(120 * studyFactor()) + ' s.</li>');
+    }
+    return out;
+  }
+  function update() {
+    var s = state.ship, c = s.crew, f = free(), m = mode(), S = set();
+    var fc = state.focus.div || 'ship';
+    $('helm').style.setProperty('--fc', 'var(--c-' + fc + ')');
+    $('endcap').textContent = state.focus.name;
+    $('focusRule').textContent = state.focus.div ? 'Its division ≥ 30%' : 'No minimum but 10%';
+    var pk = $('perk');
+    pk.style.setProperty('--c', 'var(--c-' + fc + ')'); pk.style.setProperty('--t', 'var(--t-' + fc + ')');
+    pk.innerHTML = state.focus.perk ? '<b>' + state.focus.name + ' perk</b><span>' + state.focus.perk[m] + '</span>' : '<b>No perk</b><span>An even split plays exactly like today’s game. You may still move people and cargo.</span>';
+    FOCI.forEach(function (x) { $('focus-' + x.id).setAttribute('aria-pressed', String(x === state.focus)); });
+
+    $('crewTotal').textContent = (c - f) + ' of ' + c + ' assigned';
+    $('crewTotal').className = f > 0 ? 'short' : '';
+    DIVS.forEach(function (d) {
+      var v = state.crew[d.id], sh = share(d.id), st = strength(d.id), el = $('crew-' + d.id);
+      if (+el.value !== v) el.value = v;
+      el.style.setProperty('--p', (100 * (v - (+el.min)) / Math.max(1, (+el.max) - (+el.min))) + '%');
+      $('n-' + d.id).textContent = v + ' · ' + Math.round(sh) + '%';
+      var se = $('s-' + d.id); se.textContent = Math.round(st * 100) === 0 ? 'as today' : pct(st); se.className = 'pm ' + cls(st);
+      $('dn-' + d.id).disabled = v <= floorOf(d.id);
+      $('up-' + d.id).disabled = f <= 0 || v >= maxOf(d.id);
+      $('seg-' + d.id).style.width = sh + '%';
+    });
+    $('seg-free').style.width = (100 * f / c) + '%';
+    if (!flashing) { $('crewNote').className = 'hnote'; $('crewNote').textContent = f > 0 ? f + ' unassigned. Give them a division before launch.' : 'Everyone has a division. To raise one, lower another first.'; }
+
+    var u = used(), left = s.hold - u;
+    $('holdTotal').textContent = u + ' of ' + s.hold + ' containers';
+    $('holdTotal').className = left > 0 ? 'short' : '';
+    GROUPS.forEach(function (g) {
+      var el = $('g-' + g.id); if (!el) return;
+      var gu = groupUsed(g.id), fl = S.floors[g.id];
+      el.textContent = gu + (fl ? ' · at least ' + fl : ' · no minimum');
+      $('hseg-' + g.id).style.width = (100 * gu / s.hold) + '%';
+    });
+    $('hseg-free').style.width = (100 * left / s.hold) + '%';
+    S.lines.forEach(function (l) {
+      if (l.locked) return;
+      var v = n(l.id);
+      $('c-' + l.id).textContent = v;
+      $('cdn-' + l.id).disabled = v <= l.min || groupUsed(l.g) - l.cost < S.floors[l.g];
+      $('cup-' + l.id).disabled = v >= l.max || u + l.cost > s.hold;
+    });
+    $('cargoNote').textContent = left > 0 ? left + (left === 1 ? ' container' : ' containers') + ' free.' : 'The hold is full. To add something, take something out.';
+
+    $('btnGo').disabled = f > 0;
+    summary();
+  }
+  function say(t) { $('say').textContent = t; }
+  function flash(t) {
+    var el = $('crewNote'); el.textContent = t; el.className = 'hnote flash'; flashing = true;
+    clearTimeout(flashTimer); flashTimer = setTimeout(function () { flashing = false; update(); }, 2200);
+  }
+  function setCrew(d, v) {
+    var cur = state.crew[d], cap = cur + free();
+    v = Math.max(floorOf(d), Math.min(v, maxOf(d)));
+    var blocked = v > cap;
+    if (blocked) v = cap; else flashing = false;
+    state.crew[d] = v; say(''); update();
+    if (blocked) flash(cap > cur ? 'Only ' + (cap - cur) + ' unassigned. Lower another division for more.' : 'Nobody is unassigned. Lower another division first.');
+  }
+
+  // ---------------------------------------------------------------- events
+  $('shipPick').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-ship]'); if (!b) return;
+    state.ship = SHIPS.filter(function (s) { return s.id === b.dataset.ship; })[0];
+    state.focus = FOCI.filter(function (f) { return f.id === state.ship.suggest; })[0];
+    flashing = false; preset(); say(''); build();
+  });
+  $('foci').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-focus]'); if (!b) return;
+    state.focus = FOCI.filter(function (f) { return f.id === b.dataset.focus; })[0];
+    flashing = false; preset(); buildCrew(); say(state.focus.name + ' preset loaded.'); update();
+  });
+  $('crewRows').addEventListener('input', function (e) {
+    var el = e.target; if (!el.dataset || !el.dataset.div || el.type !== 'range') return;
+    setCrew(el.dataset.div, +el.value);
+  });
+  $('crewRows').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-div]'); if (!b) return;
+    setCrew(b.dataset.div, state.crew[b.dataset.div] + (+b.dataset.step));
+  });
+  $('cargoRows').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-line]'); if (!b || b.disabled) return;
+    var l = line(b.dataset.line), st = +b.dataset.step, v = n(l.id) + st, S = set();
+    if (v < l.min || v > l.max) return;
+    if (st > 0 && used() + l.cost > state.ship.hold) return;
+    if (st < 0 && groupUsed(l.g) - l.cost < S.floors[l.g]) return;
+    state.cargo[l.id] = v; say(''); update();
+  });
+  $('btnReset').addEventListener('click', function () { flashing = false; preset(); say(state.focus.name + ' preset loaded.'); update(); });
+  $('btnBack').addEventListener('click', function () { say('In the game this goes back to Choose Your Ship.'); });
+  $('btnGo').addEventListener('click', function () { say('Fit-out set. In the game the system pick comes next.'); });
+
+  preset(); build();
+})();
+</script>
