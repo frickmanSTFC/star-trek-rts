@@ -98,7 +98,7 @@ public class ShipPickTests
     [InlineData("envoy.json", "\"stage\": \"studied\"", "\"stage\": \"befriended\"", "stage 'befriended'")]
     [InlineData("envoy.json", "\"title\": \"Find the civilization\"", "\"title\": \"Find {world}\"", "can't have placeholders")]
     [InlineData("priority_run.json", "{ \"load_cargo\": { \"id\": \"pouch\", \"label\": \"Sealed pouch\", \"to\": \"moon\" } }", "{ \"load_cargo\": { \"id\": \"pouch\", \"label\": \"Sealed pouch\" } }", "needs a body")]
-    [InlineData("watch_station.json", "{ \"marker\": { \"at\": \"freighter\", \"label\": \"Inspect\" } } ],\n          \"objectives\": [\n            { \"id\": \"inspect\", \"text\": \"Stay with {freighter} for 30 s\", \"cond\": { \"with_ship\": { \"ship\": \"freighter\"",
+    [InlineData("watch_station.json", "{ \"marker\": { \"at\": \"freighter\", \"label\": \"Inspect\" } } ],\n          \"objectives\": [\n            { \"id\": \"inspect\", \"text\": \"Stay with {freighter} until the inspection is done\", \"cond\": { \"with_ship\": { \"ship\": \"freighter\"",
         "{ \"marker\": { \"at\": \"freighter\", \"label\": \"Inspect\" } } ],\n          \"objectives\": [\n            { \"id\": \"inspect\", \"text\": \"Stay with {freighter} for 30 s\", \"cond\": { \"ship_at\": { \"body\": \"freighter\"", "is not a body")]
     public void BadSpaceMissionDataIsReported(string file, string from, string to, string problem)
     {
