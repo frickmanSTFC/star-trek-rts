@@ -238,6 +238,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         SetupParts(); // inventory screen, fabricator queue / workshop / inventory hooks (PlanetDriver.Parts.cs)
         SetupCiv(); // civilization dossier, Standing chip hooks (PlanetDriver.Civ.cs)
         SetupMissions(); // tracker, comms card, mission log; a campaign turns missions on before tick 0 (PlanetDriver.Missions.cs)
+        SetupPing(); // Z / PING: find your vehicles, and the vehicle list (PlanetDriver.Ping.cs)
         SetupSky(); // day/night, seasons and weather from Climate (PlanetDriver.Sky.cs); before EnterOrbit changes the environment
         SetupGraphics(); // visual pass: Classic values captured, F7 compare, frame-time readout (PlanetDriver.Graphics.cs); before EnterOrbit
 
@@ -1055,6 +1056,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         UpdateHud();
         UpdateTutorial(delta); // tutorial cards follow the game state (PlanetDriver.Tutorial.cs)
         UpdateMissionUi(delta); // drones, relays, mission tracker / comms / log (PlanetDriver.Missions.cs)
+        UpdatePing((float)delta); // the vehicle ping's beacons, arrows and list (PlanetDriver.Ping.cs)
         UpdateSelectionSound(); // the hum of what the player just selected (PlanetDriver.Sounds.cs)
         UpdateJackUi(delta); // PlanetDriver.Jack.cs: the Jack Skellington raid's alert, countdown and feed lines
     }
@@ -1287,6 +1289,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             EnterOrbit();
             return;
         }
+        if (PingInput(@event)) return; // Z: ping your vehicles; twice quickly pins the vehicle list (PlanetDriver.Ping.cs)
         if (DroneInput(@event)) return; // the drone launch pick, G coverage, R / L for drones and pads (PlanetDriver.Drones.cs)
         switch (@event)
         {
@@ -1758,7 +1761,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void UpdateHover()
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse) || MissionsBlockMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse) || MissionsBlockMouse(mouse) || PingBlocksMouse(mouse);
         _hoverTile = -1;
         _view.HoveredUnit = 0;
         if (!_mouseOverUi)
@@ -2059,7 +2062,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (SelectedLab() != null) return $"1–{_data.Techs.Count} a tech's card (again: research it)  ·  M maintain  ·  P pause  ·  X salvage  ·  Esc back  ·  F1 controls";
         if (_selectedStructure != 0) return $"U upgrade  ·  M maintain  ·  {jury}P pause  ·  X cancel / salvage  ·  Esc back  ·  F1 controls";
         if (_view.SelectedUnits.Count > 0) return $"Right-click drive / mine  ·  F unfurl / pack up / repair  ·  R repair  ·  T change tyre  ·  {jury}V wipers  ·  L lights  ·  Esc back  ·  F1 controls";
-        return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  {(WorkshopAvailable() ? "K workshop  ·  " : "")}I inventory  ·  {(CivWorlds().Count > 0 ? "C civilizations  ·  " : "")}Tab next base  ·  H home  ·  F1 controls";
+        return $"B build  ·  1–{Mathf.Min(9, MenuBuildings().Count)} building card (Shift: place at once)  ·  U upgrade base  ·  {(WorkshopAvailable() ? "K workshop  ·  " : "")}I inventory  ·  Z find vehicles  ·  {(CivWorlds().Count > 0 ? "C civilizations  ·  " : "")}Tab next base  ·  H home  ·  F1 controls";
     }
 
     /// <summary>Top-bar research chip: the active tech's progress, or what to do next.</summary>
@@ -2488,6 +2491,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     {
         _focusTarget = _view.TileCentre(tile) with { Y = 0 };
         _distanceTarget = distance;
+        TurnToShow(_focusTarget); // at a side edge or corner the pan limits can leave it off screen: a quarter turn shows it (PlanetDriver.ViewClamp.cs)
     }
 
     private void MoveCamera(float delta)
@@ -2512,11 +2516,8 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (_environment != null) _environment.FogDensity = HazeDepth / Mathf.Max(60f, _distance); // weather: PlanetDriver.Sky.cs WeatherHaze
         if (_sun != null) _sun.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 2.2f, 400f, 6000f);
 
-        // Keep the focus over the map.
-        var g = Surface.Map.Grid;
-        _focusTarget.X = Mathf.Clamp(_focusTarget.X, 0, (g.Width - 0.5f) * PlanetView.HexWidth);
-        _focusTarget.Z = Mathf.Clamp(_focusTarget.Z, 0, (g.Height - 1) * 0.866f * PlanetView.HexWidth);
         _yaw = Mathf.Lerp(_yaw, _yawSteps * Mathf.Pi / 2f, 1f - Mathf.Exp(-8f * delta));
+        ClampView(); // the landscape's edge never comes on screen: zoom cap + pan limits (PlanetDriver.ViewClamp.cs)
         UpdateCamera();
     }
 
@@ -2529,8 +2530,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var look = _focus with { Y = _lookY };
 
         // Strategy pitch from high up, flattening toward the ground as the camera comes in.
-        var t = Mathf.SmoothStep(MinZoom, TiltFrom, _distance);
-        var dir = new Vector3(0, 0.34f, 0.94f).Lerp(new Vector3(0, 0.82f, 0.57f), t).Normalized();
+        var dir = TiltAt(_distance); // PlanetDriver.ViewClamp.cs measures the view with the same tilt
         var eye = look + dir.Rotated(Vector3.Up, _yaw) * _distance;
 
         // Never dip into a hill between the camera and the focus.

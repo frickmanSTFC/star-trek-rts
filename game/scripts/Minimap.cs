@@ -22,6 +22,9 @@ public partial class Minimap : Control
     /// <summary>Our vehicles carrying a pathogen (civilizations phase 2; the driver fills it once a second).</summary>
     public IReadOnlySet<int> Carriers { get; set; } = new HashSet<int>();
 
+    /// <summary>Seconds since the vehicle ping began (PlanetDriver.Ping.cs); negative = no ping. Our dots flash while it runs.</summary>
+    public float PingAge { get; set; } = -1f;
+
     private static readonly Color RuinColour = new(0.784f, 0.4f, 0.29f); // HelmScreen.Rust
     private static readonly Color CarrierColour = new(0.75f, 0.9f, 0.35f);
 
@@ -146,6 +149,13 @@ public partial class Minimap : Control
             if (u.Owner != _localPlayer) continue;
             var at = ToMap(_view.UnitPos(u));
             DrawCircle(at, 2.5f, Colors.White);
+            if (PingAge >= 0f)
+            {
+                // The vehicle ping: a ring spreading from the dot, and the dot in the ping's colour.
+                var p = PingAge * 1.4f % 1f;
+                DrawArc(at, 3f + 9f * p, 0f, Mathf.Tau, 16, new Color(PingOverlay.PingColour, 1f - p), 1.5f);
+                DrawCircle(at, 3.5f, PingOverlay.PingColour);
+            }
             if (Carriers.Contains(u.Id)) DrawArc(at, 5f, 0f, Mathf.Tau, 16, CarrierColour, 1.5f); // carrying a pathogen
         }
 
