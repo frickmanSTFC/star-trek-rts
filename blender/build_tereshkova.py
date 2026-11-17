@@ -841,6 +841,13 @@ SHOTS = {
     'stern':   dict(tgt=(-96, 0, 0), cam=(-0.80, -0.52, 0.30), dist=330, lens=60, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(10, -25), alt=9500),
     'science': dict(tgt=(118, 0, 2), cam=(0.55, 0.70, 0.46), dist=120, lens=50, roll=-4, sun=(-0.45, 0.62, 0.64), eoff=(8, -25), alt=9500, elon=165),
     'side':    dict(tgt=(0, 0, 0), cam=(0.0, -1.0, 0.06), dist=960, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
+    'taft':    dict(tgt=(-125, 0, 0), cam=(-0.55, -0.72, 0.42), dist=95, lens=45, roll=0, sun=(-0.50, 0.55, 0.66), eoff=None, alt=0),
+    'ttank':   dict(tgt=(-50, 0, 0), cam=(-0.45, -0.75, 0.48), dist=90, lens=45, roll=0, sun=(-0.50, 0.55, 0.66), eoff=None, alt=0),
+    'thub':    dict(tgt=(12, 0, 2), cam=(0.6, -0.65, 0.45), dist=80, lens=40, roll=0, sun=(0.50, 0.55, 0.66), eoff=None, alt=0),
+    'tfwd':    dict(tgt=(78, 0, 0), cam=(0.35, -0.75, 0.55), dist=130, lens=45, roll=0, sun=(0.50, 0.55, 0.66), eoff=None, alt=0),
+    'tprobe':  dict(tgt=(106, 0, 0), cam=(0.30, 0.80, 0.50), dist=60, lens=40, roll=0, sun=(-0.40, 0.55, 0.70), eoff=None, alt=0),
+    'tbow':    dict(tgt=(132, 0, 3), cam=(0.55, -0.60, 0.55), dist=60, lens=40, roll=0, sun=(0.50, 0.55, 0.66), eoff=None, alt=0),
+    'tbow2':   dict(tgt=(132, 0, 0), cam=(0.50, 0.70, -0.45), dist=62, lens=40, roll=0, sun=(-0.40, 0.2, 0.80), eoff=None, alt=0),
     'top':     dict(tgt=(0, 0, 0), cam=(0.0, -0.05, 1.0), dist=960, lens=100, roll=0, sun=(0.40, 0.50, 0.75), eoff=None, alt=0),
 }
 
