@@ -12,10 +12,10 @@ What the rebuild changed against the old low-detail model is listed in blender/p
 """
 import sys, os, math
 import numpy as np
-from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import build_cochrane as C
+import build_cochrane as C          # imports bpy, which must come before mathutils
+from mathutils import Matrix, Vector
 import cochrane_kit as K
 from build_cochrane import k, on, P, R, rotX, rotY, rotZ, move, orient, TAU, PI
 
@@ -252,7 +252,6 @@ def build_aft(drive):
         k.lathe(C.rrect(x - 0.18, x + 0.18, 2.55, 2.95, 0.05, 0.05, 1), 'dark', seg=24, closed=True)
     for (y, z) in ((4, 4), (-4, 4), (-4, -4), (4, -4)):       # round-to-square adapter onto the truss
         k.tube((-69, y, z), (-74.5, y * 0.46, z * 0.46), 0.2, 'truss', seg=8)
-    k.tube((-69, 0, 1.6), (-114.4, 0, 2.9), 0.0, 'grey')
     x0, x1 = H['x0'], H['x0'] + H['len']
     root = 3.9
 
@@ -379,7 +378,7 @@ def build_mid():
     band(-14.0, -12.8, 9.0, 'blue', h=0.06, seg=80)
     for i in range(20):                 # the zero-g labs' ports
         a = (i + 0.5) * TAU / 20
-        if abs(a - PI / 2) > 0.35:
+        if abs(a - PI / 2) > 0.35 and all(abs(a - pa - 0.55) > 0.22 for pa in (0.35, 1.95, 3.5, 5.1)):
             window(12.6, a, 9.0, 0.8, 0.8, 0.5)
     for s in (1, -1):
         side_decal('name', NAME, -16.4, 8.6, 1.5, 9.04, s, zc=1.2)
@@ -427,7 +426,6 @@ def build_mid():
     greeb(35.2, 36.8, 7.0, 8, hmax=0.4)
     for a in (0.6, 2.5, 3.7, 5.4):
         C.hrail(23.4, 28.0, 7.0, a)
-        C.hrail(32.6, 36.8, 7.0, a + 0.15)
     C.hatch(26.2, 3.9, 7.0, 0.7)
     with k.xf(orient((34.5, 0, 6.8), (0, 0, 1)) @ Matrix.Scale(0.62, 4)):
         C.dock_port(False)
@@ -439,7 +437,7 @@ def build_mid():
     for a in (0.3, 1.2, 3.5, 5.1):      # star trackers
         with k.xf(on(38.2, a, 6.2) @ orient((0, 0, 0), (0.5, 1, 0))):
             k.can(0, 0.8, 0.25, 'dark', seg=10)
-    C.floodlight((30, -3.0, 7.9), (34.5, 0, 9.5), energy=2500, spot=1.2)
+    C.floodlight((30, -2.8, 7.25), (34.5, 0, 9.5), energy=2500, spot=1.2)
 
 
 # =====================================================================================
@@ -507,6 +505,7 @@ def antennas():
     Hg, Xb = T['hga'], T['xband']
     # deep-space high-gain dish on a lattice mast with a two-axis gimbal
     C.girder((Hg['o'][0], 0, 4.0), (Hg['o'][0], 0, 19.2), 1.3, bay=1.3, rc=0.09, rd=0.045)
+    k.tube((Hg['o'][0], -4, 4), (Hg['o'][0], 4, 4), 0.13, 'truss', seg=6)
     for (y, z) in ((4, 4), (-4, 4)):
         k.tube((Hg['o'][0] - 8.5, y, z), (Hg['o'][0], y * 0.16, 12.5), 0.07, 'truss', seg=5)
         k.tube((Hg['o'][0] + 8.5, y, z), (Hg['o'][0], y * 0.16, 12.5), 0.07, 'truss', seg=5)
@@ -563,8 +562,8 @@ def sample_lab():
             k.lathe(C.rrect(x - 0.3, x + 0.3, Sl['r'], Sl['r'] + 0.24, 0.05, 0.05, 1), 'grey', seg=40, closed=True)
     for x in (83.0, 93.0):
         for s in (1, -1):
-            k.tube((x, s * 4, 4), (x, s * 2.6, Sl['z'] - 2.2), 0.14, 'truss', seg=6)
-            k.tube((x + (4 if x < 88 else -4), s * 4, 4), (x, s * 2.6, Sl['z'] - 2.2), 0.08, 'truss', seg=5)
+            k.tube((x, s * 4, 4), (x, s * 2.5, Sl['z'] - 2.1), 0.14, 'truss', seg=6)
+            k.tube((x + (4 if x < 88 else -4), s * 4, 4), (x, s * 2.5, Sl['z'] - 2.1), 0.08, 'truss', seg=5)
     k.pipe([(86, 0.6, Sl['z'] - Sl['r']), (86, 0.6, 4.4), (86, 1.6, 1.9)], 0.12, 'silver', seg=6)
 
 
@@ -687,12 +686,14 @@ def bow():
         band(x - 0.14, x + 0.14, r, 'grey', h=0.18)
     band(120.0, 121.2, r, 'blue', h=0.06)
     greeb(121.9, 126.2, r, 14, a0=-1.2, span=3.4, hmax=0.4)
-    greeb(134.6, 144.6, r, 26, a0=2.2, span=4.6, hmax=0.4)
-    for a in (0.9, 2.3, 4.0, 5.3):
+    greeb(134.6, 144.6, r, 22, a0=3.6, span=2.4, hmax=0.4)
+    greeb(134.6, 140.4, r, 8, a0=1.0, span=1.0, hmax=0.4)
+    for a in (0.9, 4.0, 5.3):
         C.hrail(122, 144.6, r, a)
+    C.hrail(134.6, 144.6, r, 2.0)
     C.hatch(124, 5.6, r, 0.7)
-    C.hatch(143, 0.5, r, 0.6)
-    for a in (0.45, 0.75, 2.4, 2.7, 3.6, 3.9):
+    C.hatch(140.5, 5.75, r, 0.6)
+    for a in (0.45, 0.75, 2.4, 2.7, 3.45, 3.75):
         window(142.6, a, r, 0.7, 0.7, 0.6)
     for s in (1, -1):
         side_decal('breg', REG, 137.2, 5.6, 1.5, r + 0.04, s, zc=2.3)
@@ -700,7 +701,7 @@ def bow():
     sr = Sc['D'] / 2 + 0.4
     d = Vector(Sc['dir']).normalized()
     piv = Vector(Sc['o']) + d * 5.5
-    k.box((130, 0, r + 0.45), (6.0, 4.6, 0.9), 'grey', bevel=0.12)
+    k.box((130, 0, r + 0.2), (6.0, 4.6, 1.4), 'grey', bevel=0.12)
     C.zcan(r + 0.9, r + 1.55, 2.5, 'grey', x=piv.x, seg=32)
     C.zcan(r + 1.55, r + 1.75, 2.75, 'dark', x=piv.x, seg=32, ch=0.05)
     for s in (1, -1):

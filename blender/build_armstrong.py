@@ -18,9 +18,9 @@ What this rebuild changed against the first model (the reasons are in blender/pr
 import sys, os, math
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from mathutils import Matrix, Vector
-import build_cochrane as C
+import build_cochrane as C          # imports bpy first; mathutils only loads after it
 import cochrane_kit as K
+from mathutils import Matrix, Vector
 from build_cochrane import k, on, P, R, rotX, rotY, rotZ, move, orient, TAU, PI
 
 NAME, REG = 'ARMSTRONG', 'UE-19'
@@ -306,6 +306,7 @@ def build_aft(drive):
     k.lathe([(-40.0, cr - 0.2), (-39.65, 5.6), (-38.95, 7.4), (-38.1, 9.7), (-37.75, 10.6), (-37.55, RSH)], 'tungsten', seg=S(96), sharp=25)
     k.lathe([(-37.55, RSH), (-37.15, RSH), (-36.95, RSH - 0.2), (-36.95, 2.2)], 'white', seg=S(96), sharp=40)
     k.torus(-37.35, RSH, 0.2, 'grey', seg=S(96), tseg=8)
+    k.lathe([(-37.1, 2.3), (-37.1, 0.3)], 'dark', seg=S(32))
     for rr in (5.2, 8.2):
         k.lathe(C.rrect(-36.97, -36.8, rr - 0.12, rr + 0.12, 0.03, 0.03, 1), 'grey', seg=S(64), closed=True)
     for i in range(24):
@@ -448,8 +449,8 @@ def build_mid():
     k.lathe(C.rrect(xb - 4.4, xb - 3.2, tr + 0.13, tr + 0.165, 0.01, 0.01, 1), 'blue', seg=S(96), closed=True)
     # lettering, port and starboard
     for a in (0.0, PI):
-        hull_decal('arm_name', NAME, 19.0, tr + 0.16, a + (0.09 if a == 0 else -0.09), 2.3)
-        hull_decal('arm_reg', REG + '   UNITED EARTH', 19.0, tr + 0.16, a - (0.2 if a == 0 else -0.2), 0.85)
+        hull_decal('arm_name', NAME, 19.0, tr + 0.16, a + (0.1 if a == 0 else -0.1), 3.4)
+        hull_decal('arm_reg', REG + '   UNITED EARTH', 19.0, tr + 0.16, a - (0.27 if a == 0 else -0.27), 1.3)
     # services along the barrel: vent and fill lines, cable tray, rails, fill panel
     for a, rad, mat in ((0.62, 0.11, 'silver'), (0.7, 0.07, 'gold'), (PI + 0.62, 0.11, 'gold'), (PI + 0.71, 0.06, 'white_s')):
         C.axial_pipe(xa - 0.5, xb + 0.5, tr + 0.12, a, rad, mat, clamp=2.5)
@@ -639,8 +640,6 @@ def build_pod(b, label):
         k.box((0, 0.2, 0), (0.5, 0.4, 0.6), 'white_s', bevel=0.03)          # tether power and data junction
     k.tube((u(7.6), 0.3, -1.3), (u(9.2), 0.3, -1.5), 0.02, 'grey', seg=4)
     k.box((u(7.86), 0, 0), (0.16, 0.5, 0.5), 'navW')
-    with k.xf(on(u(2.95), 0.0, PR + 0.02)):
-        pass
     w = 0.62 * text_aspect(label) / (PR + 0.03)
     C.arc_decal('pod_' + label[-1].lower(), label, u(3.35), u(2.73), PR + 0.03, w / 2, -w / 2, seg=10)
     C.arc_decal('pod_' + label[-1].lower(), label, u(3.35), u(2.73), PR + 0.03, PI + w / 2, PI - w / 2, seg=10)
@@ -742,7 +741,7 @@ def build_fwd():
             with k.xf(on(54.6, a + sa * da * 0.5, r + 0.12)):
                 k.box((0, 0.04, 0), (0.3, 0.1, 0.5), 'dark')
                 k.box((2.6, 0.04, 0), (0.3, 0.1, 0.5), 'dark')
-        hull_decal('arm_bay', 'PRIORITY CARGO', 55.9, r + 0.13, a + (0.2 if a == 0 else -0.2), 0.42, seg=3)
+        hull_decal('arm_bay', 'PRIORITY CARGO', 55.9, r + 0.13, a + (0.2 if a == 0 else -0.2), 0.8, seg=3)
     # storm shelter: the flight deck's thick-walled refuge, a water jacket outside the hull
     k.lathe(C.rrect(59.9, 62.6, r - 0.02, r + 0.16, 0.06, 0.06, 2), 'white_s', seg=S(64), closed=True)
     k.lathe(C.rrect(59.05, 59.55, r - 0.02, r + 0.04, 0.01, 0.01, 1), 'blue', seg=S(64), closed=True)
@@ -822,7 +821,7 @@ def build_fwd():
         C.LIGHTS.append(('POINT', (63.8, s * 6.5, 0), None, 160, (1, 0.05, 0.03) if s > 0 else (0.05, 1, 0.2), 0))
     for q in range(4):
         quad_on_stalk(61.25, TAU / 8 + q * TAU / 4, r + 0.14, 6.0, sc=0.4)
-    small_hatch(60.0 - 0.9, PI / 2 + 1.05, r, 0.5)
+    small_hatch(63.75, 3.6, r, 0.5)
     for a in (0.62, 2.52, 3.76, 5.66):
         C.hrail(53.6, 58.3, r, a)
     for a in (1.2, 1.95, 4.3, 5.1):
