@@ -51,11 +51,20 @@ public static class MatchSetup
     public static Simulation CreateSystemGame(GameData data, ulong seed, string faction = "federation", string? homeBody = null)
         => CreateSystemGame(data, seed, faction, homeBody, null);
 
-    /// <summary>As the 5-argument game, with the player's fit-out (docs/fit-out-contract.md). Null = no fit-out = exactly the
-    /// 5-argument game. CONTRACT STUB: the SIM agent applies it (a fit-out that fails FitOutRules.Problem is replaced by the
-    /// ship's suggested preset).</summary>
+    /// <summary>As the 5-argument game, with the player's fit-out (docs/fit-out-contract.md; data/missions/fit_out.json).
+    /// Null = no fit-out = exactly the 5-argument game, and so is a fit-out for a ship the data doesn't fit out (the four
+    /// that never land) or with no ship at all. A fit-out that fails <see cref="FitOutRules.Problem"/> is replaced by the
+    /// ship's suggested preset. With one: the landing stock's replaced resources (duranium, tritanium, deuterium) come from
+    /// the cargo instead of the landing's start stock, the cargo's other stock is added, its research is banked toward the
+    /// first tech, its satellites launch free, its vehicles land with the colony (PlanetSurface.Touchdown), and
+    /// <see cref="Simulation.FitOutFactor"/> moves the levers; the ship's own start bonus and units are added as always.</summary>
     public static Simulation CreateSystemGame(GameData data, ulong seed, string faction, string? homeBody, string? shipId, FitOut? fitOut)
-        => CreateSystemGame(data, seed, faction, homeBody, shipId);
+    {
+        if (fitOut == null || shipId == null || data.FitOut?.Ship(shipId) is not { } fitted || data.ShipChoice(shipId) is not { Colonizes: true })
+            return CreateSystemGame(data, seed, faction, homeBody, shipId);
+        if (FitOutRules.Problem(data, shipId, fitOut) != null) fitOut = FitOutRules.Preset(data, shipId, fitted.Suggest);
+        return CreatePickedGame(data, seed, faction, homeBody, shipId, fitOut);
+    }
 
     /// <summary>
     /// A system game with the campaign's ship pick (docs/ship-pick-contract.md): <paramref name="shipId"/> is a
@@ -69,6 +78,11 @@ public static class MatchSetup
     public static Simulation CreateSystemGame(GameData data, ulong seed, string faction, string? homeBody, string? shipId)
     {
         if (shipId == null) return CreateSystemGameCore(data, seed, faction, homeBody);
+        return CreatePickedGame(data, seed, faction, homeBody, shipId, null);
+    }
+
+    private static Simulation CreatePickedGame(GameData data, ulong seed, string faction, string? homeBody, string shipId, FitOut? fitOut)
+    {
         var ship = data.ShipChoice(shipId) ?? throw new ArgumentException($"No ship '{shipId}' to pick.");
         var system = SystemGenerator.Generate(data, seed);
         var home = HomeBody(data, system, ship.Colonizes ? homeBody : null);
@@ -82,9 +96,22 @@ public static class MatchSetup
         var state = new StarSystemState { Star = system.Star, Bodies = system.Bodies, SurfaceBody = home.Id, Seed = seed, Generated = system };
         sim.LoadSystem(state);
         sim.SetShipChoice(0, ship.Id);
+        if (fitOut != null) sim.SetFitOut(0, ship.Id, fitOut);
         if (start != null) state.SetStartBody(0, start);
         var player = sim.AddPlayer(faction);
         sim.System!.SpawnTraffic(data);
+        if (fitOut != null && data.FitOut is { } rules)
+        {
+            // The hold instead of the landing's own metal and fuel; everything else in the start stock stays.
+            foreach (var res in rules.ReplacesStartStock)
+            {
+                var index = data.Resource(res).Index;
+                player.Stock.Add(index, -player.Stock[index]);
+            }
+            foreach (var s in FitOutRules.CargoStock(data, fitOut)) player.Stock.Add(data.Resource(s.Resource).Index, Fix64.FromInt(s.Amount));
+            var research = FitOutRules.ResearchBanked(data, fitOut);
+            if (research > 0) sim.Surface!.BankResearch(player.Slot, Fix64.FromInt(research)); // waits for the first tech (Excavation.cs)
+        }
         if (ship.Colonizes)
             foreach (var (res, amount) in ship.StartBonus) // into the landing stock (StartUnits land at touchdown: PlanetSurface)
                 player.Stock.Add(data.Resource(res).Index, Fix64.FromInt(amount));

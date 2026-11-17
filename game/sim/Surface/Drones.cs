@@ -141,7 +141,8 @@ public sealed partial class PlanetSurface
 
     private static int DroneTicks(Fix64 seconds) => System.Math.Max(0, (seconds * Simulation.TickRate).FloorToInt());
 
-    private static Fix64 DrainPerTick(DroneDef def) => Fix64.One / (def.BatterySeconds * Simulation.TickRate);
+    /// <summary>Battery used a tick in the air (the owner's fit-out stretches the battery: drone_battery).</summary>
+    private Fix64 DrainPerTick(DroneDef def, int owner) => Fix64.One / (def.BatterySeconds * Fit(owner, FitOutRules.DroneBattery) * Simulation.TickRate);
 
     /// <summary>World units a drone flies in one tick (speed tiles a second; nothing slows it).</summary>
     private static Fix64 FlightStep(SurfaceUnit u) => u.SpeedPerTick * TileSize;
@@ -174,7 +175,7 @@ public sealed partial class PlanetSurface
         if (!CommsCoveredLine(u.Owner, from, target)) return "the way there leaves comms coverage";
         var step = FlightStep(u);
         var ticks = (long)before + FlightTicks(from, target, step) + FlightTicks(target, HomeOf(u, d), step) + DroneTicks(def.LandSeconds);
-        var need = DrainPerTick(def) * Fix64.FromInt((int)System.Math.Min(ticks, int.MaxValue / 4)) + def.Reserve;
+        var need = DrainPerTick(def, u.Owner) * Fix64.FromInt((int)System.Math.Min(ticks, int.MaxValue / 4)) + def.Reserve;
         return need > d.Battery ? "too far: the battery can't get there and back" : null;
     }
 
@@ -444,7 +445,7 @@ public sealed partial class PlanetSurface
                 return false;
         }
 
-        var drain = DrainPerTick(def);
+        var drain = DrainPerTick(def, u.Owner);
         d.Battery = Fix64.Max(Fix64.Zero, d.Battery - drain);
         if (d.Battery <= Fix64.Zero && d.State != DroneState.Landing)
         {
@@ -512,7 +513,7 @@ public sealed partial class PlanetSurface
             Return(d, "coverage");
             return true;
         }
-        var need = DrainPerTick(def) * Fix64.FromInt(FlightTicks(u.Pos, HomeOf(u, d), FlightStep(u)) + DroneTicks(def.LandSeconds)) + def.Reserve;
+        var need = DrainPerTick(def, u.Owner) * Fix64.FromInt(FlightTicks(u.Pos, HomeOf(u, d), FlightStep(u)) + DroneTicks(def.LandSeconds)) + def.Reserve;
         if (d.Battery > need) return false;
         Return(d, "battery");
         return true;

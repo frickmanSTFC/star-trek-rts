@@ -210,7 +210,8 @@ public sealed partial class PlanetSurface
             }
 
             var weather = WeatherDamage(u); // storms, mud, blowing sand (PlanetSurface.Climate.cs)
-            var chances = Fix64.Max(Fix64.Zero, Fix64.One + UnitResearchBonus(u.Owner, u.DefId, Modifier.Breakdown)) * weather * JuryBreakdown(u.JuryRigged);
+            var chances = Fix64.Max(Fix64.Zero, Fix64.One + UnitResearchBonus(u.Owner, u.DefId, Modifier.Breakdown)) * weather * JuryBreakdown(u.JuryRigged)
+                * Fit(u.Owner, FitOutRules.RoverHazard); // the owner's fit-out (hazards and flats)
             var driving = u.Mode == UnitMode.Mobile && u._path.Count > 0 && u.TyreChangeTicks == 0;
             var terrain = Map.Terrain(u.Tile);
             if (driving && d.On(terrain.Id) is { } ground)
@@ -233,7 +234,7 @@ public sealed partial class PlanetSurface
                             index++;
                         }
                         var hazard = eligible[index];
-                        Hit(sim, u, hazard.Id, sim.Rng.NextInt(hazard.DamageMin, hazard.DamageMax + 1));
+                        Hit(sim, u, hazard.Id, ScaledDamage(sim.Rng.NextInt(hazard.DamageMin, hazard.DamageMax + 1), Fit(u.Owner, FitOutRules.HazardDamage)));
                         if (hazard.Flat && t != null) Puncture(sim, u, t);
                     }
                 }
@@ -249,8 +250,8 @@ public sealed partial class PlanetSurface
             if (Map.Toxic[u.Tile] && d.ToxicPerMinute > Fix64.Zero)
                 u.Integrity = Fix64.Max(Fix64.Zero, u.Integrity - d.ToxicPerMinute / Simulation.TicksPerMinute);
             if (Map.WildlifeAt[u.Tile] == Wildlife.Predators && d.WildlifeChancePerMinute > Fix64.Zero &&
-                sim.Rng.NextFix() < d.WildlifeChancePerMinute / Simulation.TicksPerMinute)
-                Hit(sim, u, WildlifeHazard, sim.Rng.NextInt(d.WildlifeMin, d.WildlifeMax + 1));
+                sim.Rng.NextFix() < d.WildlifeChancePerMinute * Fit(u.Owner, FitOutRules.Wildlife) / Simulation.TicksPerMinute)
+                Hit(sim, u, WildlifeHazard, ScaledDamage(sim.Rng.NextInt(d.WildlifeMin, d.WildlifeMax + 1), Fit(u.Owner, FitOutRules.WildlifeDamage)));
 
             if (!u.Broken && u.Integrity <= Fix64.Zero) Disable(sim, u);
         }

@@ -18,8 +18,10 @@ public sealed partial class PlanetSurface
         tile >= 0 && tile < Map.Grid.Count ? Climate.Effects(_data, Map, tile, _weatherTick) : new WeatherEffects(Fix64.One, 0, Fix64.One, false, Fix64.One);
 
     /// <summary>How fast a unit drives now: <see cref="DriveSpeedPerTick"/> (damage, flats, breakdowns) × the weather on its
-    /// tile × gravity (drive_speed for vehicles, crew_work for teams on foot; exactly 1 on class M).</summary>
-    public Fix64 SpeedPerTick(SurfaceUnit unit) => DriveSpeedPerTick(unit) * WeatherEffectsAt(unit.Tile).RoverSpeed * Gravity.SpeedOf(unit.DefId);
+    /// tile × gravity (drive_speed for vehicles, crew_work for teams on foot; exactly 1 on class M) × the owner's fit-out
+    /// (drive_speed; exactly 1 with none).</summary>
+    public Fix64 SpeedPerTick(SurfaceUnit unit) =>
+        DriveSpeedPerTick(unit) * WeatherEffectsAt(unit.Tile).RoverSpeed * Gravity.SpeedOf(unit.DefId) * Fit(unit.Owner, FitOutRules.DriveSpeed);
 
     /// <summary>The weather's share of a unit's speed now (1 = no effect), for the HUD.</summary>
     public Fix64 WeatherSpeed(SurfaceUnit unit) => WeatherEffectsAt(unit.Tile).RoverSpeed;

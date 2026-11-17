@@ -211,6 +211,7 @@
       "missions/first_light.json",
       "missions/side_jobs.json",
       "missions/ship_choice.json",
+      "missions/fit_out.json",
       "missions/long_survey.json",
       "missions/priority_run.json",
       "missions/watch_station.json",

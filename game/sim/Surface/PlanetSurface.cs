@@ -580,7 +580,8 @@ public sealed partial class PlanetSurface
         if (sim.System?.OrbitProblem(player) is { } away) return away;
         if (row < 0 || row >= Map.Grid.Height || column < 0 || column >= Map.Grid.Width) return "off the map";
         if (_satellites.Count(x => x.Owner == player && x.Kind == SatelliteKind.Survey) >= orbit.SatelliteMax) return $"all {orbit.SatelliteMax} satellites are up";
-        if (!sim.Players[player].Stock.CanAfford(orbit.SatelliteCost)) return "not enough resources";
+        // A satellite the fit-out brought ready to launch costs nothing (FitOut.cs).
+        if (sim.FitOutFreeSatellites(player) <= 0 && !sim.Players[player].Stock.CanAfford(orbit.SatelliteCost)) return "not enough resources";
         return null;
     }
 
@@ -781,8 +782,9 @@ public sealed partial class PlanetSurface
         return rules.SlowestOutput + (Fix64.One - rules.SlowestOutput) * s.Condition / rules.DeclineBelow;
     }
 
-    /// <summary>Condition lost per minute while it works, after level and research.</summary>
-    public Fix64 WearPerMinute(SurfaceStructure s) => _data.Building(s.DefId).WearPerMinute * WearMultiplier(s) * JuryWear(s.JuryRigged);
+    /// <summary>Condition lost per minute while it works, after level, research and the owner's fit-out (wear).</summary>
+    public Fix64 WearPerMinute(SurfaceStructure s) =>
+        _data.Building(s.DefId).WearPerMinute * WearMultiplier(s) * JuryWear(s.JuryRigged) * Fit(s.Owner, FitOutRules.Wear);
 
     /// <summary>Chance per minute that it breaks down now (0 above decline_below).</summary>
     public Fix64 BreakdownChancePerMinute(SurfaceStructure s)
@@ -943,7 +945,7 @@ public sealed partial class PlanetSurface
         {
             if (s.Owner != player || s.State != StructureState.Complete || s.Status is not (StructureStatus.Working or StructureStatus.LowPower)) continue;
             var def = _data.Building(s.DefId);
-            if (def.IsLab) total += def.ResearchPerMinute * WorkRate(s, PowerOf(s.BaseId).Efficiency) * CrewShare(s, null);
+            if (def.IsLab) total += def.ResearchPerMinute * WorkRate(s, PowerOf(s.BaseId).Efficiency) * CrewShare(s, null) * Fit(player, FitOutRules.ResearchRate);
         }
         return total;
     }
@@ -1099,7 +1101,7 @@ public sealed partial class PlanetSurface
     public Fix64 BuildFraction(SurfaceStructure s)
     {
         if (s.State is StructureState.Complete or StructureState.Assembling) return Fix64.One; // assembling ≠ under construction
-        var total = BuildTicksOf(s.DefId);
+        var total = BuildTicksOf(s.DefId, s.Owner);
         return total <= 0 ? Fix64.One : Fix64.Ratio(s.BuildTicks, total);
     }
 
@@ -1108,11 +1110,11 @@ public sealed partial class PlanetSurface
     {
         if (s.UpgradingLevel > 0)
         {
-            var lt = LevelTicksOf(_data.Building(s.DefId).Levels[s.UpgradingLevel - 2]);
+            var lt = LevelTicksOf(_data.Building(s.DefId).Levels[s.UpgradingLevel - 2], s.Owner);
             return lt <= 0 ? Fix64.One : Fix64.Ratio(s.UpgradeTicks, lt);
         }
         if (s.UpgradingTo == null) return Fix64.Zero;
-        var total = BuildTicksOf(s.UpgradingTo);
+        var total = BuildTicksOf(s.UpgradingTo, s.Owner);
         return total <= 0 ? Fix64.One : Fix64.Ratio(s.UpgradeTicks, total);
     }
 
@@ -1591,7 +1593,7 @@ public sealed partial class PlanetSurface
                 s.State = StructureState.Building;
                 if (!works) continue;
                 s.BuildTicks++;
-                if (s.BuildTicks >= BuildTicksOf(s.DefId)) finished.Add(s);
+                if (s.BuildTicks >= BuildTicksOf(s.DefId, s.Owner)) finished.Add(s);
             }
         }
         // Finish after the loop so nothing finished this tick changes this tick's queues.
@@ -1621,7 +1623,7 @@ public sealed partial class PlanetSurface
             var instant = _players[s.Owner].InstantBuild; // test panel
             if (s.UpgradingLevel > 0)
             {
-                if (!instant && ++s.UpgradeTicks < LevelTicksOf(_data.Building(s.DefId).Levels[s.UpgradingLevel - 2])) continue;
+                if (!instant && ++s.UpgradeTicks < LevelTicksOf(_data.Building(s.DefId).Levels[s.UpgradingLevel - 2], s.Owner)) continue;
                 FinishLevel(s);
                 continue;
             }
@@ -1629,7 +1631,7 @@ public sealed partial class PlanetSurface
             if (!instant)
             {
                 s.UpgradeTicks++;
-                if (s.UpgradeTicks < BuildTicksOf(s.UpgradingTo)) continue;
+                if (s.UpgradeTicks < BuildTicksOf(s.UpgradingTo, s.Owner)) continue;
             }
             FinishCoreUpgrade(s);
         }
@@ -1780,7 +1782,7 @@ public sealed partial class PlanetSurface
                 if (p.ActiveTech >= 0)
                 {
                     var tech = _data.Techs[p.ActiveTech];
-                    p.ResearchProgress[tech.Index] += def.ResearchPerMinute * speed / Simulation.TicksPerMinute;
+                    p.ResearchProgress[tech.Index] += def.ResearchPerMinute * speed * Fit(s.Owner, FitOutRules.ResearchRate) / Simulation.TicksPerMinute;
                     if (p.ResearchProgress[tech.Index] >= tech.Cost)
                     {
                         p.ResearchProgress[tech.Index] = tech.Cost;
@@ -1923,7 +1925,8 @@ public sealed partial class PlanetSurface
         p.Phase = LandingPhase.Landed;
         p.UplinkTick = p.LandsAtTick + AssembleTicks;
         PlaceCore(player, _data.Landing.HubBuilding, p.LandingTile, sim.Tick, p.UplinkTick);
-        Reveal(player, p.LandingTile, _data.Landing.RevealRadius);
+        var reveal = sim.FitOutLandingReveal(player); // the Explorer's perk (FitOut.cs); 0 = the landing's own
+        Reveal(player, p.LandingTile, reveal > 0 ? reveal : _data.Landing.RevealRadius);
 
         // Rovers roll out onto the first free passable neighbours, in neighbour order.
         var spots = new List<int>();
@@ -1934,8 +1937,14 @@ public sealed partial class PlanetSurface
             landed.Add(SpawnUnit(player, _data.Landing.Units[i], spots[i % spots.Count]));
         // The campaign's ship pick: a colonizer's start units land too (ship_choice.json start_units; Cochrane's construction rover).
         if (sim.ShipChoiceOf(player) is { Colonizes: true } pick)
+        {
             for (var i = 0; i < pick.StartUnits.Count && spots.Count > 0; i++)
                 landed.Add(SpawnUnit(player, pick.StartUnits[i], spots[(_data.Landing.Units.Count + i) % spots.Count]));
+            // and the vehicles its fit-out loaded (fit_out.json cargo with a unit; none without a fit-out)
+            var cargo = sim.FitOutUnits(player);
+            for (var i = 0; i < cargo.Count && spots.Count > 0; i++)
+                landed.Add(SpawnUnit(player, cargo[i], spots[(_data.Landing.Units.Count + pick.StartUnits.Count + i) % spots.Count]));
+        }
         // Every one of them comes down in a drop ship of the convoy (the three with the outpost's modules first, then
         // one more per further vehicle); the ships go on to the landing field (LandingField.cs).
         AddLandingConvoy(sim, player, p.LandsAtTick, p.LandingTile, landed);

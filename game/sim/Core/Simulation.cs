@@ -503,6 +503,7 @@ public sealed partial class Simulation
         Achievements.AddToHash(ref h); // only once it has tracked anything (Achievements.cs)
         _missions?.AddToHash(ref h); // only while missions are on (Missions/MissionBook.cs)
         AddShipChoiceToHash(ref h); // only when a ship was picked (Core/ShipChoice.cs)
+        AddFitOutToHash(ref h); // only when a ship was fitted out (Core/FitOut.cs)
         h.Add(DebugEdits);
         h.Add(_dataChanges.Count);
         foreach (var c in _dataChanges) h.Add(c);

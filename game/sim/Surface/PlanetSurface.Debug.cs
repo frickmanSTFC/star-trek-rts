@@ -356,14 +356,14 @@ public sealed partial class PlanetSurface
                 break;
             case DebugStructureField.BuildProgress:
             {
-                var total = (int)BuildTicksOf(s.DefId);
+                var total = (int)BuildTicksOf(s.DefId, s.Owner);
                 if (value >= Fix64.One || total <= 0) Complete(s);
                 else s.BuildTicks = System.Math.Min(total - 1, (value * total).FloorToInt());
                 break;
             }
             case DebugStructureField.UpgradeProgress:
             {
-                var total = (int)(s.UpgradingLevel > 0 ? LevelTicksOf(def.Levels[s.UpgradingLevel - 2]) : BuildTicksOf(s.UpgradingTo!));
+                var total = (int)(s.UpgradingLevel > 0 ? LevelTicksOf(def.Levels[s.UpgradingLevel - 2], s.Owner) : BuildTicksOf(s.UpgradingTo!, s.Owner));
                 if (value >= Fix64.One || total <= 0)
                 {
                     if (s.UpgradingLevel > 0) FinishLevel(s);

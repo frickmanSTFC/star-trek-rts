@@ -98,7 +98,7 @@ public sealed partial class PlanetSurface
     private void LaunchSatellite(Simulation sim, SatelliteCommand command)
     {
         var orbit = _data.Orbit!;
-        sim.Players[command.Player].Stock.TrySpend(orbit.SatelliteCost);
+        if (!sim.UseFreeSatellite(command.Player)) sim.Players[command.Player].Stock.TrySpend(orbit.SatelliteCost); // the fit-out's ready ones first
         var ordinal = 1;
         foreach (var s in _satellites)
             if (s.Owner == command.Player && s.Kind == SatelliteKind.Survey) ordinal++;
@@ -134,7 +134,8 @@ public sealed partial class PlanetSurface
         foreach (var sat in _satellites)
         {
             if (sat.Kind != SatelliteKind.Survey || sim.Tick < sat.ReadyTick) continue; // relays don't sweep (Comms.cs)
-            var target = sat.SweepBase + (int)((sim.Tick - sat.ReadyTick) * g.Width / lapTicks);
+            var lap = GravityProfile.Ticks(lapTicks, Fit(sat.Owner, FitOutRules.SatelliteSweep)); // the owner's fit-out (the same all game)
+            var target = sat.SweepBase + (int)((sim.Tick - sat.ReadyTick) * g.Width / lap);
             var (first, last) = SatelliteBand(sat);
             for (; sat.Swept < target; sat.Swept++)
             {

@@ -566,6 +566,7 @@ public sealed partial class GameData
             Civilizations = roots.TryGetValue("civilizations", out var civRoot) ? ReadCivilizations(civRoot, Amounts, problems) : null,
             Missions = roots.TryGetValue("missions", out var missionsRoot) ? ReadMissions(missionsRoot, problems) : null,
             ShipChoices = missionsRoot.ValueKind == JsonValueKind.Object ? ReadShipChoices(missionsRoot, problems) : new List<ShipChoiceDef>(),
+            FitOut = missionsRoot.ValueKind == JsonValueKind.Object ? ReadFitOut(missionsRoot, problems) : null,
             StartMenu = ReadStartMenu(surfacesRoot) ?? surfacesRoot.GetProperty("build_menu").EnumerateArray().Select(b => b.GetString()!).ToList(),
             Eras = ReadEras(erasRoot),
             TechTree = ReadTechTree(techTreeRoot),
@@ -675,6 +676,7 @@ public sealed partial class GameData
         ValidateCivilizations(problems);
         ValidateMissions(problems);
         ValidateShipChoices(problems);
+        ValidateFitOut(problems);
         ValidateUnlocks(problems);
         // Whether every mission can be done with what is unlocked by then (GameData.MissionReach.cs): only on data that
         // is otherwise clean, since it reads ids the checks above vouch for.
