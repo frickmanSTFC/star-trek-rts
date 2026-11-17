@@ -98,7 +98,7 @@ public partial class PlanetDriver
     }
 
     /// <summary>Build time in seconds on this world (gravity scales it; class M = the data's build_seconds).</summary>
-    private int BuildSecondsOf(string id) => Mathf.RoundToInt(Surface.BuildTicksOf(id) / (float)Simulation.TickRate);
+    private int BuildSecondsOf(string id) => Mathf.RoundToInt(Surface.BuildTicksOf(id, LocalPlayer) / (float)Simulation.TickRate);
 
     private bool IsBuildingCard(string? id) => id != null && !id.Contains(':') && Surface.BuildMenu.Contains(id);
 
