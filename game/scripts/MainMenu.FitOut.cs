@@ -355,10 +355,12 @@ public partial class MainMenu
         if (label.Text != text) label.Text = text;
     }
 
+    private static readonly StringName FontColour = "font_color";
+
     private static void FitSet(Label label, string text, Color colour)
     {
         if (label.Text != text) label.Text = text;
-        label.AddThemeColorOverride("font_color", colour);
+        if (label.GetThemeColor(FontColour) != colour) label.AddThemeColorOverride(FontColour, colour);
     }
 
     private static void FitSet(Button button, bool disabled, string tooltip)
@@ -856,8 +858,17 @@ public partial class MainMenu
                 free <= 0 ? "Nobody is unassigned. Lower another division first."
                 : value >= max ? "The other divisions need their minimum."
                 : $"{step} more in {division.Name}");
-            row.Slider.MinValue = floor;
-            row.Slider.MaxValue = max;
+            // A new focus moves the range: widen first, so the range is never empty on the way.
+            if (max >= row.Slider.MinValue)
+            {
+                row.Slider.MaxValue = max;
+                row.Slider.MinValue = floor;
+            }
+            else
+            {
+                row.Slider.MinValue = floor;
+                row.Slider.MaxValue = max;
+            }
             row.Slider.SetValueNoSignal(value);
             w.CrewBar.Add(value / (float)crew, FitOutText.Fill(division.Id));
         }

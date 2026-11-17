@@ -236,6 +236,13 @@ public partial class MainMenu
             14 * _s, ship.Colonizes ? HudKit.Good : HudKit.Warn);
         lands.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         text.AddChild(lands);
+        if (FitOutApplies(ship))
+        {
+            // docs/fit-out-contract.md: this ship is fitted out on the next page (MainMenu.FitOut.cs).
+            var next = HudKit.Label("Next: fit out the ship. Pick a focus, split the crew and load the hold; then pick the world.", 14 * _s, HudKit.Sky);
+            next.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            text.AddChild(next);
+        }
         if (ship.Blurb.Length > 0 && ship.Blurb != "Never lands.")
         {
             var blurb = HudKit.Label(ship.Blurb, 13 * _s, HudKit.Dim);
