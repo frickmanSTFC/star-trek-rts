@@ -263,6 +263,7 @@ public sealed partial class PlanetSurface
         if (Map.DepositResource[tile] < 0) return "no deposit there";
         if (Map.DepositAmount[tile] <= Fix64.Zero) return "that deposit is used up";
         if (_structureAt[tile] != 0) return "a building is on it";
+        if (IsLandingPad(tile)) return LandingFieldProblem;
         foreach (var u in _units)
             if (u != unit && u.Tile == tile && u.Mode != UnitMode.Mobile) return "another crawler is mining it";
         return null;
@@ -453,6 +454,7 @@ public sealed partial class PlanetSurface
             if (d.Owner == player && d.Kind == DeliveryKind.Outpost) return "an outpost is already on its way down";
         if (Map.Safety(tile) == LandingSafety.Unsafe) return Map.NearNatives(tile) ? "that's the natives' land" : "not a safe landing site";
         if (RuinBlocks(tile)) return "ruins are there";
+        if (IsLandingPad(tile)) return LandingFieldProblem;
         foreach (var t in Map.Grid.Within(tile, 1))
             if (_structureAt[t] != 0) return "too close to a building";
         if (PodLandingNear(tile)) return "a colony is landing there";
@@ -476,9 +478,10 @@ public sealed partial class PlanetSurface
         if (sim.System?.OrbitProblem(player) is { } away) return away;
         if (!orbit.ShuttlePayloads.Contains(unitId)) return "the drop ship can't carry that";
         if (_players[player].Phase != LandingPhase.Landed) return "land the colony first";
-        if (_players[player].ShuttleBackTick > sim.Tick) return "the drop ship is still away";
+        if (ShuttleAway(player, sim.Tick)) return ShuttleWhere(player, sim.Tick) is { } where ? $"{ShuttleAwayProblem}: {where}" : ShuttleAwayProblem;
         if (!OnMap(tile)) return "off the map";
         if (!SafeGround(tile)) return Map.NearNatives(tile) ? "that's the natives' land" : "nowhere safe to land there";
+        if (IsLandingPad(tile)) return LandingFieldProblem;
         if (DropWeatherProblem(sim.Tick, tile) is { } weather) return weather;
         var cost = _data.SurfaceUnit(unitId).Cost;
         var stock = sim.Players[player].Stock;
@@ -491,7 +494,8 @@ public sealed partial class PlanetSurface
     public const string ShuttleFuelProblem = "not enough deuterium for the drop ship";
 
     /// <summary>What one drop-ship trip burns on this surface: orbit.shuttle.fuel × the lift-cost curve (5 deuterium on
-    /// class M). The first landing and outpost drops don't pay it; transporters ignore gravity.</summary>
+    /// class M). An order needs it in stock; it is taken when the ship refuels on its pad (LandingField.cs). The first
+    /// landing and outpost drops don't pay it; transporters ignore gravity.</summary>
     public IReadOnlyList<ResourceAmount> ShuttleFuel => Gravity.Fuel(_data.Orbit);
 
     /// <summary>Two costs added together, sorted by resource.</summary>
@@ -660,12 +664,16 @@ public sealed partial class PlanetSurface
                     {
                         PlaceCore(d.Owner, d.Payload, d.Tile, sim.Tick, d.ArriveTick + AssembleTicks); // LandingView: touchdown at ArriveTick
                         Reveal(d.Owner, d.Tile, _data.Landing.RevealRadius);
+                        AddOutpostConvoy(sim, d); // its three ships go on to the new field (LandingField.cs)
                     }
                     else
                         foreach (var c in _data.Orbit!.OutpostCost) sim.Players[d.Owner].Stock.Add(c.Resource, c.Amount);
                     break;
                 case DeliveryKind.Shuttle:
-                    SpawnUnit(d.Owner, d.Payload, d.Tile, d.Id);
+                    var brought = SpawnUnit(d.Owner, d.Payload, d.Tile, d.Id);
+                    // Its drop ship unloads, then goes to the landing field to refuel (LandingField.cs).
+                    AddDropShip(d.Owner, DropShipRole.Delivery, d.Id, 0, brought.Id, brought.Tile, sim.Tick,
+                        d.ArriveTick + (_data.LandingField is { } field ? FieldTicks(field.UnloadSeconds) : 0));
                     break;
                 case DeliveryKind.Beam when d.Payload == OrbitRules.Supplies:
                     var hold = _players[d.Owner].Hold;
@@ -998,6 +1006,7 @@ public sealed partial class PlanetSurface
         if (player < 0 || player >= _players.Count) return false;
         if (_players[player].Phase != LandingPhase.InOrbit) return false;
         if (tile < 0 || tile >= Map.Grid.Count || Map.Safety(tile) == LandingSafety.Unsafe) return false;
+        if (IsLandingPad(tile)) return false; // another colony's landing field (LandingField.cs)
         foreach (var t in Map.Grid.Within(tile, 1))
             if (_structureAt[t] != 0) return false;
         foreach (var d in _deliveries)
@@ -1029,6 +1038,7 @@ public sealed partial class PlanetSurface
         if (!Map.Terrain(tile).Buildable) return PlacementProblem.TerrainUnbuildable;
         if (Map.NearNatives(tile)) return PlacementProblem.NativeLand;
         if (_structureAt[tile] != 0 || PodLandingNear(tile)) return PlacementProblem.Occupied;
+        if (IsLandingPad(tile)) return PlacementProblem.LandingField; // LandingField.cs: drop ships set down there
         foreach (var u in _units)
             if (u.Tile == tile && u.Mode != UnitMode.Mobile) return PlacementProblem.Occupied;
         if (RuinPlacement(buildingId, tile) is var ruin and not PlacementProblem.None) return ruin; // Excavation.cs
@@ -1256,9 +1266,16 @@ public sealed partial class PlanetSurface
                 if (ShuttleProblem(sim, shuttle.Player, shuttle.Tile, shuttle.UnitId) is { } shuttleProblem) return sim.Refuse(shuttle, shuttleProblem);
                 var flight = DescentTicks(_data.Orbit!.ShuttleSeconds);
                 sim.Players[shuttle.Player].Stock.TrySpend(_data.SurfaceUnit(shuttle.UnitId).Cost);
-                sim.Players[shuttle.Player].Stock.TrySpend(ShuttleFuel); // deuterium for the trip (× lift cost)
                 Deliver(shuttle.Player, DeliveryKind.Shuttle, shuttle.Tile, shuttle.UnitId, System.Array.Empty<ResourceAmount>(), sim.Tick, sim.Tick + flight);
-                var turnaround = flight * 2; // down, then back up to the ship
+                if (_data.LandingField != null)
+                {
+                    // Down, unload, hop to the landing field, refuel there (the trip's deuterium is taken then), climb
+                    // back (LandingField.cs). ShuttleBackTick is the estimate; the ship's own state decides.
+                    _players[shuttle.Player].ShuttleBackTick = sim.Tick + flight + GroundStayTicks(shuttle.Player);
+                    return true;
+                }
+                sim.Players[shuttle.Player].Stock.TrySpend(ShuttleFuel); // deuterium for the trip (× lift cost)
+                var turnaround = flight * 2; // old data, no landing fields: down, then straight back up to the ship
                 if (_shuttleFactor.Count > 0) turnaround = System.Math.Max(1, (Fix64.FromInt((int)System.Math.Min(int.MaxValue, turnaround)) * ShuttleTurnaround(shuttle.Player)).FloorToInt()); // an Iconian gateway fragment
                 _players[shuttle.Player].ShuttleBackTick = sim.Tick + turnaround;
                 return true;
@@ -1415,6 +1432,7 @@ public sealed partial class PlanetSurface
                 foreach (var queued in salvaged._production) // unbuilt orders come back in full
                     foreach (var c in _data.SurfaceUnit(queued).Cost) bag.Add(c.Resource, c.Amount);
                 RefundFabrication(sim, salvaged); // a Machine Shop's started orders give their inputs back
+                ForgetField(salvaged);
                 _structures.Remove(salvaged);
                 _structureAt[salvaged.Tile] = 0;
                 return true;
@@ -1475,6 +1493,7 @@ public sealed partial class PlanetSurface
                 }
                 if (!s.Free)
                     foreach (var c in BuildCostOf(s.DefId)) stock.Add(c.Resource, c.Amount);
+                ForgetField(s);
                 _structures.Remove(s);
                 _structureAt[s.Tile] = 0;
                 return true;
@@ -1528,6 +1547,7 @@ public sealed partial class PlanetSurface
         Upgrades();
         LandPods(sim);
         LandDeliveries(sim);
+        DropShipsStep(sim); // LandingField.cs: unload, hop to the field, refuel, climb back
         SweepSatellites(sim);
         Economy(sim);
         HubWorkshops(sim); // Fabrication.cs: colony cores' small workshops (Machine Shops run in Economy)
@@ -1909,12 +1929,16 @@ public sealed partial class PlanetSurface
         var spots = new List<int>();
         foreach (var n in Map.Grid.Neighbours(p.LandingTile))
             if (Map.Terrain(n).Passable && _structureAt[n] == 0) spots.Add(n);
+        var landed = new List<SurfaceUnit>();
         for (var i = 0; i < _data.Landing.Units.Count && spots.Count > 0; i++)
-            SpawnUnit(player, _data.Landing.Units[i], spots[i % spots.Count]);
+            landed.Add(SpawnUnit(player, _data.Landing.Units[i], spots[i % spots.Count]));
         // The campaign's ship pick: a colonizer's start units land too (ship_choice.json start_units; Cochrane's construction rover).
         if (sim.ShipChoiceOf(player) is { Colonizes: true } pick)
             for (var i = 0; i < pick.StartUnits.Count && spots.Count > 0; i++)
-                SpawnUnit(player, pick.StartUnits[i], spots[(_data.Landing.Units.Count + i) % spots.Count]);
+                landed.Add(SpawnUnit(player, pick.StartUnits[i], spots[(_data.Landing.Units.Count + i) % spots.Count]));
+        // Every one of them comes down in a drop ship of the convoy (the three with the outpost's modules first, then
+        // one more per further vehicle); the ships go on to the landing field (LandingField.cs).
+        AddLandingConvoy(sim, player, p.LandsAtTick, p.LandingTile, landed);
     }
 
     /// <summary>baseId 0 = this structure is a new base of its own.</summary>
@@ -1924,6 +1948,7 @@ public sealed partial class PlanetSurface
         _structures.Add(s);
         _structureAt[tile] = s.Id;
         MakeRoom(tile, null, _data.FootprintOf(defId).Radius + Lanes.Clearance + Fix64.Half); // parked vehicles drive out of its way
+        if (_data.Building(defId).IsCore) AssignField(s); // LandingField.cs: its pads, for as long as it stands
         return s;
     }
 
@@ -1982,8 +2007,9 @@ public sealed partial class PlanetSurface
         AddFabricationToHash(ref h); // Fabrication.cs
         AddExcavationToHash(ref h); // Excavation.cs: only on maps with ruins, sickness or finds
         AddJackToHash(ref h); // Jack.cs: only once Jack is on or summoned
+        AddLandingFieldToHash(ref h); // LandingField.cs: drop ships on the ground, once there has been one
         // Not hashed because they follow from what is hashed: _structureAt (each structure's Tile; the fuzz test checks
-        // they agree), _weatherTick (sim.Tick at the top of Step), _data (Simulation hashes each change of data), and
+        // they agree), _padCore (each core's Field; the fuzz test checks that too), _weatherTick (sim.Tick at the top of Step), _data (Simulation hashes each change of data), and
         // each unit's SpeedPerTick / SurveyRadius (its def in that data).
     }
 }

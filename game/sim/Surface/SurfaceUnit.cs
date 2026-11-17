@@ -700,6 +700,12 @@ public sealed class SurfaceStructure
     /// <summary>Founded on the ground by a construction rover (built by exocomps instead of assembling from orbit).</summary>
     public bool Founded => Founder != null;
 
+    /// <summary>A colony core's landing field: the tiles of its pads, pad 0 first (empty: not a core, no room, or data
+    /// without landing fields). Marked out when the core is placed and kept while it stands (Surface/LandingField.cs).</summary>
+    public IReadOnlyList<int> Field => _field;
+
+    internal int[] _field = System.Array.Empty<int>();
+
     internal SurfaceStructure(int id, int owner, string defId, int tile, int facing, StructureState state, int baseId)
     {
         BaseId = baseId == 0 ? id : baseId;
@@ -760,6 +766,12 @@ public sealed class SurfaceStructure
         h.Add(RepairPaid);
         h.Add(LastFabricated);
         h.Add(FabricatedAtTick);
+        if (_field.Length > 0) // cores with a landing field only, so buildings hash as before
+        {
+            h.Add("field");
+            h.Add(_field.Length);
+            foreach (var t in _field) h.Add(t);
+        }
     }
 }
 
@@ -813,7 +825,9 @@ public sealed class SurfacePlayer
     /// <summary>Transporter level from the faction and era (0 = none).</summary>
     public int TransporterLevel { get; internal set; }
 
-    /// <summary>The shuttle is away until this tick (down and back up).</summary>
+    /// <summary>When the delivery drop ship (the orbit "shuttle") should be back aboard: with landing fields an estimate
+    /// that follows the ship (down, unload, hop to the field, refuel, climb; it grows while the ship waits for a pad or
+    /// for fuel), set to the tick it got back once it has. PlanetSurface.ShuttleAway is the rule; this is for the clock.</summary>
     public long ShuttleBackTick { get; internal set; }
 
     /// <summary>The transporter can beam again from this tick.</summary>

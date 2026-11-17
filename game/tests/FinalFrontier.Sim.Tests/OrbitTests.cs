@@ -89,7 +89,7 @@ public class OrbitTests
         var spot = Enumerable.Range(0, map.Grid.Count).First(t => map.Grid.Distance(t, hub) > 20 && s.ShuttleProblem(sim, 0, t, "survey_rover") == null);
         var units = s.Units.Count;
         Do(sim, new ShuttleCommand(0, spot, "survey_rover"));
-        Assert.Equal("the drop ship is still away", s.ShuttleProblem(sim, 0, spot, "survey_rover"));
+        Assert.StartsWith(PlanetSurface.ShuttleAwayProblem + ": on its way down", s.ShuttleProblem(sim, 0, spot, "survey_rover"));
         var delivery = s.Deliveries.Single(d => d.Kind == DeliveryKind.Shuttle);
         Assert.All(s.Units, u => Assert.Equal(0, u.DeliveryId)); // the landing party came with the colony pod
         for (var i = 0; i < Sec(Orbit.ShuttleSeconds) + 1; i++) sim.Step();
@@ -97,8 +97,11 @@ public class OrbitTests
         Assert.Equal(spot, s.Units[^1].Tile);
         Assert.Equal(delivery.Id, s.Units[^1].DeliveryId); // the view drives it down its drop ship's ramp
         Assert.True(s.Players[0].Surveyed[spot]);
-        Assert.NotNull(s.ShuttleProblem(sim, 0, spot, "survey_rover")); // still flying back up
+        // Not straight back up: it unloads, hops to the landing field, refuels there and only then climbs (LandingFieldTests).
+        Assert.StartsWith(PlanetSurface.ShuttleAwayProblem + ": unloading", s.ShuttleProblem(sim, 0, spot, "survey_rover"));
         for (var i = 0; i < Sec(Orbit.ShuttleSeconds) + 1; i++) sim.Step();
+        Assert.NotNull(s.ShuttleProblem(sim, 0, spot, "survey_rover"));
+        for (var i = 0; i < Sec(600) && s.ShuttleAway(0, sim.Tick); i++) sim.Step();
         Assert.Null(s.ShuttleProblem(sim, 0, spot, "survey_rover"));
         Assert.Equal("the drop ship can't carry that", s.ShuttleProblem(sim, 0, spot, "terraforming_rover"));
     }

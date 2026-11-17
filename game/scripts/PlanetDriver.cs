@@ -833,7 +833,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             else if (a == "satellite") tag = $" {Surface.Satellites.Count(x => x.Owner == LocalPlayer && x.Kind != SatelliteKind.Relay)}/{orbit?.SatelliteMax}";
             else if (me.Phase != LandingPhase.Landed) disabled = true;
             else if (a == "relay") tag = RelayTag();
-            else if (a.StartsWith("shuttle:") && me.ShuttleBackTick > _sim.Tick) tag = $" {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate}S";
+            else if (a.StartsWith("shuttle:") && Surface.ShuttleAway(LocalPlayer, _sim.Tick)) tag = DropShipTag(); // PlanetDriver.LandingField.cs
             else if (a.StartsWith("beam:"))
             {
                 var level = orbit?.Transporter(me.TransporterLevel);
@@ -925,9 +925,9 @@ public partial class PlanetDriver : Node3D, ITestHost
             var u = a[8..];
             var name = _data.GroundVehicleNames.GetValueOrDefault(u, u);
             title = $"Drop Ship: {name}";
-            sub = me.ShuttleBackTick > _sim.Tick ? $"Drop ship away: back in {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate} s" : "Drop ship ready";
+            sub = DropShipWhere() is { } where ? $"Drop ship {where}" : "Drop ship ready"; // PlanetDriver.LandingField.cs
             body = $"The drop ship flies a new {name} down from the ship to any safe spot on the planet, even far from your bases. {_data.SurfaceUnit(u).Description}";
-            rows.Add(("Flight", $"{orbit.ShuttleSeconds} s down, {orbit.ShuttleSeconds} s back up before it can fly again"));
+            foreach (var row in DropShipRows(orbit)) rows.Add(row); // flight, the stay at the landing field, fuel
             rows.Add(("Needs", "open ground: no buildings, toxic ground, predators or native land"));
         }
         else
@@ -1158,6 +1158,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         RoverEvents(); // hazards, flat tyres, disabled, repaired (PlanetDriver.RoverDamage.cs)
         FounderEvents(); // construction rovers founding outposts (PlanetDriver.Founding.cs)
         PartsEvents(); // waiting for kits, jury-rigged, fabricator orders done (PlanetDriver.Parts.cs)
+        DropShipEvents(); // drop ships at the landing field: no fuel, no pad, back aboard (PlanetDriver.LandingField.cs)
 
         foreach (var u in Surface.Units.Where(u => u.Owner == LocalPlayer))
         {
@@ -2408,6 +2409,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             if (structure.Assembling) sb.Append($" · Assembling… {PlanetSurface.AssembleSecondsLeft(structure, _sim.Tick)} s");
         }
         sb.Append(RuinTooltip(tile)); // "Ruins of the <species> · N layers, M dug" (PlanetDriver.Excavation.cs)
+        sb.Append(LandingPadTooltip(tile)); // "Landing pad 2 · Base 1 · a drop ship is refuelling 0:32" (PlanetDriver.LandingField.cs)
 
         if (Me.Phase == LandingPhase.InOrbit)
         {
@@ -2476,6 +2478,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         PlacementProblem.CoreUnderConstruction => "the new outpost is still being built (exocomps)",
         PlacementProblem.NeedsDome => PlanetSurface.NeedsDomeProblem,
         PlacementProblem.NotUnlocked => "not unlocked yet (a mission opens it)",
+        PlacementProblem.LandingField => PlanetSurface.LandingFieldProblem,
         _ => OtherReason(p), // e.g. an Excavation Site off a ruin tile (PlanetDriver.Excavation.cs)
     };
 

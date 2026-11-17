@@ -150,14 +150,17 @@ public class GravityTests
         Assert.Empty(s.Deliveries);
         Assert.Contains("deuterium", sim.LastRefusal ?? "");
 
-        // With the fuel: it flies and burns 5.
+        // With the fuel: it flies, and burns 5 when it refuels on its pad at the landing field (not at the order).
         stock.Add(R("deuterium"), Fix64.FromInt(10));
         var before = stock[R("deuterium")];
         sim.Schedule(sim.Tick, new ShuttleCommand(0, tile, "survey_rover"));
         sim.Step();
         Assert.Single(s.Deliveries);
         var unitDeuterium = Data.SurfaceUnit("survey_rover").Cost.Where(c => c.Resource == R("deuterium")).Sum(c => c.Amount.ToDouble());
-        Assert.Equal(before.ToDouble() - 5 - unitDeuterium, stock[R("deuterium")].ToDouble(), 6);
+        Assert.Equal(before.ToDouble() - unitDeuterium, stock[R("deuterium")].ToDouble(), 6);
+        for (var i = 0; i < 600 * Simulation.TickRate && s.ShuttleShip(0)?.State != DropShipState.Refuelling; i++) sim.Step();
+        Assert.Equal(DropShipState.Refuelling, s.ShuttleShip(0)!.State);
+        Assert.Equal(before.ToDouble() - unitDeuterium - 5, stock[R("deuterium")].ToDouble(), 6);
         _ = hash;
     }
 

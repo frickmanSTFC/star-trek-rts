@@ -481,6 +481,7 @@ public sealed partial class PlanetSurface
         var terrain = Map.Terrain(command.Tile);
         if (!terrain.Buildable || !terrain.Passable) return "can't put ruins on that ground";
         if (_structureAt[command.Tile] != 0) return "a building is there";
+        if (IsLandingPad(command.Tile)) return LandingFieldProblem;
         if (Map.DepositResource[command.Tile] >= 0) return "a deposit is there";
         if (Map.NearNatives(command.Tile)) return "that's the natives' land";
         if (PodLandingNear(command.Tile)) return "a colony is landing there";

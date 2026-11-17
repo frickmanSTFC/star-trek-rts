@@ -96,6 +96,7 @@ public partial class PlanetView
         _groundedShips.Clear();
         _dropShips.GroundedModels(_groundedShips);
         foreach (var m in _groundedShips) if (m.IsInsideTree()) AddBoxBlocker(m, true);
+        foreach (var m in LandingFieldFurniture()) if (m.IsInsideTree()) AddBoxBlocker(m, false); // the pads' fuel bowsers
 
         foreach (var w in _walkers) if (w.Model.Visible) _people.Add(w.Model);
         foreach (var (_, crew) in _buildingCrews) foreach (var p in crew) if (p.Visible) _people.Add(p);

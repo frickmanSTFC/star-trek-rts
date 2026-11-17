@@ -273,6 +273,7 @@ public sealed partial class PlanetSurface
         var unit = s.Founder!;
         if (!s.Free && FoundRulesOf(unit) is { } rules)
             foreach (var c in rules.Cost) sim.Players[s.Owner].Stock.Add(c.Resource, c.Amount);
+        ForgetField(s);
         _structures.Remove(s);
         _structureAt[s.Tile] = 0;
         PlaceUnit(unit, s.Tile, CentreOf(s.Tile));
