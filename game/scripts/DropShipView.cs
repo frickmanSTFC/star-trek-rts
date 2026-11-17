@@ -302,9 +302,10 @@ public partial class DropShipView : Node3D
             var k = t < ship.DriveStart || ship.DriveSeconds <= 0f ? 0f : Mathf.SmoothStep(0f, 1f, (t - ship.DriveStart) / ship.DriveSeconds);
             driving = t >= ship.DriveStart;
             pose = PoseAt(ship, ship.Wheelbase + travel * k);
-            if (ship.Flown)
+            if (ship.Flown || t < TouchdownAt)
             {
-                // Still flying (a convoy ship hopping to its spot): the unit rides in the bay wherever the ship is.
+                // Still flying (a convoy ship hopping to its spot, or one coming straight down with a vehicle the sim
+                // already has on the ground): the unit rides in the bay wherever the ship is.
                 var rel = ship.Model.Transform * ship.Landed.AffineInverse();
                 pose = new Carried(rel * pose.Origin, rel.Basis * (pose.Basis ?? Basis.Identity));
             }

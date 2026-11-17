@@ -24,24 +24,15 @@ public partial class PlanetDriver
     /// when it is aboard.</summary>
     private string? DropShipWhere() => Surface.ShuttleAway(LocalPlayer, _sim.Tick) ? Surface.ShuttleWhere(LocalPlayer, _sim.Tick) ?? "away" : null;
 
-    /// <summary>The short tag on the orbit strip's DROP pills while the drop ship is away.</summary>
+    /// <summary>The short tag on the orbit strip's DROP pills while the drop ship is away: the estimate until it is back
+    /// aboard, or why it is held up (three pills carry it, so it stays short; the card says where the ship is).</summary>
     private string DropShipTag()
     {
-        var ship = Surface.ShuttleShip(LocalPlayer);
-        var word = ship?.State switch
-        {
-            null => "DOWN",
-            DropShipState.Unloading => "UNLOADING",
-            DropShipState.WaitingForPad => "NO PAD",
-            DropShipState.Hopping => "TO FIELD",
-            DropShipState.WaitingForFuel => "NO FUEL",
-            DropShipState.Refuelling => "FUELLING",
-            _ => "CLIMBING",
-        };
-        // The clock is the estimate until it is back aboard; a waiting ship has none worth showing.
-        var waiting = ship?.State is DropShipState.WaitingForPad or DropShipState.WaitingForFuel;
+        var state = Surface.ShuttleShip(LocalPlayer)?.State;
+        if (state == DropShipState.WaitingForPad) return " NO PAD";
+        if (state == DropShipState.WaitingForFuel) return " NO FUEL";
         var left = Surface.Players[LocalPlayer].ShuttleBackTick - _sim.Tick;
-        return waiting || left <= 0 ? $" {word}" : $" {word} {PlanetSurface.Clock(left)}";
+        return left > 0 ? $" {PlanetSurface.Clock(left)}" : " …";
     }
 
     /// <summary>The drop-ship card's rows: the flight, the stay at the landing field, the fuel.</summary>
@@ -62,6 +53,38 @@ public partial class PlanetDriver
             if (fuel.Count > 0) rows.Add(("Fuel", Amounts(fuel, false)));
         }
         return rows;
+    }
+
+    /// <summary>The vehicles that land with our colony, in landing order: landing.units, then the picked ship's start
+    /// units (each comes down in a drop ship of the convoy).</summary>
+    private List<string> LandingParty()
+    {
+        var units = new List<string>(_data.Landing.Units);
+        if (_sim.ShipChoiceOf(LocalPlayer) is { Colonizes: true } pick) units.AddRange(pick.StartUnits);
+        return units;
+    }
+
+    /// <summary>How many drop ships our landing convoy has, as a word ("Three", "Four").</summary>
+    private string ConvoyWord()
+    {
+        var n = System.Math.Max(PlanetSurface.ConvoyShips, LandingParty().Count);
+        return n switch { 3 => "Three", 4 => "Four", 5 => "Five", 6 => "Six", _ => n.ToString() };
+    }
+
+    /// <summary>The landing convoy's line while it comes down: what the ships carry, and where they go afterwards.</summary>
+    private string ConvoyDetail()
+    {
+        var party = new List<string>();
+        var units = LandingParty();
+        for (var i = 0; i < units.Count; i++)
+        {
+            if (units.IndexOf(units[i]) != i) continue; // counted with its first
+            var n = units.FindAll(u => u == units[i]).Count;
+            var name = _data.GroundVehicleNames.GetValueOrDefault(units[i], units[i]);
+            party.Add(n > 1 ? $"{n}× {name}" : name);
+        }
+        var field = _data.LandingField != null ? " Afterwards the ships hop to the landing field by the outpost, refuel and fly back up." : "";
+        return $"{ConvoyWord()} drop ships carry the Colony Hub in three modules (it assembles on the ground and its uplink to the ship comes online), the vehicles ({string.Join(", ", party)}) and starting supplies.{field}";
     }
 
     /// <summary>A pad tile's line in the tile tooltip ("\nLanding pad 2 · Base 1 · a drop ship is refuelling …"), or "".</summary>

@@ -219,6 +219,7 @@ public partial class LandingFieldView : Node3D
 
         // Four flush pad lights on the diagonals, one material so they change together.
         var lamps = new StandardMaterial3D { AlbedoColor = new Color(0.12f, 0.13f, 0.15f), EmissionEnabled = true, Emission = Free, EmissionEnergyMultiplier = 0.9f, Roughness = 0.4f };
+        lamps.SetMeta(VehicleLights.NoBoostMeta, true); // set every frame in Update: the night boost leaves it alone
         for (var k = 0; k < 4; k++)
         {
             var a = Mathf.Pi / 4f + Mathf.Pi / 2f * k;
@@ -235,6 +236,7 @@ public partial class LandingFieldView : Node3D
         }
 
         var status = new StandardMaterial3D { AlbedoColor = new Color(0.1f, 0.1f, 0.1f), EmissionEnabled = true, Emission = Idle, EmissionEnergyMultiplier = 0.8f };
+        status.SetMeta(VehicleLights.NoBoostMeta, true);
         var bowser = Bowser(status);
         root.AddChild(bowser);
         bowser.Transform = BowserFrame(frame);
@@ -244,15 +246,20 @@ public partial class LandingFieldView : Node3D
     private static CylinderMesh? _lampMesh;
     private static CylinderMesh LampMesh => _lampMesh ??= new CylinderMesh { TopRadius = 0.26f, BottomRadius = 0.32f, Height = 0.14f, RadialSegments = 10, Rings = 1 };
 
-    private static StandardMaterial3D Painted(Color colour) => new()
+    private static StandardMaterial3D Painted(Color colour)
     {
-        AlbedoColor = colour,
-        Roughness = 0.95f,
-        EmissionEnabled = true,
-        Emission = colour,
-        EmissionEnergyMultiplier = 0.12f, // just enough to read at night
-        CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-    };
+        var m = new StandardMaterial3D
+        {
+            AlbedoColor = colour,
+            Roughness = 0.95f,
+            EmissionEnabled = true,
+            Emission = colour,
+            EmissionEnergyMultiplier = 0.12f, // just enough to read at night
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+        };
+        m.SetMeta(VehicleLights.NoBoostMeta, true); // shared by every pad and kept across games: not a lamp for the night boost
+        return m;
+    }
 
     private Vector3 OnGround(Vector3 p) => p with { Y = _view.GroundAt(p) + Lift };
 
