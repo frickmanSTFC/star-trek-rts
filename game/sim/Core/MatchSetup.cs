@@ -51,6 +51,12 @@ public static class MatchSetup
     public static Simulation CreateSystemGame(GameData data, ulong seed, string faction = "federation", string? homeBody = null)
         => CreateSystemGame(data, seed, faction, homeBody, null);
 
+    /// <summary>As the 5-argument game, with the player's fit-out (docs/fit-out-contract.md). Null = no fit-out = exactly the
+    /// 5-argument game. CONTRACT STUB: the SIM agent applies it (a fit-out that fails FitOutRules.Problem is replaced by the
+    /// ship's suggested preset).</summary>
+    public static Simulation CreateSystemGame(GameData data, ulong seed, string faction, string? homeBody, string? shipId, FitOut? fitOut)
+        => CreateSystemGame(data, seed, faction, homeBody, shipId);
+
     /// <summary>
     /// A system game with the campaign's ship pick (docs/ship-pick-contract.md): <paramref name="shipId"/> is a
     /// <see cref="GameData.ShipChoices"/> id or null (null = exactly the 4-argument game). The flagship is that ship (class

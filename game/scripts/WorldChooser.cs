@@ -58,10 +58,22 @@ public static class GameSetup
         MissionChain = chain;
     }
 
+    /// <summary>The fit-out chosen on the menu's Fit Out Your Ship page (docs/fit-out-contract.md), or null (none: the game
+    /// plays as it always did). PlanetDriver.StartGame hands it to MatchSetup.CreateSystemGame.</summary>
+    public static FinalFrontier.Sim.Core.FitOut? FitOut { get; private set; }
+
+    /// <summary>A campaign start with a ship pick and a fit-out.</summary>
+    public static void StartCampaign(string faction, string era, ulong seed, string homeBodyId, string shipId, string chain, FinalFrontier.Sim.Core.FitOut? fitOut)
+    {
+        StartCampaign(faction, era, seed, homeBodyId, shipId, chain);
+        FitOut = fitOut;
+    }
+
     /// <summary>The main menu's campaign start (not saved: chosen in the menu each time).</summary>
     public static void StartCampaign(string faction, string era, ulong seed, string homeBodyId)
     {
         ShipId = null;
+        FitOut = null;
         Mode = GameMode.Campaign;
         Faction = faction;
         Era = era;
