@@ -1439,7 +1439,7 @@ SHOTS = {
     'ring':  dict(tgt=(196, 0, 6), cam=(0.72, -0.60, 0.34), dist=330, lens=50, roll=5, sun=(0.55, 0.60, 0.58), eoff=(-12, -27), alt=9500, elon=120),
     'stern': dict(tgt=(-150, 0, 0), cam=(-0.80, -0.52, 0.30), dist=560, lens=60, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(10, -25), alt=9500),
     'yard':  dict(tgt=(46, 0, 30), cam=(0.25, -0.86, 0.45), dist=300, lens=45, roll=-3, sun=(0.50, 0.65, 0.57), eoff=(8, -25), alt=9500, elon=165),
-    'side':  dict(tgt=(0, 0, 4), cam=(0.0, -1.0, 0.06), dist=1230, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
+    'side':  dict(tgt=(2, 0, 4), cam=(0.0, -1.0, 0.06), dist=1440, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
     'bow':   dict(tgt=(150, 0, -4), cam=(0.93, -0.30, 0.20), dist=540, lens=60, roll=8, sun=(-0.55, 0.60, 0.58), eoff=(-14, -22), alt=9500, elon=185),
 }
 
