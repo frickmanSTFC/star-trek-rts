@@ -12,6 +12,10 @@ namespace FinalFrontier;
 // <title>" with the summary, whether it lands, and ‹ BACK / CHOOSE <NAME> ›. Left / Right pick, Enter chooses.
 // The pick decides what the system page asks for (MainMenu.SystemPick.cs): a world to land on, or any body to start
 // in orbit of. With no ships in the data the page is skipped (era → system, the old start).
+// A ship with a 3D model (docs/ship-model-contract.md: models/ships/<id>.glb, ShipModels) shows it live in the detail
+// panel in place of the still picture: turning slowly, rings spinning, drag to turn it (ShipViewer). The six cards and
+// every ship without a glb keep their flat pictures. Debug builds: Shift+F11 swaps a primitive stand-in in for a
+// missing glb (ShipModels.DebugStandIn).
 public partial class MainMenu
 {
     /// <summary>The ship picked on this page (a ShipChoices id), kept while the menu is open; null = no pick yet.</summary>
@@ -78,6 +82,7 @@ public partial class MainMenu
         }
         var picked = PickedShip ?? ships[0];
         _shipId = picked.Id;
+        foreach (var ship in ships) ShipModels.Preload(ship.Id); // 3D models load in the background (once), ready when picked
 
         // Six cards across; the art's height from the width each card gets (the page is rebuilt on a resize).
         var screen = GetViewport().GetVisibleRect().Size;
@@ -178,7 +183,7 @@ public partial class MainMenu
         row.AddThemeConstantOverride("separation", Mathf.RoundToInt(16 * _s));
         panel.AddChild(row);
 
-        var art = ShipArtRect(ship, new Vector2(120 * _s, 80 * _s), 40f);
+        var art = ShipModelView(ship) ?? ShipArtRect(ship, new Vector2(120 * _s, 80 * _s), 40f);
         art.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         art.SizeFlagsStretchRatio = 1.3f;
         art.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
@@ -247,6 +252,29 @@ public partial class MainMenu
         return panel;
     }
 
+    /// <summary>The live viewer in the detail panel (freed with the page it is on).</summary>
+    private ShipViewer? _shipViewer;
+
+    /// <summary>The ship's live 3D model for the detail panel, or null when it has none (the still picture stays).
+    /// A rebuild for the same ship (a window resize) keeps the angle it had been turned to.</summary>
+    private Control? ShipModelView(ShipChoiceDef ship)
+    {
+        var old = _shipViewer != null && IsInstanceValid(_shipViewer) ? _shipViewer : null;
+        _shipViewer = null;
+        if (!ShipModels.Has(ship.Id)) return null;
+        // A colony ship carries its landers on the berths (Dawn of Warp's own; the game picks one of three per player).
+        var viewer = ShipViewer.Create(ship.Id, ship.Colonizes ? DropShipSpec.Lander : null, PlanetDriver.ColorOf(0));
+        if (viewer == null) return null;
+        if (old != null && old.ShipId == ship.Id)
+        {
+            viewer.Yaw = old.Yaw;
+            viewer.Pitch = old.Pitch;
+        }
+        viewer.CustomMinimumSize = new Vector2(120 * _s, 80 * _s);
+        _shipViewer = viewer;
+        return viewer;
+    }
+
     private Control Chip(string text, Color colour)
     {
         var chip = HudKit.PanelBox(new Color(colour, 0.14f), new Color(colour, 0.8f), 4 * _s, 8 * _s, 2 * _s);
@@ -294,6 +322,10 @@ public partial class MainMenu
             case Key.Enter or Key.KpEnter when !echo:
                 Sfx.Ui("confirm");
                 ChooseShip();
+                return true;
+            case Key.F11 when !echo && OS.IsDebugBuild() && Input.IsKeyPressed(Key.Shift):
+                ShipModels.DebugStandIn = !ShipModels.DebugStandIn; // debug: a stand-in model for ships without a glb
+                _dirty = true;
                 return true;
         }
         return false;

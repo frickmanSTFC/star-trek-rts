@@ -603,6 +603,7 @@ public partial class PlanetHud : CanvasLayer
                 ("F9 › CIV", "spawn / edit a civilization, Standing, relations, ruins on the colony map"),
                 ("Drone Pad: L / R", "launch a drone (click a tile inside comms coverage) / recall them; a drone: R return, right-click retarget"),
                 ("G", "comms coverage on the map (also while launching or with drones selected); RELAY on the orbit strip widens it"),
+                ("SHIP (orbit)", "helm rail, or click your ship: the view follows it close up; wheel zooms; drag or Esc lets go"),
             },
         };
         foreach (var g in groups)
