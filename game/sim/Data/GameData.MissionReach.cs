@@ -79,7 +79,11 @@ public sealed partial class GameData
 
     /// <summary>A space chain's ship never lands, so it has no income: the body satellites and observation posts its
     /// objectives ask for must fit the rules' limits and be paid for out of the stock every player starts with. (A data
-    /// set without star-system rules or without civilizations has no such costs; those documents are optional.)</summary>
+    /// set without star-system rules or without civilizations has no such costs; those documents are optional.)
+    /// Fit-outs (phase 2): a ship that never lands keeps the start stock whatever it loads, and its hold can only add body
+    /// satellites and posts that cost nothing; the leanest legal load carries the space lines' minimums of them (0 today,
+    /// FitOutRules.FreeSystemSatellites / FreePosts of that load), so the walk below with no fit-out (every one paid for) is
+    /// already the hardest case and a second walk with the leanest load could never find more.</summary>
     private void ValidateSpaceReach(MissionData data, MissionChainDef chain, List<string> problems)
     {
         var satellites = 0;
