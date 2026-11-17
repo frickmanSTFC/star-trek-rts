@@ -814,7 +814,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (display == OrbitDisplay.System)
         {
             actions.Add(new HelmAction("display:planet", "", "BACK TO PLANET", Colour: HelmScreen.Peach));
-            if (_system.State != null) actions.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null, Colour: HelmScreen.Lavender));
+            if (_system.State != null) actions.Add(new HelmAction("sys:scan", "", ScanLabel(), ScanProblem() == null, Colour: HelmScreen.Lavender));
         }
         // Orbit-only bodies get no deployment cards (land, outpost, drop ships, beams are the colony's), but a
         // satellite can go up over any body the ship orbits: live data there (StarSystemState satellites).

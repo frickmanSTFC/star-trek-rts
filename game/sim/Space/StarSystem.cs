@@ -232,6 +232,29 @@ public sealed partial class StarSystemState
     /// <summary>The long-range scan range in map units (maps/system.json scan.range).</summary>
     public Fix64 ScanRange => Data?.SystemRules?.ScanRange ?? Fix64.FromInt(320);
 
+    // ---- a ship that never lands, fitted out (docs/fit-out-contract.md phase 2): the player's crew and perk move these.
+    // With no fit-out every factor is exactly 1 and each number below is the plain one above.
+
+    /// <summary>The player's fit-out multiplier on a star-system lever (1 with none, and for neutral or native ships).</summary>
+    private Fix64 Fit(int player, string lever) => _sim is { } sim && player >= 0 ? sim.FitOutFactor(player, lever) : Fix64.One;
+
+    /// <summary>Ticks × a fit-out factor, rounded down, at least 1 (unchanged when the factor is 1).</summary>
+    private static long Scaled(long ticks, Fix64 factor) =>
+        factor == Fix64.One || ticks <= 0 ? ticks : System.Math.Max(1L, (Fix64.FromInt((int)System.Math.Min(int.MaxValue, ticks)) * factor).FloorToInt());
+
+    /// <summary>This player's long-range scan recharge in ticks (<see cref="ScanCooldownTicks"/> × the scan_cooldown lever).</summary>
+    public long ScanCooldownTicksFor(int player) => Scaled(ScanCooldownTicks, Fit(player, FitOutRules.ScanCooldown));
+
+    /// <summary>This player's long-range scan range (<see cref="ScanRange"/> × the scan_range lever: the Explorer's perk).</summary>
+    public Fix64 ScanRangeFor(int player)
+    {
+        var f = Fit(player, FitOutRules.ScanRange);
+        return f == Fix64.One ? ScanRange : ScanRange * f;
+    }
+
+    /// <summary>This player's orbital sensor sweep in ticks (<see cref="SweepTicks"/> × the sweep_time lever).</summary>
+    public long SweepTicksFor(int player) => Scaled(SweepTicks, Fit(player, FitOutRules.SweepTime));
+
     /// <summary>The game this system belongs to (set by <see cref="Attach"/>; data, tick, surface).</summary>
     private Simulation? _sim;
 
@@ -371,12 +394,14 @@ public sealed partial class StarSystemState
     }
 
     /// <summary>Flight time of this ship from one body to another in ticks: <see cref="TravelTicks(string, string)"/>
-    /// divided by the ship's <see cref="SystemShip.Speed"/> (a picked ship's speed; at least 1 tick).</summary>
+    /// divided by the ship's <see cref="SystemShip.Speed"/> (a picked ship's speed; at least 1 tick), times its owner's
+    /// fit-out flight_time lever (engineering crew, reaction mass, the Builder's perk; 1 with none).</summary>
     public long TravelTicksFor(SystemShip ship, string fromBody, string toBody)
     {
         var ticks = TravelTicks(fromBody, toBody);
-        if (ticks <= 0 || ship.Speed == Fix64.One || ship.Speed <= Fix64.Zero) return ticks;
-        return System.Math.Max(1L, (Fix64.FromInt((int)System.Math.Min(int.MaxValue, ticks)) / ship.Speed).FloorToInt());
+        if (ticks > 0 && ship.Speed != Fix64.One && ship.Speed > Fix64.Zero)
+            ticks = System.Math.Max(1L, (Fix64.FromInt((int)System.Math.Min(int.MaxValue, ticks)) / ship.Speed).FloorToInt());
+        return Scaled(ticks, Fit(ship.Owner, FitOutRules.FlightTime));
     }
 
     /// <summary>Why the ship can't set course there now, or null.</summary>
@@ -543,14 +568,19 @@ public sealed partial class StarSystemState
         if (ship.Owner != player || player < 0) return "not your ship";
         if (StarfleetHoldProblem(player) is { } held) return held;
         if (ship.AtBody == null) return "the ship is in flight (scan from orbit)";
-        if (ship.ScanReadyTick > Now) return $"the long-range scanners are recharging ({SecondsUntil(ship.ScanReadyTick)} s)";
+        // A sensor probe from the fit-out's hold scans while the scanners recharge.
+        if (ship.ScanReadyTick > Now && (_sim?.FitOutProbes(player) ?? 0) <= 0) return $"the long-range scanners are recharging ({SecondsUntil(ship.ScanReadyTick)} s)";
         return null;
     }
+
+    /// <summary>True when a long-range scan now would use a sensor probe (the scanners are recharging and a probe is left).</summary>
+    public bool ScanUsesProbe(int player, int shipId) =>
+        FindShip(shipId) is { } ship && ship.Owner == player && ship.ScanReadyTick > Now && (_sim?.FitOutProbes(player) ?? 0) > 0;
 
     /// <summary>The bodies a long-range scan from this ship would chart now (within range of where it is).</summary>
     public IReadOnlyList<string> ScanTargets(SystemShip ship)
     {
-        var range = ScanRange;
+        var range = ScanRangeFor(ship.Owner);
         var at = ShipPosition(ship, Now);
         return Bodies.Where(b => FixVec2.Distance(b.Position, at) <= range).Select(b => b.Id).ToList();
     }
@@ -569,7 +599,8 @@ public sealed partial class StarSystemState
         var rules = Data?.SystemRules;
         var max = rules?.SatelliteMax ?? 4;
         if (_satellites.Count(s => s.Owner == player) >= max) return $"all {max} satellites are out";
-        if (rules != null && !_sim.Players[player].Stock.CanAfford(rules.SatelliteCost)) return "not enough resources";
+        // A body satellite the fit-out brought ready to place costs nothing (Core/FitOut.cs).
+        if (rules != null && _sim.FitOutFreeSystemSatellites(player) <= 0 && !_sim.Players[player].Stock.CanAfford(rules.SatelliteCost)) return "not enough resources";
         return null;
     }
 
@@ -704,10 +735,13 @@ public sealed partial class StarSystemState
                     return;
                 }
                 var ship = FindShip(scan.ShipId)!;
+                // While the scanners recharge, a sensor probe makes the scan (ScanProblem let it through) and their
+                // recharge runs on as it was; otherwise the scanners do it and recharge.
+                var probe = ship.ScanReadyTick > sim.Tick && sim.UseProbe(scan.Player);
                 foreach (var id in ScanTargets(ship)) Identify(scan.Player, id);
                 ship.LastScanTick = sim.Tick;
                 Version++;
-                ship.ScanReadyTick = sim.Tick + ScanCooldownTicks;
+                if (!probe) ship.ScanReadyTick = sim.Tick + ScanCooldownTicksFor(scan.Player);
                 return;
             }
             case SystemSatelliteCommand satellite:
@@ -717,7 +751,7 @@ public sealed partial class StarSystemState
                     sim.Refuse(satellite, problem);
                     return;
                 }
-                if (sim.Data.SystemRules is { } rules) sim.Players[satellite.Player].Stock.TrySpend(rules.SatelliteCost);
+                if (sim.Data.SystemRules is { } rules && !sim.UseFreeSystemSatellite(satellite.Player)) sim.Players[satellite.Player].Stock.TrySpend(rules.SatelliteCost); // the fit-out's ready ones first
                 _satellites.Add(new SystemSatellite(satellite.Player, satellite.BodyId, sim.Tick));
                 Version++;
                 return;
@@ -823,7 +857,7 @@ public sealed partial class StarSystemState
         if (KnowledgeOf(ship.Owner, body) >= BodyKnowledge.Charted) return;
         ship.SweepBody = body;
         ship.SweepStartTick = tick;
-        ship.SweepDoneTick = tick + SweepTicks;
+        ship.SweepDoneTick = tick + SweepTicksFor(ship.Owner);
         Version++;
     }
 

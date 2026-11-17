@@ -7,8 +7,11 @@ using Godot;
 namespace FinalFrontier;
 
 // The campaign's Fit Out Your Ship page (docs/fit-out-contract.md, design page docs/mockups/loadout "Screen"): between
-// Choose Your Ship and the star-system picker, only for a ship the fit-out data lists (FitOutRules.Applies; phase 1 =
-// the two colony ships). No fit-out data, or a ship it doesn't list: the page is skipped and the game starts as before.
+// Choose Your Ship and the star-system picker, only for a ship the fit-out data lists (FitOutRules.Applies: the two
+// colony ships and, since phase 2, the four that never land). No fit-out data, or a ship it doesn't list: the page is
+// skipped and the game starts as before. A ship that never lands (FitOutRules.IsSpace) shows only its own cargo lines,
+// group floors, perk and levers, and its summary says what is ABOARD (body satellites, probes, posts, reaction mass,
+// gifts, scan reach) instead of what lands.
 // Layout: the title and the ship strip on top (crew to assign, hold, what comes with the ship); three columns: focus
 // tiles + the perk + the crew split (stacked bar, one row per division with −, slider, +) | the hold by cargo group
 // (− count + per line, group totals and floors, the hold bar; a line's description is its hover text) | the summary
@@ -56,6 +59,7 @@ public partial class MainMenu
         public string StockKey = "\n", NotesKey = "\n";
         public readonly List<FitDivisionSummary> Divisions = new();
         public readonly List<(FitOutLever Lever, Label Value)> Levers = new();
+        public bool Space; // a ship that never lands: ABOARD instead of AT LANDING, the space levers
         public Button Launch = null!;
         public Label Say = null!;
     }
@@ -177,6 +181,9 @@ public partial class MainMenu
 
     private void LeaveFitOut() => _fit = null;
 
+    /// <summary>The fit-out being made is for a ship that never lands (its own cargo lines, floors, perk and levers).</summary>
+    private bool FitSpace => Data is { } data && FitOutRules.IsSpace(data, _fitShip);
+
     // ---------------------------------------------------------------- the page
 
     private Control BuildFitOutPage()
@@ -193,7 +200,7 @@ public partial class MainMenu
             b.AddChild(Action("‹  SHIP", false, () => ShowPage(Page.Ship)));
             return root;
         }
-        var w = new FitWidgets();
+        var w = new FitWidgets { Space = FitOutRules.IsSpace(data, ship.Id) };
 
         // Title on the left, the ship strip beside it.
         var top = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -218,7 +225,7 @@ public partial class MainMenu
         left.AddChild(FitFocusPanel(w, rules, budget));
         left.AddChild(FitCrewPanel(w, rules, budget));
 
-        columns.AddChild(FitCargoPanel(w, rules));
+        columns.AddChild(FitCargoPanel(w, rules, w.Space));
         columns.AddChild(FitSummaryPanel(w, rules));
 
         var bar = BottomBar(column);
@@ -446,7 +453,7 @@ public partial class MainMenu
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
                 CustomMinimumSize = new Vector2(0, 40 * _s),
                 ClipContents = true,
-                TooltipText = focus.Line + (suggested ? "\nSuggested for this ship." : "") + (focus.PerkText.Length > 0 ? $"\nPerk: {focus.PerkText}" : ""),
+                TooltipText = focus.Line + (suggested ? "\nSuggested for this ship." : "") + (focus.PerkFor(w.Space).Length > 0 ? $"\nPerk: {focus.PerkFor(w.Space)}" : ""),
             };
             var id = focus.Id;
             tile.Pressed += () => PickFocus(id);
@@ -631,7 +638,7 @@ public partial class MainMenu
 
     // ---------------------------------------------------------------- cargo
 
-    private Control FitCargoPanel(FitWidgets w, FitOutData rules)
+    private Control FitCargoPanel(FitWidgets w, FitOutData rules, bool space)
     {
         var (panel, box) = FitPanel();
         panel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -642,14 +649,15 @@ public partial class MainMenu
         var (scroll, list) = FitScroll();
         list.AddThemeConstantOverride("separation", Mathf.RoundToInt(7 * _s));
         box.AddChild(scroll);
+        // Only this kind of ship's lines: a colony ship's land with it, a ship that never lands has its own.
         foreach (var group in rules.Groups)
         {
-            var lines = rules.Cargo.Where(l => l.Group == group.Id).ToList();
+            var lines = rules.LinesFor(space).Where(l => l.Group == group.Id).ToList();
             if (lines.Count == 0) continue; // only what the data has
             list.AddChild(FitCargoGroup(w, group, group.Name, lines));
         }
         // Lines whose group the data doesn't list still show, under their own heading with no minimum.
-        var stray = rules.Cargo.Where(l => rules.Groups.All(g => g.Id != l.Group)).ToList();
+        var stray = rules.LinesFor(space).Where(l => rules.Groups.All(g => g.Id != l.Group)).ToList();
         if (stray.Count > 0) list.AddChild(FitCargoGroup(w, null, "OTHER CARGO", stray));
 
         w.CargoNote = FitWrapped("", 12, HudKit.Dim);
@@ -716,10 +724,11 @@ public partial class MainMenu
             _fitGroupUsed[line.Group] = (_fitGroupUsed.TryGetValue(line.Group, out var n) ? n : 0) + CargoCount(line.Id) * line.Containers;
     }
 
-    private static int GroupFloor(FitOutData rules, string groupId)
+    /// <summary>A cargo group's floor on this kind of ship (a ship that never lands has its own floors).</summary>
+    private int GroupFloor(FitOutData rules, string groupId)
     {
         foreach (var g in rules.Groups)
-            if (g.Id == groupId) return g.Floor;
+            if (g.Id == groupId) return g.FloorFor(FitSpace);
         return 0;
     }
 
@@ -748,7 +757,7 @@ public partial class MainMenu
         list.AddThemeConstantOverride("separation", Mathf.RoundToInt(5 * _s));
         box.AddChild(scroll);
 
-        list.AddChild(FitCaption("AT LANDING"));
+        list.AddChild(FitCaption(w.Space ? "ABOARD" : "AT LANDING"));
         w.Stock = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         w.Stock.AddThemeConstantOverride("separation", Mathf.RoundToInt(1 * _s));
         list.AddChild(w.Stock);
@@ -764,14 +773,14 @@ public partial class MainMenu
             block.AddChild(headRow);
             w.Divisions.Add(new FitDivisionSummary { Head = head, Strength = strength });
             var any = false;
-            foreach (var lever in rules.Levers.Where(l => l.Division == division.Id))
+            foreach (var lever in rules.LeversFor(w.Space).Where(l => l.Division == division.Id))
             {
                 var (leverRow, _, value) = FitPair(lever.Name, "", 13, HudKit.Ink, false);
                 block.AddChild(leverRow);
                 w.Levers.Add((lever, value));
                 any = true;
             }
-            if (!any) block.AddChild(HudKit.Label("Nothing yet", 13 * _s, HudKit.Dim));
+            if (!any) block.AddChild(HudKit.Label(w.Space ? "Nothing yet in space" : "Nothing yet", 13 * _s, HudKit.Dim));
         }
 
         list.AddChild(FitCaption("NOTES"));
@@ -835,7 +844,8 @@ public partial class MainMenu
         w.FocusBox.BgColor = HudKit.Chip.Lerp(focusFill, 0.1f);
         w.FocusBox.BorderColor = new Color(focusFill, 0.7f);
         FitSet(w.FocusTitle, focus == null ? "" : $"{focus.Name.ToUpperInvariant()}  ·  {focus.Line}", FitOutText.Text(focus?.Division));
-        FitSet(w.FocusPerk, focus == null || focus.PerkText.Length == 0 ? "No perk." : $"Perk: {focus.PerkText}");
+        var perk = focus?.PerkFor(w.Space) ?? "";
+        FitSet(w.FocusPerk, perk.Length == 0 ? "No perk." : $"Perk: {perk}");
 
         // Crew.
         FitSet(w.CrewTotal, $"{budget.Crew - free:N0} OF {budget.Crew:N0} ASSIGNED", free != 0 ? HudKit.Warn : HudKit.Ink);
@@ -887,7 +897,8 @@ public partial class MainMenu
         foreach (var g in w.Groups)
         {
             var inGroup = _fitGroupUsed.TryGetValue(g.Group.Id, out var n) ? n : 0;
-            FitSet(g.Total, g.Group.Floor > 0 ? $"{inGroup} · AT LEAST {g.Group.Floor}" : $"{inGroup} · NO MINIMUM", inGroup < g.Group.Floor ? HudKit.Warn : HudKit.Dim);
+            var groupFloor = g.Group.FloorFor(w.Space);
+            FitSet(g.Total, groupFloor > 0 ? $"{inGroup} · AT LEAST {groupFloor}" : $"{inGroup} · NO MINIMUM", inGroup < groupFloor ? HudKit.Warn : HudKit.Dim);
             w.HoldBar.Add(inGroup / (float)hold, FitOutText.Fill(g.Group.Id));
         }
         w.HoldBar.End(Mathf.Max(0, left) / (float)hold);
@@ -925,6 +936,11 @@ public partial class MainMenu
 
     private void RefreshFitSummary(FitWidgets w, GameData data, FitOutData rules, string shipId, FitOut fit, int crew, int free, int left, string? problem)
     {
+        if (w.Space)
+        {
+            RefreshSpaceSummary(w, data, rules, shipId, fit, crew, free, left, problem);
+            return;
+        }
         // At landing: the stock in the data's resource order, then the vehicles. Rebuilt only when it reads differently.
         var stock = FitOutRules.LandingStock(data, shipId, fit);
         var units = FitOutRules.LandingUnits(data, shipId, fit);
@@ -977,6 +993,75 @@ public partial class MainMenu
             foreach (var (text, colour) in notes) w.Notes.AddChild(FitWrapped(text, 13, colour));
         }
     }
+
+    /// <summary>The summary for a ship that never lands: what is ABOARD (body satellites and posts that cost nothing, scans
+    /// with no recharge wait, flights shortened by reaction mass, culture-shock points from gifts, scan reach), every
+    /// division's space levers as the numbers the player meets in play, and notes. Same layout as the colony summary.</summary>
+    private void RefreshSpaceSummary(FitWidgets w, GameData data, FitOutData rules, string shipId, FitOut fit, int crew, int free, int left, string? problem)
+    {
+        var rows = new List<(string Name, string Value)>
+        {
+            ("Satellites ready to place", FitOutRules.FreeSystemSatellites(data, fit).ToString()),
+            ("Scans with no recharge wait", FitOutRules.Probes(data, fit).ToString()),
+            ("Listening posts ready", FitOutRules.FreePosts(data, fit).ToString()),
+        };
+        // Reaction mass alone (the crew and the perk show under Engineering below).
+        var mass = 0.0;
+        foreach (var l in rules.LinesFor(true))
+            foreach (var e in l.Levers)
+                if (e.Lever == FitOutRules.FlightTime) mass += e.Value.ToFloat() * FitOutRules.CargoCount(fit, l.Id);
+        var massPct = Mathf.RoundToInt((float)mass * 100f);
+        rows.Add(("Flights, from reaction mass", massPct == 0 ? "as today" : FitOutText.Signed(massPct)));
+        var shock = FitOutRules.ShockPoints(data, fit);
+        rows.Add(("Culture-shock chance, from gifts", shock == 0 ? "as today" : $"{(shock < 0 ? "−" : "+")}{System.Math.Abs(shock)} points"));
+        if (data.SystemRules is { } sr)
+        {
+            var reach = Mathf.RoundToInt((sr.ScanRange * FitOutRules.Factor(data, shipId, fit, FitOutRules.ScanRange)).ToFloat());
+            rows.Add(("Long-range scan reach", $"{reach:N0} units"));
+        }
+        var stockKey = string.Join("|", rows.Select(r => $"{r.Name}={r.Value}"));
+        if (stockKey != w.StockKey)
+        {
+            w.StockKey = stockKey;
+            HudKit.Clear(w.Stock);
+            foreach (var (name, value) in rows) w.Stock.AddChild(FitPair(name, value, 13, HudKit.Ink, false).Row);
+        }
+
+        for (var i = 0; i < rules.Divisions.Count && i < w.Divisions.Count; i++)
+        {
+            var division = rules.Divisions[i];
+            var strength = Mathf.RoundToInt(FitOutRules.Strength(data, shipId, fit, division.Id).ToFloat() * 100f);
+            FitSet(w.Divisions[i].Head, $"{division.Name.ToUpperInvariant()}  {FitOutText.SharePercentOf(fit.Crew[i], crew)}%");
+            FitSet(w.Divisions[i].Strength, FitOutText.Signed(strength), strength > 0 ? HudKit.Good : strength < 0 ? FitOutText.Bad : HudKit.Dim);
+        }
+        foreach (var (lever, value) in w.Levers)
+        {
+            var factor = FitOutRules.Factor(data, shipId, fit, lever.Id).ToFloat();
+            var percent = Mathf.RoundToInt((factor - 1f) * 100f);
+            var colour = percent == 0 ? HudKit.Dim : (percent > 0) == lever.MoreIsBetter ? HudKit.Good : FitOutText.Bad;
+            FitSet(value, FitOutText.SpaceLeverValue(data, lever.Id, factor) ?? FitOutText.Signed(percent), colour);
+        }
+
+        var notes = new List<(string Text, Color Colour)>();
+        if (free > 0) notes.Add(($"{free:N0} crew still unassigned. They do nothing until they have a division.", HudKit.Warn));
+        else if (problem != null) notes.Add((problem, HudKit.Warn));
+        if (left > 0) notes.Add(($"{Containers(left)} {(left == 1 ? "is" : "are")} empty.", HudKit.Warn));
+        if (notes.Count == 0) notes.Add(("Ready to launch.", HudKit.Good));
+        notes.Add(("Nothing lands from this ship: the hold is used in the star system.", HudKit.Ink));
+        if (data.SystemRules is { } rules2 && rules2.SatelliteCost.Count > 0)
+            notes.Add(($"Body satellites beyond the ones aboard cost {CostText(data, rules2.SatelliteCost)} each from stock.", HudKit.Dim));
+        var notesKey = string.Join("|", notes.Select(n => n.Text));
+        if (notesKey != w.NotesKey)
+        {
+            w.NotesKey = notesKey;
+            HudKit.Clear(w.Notes);
+            foreach (var (text, colour) in notes) w.Notes.AddChild(FitWrapped(text, 13, colour));
+        }
+    }
+
+    /// <summary>"60 duranium + 30 tritanium".</summary>
+    private static string CostText(GameData data, IReadOnlyList<ResourceAmount> cost) =>
+        string.Join(" + ", cost.Select(c => $"{c.Amount.FloorToInt():N0} {(c.Resource >= 0 && c.Resource < data.Resources.Count ? data.Resources[c.Resource].Name.ToLowerInvariant() : "?")}"));
 
     /// <summary>Drop-ship trips the landing stock's fuel pays for at 1 g (the orbit rules' fuel a trip), or null when a
     /// trip costs nothing.</summary>

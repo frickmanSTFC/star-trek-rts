@@ -465,6 +465,13 @@ public sealed partial class StarSystemState
         if (LowStandingWith(player, site.BodyId)) chance += c.Spacefaring.LowStandingShock; // spacefaring natives judge a low Standing
         for (var k = 0; k < run.Chosen.Count && k < c.Steps.Count; k++)
             if (run.Chosen[k] >= 0 && run.Chosen[k] < c.Steps[k].Choices.Count) chance += c.Steps[k].Choices[run.Chosen[k]].Shock;
+        // The player's fit-out (exactly as before with none): science crew scale the chance, medicine and gifts take points off.
+        if (_sim is { } sim)
+        {
+            var fit = sim.FitOutFactor(player, FitOutRules.ShockChance);
+            if (fit != Fix64.One) chance = (Fix64.FromInt(chance) * fit + Fix64.Half).FloorToInt();
+            chance += sim.FitOutShockPoints(player);
+        }
         return System.Math.Clamp(chance, c.ShockMin, c.ShockMax);
     }
 

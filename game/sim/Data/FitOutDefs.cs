@@ -26,26 +26,58 @@ public readonly record struct FitOutLoad(string Line, int Count);
 /// <summary>A focus: Id "explorer"; Name; Division it leads with (null for the all-rounder); Line (one short sentence);
 /// CrewPct (preset shares in the data's division order, summing to 100); PerkText (shown to the player; empty = no perk).
 /// The perk itself: PerkLevers (multipliers on levers) and LandingReveal (hexes revealed round the hub at the landing; 0 =
-/// the landing's own radius).</summary>
+/// the landing's own radius). On a ship that never lands the perk is SpacePerkText / SpacePerkLevers instead (the colony
+/// perk does nothing there, and the space perk nothing on a colony ship).</summary>
 public sealed record FitOutFocus(string Id, string Name, string? Division, string Line, IReadOnlyList<int> CrewPct, string PerkText)
 {
     public IReadOnlyList<FitOutLeverEffect> PerkLevers { get; init; } = Array.Empty<FitOutLeverEffect>();
     public int LandingReveal { get; init; }
+    /// <summary>The perk's text on a ship that never lands (empty = none).</summary>
+    public string SpacePerkText { get; init; } = "";
+    /// <summary>The perk's multipliers on a ship that never lands (space levers only).</summary>
+    public IReadOnlyList<FitOutLeverEffect> SpacePerkLevers { get; init; } = Array.Empty<FitOutLeverEffect>();
+
+    /// <summary>The perk text for a colony ship (space false) or a ship that never lands (space true).</summary>
+    public string PerkFor(bool space) => space ? SpacePerkText : PerkText;
+
+    /// <summary>The perk's multipliers for a colony ship or a ship that never lands.</summary>
+    public IReadOnlyList<FitOutLeverEffect> PerkLeversFor(bool space) => space ? SpacePerkLevers : PerkLevers;
 }
 
 /// <summary>A number the fit-out moves: Id "drive_speed"; Division whose strength moves it ("" = none: only perks and cargo
-/// do); MoreIsBetter (× (1 + strength)) or not (× (1 − strength)); Name for the summary ("Vehicle drive speed").</summary>
-public sealed record FitOutLever(string Id, string Division, bool MoreIsBetter, string Name);
+/// do); MoreIsBetter (× (1 + strength)) or not (× (1 − strength)); Name for the summary ("Vehicle drive speed"). Space: a
+/// lever of the star-system layer that only moves on a ship that never lands (a colony ship's levers move only on a colony
+/// ship), so each ship's levers are the ones its page lists.</summary>
+public sealed record FitOutLever(string Id, string Division, bool MoreIsBetter, string Name)
+{
+    public bool Space { get; init; }
+}
 
-/// <summary>A cargo group: Id (a division id or "ship"); Name ("Engineering stores"); Floor (containers it must hold).</summary>
-public sealed record FitOutCargoGroup(string Id, string Name, int Floor);
+/// <summary>A cargo group: Id (a division id or "ship"); Name ("Engineering stores"); Floor (containers it must hold on a
+/// colony ship); SpaceFloor (on a ship that never lands).</summary>
+public sealed record FitOutCargoGroup(string Id, string Name, int Floor)
+{
+    public int SpaceFloor { get; init; }
+
+    /// <summary>The floor on a colony ship (space false) or a ship that never lands (space true).</summary>
+    public int FloorFor(bool space) => space ? SpaceFloor : Floor;
+}
 
 /// <summary>A cargo line: Id "mat"; Name; Group; Containers each; Min / Max count; Text (what one gives, shown on hover).
 /// What one item does: Stock (into the landing stock), Unit (a surface unit that lands with the colony; "" = none),
 /// Satellites (survey satellites that launch without paying), Research (points banked toward the first tech), Levers
-/// (added to those levers' multipliers).</summary>
+/// (added to those levers' multipliers). Space: a line for a ship that never lands (only those ships carry it, and they carry
+/// only such lines); what one of those does: SystemSatellites (body satellites placed without paying), Posts (hidden
+/// observation posts placed without paying), Probes (long-range scans with no recharge wait), ShockPoints (added to the
+/// culture-shock chance at first contact, in percentage points), Levers.</summary>
 public sealed record FitOutCargoLine(string Id, string Name, string Group, int Containers, int Min, int Max, string Text)
 {
+    public bool Space { get; init; }
+    public int SystemSatellites { get; init; }
+    public int Posts { get; init; }
+    public int Probes { get; init; }
+    public int ShockPoints { get; init; }
+
     public IReadOnlyList<FitOutStock> Stock { get; init; } = Array.Empty<FitOutStock>();
     public string Unit { get; init; } = "";
     public int Satellites { get; init; }
@@ -81,6 +113,12 @@ public sealed class FitOutData
     public IReadOnlyList<string> ReplacesStartStock { get; init; } = Array.Empty<string>();
 
     public FitOutShip? Ship(string? shipId) => shipId == null ? null : Ships.FirstOrDefault(s => s.ShipId == shipId);
+
+    /// <summary>The cargo lines a ship of this kind carries (space = a ship that never lands), in page order.</summary>
+    public IEnumerable<FitOutCargoLine> LinesFor(bool space) => Cargo.Where(l => l.Space == space);
+
+    /// <summary>The levers that move on a ship of this kind (space = a ship that never lands), in data order.</summary>
+    public IEnumerable<FitOutLever> LeversFor(bool space) => Levers.Where(l => l.Space == space);
     public FitOutFocus? Focus(string? id) => id == null ? null : Focuses.FirstOrDefault(f => f.Id == id);
     public FitOutLever? Lever(string? id) => id == null ? null : Levers.FirstOrDefault(l => l.Id == id);
     public FitOutCargoLine? Line(string? id) => id == null ? null : Cargo.FirstOrDefault(l => l.Id == id);

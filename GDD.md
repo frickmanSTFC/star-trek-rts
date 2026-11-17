@@ -123,8 +123,8 @@ layer above it once the surface game is fun.
 - **Fit Out Your Ship** (decided 2026-11-17: "You should decide if you are an explorer, a builder, a combatant, etc.
   Based on this, you can set the crewing/supplies of your ship before you leave home-base. You need to have some of
   each type of support, but you can go more with one type over another"; `data/missions/fit_out.json`,
-  `docs/fit-out-contract.md`, design page `docs/mockups/loadout/`; phase 1 = the two colony ships, the four that never
-  land play as before). Between the ship pick and the system pick the player picks a **focus** (Explorer, Builder,
+  `docs/fit-out-contract.md`, design page `docs/mockups/loadout/`; phase 1 = the two colony ships, phase 2 (below) =
+  the four that never land). Between the ship pick and the system pick the player picks a **focus** (Explorer, Builder,
   Combatant, Scientist, All-rounder; any focus on any ship, each ship suggests one: Horizon All-rounder, Cochrane
   Builder), splits the **crew** (Horizon 120, Cochrane 210 heads) over four divisions (Exploration, Engineering,
   Science, Defense: each at least 10%, the focus's own at least 30%, everyone assigned) and loads the **hold**
@@ -143,8 +143,20 @@ layer above it once the surface game is fun.
   crew awake). Group floors: exploration 2, engineering 8, science 2, defense 2, ship's stores 4 containers; the hold
   need not be full. With a fit-out the landing's duranium, tritanium and deuterium come from the hold instead of the
   usual 500 / 300 / 150 (the ship's own bonus is added as before); everything else in the start stock stays. A game
-  with no fit-out (the sandbox, tests, the balance runner, the four space ships) is exactly the game as it was. All
-  numbers are placeholders. Open: the four space ships' fit-outs, more for Defense once combat exists, a big load of
+  with no fit-out (the sandbox, tests, the balance runner) is exactly the game as it was. All numbers are placeholders.
+  **Phase 2, the four ships that never land** (owner 2026-11-17: "do the four space ships next"): the same page and
+  rules; crew / hold / suggested focus Tereshkova 40 / 12 / Explorer, Armstrong 6 / 6 / Builder, Bastion 85 / 14 /
+  Combatant, Meridian 350 / 20 / Scientist. Their divisions move star-system levers instead: Exploration the
+  long-range scan recharge (90 s) and the 15 s sweep of a new body; Engineering flight time; Science the study of a
+  civilization and the culture-shock chance at first contact; Defense the time alongside a ship for inspections and
+  escorts (30 s). Space perks: Explorer scans reach 400 units instead of 320; Builder flights 8% shorter; Combatant 20 s
+  alongside instead of 30; Scientist study a quarter shorter. Their own cargo (containers, min-max): System satellite
+  (2, 0-4: placed at a body without paying), Sensor probe (1, 0-4: a long-range scan with no recharge wait), Reaction
+  mass (1, 0-6: flights 2% shorter each), Listening post (2, 0-3: a hidden observation post without paying), Medicine
+  and gifts (1, 0-4: culture-shock chance 3 points lower each); floors exploration, engineering, science 1, defense and
+  ship's stores none. Nothing lands from them and they keep the start stock; a colony ship's levers and lines do
+  nothing on them and theirs nothing on a colony ship. The page shows ABOARD (satellites, scans with no wait, posts,
+  reaction mass, gifts, scan reach) instead of AT LANDING. Open: more for Defense once combat exists, a big load of
   building materials can land with more than the hub's vault holds (income then waits until some is spent).
 - **Building** (from the build bar once landed): one building per hex, on surveyed, buildable tiles within the Colony
   Hub's build radius (4). The cost is paid on placement; the hub's single build queue builds one at a time, the rest

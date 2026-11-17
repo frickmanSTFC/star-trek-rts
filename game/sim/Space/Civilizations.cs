@@ -567,7 +567,8 @@ public sealed partial class StarSystemState
         if (!site.Living) return $"only ruins on {body.Name}: nobody to observe";
         if (_posts.Any(p => p.Owner == player && p.BodyId == bodyId && !p.Found)) return $"a post is already hidden on {body.Name}";
         if (_posts.Count(p => p.Owner == player && !p.Found) >= c.Post.Max) return $"all {c.Post.Max} observation posts are out";
-        if (!_sim.Players[player].Stock.CanAfford(c.Post.Cost)) return "not enough resources";
+        // A listening post the fit-out brought ready to place costs nothing (Core/FitOut.cs).
+        if (_sim.FitOutFreePosts(player) <= 0 && !_sim.Players[player].Stock.CanAfford(c.Post.Cost)) return "not enough resources";
         return null;
     }
 
@@ -580,7 +581,7 @@ public sealed partial class StarSystemState
             return;
         }
         var c = CivData!;
-        sim.Players[post.Player].Stock.TrySpend(c.Post.Cost);
+        if (!sim.UseFreePost(post.Player)) sim.Players[post.Player].Stock.TrySpend(c.Post.Cost); // the fit-out's ready ones first
         _posts.Add(new ObservationPost
         {
             Owner = post.Player, BodyId = post.BodyId, PlacedTick = sim.Tick,
@@ -692,6 +693,9 @@ public sealed partial class StarSystemState
                 if (satellite) rate += Fix64.One / (c.Study.SatelliteSeconds * Simulation.TickRate);
                 if (posts > 0) rate += Fix64.One / (c.Study.PostSeconds * Simulation.TickRate);
                 if (rate <= Fix64.Zero) continue;
+                // The player's fit-out: study_time × (science crew, the Scientist's perk); exactly 1 with none.
+                var studyFit = Fit(player, FitOutRules.StudyTime);
+                if (studyFit != Fix64.One) rate /= studyFit;
                 var before = (p.Study[i] * 20).FloorToInt();
                 p.Study[i] = Fix64.Min(Fix64.One, p.Study[i] + rate);
                 if ((p.Study[i] * 20).FloorToInt() != before) Version++;

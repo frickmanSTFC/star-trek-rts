@@ -372,9 +372,14 @@ public class ShipPickTests
     /// <summary>A campaign game with the ship picked and its chain on, played to the end by <see cref="Pilot"/> (commands
     /// only); returns the hash every second and the game.</summary>
     private (List<ulong> Hashes, Simulation Sim, Pilot Pilot) Play(string shipId, ulong seed, int maxMinutes, string? start = null)
+        => Play(shipId, seed, maxMinutes, start, false, null);
+
+    /// <summary>As above; sixArgs = through the 6-argument game with this fit-out (null = none: it must be the same game).</summary>
+    private (List<ulong> Hashes, Simulation Sim, Pilot Pilot) Play(string shipId, ulong seed, int maxMinutes, string? start, bool sixArgs, FitOut? fitOut)
     {
         var data = Campaign;
-        var sim = MatchSetup.CreateSystemGame(data, seed, "federation", start, shipId);
+        var sim = sixArgs ? MatchSetup.CreateSystemGame(data, seed, "federation", start, shipId, fitOut) : MatchSetup.CreateSystemGame(data, seed, "federation", start, shipId);
+        if (sixArgs && fitOut != null) Assert.NotNull(sim.FitOutOf(0));
         Assert.Null(sim.Missions.Enable(data.ShipChoice(shipId)!.Chain));
         var pilot = new Pilot(sim);
         var hashes = new List<ulong>();
@@ -464,6 +469,55 @@ public class ShipPickTests
         var (_, sim, _) = Play("meridian", seed, 60, start);
         Assert.True(sim.System!.RelationsWith(0, civ.BodyId) >= ContactStage.Contact);
         Assert.Contains("envoy_done", sim.Missions.Flags(0));
+    }
+
+    // ---------------------------------------------------------------- the four chains with a fit-out (docs/fit-out-contract.md phase 2)
+
+    /// <summary>Each ship's game for the play-throughs: the seed and start orbit its chain is played from above.</summary>
+    private static (ulong Seed, string? Start) Setup(string shipId)
+    {
+        if (shipId != "meridian") return (shipId == "tereshkova" ? RichSeed() : Seed, null);
+        ulong seed = 1;
+        while (!MatchSetup.HasLivingCivilization(Campaign, seed)) seed++;
+        var system = SystemGenerator.Generate(Campaign, seed);
+        var civ = CivGenerator.Roll(Campaign, system.Bodies, seed, MatchSetup.HomeBody(Campaign, system).Id).First(c => c.Living);
+        return (seed, system.Bodies.First(b => b.Id != civ.BodyId).Id);
+    }
+
+    [Theory]
+    [InlineData("tereshkova")]
+    [InlineData("armstrong")]
+    [InlineData("bastion")]
+    [InlineData("meridian")]
+    public void NoFitOutPlaysTheChainExactlyAsBefore(string shipId)
+    {
+        // The 5-argument game and the 6-argument one handed no fit-out: the same hash every second to the chain's end.
+        var (seed, start) = Setup(shipId);
+        var plain = Play(shipId, seed, 60, start);
+        var none = Play(shipId, seed, 60, start, true, null);
+        Assert.Null(none.Sim.FitOutOf(0));
+        Assert.Equal(plain.Hashes, none.Hashes);
+    }
+
+    [Theory]
+    [InlineData("tereshkova")]
+    [InlineData("armstrong")]
+    [InlineData("bastion")]
+    [InlineData("meridian")]
+    public void EveryFocusPresetFinishesTheShipsChain(string shipId)
+    {
+        var (seed, start) = Setup(shipId);
+        var plain = Play(shipId, seed, 60, start);
+        foreach (var focus in Campaign.FitOut!.Focuses)
+        {
+            var fit = FitOutRules.Preset(Campaign, shipId, focus.Id)!;
+            Assert.Null(FitOutRules.Problem(Campaign, shipId, fit));
+            var (hashes, sim, _) = Play(shipId, seed, 60, start, true, fit); // asserts every mission of the chain completed
+            Assert.Equal(0, sim.DebugEdits);
+            _out.WriteLine($"{shipId} {focus.Id}: {hashes.Count} s (no fit-out: {plain.Hashes.Count} s)");
+            if (focus.Id == Campaign.FitOut.Ship(shipId)!.Suggest)
+                Assert.Equal(hashes, Play(shipId, seed, 60, start, true, fit).Hashes); // the same fit-out twice: the same game
+        }
     }
 
     /// <summary>

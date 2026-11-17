@@ -384,6 +384,25 @@ public sealed partial class MissionBook
         for (var k = 0; k < stage.Objectives.Count; k++) run.Base[k] = Baseline(p, run, stage.Objectives[k].Cond);
     }
 
+    /// <summary>The seconds an objective must hold for this player: its hold_seconds, and for time alongside a ship
+    /// (with_ship) × the player's fit-out alongside_time lever (defense crew, the Combatant's perk), rounded, at least 1.
+    /// Exactly hold_seconds with no fit-out.</summary>
+    internal int HoldSecondsOf(int p, MissionObjectiveDef o)
+    {
+        if (o.HoldSeconds <= 0 || _sim is not { } sim || !Alongside(o.Cond)) return o.HoldSeconds;
+        var fit = sim.FitOutFactor(p, FitOutRules.AlongsideTime);
+        if (fit == Fix64.One) return o.HoldSeconds;
+        return System.Math.Max(1, (Fix64.FromInt(o.HoldSeconds) * fit + Fix64.Half).FloorToInt());
+    }
+
+    private static bool Alongside(MissionCondDef c)
+    {
+        if (c.Kind == "with_ship") return true;
+        foreach (var child in c.Children)
+            if (Alongside(child)) return true;
+        return false;
+    }
+
     private void StepActive(int p, MissionRun run)
     {
         if (Def(run) is not { } d || run.Stage < 0 || run.Stage >= d.Stages.Count) return;
@@ -397,8 +416,9 @@ public sealed partial class MissionBook
                 var e = Check(p, run, k, o.Cond, null);
                 if (o.HoldSeconds > 0)
                 {
-                    run.Progress[k] = e.Met ? Fix64.Min(Fix64.FromInt(o.HoldSeconds), run.Progress[k] + Fix64.One) : Fix64.Zero;
-                    run.Done[k] = run.Progress[k] >= Fix64.FromInt(o.HoldSeconds);
+                    var hold = Fix64.FromInt(HoldSecondsOf(p, o));
+                    run.Progress[k] = e.Met ? Fix64.Min(hold, run.Progress[k] + Fix64.One) : Fix64.Zero;
+                    run.Done[k] = run.Progress[k] >= hold;
                 }
                 else
                 {
@@ -588,7 +608,7 @@ public sealed partial class MissionBook
                 var o = stage.Objectives[k];
                 var active = run.State == MissionState.Active && k < run.Done.Length;
                 var done = active && run.Done[k];
-                var target = o.HoldSeconds > 0 ? Fix64.FromInt(o.HoldSeconds) : Target(p, run, o.Cond);
+                var target = o.HoldSeconds > 0 ? Fix64.FromInt(HoldSecondsOf(p, o)) : Target(p, run, o.Cond);
                 var progress = active ? (done && target > Fix64.Zero ? target : run.Progress[k]) : Fix64.Zero;
                 var detail = active && !done ? Detail(p, run, o.Cond) : ""; // MissionConditions.cs
                 objectives.Add(new ObjectiveView(o.Id, Fill(p, run, o.Text), done, o.Optional, progress, target, detail));

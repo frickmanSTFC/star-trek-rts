@@ -38,6 +38,33 @@ public static class FitOutText
     /// <summary>"+8%", "−6%", or "as today" for nothing.</summary>
     public static string Signed(int percent) => percent == 0 ? "as today" : percent > 0 ? $"+{percent}%" : $"−{-percent}%";
 
+    /// <summary>A space lever as the number a player meets in play ("74 s" for a 90 s scan recharge; "49 s" for a 60 s
+    /// flight), from the factor and the data's own base number, or null to show the percentage instead.</summary>
+    public static string? SpaceLeverValue(GameData data, string leverId, float factor)
+    {
+        string Seconds(float s) => $"{Mathf.RoundToInt(s)} s";
+        switch (leverId)
+        {
+            case FitOutRules.ScanCooldown when data.SystemRules is { } r: return Seconds(r.ScanCooldownSeconds * factor);
+            case FitOutRules.SweepTime when data.SystemRules is { } r: return Seconds(r.SweepSeconds * factor);
+            case FitOutRules.FlightTime: return $"{Mathf.RoundToInt(60f * factor)} s of 60";
+            case FitOutRules.StudyTime when data.Civilizations is { } c: return Seconds(c.Study.OrbitSeconds * factor);
+            case FitOutRules.AlongsideTime: return Seconds(Mathf.Max(1, Mathf.RoundToInt(AlongsideBase(data) * factor)));
+            default: return null;
+        }
+    }
+
+    /// <summary>The seconds alongside a ship the missions ask for (the first with_ship objective's hold), else 30.</summary>
+    private static int AlongsideBase(GameData data)
+    {
+        if (data.Missions is { } m)
+            foreach (var mission in m.List)
+                foreach (var stage in mission.Stages)
+                    foreach (var o in stage.Objectives)
+                        if (o.HoldSeconds > 0 && o.Cond.Kind == "with_ship") return o.HoldSeconds;
+        return 30;
+    }
+
     /// <summary>The crew in every division together.</summary>
     public static int Heads(FitOut fit)
     {

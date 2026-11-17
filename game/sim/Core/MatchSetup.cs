@@ -52,15 +52,18 @@ public static class MatchSetup
         => CreateSystemGame(data, seed, faction, homeBody, null);
 
     /// <summary>As the 5-argument game, with the player's fit-out (docs/fit-out-contract.md; data/missions/fit_out.json).
-    /// Null = no fit-out = exactly the 5-argument game, and so is a fit-out for a ship the data doesn't fit out (the four
-    /// that never land) or with no ship at all. A fit-out that fails <see cref="FitOutRules.Problem"/> is replaced by the
+    /// Null = no fit-out = exactly the 5-argument game, and so is a fit-out for a ship the data doesn't fit out or with no
+    /// ship at all. A fit-out that fails <see cref="FitOutRules.Problem"/> is replaced by the
     /// ship's suggested preset. With one: the landing stock's replaced resources (duranium, tritanium, deuterium) come from
     /// the cargo instead of the landing's start stock, the cargo's other stock is added, its research is banked toward the
     /// first tech, its satellites launch free, its vehicles land with the colony (PlanetSurface.Touchdown), and
-    /// <see cref="Simulation.FitOutFactor"/> moves the levers; the ship's own start bonus and units are added as always.</summary>
+    /// <see cref="Simulation.FitOutFactor"/> moves the levers; the ship's own start bonus and units are added as always.
+    /// A ship that never lands (phase 2) keeps the start stock as it is: its crew moves the star-system levers (scans,
+    /// sweeps, flights, study, culture shock, time alongside) and its hold carries body satellites, posts and probes that
+    /// cost nothing, reaction mass and gifts.</summary>
     public static Simulation CreateSystemGame(GameData data, ulong seed, string faction, string? homeBody, string? shipId, FitOut? fitOut)
     {
-        if (fitOut == null || shipId == null || data.FitOut?.Ship(shipId) is not { } fitted || data.ShipChoice(shipId) is not { Colonizes: true })
+        if (fitOut == null || shipId == null || data.FitOut?.Ship(shipId) is not { } fitted || data.ShipChoice(shipId) == null)
             return CreateSystemGame(data, seed, faction, homeBody, shipId);
         if (FitOutRules.Problem(data, shipId, fitOut) != null) fitOut = FitOutRules.Preset(data, shipId, fitted.Suggest);
         return CreatePickedGame(data, seed, faction, homeBody, shipId, fitOut);
@@ -100,7 +103,7 @@ public static class MatchSetup
         if (start != null) state.SetStartBody(0, start);
         var player = sim.AddPlayer(faction);
         sim.System!.SpawnTraffic(data);
-        if (fitOut != null && data.FitOut is { } rules)
+        if (fitOut != null && data.FitOut is { } rules && ship.Colonizes) // a ship that never lands keeps the start stock; its cargo acts in the star system
         {
             // The hold instead of the landing's own metal and fuel; everything else in the start stock stays.
             foreach (var res in rules.ReplacesStartStock)

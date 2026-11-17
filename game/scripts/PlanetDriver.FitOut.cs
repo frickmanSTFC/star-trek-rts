@@ -35,6 +35,21 @@ public partial class PlanetDriver
         if (s.Owner != LocalPlayer || s.Id != _system.Flagship?.Id || LocalFitOut() == null) return;
         rows.Add(new HelmRow("FOCUS", _fitOutFocus, _fitOutColour));
         rows.Add(new HelmRow("CREW", _fitOutCrewShort));
+        // A ship that never lands: what is left of the hold's body satellites, posts and probes (they count down in play).
+        if (_sim.System?.PickedShip(s) is { } pick && FitOutRules.IsSpace(_data, pick.Id))
+        {
+            int sats = _sim.FitOutFreeSystemSatellites(LocalPlayer), posts = _sim.FitOutFreePosts(LocalPlayer), probes = _sim.FitOutProbes(LocalPlayer);
+            rows.Add(new HelmRow("ABOARD", sats + posts + probes == 0 ? "nothing left"
+                : $"{sats} {(sats == 1 ? "satellite" : "satellites")} · {posts} {(posts == 1 ? "post" : "posts")} · {probes} {(probes == 1 ? "probe" : "probes")}"));
+        }
+    }
+
+    /// <summary>The scan button's text: "LONG-RANGE SCAN", or "· PROBE n" while the scanners recharge and a sensor probe
+    /// from the hold would make the scan (a fit-out of a ship that never lands).</summary>
+    private string ScanLabel()
+    {
+        if (_sim.System is not { } sys || sys.FlagshipOf(LocalPlayer) is not { } f || !sys.ScanUsesProbe(LocalPlayer, f.Id)) return "LONG-RANGE SCAN";
+        return $"LONG-RANGE SCAN · PROBE {_sim.FitOutProbes(LocalPlayer)}";
     }
 
     /// <summary>Two lines for the pause card ("FIT-OUT: EXPLORER" and the crew split), or empty.</summary>

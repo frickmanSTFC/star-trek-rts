@@ -438,7 +438,7 @@ public partial class PlanetDriver
         AddFitOutRows(s, rows); // our flagship's focus and crew split (PlanetDriver.FitOut.cs)
         if (SystemSource.InFlight(s)) rows.Add(new HelmRow("ETA", $"{_system.SecondsToArrival(s)} s"));
         var buttons = new List<HelmAction>();
-        if (s.Owner == LocalPlayer) buttons.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null));
+        if (s.Owner == LocalPlayer) buttons.Add(new HelmAction("sys:scan", "", ScanLabel(), ScanProblem() == null));
         AddShipViewButton(s, buttons); // VIEW SHIP on our flagship's card when it has a 3D model (PlanetDriver.Ship.cs)
         AllyCard(s, rows, buttons); // an allied native ship: ALLY / TASK rows, ESCORT / SCOUT (PlanetDriver.Contact.cs)
         TradeCard(s, rows); // a native trade freighter: TRADE / ROUTE / RUN rows (PlanetDriver.Contact.cs)
@@ -459,7 +459,7 @@ public partial class PlanetDriver
         if (f != null && f.AtBody == b.Id && !SystemSource.InFlight(f))
             buttons.Add(new HelmAction($"sys:sat:{b.Id}", "", "DEPLOY SATELLITE", SatelliteProblem(b.Id) == null));
         AddCivButtons(b, buttons); // HIDDEN POST (flagship there) and DOSSIER (PlanetDriver.Civ.cs)
-        buttons.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null, Colour: HelmScreen.Lavender));
+        buttons.Add(new HelmAction("sys:scan", "", ScanLabel(), ScanProblem() == null, Colour: HelmScreen.Lavender));
         return buttons;
     }
 
