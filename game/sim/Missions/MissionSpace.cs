@@ -115,7 +115,7 @@ public sealed partial class MissionBook
                 if (c.F("body") != null && want == null) return MissionEval.No;
                 var orbit = ship.AtBody;
                 if (orbit != null && (want == null || orbit == want) && sys.KnowledgeOf(p, orbit) == BodyKnowledge.Charted
-                    && Now - System.Math.Max(ship.ArriveTick, run.StageStart) >= sys.SweepTicks && BodyIndex(orbit) is var i and >= 0)
+                    && Now - System.Math.Max(ship.ArriveTick, run.StageStart) >= sys.SweepTicksFor(p) && BodyIndex(orbit) is var i and >= 0)
                     Remember(run, obj * 65536 + i);
                 if (want != null) return MissionEval.Of(BodyIndex(want) is var wi and >= 0 && run.Visited.Contains(obj * 65536 + wi));
                 return MissionEval.Count(Remembered(run, obj), c.I("count", 1));

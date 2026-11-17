@@ -45,12 +45,36 @@ public static class FitOutRules
     /// <summary>Research points from missions (no division: perk).</summary>
     public const string MissionResearch = "mission_research";
 
+    // The star-system levers: they move only on a ship that never lands (phase 2 of the contract).
+    /// <summary>Long-range scan recharge (maps/system.json scan.cooldown_seconds).</summary>
+    public const string ScanCooldown = "scan_cooldown";
+    /// <summary>The orbital sensor sweep of a body not yet charted (sweep.seconds).</summary>
+    public const string SweepTime = "sweep_time";
+    /// <summary>Flight time between bodies (StarSystemState.TravelTicksFor).</summary>
+    public const string FlightTime = "flight_time";
+    /// <summary>Time to study a civilization (rules.json study seconds).</summary>
+    public const string StudyTime = "study_time";
+    /// <summary>The culture-shock chance at first contact (a multiplier on the percentage).</summary>
+    public const string ShockChance = "shock_chance";
+    /// <summary>Seconds a with_ship objective must hold (mission hold_seconds).</summary>
+    public const string AlongsideTime = "alongside_time";
+    /// <summary>Long-range scan reach (scan.range; no division: the Explorer's perk).</summary>
+    public const string ScanRange = "scan_range";
+
     /// <summary>Every lever id the sim reads; the data may only list these.</summary>
     public static readonly IReadOnlyList<string> KnownLevers = new[]
     {
         DriveSpeed, SatelliteSweep, DroneBattery, RoverHazard, BuildTime, RepairSpeed, Fabrication, Wear, ResearchRate, DigTime,
         Sickness, Wildlife, RuinDefence, CrewLoss, HazardDamage, WildlifeDamage, RuinVehicleDamage, HubWorkshop, MissionResearch,
+        ScanCooldown, SweepTime, FlightTime, StudyTime, ShockChance, AlongsideTime, ScanRange,
     };
+
+    /// <summary>The levers of the star-system layer (the data marks them "space": true; they move only on a ship that never
+    /// lands, and the others only on a colony ship).</summary>
+    public static readonly IReadOnlyList<string> SpaceLevers = new[] { ScanCooldown, SweepTime, FlightTime, StudyTime, ShockChance, AlongsideTime, ScanRange };
+
+    /// <summary>Whether this is a fitted-out ship that never lands (its cargo and levers are the space ones).</summary>
+    public static bool IsSpace(GameData data, string? shipId) => data.FitOut?.Ship(shipId) != null && data.ShipChoice(shipId) is { Colonizes: false };
 
     /// <summary>No lever's multiplier goes below this, whatever the data says.</summary>
     public static readonly Fix64 LeastFactor = Fix64.Ratio(1, 20);
@@ -65,7 +89,7 @@ public static class FitOutRules
     public static FitOut? Preset(GameData data, string shipId, string focusId)
     {
         if (data.FitOut is not { } rules || rules.Ship(shipId) is not { } ship || rules.Focus(focusId) is not { } focus) return null;
-        return new FitOut(focus.Id, PresetCrew(rules, ship, focus), PresetCargo(rules, ship, focus));
+        return new FitOut(focus.Id, PresetCrew(rules, ship, focus), PresetCargo(rules, ship, focus, IsSpace(data, shipId)));
     }
 
     private static int[] PresetCrew(FitOutData rules, FitOutShip ship, FitOutFocus focus)
@@ -104,21 +128,22 @@ public static class FitOutRules
         return heads;
     }
 
-    private static Dictionary<string, int> PresetCargo(FitOutData rules, FitOutShip ship, FitOutFocus focus)
+    private static Dictionary<string, int> PresetCargo(FitOutData rules, FitOutShip ship, FitOutFocus focus, bool space)
     {
+        // Only the lines this kind of ship carries (a colony ship the landing lines, a ship that never lands the space ones).
         var cargo = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var l in rules.Cargo) cargo[l.Id] = 0;
+        foreach (var l in rules.LinesFor(space)) cargo[l.Id] = 0;
         foreach (var b in ship.Base)
             if (cargo.ContainsKey(b.Line)) cargo[b.Line] = b.Count;
         var used = 0;
-        foreach (var l in rules.Cargo) used += cargo[l.Id] * l.Containers;
+        foreach (var l in rules.LinesFor(space)) used += cargo[l.Id] * l.Containers;
         if (!ship.Fill.TryGetValue(focus.Id, out var order)) return cargo;
         for (var pass = 0; pass < 64; pass++)
         {
             var added = false;
             foreach (var id in order)
             {
-                if (rules.Line(id) is not { } l || cargo[l.Id] >= l.Max || used + l.Containers > ship.Hold) continue;
+                if (rules.Line(id) is not { } l || !cargo.ContainsKey(l.Id) || cargo[l.Id] >= l.Max || used + l.Containers > ship.Hold) continue;
                 cargo[l.Id]++;
                 used += l.Containers;
                 added = true;
@@ -152,10 +177,16 @@ public static class FitOutRules
         if (assigned < ship.Crew) return ship.Crew - assigned == 1 ? "1 of the crew is still unassigned" : $"{ship.Crew - assigned} of the crew are still unassigned";
         if (assigned > ship.Crew) return $"{assigned} crew assigned, and the ship has {ship.Crew}";
 
+        var space = IsSpace(data, shipId);
         foreach (var id in fitOut.Cargo.Keys.OrderBy(k => k, StringComparer.Ordinal)) // sorted: the same sentence on every machine
-            if (rules.Line(id) == null) return $"unknown cargo '{id}'";
+        {
+            if (rules.Line(id) is not { } line) return $"unknown cargo '{id}'";
+            if (line.Space != space && CargoCount(fitOut, id) != 0)
+                return space ? $"{line.Name} lands with a colony, and the {data.ShipChoice(shipId)?.Name ?? shipId} never lands"
+                    : $"{line.Name} is for a ship that never lands";
+        }
         var used = 0L;
-        foreach (var l in rules.Cargo)
+        foreach (var l in rules.LinesFor(space))
         {
             var n = CargoCount(fitOut, l.Id);
             if (n < 0) return $"{l.Name}: the count can't be below 0";
@@ -166,9 +197,9 @@ public static class FitOutRules
         foreach (var g in rules.Groups)
         {
             var held = 0L;
-            foreach (var l in rules.Cargo)
+            foreach (var l in rules.LinesFor(space))
                 if (l.Group == g.Id) held += (long)CargoCount(fitOut, l.Id) * l.Containers;
-            if (held < g.Floor) return $"{g.Name} needs at least {g.Floor} containers (it has {held})";
+            if (held < g.FloorFor(space)) return $"{g.Name} needs at least {g.FloorFor(space)} containers (it has {held})";
         }
         if (used > ship.Hold) return $"the hold takes {ship.Hold} containers, and this load needs {used}";
         return null;
@@ -226,6 +257,8 @@ public static class FitOutRules
     public static Fix64 Factor(GameData data, string? shipId, FitOut? fitOut, string leverId)
     {
         if (fitOut == null || shipId == null || data.FitOut is not { } rules || rules.Ship(shipId) == null || rules.Lever(leverId) is not { } lever) return Fix64.One;
+        var space = IsSpace(data, shipId);
+        if (lever.Space != space) return Fix64.One; // a colony lever on a ship that never lands, or the other way round
         var factor = Fix64.One;
         if (lever.Division.Length > 0)
         {
@@ -233,10 +266,10 @@ public static class FitOutRules
             factor = lever.MoreIsBetter ? Fix64.One + strength : Fix64.One - strength;
         }
         if (rules.Focus(fitOut.Focus) is { } focus)
-            foreach (var e in focus.PerkLevers)
+            foreach (var e in focus.PerkLeversFor(space))
                 if (e.Lever == leverId) factor *= e.Value;
         var cargo = Fix64.One;
-        foreach (var l in rules.Cargo)
+        foreach (var l in rules.LinesFor(space))
             foreach (var e in l.Levers)
                 if (e.Lever == leverId) cargo += e.Value * CargoCount(fitOut, l.Id);
         factor *= cargo;
@@ -252,6 +285,26 @@ public static class FitOutRules
         if (fitOut == null || data.FitOut is not { } rules) return 0;
         var n = 0;
         foreach (var l in rules.Cargo) n += l.Satellites * CargoCount(fitOut, l.Id);
+        return n;
+    }
+
+    /// <summary>Body satellites (SystemSatelliteCommand) this fit-out lets the player place without paying (space cargo).</summary>
+    public static int FreeSystemSatellites(GameData data, FitOut? fitOut) => SumSpace(data, fitOut, l => l.SystemSatellites);
+
+    /// <summary>Hidden observation posts (ObservationPostCommand) this fit-out lets the player place without paying.</summary>
+    public static int FreePosts(GameData data, FitOut? fitOut) => SumSpace(data, fitOut, l => l.Posts);
+
+    /// <summary>Long-range scans this fit-out's sensor probes make with no recharge wait.</summary>
+    public static int Probes(GameData data, FitOut? fitOut) => SumSpace(data, fitOut, l => l.Probes);
+
+    /// <summary>Percentage points the cargo adds to the culture-shock chance at first contact (gifts: below 0).</summary>
+    public static int ShockPoints(GameData data, FitOut? fitOut) => SumSpace(data, fitOut, l => l.ShockPoints);
+
+    private static int SumSpace(GameData data, FitOut? fitOut, Func<FitOutCargoLine, int> each)
+    {
+        if (fitOut == null || data.FitOut is not { } rules) return 0;
+        var n = 0;
+        foreach (var l in rules.LinesFor(true)) n += each(l) * CargoCount(fitOut, l.Id);
         return n;
     }
 
@@ -296,7 +349,7 @@ public static class FitOutRules
     {
         var stock = new Dictionary<string, int>(StringComparer.Ordinal);
         void Add(string id, int n) => stock[id] = (stock.TryGetValue(id, out var v) ? v : 0) + n;
-        var fitted = fitOut != null && data.FitOut?.Ship(shipId) != null;
+        var fitted = fitOut != null && data.FitOut?.Ship(shipId) != null && !IsSpace(data, shipId); // nothing lands from a ship that never lands
         foreach (var a in data.Landing.StartStock)
         {
             var id = data.Resources[a.Resource].Id;
@@ -320,7 +373,7 @@ public static class FitOutRules
     {
         var list = new List<string>(data.Landing.Units);
         if (data.ShipChoice(shipId) is { Colonizes: true } ship) list.AddRange(ship.StartUnits);
-        if (data.FitOut?.Ship(shipId) != null) list.AddRange(CargoUnits(data, fitOut));
+        if (data.FitOut?.Ship(shipId) != null && !IsSpace(data, shipId)) list.AddRange(CargoUnits(data, fitOut));
         return list;
     }
 }
@@ -334,6 +387,9 @@ public sealed partial class Simulation
         public string ShipId = "";
         public FitOut FitOut = null!;
         public int FreeSatellites;
+        /// <summary>A ship that never lands: what is left of its body satellites, posts and probes (hashed only for such a ship).</summary>
+        public bool Space;
+        public int FreeSystemSatellites, FreePosts, Probes;
         public GameData? FactorsFor;
         public Dictionary<string, Fix64> Factors = new(StringComparer.Ordinal);
     }
@@ -371,6 +427,42 @@ public sealed partial class Simulation
         return true;
     }
 
+    /// <summary>Body satellites this player may still place without paying (a space fit-out's cargo; 0 with none).</summary>
+    public int FitOutFreeSystemSatellites(int player) => FitOutStateOf(player)?.FreeSystemSatellites ?? 0;
+
+    /// <summary>Uses one of the fit-out's ready body satellites; false when there is none (then it is paid for).</summary>
+    internal bool UseFreeSystemSatellite(int player)
+    {
+        if (FitOutStateOf(player) is not { FreeSystemSatellites: > 0 } s) return false;
+        s.FreeSystemSatellites--;
+        return true;
+    }
+
+    /// <summary>Hidden observation posts this player may still place without paying (0 with none).</summary>
+    public int FitOutFreePosts(int player) => FitOutStateOf(player)?.FreePosts ?? 0;
+
+    /// <summary>Uses one of the fit-out's ready posts; false when there is none (then it is paid for).</summary>
+    internal bool UseFreePost(int player)
+    {
+        if (FitOutStateOf(player) is not { FreePosts: > 0 } s) return false;
+        s.FreePosts--;
+        return true;
+    }
+
+    /// <summary>Sensor probes this player has left: long-range scans with no recharge wait (0 with none).</summary>
+    public int FitOutProbes(int player) => FitOutStateOf(player)?.Probes ?? 0;
+
+    /// <summary>Uses a sensor probe; false when there is none left.</summary>
+    internal bool UseProbe(int player)
+    {
+        if (FitOutStateOf(player) is not { Probes: > 0 } s) return false;
+        s.Probes--;
+        return true;
+    }
+
+    /// <summary>Percentage points this player's cargo adds to the culture-shock chance at first contact (0 with none).</summary>
+    public int FitOutShockPoints(int player) => FitOutStateOf(player) is { } s ? FitOutRules.ShockPoints(Data, s.FitOut) : 0;
+
     /// <summary>Hexes the landing reveals round the hub: the fit-out's perk, or 0 (the landing's own radius).</summary>
     public int FitOutLandingReveal(int player) => FitOutRules.LandingReveal(Data, FitOutOf(player));
 
@@ -387,11 +479,15 @@ public sealed partial class Simulation
         foreach (var (id, n) in fitOut.Cargo)
             if (n != 0) cargo[id] = n;
         var copy = new FitOut(fitOut.Focus, fitOut.Crew.ToArray(), cargo);
-        _fitOuts[player] = new FitOutState { ShipId = shipId, FitOut = copy, FreeSatellites = FitOutRules.FreeSatellites(Data, copy) };
+        _fitOuts[player] = new FitOutState
+        {
+            ShipId = shipId, FitOut = copy, FreeSatellites = FitOutRules.FreeSatellites(Data, copy), Space = FitOutRules.IsSpace(Data, shipId),
+            FreeSystemSatellites = FitOutRules.FreeSystemSatellites(Data, copy), FreePosts = FitOutRules.FreePosts(Data, copy), Probes = FitOutRules.Probes(Data, copy),
+        };
     }
 
     /// <summary>The fit-outs, only when one is set (games without one keep the hashes they always had): ship, focus, crew,
-    /// cargo by line id, and the ready satellites left.</summary>
+    /// cargo by line id, the ready satellites left and, for a ship that never lands, its body satellites, posts and probes left.</summary>
     private void AddFitOutToHash(ref StateHasher h)
     {
         if (_fitOuts.Count == 0) return;
@@ -412,6 +508,10 @@ public sealed partial class Simulation
                 h.Add(n);
             }
             h.Add(s.FreeSatellites);
+            if (!s.Space) continue; // colony fit-outs hash as they did in phase 1
+            h.Add(s.FreeSystemSatellites);
+            h.Add(s.FreePosts);
+            h.Add(s.Probes);
         }
     }
 }

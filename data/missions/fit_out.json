@@ -10,15 +10,19 @@
     ],
     "focuses": [
       { "id": "explorer", "name": "Explorer", "division": "exploration", "line": "Find things first", "crew_pct": [45, 25, 18, 12],
-        "perk": "The landing reveals 5 hexes around the hub instead of 3.", "landing_reveal": 5 },
+        "perk": "The landing reveals 5 hexes around the hub instead of 3.", "landing_reveal": 5,
+        "space_perk": "Long-range scans reach 400 units instead of 320.", "space_perk_levers": { "scan_range": 1.25 } },
       { "id": "builder", "name": "Builder", "division": "engineering", "line": "Build and repair faster", "crew_pct": [20, 45, 20, 15],
-        "perk": "The Colony Hub's workshop makes spare kits 30% faster.", "perk_levers": { "hub_workshop": 1.3 } },
+        "perk": "The Colony Hub's workshop makes spare kits 30% faster.", "perk_levers": { "hub_workshop": 1.3 },
+        "space_perk": "The engines are tuned before leaving: flights 8% shorter.", "space_perk_levers": { "flight_time": 0.92 } },
       { "id": "combatant", "name": "Combatant", "division": "defense", "line": "Guard what you have", "crew_pct": [18, 25, 12, 45],
-        "perk": "Vehicles take half damage from wildlife and ruin defences. More when combat is built.", "perk_levers": { "wildlife_damage": 0.5, "ruin_vehicle_damage": 0.5 } },
+        "perk": "Vehicles take half damage from wildlife and ruin defences. More when combat is built.", "perk_levers": { "wildlife_damage": 0.5, "ruin_vehicle_damage": 0.5 },
+        "space_perk": "Inspections and escorts need 20 s alongside instead of 30. More when combat is built.", "space_perk_levers": { "alongside_time": 0.6667 } },
       { "id": "scientist", "name": "Scientist", "division": "science", "line": "Learn faster", "crew_pct": [22, 21, 45, 12],
-        "perk": "Research from mission rewards +20%.", "perk_levers": { "mission_research": 1.2 } },
+        "perk": "Research from mission rewards +20%.", "perk_levers": { "mission_research": 1.2 },
+        "space_perk": "Studying a civilization takes a quarter less time.", "space_perk_levers": { "study_time": 0.75 } },
       { "id": "allround", "name": "All-rounder", "division": null, "line": "An even split. Plays like today's game", "crew_pct": [25, 25, 25, 25],
-        "perk": "" }
+        "perk": "", "space_perk": "" }
     ],
     "levers": [
       { "id": "drive_speed", "division": "exploration", "more_is_better": true, "name": "Vehicle drive speed" },
@@ -39,14 +43,21 @@
       { "id": "wildlife_damage", "division": null, "more_is_better": false, "name": "Vehicle damage from wildlife" },
       { "id": "ruin_vehicle_damage", "division": null, "more_is_better": false, "name": "Vehicle damage from ruin defences" },
       { "id": "hub_workshop", "division": null, "more_is_better": true, "name": "Hub workshop speed" },
-      { "id": "mission_research", "division": null, "more_is_better": true, "name": "Research from missions" }
+      { "id": "mission_research", "division": null, "more_is_better": true, "name": "Research from missions" },
+      { "id": "scan_cooldown", "space": true, "division": "exploration", "more_is_better": false, "name": "Long-range scan recharge" },
+      { "id": "sweep_time", "space": true, "division": "exploration", "more_is_better": false, "name": "Sensor sweep of a new body" },
+      { "id": "flight_time", "space": true, "division": "engineering", "more_is_better": false, "name": "Flight time between bodies" },
+      { "id": "study_time", "space": true, "division": "science", "more_is_better": false, "name": "Study of a civilization" },
+      { "id": "shock_chance", "space": true, "division": "science", "more_is_better": false, "name": "Culture-shock chance at contact" },
+      { "id": "alongside_time", "space": true, "division": "defense", "more_is_better": false, "name": "Time alongside to inspect or escort" },
+      { "id": "scan_range", "space": true, "division": null, "more_is_better": true, "name": "Long-range scan reach" }
     ],
     "cargo_groups": [
-      { "id": "exploration", "name": "Exploration gear", "floor": 2 },
-      { "id": "engineering", "name": "Engineering stores", "floor": 8 },
-      { "id": "science", "name": "Science stores", "floor": 2 },
-      { "id": "defense", "name": "Defense stores", "floor": 2 },
-      { "id": "ship", "name": "Ship's stores", "floor": 4 }
+      { "id": "exploration", "name": "Exploration gear", "floor": 2, "space_floor": 1 },
+      { "id": "engineering", "name": "Engineering stores", "floor": 8, "space_floor": 1 },
+      { "id": "science", "name": "Science stores", "floor": 2, "space_floor": 1 },
+      { "id": "defense", "name": "Defense stores", "floor": 2, "space_floor": 0 },
+      { "id": "ship", "name": "Ship's stores", "floor": 4, "space_floor": 0 }
     ],
     "cargo": [
       { "id": "sat", "name": "Survey satellite", "group": "exploration", "containers": 2, "min": 0, "max": 3, "text": "Ready to launch. No 80 duranium + 40 tritanium from the colony.", "satellites": 1 },
@@ -59,7 +70,12 @@
       { "id": "med", "name": "Medical stores", "group": "science", "containers": 1, "min": 0, "max": 4, "text": "Crew sickness 8% shorter each.", "levers": { "sickness": -0.08 } },
       { "id": "armour", "name": "Field armour", "group": "defense", "containers": 1, "min": 0, "max": 4, "text": "Vehicles take 5% less hazard and wildlife damage each.", "levers": { "hazard_damage": -0.05, "wildlife_damage": -0.05 } },
       { "id": "fuel", "name": "Fuel", "group": "ship", "containers": 1, "min": 4, "max": 12, "text": "25 deuterium each. A drop-ship trip burns 5 at 1 g.", "stock": { "deuterium": 25 } },
-      { "id": "prov", "name": "Provisions", "group": "ship", "containers": 1, "min": 0, "max": 8, "text": "5 more colonists awake at landing each.", "stock": { "crew": 5 } }
+      { "id": "prov", "name": "Provisions", "group": "ship", "containers": 1, "min": 0, "max": 8, "text": "5 more colonists awake at landing each.", "stock": { "crew": 5 } },
+      { "id": "ssat", "space": true, "name": "System satellite", "group": "exploration", "containers": 2, "min": 0, "max": 4, "text": "Ready to place at a body. No 60 duranium + 30 tritanium from stock.", "system_satellites": 1 },
+      { "id": "probe", "space": true, "name": "Sensor probe", "group": "exploration", "containers": 1, "min": 0, "max": 4, "text": "One long-range scan with no 90 s recharge wait.", "probes": 1 },
+      { "id": "mass", "space": true, "name": "Reaction mass", "group": "engineering", "containers": 1, "min": 0, "max": 6, "text": "Flights 2% shorter each.", "levers": { "flight_time": -0.02 } },
+      { "id": "post", "space": true, "name": "Listening post", "group": "science", "containers": 2, "min": 0, "max": 3, "text": "A hidden observation post ready to place. No 80 duranium + 40 tritanium from stock.", "posts": 1 },
+      { "id": "gifts", "space": true, "name": "Medicine and gifts", "group": "science", "containers": 1, "min": 0, "max": 4, "text": "Culture-shock chance at first contact 3 points lower each.", "shock_points": -3 }
     ],
     "ships": [
       { "ship": "horizon", "crew": 120, "hold": 30, "suggest": "allround",
@@ -79,6 +95,42 @@
           "builder": ["mat", "kits", "mat", "crawler", "kits", "mat", "mat", "kits", "fuel", "mat", "mat", "fuel"],
           "combatant": ["armour", "armour", "mat", "kits", "fuel", "prov", "med", "mat", "prov", "fuel", "mat", "kits"],
           "scientist": ["lab", "lab", "med", "lab", "mat", "fuel", "lab", "drone", "mat", "med", "lab", "kits"]
+        } },
+      { "ship": "tereshkova", "crew": 40, "hold": 12, "suggest": "explorer",
+        "base": { "probe": 1, "mass": 1, "gifts": 1 },
+        "fill": {
+          "allround": ["ssat", "mass", "post", "probe", "gifts", "mass", "ssat", "probe"],
+          "explorer": ["ssat", "ssat", "probe", "ssat", "probe", "mass", "ssat", "probe", "gifts"],
+          "builder": ["mass", "mass", "ssat", "mass", "mass", "post", "mass", "mass", "probe"],
+          "combatant": ["mass", "ssat", "probe", "mass", "gifts", "ssat", "mass", "probe"],
+          "scientist": ["post", "gifts", "post", "gifts", "ssat", "post", "gifts", "mass", "probe"]
+        } },
+      { "ship": "armstrong", "crew": 6, "hold": 6, "suggest": "builder",
+        "base": { "probe": 1, "mass": 1, "gifts": 1 },
+        "fill": {
+          "allround": ["ssat", "mass", "post", "probe", "gifts", "mass", "ssat", "probe"],
+          "explorer": ["ssat", "ssat", "probe", "ssat", "probe", "mass", "ssat", "probe", "gifts"],
+          "builder": ["mass", "mass", "ssat", "mass", "mass", "post", "mass", "mass", "probe"],
+          "combatant": ["mass", "ssat", "probe", "mass", "gifts", "ssat", "mass", "probe"],
+          "scientist": ["post", "gifts", "post", "gifts", "ssat", "post", "gifts", "mass", "probe"]
+        } },
+      { "ship": "bastion", "crew": 85, "hold": 14, "suggest": "combatant",
+        "base": { "probe": 1, "mass": 1, "gifts": 1 },
+        "fill": {
+          "allround": ["ssat", "mass", "post", "probe", "gifts", "mass", "ssat", "probe"],
+          "explorer": ["ssat", "ssat", "probe", "ssat", "probe", "mass", "ssat", "probe", "gifts"],
+          "builder": ["mass", "mass", "ssat", "mass", "mass", "post", "mass", "mass", "probe"],
+          "combatant": ["mass", "ssat", "probe", "mass", "gifts", "ssat", "mass", "probe"],
+          "scientist": ["post", "gifts", "post", "gifts", "ssat", "post", "gifts", "mass", "probe"]
+        } },
+      { "ship": "meridian", "crew": 350, "hold": 20, "suggest": "scientist",
+        "base": { "probe": 1, "mass": 1, "gifts": 1 },
+        "fill": {
+          "allround": ["ssat", "mass", "post", "probe", "gifts", "mass", "ssat", "probe"],
+          "explorer": ["ssat", "ssat", "probe", "ssat", "probe", "mass", "ssat", "probe", "gifts"],
+          "builder": ["mass", "mass", "ssat", "mass", "mass", "post", "mass", "mass", "probe"],
+          "combatant": ["mass", "ssat", "probe", "mass", "gifts", "ssat", "mass", "probe"],
+          "scientist": ["post", "gifts", "post", "gifts", "ssat", "post", "gifts", "mass", "probe"]
         } }
     ]
   }

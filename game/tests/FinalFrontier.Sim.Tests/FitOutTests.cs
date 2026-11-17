@@ -117,9 +117,9 @@ public class FitOutTests
         Assert.Equal((P("0.10"), P("0.30"), P("0.004")), (f.CrewFloorShare, f.FocusFloorShare, f.EffectPerPoint));
         Assert.Equal(F(25), f.EvenSharePct);
         Assert.Equal(new[] { "duranium", "tritanium", "deuterium" }, f.ReplacesStartStock);
-        Assert.Equal(new[] { ("horizon", 120, 30, "allround"), ("cochrane", 210, 24, "builder") }, f.Ships.Select(s => (s.ShipId, s.Crew, s.Hold, s.Suggest)));
+        Assert.Equal(new[] { ("horizon", 120, 30, "allround"), ("cochrane", 210, 24, "builder") }, f.Ships.Take(2).Select(s => (s.ShipId, s.Crew, s.Hold, s.Suggest)));
         Assert.Equal(new[] { ("exploration", 2), ("engineering", 8), ("science", 2), ("defense", 2), ("ship", 4) }, f.Groups.Select(g => (g.Id, g.Floor)));
-        Assert.Equal(new[] { "sat", "drone", "rover", "mat", "kits", "crawler", "lab", "med", "armour", "fuel", "prov" }, f.Cargo.Select(l => l.Id));
+        Assert.Equal(new[] { "sat", "drone", "rover", "mat", "kits", "crawler", "lab", "med", "armour", "fuel", "prov" }, f.LinesFor(false).Select(l => l.Id));
         Assert.Equal((1, 6, 20), (f.Line("mat")!.Containers, f.Line("mat")!.Min, f.Line("mat")!.Max));
         Assert.Equal(new[] { new FitOutStock("duranium", 50), new FitOutStock("tritanium", 30) }, f.Line("mat")!.Stock);
         Assert.Equal(("mining_crawler", 4), (f.Line("crawler")!.Unit, f.Line("crawler")!.Containers));
@@ -129,9 +129,9 @@ public class FitOutTests
         Assert.Equal(5, f.Focus("explorer")!.LandingReveal);
         // Every lever the data lists is one the game reads, the 14 crew levers have a division, and the game reads no others.
         Assert.Equal(FitOutRules.KnownLevers.OrderBy(x => x), f.Levers.Select(l => l.Id).OrderBy(x => x));
-        Assert.Equal(14, f.Levers.Count(l => l.Division.Length > 0));
+        Assert.Equal(14, f.LeversFor(false).Count(l => l.Division.Length > 0));
         Assert.True(FitOutRules.Applies(Real, "horizon") && FitOutRules.Applies(Real, "cochrane"));
-        foreach (var ship in new[] { "tereshkova", "armstrong", "bastion", "meridian", "galaxy", null })
+        foreach (var ship in new[] { "galaxy", null }) // (the four ships that never land are fitted out since phase 2: FitOutSpaceTests)
         {
             Assert.False(FitOutRules.Applies(Real, ship));
             if (ship != null) Assert.Null(FitOutRules.Preset(Real, ship, "explorer"));
@@ -154,7 +154,7 @@ public class FitOutTests
     [InlineData("\"levers\": { \"sickness\": -0.08 }", "\"levers\": { \"sickness\": -0.3 }", "would take the lever to 0")]
     [InlineData("\"perk_levers\": { \"hub_workshop\": 1.3 }", "\"perk_levers\": { \"hub_workshop\": 0 }", "must be above 0")]
     [InlineData("\"perk_levers\": { \"hub_workshop\": 1.3 }", "\"perk_levers\": { \"warp_core\": 1.3 }", "'warp_core' is not one of the levers")]
-    [InlineData("\"ship\": \"cochrane\"", "\"ship\": \"bastion\"", "only a ship that lands a colony")]
+    [InlineData("\"ship\": \"cochrane\"", "\"ship\": \"bastion\"", "base: mat is cargo for a colony ship")]
     [InlineData("\"ship\": \"cochrane\"", "\"ship\": \"galaxy\"", "no such ship")]
     [InlineData("\"suggest\": \"builder\"", "\"suggest\": \"miner\"", "unknown focus 'miner'")]
     [InlineData("\"focus_floor_share\": 0.30", "\"focus_floor_share\": 0.05", "crew_floor_share <= focus_floor_share")]
@@ -197,11 +197,12 @@ public class FitOutTests
             foreach (var focus in f.Focuses)
             {
                 var fit = FitOutRules.Preset(Real, ship.ShipId, focus.Id)!;
+                var space = FitOutRules.IsSpace(Real, ship.ShipId);
                 Assert.Null(FitOutRules.Problem(Real, ship.ShipId, fit));
                 Assert.Equal(focus.Id, fit.Focus);
                 Assert.Equal(ship.Crew, fit.Crew.Sum());
-                Assert.InRange(FitOutRules.ContainersUsed(Real, fit), 18, ship.Hold);
-                Assert.Equal(f.Cargo.Select(l => l.Id).OrderBy(x => x), fit.Cargo.Keys.OrderBy(x => x)); // every line, 0 included
+                Assert.InRange(FitOutRules.ContainersUsed(Real, fit), space ? 3 : 18, ship.Hold);
+                Assert.Equal(f.LinesFor(space).Select(l => l.Id).OrderBy(x => x), fit.Cargo.Keys.OrderBy(x => x)); // every line of its kind, 0 included
                 for (var d = 0; d < f.Divisions.Count; d++)
                     Assert.True(fit.Crew[d] >= FitOutRules.CrewFloor(Real, ship.ShipId, focus.Id, f.Divisions[d].Id));
                 // A preset's crew is within a head of the focus's percentages.
@@ -249,7 +250,7 @@ public class FitOutTests
         // Crew: every division 10% (12 of 120, 21 of 210), the focus's own 30% (36, 63), everyone assigned.
         Assert.Equal((12, 36, 21, 63), (FitOutRules.CrewFloor(Real, "horizon", "allround", "science"), FitOutRules.CrewFloor(Real, "horizon", "scientist", "science"),
             FitOutRules.CrewFloor(Real, "cochrane", "explorer", "defense"), FitOutRules.CrewFloor(Real, "cochrane", "combatant", "defense")));
-        Assert.Equal(0, FitOutRules.CrewFloor(Real, "bastion", "combatant", "defense"));
+        Assert.Equal(0, FitOutRules.CrewFloor(Real, "galaxy", "combatant", "defense"));
         Assert.Equal("Science needs at least 12 crew", Why("horizon", "allround", new[] { 40, 40, 11, 29 }));
         Assert.Equal("Exploration needs at least 36 crew", Why("horizon", "explorer", even));
         Assert.Null(Why("horizon", "explorer", new[] { 36, 30, 30, 24 }));
@@ -258,7 +259,7 @@ public class FitOutTests
         Assert.Equal("121 crew assigned, and the ship has 120", Why("horizon", "allround", new[] { 31, 30, 30, 30 }));
         Assert.Contains("one number for each of the 4 divisions", Why("horizon", "allround", new[] { 60, 60 }));
         Assert.Equal("unknown focus 'miner'", Why("horizon", "miner", even));
-        Assert.Equal("the Bastion is not fitted out", Why("bastion", "combatant", even));
+        Assert.Equal("the galaxy is not fitted out", Why("galaxy", "combatant", even));
         Assert.Equal("Defense needs at least 21 crew", Why("cochrane", "allround", new[] { 70, 70, 50, 20 }));
 
         // Cargo: each line's min and max, each group's floor, the hold.
@@ -377,7 +378,7 @@ public class FitOutTests
         Assert.Equal(Fix64.One, FitOutRules.Factor(Real, "horizon", heavy, "warp_speed"));
     }
 
-    public static IEnumerable<object[]> CrewLevers() => TestData.Real.FitOut!.Levers.Where(l => l.Division.Length > 0).Select(l => new object[] { l.Id });
+    public static IEnumerable<object[]> CrewLevers() => TestData.Real.FitOut!.LeversFor(false).Where(l => l.Division.Length > 0).Select(l => new object[] { l.Id });
 
     [Theory]
     [MemberData(nameof(CrewLevers))]

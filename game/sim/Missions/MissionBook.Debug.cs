@@ -66,7 +66,7 @@ public sealed partial class MissionBook
                 {
                     if (objectives[k].Id != c.Objective) continue;
                     run.Done[k] = true;
-                    var target = objectives[k].HoldSeconds > 0 ? Fix64.FromInt(objectives[k].HoldSeconds) : Target(p, run, objectives[k].Cond);
+                    var target = objectives[k].HoldSeconds > 0 ? Fix64.FromInt(HoldSecondsOf(p, objectives[k])) : Target(p, run, objectives[k].Cond);
                     run.Progress[k] = Fix64.Max(run.Progress[k], target);
                     MarkSitesDone(run, objectives[k].Cond);
                 }
