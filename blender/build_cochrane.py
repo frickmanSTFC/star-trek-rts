@@ -19,6 +19,7 @@ D = dict(ringF=dict(r=78, rIn=70, w=18, g=0.8, n=6), ringA=dict(r=58, rIn=50, w=
          htr=dict(len=68, w0=13, w1=31), ltr=dict(len=66, w=64), tanks=dict(n=6, r=5, len=40))
 
 k = Kit(seed=2063)
+k.group = 'Hull'
 R = k.rnd
 LIGHTS = []          # (kind, loc, dir, energy, colour, spot angle)
 DECALS = []          # (name, text, pts, flip)
@@ -53,6 +54,8 @@ GM = ['grey', 'grey', 'white_s', 'dark', 'gold', 'grey', 'silver', 'white_s', 'w
 
 
 def greeble(x0, x1, r, n, a0=0.0, span=TAU, hmax=0.9, mats=GM):
+    if k.lod < 1:
+        n = n // 2
     for _ in range(n):
         x = x0 + R.random() * (x1 - x0)
         a = a0 + R.random() * span
@@ -174,6 +177,8 @@ def floodlight(loc, aim, energy=9000.0, spot=1.1, col=(1.0, 0.96, 0.9)):
 
 def girder(a, b, size=2.0, bay=2.2, rc=0.13, rd=0.07, mat='truss'):
     """Square lattice girder between two points."""
+    if k.lod < 1:
+        bay *= 2
     a, b = Vector(a), Vector(b)
     L = (b - a).length
     h = size / 2
@@ -195,6 +200,8 @@ def girder(a, b, size=2.0, bay=2.2, rc=0.13, rd=0.07, mat='truss'):
 
 def rrect(x0, x1, r0, r1, ci, co, n=6):
     """Closed (x, r) outline: r0 toward the hub (corner radius ci), r1 at the rim (corner radius co)."""
+    if k.lod < 1:
+        n = max(1, n // 3)
     pts = []
     for cx, cr, rad, t0 in [(x1 - co, r1 - co, co, 0), (x0 + co, r1 - co, co, 90), (x0 + ci, r0 + ci, ci, 180), (x1 - ci, r0 + ci, ci, 270)]:
         for i in range(n + 1):
@@ -204,6 +211,8 @@ def rrect(x0, x1, r0, r1, ci, co, n=6):
 
 
 def arc_plate(x0, x1, r0, r1, a0, a1, mat, seg=2, vref=None):
+    if k.lod < 1 and seg <= 3:
+        seg = 1
     k.lathe([(x0, r0), (x1, r0), (x1, r1), (x0, r1)], mat, seg=seg, a0=a0, a1=a1, closed=True, caps=True, vref=vref, sharp=30)
 
 
@@ -482,7 +491,9 @@ def build_mid():
     for i in range(16):
         gbox(-44.5 + (i % 2) * 5, i * TAU / 16, 15.5, 1.6, 1.2, 0.5, 'dark')
     hub(-36, -8, 15, -22, D['ringA'])
+    k.group = 'RingA'
     hab_ring(-22, D['ringA'], phase=0.33, nmod=16, name=None, workshop=True)
+    k.group = 'Hull'
     build_yard()
 
 
@@ -515,7 +526,7 @@ def hab_ring(xc, ring, phase, nmod, name, workshop=False):
             da = 0.32 / rOut
             k.lathe(rrect(-xw - 0.16, xw + 0.16, rIn - 0.16, hr + 0.1, 2.9, 1.1, 4), 'grey', seg=1, a0=a - da, a1=a + da, closed=True, caps=True)
         # rim bumper: spaced plates over the water jacket
-        ntile = int(TAU * rOut / 2.5)
+        ntile = int(TAU * rOut / (2.5 if k.lod >= 1 else 5.0))
         nrow = 6
         rw = (2 * xw - 1.4) / nrow
         band = set()
@@ -930,7 +941,9 @@ def build_fwd(landers):
     for q in range(4):
         with k.xf(rotX(q * TAU / 4) @ orient((171, 14.6, 0), (0, 1, 0))):
             dock_port(lifeboat=(q % 2 == 0))
+    k.group = 'RingF'
     hab_ring(190, D['ringF'], phase=0.21, nmod=24, name='COCHRANE')
+    k.group = 'Hull'
     # drop ship berths: four on the fixed hub ahead of the ring, landers held roof-in
     BX, ROOF, H = 207.4, 24.0, 6.6
     for q in (1, 3, 5, 7):
@@ -1212,6 +1225,173 @@ def build_earth(tex):
     return coll, (e, c, a)
 
 
+
+# =====================================================================================
+# game export: a lighter mesh with small tiling textures, rings as their own nodes
+# =====================================================================================
+def _srgb(a):
+    a = np.clip(a, 0, 1)
+    return np.where(a < 0.0031308, a * 12.92, 1.055 * a ** (1 / 2.4) - 0.055)
+
+
+def _tile_noise(n, cells, rng):
+    from scipy.ndimage import zoom
+    g = rng.random((cells, cells)).astype(np.float32)
+    return zoom(g, n / cells, order=3, mode='grid-wrap')[:n, :n]
+
+
+def _normal_from_height(h, strength):
+    dx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * strength
+    dy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * strength
+    nz = np.ones_like(h)
+    l = np.sqrt(dx * dx + dy * dy + 1)
+    return np.stack([-dx / l * 0.5 + 0.5, -dy / l * 0.5 + 0.5, nz / l * 0.5 + 0.5], 2)
+
+
+def _save(arr, path):
+    from PIL import Image
+    Image.fromarray((np.clip(arr, 0, 1) * 255 + 0.5).astype(np.uint8)).save(path, quality=88)
+    return bpy.data.images.load(path)
+
+
+def panel_textures(name, c1, c2, seam_mul, tmp, n=512, nx=4, ny=4, seam_px=2.2, wob=1.0):
+    """Albedo and normal for nx by ny skin panels, half-offset rows, tiling."""
+    rng = np.random.default_rng(abs(hash(name)) % (2 ** 31))
+    v, u = np.mgrid[0:n, 0:n].astype(np.float32) / n
+    row = np.floor(v * ny).astype(int)
+    uu = (u * nx + 0.5 * (row % 2)) % nx
+    col = np.floor(uu).astype(int)
+    fu, fv = uu - col, v * ny - row
+    tint = rng.random((ny, nx)).astype(np.float32)[row, col]
+    du = np.minimum(fu, 1 - fu) * n / nx
+    dv = np.minimum(fv, 1 - fv) * n / ny
+    seam = np.clip(1 - np.minimum(du, dv) / seam_px, 0, 1)
+    c1, c2 = np.array(c1, np.float32), np.array(c2, np.float32)
+    alb = c1 + (c2 - c1) * tint[..., None]
+    alb *= (1 - seam * (1 - seam_mul))[..., None]
+    alb *= (0.94 + 0.12 * _tile_noise(n, 8, rng))[..., None]
+    pillow = np.sin(PI * fu) * np.sin(PI * fv) * (0.4 + 0.6 * tint)
+    h = pillow * 1.2 * wob + _tile_noise(n, 6, rng) * 2.0 * wob - seam * 1.5
+    return _save(_srgb(alb), os.path.join(tmp, 'g_%s_a.jpg' % name)), _save(_normal_from_height(h, 1.6), os.path.join(tmp, 'g_%s_n.jpg' % name))
+
+
+def foil_normal(name, tmp, n=512):
+    rng = np.random.default_rng(abs(hash(name)) % (2 ** 31))
+    pts = rng.random((90, 2))
+    v, u = np.mgrid[0:n, 0:n].astype(np.float32) / n
+    d = np.full((n, n), 9.0, np.float32)
+    for (px, py) in pts:
+        ddx = np.abs(u - px); ddx = np.minimum(ddx, 1 - ddx)
+        ddy = np.abs(v - py); ddy = np.minimum(ddy, 1 - ddy)
+        d = np.minimum(d, np.sqrt(ddx * ddx + ddy * ddy))
+    h = d * 60 + _tile_noise(n, 5, rng) * 9 + _tile_noise(n, 24, rng) * 2.5
+    return _save(_normal_from_height(h, 1.3), os.path.join(tmp, 'g_%s_n.jpg' % name))
+
+
+def game_material(name, col, metal=0.0, rough=0.5, emis=None, estr=0.0, alb=None, nrm=None, alpha=None):
+    m, t, b = K._new(name)
+    b.inputs['Base Color'].default_value = K._c(col)
+    b.inputs['Metallic'].default_value = metal
+    b.inputs['Roughness'].default_value = rough
+    if emis:
+        b.inputs['Emission Color'].default_value = K._c(emis)
+        b.inputs['Emission Strength'].default_value = estr
+    if alb:
+        n = t.nodes.new('ShaderNodeTexImage'); n.image = alb
+        t.links.new(n.outputs[0], b.inputs['Base Color'])
+    if nrm:
+        n = t.nodes.new('ShaderNodeTexImage'); n.image = nrm
+        n.image.colorspace_settings.name = 'Non-Color'
+        nm = t.nodes.new('ShaderNodeNormalMap')
+        t.links.new(n.outputs[0], nm.inputs['Color']); t.links.new(nm.outputs[0], b.inputs['Normal'])
+    if alpha:
+        n = t.nodes.new('ShaderNodeTexImage'); n.image = alpha
+        t.links.new(n.outputs['Alpha'], b.inputs['Alpha'])
+        try:
+            m.surface_render_method = 'BLENDED'
+        except Exception:
+            m.blend_method = 'BLEND'
+    return m
+
+
+def export_game(path, tmp):
+    """Write the game model (see docs/ship-model-contract.md)."""
+    t0 = time.time()
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    scene = bpy.context.scene
+    coll = bpy.data.collections.new('Ship')
+    scene.collection.children.link(coll)
+    k.lod, k.min_r, k.min_box, k.one_key = 0.3, 0.065, 0.5, True
+    k.M = rotZ(PI / 2)                  # bow to Blender +Y, which the exporter turns into Godot -Z
+    landers = []
+    build_aft(False); build_mid(); build_fwd(landers)
+    # panel materials: (c1, c2, seam darkening, panel size in metres, metal, rough)
+    PAN = {'white': ((0.80, 0.80, 0.78), (0.72, 0.72, 0.71), 0.55, (2.6, 1.7), 0, 0.55),
+           'white_m': ((0.83, 0.83, 0.81), (0.74, 0.74, 0.73), 0.62, (3.4, 2.1), 0, 0.7),
+           'white_s': ((0.78, 0.78, 0.77), (0.71, 0.71, 0.70), 0.6, (1.3, 0.9), 0, 0.5),
+           'tank': ((0.84, 0.84, 0.83), (0.80, 0.80, 0.79), 0.6, (5.0, 2.6), 0, 0.42),
+           'grey': ((0.36, 0.37, 0.39), (0.29, 0.30, 0.32), 0.4, (1.6, 1.0), 0.5, 0.45),
+           'grey_p': ((0.36, 0.37, 0.38), (0.30, 0.31, 0.33), 0.4, (3.2, 3.0), 0.6, 0.5),
+           'vessel': ((0.50, 0.50, 0.52), (0.42, 0.42, 0.45), 0.4, (3.0, 2.0), 1.0, 0.3),
+           'blue': ((0.025, 0.07, 0.27), (0.02, 0.055, 0.22), 0.5, (2.4, 1.6), 0, 0.45),
+           'tile': ((0.74, 0.74, 0.73), (0.66, 0.66, 0.66), 0.6, (1.25, 1.25), 0, 0.5),
+           'tile2': ((0.60, 0.60, 0.60), (0.52, 0.52, 0.53), 0.6, (1.25, 1.25), 0.2, 0.5),
+           'bumper': ((0.50, 0.51, 0.52), (0.42, 0.43, 0.45), 0.6, (1.1, 1.1), 0.45, 0.42),
+           'radw': ((0.86, 0.87, 0.88), (0.83, 0.84, 0.86), 0.55, (3.6, 0.36), 0, 0.5)}
+    M, uvs = {}, {}
+    for name, (c1, c2, sm, size, metal, rough) in PAN.items():
+        a_, n_ = panel_textures(name, c1, c2, sm, tmp)
+        M[name] = game_material(name, (1, 1, 1), metal, rough, alb=a_, nrm=n_)
+        uvs[name] = (1 / (4 * size[0]), 1 / (4 * size[1]))
+    fn = foil_normal('foil', tmp)
+    M['gold'] = game_material('gold', (1.0, 0.56, 0.16), 1.0, 0.28, nrm=fn)
+    M['silver'] = game_material('silver', (0.9, 0.9, 0.92), 1.0, 0.24, nrm=fn)
+    uvs['gold'] = uvs['silver'] = (1 / 3.0, 1 / 3.0)
+    SIM = {'hazard': ((0.85, 0.5, 0.02), 0, 0.5), 'orange': ((0.78, 0.16, 0.02), 0, 0.5), 'yellow': ((0.8, 0.48, 0.03), 0.5, 0.38),
+           'dark': ((0.045, 0.045, 0.05), 0.4, 0.5), 'black': ((0.008, 0.008, 0.009), 0, 0.8), 'cc': ((0.018, 0.018, 0.02), 0, 0.7),
+           'truss': ((0.6, 0.61, 0.62), 0.35, 0.48), 'steel': ((0.72, 0.72, 0.74), 1.0, 0.25), 'tungsten': ((0.07, 0.07, 0.08), 0.9, 0.55),
+           'bell': ((0.16, 0.12, 0.1), 1.0, 0.36), 'glass_dark': ((0.008, 0.01, 0.016), 0, 0.06), 'plasma': ((0.008, 0.008, 0.009), 0, 0.8)}
+    for name, (c, metal, rough) in SIM.items():
+        M[name] = game_material(name, c, metal, rough)
+    for i, c in enumerate([(0.62, 0.62, 0.6), (0.5, 0.42, 0.3), (0.5, 0.2, 0.08), (0.12, 0.2, 0.33), (0.3, 0.33, 0.24)]):
+        M['ctr%d' % i] = game_material('ctr%d' % i, c, 0, 0.55)
+    M['glass'] = game_material('glass', (0.02, 0.02, 0.03), 0, 0.08, emis=(1.0, 0.82, 0.55), estr=1.0)
+    M['lamp'] = game_material('lamp', (0.02, 0.02, 0.02), 0, 0.3, emis=(1.0, 0.95, 0.88), estr=1.0)
+    M['navR'] = game_material('navR', (0.02, 0.02, 0.02), 0, 0.3, emis=(1.0, 0.04, 0.02), estr=1.0)
+    M['navG'] = game_material('navG', (0.02, 0.02, 0.02), 0, 0.3, emis=(0.03, 1.0, 0.15), estr=1.0)
+    M['navW'] = game_material('navW', (0.02, 0.02, 0.02), 0, 0.3, emis=(1.0, 1.0, 1.0), estr=1.0)
+    M['hot'] = game_material('hot', (0.012, 0.012, 0.013), 0, 0.7, emis=(1.0, 0.16, 0.03), estr=0.12)
+    M['hot2'] = game_material('hot2', (0.012, 0.012, 0.013), 0, 0.7, emis=(1.0, 0.16, 0.03), estr=0.12)
+    M['hotpipe'] = game_material('hotpipe', (0.02, 0.018, 0.016), 0, 0.5, emis=(1.0, 0.28, 0.05), estr=0.3)
+    # decals
+    make_decals({}, tmp)
+    for name, text in DECALS:
+        img = bpy.data.images.get('decal_%s.png' % name) or bpy.data.images.load(os.path.join(tmp, 'decal_%s.png' % name))
+        M['decal_' + name] = game_material('decal_' + name, (0.02, 0.02, 0.025) if name != 'bay' else (0.6, 0.1, 0.02), 0, 0.6, alpha=img)
+    root = bpy.data.objects.new('Ship', None); coll.objects.link(root)
+    R90 = rotZ(PI / 2)
+    piv = {'Hull': (0, 0, 0), 'RingF': tuple(R90 @ Vector((190, 0, 0))), 'RingA': tuple(R90 @ Vector((-22, 0, 0)))}
+    par = {}
+    for g, pv in piv.items():
+        e = bpy.data.objects.new(g, None); coll.objects.link(e); e.parent = root; e.location = pv
+        par[g] = e
+    obs = k.build(M, coll, bevels=False, uvscale=uvs, pivots=piv, parents=par)
+    for i, (bx, a, rb) in enumerate(landers):
+        rad = Vector((0, math.cos(a), math.sin(a))); tan = Vector((0, -math.sin(a), math.cos(a)))
+        X, Y, Z = -tan, Vector((1, 0, 0)), -rad
+        o = rad * 24.0 + Vector((bx, 0, 0))
+        e = bpy.data.objects.new('Berth%d' % i, None); coll.objects.link(e); e.parent = root
+        e.matrix_world = R90 @ Matrix(((X.x, Y.x, Z.x, o.x), (X.y, Y.y, Z.y, o.y), (X.z, Y.z, Z.z, o.z), (0, 0, 0, 1)))
+    bpy.context.view_layer.update()
+    tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in obs)
+    for o in sorted(obs, key=lambda o: -len(o.data.polygons))[:14]:
+        print('  %-28s %7d' % (o.name, sum(len(p.vertices) - 2 for p in o.data.polygons)))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', export_yup=True, export_apply=True, export_image_format='AUTO',
+                              export_jpeg_quality=85, export_cameras=False, export_lights=False, export_animations=False)
+    print('game model: %d tris, %d meshes, %.1f MB, %.0fs' % (tris, len(obs), os.path.getsize(path) / 1e6, time.time() - t0))
+
+
 SHOTS = {
     # tgt: look-at point; cam: direction from it to the camera; sun: direction to the sun in camera space (x right, y up, z toward the camera)
     # eoff: where the Earth's centre sits, degrees right and up of the view axis; alt: camera height above the surface, km
@@ -1311,9 +1491,13 @@ def main():
     ap.add_argument('--elat', type=float, default=None)
     ap.add_argument('--exposure', type=float, default=0.0)
     ap.add_argument('--save-blend', default='')
+    ap.add_argument('--game', default='', help='write the game glb to this path and stop')
     a = ap.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:])
-    os.makedirs(a.out, exist_ok=True)
     os.makedirs(a.tmp, exist_ok=True)
+    if a.game:
+        export_game(a.game, a.tmp)
+        return
+    os.makedirs(a.out, exist_ok=True)
     t0 = time.time()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene

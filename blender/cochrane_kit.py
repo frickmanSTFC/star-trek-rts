@@ -39,12 +39,19 @@ class Kit:
         self.B = {}
         self.M = Matrix.Identity(4)
         self.rnd = random.Random(seed)
+        self.group = ''          # node the next parts go under (game export: Hull, RingF, RingA)
+        self.lod = 1.0           # < 1 thins segment counts for the game model
+        self.min_r = 0.0         # tubes thinner than this are left out
+        self.min_box = 0.0       # boxes smaller than this are left out
+        self.one_key = False     # one mesh per group and material (game export)
 
     def xf(self, M): return _XF(self, M)
 
     # ---- raw
     def add(self, mat, verts, faces, uvs, bevel=0.0, sharp=35.0):
-        key = (mat, bevel, sharp)
+        if self.one_key:
+            bevel, sharp = 0.0, 40.0
+        key = (self.group, mat, bevel, sharp)
         b = self.B.get(key)
         if b is None:
             b = self.B[key] = {'v': [], 'f': [], 'uv': []}
@@ -62,6 +69,8 @@ class Kit:
 
     # ---- primitives
     def box(self, c, size, mat, bevel=0.0, sharp=35.0):
+        if max(size) < self.min_box:
+            return
         cx, cy, cz = c
         hx, hy, hz = size[0] / 2, size[1] / 2, size[2] / 2
         v = [(cx - hx, cy - hy, cz - hz), (cx + hx, cy - hy, cz - hz), (cx + hx, cy + hy, cz - hz), (cx - hx, cy + hy, cz - hz),
@@ -79,6 +88,8 @@ class Kit:
               vref=None, sharp=35.0, bevel=0.0, uvn=False):
         """Revolve (x, r) points about the local X axis. uvn: v runs 0..1 over the profile instead of metres."""
         full = abs((a1 - a0) - TAU) < 1e-9
+        if self.lod != 1.0 and seg > 6:
+            seg = max(6, int(round(seg * self.lod)))
         n = len(prof)
         m = seg if full else seg + 1
         rr = vref or max(p[1] for p in prof) or 1.0
@@ -135,6 +146,10 @@ class Kit:
         self.lathe(p, mat, seg=seg, oy=oy, oz=oz, sharp=50.0)
 
     def tube(self, a, b, r, mat, seg=8, caps=False, r2=None, sharp=40.0):
+        if r < self.min_r:
+            return
+        if self.lod != 1.0 and r < 0.25:
+            seg = 3 if r < 0.15 else 4
         a, b = Vector(a), Vector(b)
         d = b - a
         L = d.length
@@ -154,6 +169,8 @@ class Kit:
                 self.sphere(p, r * 1.05, mat, seg=seg, rings=4)
 
     def sphere(self, c, r, mat, seg=20, rings=10, sx=1.0, sharp=60.0):
+        if self.lod != 1.0:
+            rings = max(4, int(round(rings * self.lod)))
         prof = [(c[0] - r * sx * math.cos(PI * i / rings), r * math.sin(PI * i / rings)) for i in range(rings + 1)]
         self.lathe(prof, mat, seg=seg, oy=c[1], oz=c[2], sharp=sharp)
 
@@ -165,6 +182,10 @@ class Kit:
         self.lathe(prof, mat, seg=seg, oy=oy, oz=oz, sharp=60.0)
 
     def torus(self, x, R, r, mat, seg=48, tseg=10, sharp=60.0):
+        if r < self.min_r:
+            return
+        if self.lod != 1.0:
+            tseg = max(3, int(round(tseg * self.lod)))
         prof = [(x + r * math.sin(TAU * j / tseg), R + r * math.cos(TAU * j / tseg)) for j in range(tseg)]
         self.lathe(prof, mat, seg=seg, closed=True, sharp=sharp)
 
@@ -191,15 +212,23 @@ class Kit:
         self.add(mat, v, f, uv, bevel, sharp)
 
     # ---- output
-    def build(self, mats, coll, prefix='Coch'):
+    def build(self, mats, coll, prefix='Coch', bevels=True, uvscale=None, pivots=None, parents=None):
+        """uvscale: material -> (su, sv) applied to the UVs (game textures tile in 0..1); pivots: group -> origin."""
         obs = []
-        for (mat, bevel, sharp), b in self.B.items():
+        for (group, mat, bevel, sharp), b in self.B.items():
             if not b['f']:
                 continue
-            me = bpy.data.meshes.new('%s_%s' % (prefix, mat))
-            me.from_pydata(b['v'], [], b['f'])
+            V, U = b['v'], b['uv']
+            piv = (pivots or {}).get(group)
+            if piv:
+                V = [(p[0] - piv[0], p[1] - piv[1], p[2] - piv[2]) for p in V]
+            sc = (uvscale or {}).get(mat)
+            if sc:
+                U = [u * (sc[0] if i % 2 == 0 else sc[1]) for i, u in enumerate(U)]
+            me = bpy.data.meshes.new('%s%s_%s' % (prefix, group, mat))
+            me.from_pydata(V, [], b['f'])
             uvl = me.uv_layers.new(name='UVMap')
-            uvl.data.foreach_set('uv', b['uv'])
+            uvl.data.foreach_set('uv', U)
             bm = bmesh.new()
             bm.from_mesh(me)
             bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
@@ -210,7 +239,11 @@ class Kit:
             me.materials.append(mats[mat])
             ob = bpy.data.objects.new(me.name, me)
             coll.objects.link(ob)
-            if bevel > 0:
+            if parents and group in parents:
+                ob.parent = parents[group]
+            elif piv:
+                ob.location = piv
+            if bevel > 0 and bevels:
                 m = ob.modifiers.new('Bevel', 'BEVEL')
                 m.width = bevel
                 m.segments = 2
