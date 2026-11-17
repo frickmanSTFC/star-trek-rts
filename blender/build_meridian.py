@@ -14,6 +14,7 @@ What this rebuild changed against the first model (kept: every position, radius 
   * the dome's Whipple shutters are tapered gores that fold in a Z beside the collar (a gore as long as the dome's
     meridian cannot lie flat on a 15 m collar in one piece);
   * the flywheel is a levitated rim rotor in a vacuum torus on tube struts; the sensor booms are lattice.
+Left out: the wheel's floor windows (dark panes scattered over the rim read as missing tiles).
 """
 import sys, os, math
 import numpy as np
@@ -506,14 +507,14 @@ def gring(S, phase, nmod, rh, sr, hubw, name=None, dname='name', pano=0, sag=1.6
             a = i * TAU / nmod
             da = 0.32 / rOut
             k.lathe(roof_prof(xw + 0.16, rIn - 0.16, rim + 0.1, sag, 1.1, n=3), 'grey', seg=1, a0=a - da, a1=a + da, closed=True, caps=True)
-        # --- rim bumper: spaced plates over the water jacket, livery band, name, floor windows
+        # --- rim bumper: spaced plates over the water jacket, livery band, name
         ntile = int(TAU * rOut / (2.5 if not lo() else 6.0))
         nrow = max(4, round((2 * xw - 1.4) / 2.7))
         if lo():
             nrow = max(3, (nrow + 1) // 2)
         rw = (2 * xw - 1.4) / nrow
         mid = (nrow // 2 - 1, nrow // 2) if nrow % 2 == 0 else (nrow // 2,)
-        blue, port_t = set(), set()
+        blue = set()
         cs = (0.0, TAU / 3, 2 * TAU / 3)
         ha = 0.0
         if name:
@@ -522,9 +523,6 @@ def gring(S, phase, nmod, rh, sr, hubw, name=None, dname='name', pano=0, sag=1.6
             for c in cs:
                 i0 = int((c + ha + 0.05) / TAU * ntile)
                 blue.update(range(i0, i0 + int(ntile * 0.09)))
-        for q in range(nsp * 2):          # floor windows in pairs between the spokes
-            i0 = int(((q + 0.5) / (nsp * 2) + 0.012) * ntile)
-            port_t.update((i0, i0 + 2))
         for i in range(ntile):
             a0 = (i + 0.035) * TAU / ntile
             a1 = (i + 0.965) * TAU / ntile
@@ -535,8 +533,6 @@ def gring(S, phase, nmod, rh, sr, hubw, name=None, dname='name', pano=0, sag=1.6
                 mat = 'tile' if R.random() > 0.035 else 'tile2'
                 if j in mid and i in blue:
                     mat = 'blue'
-                elif pano and j == 1 and i in port_t and not lo():
-                    mat = 'glass_dark'
                 arc_plate(xa, xa + rw - 0.1, rOut - 0.1, rOut, a0, a1, mat, vref=rOut)
         for j in range(nrow + 1 if not lo() else 0):
             k.torus(-xw + 0.7 + j * rw, rOut - 0.28, 0.1, 'grey', seg=seg, tseg=4)
