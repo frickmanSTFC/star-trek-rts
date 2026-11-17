@@ -161,3 +161,46 @@ surface's helpers in `game/sim/Surface/PlanetSurface.FitOut.cs`, tests `FitOutTe
   reported as "With the leanest fit-out …". It passes: those three can all be mined.
 - **Open**: a hold full of building materials (15 or more on the Horizon) lands with more than the hub's 1500 vault
   holds; nothing is lost, but income waits until some is spent. The crew_loss lever only matters on Domes worlds.
+
+## Phase 2: the four ships that never land (owner 2026-11-17: "do the four space ships next")
+
+Tereshkova, Armstrong, Bastion and Meridian get the same page and rules. Everything below follows the design page's
+"Space" section and its levers table (cargo on a ship that never lands); numbers are placeholders.
+
+**Ships** (crew from `ShipChoiceDef.Crew`; hold; suggested focus): Tereshkova 40 / 12 / Explorer; Armstrong 6 / 6 /
+Builder; Bastion 85 / 14 / Combatant; Meridian 350 / 20 / Scientist.
+
+**Crew levers** (same 0.4% per point, same 10% / 30% floors):
+
+| lever id | division | moves |
+|---|---|---|
+| `scan_cooldown` | exploration | long-range scan recharge (`system.scan.cooldown_seconds`, 90 s) |
+| `sweep_time` | exploration | the orbital sweep of a new body (15 s) |
+| `flight_time` | engineering | flight time between bodies (`TravelTicksFor`) |
+| `study_time` | science | time to study a civilization (`StudyOf`) |
+| `shock_chance` | science | culture-shock chance at first contact (`ShockChance`) |
+| `alongside_time` | defense | time alongside a ship for `with_ship` objectives (`hold_seconds`) |
+
+**Perks in space:** Explorer = long-range scans reach 400 units instead of 320; Builder = flights 8% shorter; Combatant =
+`with_ship` holds need 20 s instead of 30; Scientist = study a quarter shorter; All-rounder = none.
+
+**Cargo lines in space** (a ship that never lands shows only these; a colony ship only the phase 1 lines):
+
+| id | group | containers | min | max | gives |
+|---|---|---|---|---|---|
+| `ssat` System satellite | exploration | 2 | 0 | 4 | that many `SystemSatelliteCommand`s cost nothing |
+| `probe` Sensor probe | exploration | 1 | 0 | 4 | that many long-range scans with no recharge wait |
+| `mass` Reaction mass | engineering | 1 | 0 | 6 | flights 2% shorter each |
+| `post` Listening post | science | 2 | 0 | 3 | that many `ObservationPostCommand`s cost nothing |
+| `gifts` Medicine and gifts | science | 1 | 0 | 4 | culture-shock chance 3 points lower each |
+
+Group floors in space: exploration 1, engineering 1, science 1, defense 0, ship 0 (Defense cargo waits for combat; no
+"boarding gear" line yet). Each ship has a base load and fill orders per focus as in the mock's `CARGO.space`.
+
+**Rules that stay:** no fit-out = today's game exactly (every hash unchanged); a bad fit-out is replaced by the ship's
+suggested preset; the page appears for every ship the data lists; the mission reach check's space part (satellites and
+posts payable) should count free satellites/posts from the leanest legal load.
+
+**UI:** the same `MainMenu.FitOut.cs` page, showing the ship's own cargo lines and, in the summary, "Aboard" (free
+satellites, free scans, free posts, flights, culture shock) instead of "At landing", and the space levers under "During
+play". The flagship card and pause card already show the focus and split.
