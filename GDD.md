@@ -120,6 +120,32 @@ layer above it once the surface game is fun.
   signs of a civilization), Listening Post (a hidden observation post), Study (the dossier), First Words (first
   contact: no Prime Directive in the Dawn of Warp), Guests Aboard (hold orbit 60 s). Space chains end with a debrief
   for now (open: later rewards, ship stats beyond speed, a space ship supporting a colony, multiplayer).
+- **Fit Out Your Ship** (decided 2026-11-17: "You should decide if you are an explorer, a builder, a combatant, etc.
+  Based on this, you can set the crewing/supplies of your ship before you leave home-base. You need to have some of
+  each type of support, but you can go more with one type over another"; `data/missions/fit_out.json`,
+  `docs/fit-out-contract.md`, design page `docs/mockups/loadout/`; phase 1 = the two colony ships, the four that never
+  land play as before). Between the ship pick and the system pick the player picks a **focus** (Explorer, Builder,
+  Combatant, Scientist, All-rounder; any focus on any ship, each ship suggests one: Horizon All-rounder, Cochrane
+  Builder), splits the **crew** (Horizon 120, Cochrane 210 heads) over four divisions (Exploration, Engineering,
+  Science, Defense: each at least 10%, the focus's own at least 30%, everyone assigned) and loads the **hold**
+  (Horizon 30, Cochrane 24 containers) line by line. A division's strength is 0.4% per point its crew share is above
+  or below 25% (+8% on a preset, +18% at most, -6% at the 10% minimum); it moves that division's levers: Exploration
+  drive speed, satellite sweep time, drone battery, rover hazards and flats; Engineering build and upgrade time,
+  repairs, Machine Shop and hub workshop speed, building wear; Science lab points, dig time, how long a pathogen keeps
+  the crew sick; Defense wildlife attacks, ruin-defence damage, crew lost when life support fails. Perks: Explorer =
+  the landing reveals 5 hexes instead of 3; Builder = the hub workshop 30% faster; Combatant = vehicles take half
+  damage from wildlife and ruin defences; Scientist = research from missions +20%; All-rounder none. Cargo (containers
+  each, min-max): Building materials (1, 6-20: 50 duranium + 30 tritanium), Spare kit set (1, 0-6), Extra mining
+  crawler (4, 0-1) and Extra survey rover (3, 0-2: land with the colony in their own convoy drop ships), Scout drone
+  (1, 0-4: an item in stock), Survey satellite (2, 0-3: launches without paying), Lab equipment (1, 0-6: 20 research
+  points banked toward the first tech), Medical stores (1, 0-4: sickness 8% shorter each), Field armour (1, 0-4:
+  vehicles take 5% less hazard and wildlife damage each), Fuel (1, 4-12: 25 deuterium), Provisions (1, 0-8: 5 more
+  crew awake). Group floors: exploration 2, engineering 8, science 2, defense 2, ship's stores 4 containers; the hold
+  need not be full. With a fit-out the landing's duranium, tritanium and deuterium come from the hold instead of the
+  usual 500 / 300 / 150 (the ship's own bonus is added as before); everything else in the start stock stays. A game
+  with no fit-out (the sandbox, tests, the balance runner, the four space ships) is exactly the game as it was. All
+  numbers are placeholders. Open: the four space ships' fit-outs, more for Defense once combat exists, a big load of
+  building materials can land with more than the hub's vault holds (income then waits until some is spent).
 - **Building** (from the build bar once landed): one building per hex, on surveyed, buildable tiles within the Colony
   Hub's build radius (4). The cost is paid on placement; the hub's single build queue builds one at a time, the rest
   wait in order; unfinished buildings can be cancelled for a full refund. Buildings turn in 60° steps (hex sides).
