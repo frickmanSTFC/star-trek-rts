@@ -7,7 +7,7 @@
     { "id": "torpedo_silo", "name": "Torpedo Launcher Silo", "layer": "surface", "category": "military", "source": "canon",
       "cost": { "tritanium": 100, "antimatter": 20 }, "effect": "Long-range surface-to-orbit torpedoes (DS9-style launchers)." },
     { "id": "planetary_shield", "name": "Planetary Shield Generator", "layer": "surface", "category": "military", "source": "canon",
-      "cost": { "parasteel": 250, "energy": 80 }, "requires_tech": "regenerative_shields", "limit": "1 per body",
+      "cost": { "parsteel": 250, "energy": 80 }, "requires_tech": "regenerative_shields", "limit": "1 per body",
       "effect": "Blocks bombardment and transporters until depleted." },
     { "id": "sensor_grid_ground", "name": "Planetary Sensor Grid", "layer": "surface", "category": "military", "source": "original",
       "cost": { "duranium": 60, "isolinear_chips": 10 }, "effect": "+Vision; detects Changeling/infiltrator events." }

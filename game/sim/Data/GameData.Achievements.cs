@@ -29,7 +29,7 @@ public sealed partial class GameData
     };
 
     /// <summary>Milestones by name (plus built:&lt;building id&gt; and unit:&lt;unit id&gt;), as the balance runner means them.</summary>
-    public static readonly IReadOnlyList<string> AchievementMilestones = new[] { "uplink", "landed", "first_metal", "first_parasteel", "second_base", "research_all" };
+    public static readonly IReadOnlyList<string> AchievementMilestones = new[] { "uplink", "landed", "first_metal", "first_parsteel", "second_base", "research_all" };
 
     /// <summary>Events the sim reports, with their fields: "at_least" (the event's number must reach the trigger's),
     /// "at_most" (must not exceed it) or "equals" (text).</summary>

@@ -18,7 +18,7 @@
           "id": "car_monitoring_station",
           "name": "Monitoring Station",
           "cost": {
-            "parasteel": 280,
+            "parsteel": 280,
             "isolinear_chips": 20
           },
           "effect": "Oval hub; reveals fleet movement in neighbouring systems.",
@@ -31,7 +31,7 @@
           "id": "nor_station",
           "name": "Nor-type Station",
           "cost": {
-            "parasteel": 700,
+            "parsteel": 700,
             "uridium": 60
           },
           "effect": "Terok Nor layout; x2 refined output in system.",
@@ -45,7 +45,7 @@
           "id": "car_nor_bastion",
           "name": "Nor-type Bastion",
           "cost": {
-            "parasteel": 1100,
+            "parsteel": 1100,
             "antimatter": 80,
             "photon_warheads": 40
           },
@@ -85,7 +85,7 @@
           "id": "car_central_command",
           "name": "Central Command",
           "cost": {
-            "parasteel": 450,
+            "parsteel": 450,
             "isolinear_chips": 60
           },
           "effect": "Unlocks Obsidian Order and Union occupation policies.",
@@ -113,7 +113,7 @@
           "id": "car_fleet_shipyard",
           "name": "Fleet Shipyard",
           "cost": {
-            "parasteel": 300,
+            "parsteel": 300,
             "plasma_conduits": 40
           },
           "effect": "Galor and Keldon.",
@@ -126,7 +126,7 @@
           "id": "car_assembly_yards",
           "name": "Assembly Yards",
           "cost": {
-            "parasteel": 2400,
+            "parsteel": 2400,
             "uridium": 120
           },
           "effect": "3 parallel lines, cruisers -25%; no titan berth.",
@@ -165,7 +165,7 @@
           "id": "car_capital_district",
           "name": "Capital District",
           "cost": {
-            "parasteel": 320,
+            "parsteel": 320,
             "uridium": 40
           },
           "effect": "Monument city; -1 Resistance in system.",

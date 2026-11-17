@@ -1,7 +1,7 @@
 """Alloy Foundry Mk I-V mockups (`foundry`; owner 2026-11-06: full details and Mk I through Mk V).
 
 One silhouette, five marks: a casting hall at the back, the melt out front under an arch (glowing crucible with the
-stirrer "Spin"), a stack, parasteel ingots by the door.
+stirrer "Spin"), a stack, parsteel ingots by the door.
   Mk I   Crucible shed: an open-fronted lean-to shed, one crucible on a stand under a steel arch, one stack, a pallet
          of ingots, gas bottles.
   Mk II  Induction works: a proper hall with a roof monitor, the crucible becomes an induction furnace with copper

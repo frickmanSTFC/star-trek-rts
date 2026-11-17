@@ -44,7 +44,7 @@ public class PauseTests
     }
 
     [Fact]
-    public void APausedFoundryUsesNoMetalMakesNoParasteelAndDrawsNoPower()
+    public void APausedFoundryUsesNoMetalMakesNoParsteelAndDrawsNoPower()
     {
         var (sim, s, built) = Colony("foundry");
         var foundry = built[0];
@@ -56,18 +56,18 @@ public class PauseTests
         Assert.True(foundry.Paused);
         Assert.Equal(StructureStatus.Paused, foundry.Status);
         Assert.Equal(use - Data.Building("foundry").PowerUse, s.PowerOf(foundry.BaseId).Use);
-        var (dur, tri, para, condition) = (stock[R("duranium")], stock[R("tritanium")], stock[R("parasteel")], foundry.Condition);
+        var (dur, tri, para, condition) = (stock[R("duranium")], stock[R("tritanium")], stock[R("parsteel")], foundry.Condition);
         for (var i = 0; i < 60 * Simulation.TickRate; i++) sim.Step();
-        Assert.Equal(para, stock[R("parasteel")]);
+        Assert.Equal(para, stock[R("parsteel")]);
         Assert.True(stock[R("duranium")] >= dur && stock[R("tritanium")] >= tri); // nothing spent, only the hub's trickle came in
         Assert.Equal(condition, foundry.Condition); // no wear
-        Assert.Equal(Fix64.Zero, sim.IncomePerMinute(0)[R("parasteel")]);
+        Assert.Equal(Fix64.Zero, sim.IncomePerMinute(0)[R("parsteel")]);
 
         Pause(sim, foundry, false);
         Assert.False(foundry.Paused);
         for (var i = 0; i < 20 * Simulation.TickRate; i++) sim.Step();
         Assert.Equal(StructureStatus.Working, foundry.Status);
-        Assert.True(stock[R("parasteel")] > para);
+        Assert.True(stock[R("parsteel")] > para);
         Assert.True(foundry.Condition < condition);
     }
 

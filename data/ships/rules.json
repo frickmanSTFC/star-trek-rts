@@ -15,7 +15,7 @@
     "per_size2":    { "duranium": 30, "tritanium": 12 },
     "per_size":     { "dilithium": 6 },
     "from_size":    2,
-    "per_size_over": { "parasteel": { "over": 3, "per": 20 }, "warp_coils": { "over": 4, "per": 5 } },
+    "per_size_over": { "parsteel": { "over": 3, "per": 20 }, "warp_coils": { "over": 4, "per": 5 } },
     "round_to":     5,
     "round_from":   20,
     "build_seconds": { "base": 20, "per_size_pow": 15, "pow": 1.5 },

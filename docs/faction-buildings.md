@@ -142,34 +142,34 @@ The number in brackets is how many levels the line has. The Federation command l
 | Faction | Level | Building | Cost | Stats | Effect |
 |---|---|---|---|---|---|
 | Federation | L1 | Outpost | 120 duranium, 10 rodinium | supply range 1; docking 0 | Claims the system. |
-|  | L2 | Deep Space Station | 300 parasteel | supply range 2; docking 4 | K-7 style trade hub. |
-|  | L3 | Starbase | 600 parasteel, 50 isolinear, 40 photon_warheads | supply range 3; docking 8 | Saucer command deck, fleet aura. |
-|  | L4 | Spacedock | 1200 parasteel, 150 plasma conduits | hull cap 6; docking 16 | Interior bay; builds size-6 hulls. |
-|  | L5 | Yorktown *(wonder)* | 4000 parasteel, 300 isolinear, 200 dilithium | docking 24 | Habitable rings inside a transparent shell. |
+|  | L2 | Deep Space Station | 300 parsteel | supply range 2; docking 4 | K-7 style trade hub. |
+|  | L3 | Starbase | 600 parsteel, 50 isolinear, 40 photon_warheads | supply range 3; docking 8 | Saucer command deck, fleet aura. |
+|  | L4 | Spacedock | 1200 parsteel, 150 plasma conduits | hull cap 6; docking 16 | Interior bay; builds size-6 hulls. |
+|  | L5 | Yorktown *(wonder)* | 4000 parsteel, 300 isolinear, 200 dilithium | docking 24 | Habitable rings inside a transparent shell. |
 | Klingon | L1 | Border Outpost | 140 duranium, 10 rodinium | supply range 1; weapons 2 | Spear tower armed with 2 disruptors from day one. |
-|  | L2 | Battle Station | 320 parasteel | supply range 2; docking 3 | Armored hub with wing arms; cloaked ships rearm without decloaking. |
-|  | L3 | Klingon Starbase | 600 parasteel, 40 isolinear, 30 photon_warheads | supply range 3; docking 6 | War platform with spires; fleet aura, Honor for kills nearby. |
-|  | L4 | Asteroid Fortress *(faction only)* | 1000 parasteel, 80 kelbonite | hidden hangars 8; requires asteroid_in_system | Ty'Gokor style hollowed asteroid; kelbonite hides hangars from scans. |
+|  | L2 | Battle Station | 320 parsteel | supply range 2; docking 3 | Armored hub with wing arms; cloaked ships rearm without decloaking. |
+|  | L3 | Klingon Starbase | 600 parsteel, 40 isolinear, 30 photon_warheads | supply range 3; docking 6 | War platform with spires; fleet aura, Honor for kills nearby. |
+|  | L4 | Asteroid Fortress *(faction only)* | 1000 parsteel, 80 kelbonite | hidden hangars 8; requires asteroid_in_system | Ty'Gokor style hollowed asteroid; kelbonite hides hangars from scans. |
 | Cardassian | L1 | Outpost | 120 duranium, 10 rodinium | supply range 1 | Ribbed spindle; +1 system sensor range. |
-|  | L2 | Monitoring Station | 280 parasteel, 20 isolinear | supply range 2; docking 2 | Oval hub; reveals fleet movement in neighbouring systems. |
-|  | L3 | Nor-type Station *(faction only)* | 700 parasteel, 60 uridium | docking 12 | Terok Nor layout; x2 refined output in system. |
-|  | L4 | Nor-type Bastion *(faction only)* | 1100 parasteel, 80 antimatter, 40 photon_warheads | weapons 10 | War refit: 6 arrays + 4 weapons platforms; keeps refining bonus. |
+|  | L2 | Monitoring Station | 280 parsteel, 20 isolinear | supply range 2; docking 2 | Oval hub; reveals fleet movement in neighbouring systems. |
+|  | L3 | Nor-type Station *(faction only)* | 700 parsteel, 60 uridium | docking 12 | Terok Nor layout; x2 refined output in system. |
+|  | L4 | Nor-type Bastion *(faction only)* | 1100 parsteel, 80 antimatter, 40 photon_warheads | weapons 10 | War refit: 6 arrays + 4 weapons platforms; keeps refining bonus. |
 | Romulan | L1 | Cloaked Outpost | 130 duranium, 20 isolinear | supply range 1 | Hidden from enemy maps until it fires. |
-|  | L2 | Listening Post | 260 parasteel, 40 isolinear | supply range 2 | Neutral Zone sensor wings; intel 2 systems out. |
-|  | L3 | Warbird Aerie | 620 parasteel, 60 isolinear | supply range 3; docking 6 | Hawk-shaped starbase; ships launch cloaked. |
-|  | L4 | Singularity Bastion *(faction only)* | 1200 parasteel, 2 singularity cores |  | No antimatter upkeep in range; gravity well if destroyed. |
+|  | L2 | Listening Post | 260 parsteel, 40 isolinear | supply range 2 | Neutral Zone sensor wings; intel 2 systems out. |
+|  | L3 | Warbird Aerie | 620 parsteel, 60 isolinear | supply range 3; docking 6 | Hawk-shaped starbase; ships launch cloaked. |
+|  | L4 | Singularity Bastion *(faction only)* | 1200 parsteel, 2 singularity cores |  | No antimatter upkeep in range; gravity well if destroyed. |
 | Dominion | L1 | Jem'Hadar Outpost | 130 duranium | supply range 1 | No crew upkeep; costs 1 White per cycle. |
-|  | L2 | Ketracel-white Facility *(faction only)* | 300 parasteel, 30 zenite | supply range 2 | +6 White/cycle; losing it makes nearby Jem'Hadar feral. |
-|  | L3 | Vorta Command Station | 600 parasteel, 50 isolinear | supply range 3; docking 8 | Fleet aura; Vorta diplomacy with neighbours. |
-|  | L4 | Wormhole Citadel *(faction only)* | 1400 parasteel, 100 isolinear | requires stable_wormhole | On a stable wormhole; free reinforcement wave every 10 min. |
+|  | L2 | Ketracel-white Facility *(faction only)* | 300 parsteel, 30 zenite | supply range 2 | +6 White/cycle; losing it makes nearby Jem'Hadar feral. |
+|  | L3 | Vorta Command Station | 600 parsteel, 50 isolinear | supply range 3; docking 8 | Fleet aura; Vorta diplomacy with neighbours. |
+|  | L4 | Wormhole Citadel *(faction only)* | 1400 parsteel, 100 isolinear | requires stable_wormhole | On a stable wormhole; free reinforcement wave every 10 min. |
 | Ferengi | L1 | Trading Post | 100 duranium, 20 latinum | supply range 1 | +1 Latinum per passing freighter, any faction. |
-|  | L2 | Bazaar Station | 280 parasteel, 60 latinum | docking 6 | 10% cut of all trades docked here; sells repairs. |
-|  | L3 | Marauder Station | 560 parasteel, 150 latinum | supply range 3 | Horseshoe starbase; mercenary contracts. |
-|  | L4 | Grand Exchange *(wonder)* | 2000 parasteel, 1000 latinum |  | Sets market prices for all players; attack = market crash. |
+|  | L2 | Bazaar Station | 280 parsteel, 60 latinum | docking 6 | 10% cut of all trades docked here; sells repairs. |
+|  | L3 | Marauder Station | 560 parsteel, 150 latinum | supply range 3 | Horseshoe starbase; mercenary contracts. |
+|  | L4 | Grand Exchange *(wonder)* | 2000 parsteel, 1000 latinum |  | Sets market prices for all players; attack = market crash. |
 | Borg | L1 | Probe Node | 120 duranium, 10 nanoprobes | supply range 1 | Full system vision; records enemy weapons. |
-|  | L2 | Interlink Node | 300 parasteel, 30 nanoprobes | supply range 2 | Adaptations shared with all Borg units in range. |
-|  | L3 | Vinculum Station *(faction only)* | 650 parasteel, 60 nanoprobes | supply range 3 | Fast regeneration; destroyed = drones in range offline. |
-|  | L4 | Transwarp Hub *(faction only)* | 1400 parasteel, 120 nanoprobes | apertures 3 | Instant hub-to-hub travel; capturable. |
+|  | L2 | Interlink Node | 300 parsteel, 30 nanoprobes | supply range 2 | Adaptations shared with all Borg units in range. |
+|  | L3 | Vinculum Station *(faction only)* | 650 parsteel, 60 nanoprobes | supply range 3 | Fast regeneration; destroyed = drones in range offline. |
+|  | L4 | Transwarp Hub *(faction only)* | 1400 parsteel, 120 nanoprobes | apertures 3 | Instant hub-to-hub travel; capturable. |
 
 ### Command
 
@@ -178,52 +178,52 @@ The number in brackets is how many levels the line has. The Federation command l
 | Federation | L1 | Colony Hub | 100 duranium, 50 crew | supply range 1; build queues 1; pop cap 2 | Colony pod set down by a drop ship: landing legs, boarding ramp, solar petals, drop capsules. |
 |  | L2 | Settlement Hub | 160 duranium, 60 tritanium | supply range 1; build queues 1; pop cap 3 | Pod settles on a foundation; four capsule modules plug in on tubes; hydroponics dome; +25% storage, +10% build speed. |
 |  | L3 | Colonial Administration | 300 duranium, 150 tritanium | supply range 2; build queues 2; pop cap 4 | Pod raised on a central column above a ring corridor of six modules; domed rotunda; comm tower. |
-|  | L4 | Governor's Complex | 280 parasteel, 30 isolinear | supply range 2; build queues 3; pop cap 6 | Column carries a starbase-style saucer deck; three-storey ring modules; second saucer building; +1 morale in system. |
-|  | L5 | Planetary Capital | 400 parasteel, 50 isolinear | supply range 3; build queues 3; pop cap 10; limit 1 per system | Spire of three saucer decks, ring of saucer-topped towers, Academy-style arches, pod monument; +2 morale in system. |
+|  | L4 | Governor's Complex | 280 parsteel, 30 isolinear | supply range 2; build queues 3; pop cap 6 | Column carries a starbase-style saucer deck; three-storey ring modules; second saucer building; +1 morale in system. |
+|  | L5 | Planetary Capital | 400 parsteel, 50 isolinear | supply range 3; build queues 3; pop cap 10; limit 1 per system | Spire of three saucer decks, ring of saucer-topped towers, Academy-style arches, pod monument; +2 morale in system. |
 | Klingon | L1 | House Encampment | 90 duranium, 60 crew | supply range 1 | Shelters, brazier, House banner; trains warriors. |
 |  | L2 | Governor's Keep | 280 duranium, 160 tritanium | supply range 2 | Walled keep; +50% garrison defense, 2nd build queue. |
-|  | L3 | Great Hall *(faction only)* | 450 parasteel, 100 Honor, 50 bloodwine | supply range 3 | High Council seat; spend Honor for Great House fleets. |
+|  | L3 | Great Hall *(faction only)* | 450 parsteel, 100 Honor, 50 bloodwine | supply range 3 | High Council seat; spend Honor for Great House fleets. |
 | Cardassian | L1 | Garrison Post | 110 duranium, 40 crew | supply range 1 | Ribbed bunker; trains Cardassian soldiers. |
 |  | L2 | Prefecture | 300 duranium, 140 tritanium | supply range 2 | Governs occupied worlds; -1 Resistance. |
-|  | L3 | Central Command *(faction only)* | 450 parasteel, 60 isolinear | supply range 3 | Unlocks Obsidian Order and Union occupation policies. |
+|  | L3 | Central Command *(faction only)* | 450 parsteel, 60 isolinear | supply range 3 | Unlocks Obsidian Order and Union occupation policies. |
 | Romulan | L1 | Colonial Garrison | 110 duranium, 40 crew | supply range 1 | Enemy scans see no colony details. |
 |  | L2 | Proconsulate | 300 duranium, 140 tritanium | supply range 2; tal shiar slots 1 | 2nd build queue, 1 Tal Shiar op slot. |
-|  | L3 | Imperial Senate *(faction only)* | 450 parasteel, 80 isolinear | supply range 3; tal shiar slots 3 | Unlocks Tal Shiar HQ and Senate politics (bribable senators). |
+|  | L3 | Imperial Senate *(faction only)* | 450 parsteel, 80 isolinear | supply range 3; tal shiar slots 3 | Unlocks Tal Shiar HQ and Senate politics (bribable senators). |
 | Dominion | L1 | Vorta Field Post | 110 duranium, 2 White | supply range 1 | Vorta supervisor + Jem'Hadar squad; clone replaces a killed Vorta. |
 |  | L2 | Vorta Administration | 300 duranium, 140 tritanium | supply range 2 | Client-world pacts with minor factions. |
-|  | L3 | Founders' Sanctuary *(faction only)* | 500 parasteel, 60 isolinear | supply range 3 | The Great Link; trains Changeling infiltrators, loyalty aura. |
+|  | L3 | Founders' Sanctuary *(faction only)* | 500 parsteel, 60 isolinear | supply range 3 | The Great Link; trains Changeling infiltrators, loyalty aura. |
 | Ferengi | L1 | Trade Office | 90 duranium, 30 latinum | supply range 1 | +2 Latinum; no garrison. |
 |  | L2 | Commerce Authority Office | 260 duranium, 120 latinum | supply range 2 | Sells trade licences; 1 Rule of Acquisition perk. |
-|  | L3 | Tower of Commerce *(faction only)* | 400 parasteel, 500 latinum | supply range 3 | All Rules perks; bribe AI factions and rival governors. |
+|  | L3 | Tower of Commerce *(faction only)* | 400 parsteel, 500 latinum | supply range 3 | All Rules perks; bribe AI factions and rival governors. |
 | Borg | L1 | Assimilation Spire | 100 duranium, 20 nanoprobes | requires populated_world | Only on populated worlds; converts pop to drones; +5 nanoprobes per cycle; combines assimilated tech into new tech. |
-|  | L2 | Planetary Hive | 320 parasteel, 40 nanoprobes | supply range 2 | No morale/unrest; self-repairing. |
-|  | L3 | Unicomplex *(faction only)* | 2000 parasteel, 200 nanoprobes |  | Match-long adaptation memory; Borg Queen; loss wipes adaptations. |
+|  | L2 | Planetary Hive | 320 parsteel, 40 nanoprobes | supply range 2 | No morale/unrest; self-repairing. |
+|  | L3 | Unicomplex *(faction only)* | 2000 parsteel, 200 nanoprobes |  | Match-long adaptation memory; Borg Queen; loss wipes adaptations. |
 
 ### Shipyards
 
 | Faction | Level | Building | Cost | Stats | Effect |
 |---|---|---|---|---|---|
 | Federation | L1 | Orbital Drydock | 200 duranium, 100 tritanium | hull cap 3; build slots 1 | Open frame; escorts and frigates. |
-|  | L2 | Orbital Shipyard | 300 parasteel, 40 plasma conduits | hull cap 5; build slots 2 | Double frame with cranes; cruisers. |
-|  | L3 | Fleet Yards *(wonder)* | 3000 parasteel, 200 warp coils | hull cap titan | Utopia Planitia; titan berth, -20% build time. |
+|  | L2 | Orbital Shipyard | 300 parsteel, 40 plasma conduits | hull cap 5; build slots 2 | Double frame with cranes; cruisers. |
+|  | L3 | Fleet Yards *(wonder)* | 3000 parsteel, 200 warp coils | hull cap titan | Utopia Planitia; titan berth, -20% build time. |
 | Klingon | L1 | Cradle | 180 duranium, 100 tritanium | hull cap 3; build slots 1 | Claw cradle; -15% build time on escorts. |
-|  | L2 | Imperial Shipyard | 300 parasteel, 40 plasma conduits | hull cap 5; build slots 2 | Three claw pairs; battlecruisers. |
-|  | L3 | Imperial Fleet Yards *(wonder)* | 2800 parasteel, 200 warp coils | hull cap titan | Titan berth (Negh'Var); Great House sponsorship cuts cost 30%. |
+|  | L2 | Imperial Shipyard | 300 parsteel, 40 plasma conduits | hull cap 5; build slots 2 | Three claw pairs; battlecruisers. |
+|  | L3 | Imperial Fleet Yards *(wonder)* | 2800 parsteel, 200 warp coils | hull cap titan | Titan berth (Negh'Var); Great House sponsorship cuts cost 30%. |
 | Cardassian | L1 | Rib Dock | 200 duranium, 100 tritanium | hull cap 3; build slots 1 | Hideki, Groumall; cheaper with a Nor-type in system. |
-|  | L2 | Fleet Shipyard | 300 parasteel, 40 plasma conduits | hull cap 5; build slots 2 | Galor and Keldon. |
-|  | L3 | Assembly Yards *(wonder)* | 2400 parasteel, 120 uridium | hull cap 5; build slots 3 | 3 parallel lines, cruisers -25%; no titan berth. |
+|  | L2 | Fleet Shipyard | 300 parsteel, 40 plasma conduits | hull cap 5; build slots 2 | Galor and Keldon. |
+|  | L3 | Assembly Yards *(wonder)* | 2400 parsteel, 120 uridium | hull cap 5; build slots 3 | 3 parallel lines, cruisers -25%; no titan berth. |
 | Romulan | L1 | Aerie Dock | 200 duranium, 30 isolinear | hull cap 3 | Half-cloaked arches; hidden build queue. |
-|  | L2 | Imperial Shipyard | 320 parasteel, 40 plasma conduits | hull cap 5; build slots 2 | Valdore-class cruisers. |
-|  | L3 | Singularity Yards *(wonder)* | 3000 parasteel, 4 singularity cores | hull cap titan | D'deridex and (late Dominion War era) Scimitar; all hulls launch cloaked. |
+|  | L2 | Imperial Shipyard | 320 parsteel, 40 plasma conduits | hull cap 5; build slots 2 | Valdore-class cruisers. |
+|  | L3 | Singularity Yards *(wonder)* | 3000 parsteel, 4 singularity cores | hull cap titan | D'deridex and (late Dominion War era) Scimitar; all hulls launch cloaked. |
 | Dominion | L1 | Attack Ship Cradle | 200 duranium, 100 tritanium | hull cap 3; build slots 2 | Attack ships built in pairs, crewed from vats. |
-|  | L2 | Dominion Shipyard | 500 parasteel, 60 plasma conduits | hull cap 6; build slots 1 | Skips cruisers; Jem'Hadar battle cruiser. |
-|  | L3 | Stellar Forge *(wonder)* | 2800 parasteel, 200 warp coils | hull cap titan | Star-powered; Jem'Hadar battleship; no energy upkeep. |
+|  | L2 | Dominion Shipyard | 500 parsteel, 60 plasma conduits | hull cap 6; build slots 1 | Skips cruisers; Jem'Hadar battle cruiser. |
+|  | L3 | Stellar Forge *(wonder)* | 2800 parsteel, 200 warp coils | hull cap titan | Star-powered; Jem'Hadar battleship; no energy upkeep. |
 | Ferengi | L1 | Shuttle Dock | 180 duranium, 40 latinum | hull cap 3 | Shuttles, freighters (+25% cargo), small raiders. |
-|  | L2 | Marauder Yard | 280 parasteel, 100 latinum | hull cap 4; build slots 2 | D'Kora Marauder. |
-|  | L3 | Acquisition Yards *(wonder)* | 1800 parasteel, 800 latinum | hull cap any_acquired; build slots 3 | Refit any acquired foreign hull; no cap. |
+|  | L2 | Marauder Yard | 280 parsteel, 100 latinum | hull cap 4; build slots 2 | D'Kora Marauder. |
+|  | L3 | Acquisition Yards *(wonder)* | 1800 parsteel, 800 latinum | hull cap any_acquired; build slots 3 | Refit any acquired foreign hull; no cap. |
 | Borg | L1 | Assembly Matrix | 180 duranium, 20 nanoprobes | hull cap 2 | Probes; wrecks in system return resources. |
-|  | L2 | Sphere Matrix | 360 parasteel, 40 nanoprobes | hull cap 5 | Spheres; can mount any assimilated tech. |
-|  | L3 | Cube Matrix *(wonder)* | 3000 parasteel, 250 nanoprobes | hull cap titan | Cube, Tactical Cube, Queen's Diamond (with Unicomplex). |
+|  | L2 | Sphere Matrix | 360 parsteel, 40 nanoprobes | hull cap 5 | Spheres; can mount any assimilated tech. |
+|  | L3 | Cube Matrix *(wonder)* | 3000 parsteel, 250 nanoprobes | hull cap titan | Cube, Tactical Cube, Queen's Diamond (with Unicomplex). |
 
 ### Habitation, Clones and Drones
 
@@ -231,25 +231,25 @@ The number in brackets is how many levels the line has. The Federation command l
 |---|---|---|---|---|---|---|
 | Federation | habitation | L1 | Prefab Habitat | 60 duranium | pop cap 1 | Sealed modules on Class K/M/L/H. |
 |  |  | L2 | Pressure Domes | 160 duranium, 60 tritanium | pop cap 2 | Domes on any solid body; breach risk. |
-|  |  | L3 | Arcology | 300 parasteel | pop cap 8 | Terraced megastructure; needs industrial replicators. |
+|  |  | L3 | Arcology | 300 parsteel | pop cap 8 | Terraced megastructure; needs industrial replicators. |
 | Klingon | habitation | L1 | Clan Longhouse | 70 duranium | pop cap 1 | Stone hall; +1 militia strength; +1 Bloodwine per cycle. |
 |  |  | L2 | Fortified Settlement | 160 duranium, 60 tritanium | pop cap 3 | Walled compound; +2 vs invasion. |
-|  |  | L3 | Warrior Citadel | 320 parasteel, 60 rodinium | pop cap 7 | Crag city; trains elite warriors, hardest to invade. |
+|  |  | L3 | Warrior Citadel | 320 parsteel, 60 rodinium | pop cap 7 | Crag city; trains elite warriors, hardest to invade. |
 | Cardassian | habitation | L1 | Labor Barracks | 60 duranium | pop cap 1 | On occupied worlds: +50% output, rising Resistance. |
 |  |  | L2 | Civic Arcade | 150 duranium, 40 transp. aluminum | pop cap 3 | Broadcast screens; spies found faster. |
-|  |  | L3 | Capital District | 320 parasteel, 40 uridium | pop cap 7 | Monument city; -1 Resistance in system. |
+|  |  | L3 | Capital District | 320 parsteel, 40 uridium | pop cap 7 | Monument city; -1 Resistance in system. |
 | Romulan | habitation | L1 | Colonial Villa | 70 duranium | pop cap 1 | Courtyard homes; +1 morale. |
 |  |  | L2 | Terraced Quarter | 170 duranium, 40 tritanium | pop cap 3 | Informant network; spies and Changelings found faster. |
-|  |  | L3 | Spire City | 320 parasteel, 50 isolinear | pop cap 7 | Ki Baratan style; +2 research, system-wide informants. |
+|  |  | L3 | Spire City | 320 parsteel, 50 isolinear | pop cap 7 | Ki Baratan style; +2 research, system-wide informants. |
 | Dominion | clones | L1 | Birthing Chamber | 90 duranium, 20 zenite | squads per cycle 1 | 1 Jem'Hadar squad/cycle, no population needed. |
-|  |  | L2 | Cloning Facility | 260 parasteel, 40 zenite | squads per cycle 3 | 3 squads/cycle; Vorta revival. |
-|  |  | L3 | Cloning Complex *(faction only)* | 600 parasteel, 80 zenite | squads per cycle 8 | 8 squads/cycle, instant crews in system; huge White demand. |
+|  |  | L2 | Cloning Facility | 260 parsteel, 40 zenite | squads per cycle 3 | 3 squads/cycle; Vorta revival. |
+|  |  | L3 | Cloning Complex *(faction only)* | 600 parsteel, 80 zenite | squads per cycle 8 | 8 squads/cycle, instant crews in system; huge White demand. |
 | Ferengi | habitation | L1 | Rental Habitat | 60 duranium | pop cap 1 | Adjustable rent: latinum vs morale. |
 |  |  | L2 | Market Quarter | 150 duranium, 60 latinum, 20 cormaline | pop cap 3 | Rent + 10% of sales; luxury goods. |
-|  |  | L3 | Resort Spire | 300 parasteel, 150 latinum | pop cap 6 | Holosuites + dabo; +3 Latinum per trade partner. |
+|  |  | L3 | Resort Spire | 300 parsteel, 150 latinum | pop cap 6 | Holosuites + dabo; +3 Latinum per trade partner. |
 | Borg | drones | L1 | Alcove Block | 80 duranium, 10 nanoprobes | drone storage 10 | Stores and regenerates 10 drones. |
-|  |  | L2 | Maturation Chamber | 240 parasteel, 40 nanoprobes | drones per cycle 3 | +3 drones/cycle, +25% adaptation speed. |
-|  |  | L3 | Assimilation Complex *(faction only)* | 700 parasteel, 80 nanoprobes |  | Captured crews -> drones; each new hull type -> tech. |
+|  |  | L2 | Maturation Chamber | 240 parsteel, 40 nanoprobes | drones per cycle 3 | +3 drones/cycle, +25% adaptation speed. |
+|  |  | L3 | Assimilation Complex *(faction only)* | 700 parsteel, 80 nanoprobes |  | Captured crews -> drones; each new hull type -> tech. |
 
 ## 5. Capability comparison
 

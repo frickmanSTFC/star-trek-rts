@@ -68,7 +68,7 @@
               "hint": "Machine Shop: order Scout Drones (frame, power coupling, control modules)." } ],
           "next": "complete" } ],
       "rewards": [ { "grant": { "power_coupling": 2 } }, { "research": { "points": 20 } }, { "unlock_buildings": ["foundry"] } ],
-      "debrief": "Two drones on the pad and charging. Mind the batteries and keep them inside comms coverage. Better frames need parasteel: the Alloy Foundry plans are yours." },
+      "debrief": "Two drones on the pad and charging. Mind the batteries and keep them inside comms coverage. Better frames need parsteel: the Alloy Foundry plans are yours." },
 
     { "id": "first_flight", "chain": "first_light", "kind": "main", "title": "First Flight", "giver": "science",
       "needs": ["drone_pad", "scout_drone"],

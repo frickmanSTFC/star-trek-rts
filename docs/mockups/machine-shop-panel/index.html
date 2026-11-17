@@ -184,7 +184,7 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
   <header>
     <span class="eyebrow">Mockup · bottom panel</span>
     <h1>Machine Shop panel: five fixes</h1>
-    <p>Click any recipe to open its full card; greyed-out recipes are ones you can't make right now. Today the selected Machine Shop crams its status, queue and 13 recipes into one strip, so words get cut off ("Mechani cal Spares", "running at fu…", "Rover Spares: needs 1 H…"). Each option below shows the same moment at your screen size (1600 px wide): three kits queued, none can start because parasteel ran out. Every name and number is the real game data.</p>
+    <p>Click any recipe to open its full card; greyed-out recipes are ones you can't make right now. Today the selected Machine Shop crams its status, queue and 13 recipes into one strip, so words get cut off ("Mechani cal Spares", "running at fu…", "Rover Spares: needs 1 H…"). Each option below shows the same moment at your screen size (1600 px wide): three kits queued, none can start because parsteel ran out. Every name and number is the real game data.</p>
   </header>
   <nav class="jump" aria-label="Options">
     <a href="#o1"><b>1</b>Readable list</a><a href="#o2"><b>2</b>Tabs</a><a href="#o3"><b>3</b>Recipe drawer</a><a href="#o4"><b>4</b>Side dock</a><a href="#o5"><b>5</b>Icons + hover card</a>
@@ -210,9 +210,9 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
 (() => {
   const G = (id, size) => `<img src="items/${id}.png" width="${size}" height="${size}" alt="" loading="lazy" style="display:block">`;
   const DESC = window.ITEM_DESC || {};
-  const RES = { duranium: "Duranium", tritanium: "Tritanium", parasteel: "Parasteel", structural_frame: "Structural Frame", hull_plating: "Hull Plating",
+  const RES = { duranium: "Duranium", tritanium: "Tritanium", parsteel: "Parsteel", structural_frame: "Structural Frame", hull_plating: "Hull Plating",
     mechanism: "Mechanism", power_coupling: "Power Coupling", control_module: "Control Module", seal_kit: "Seal Kit" };
-  const STOCK = { duranium: 412, tritanium: 63, parasteel: 0, structural_frame: 1, hull_plating: 0, mechanism: 0, power_coupling: 0, control_module: 1, seal_kit: 0 };
+  const STOCK = { duranium: 412, tritanium: 63, parsteel: 0, structural_frame: 1, hull_plating: 0, mechanism: 0, power_coupling: 0, control_module: 1, seal_kit: 0 };
   // data/surfaces/fabrication.json recipes (in, seconds); keys as the game gives them today
   const R = [
     { id: "mechanical_spares", n: "Mechanical Spares", g: "kit", c: "var(--k-mech)", ab: "MS", key: "7", t: 15, in: { mechanism: 2, structural_frame: 1 }, have: 2, q: 1 },
@@ -220,11 +220,11 @@ section.opt > p { margin: 0; color: var(--dim); max-width: 80ch; }
     { id: "rover_spares", n: "Rover Spares", g: "kit", c: "var(--k-rover)", ab: "RS", key: "9", t: 12, in: { mechanism: 1, hull_plating: 1 }, have: 0, q: 1 },
     { id: "environmental_spares", n: "Environmental Spares", g: "kit", c: "var(--k-env)", ab: "EN", key: "0", t: 15, in: { seal_kit: 2, control_module: 1 }, have: 1, q: 1 },
     { id: "structural_frame", n: "Structural Frame", g: "part", c: "var(--k-part)", ab: "SF", key: "1", t: 20, in: { duranium: 4, tritanium: 1 }, have: 1 },
-    { id: "hull_plating", n: "Hull Plating", g: "part", c: "var(--k-part)", ab: "HP", key: "2", t: 25, in: { parasteel: 2 }, have: 0 },
+    { id: "hull_plating", n: "Hull Plating", g: "part", c: "var(--k-part)", ab: "HP", key: "2", t: 25, in: { parsteel: 2 }, have: 0 },
     { id: "mechanism", n: "Mechanism", g: "part", c: "var(--k-part)", ab: "ME", key: "3", t: 15, in: { duranium: 2, tritanium: 1 }, have: 0 },
-    { id: "power_coupling", n: "Power Coupling", g: "part", c: "var(--k-part)", ab: "PC", key: "4", t: 20, in: { parasteel: 1, duranium: 1 }, have: 0 },
+    { id: "power_coupling", n: "Power Coupling", g: "part", c: "var(--k-part)", ab: "PC", key: "4", t: 20, in: { parsteel: 1, duranium: 1 }, have: 0 },
     { id: "control_module", n: "Control Module", g: "part", c: "var(--k-part)", ab: "CM", key: "5", t: 30, in: { duranium: 2, tritanium: 1 }, have: 1 },
-    { id: "seal_kit", n: "Seal Kit", g: "part", c: "var(--k-part)", ab: "SK", key: "6", t: 20, in: { parasteel: 1, tritanium: 1 }, have: 0 },
+    { id: "seal_kit", n: "Seal Kit", g: "part", c: "var(--k-part)", ab: "SK", key: "6", t: 20, in: { parsteel: 1, tritanium: 1 }, have: 0 },
     { id: "prefab_module", n: "Prefab Module", g: "con", c: "var(--k-con)", ab: "PM", key: "", t: 30, in: { structural_frame: 2, hull_plating: 2 }, have: 0 },
     { id: "machinery_set", n: "Machinery Set", g: "con", c: "var(--k-con)", ab: "MY", key: "", t: 35, in: { mechanism: 2, power_coupling: 1, control_module: 1 }, have: 0 },
     { id: "scout_drone", n: "Scout Drone", g: "drone", c: "var(--k-drone)", ab: "SD", key: "", t: 40, in: { structural_frame: 1, power_coupling: 1, control_module: 2 }, have: 0 },

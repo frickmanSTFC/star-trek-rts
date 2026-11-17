@@ -611,7 +611,7 @@ function mulberry(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
 /* ------------------------------------------------------------------ shared bits */
-const SHORT = { duranium: "Dur", tritanium: "Tri", duranium_ore: "Dur ore", tritanium_ore: "Tri ore", deuterium: "Deu", dilithium: "Dil", parasteel: "Par", crew: "Crew", isolinear_chips: "Iso", energy: "Energy", latinum: "Lat", transparent_aluminum: "T-Al", topaline: "Topaline" };
+const SHORT = { duranium: "Dur", tritanium: "Tri", duranium_ore: "Dur ore", tritanium_ore: "Tri ore", deuterium: "Deu", dilithium: "Dil", parsteel: "Par", crew: "Crew", isolinear_chips: "Iso", energy: "Energy", latinum: "Lat", transparent_aluminum: "T-Al", topaline: "Topaline" };
 const short = (id) => SHORT[id] || (D.resources[id] ? D.resources[id].name : id);
 const GROUPS = [["rain", "Rain", ["rain"]], ["dust", "Dust", ["dust", "dust_storm"]], ["fog", "Fog", ["fog"]], ["clear", "Clear", ["clear"]], ["wind", "High winds", ["high_wind"]], ["cloud", "Cloud", ["cloudy", "overcast"]], ["snow", "Snow", ["snow", "blizzard"]], ["storm", "Storm", ["storm"]]];
 const KIND_GROUP = {}; GROUPS.forEach(([g, , ks]) => ks.forEach((k) => (KIND_GROUP[k] = g)));
@@ -1360,7 +1360,7 @@ const ORDER = [
 ];
 function econ(p) {
   const B = (id) => p.b[id]; const hub = B("colony_hub"); const st = clone(D.landing.start_stock);
-  const S = { duranium: st.duranium, tritanium: st.tritanium, deuterium: st.deuterium, dilithium: st.dilithium, duranium_ore: 0, tritanium_ore: 0, parasteel: 0 };
+  const S = { duranium: st.duranium, tritanium: st.tritanium, deuterium: st.deuterium, dilithium: st.dilithium, duranium_ore: 0, tritanium_ore: 0, parsteel: 0 };
   const stored = () => Object.values(S).reduce((a, b) => a + b, 0);
   let cap = hub.storage; const done = []; const ready = D.landing.assemble_seconds; let qi = 0, cur = null; const ms = {}; const series = [];
   let peak = 0, crawlerAt = ready + 40 + p.crawlerDeploy, crawlerLeft = 1200, mineLeft = 800, stallS = 0, refLevel = 0, firstFull = null;
@@ -1387,7 +1387,7 @@ function econ(p) {
         const cycles = B("refinery").cycles_per_min * speed * eff / 60; const ores = ["duranium_ore", "tritanium_ore"].filter((o) => S[o] > 1e-6);
         ores.forEach((o) => { const c = Math.min(cycles / ores.length, S[o] / 2); S[o] -= 2 * c; S[o === "duranium_ore" ? "duranium" : "tritanium"] += c * yieldM; });
       }
-      if (fWorking) { const c = Math.min(B("foundry").cycles_per_min * eff / 60, S.duranium / 2, S.tritanium); S.duranium -= 2 * c; S.tritanium -= c; S.parasteel += c; if (!ms.parasteel && S.parasteel >= 1) ms.parasteel = t; }
+      if (fWorking) { const c = Math.min(B("foundry").cycles_per_min * eff / 60, S.duranium / 2, S.tritanium); S.duranium -= 2 * c; S.tritanium -= c; S.parsteel += c; if (!ms.parsteel && S.parsteel >= 1) ms.parsteel = t; }
       // build queue
       if (!cur && qi < ORDER.length) {
         const [kind, id, lv] = ORDER[qi]; const def = B(id); const cost = kind === "build" ? def.cost : def.levels[lv].cost;
@@ -1396,7 +1396,7 @@ function econ(p) {
       if (cur) { cur.left -= eff; if (cur.left <= 0) { if (cur.kind === "build") { done.push(cur.id); if (B(cur.id).storage) cap += B(cur.id).storage; } else refLevel = cur.lv + 1; const name = cur.kind === "build" ? cur.id : cur.id + (cur.lv ? "_mk3" : "_mk2"); if (ms[name] == null) ms[name] = t; else ms[name + "_2"] = t; cur = null; } }
       if (firstFull == null && stored() >= cap - 0.5) firstFull = t;
       peak = Math.max(peak, stored() / cap * 100);
-      if (t % 10 === 0) series.push({ t, dur: S.duranium, tri: S.tritanium, ore: S.duranium_ore + S.tritanium_ore, par: S.parasteel, fill: stored() / cap * 100, use, supply });
+      if (t % 10 === 0) series.push({ t, dur: S.duranium, tri: S.tritanium, ore: S.duranium_ore + S.tritanium_ore, par: S.parsteel, fill: stored() / cap * 100, use, supply });
     } else if (t % 10 === 0) series.push({ t, dur: S.duranium, tri: S.tritanium, ore: 0, par: 0, fill: stored() / cap * 100, use: 0, supply: 0 });
   }
   return { series, ms, stallS, firstFull, end: S, peak };
@@ -1408,12 +1408,12 @@ function econParams(edits) {
   if (edits) { b.refinery.cycles_per_min = edits.refinery_cycles; b.storage_container.storage = edits.storage; b.colony_hub.storage = edits.hub_storage; }
   return { b, crawler: edits ? edits.crawler : crawler.extract_per_min, crawlerDeploy: crawler.deploy_seconds };
 }
-const MS_ROWS = [["storage_container", "Storage Container done"], ["refinery", "Ore Refinery done"], ["mine", "Mining Complex done"], ["fusion_reactor", "Fusion Reactor done"], ["refinery_mk2", "Refinery Mk II"], ["foundry", "Alloy Foundry done"], ["parasteel", "First parasteel"], ["refinery_mk3", "Refinery Mk III"]];
+const MS_ROWS = [["storage_container", "Storage Container done"], ["refinery", "Ore Refinery done"], ["mine", "Mining Complex done"], ["fusion_reactor", "Fusion Reactor done"], ["refinery_mk2", "Refinery Mk II"], ["foundry", "Alloy Foundry done"], ["parsteel", "First parsteel"], ["refinery_mk3", "Refinery Mk III"]];
 const mmss = (s) => s == null ? "not in 20 min" : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 function renderEconomy() {
   const body = labFrame($("#lab-economy"), "Economy", STATUS.replace("Tarsis · class M · seed 1701", "Headless run · 18,000 ticks"));
   const A = econ(econParams(null)), B = econ(econParams(EC.edits));
-  const metrics = { dur: ["Duranium", ""], tri: ["Tritanium", ""], ore: ["Ore in storage", ""], par: ["Parasteel", ""], fill: ["Storage fill", "%"], use: ["Power use", ""] };
+  const metrics = { dur: ["Duranium", ""], tri: ["Tritanium", ""], ore: ["Ore in storage", ""], par: ["Parsteel", ""], fill: ["Storage fill", "%"], use: ["Power use", ""] };
   const [mName, mUnit] = metrics[EC.metric];
   const chart = lineChart([
     { pts: A.series.map((s) => [s.t / 60, s[EC.metric]]), colour: BEFORE_C, dash: "5 4" },
@@ -1439,7 +1439,7 @@ function renderEconomy() {
           <div class="tile"><span class="k">Mining stalled</span><span class="v">${fmt(B.stallS / 60, 1)} min</span><span class="d">saved ${fmt(A.stallS / 60, 1)} min · crawler + mine</span></div>
           <div class="tile"><span class="k">Duranium at 20:00</span><span class="v">${fmt(B.end.duranium, 0)}</span><span class="d">saved ${fmt(A.end.duranium, 0)}</span></div>
           <div class="tile"><span class="k">Ore waiting at 20:00</span><span class="v">${fmt(B.end.duranium_ore + B.end.tritanium_ore, 0)}</span><span class="d">saved ${fmt(A.end.duranium_ore + A.end.tritanium_ore, 0)} · in storage, not refined</span></div>
-          <div class="tile"><span class="k">Parasteel at 20:00</span><span class="v">${fmt(B.end.parasteel, 0)}</span><span class="d">saved ${fmt(A.end.parasteel, 0)}</span></div>
+          <div class="tile"><span class="k">Parsteel at 20:00</span><span class="v">${fmt(B.end.parsteel, 0)}</span><span class="d">saved ${fmt(A.end.parsteel, 0)}</span></div>
         </div></div></div></div>`;
   body.querySelectorAll("[data-m]").forEach((b) => b.addEventListener("click", () => { EC.metric = b.dataset.m; renderEconomy(); }));
   body.querySelectorAll("input[data-k]").forEach((i) => i.addEventListener("change", () => { const v = parseFloat(i.value); if (!Number.isNaN(v) && v > 0) { EC.edits[i.dataset.k] = v; renderEconomy(); } }));
@@ -1518,7 +1518,7 @@ function renderCompare() {
   const rows = [
     ["Economy", "Ore Refinery done", mmss(ea.ms.refinery), mmss(eb.ms.refinery), eb.ms.refinery - ea.ms.refinery, "s", false],
     ["Economy", "Refinery Mk II", mmss(ea.ms.refinery_mk2), mmss(eb.ms.refinery_mk2), (eb.ms.refinery_mk2 ?? 1300) - (ea.ms.refinery_mk2 ?? 1300), "s", false],
-    ["Economy", "First parasteel", mmss(ea.ms.parasteel), mmss(eb.ms.parasteel), (eb.ms.parasteel ?? 1300) - (ea.ms.parasteel ?? 1300), "s", false],
+    ["Economy", "First parsteel", mmss(ea.ms.parsteel), mmss(eb.ms.parsteel), (eb.ms.parsteel ?? 1300) - (ea.ms.parsteel ?? 1300), "s", false],
     ["Economy", "Mining stalled on full storage", `${fmt(ea.stallS / 60, 1)} min`, `${fmt(eb.stallS / 60, 1)} min`, eb.stallS - ea.stallS, "s", false],
     ["Economy", "Duranium at 20:00", fmt(ea.end.duranium, 0), fmt(eb.end.duranium, 0), eb.end.duranium - ea.end.duranium, "", true],
     ["Climate", "Tarsis 29°N summer storm odds", `${fmt(stormP(summerA) * 100, 1)}%`, `${fmt(stormP(summerB) * 100, 1)}%`, (stormP(summerB) - stormP(summerA)) * 100, " pts", false],

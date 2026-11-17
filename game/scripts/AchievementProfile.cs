@@ -194,6 +194,8 @@ public static class AchievementProfile
             {
                 var id = section[EarnedPrefix.Length..];
                 if (id.Length == 0) continue;
+                // Renamed 2026-11-17 (Parasteel → Parsteel): an unlock saved under the old id keeps counting.
+                if (id == "parasteel_age") id = "parsteel_age";
                 var date = cfg.GetValue(section, "date", "").AsString();
                 var world = cfg.GetValue(section, "world", "").AsString();
                 ulong.TryParse(cfg.GetValue(section, "seed", "0").AsString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var seed);

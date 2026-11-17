@@ -18,7 +18,7 @@
           "id": "borg_interlink_node",
           "name": "Interlink Node",
           "cost": {
-            "parasteel": 300,
+            "parsteel": 300,
             "nanoprobes": 30
           },
           "effect": "Adaptations shared with all Borg units in range.",
@@ -30,7 +30,7 @@
           "id": "vinculum",
           "name": "Vinculum Station",
           "cost": {
-            "parasteel": 650,
+            "parsteel": 650,
             "nanoprobes": 60
           },
           "effect": "Fast regeneration; destroyed = drones in range offline.",
@@ -44,7 +44,7 @@
           "id": "transwarp_hub",
           "name": "Transwarp Hub",
           "cost": {
-            "parasteel": 1400,
+            "parsteel": 1400,
             "nanoprobes": 120
           },
           "effect": "Instant hub-to-hub travel; capturable.",
@@ -72,7 +72,7 @@
           "id": "borg_planetary_hive",
           "name": "Planetary Hive",
           "cost": {
-            "parasteel": 320,
+            "parsteel": 320,
             "nanoprobes": 40
           },
           "effect": "No morale/unrest; self-repairing.",
@@ -84,7 +84,7 @@
           "id": "unicomplex",
           "name": "Unicomplex",
           "cost": {
-            "parasteel": 2000,
+            "parsteel": 2000,
             "nanoprobes": 200
           },
           "effect": "Match-long adaptation memory; Borg Queen; loss wipes adaptations.",
@@ -109,7 +109,7 @@
           "id": "borg_sphere_matrix",
           "name": "Sphere Matrix",
           "cost": {
-            "parasteel": 360,
+            "parsteel": 360,
             "nanoprobes": 40
           },
           "effect": "Spheres; can mount any assimilated tech.",
@@ -121,7 +121,7 @@
           "id": "borg_cube_matrix",
           "name": "Cube Matrix",
           "cost": {
-            "parasteel": 3000,
+            "parsteel": 3000,
             "nanoprobes": 250
           },
           "effect": "Cube, Tactical Cube, Queen's Diamond (with Unicomplex).",
@@ -148,7 +148,7 @@
           "id": "borg_maturation_chamber",
           "name": "Maturation Chamber",
           "cost": {
-            "parasteel": 240,
+            "parsteel": 240,
             "nanoprobes": 40
           },
           "effect": "+3 drones/cycle, +25% adaptation speed.",
@@ -160,7 +160,7 @@
           "id": "assimilation_complex",
           "name": "Assimilation Complex",
           "cost": {
-            "parasteel": 700,
+            "parsteel": 700,
             "nanoprobes": 80
           },
           "effect": "Captured crews -> drones; each new hull type -> tech.",

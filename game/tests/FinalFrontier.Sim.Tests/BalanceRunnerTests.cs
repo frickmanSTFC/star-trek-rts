@@ -53,7 +53,7 @@ public class BalanceRunnerTests
     {
         var o = BuildOrder.Parse("""
             { "crawlers": { "refuel": { "resource": "deuterium", "below": 50, "until": 150 } },
-              "pause": [ { "building": "foundry", "when": "duranium < 50 or parasteel >= 40", "resume": "duranium >= 100" } ],
+              "pause": [ { "building": "foundry", "when": "duranium < 50 or parsteel >= 40", "resume": "duranium >= 100" } ],
               "steps": [ { "build": "mine", "deposit": ["duranium_ore", "tritanium_ore"] }, { "build": "mine", "deposit": "tritanium_ore" } ] }
             """);
         Assert.Equal(new Refuel("deuterium", 50, 150), o.CrawlerRefuel);
@@ -71,9 +71,9 @@ public class BalanceRunnerTests
     [Fact]
     public void ThePauseRuleSwitchesTheFoundryOffAndOnThroughCommands()
     {
-        // Stock the colony so the foundry comes early; the rule pauses it once parasteel piles up and resumes it after.
+        // Stock the colony so the foundry comes early; the rule pauses it once parsteel piles up and resumes it after.
         var order = BuildOrder.Parse("""
-            { "pause": [ { "building": "foundry", "when": "parasteel >= 3", "resume": "parasteel < 1" } ],
+            { "pause": [ { "building": "foundry", "when": "parsteel >= 3", "resume": "parsteel < 1" } ],
               "steps": [ { "build": "storage_container" }, { "build": "fusion_reactor" }, { "build": "foundry" } ] }
             """, "pause_test");
         var data = TestData.Real;
@@ -89,8 +89,8 @@ public class BalanceRunnerTests
         Assert.True(paused, string.Join("\n", bot.Log.Select(e => e.Text)));
         Assert.Contains(bot.Log, e => e.Text.StartsWith("pause foundry", StringComparison.Ordinal));
         Assert.Equal(0, sim.DebugEdits);
-        // Spend the parasteel: the rule switches it back on.
-        sim.Players[0].Stock.Add(data.Resource("parasteel").Index, -sim.Players[0].Stock[data.Resource("parasteel").Index]);
+        // Spend the parsteel: the rule switches it back on.
+        sim.Players[0].Stock.Add(data.Resource("parsteel").Index, -sim.Players[0].Stock[data.Resource("parsteel").Index]);
         for (var t = 0; t < 3 * Bot.ThinkTicks; t++)
         {
             bot.Think();

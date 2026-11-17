@@ -47,7 +47,7 @@ public sealed class RunResult
     public Dictionary<string, double> CrawlerSeconds { get; set; } = new();
 
     /// <summary>Counts: flats, hazards, rovers_disabled, crawler_breakdowns, building_breakdowns, pods, pod_ore,
-    /// maintenance_orders, weather_lost_vehicle_s, drops_grounded_s, ore_mined, metal_refined, parasteel_made.</summary>
+    /// maintenance_orders, weather_lost_vehicle_s, drops_grounded_s, ore_mined, metal_refined, parsteel_made.</summary>
     public Dictionary<string, double> Totals { get; set; } = new();
 
     public Dictionary<string, double> EndStock { get; set; } = new();
@@ -242,8 +242,8 @@ public sealed class Recorder
         foreach (var t in Data.Techs)
             if (me.Known[t.Index]) Milestone("research:" + t.Id);
         if (Data.Techs.Count > 0 && Data.Techs.All(t => t.Optional || me.Known[t.Index])) Milestone("research_all");
-        var parasteel = Data.Resources.FirstOrDefault(r => r.Id == "parasteel");
-        if (parasteel != null && _sim.Players[_p].Stock[parasteel.Index] > Fix64.Zero) Milestone("first_parasteel");
+        var parsteel = Data.Resources.FirstOrDefault(r => r.Id == "parsteel");
+        if (parsteel != null && _sim.Players[_p].Stock[parsteel.Index] > Fix64.Zero) Milestone("first_parsteel");
         if (_bot.StepIndex >= Result.StepsTotal && Result.StepsTotal > 0) Milestone("order_done");
 
         var ready = S.UplinkOnline(_p, _sim.Tick);

@@ -19,11 +19,11 @@ new file `data/resources/parts.json` (add it to the manifest), tier `part`, `spa
 | id | name | tier | Machine Shop recipe | s |
 | --- | --- | --- | --- | --- |
 | structural_frame | Structural Frame | part | 4 duranium + 1 tritanium | 20 |
-| hull_plating | Hull Plating | part | 2 parasteel | 25 |
+| hull_plating | Hull Plating | part | 2 parsteel | 25 |
 | mechanism | Mechanism | part | 2 duranium + 1 tritanium | 15 |
-| power_coupling | Power Coupling | part | 1 parasteel + 1 duranium | 20 |
+| power_coupling | Power Coupling | part | 1 parsteel + 1 duranium | 20 |
 | control_module | Control Module | part | 2 duranium + 1 tritanium (circuit boards; isolinear later) | 30 |
-| seal_kit | Seal Kit | part | 1 parasteel + 1 tritanium | 20 |
+| seal_kit | Seal Kit | part | 1 parsteel + 1 tritanium | 20 |
 | mechanical_spares | Mechanical Spares | spare | 2 mechanism + 1 structural_frame | 15 |
 | electrical_spares | Electrical Spares | spare | 1 power_coupling + 1 control_module | 15 |
 | rover_spares | Rover Spares | spare | 1 mechanism + 1 hull_plating | 12 |
@@ -32,7 +32,7 @@ new file `data/resources/parts.json` (add it to the manifest), tier `part`, `spa
 | machinery_set | Machinery Set | construction | 2 mechanism + 1 power_coupling + 1 control_module | 35 |
 
 The design doc's recipes use plasma conduits, isolinear chips and transparent aluminum; nothing makes those on the
-surface yet, so these use duranium, tritanium and parasteel only (note it in the data's `_notes`).
+surface yet, so these use duranium, tritanium and parsteel only (note it in the data's `_notes`).
 
 New part file `data/surfaces/fabrication.json` (surfaces document): `fabrication` =
 - `recipes`: one per item above (`id` = output id, `in`, `seconds`; optional `era_min` / `era_max` for later).

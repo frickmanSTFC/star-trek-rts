@@ -1060,11 +1060,11 @@ const schematic = (kind) => {
   return `<svg viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice"><rect width="320" height="240" fill="#0a1020"/>${g}<text x="12" y="228" fill="#4d6699" font-size="12" font-family="Barlow Condensed" letter-spacing="1">SCHEMATIC · NO MODEL YET</text></svg>`;
 };
 const CARDS = [
-  { id: "pressure_dome", name: "Pressure Dome", cat: "Habitation", img: "crop-dome.jpg", real: true, cost: [["Duranium", 200, 312], ["Parasteel", 60, 0]], stats: [["Power", "6"], ["Build", "45 s"], ["Ring", "2 tiles", "good"], ["Crew", "0"]],
+  { id: "pressure_dome", name: "Pressure Dome", cat: "Habitation", img: "crop-dome.jpg", real: true, cost: [["Duranium", 200, 312], ["Parsteel", 60, 0]], stats: [["Power", "6"], ["Build", "45 s"], ["Ring", "2 tiles", "good"], ["Crew", "0"]],
     desc: "A transparent-aluminium dome over its own hex and a containment field that holds air over every hex within two tiles. Crewed buildings in the ring need no sealing. Below 25 % integrity it can breach: crewed buildings under it lose crew until it is repaired.",
     rows: [["Where", "Domes-tier worlds: Tarsis A, Cinder, K, ice moons, asteroids"], ["Requires", "Pressure Domes research (granted in TNG)"], ["Covers", "crewed buildings within 2 tiles; domes 3 tiles apart"], ["Wears", "micrometeorites 1–3 %, eruption bombs 5–10 %"], ["Power out", "the field drops; air leaks 5 % a minute"]],
-    warn: "Parasteel 0 of 60: build an Alloy Foundry first", tips: ["The landing outpost already brings a radius-1 dome", "Put automated buildings outside to save slots"] },
-  { id: "environmental_shield", name: "Environmental Shield", cat: "Habitation", schematic: "shield", cost: [["Parasteel", 200, 0], ["Dilithium", 20, 50]], stats: [["Power", "25", "warn"], ["Build", "60 s"], ["Ring", "3 tiles", "good"], ["Crew", "4"]],
+    warn: "Parsteel 0 of 60: build an Alloy Foundry first", tips: ["The landing outpost already brings a radius-1 dome", "Put automated buildings outside to save slots"] },
+  { id: "environmental_shield", name: "Environmental Shield", cat: "Habitation", schematic: "shield", cost: [["Parsteel", 200, 0], ["Dilithium", 20, 50]], stats: [["Power", "25", "warn"], ["Build", "60 s"], ["Ring", "3 tiles", "good"], ["Crew", "4"]],
     desc: "A heavy shield bubble that stops heat, acid and radiation wear on everything within three tiles. On Class Y it is the only way to keep buildings alive; on Cinder it also turns aside eruption bombs. If power drops, wear spikes at once.",
     rows: [["Where", "Class Y (required), Cinder vents, flare-prone moons"], ["Requires", "Heat Shielding (defense 3)"], ["Stops", "heat and acid wear, radiation, eruption bombs"], ["Does not stop", "lava: it flows straight through"], ["Brown-out", "×3 wear for 30 s after power returns"]],
     warn: "Heat Shielding not researched", tips: ["Pair it with a Geothermal Tap on Cinder", "Its 25 power is a whole reactor"] },

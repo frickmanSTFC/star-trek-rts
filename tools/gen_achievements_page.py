@@ -39,7 +39,7 @@ KIND_FIELDS = {
     "view_count": {"measure", "at_least", "all"}, "all_of": {"rules"}, "any_of": {"rules"},
 }
 MILESTONES = {"uplink": "the outpost's uplink comes online", "landed": "the colony lands", "first_metal": "an Ore Refinery works",
-              "first_parasteel": "the first parasteel is in stock", "second_base": "two finished colony cores",
+              "first_parsteel": "the first parsteel is in stock", "second_base": "two finished colony cores",
               "research_all": "every surface tech is known"}
 EVENTS = {
     "orbit_farthest": ([], "the flagship enters orbit of the body farthest from the colony"),
