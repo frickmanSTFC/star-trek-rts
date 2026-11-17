@@ -47,8 +47,8 @@ C.EXTRA['ablator'] = (lambda: K.plain('ablator', (0.30, 0.20, 0.12), rough=0.85,
                       ('sim', (0.30, 0.20, 0.12), 0.0, 0.85))
 C.EXTRA['grow'] = (lambda: K.emit('grow', (1.0, 0.45, 0.82), 0.3, base=(0.02, 0.02, 0.03)),
                    ('emit', (1.0, 0.45, 0.82), 0.6))
-C.EXTRA['shade'] = (lambda: K.panel('shade', (0.80, 0.78, 0.74), (0.74, 0.72, 0.69), size=(2.4, 9.5), seam=0.02, seam_mul=0.7,
-                                    rough=0.38, metal=0.3, wob=0.03, wrinkle=0.02),
+C.EXTRA['shade'] = (lambda: K.panel('shade', (0.82, 0.80, 0.76), (0.70, 0.68, 0.65), size=(2.4, 9.5), seam=0.05, seam_mul=0.45,
+                                    rough=0.38, metal=0.3, wob=0.03, wrinkle=0.03),
                     ('pan', (0.80, 0.78, 0.74), (0.74, 0.72, 0.69), 0.7, (2.4, 9.5), 0.3, 0.4))
 
 

@@ -792,7 +792,7 @@ def build_racks():
 # mid: collars, drum
 # =====================================================================================
 def build_mid():
-    Cc, Dr = D['collar'], D['drum']
+    Cc = D['collar']
     rC = Cc['r']
     # despun core citadel inside the drum, with the bearing shafts
     k.lathe([(-17.0, D['core']), (17.0, D['core'])], 'dark', seg=32)
@@ -801,7 +801,7 @@ def build_mid():
         # end cone between the hull and the collar: backing structure, plates, gussets
         k.lathe([(xh, 13.0), (xo, rC - 1.35), (xo, rC - 0.3), (xi, rC - 0.3), (xi, 19.0), (xi - s * 0.3, 19.0)], 'grey', seg=96, sharp=30)
         dd = Vector((xo - xh, rC - 1.35 - 13.0)).normalized()
-        nv = Vector((dd.y, -dd.x)) * (1 if s < 0 else -1)
+        nv = Vector((dd.y, -dd.x))
         nv = nv if nv.x * s > 0 else -nv          # outward: toward the hull end of the ship
         for r in range(2):
             Lc = math.hypot(xo - xh, rC - 1.35 - 13.0)
@@ -1090,10 +1090,10 @@ def build(parts, drive, landers):
 
 
 SHOTS = {
-    'hero':  dict(tgt=(8, 0, -2), cam=(0.62, -0.72, 0.30), dist=520, lens=70, roll=-7, sun=(-0.45, 0.45, 0.77), eoff=(-9, -20), alt=9500, elon=20),
+    'hero':  dict(tgt=(8, 0, -2), cam=(0.62, -0.72, 0.30), dist=495, lens=70, roll=-7, sun=(-0.45, 0.45, 0.77), eoff=(-9, -20), alt=9500, elon=20),
     'drum':  dict(tgt=(4, 0, 4), cam=(0.50, -0.78, 0.38), dist=150, lens=45, roll=4, sun=(-0.45, 0.45, 0.77), eoff=(-12, -27), alt=9500, elon=40),
     'stern': dict(tgt=(-82, 0, 0), cam=(-0.80, -0.52, 0.30), dist=300, lens=55, roll=4, sun=(0.5, 0.45, 0.74), eoff=(10, -25), alt=9500, elon=140),
-    'guns':  dict(tgt=(66, 0, 11), cam=(0.58, -0.62, 0.53), dist=92, lens=40, roll=-4, sun=(-0.5, 0.45, 0.74), eoff=(8, -25), alt=9500, elon=165),
+    'guns':  dict(tgt=(66, 0, 11), cam=(0.58, -0.62, 0.53), dist=92, lens=40, roll=-4, sun=(-0.5, 0.45, 0.74), eoff=(13, -19), alt=9500, elon=165),
     'bay':   dict(tgt=(-70, 0, 12), cam=(-0.30, -0.45, 0.84), dist=110, lens=45, roll=3, sun=(-0.2, 0.3, 0.93), eoff=None, alt=0),
     'side':  dict(tgt=(0, 0, 0), cam=(0.0, -1.0, 0.06), dist=700, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
     'top':   dict(tgt=(0, 0, 0), cam=(0.02, -0.05, 1.0), dist=700, lens=100, roll=0, sun=(0.40, 0.50, 0.75), eoff=None, alt=0),

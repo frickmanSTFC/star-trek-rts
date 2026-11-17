@@ -1,0 +1,22 @@
+[
+ {
+  "shot": "hero",
+  "title": "The whole cutter",
+  "caption": "The Bastion from the starboard bow: sensor bow and docking collar, the dorsal coilgun, the armored drum between its two fixed collars, and the boat bay, water tanks and twin torches aft."
+ },
+ {
+  "shot": "drum",
+  "title": "Armored drum",
+  "caption": "The spin-gravity drum close up: spaced rim plates on hoop frames, a few small viewports, and the fixed collars with their motor-generators and the high-gain antenna."
+ },
+ {
+  "shot": "guns",
+  "title": "Dorsal coilgun",
+  "caption": "The dorsal turret on its barbette, its 24 m barrel a stack of drive coils in a stringer cage, with the capacitor banks beside it and the cabin radiators spread to both sides."
+ },
+ {
+  "shot": "stern",
+  "title": "Under thrust",
+  "caption": "Both fusion torches lit, seen from the stern quarter: the magnetic nozzles, the shadow shield, and the stepped hot radiators glowing at full power."
+ }
+]

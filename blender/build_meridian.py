@@ -130,7 +130,7 @@ def band(x0, x1, r, mat, h=0.12, seg=96):
     k.lathe(rrect(x0, x1, r - 0.03, r + h, 0.03, 0.03, 1), mat, seg=seg, closed=True)
 
 
-def frame(x, r, w=0.22, h=0.28, mat='grey', seg=96):
+def frame(x, r, w=0.15, h=0.16, mat='grey', seg=96):
     if lo():
         k.lathe([(x - w, r - 0.05), (x - w, r + h), (x + w, r + h), (x + w, r - 0.05)], mat, seg=seg)
         return
@@ -1171,10 +1171,10 @@ def build(parts, drive, landers):
 
 
 SHOTS = {
-    'hero':  dict(tgt=(10, 0, 0), cam=(0.64, -0.70, 0.32), dist=1010, lens=70, roll=-7, sun=(0.62, 0.55, 0.56), eoff=(-9, -20), alt=9500),
+    'hero':  dict(tgt=(10, 0, 0), cam=(0.64, -0.70, 0.32), dist=1010, lens=70, roll=-7, sun=(0.62, 0.55, 0.56), eoff=(-9, -20), alt=9500, elon=20),
     'wheel': dict(tgt=(92, -22, 62), cam=(0.60, -0.62, 0.50), dist=235, lens=50, roll=5, sun=(0.55, 0.60, 0.58), eoff=(-11, -21), alt=9500, elon=120),
-    'stern': dict(tgt=(-150, 0, 0), cam=(-0.80, -0.52, 0.30), dist=640, lens=60, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(10, -25), alt=9500),
-    'bow':   dict(tgt=(222, 0, 0), cam=(0.80, -0.50, 0.33), dist=215, lens=50, roll=-4, sun=(0.50, 0.62, 0.60), eoff=(-10, -26), alt=9500, elon=165),
+    'stern': dict(tgt=(-150, 0, 0), cam=(-0.80, -0.52, 0.30), dist=640, lens=60, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(12, -21), alt=9500, elon=200),
+    'bow':   dict(tgt=(222, 0, 0), cam=(0.80, -0.50, 0.33), dist=215, lens=50, roll=-4, sun=(0.42, 0.55, 0.72), eoff=(-12, -18), alt=9500, elon=20),
     'side':  dict(tgt=(0, 0, 0), cam=(0.0, -1.0, 0.06), dist=1430, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
     # working views
     't_aft':  dict(tgt=(-200, 0, 0), cam=(-0.45, -0.75, 0.42), dist=250, lens=50, roll=0, sun=(-0.3, 0.6, 0.7), eoff=None, alt=0),
