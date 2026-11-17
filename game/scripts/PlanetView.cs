@@ -95,6 +95,7 @@ public partial class PlanetView : Node3D
         BuildFogTexture();
         BuildTerrain();
         BuildWater();
+        BuildEdge(); // PlanetView.Edge.cs: edge tiles, the apron, the lines the camera stops at
         BuildScatter();
         BuildCo2Haze(); // PlanetView.Veyra.cs: class L only
         // Region hints are read on the orbital globe now (no floating words over the map).

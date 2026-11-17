@@ -2485,6 +2485,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     {
         _focusTarget = _view.TileCentre(tile) with { Y = 0 };
         _distanceTarget = distance;
+        TurnToShow(_focusTarget); // in a corner of the map the pan limits can leave it off screen: a quarter turn shows it (PlanetDriver.ViewClamp.cs)
     }
 
     private void MoveCamera(float delta)
@@ -2509,11 +2510,8 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (_environment != null) _environment.FogDensity = HazeDepth / Mathf.Max(60f, _distance); // weather: PlanetDriver.Sky.cs WeatherHaze
         if (_sun != null) _sun.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 2.2f, 400f, 6000f);
 
-        // Keep the focus over the map.
-        var g = Surface.Map.Grid;
-        _focusTarget.X = Mathf.Clamp(_focusTarget.X, 0, (g.Width - 0.5f) * PlanetView.HexWidth);
-        _focusTarget.Z = Mathf.Clamp(_focusTarget.Z, 0, (g.Height - 1) * 0.866f * PlanetView.HexWidth);
         _yaw = Mathf.Lerp(_yaw, _yawSteps * Mathf.Pi / 2f, 1f - Mathf.Exp(-8f * delta));
+        ClampView(); // the landscape's edge never comes on screen: zoom cap + pan limits (PlanetDriver.ViewClamp.cs)
         UpdateCamera();
     }
 
@@ -2526,8 +2524,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var look = _focus with { Y = _lookY };
 
         // Strategy pitch from high up, flattening toward the ground as the camera comes in.
-        var t = Mathf.SmoothStep(MinZoom, TiltFrom, _distance);
-        var dir = new Vector3(0, 0.34f, 0.94f).Lerp(new Vector3(0, 0.82f, 0.57f), t).Normalized();
+        var dir = TiltAt(_distance); // PlanetDriver.ViewClamp.cs measures the view with the same tilt
         var eye = look + dir.Rotated(Vector3.Up, _yaw) * _distance;
 
         // Never dip into a hill between the camera and the focus.
