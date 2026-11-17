@@ -133,6 +133,8 @@ public partial class PlanetDriver
         _sim.Schedule(_sim.Tick + InputDelayTicks, new FoundOutpostCommand(LocalPlayer, rover.Id, _hoverTile));
         Sfx.Ui("place");
         var tiles = Surface.Map.Grid.Distance(rover.Tile, _hoverTile);
+        if (Surface.FoundSiteUnsurveyed(LocalPlayer, _hoverTile))
+            _hud.PushEvent("That ground is not surveyed: the rover will check it on arrival and say if it can't build there", FoundBlue);
         _hud.PushEvent(tiles == 0 ? $"{UnitName(rover)} unfolding here to found an outpost"
             : $"{UnitName(rover)} heading out to found an outpost ({tiles} tiles): {Amounts(rules.Cost, false)} is paid when it gets there", FoundBlue);
         if (!shift) StopFounding();
@@ -188,7 +190,9 @@ public partial class PlanetDriver
         var nearest = Surface.Bases(LocalPlayer).Select(b => Surface.Map.Grid.Distance(b.Tile, tile)).DefaultIfEmpty(-1).Min();
         if (nearest >= 0) sb.Append("\n").Append(nearest).Append(" tiles from your nearest base (at least ").Append(rules.MinDistance).Append(')');
         var problem = HoverProblem(rover, tile);
-        sb.Append(problem == FoundProblem.None ? "\nClick to found the outpost here" : "\nCan't found here: " + Surface.FoundText(problem, tile, rules.MinDistance));
+        sb.Append(problem != FoundProblem.None ? "\nCan't found here: " + Surface.FoundText(problem, tile, rules.MinDistance)
+            : Surface.FoundSiteUnsurveyed(LocalPlayer, tile) ? "\nNot surveyed yet. Click to send the rover: it checks the ground when it gets there"
+            : "\nClick to found the outpost here");
         return sb.ToString();
     }
 
@@ -209,6 +213,12 @@ public partial class PlanetDriver
         {
             if (u.Owner != LocalPlayer || !IsFounder(u)) continue;
             var now = new FounderSeen(u.FoundFailedTick, Surface.Unfolding(u), u.Tile);
+            if (!_seenFounders.ContainsKey(u.Id) && u.FoundTile < 0 && !now.Unfolding && _sim.Tick > 0)
+            {
+                // a new construction rover (landed with the colony or rolled out of the bay): say what it is for
+                var r = Surface.FoundRulesOf(u)!;
+                ColonyReport($"{UnitName(u)} carries a folded Colony Hub. Select it and press F to found a second outpost, at least {r.MinDistance} tiles from your bases ({Amounts(r.Cost, false)})", FoundBlue);
+            }
             if (_seenFounders.TryGetValue(u.Id, out var was))
             {
                 var rules = Surface.FoundRulesOf(u)!;

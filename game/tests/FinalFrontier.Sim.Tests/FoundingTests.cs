@@ -177,6 +177,31 @@ public class FoundingTests
     }
 
     [Fact]
+    public void ARoverCanBeSentToUnsurveyedGroundAndIsJudgedThere()
+    {
+        var sim = Landed();
+        var s = sim.Surface!;
+        var map = s.Map;
+        var hub = Hub(sim);
+        var rover = Spawn(sim, hub);
+        var rules = Rules(Data);
+        // the nearest unsurveyed tile far enough from the hub that the rover can drive to
+        var site = Enumerable.Range(0, map.Grid.Count)
+            .Where(t => !s.Players[0].Surveyed[t] && map.Terrain(t).Passable && map.Grid.Distance(t, hub) >= rules.MinDistance
+                && Pathfinder.Find(map, rover.Tile, t) != null)
+            .OrderBy(t => map.Grid.Distance(t, hub)).First();
+        var refused = sim.RefusedCommands;
+        Do(sim, new FoundOutpostCommand(0, rover.Id, site));
+        Assert.Equal(refused, sim.RefusedCommands);
+        Assert.Equal(site, rover.FoundTile);
+        // it drives there, surveying as it goes; at the site it either starts unfolding (paid) or reports why not
+        for (var i = 0; i < 15 * 600 && rover.FoundTile == site && !s.Unfolding(rover) && rover.FoundFailedTick < 0; i++) sim.Step();
+        Assert.True(s.Players[0].Surveyed[site]);
+        Assert.True(s.Unfolding(rover) || rover.FoundFailedTick >= 0);
+        if (rover.FoundFailedTick >= 0) Assert.NotEqual(FoundProblem.NotSurveyed, rover.FoundFailure);
+    }
+
+    [Fact]
     public void EachBadSiteIsRefusedWithAReason()
     {
         var sim = Landed();
@@ -188,7 +213,12 @@ public class FoundingTests
         FoundProblem P(int tile) => s.FoundOutpostProblem(sim, 0, rover.Id, tile);
 
         var unsurveyed = Enumerable.Range(0, map.Grid.Count).First(t => !s.Players[0].Surveyed[t] && map.Terrain(t).Buildable);
-        Assert.Equal(FoundProblem.NotSurveyed, P(unsurveyed));
+        // unsurveyed ground is judged at the site, not at the order: only spacing and the price are checked up front
+        var farUnsurveyed = Enumerable.Range(0, map.Grid.Count).First(t => !s.Players[0].Surveyed[t] && map.Grid.Distance(t, hub) >= rules.MinDistance);
+        Assert.Equal(FoundProblem.None, P(farUnsurveyed));
+        Assert.Equal(FoundProblem.NotSurveyed, s.SiteProblem(sim, 0, farUnsurveyed, rules, rover));
+        var nearUnsurveyed = Enumerable.Range(0, map.Grid.Count).FirstOrDefault(t => !s.Players[0].Surveyed[t] && map.Grid.Distance(t, hub) < rules.MinDistance, -1);
+        if (nearUnsurveyed >= 0) Assert.Equal(FoundProblem.TooCloseToBase, P(nearUnsurveyed));
         Do(sim, new DebugSurveyAllCommand(0, 0));
         Assert.Equal(FoundProblem.OffMap, P(-1));
         Assert.Equal(FoundProblem.OffMap, P(map.Grid.Count));

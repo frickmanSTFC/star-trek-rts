@@ -67,8 +67,21 @@ public sealed partial class PlanetSurface
         if (FoundRulesOf(u) is not { } rules) return FoundProblem.CantFound;
         if (Disabled(u)) return FoundProblem.Disabled;
         if (Unfolding(u) && u.FoundTile == tile) return FoundProblem.AlreadyFounding;
+        // Ground nobody has surveyed may still be ordered (owner 2026-11-17: a landing reveals 3 tiles and a site must be 8
+        // from the hub, so at the start every legal site was unsurveyed and the rover could do nothing). The rover surveys
+        // as it drives; BeginFounding checks the whole site again when it arrives and says why if it is no good.
+        if (FoundSiteUnsurveyed(player, tile))
+        {
+            if (ClearOfBases(player, tile, rules.MinDistance, u) is var near and not FoundProblem.None) return near;
+            return sim.Players[player].Stock.CanAfford(rules.Cost) ? FoundProblem.None : FoundProblem.CannotAfford;
+        }
         return SiteProblem(sim, player, tile, rules, u);
     }
+
+    /// <summary>Whether this tile is on the map and not yet surveyed by a landed player: a construction rover may be sent
+    /// there, and the site is judged when it arrives.</summary>
+    public bool FoundSiteUnsurveyed(int player, int tile) =>
+        player >= 0 && player < _players.Count && _players[player].Phase == LandingPhase.Landed && OnMap(tile) && !_players[player].Surveyed[tile];
 
     /// <summary>
     /// Whether a new outpost could be founded on this tile by a rover with these rules: landed, on the map, surveyed,
