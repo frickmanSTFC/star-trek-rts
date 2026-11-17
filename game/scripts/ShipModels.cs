@@ -30,6 +30,11 @@ public static class ShipModels
     private static readonly Dictionary<string, Dictionary<string, float>> SpinRates = new()
     {
         ["cochrane"] = new() { ["RingF"] = 0.3172f, ["RingA"] = -0.2253f },
+        ["horizon"] = new() { ["RingF"] = 0.2971f, ["RingA"] = -0.2971f },
+        ["tereshkova"] = new() { ["RingH"] = -0.3132f },
+        ["armstrong"] = new() { ["RingPods"] = -0.2953f },
+        ["bastion"] = new() { ["RingDrum"] = -0.4952f },
+        ["meridian"] = new() { ["RingW"] = -0.3101f, ["RingS"] = 0.2747f, ["RingH"] = 0.2953f },
     };
 
     public const float DefaultSpin = 0.25f;
