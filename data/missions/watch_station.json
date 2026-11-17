@@ -39,7 +39,7 @@
             { "bind_ship": { "as": "freighter", "pick": "freighter" } },
             { "marker": { "at": "freighter", "label": "Inspect" } } ],
           "objectives": [
-            { "id": "inspect", "text": "Stay with {freighter} for 30 s", "cond": { "with_ship": { "ship": "freighter", "hold_seconds": 30 } },
+            { "id": "inspect", "text": "Stay with {freighter} until the inspection is done", "cond": { "with_ship": { "ship": "freighter", "hold_seconds": 30 } },
               "hint": "Same orbit, or flying to the same body: if it leaves, set a course for where it is heading." } ],
           "next": "complete" } ],
       "debrief": "Manifest checks out: deuterium, ore and a crate of Andorian ale nobody declared. We let them off with a warning." },
