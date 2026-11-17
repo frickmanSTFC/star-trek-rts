@@ -434,6 +434,7 @@ public partial class PlanetDriver
         if (SystemSource.InFlight(s)) rows.Add(new HelmRow("ETA", $"{_system.SecondsToArrival(s)} s"));
         var buttons = new List<HelmAction>();
         if (s.Owner == LocalPlayer) buttons.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null));
+        AddShipViewButton(s, buttons); // VIEW SHIP on our flagship's card when it has a 3D model (PlanetDriver.Ship.cs)
         AllyCard(s, rows, buttons); // an allied native ship: ALLY / TASK rows, ESCORT / SCOUT (PlanetDriver.Contact.cs)
         TradeCard(s, rows); // a native trade freighter: TRADE / ROUTE / RUN rows (PlanetDriver.Contact.cs)
         var colour = s.AllyOf >= 0 ? (s.AllyOf == LocalPlayer ? HelmScreen.Green : PlanetDriver.ColorOf(s.AllyOf))

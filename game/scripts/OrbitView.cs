@@ -794,12 +794,17 @@ public partial class OrbitView : Node3D
         }
         _yawTarget += yaw;
         _pitchTarget = Mathf.Clamp(_pitchTarget + pitch, -1.25f, 1.25f);
-        if (yaw != 0f || pitch != 0f) FollowSatellite = null; // turning the globe by hand stops FOLLOW
+        if (yaw != 0f || pitch != 0f)
+        {
+            FollowSatellite = null; // turning the globe by hand stops FOLLOW
+            FollowShip = false; // and lets go of the ship (OrbitView.Ship.cs)
+        }
     }
 
     /// <summary>Zoom: factor below 1 moves in (the System plot keeps its own zoom).</summary>
     public void Zoom(float factor)
     {
+        if (ZoomShip(factor)) return; // following the ship: the wheel zooms that view (OrbitView.Ship.cs)
         if (Display == OrbitDisplay.System) _systemDistanceTarget = Mathf.Clamp(_systemDistanceTarget * factor, 200f, 800f);
         else _distanceTarget = Mathf.Clamp(_distanceTarget * factor, 135f, 520f);
     }
@@ -807,6 +812,7 @@ public partial class OrbitView : Node3D
     /// <summary>Turn the globe so this tile faces the camera, and zoom to a distance.</summary>
     public void Focus(int tile, float distance)
     {
+        FollowShip = false; // back to the planet (OrbitView.Ship.cs)
         var p = TileDirection(tile);
         _yawTarget = -Mathf.Atan2(p.X, p.Z);
         // Keep the yaw turn short: pick the equivalent angle nearest the current one.
@@ -862,6 +868,7 @@ public partial class OrbitView : Node3D
 
         var shipAngle = _time * 0.05f + 0.4f;
         _shipMarker.Position = new Vector3(Mathf.Sin(shipAngle), 0f, Mathf.Cos(shipAngle)) * ShipOrbit;
+        UpdateShip(delta, cameraDistance); // the flagship's model there, and the camera while it is followed (OrbitView.Ship.cs)
 
         if (_sweepTime >= 0f)
         {
@@ -1153,7 +1160,7 @@ public partial class OrbitView : Node3D
         else if (ship != null) status.Add($"{ship.ClassName} class");
         if (_atColony && me.ShuttleBackTick > _sim.Tick) status.Add($"drop ship away, back in {SecondsTo(me.ShuttleBackTick)} s");
         if (_atColony && me.TransporterReadyTick > _sim.Tick) status.Add($"transporter ready in {SecondsTo(me.TransporterReadyTick)} s");
-        list.Add((new OrbitObject(flagship?.Name ?? ship?.Name ?? "Our ship", "Ship", string.Join(" · ", status), Peach), _shipMarker));
+        list.Add((new OrbitObject(flagship?.Name ?? ship?.Name ?? "Our ship", "Ship", string.Join(" · ", status), Peach), ShipTrackNode)); // the model while it shows (OrbitView.Ship.cs)
         if (!_atColony)
         {
             // Another body: no colony satellites or deliveries here, only our ship and the body's moon.

@@ -82,6 +82,7 @@ public partial class MainMenu
         }
         var picked = PickedShip ?? ships[0];
         _shipId = picked.Id;
+        foreach (var ship in ships) ShipModels.Preload(ship.Id); // 3D models load in the background (once), ready when picked
 
         // Six cards across; the art's height from the width each card gets (the page is rebuilt on a resize).
         var screen = GetViewport().GetVisibleRect().Size;

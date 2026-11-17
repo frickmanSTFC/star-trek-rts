@@ -61,6 +61,18 @@ public static class ShipModels
     /// stand-in is on.</summary>
     public static bool Has(string? shipId) => !string.IsNullOrEmpty(shipId) && (DebugStandIn || Scene(shipId) != null);
 
+    private static readonly HashSet<string> Loading = new();
+
+    /// <summary>Starts loading a ship's glb in the background (the ship page asks for every ship when it opens), so the
+    /// first look at its model doesn't stall the frame for the whole file. Nothing happens for a ship without a glb,
+    /// one already loaded or one already asked for.</summary>
+    public static void Preload(string? shipId)
+    {
+        if (string.IsNullOrEmpty(shipId) || Scenes.ContainsKey(shipId) || Loading.Contains(shipId)) return;
+        var path = PathOf(shipId);
+        if (ResourceLoader.Exists(path) && ResourceLoader.LoadThreadedRequest(path) == Error.Ok) Loading.Add(shipId);
+    }
+
     /// <summary>The glb's scene (loaded once and kept; null = missing, not imported yet, or it would not load: one
     /// warning at most, and only when the file is there).</summary>
     private static PackedScene? Scene(string shipId)
@@ -70,7 +82,8 @@ public static class ShipModels
         var path = PathOf(shipId);
         if (ResourceLoader.Exists(path))
         {
-            scene = GD.Load<PackedScene>(path);
+            // A load Preload started in the background is collected here (waiting for it if it is still running).
+            scene = Loading.Remove(shipId) ? ResourceLoader.LoadThreadedGet(path) as PackedScene : GD.Load<PackedScene>(path);
             if (scene == null) GD.PushWarning($"ShipModels: {path} did not load; the {shipId} has no 3D model");
         }
         else if (FileAccess.FileExists(path))
