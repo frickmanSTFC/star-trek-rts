@@ -21,7 +21,7 @@ public partial class LandingFieldView : Node3D
     private const float CentreOuter = 2.6f, CentreInner = 2.25f;
     private const float Lift = 0.28f;                         // paint above the ground (the terrain has small bumps)
     private const int RingSegments = 40;
-    private static readonly Vector3 BowserAt = new(-8.7f, 0f, 2.6f); // pad frame: left of a ship whose nose is at -Z
+    private static readonly Vector3 BowserAt = new(-7.3f, 0f, 2.2f); // pad frame: left of a ship whose nose is at -Z; inside the ring (vehicles pass 10.9 out)
     private static readonly Vector3 ReelAt = new(1.05f, 0.95f, 0f);  // bowser frame: its hose reel (the end toward the pad)
 
     private static readonly Color Paint = new(0.93f, 0.78f, 0.22f), White = new(0.88f, 0.88f, 0.84f);
