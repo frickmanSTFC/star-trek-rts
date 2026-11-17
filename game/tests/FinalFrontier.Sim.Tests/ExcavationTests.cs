@@ -73,7 +73,7 @@ public class ExcavationTests
         var s = sim.Surface!;
         var g = s.Map.Grid;
         bool Open(int t) => s.Map.Terrain(t).Buildable && s.StructureAt(t) == null && s.Map.DepositResource[t] < 0 && s.RuinAt(t) == null &&
-                            !s.Map.NearNatives(t) && !s.Units.Any(u => u.Tile == t) && g.Distance(hub.Tile, t) <= 3;
+                            !s.Map.NearNatives(t) && !s.IsLandingPad(t) && !s.Units.Any(u => u.Tile == t) && g.Distance(hub.Tile, t) <= 3;
         var tile = g.Within(hub.Tile, 3).First(t => g.Distance(hub.Tile, t) >= 2 && Open(t) && g.Neighbours(t).Any(n => n != hub.Tile && Open(n)));
         neighbour = g.Neighbours(tile).First(n => n != hub.Tile && Open(n));
         Do(sim, new DebugRuinCommand(0, tile, true));
@@ -508,7 +508,7 @@ public class ExcavationTests
         Assert.Contains(s.Finds[0].Kind, new[] { "artifact", "data_core", "tech_fragment", "resources" }); // danger 0
         Assert.Equal(F(1) / F(2), s.ShuttleTurnaround(0));
         Assert.Equal(Fix64.One, s.ShuttleTurnaround(1));
-        // The drop ship comes back in half the time.
+        // The drop ship turns round in half the time: its refuelling at the landing field and its climb back are halved.
         sim.Players[0].Stock.Add(sim.Data.Resource("deuterium").Index, F(50));
         sim.Players[0].Stock.Add(sim.Data.Resource("duranium").Index, F(500));
         sim.Players[0].Stock.Add(sim.Data.Resource("tritanium").Index, F(500));
@@ -516,7 +516,12 @@ public class ExcavationTests
         var flight = s.DescentTicks(sim.Data.Orbit!.ShuttleSeconds);
         var now = sim.Tick;
         Do(sim, new ShuttleCommand(0, tile, "survey_rover"));
-        Assert.Equal(now + flight, s.Players[0].ShuttleBackTick);
+        var field = sim.Data.LandingField!;
+        var refuel = field.RefuelSeconds.FloorToInt() * Simulation.TickRate;
+        Assert.Equal(refuel / 2, s.RefuelTicks(0));
+        Assert.Equal(flight / 2, s.ClimbTicks(0));
+        Assert.Equal(refuel, s.RefuelTicks(1));
+        Assert.Equal(now + flight + s.GroundStayTicks(0), s.Players[0].ShuttleBackTick); // the estimate at the order
 
         // T'Kon: mines and deep-core mines faster.
         var tkon = TestData.Patched((Ex, "\"seconds_per_layer\": 120", "\"seconds_per_layer\": 2"),

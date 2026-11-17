@@ -554,7 +554,11 @@ public partial class PlanetView
 
         var sites = new List<(Vector3 Centre, float Radius)>();
         foreach (var s in _surface.Structures)
-            if (Shows(s)) sites.Add((TileCentre(s.Tile), _sim.Data.Building(s.DefId).IsCore ? 14.5f : 8.5f)); // fog: known ones only
+        {
+            if (!Shows(s)) continue; // fog: known ones only
+            sites.Add((TileCentre(s.Tile), _sim.Data.Building(s.DefId).IsCore ? 14.5f : 8.5f));
+            foreach (var pad in s.Field) sites.Add((TileCentre(pad), PadClearing)); // a core's landing field (PlanetView.LandingField.cs)
+        }
         for (var i = 0; i < _surface.Players.Count; i++)
             if (ClearedLanding(i) is var landing && landing >= 0) sites.Add((TileCentre(landing), 14.5f));
 

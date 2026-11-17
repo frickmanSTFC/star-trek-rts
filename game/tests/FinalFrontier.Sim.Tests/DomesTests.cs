@@ -19,7 +19,9 @@ public class DomesTests
         var sim = MatchSetup.CreatePlanetLanding(data, 1701, "federation", null, "veyra");
         var s = sim.Surface!;
         var site = Enumerable.Range(0, s.Map.Grid.Count).First(t => s.LandProblem(sim, 0, t) == null
-            && s.Map.Grid.Within(t, 4).Count(n => s.Map.Terrain(n).Buildable && s.Map.Grid.Distance(t, n) >= 2) >= 12);
+            && s.Map.Grid.Within(t, 4).Count(n => s.Map.Terrain(n).Buildable && s.Map.Grid.Distance(t, n) >= 2) >= 12
+            && s.Map.Grid.Within(t, 3).Count(n => s.Map.Terrain(n).Buildable && s.Map.DepositResource[n] < 0 && s.Map.Grid.Distance(t, n) == 3) >= 8 // room at ring 3 beside the landing field
+            && s.Map.Grid.Neighbours(t).Count(n => s.Map.Terrain(n).Buildable && s.Map.DepositResource[n] < 0) == 6);
         sim.Schedule(0, new LandColonyCommand(0, site));
         while (!s.UplinkOnline(0, sim.Tick)) sim.Step();
         sim.Step();
@@ -40,7 +42,7 @@ public class DomesTests
     {
         var s = sim.Surface!;
         return s.Map.Grid.Within(hub.Tile, distance).Where(t => s.Map.Grid.Distance(hub.Tile, t) == distance && s.Map.Terrain(t).Buildable
-            && s.StructureAt(t) == null && s.Map.DepositResource[t] < 0 && !s.Units.Any(u => u.Tile == t)).Skip(skip).First();
+            && s.StructureAt(t) == null && s.Map.DepositResource[t] < 0 && !s.IsLandingPad(t) && !s.Units.Any(u => u.Tile == t)).Skip(skip).First();
     }
 
     private static void DebugPlace(Simulation sim, string building, int tile) => Do(sim, new DebugPlaceBuildingCommand(0, 0, building, tile, 0));
@@ -77,9 +79,10 @@ public class DomesTests
         var s = sim.Surface!;
         var map = s.Map;
         // A dome two tiles out, and a tile two further on (four from the hub) that only the dome reaches.
-        var domeTile = Ring(sim, hub, 2);
-        var beyond = map.Grid.Within(domeTile, 2).First(t => map.Grid.Distance(domeTile, t) == 2 && map.Grid.Distance(hub.Tile, t) == 4
-            && map.Terrain(t).Buildable && s.StructureAt(t) == null && map.DepositResource[t] < 0);
+        bool Beyond(int dome, int t) => map.Grid.Distance(dome, t) == 2 && map.Grid.Distance(hub.Tile, t) == 4
+            && map.Terrain(t).Buildable && s.StructureAt(t) == null && map.DepositResource[t] < 0 && !s.IsLandingPad(t);
+        var domeTile = Enumerable.Range(0, 12).Select(k => Ring(sim, hub, 2, k)).First(d => map.Grid.Within(d, 2).Any(t => Beyond(d, t)));
+        var beyond = map.Grid.Within(domeTile, 2).First(t => Beyond(domeTile, t));
         Assert.Equal(PlacementProblem.NeedsDome, s.CheckPlacement(sim, 0, "prefab_habitat", beyond));
 
         Do(sim, new PlaceBuildingCommand(0, "pressure_dome", domeTile, 0));

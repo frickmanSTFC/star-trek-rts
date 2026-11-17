@@ -327,6 +327,22 @@ public class CommandFuzzTests
             var at = s.StructureAt(t);
             if (at != null && at.Tile != t) problems.Add($"tile {t} points at structure {at.Id} on {at.Tile}");
             if (s.Map.DepositAmount[t] < Fix64.Zero) problems.Add($"deposit {t} is {s.Map.DepositAmount[t]}");
+            if (s.PadCoreAt(t) != 0 && (s.FindStructure(s.PadCoreAt(t)) is not { } padCore || !padCore.Field.Contains(t)))
+                problems.Add($"tile {t} is a pad of core {s.PadCoreAt(t)}, which has gone or doesn't list it");
+        }
+        // Landing fields and drop ships (LandingField.cs): the pad index agrees with the cores, no pad has two ships.
+        foreach (var st in s.Structures)
+            foreach (var pad in st.Field)
+                if (s.PadCoreAt(pad) != st.Id) problems.Add($"pad {pad} of core {st.Id} isn't in the pad index");
+        var heldPads = s.DropShips.Where(x => x.HoldsPad).Select(x => x.Pad).ToList();
+        if (heldPads.Distinct().Count() != heldPads.Count) problems.Add("two drop ships hold one pad");
+        if (s.DropShips.Select(x => x.Id).Distinct().Count() != s.DropShips.Count) problems.Add("two drop ships with one id");
+        foreach (var ship in s.DropShips)
+        {
+            if (ship.Owner < 0 || ship.Owner >= sim.Players.Count) problems.Add($"drop ship {ship.Id} owner {ship.Owner}");
+            if (ship.Tile < 0 || ship.Tile >= grid.Count || ship.Pad >= grid.Count) problems.Add($"drop ship {ship.Id} at {ship.Tile}, pad {ship.Pad}");
+            if (ship.State is DropShipState.Hopping or DropShipState.WaitingForFuel or DropShipState.Refuelling && ship.Pad < 0) problems.Add($"drop ship {ship.Id} {ship.State} without a pad");
+            if (ship.State == DropShipState.WaitingForPad && !ship.Landed) problems.Add($"drop ship {ship.Id} waits for a pad in the air");
         }
         var orderIds = s.Structures.SelectMany(st => st.Fabrication).Select(o => o.Id).ToList();
         if (orderIds.Distinct().Count() != orderIds.Count) problems.Add("two fabrication orders with one id");

@@ -1158,7 +1158,7 @@ public partial class OrbitView : Node3D
         var status = new List<string> { flagship != null && SystemSource.InFlight(flagship) ? $"Under way, arrives in {_source.SecondsToArrival(flagship)} s" : "In orbit" };
         if (flagship != null) status.Add(_source.ShipClassText(flagship));
         else if (ship != null) status.Add($"{ship.ClassName} class");
-        if (_atColony && me.ShuttleBackTick > _sim.Tick) status.Add($"drop ship away, back in {SecondsTo(me.ShuttleBackTick)} s");
+        if (_atColony && _surface.ShuttleWhere(_localPlayer, _sim.Tick) is { } dropShip) status.Add($"drop ship {dropShip}"); // "refuelling at the landing field · 0:32"
         if (_atColony && me.TransporterReadyTick > _sim.Tick) status.Add($"transporter ready in {SecondsTo(me.TransporterReadyTick)} s");
         list.Add((new OrbitObject(flagship?.Name ?? ship?.Name ?? "Our ship", "Ship", string.Join(" · ", status), Peach), ShipTrackNode)); // the model while it shows (OrbitView.Ship.cs)
         if (!_atColony)

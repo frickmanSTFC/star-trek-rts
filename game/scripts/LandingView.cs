@@ -29,8 +29,13 @@ namespace FinalFrontier;
 /// <item>the cables pay out for 1.6 s: module k touches down at 0.45k (fine dust), the clamps let go, the cables reel
 /// in; the ship lifts at +0.6 and hops (4–7 s: pops up 8 on a strong burn, leans over into the hop and back to brake,
 /// drops and brakes hard onto its spot) to its landing spot beside the tile the sim gave its unit; from there
-/// <see cref="DropShipView"/> unloads it (ramp, drive-off, climb out). Empty ships climb straight up and pitch away
-/// (<see cref="RocketClimb"/>);</item>
+/// <see cref="DropShipView"/> unloads it (ramp, drive-off) and later takes it on to the landing field. Empty ships hold
+/// their hover until the sim sends them to a pad (DropShipView hops them there); with no field for them (old data, a
+/// taken site) they climb straight up and pitch away (<see cref="RocketClimb"/>);</item>
+/// <item>a first landing's vehicles beyond the three module ships (a picked ship's start units: the Cochrane's
+/// construction rover) each come down in a further ship with no module, straight onto its own landing spot a few
+/// seconds after touchdown (<see cref="DropShipView.ConvoyShip.Direct"/>), and unload like the others (owner
+/// 2026-11-17: it used to stand on the site before any ship had set anything down);</item>
 /// <item>modules crawl in on their glowing skids from set-down + 1.6 to 8.2, lock at 8.7 (seams flash);</item>
 /// <item>unfurl 9.4 → 15.2 (<see cref="Folds"/>: mast up, telescopes, dish opens; solar wings out, outer leaves open;
 /// radiators up; floodlight arm up); the repair pad rolls out 10.5 → 14.5;</item>
@@ -54,6 +59,8 @@ public partial class LandingView : Node3D
     private const float CrawlAfter = 1.6f;
     private const float StartHeight = 260f, ApproachDistance = 140f;
     private const float FlyAwaySeconds = 7.5f;
+    private const float ExtraShipAt = 6f, ExtraShipStagger = 1.5f; // a further vehicle's ship opens its ramp this long after touchdown
+    private const int KeysPerConvoy = 16;                          // ship keys per convoy (three module ships + further ones)
 
     // Assembly, for assemble_seconds = 20.
     private const float DockAt = 8.2f, LockSeconds = 0.5f;
@@ -132,6 +139,8 @@ public partial class LandingView : Node3D
         public Transform3D Landed;                // the ship's landing spot (Lands only)
         public bool Lands;
         public int UnitIndex = -1;
+        public int SimSlot;                       // which of the convoy's sim drop ships it is (PlanetSurface.FindDropShip)
+        public System.Func<DropShip?>? Sim;       // that ship (null: not there yet, back aboard, or none)
         public int ShipKey;
         public long ArriveTick;
         public readonly Dictionary<string, Glow> Glows = new();
@@ -166,6 +175,7 @@ public partial class LandingView : Node3D
         public float HubEnergy, FloodEnergy, BeaconEnergy;
         public MeshInstance3D Beam = null!;
         public StandardMaterial3D BeamMaterial = null!;
+        public int UnitCount;                     // vehicles that land with it (landing.units + the picked ship's start units)
         public int[]? Units;                      // landed unit ids by data order (first landing), -1 = none
         public bool Aborted;
         public float AbortedAt;
@@ -401,12 +411,16 @@ public partial class LandingView : Node3D
         // Which ship carries which landed unit: the sim puts unit i on the i-th free passable neighbour (in neighbour
         // order) at touchdown; each goes in the ship whose module sets down nearest that side.
         var others = new List<Vector3>();
+        // What lands with a first landing, in the sim's order: landing.units, then the picked ship's start units.
+        var units = new List<string>();
+        var spots = new List<int>();
         if (firstLanding)
         {
-            var spots = new List<int>();
+            units.AddRange(_sim.Data.Landing.Units);
+            if (_sim.ShipChoiceOf(owner) is { Colonizes: true } pick) units.AddRange(pick.StartUnits);
+            c.UnitCount = units.Count;
             foreach (var n in _surface.Map.Grid.Neighbours(tile))
                 if (_surface.Map.Terrain(n).Passable && _surface.StructureAt(n) == null) spots.Add(n);
-            var units = _sim.Data.Landing.Units;
             for (var i = 0; i < units.Count && i < 3 && spots.Count > 0; i++)
             {
                 var unitTile = spots[i % spots.Count];
@@ -424,11 +438,31 @@ public partial class LandingView : Node3D
             }
         }
 
+        // Which sim drop ship each module ship is: ship i carries vehicle i; the ones without a vehicle take the slots left.
+        var role = firstLanding ? DropShipRole.Convoy : DropShipRole.OutpostDrop;
+        var delivery = firstLanding ? 0 : key;
+        var free = new List<int> { 0, 1, 2 };
+        foreach (var s in slots)
+            if (firstLanding && s.UnitIndex >= 0) free.Remove(s.UnitIndex);
+        foreach (var s in slots)
+        {
+            if (firstLanding && s.UnitIndex >= 0) s.SimSlot = s.UnitIndex;
+            else if (firstLanding)
+            {
+                s.SimSlot = free[0];
+                free.RemoveAt(0);
+            }
+            else s.SimSlot = s.Index;
+            var simSlot = s.SimSlot;
+            s.Sim = () => _surface.FindDropShip(owner, role, delivery, simSlot);
+        }
+
         _convoys[key] = c;
+        var keyBase = 1000 + (firstLanding ? -key : 100000 + key) * KeysPerConvoy;
         for (var k = 0; k < 3; k++)
         {
             var s = slots[k];
-            s.ShipKey = -(1000 + (firstLanding ? -key : 100000 + key) * 4 + k);
+            s.ShipKey = -(keyBase + k);
             if (s.Lands)
             {
                 var hop = Mathf.Clamp(2.4f + Flat(s.Landed.Origin - s.HoverPose.Origin).Length() / 9f, 4f, 7f);
@@ -440,7 +474,7 @@ public partial class LandingView : Node3D
             var slot = s;
             // Pre-warp ships draw their names per ship (the first landing is delivery 0, an outpost drop its delivery id).
             var hull = _ships.PreWarpHull(owner, firstLanding ? 0 : key, k) ?? ConvoyHulls[(owner * 3 + k) % ConvoyHulls.Length];
-            var crawlerShip = s.Lands && _sim.Data.SurfaceUnit(_sim.Data.Landing.Units[s.UnitIndex]).CanMine;
+            var crawlerShip = s.Lands && _sim.Data.SurfaceUnit(units[s.UnitIndex]).CanMine;
             _ships.AddConvoyShip(new DropShipView.ConvoyShip
             {
                 Key = s.ShipKey,
@@ -452,9 +486,38 @@ public partial class LandingView : Node3D
                 Name = hull.Name,
                 Number = hull.Number,
                 Approach = t => ShipAt(c, slot, t + offset),
-                Resolve = () => UnitFor(c, slot),
+                Resolve = () => slot.Lands ? UnitFor(c, slot.UnitIndex) : -1,
                 FliesAway = !s.Lands,
                 GoneAt = s.Lift + FlyAwaySeconds - offset,
+                Sim = s.Sim,
+            });
+        }
+
+        // Every further vehicle (a picked ship's start units) comes down in a ship of its own, with no module: straight
+        // onto a landing spot beside the tile the sim gave it, its ramp opening a few seconds after touchdown.
+        for (var i = 3; i < units.Count && i < KeysPerConvoy && spots.Count > 0; i++)
+        {
+            var index = i;
+            var unitTile = spots[i % spots.Count];
+            var crawler = _sim.Data.SurfaceUnit(units[i]).CanMine;
+            var landed = _ships.ConvoyLanding(owner, unitTile, key * 3 + i, crawler, tile, HubClear, others);
+            others.Add(landed.Origin);
+            // Pre-warp names: off the module ships' three and the deliveries' serials (3 per delivery, slot 0).
+            var hull = _ships.PreWarpHull(owner, i - 2, 1) ?? ConvoyHulls[(owner * 3 + i) % ConvoyHulls.Length];
+            _ships.AddConvoyShip(new DropShipView.ConvoyShip
+            {
+                Key = -(keyBase + i),
+                Owner = owner,
+                ArriveTick = touchTick + (long)Mathf.Ceil((ExtraShipAt + ExtraShipStagger * (i - 3)) * Simulation.TickRate),
+                ShowFrom = -9f,
+                Landed = landed,
+                Crawler = crawler,
+                Name = hull.Name,
+                Number = hull.Number,
+                Approach = _ => new DropShipView.Flight(landed, 0f, 0f, 1f), // never asked: a direct ship flies itself
+                Resolve = () => UnitFor(c, index),
+                Direct = true,
+                Sim = () => _surface.FindDropShip(owner, DropShipRole.Convoy, 0, index),
             });
         }
     }
@@ -521,18 +584,20 @@ public partial class LandingView : Node3D
         return copy;
     }
 
-    private int UnitFor(Convoy c, Slot s)
+    /// <summary>The id of the convoy's <paramref name="index"/>-th landed vehicle (the sim's landing order): 0 = not
+    /// down yet, -1 = none.</summary>
+    private int UnitFor(Convoy c, int index)
     {
-        if (!s.Lands) return -1;
+        if (index < 0) return -1;
         if (c.Units == null)
         {
             if (_surface.Players[c.Owner].Phase != LandingPhase.Landed) return 0;
-            var want = _sim.Data.Landing.Units.Count;
+            var want = c.UnitCount;
             var landed = _surface.Units.Where(u => u.Owner == c.Owner && u.DeliveryId == 0 && u.BuiltAtTick < 0)
                 .OrderBy(u => u.Id).Take(want).Select(u => u.Id).ToList();
             c.Units = Enumerable.Range(0, want).Select(i => i < landed.Count ? landed[i] : -1).ToArray();
         }
-        return s.UnitIndex < c.Units.Length ? c.Units[s.UnitIndex] : -1;
+        return index < c.Units.Length ? c.Units[index] : -1;
     }
 
     // ---------------------------------------------------------------- the ships' flight
@@ -556,7 +621,10 @@ public partial class LandingView : Node3D
             return new DropShipView.Flight(new Transform3D(basis, pos), Mathf.Min(1f, d.Throttle(tau) + 0.05f), 0f, 0f, 1f);
         }
         var climbFrom = c.Aborted ? Mathf.Max(c.AbortedAt + 0.8f, s.Hover) : s.Lift;
-        if (T < climbFrom)
+        // An empty ship the sim has a drop ship for holds its hover until that sends it to a pad of the landing field
+        // (DropShipView takes it from there); with none (old data, a taken site) it climbs away as it always did.
+        var holds = !s.Lands && !c.Aborted && s.Sim?.Invoke() != null;
+        if (T < climbFrom || holds)
         {
             // A rocket hover with a module on the cables: the burn flickers round two thirds, a slight bob and drift
             // that die out as the module is set down.
@@ -583,25 +651,8 @@ public partial class LandingView : Node3D
         // Hop: pop up to a low cruise on a strong burn, lean into the hop and back to brake it, then drop and brake
         // hard onto the landing spot (straight down for the last part) with the legs coming out.
         var u = Mathf.Clamp((T - s.Lift) / Mathf.Max(0.1f, s.Touch - s.Lift), 0f, 1f);
-        var from = s.HoverPose.Origin;
-        var to = s.Landed.Origin;
-        var cruise = Mathf.Max(from.Y, to.Y) + 8f;
-        var x = (u - 0.15f) / 0.6f;
-        var across = from.Lerp(to, RocketPlume.S(0.15f, 0.75f, u));
-        float y;
-        if (u < 0.35f) y = Mathf.Lerp(from.Y, cruise, RocketPlume.S(0f, 0.35f, u));
-        else if (u < 0.55f) y = cruise;
-        else y = Mathf.Lerp(cruise, to.Y, RocketPlume.S(0.55f, 1f, u));
-        var lean = x > 0f && x < 1f ? 12f * Mathf.Sin(Mathf.Tau * x) : 0f; // into the hop, then back against it
-        var turn = new Quaternion(s.HoverPose.Basis.Orthonormalized()).Slerp(new Quaternion(s.Landed.Basis.Orthonormalized()), RocketPlume.S(0.1f, 0.75f, u));
-        var hopBasis = DropShipView.Lean(to - from, lean) * new Basis(turn);
-        var throttle = 0.9f;
-        throttle = Mathf.Lerp(throttle, 0.6f, RocketPlume.S(0.25f, 0.35f, u));   // cruising across
-        throttle = Mathf.Lerp(throttle, 0.35f, RocketPlume.S(0.55f, 0.62f, u));  // dropping
-        throttle = Mathf.Lerp(throttle, 0.95f, RocketPlume.S(0.72f, 0.78f, u));  // the braking burn
-        throttle = Mathf.Lerp(throttle, 0.55f, RocketPlume.S(0.92f, 0.98f, u));  // settle
-        return new DropShipView.Flight(new Transform3D(hopBasis, across with { Y = y }), throttle, 0f,
-            RocketPlume.S(0.6f, 0.92f, u));
+        var cruise = Mathf.Max(s.HoverPose.Origin.Y, s.Landed.Origin.Y) + 8f;
+        return DropShipView.HopFlight(s.HoverPose, s.Landed, u, cruise, legsDown: false); // the same hop takes ships to their pads
     }
 
     // ---------------------------------------------------------------- the assembly

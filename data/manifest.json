@@ -116,6 +116,7 @@
       "surfaces/excavation.json",
       "surfaces/research.json",
       "surfaces/orbit.json",
+      "surfaces/landing_field.json",
       "surfaces/comms.json",
       "surfaces/lanes.json",
       "surfaces/unit_names.json",

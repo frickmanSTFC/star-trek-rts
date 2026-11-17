@@ -19,9 +19,14 @@ namespace FinalFrontier;
 /// touchdown; the engines cut over 0.7 s).</item>
 /// <item>0 → 1.6: the ramp opens (the sim's unit appears in the closed bay at 0); from 1.3 the unit drives down the
 /// ramp and on to its tile centre (<see cref="Unloading"/> places it), ~3–4 s.</item>
-/// <item>then the ramp closes (1.6 s), the engines light on the ground (1.1 s spool to 85%, a smoke billow) and the
-/// ship climbs straight up, accelerating, its plume growing, pitches over toward its nose from 2.2 s
-/// (<see cref="RocketClimb"/>) and is out of sight and freed after 7 s.</item>
+/// <item>then the ramp closes (1.6 s) and the ship waits, engines off, until the sim sends it on (owner 2026-11-17:
+/// "the landers do not return to the ship, but land in an area near the outpost to fly back up after re-fueling";
+/// sim/Surface/LandingField.cs, DropShipView.Field.cs): it lights its engines, hops to its pad on the landing field
+/// (<see cref="HopFlight"/>), stands there engines off with a fuel hose from the pad's bowser while it refuels, then
+/// the engines light on the ground (1.1 s spool to 85%, a smoke billow) and it climbs straight up, accelerating, its
+/// plume growing, pitches over toward its nose from 2.2 s (<see cref="RocketClimb"/>) and is out of sight and freed
+/// after 7 s. With every pad taken it waits where it unloaded. (Data without landing fields, or a ship the sim has no
+/// drop ship for: the old way, straight back up after unloading.)</item>
 /// </list>
 /// The ship lands beside the unit's tile centre with its ramp toward it, turned to whichever of 12 headings keeps
 /// its footprint off buildings, water and mountains and on the flattest ground, then tilted to the ground under its
@@ -33,8 +38,11 @@ namespace FinalFrontier;
 /// surface is (not in orbit); the player goes with the model.</para>
 /// <para>The first landing's three ships (<see cref="LandingView"/>) are convoy ships: LandingView flies them
 /// (<see cref="ConvoyShip.Approach"/>: down from orbit with an outpost module slung underneath, set it down, hop over
-/// to their landing spot) and names the unit each one carries; from touchdown on they unload and leave like any other.
-/// A convoy ship with <see cref="ConvoyShip.FliesAway"/> never lands: LandingView flies it the whole time.</para>
+/// to their landing spot) and names the unit each one carries; from touchdown on they unload and go on to the landing
+/// field like any other. A convoy ship with <see cref="ConvoyShip.FliesAway"/> never lands to unload: LandingView
+/// flies it until the sim sends it to a pad (then it hops there from its hover), or the whole time when there is no
+/// field for it. A <see cref="ConvoyShip.Direct"/> one carries a vehicle but no module (a first landing's fourth
+/// vehicle): it comes straight down to its landing spot like a delivery's ship.</para>
 /// <para>Models (<see cref="DropShipSpec"/>, <see cref="SpecFor"/>): Halyard in every era but Dawn of Warp; there each
 /// player's ships are one of the pre-warp A Lander / B Hopper / C Freighter, picked per player from the map seed
 /// (<see cref="DropShipHulls"/>), named per ship from the pre-warp list. A and B have two-piece ramps: the tip
@@ -124,7 +132,9 @@ public partial class DropShipView : Node3D
         public required System.Func<float, Flight> Approach; // used before touchdown (the whole time when FliesAway)
         public required System.Func<int> Resolve;            // the carried unit's id: 0 = not down yet, -1 = none
         public bool FliesAway;
-        public float GoneAt;                  // FliesAway only: freed after this
+        public float GoneAt;                  // FliesAway only: freed after this (when it has no landing field to go to)
+        public bool Direct;                   // no module: it comes straight down to Landed like a delivery's ship
+        public System.Func<DropShip?>? Sim;   // its drop ship in the sim (null: not there yet, or back aboard)
     }
 
     private sealed class Ship
@@ -162,7 +172,27 @@ public partial class DropShipView : Node3D
         public float Time;          // this frame, seconds from ArriveTick
         public ConvoyShip? Convoy;  // flown by LandingView until touchdown
 
-        public bool Flown => Convoy != null && (Convoy.FliesAway || Time < TouchdownAt);
+        // The stay on the ground, from its sim DropShip (DropShipView.Field.cs).
+        public bool Legacy;            // nothing in the sim for it: the old way, straight back up
+        public bool HadSim;            // it has (had) a sim drop ship
+        public bool TakenOver;         // a module ship that left LandingView's hover for the field (or its climb)
+        public DropShipState? SimState; // this frame (null: no sim ship)
+        public long SimUntil;
+        public int PadTile = -1;
+        public Transform3D PadPose, HopFrom, ClimbFrom;
+        public float HopStart, HopEnd, HopSpool, HopCruise; // seconds from ArriveTick
+        public bool HopAirborne;       // the hop starts from a hover (no spool on the ground)
+        public bool Climbing, ClimbAirborne;
+        public float ClimbAt;
+        public bool OffGround, EnginesLit; // this frame (field plan)
+        public bool HopLit, HopLifted, PadTouched, ClimbLit, ClimbLifted;
+        public MeshInstance3D[]? Hose;
+        public bool HoseOut;
+
+        /// <summary>The sim decides when it leaves (hop, refuel, climb) instead of the fixed timeline.</summary>
+        public bool FieldPlan => HadSim && !Legacy;
+
+        public bool Flown => Convoy is { Direct: false } && (Convoy.FliesAway ? !TakenOver : Time < TouchdownAt);
 
         // The ramp: the main slab opens 0 → RampSeconds; a tip (two-piece ramp, and only if the model has one) unfolds
         // from TipFrom; the unit drives once the ramp is (nearly) down; closing, the tip folds first, then the slab.
@@ -175,7 +205,8 @@ public partial class DropShipView : Node3D
         public float CloseFrom => Mathf.Max(OpenedAt, UnloadEnd + CloseDelay);
         public float MainCloseFrom => Tip ? CloseFrom + TipSeconds * TipAfter : CloseFrom;
         public float LiftFrom => MainCloseFrom + RampSeconds + SpoolSeconds;
-        public float Gone => Convoy is { FliesAway: true } c ? c.GoneAt : LiftFrom + ClimbSeconds;
+        public float Gone => FieldPlan ? (Climbing ? ClimbAt + (ClimbAirborne ? 0f : SpoolSeconds) + ClimbSeconds : float.MaxValue)
+            : Convoy is { FliesAway: true } c ? c.GoneAt : LiftFrom + ClimbSeconds;
         public float RampTotal => Spec.RampLength + (Tip ? Spec.TipLength : 0f);
     }
 
@@ -217,6 +248,7 @@ public partial class DropShipView : Node3D
                 continue;
             }
             if (ship.UnitId == 0 && (ship.Time >= 0 || ship.Convoy != null)) FindUnit(ship);
+            Track(ship); // DropShipView.Field.cs: what its sim drop ship is doing (hop, pad, climb)
             if (ship.Time >= ship.Gone)
             {
                 done.Add(ship.DeliveryId);
@@ -232,6 +264,7 @@ public partial class DropShipView : Node3D
             ship.Wash.QueueFree();
             ship.Burst.QueueFree();
             ship.Plume.Free();
+            FreeHose(ship);
             if (ship.Lights != null) _view.RemoveLightRig(ship.Lights);
             if (ship.UnitId > 0) _byUnit.Remove(ship.UnitId);
             _ships.Remove(id);
@@ -269,9 +302,10 @@ public partial class DropShipView : Node3D
             var k = t < ship.DriveStart || ship.DriveSeconds <= 0f ? 0f : Mathf.SmoothStep(0f, 1f, (t - ship.DriveStart) / ship.DriveSeconds);
             driving = t >= ship.DriveStart;
             pose = PoseAt(ship, ship.Wheelbase + travel * k);
-            if (ship.Flown)
+            if (ship.Flown || t < TouchdownAt)
             {
-                // Still flying (a convoy ship hopping to its spot): the unit rides in the bay wherever the ship is.
+                // Still flying (a convoy ship hopping to its spot, or one coming straight down with a vehicle the sim
+                // already has on the ground): the unit rides in the bay wherever the ship is.
                 var rel = ship.Model.Transform * ship.Landed.AffineInverse();
                 pose = new Carried(rel * pose.Origin, rel.Basis * (pose.Basis ?? Basis.Identity));
             }
@@ -409,6 +443,11 @@ public partial class DropShipView : Node3D
             impulse = 0f;
             legsOut = RocketPlume.S(LegsFrom, LegsTo, t);
         }
+        else if (ship.FieldPlan)
+        {
+            // On the ground until the sim sends it on: the hop to its pad, refuelling there, the climb (DropShipView.Field.cs).
+            FieldFlight(ship, t, out pose, out lift, out impulse, out legsOut);
+        }
         else if (t < ship.LiftFrom)
         {
             // The engines cut after touchdown; before take-off they light on the ground and spool up.
@@ -433,6 +472,7 @@ public partial class DropShipView : Node3D
             legsOut = 1f - RocketPlume.S(1f, 3f, c);
         }
         ship.Model.Transform = pose;
+        if (!ship.FieldPlan) ship.OffGround = ship.Flown || t < TouchdownAt || t >= ship.LiftFrom;
 
         // Legs fold for flight about their local X: front ones by -LegFold, rear ones by +LegFold (Halyard: 90°, under
         // the pods; the pre-warp A/B straight up the hull); the feet turn back by FootFold (= LegFold keeps them level).
@@ -468,12 +508,14 @@ public partial class DropShipView : Node3D
         if (ship.Lights is { } lights)
         {
             // Landing lights while it comes in, touches down and climbs out; the belly flood while the ramp is down.
-            var landing = ship.Convoy is { FliesAway: true } || t < TouchdownAt + 1.5f || (t > ship.LiftFrom - SpoolSeconds && t < ship.LiftFrom + 3f);
+            var landing = ship.Flown || t < TouchdownAt + 1.5f
+                || (ship.FieldPlan ? ship.OffGround || ship.EnginesLit : ship.Convoy is { FliesAway: true } || (t > ship.LiftFrom - SpoolSeconds && t < ship.LiftFrom + 3f));
+            var flood = Mathf.Max(open, ship.FieldPlan && ship.PadTile >= 0 && !ship.OffGround && !ship.Climbing ? 0.45f : 0f); // low on the pad while it refuels
             for (var k = 0; k < lights.Demand.Length; k++)
                 lights.Demand[k] = lights.RoleOf(k) switch
                 {
                     VehicleLights.Role.Landing => landing ? 1f : 0f,
-                    VehicleLights.Role.Belly => open,
+                    VehicleLights.Role.Belly => flood,
                     _ => lights.Demand[k],
                 };
             lights.Hidden = !ship.Shown;
@@ -498,18 +540,20 @@ public partial class DropShipView : Node3D
             if (ship.Shown && t < TouchdownAt + 0.5f) Scorched?.Invoke(under, false);
             if (ship.Shown && _heard && t < TouchdownAt + 0.5f) Sfx.At("landing/touchdown", ToGlobal(under), 0f, Pitch(ship, 0.06f));
         }
-        if (!ship.Lit && t >= ship.LiftFrom - SpoolSeconds + 0.25f && lands)
+        if (ship.FieldPlan) FieldEvents(ship, t, under); // lighting up, lifting off and touching down on the pad (DropShipView.Field.cs)
+        else if (!ship.Lit && t >= ship.LiftFrom - SpoolSeconds + 0.25f && lands)
         {
             ship.Lit = true;
             if (ship.Shown) ship.Plume.Billow(under);
             if (ship.Shown && _heard && t < ship.LiftFrom - SpoolSeconds + 0.75f) Sfx.At("landing/liftoff", ToGlobal(under));
         }
-        if (!ship.LiftedOff && t >= ship.LiftFrom && lands)
+        if (!ship.FieldPlan && !ship.LiftedOff && t >= ship.LiftFrom && lands)
         {
             ship.LiftedOff = true;
             if (ship.Shown) Burst(ship, under);
             if (ship.Shown) Scorched?.Invoke(under, true);
         }
+        UpdateHose(ship, t);
         Sound(ship, t, lift, impulse, lands);
     }
 
@@ -538,7 +582,7 @@ public partial class DropShipView : Node3D
 
         // Ignition / cut-off edges in flight (with some hysteresis). On the ground the engines lighting for take-off are
         // the lift-off sound instead (played as they light, above).
-        var onGround = lands && t >= TouchdownAt && t < ship.LiftFrom;
+        var onGround = ship.FieldPlan ? !ship.Flown && t >= TouchdownAt && !ship.OffGround : lands && t >= TouchdownAt && t < ship.LiftFrom;
         if (!ship.Burning && throttle > 0.18f)
         {
             ship.Burning = true;
@@ -638,7 +682,9 @@ public partial class DropShipView : Node3D
     public void AddConvoyShip(ConvoyShip c)
     {
         if (_ships.ContainsKey(c.Key)) return;
-        var ship = Create(c.Key, c.Owner, c.ArriveTick, c.ArriveTick, c.Landed, c.Crawler, c.Name, c.Number);
+        // A direct ship has a delivery's full descent before its arrival; the others are flown by LandingView until then.
+        var launch = c.Direct ? c.ArriveTick - (long)(DescentSeconds * Simulation.TickRate) : c.ArriveTick;
+        var ship = Create(c.Key, c.Owner, launch, c.ArriveTick, c.Landed, c.Crawler, c.Name, c.Number);
         ship.Convoy = c;
         if (c.FliesAway) ship.Tile = _view.TileAt(c.Approach(0f).Pose.Origin);
         _ships[c.Key] = ship;

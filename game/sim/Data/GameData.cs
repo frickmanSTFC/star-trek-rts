@@ -576,6 +576,7 @@ public sealed partial class GameData
             AerialUnits = ReadAerialUnits(surfacesRoot),
             DroneBayCounts = ReadDroneBays(buildingsRoot),
             Comms = ReadComms(surfacesRoot, Amounts),
+            LandingField = ReadLandingField(surfacesRoot),
             Excavation = ReadExcavation(surfacesRoot, Modifiers, problems),
             BuildingFootprints = ReadBuildingFootprints(buildingsRoot, problems),
             UnitFootprints = ReadUnitFootprints(surfacesRoot),
@@ -664,6 +665,7 @@ public sealed partial class GameData
         ValidateDrones(problems);
         ValidateExcavation(problems);
         ValidateLanes(problems);
+        ValidateLandingField(problems);
         ValidateWorlds(problems);
         ValidateSystem(problems);
         ValidateEras(problems);

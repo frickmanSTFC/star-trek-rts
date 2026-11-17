@@ -44,4 +44,7 @@ public enum PlacementProblem
 
     /// <summary>Not unlocked yet: a campaign opens it with a mission (text: <see cref="PlanetSurface.LockedText"/>).</summary>
     NotUnlocked,
+
+    /// <summary>A pad of a colony's landing field (text: <see cref="PlanetSurface.LandingFieldProblem"/>).</summary>
+    LandingField,
 }

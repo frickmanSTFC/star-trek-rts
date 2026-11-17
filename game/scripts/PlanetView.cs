@@ -120,6 +120,7 @@ public partial class PlanetView : Node3D
         AddChild(_dropShips);
         _landing = new LandingView(this, sim, localPlayer, _dropShips) { Name = "Landing" };
         AddChild(_landing);
+        SetupLandingField(); // PlanetView.LandingField.cs: pad markings and bowsers; the drop ships' pads
         _construction = new ConstructionView(this, sim) { Name = "Construction" };
         AddChild(_construction);
         SetupVisualPass(); // PlanetView.TerrainDetail.cs: visual pass (terrain detail, decals, effects) by GraphicsQuality
@@ -252,6 +253,7 @@ public partial class PlanetView : Node3D
         UpdateDomes(delta); // PlanetView.Domes.cs: glass domes and containment fields on a Domes world
         _time += delta;
         UpdateCosmetics(); // PlanetView.Cosmetics.cs: re-apply our achievement cosmetics when the picks change
+        UpdateLandingField(delta); // PlanetView.LandingField.cs: pads of new cores, pad lights by the ships on them
         _dropShips.Update(alpha, delta); // before the rovers: a unit being unloaded follows its ship's ramp
         UpdateRovers(alpha, delta);
         UpdateScoutDrones(alpha, delta); // PlanetView.Drones.cs: scout drones flying, docked, landing, lost; target rings, rotor buzz

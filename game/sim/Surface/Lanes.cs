@@ -41,12 +41,13 @@ public sealed partial class PlanetSurface
     }
 
     /// <summary>What stands in the middle of a tile, as a radius round its centre (0 = nothing): a building's footprint,
-    /// or a deployed / unfolding vehicle other than <paramref name="self"/>.</summary>
+    /// a deployed / unfolding vehicle other than <paramref name="self"/>, or a landing pad (ship on it or not).</summary>
     public Fix64 BlockRadius(int tile, SurfaceUnit? self = null)
     {
         if (StructureAt(tile) is { } s) return _data.FootprintOf(s.DefId).Radius;
         foreach (var u in _units)
             if (u != self && u.Tile == tile && u.Mode != UnitMode.Mobile) return _data.DeployedFootprintOf(u.DefId);
+        if (IsLandingPad(tile) && FieldRules is { } field) return field.FootprintRadius; // a landing pad's middle is kept clear (LandingField.cs)
         return Fix64.Zero;
     }
 
@@ -309,6 +310,9 @@ public sealed partial class PlanetSurface
         foreach (var s in _structures) busy[s.Tile] = true;
         foreach (var u in _units)
             if (u.Mode != UnitMode.Mobile) busy[u.Tile] = true;
+        if (_padCore != null)
+            foreach (var s in _structures)
+                foreach (var t in s._field) busy[t] = true; // landing pads: traffic goes round the field
         return Pathfinder.Find(Map, from, to, t => t != to && busy[t] ? 1 : 0);
     }
 

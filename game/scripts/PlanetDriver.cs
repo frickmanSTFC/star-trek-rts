@@ -833,7 +833,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             else if (a == "satellite") tag = $" {Surface.Satellites.Count(x => x.Owner == LocalPlayer && x.Kind != SatelliteKind.Relay)}/{orbit?.SatelliteMax}";
             else if (me.Phase != LandingPhase.Landed) disabled = true;
             else if (a == "relay") tag = RelayTag();
-            else if (a.StartsWith("shuttle:") && me.ShuttleBackTick > _sim.Tick) tag = $" {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate}S";
+            else if (a.StartsWith("shuttle:") && Surface.ShuttleAway(LocalPlayer, _sim.Tick)) tag = DropShipTag(); // PlanetDriver.LandingField.cs
             else if (a.StartsWith("beam:"))
             {
                 var level = orbit?.Transporter(me.TransporterLevel);
@@ -901,7 +901,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             body = "Send the colony pod down. It lands where you click and becomes your Colony Hub, with two survey rovers, a mining crawler and the starting supplies. Pick a green, safe site; yellow is risky (predators or toxic ground nearby), and the natives' land is off-limits.";
             rows.Add(("Needs", "flat plains or desert with open land on every side, no hazards on it"));
             rows.Add(("Descent", $"{_data.Landing.DescentSeconds} s"));
-            rows.Add(("Brings", string.Join(", ", _data.Landing.Units.GroupBy(u => u).Select(g => $"{g.Count()}× {_data.GroundVehicleNames.GetValueOrDefault(g.Key, g.Key)}")) + $", {Amounts(_data.Landing.StartStock, false)}"));
+            rows.Add(("Brings", string.Join(", ", LandingParty().GroupBy(u => u).Select(g => $"{g.Count()}× {_data.GroundVehicleNames.GetValueOrDefault(g.Key, g.Key)}")) + $", {Amounts(_data.Landing.StartStock, false)}"));
         }
         else if (a == "outpost")
         {
@@ -925,9 +925,9 @@ public partial class PlanetDriver : Node3D, ITestHost
             var u = a[8..];
             var name = _data.GroundVehicleNames.GetValueOrDefault(u, u);
             title = $"Drop Ship: {name}";
-            sub = me.ShuttleBackTick > _sim.Tick ? $"Drop ship away: back in {(me.ShuttleBackTick - _sim.Tick) / Simulation.TickRate} s" : "Drop ship ready";
+            sub = DropShipWhere() is { } where ? $"Drop ship {where}" : "Drop ship ready"; // PlanetDriver.LandingField.cs
             body = $"The drop ship flies a new {name} down from the ship to any safe spot on the planet, even far from your bases. {_data.SurfaceUnit(u).Description}";
-            rows.Add(("Flight", $"{orbit.ShuttleSeconds} s down, {orbit.ShuttleSeconds} s back up before it can fly again"));
+            foreach (var row in DropShipRows(orbit)) rows.Add(row); // flight, the stay at the landing field, fuel
             rows.Add(("Needs", "open ground: no buildings, toxic ground, predators or native land"));
         }
         else
@@ -1158,6 +1158,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         RoverEvents(); // hazards, flat tyres, disabled, repaired (PlanetDriver.RoverDamage.cs)
         FounderEvents(); // construction rovers founding outposts (PlanetDriver.Founding.cs)
         PartsEvents(); // waiting for kits, jury-rigged, fabricator orders done (PlanetDriver.Parts.cs)
+        DropShipEvents(); // drop ships at the landing field: no fuel, no pad, back aboard (PlanetDriver.LandingField.cs)
 
         foreach (var u in Surface.Units.Where(u => u.Owner == LocalPlayer))
         {
@@ -1845,7 +1846,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _hud.ShowBanner(Me.Phase switch
         {
             LandingPhase.InOrbit => $"In orbit over {PlanetName}. Choose a landing site: plains or desert with open land on every side (green).",
-            LandingPhase.Descending => $"Three drop ships descending… touchdown in {(Me.LandsAtTick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate} s",
+            LandingPhase.Descending => $"{ConvoyWord()} drop ships descending… touchdown in {(Me.LandsAtTick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate} s",
             _ when _pick != null => $"{_pickPrompt}  ·  right-click / Esc cancel",
             _ when _placing != null => $"Placing {_data.Building(_placing).Name}  ·  R rotate  ·  Shift+click place more  ·  right-click / Esc stop",
             _ when _launchPad != 0 => LaunchBanner(),
@@ -1862,7 +1863,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var bases = Surface.Bases(LocalPlayer);
         _hud.ShowBaseTabs(bases.Select(b => (b.Id, BaseName(b.Id))).ToList(), _selectedBase);
         if (Me.Phase == LandingPhase.InOrbit) _hud.ShowDetail("Orbital scan", $"{PlanetName} · Class M", "The scan shows terrain and, per region, which resources are likely below.\nHover a tile for details; green tiles are landing sites. Once down, survey rovers find the exact deposits.");
-        else if (Me.Phase == LandingPhase.Descending) _hud.ShowDetail("Landing convoy", "Descending", "Three drop ships carry the Colony Hub in three modules (it assembles on the ground and its uplink to the ship comes online), two survey rovers, a mining crawler and starting supplies.");
+        else if (Me.Phase == LandingPhase.Descending) _hud.ShowDetail("Landing convoy", "Descending", ConvoyDetail());
         else if (_selectedStructure != 0) ShowStructure(Surface.FindStructure(_selectedStructure)!);
         else if (_view.SelectedUnits.Count > 0) ShowUnits();
         else if (_selectedTile >= 0) _hud.ShowDetail(Surface.Map.Terrain(_selectedTile).Name, "Tile", DescribeTile(_selectedTile));
@@ -2408,6 +2409,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             if (structure.Assembling) sb.Append($" · Assembling… {PlanetSurface.AssembleSecondsLeft(structure, _sim.Tick)} s");
         }
         sb.Append(RuinTooltip(tile)); // "Ruins of the <species> · N layers, M dug" (PlanetDriver.Excavation.cs)
+        sb.Append(LandingPadTooltip(tile)); // "Landing pad 2 · Base 1 · a drop ship is refuelling 0:32" (PlanetDriver.LandingField.cs)
 
         if (Me.Phase == LandingPhase.InOrbit)
         {
@@ -2476,6 +2478,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         PlacementProblem.CoreUnderConstruction => "the new outpost is still being built (exocomps)",
         PlacementProblem.NeedsDome => PlanetSurface.NeedsDomeProblem,
         PlacementProblem.NotUnlocked => "not unlocked yet (a mission opens it)",
+        PlacementProblem.LandingField => PlanetSurface.LandingFieldProblem,
         _ => OtherReason(p), // e.g. an Excavation Site off a ruin tile (PlanetDriver.Excavation.cs)
     };
 
