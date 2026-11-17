@@ -1,0 +1,85 @@
+{
+  "_notes_fit_out": "Fit Out Your Ship (docs/fit-out-contract.md; design page docs/mockups/loadout; read into GameData.FitOut by game/sim/Data/GameData.FitOut.cs, rules in game/sim/Core/FitOut.cs). Before leaving home the player picks a focus, splits the ship's crew over the divisions and loads the hold. Optional: without this file no ship is fitted out and the menu skips the page; a game started without a fit-out (tests, the sandbox, the balance runner, the ships not listed under ships) plays exactly as before. All numbers are placeholders. rules: crew_floor_share = the least share of the crew every division holds (rounded up to whole heads); focus_floor_share = the least share of the focus's own division; effect_per_point = a division's strength per percentage point its crew share is above or below an even split (100 / the number of divisions = 25): strength = effect_per_point x (share in percent - 25); replaces_start_stock = the resources of surfaces landing.start_stock that a fit-out replaces with what its cargo gives (every other start-stock resource stays, and the ship's own start_bonus / start_units are added as always). divisions (the order of a fit-out's crew list): id, name, who (the people in it). focuses: id, name, division (its own division, null for the all-rounder), line (one short sentence), crew_pct (the preset's shares in division order, summing to 100; rounded to heads by largest remainder, never below a floor), perk (the text shown; empty = none), perk_levers (lever id: a multiplier the focus puts on that lever), landing_reveal (hexes revealed round the hub at the landing instead of surfaces landing.reveal_radius; leave out for no change). levers (the numbers a fit-out moves; the sim multiplies each where gravity, weather or research already do): id, division (the division whose strength moves it, or null for a lever only perks and cargo move), more_is_better (true: x (1 + strength); false: x (1 - strength)), name (for the summary). The lever ids are fixed by the sim: drive_speed (ground vehicle speed), satellite_sweep (seconds a survey satellite takes round its band), drone_battery (scout drone battery seconds), rover_hazard (rover hazard and flat-tyre chance), build_time (building and upgrade time), repair_speed (repairs and maintenance), fabrication (Machine Shop and hub workshop speed), wear (building wear), research_rate (Research Lab points), dig_time (excavation seconds a layer), sickness (seconds a pathogen find keeps a base's crew sick), wildlife (wildlife attacks on vehicles a minute), ruin_defence (damage of a woken ruin defence), crew_loss (crew lost a minute when life support fails); without a division: hazard_damage (damage a rover takes from a hazard), wildlife_damage (from a wildlife attack), ruin_vehicle_damage (a vehicle's share of a ruin defence's damage), hub_workshop (the hub workshop's speed, on top of fabrication), mission_research (research points from missions). cargo_groups: id (a division id or ship), name, floor (containers the group must hold). cargo (the lines, in page order): id, name, group, containers (hold space each), min / max (how many may be loaded), text (what one gives, shown on hover), and what one does: stock (resource: amount into the landing stock), unit (a surface unit that lands with the colony, in a convoy drop ship like a ship's start_units), satellites (survey satellites that launch without paying their cost), research (points banked toward the first tech researched), levers (lever id: added to that lever's multiplier per item, so -0.08 x 3 items = x 0.76). ships (only the ships listed are fitted out; phase 1 = the two colony ships): ship (a ship_choice.json id that colonizes), crew (heads to assign), hold (containers), suggest (the focus the page starts on, and the preset that replaces a fit-out the rules refuse), base (cargo every preset starts from; it must meet every line minimum and group floor), fill (per focus: the lines added one at a time, in this order, round and round, while the line is under its max and the hold has room). Checked by Validate(): ids, floors and budgets, and every focus's preset legal on every listed ship.",
+  "fit_out": {
+    "rules": { "crew_floor_share": 0.10, "focus_floor_share": 0.30, "effect_per_point": 0.004, "replaces_start_stock": ["duranium", "tritanium", "deuterium"] },
+    "divisions": [
+      { "id": "exploration", "name": "Exploration", "who": "Pilots, surveyors, sensor and drone operators" },
+      { "id": "engineering", "name": "Engineering", "who": "Construction crews, mechanics, fabricators" },
+      { "id": "science", "name": "Science", "who": "Researchers, archaeologists, medics, linguists" },
+      { "id": "defense", "name": "Defense", "who": "Guards, escorts, damage control" }
+    ],
+    "focuses": [
+      { "id": "explorer", "name": "Explorer", "division": "exploration", "line": "Find things first", "crew_pct": [45, 25, 18, 12],
+        "perk": "The landing reveals 5 hexes around the hub instead of 3.", "landing_reveal": 5 },
+      { "id": "builder", "name": "Builder", "division": "engineering", "line": "Build and repair faster", "crew_pct": [20, 45, 20, 15],
+        "perk": "The Colony Hub's workshop makes spare kits 30% faster.", "perk_levers": { "hub_workshop": 1.3 } },
+      { "id": "combatant", "name": "Combatant", "division": "defense", "line": "Guard what you have", "crew_pct": [18, 25, 12, 45],
+        "perk": "Vehicles take half damage from wildlife and ruin defences. More when combat is built.", "perk_levers": { "wildlife_damage": 0.5, "ruin_vehicle_damage": 0.5 } },
+      { "id": "scientist", "name": "Scientist", "division": "science", "line": "Learn faster", "crew_pct": [22, 21, 45, 12],
+        "perk": "Research from mission rewards +20%.", "perk_levers": { "mission_research": 1.2 } },
+      { "id": "allround", "name": "All-rounder", "division": null, "line": "An even split. Plays like today's game", "crew_pct": [25, 25, 25, 25],
+        "perk": "" }
+    ],
+    "levers": [
+      { "id": "drive_speed", "division": "exploration", "more_is_better": true, "name": "Vehicle drive speed" },
+      { "id": "satellite_sweep", "division": "exploration", "more_is_better": false, "name": "Satellite sweep of its band" },
+      { "id": "drone_battery", "division": "exploration", "more_is_better": true, "name": "Scout drone battery" },
+      { "id": "rover_hazard", "division": "exploration", "more_is_better": false, "name": "Rover hazards and flat tyres" },
+      { "id": "build_time", "division": "engineering", "more_is_better": false, "name": "Build and upgrade time" },
+      { "id": "repair_speed", "division": "engineering", "more_is_better": true, "name": "Repairs and maintenance" },
+      { "id": "fabrication", "division": "engineering", "more_is_better": true, "name": "Machine Shop and hub workshop" },
+      { "id": "wear", "division": "engineering", "more_is_better": false, "name": "Building wear" },
+      { "id": "research_rate", "division": "science", "more_is_better": true, "name": "Research Lab, points a minute" },
+      { "id": "dig_time", "division": "science", "more_is_better": false, "name": "Dig time per ruin layer" },
+      { "id": "sickness", "division": "science", "more_is_better": false, "name": "Crew sickness after a pathogen" },
+      { "id": "wildlife", "division": "defense", "more_is_better": false, "name": "Wildlife attacks a minute" },
+      { "id": "ruin_defence", "division": "defense", "more_is_better": false, "name": "Damage from ruin defences" },
+      { "id": "crew_loss", "division": "defense", "more_is_better": false, "name": "Crew lost a minute if the air fails" },
+      { "id": "hazard_damage", "division": null, "more_is_better": false, "name": "Vehicle hazard damage" },
+      { "id": "wildlife_damage", "division": null, "more_is_better": false, "name": "Vehicle damage from wildlife" },
+      { "id": "ruin_vehicle_damage", "division": null, "more_is_better": false, "name": "Vehicle damage from ruin defences" },
+      { "id": "hub_workshop", "division": null, "more_is_better": true, "name": "Hub workshop speed" },
+      { "id": "mission_research", "division": null, "more_is_better": true, "name": "Research from missions" }
+    ],
+    "cargo_groups": [
+      { "id": "exploration", "name": "Exploration gear", "floor": 2 },
+      { "id": "engineering", "name": "Engineering stores", "floor": 8 },
+      { "id": "science", "name": "Science stores", "floor": 2 },
+      { "id": "defense", "name": "Defense stores", "floor": 2 },
+      { "id": "ship", "name": "Ship's stores", "floor": 4 }
+    ],
+    "cargo": [
+      { "id": "sat", "name": "Survey satellite", "group": "exploration", "containers": 2, "min": 0, "max": 3, "text": "Ready to launch. No 80 duranium + 40 tritanium from the colony.", "satellites": 1 },
+      { "id": "drone", "name": "Scout drone", "group": "exploration", "containers": 1, "min": 0, "max": 4, "text": "Waits in storage for the first Drone Pad.", "stock": { "scout_drone": 1 } },
+      { "id": "rover", "name": "Extra survey rover", "group": "exploration", "containers": 3, "min": 0, "max": 2, "text": "Lands with the colony. Two land anyway.", "unit": "survey_rover" },
+      { "id": "mat", "name": "Building materials", "group": "engineering", "containers": 1, "min": 6, "max": 20, "text": "50 duranium + 30 tritanium each.", "stock": { "duranium": 50, "tritanium": 30 } },
+      { "id": "kits", "name": "Spare kit set", "group": "engineering", "containers": 1, "min": 0, "max": 6, "text": "One each of the four spare kits.", "stock": { "mechanical_spares": 1, "electrical_spares": 1, "rover_spares": 1, "environmental_spares": 1 } },
+      { "id": "crawler", "name": "Extra mining crawler", "group": "engineering", "containers": 4, "min": 0, "max": 1, "text": "Lands with the colony. One lands anyway.", "unit": "mining_crawler" },
+      { "id": "lab", "name": "Lab equipment", "group": "science", "containers": 1, "min": 0, "max": 6, "text": "20 research points toward your first tech.", "research": 20 },
+      { "id": "med", "name": "Medical stores", "group": "science", "containers": 1, "min": 0, "max": 4, "text": "Crew sickness 8% shorter each.", "levers": { "sickness": -0.08 } },
+      { "id": "armour", "name": "Field armour", "group": "defense", "containers": 1, "min": 0, "max": 4, "text": "Vehicles take 5% less hazard and wildlife damage each.", "levers": { "hazard_damage": -0.05, "wildlife_damage": -0.05 } },
+      { "id": "fuel", "name": "Fuel", "group": "ship", "containers": 1, "min": 4, "max": 12, "text": "25 deuterium each. A drop-ship trip burns 5 at 1 g.", "stock": { "deuterium": 25 } },
+      { "id": "prov", "name": "Provisions", "group": "ship", "containers": 1, "min": 0, "max": 8, "text": "5 more colonists awake at landing each.", "stock": { "crew": 5 } }
+    ],
+    "ships": [
+      { "ship": "horizon", "crew": 120, "hold": 30, "suggest": "allround",
+        "base": { "sat": 1, "mat": 8, "lab": 1, "med": 1, "armour": 2, "fuel": 4 },
+        "fill": {
+          "allround": ["mat", "fuel", "mat", "kits", "lab", "fuel", "drone", "kits", "prov", "mat", "armour", "drone", "mat", "fuel"],
+          "explorer": ["sat", "rover", "drone", "drone", "fuel", "sat", "mat", "drone", "fuel", "mat", "drone", "kits"],
+          "builder": ["mat", "kits", "mat", "crawler", "kits", "mat", "mat", "kits", "fuel", "mat", "mat", "fuel"],
+          "combatant": ["armour", "armour", "mat", "kits", "fuel", "prov", "med", "mat", "prov", "fuel", "mat", "kits"],
+          "scientist": ["lab", "lab", "med", "lab", "mat", "fuel", "lab", "drone", "mat", "med", "lab", "kits"]
+        } },
+      { "ship": "cochrane", "crew": 210, "hold": 24, "suggest": "builder",
+        "base": { "sat": 1, "mat": 8, "lab": 1, "med": 1, "armour": 2, "fuel": 4 },
+        "fill": {
+          "allround": ["mat", "fuel", "mat", "kits", "lab", "fuel", "drone", "kits", "prov", "mat", "armour", "drone", "mat", "fuel"],
+          "explorer": ["sat", "rover", "drone", "drone", "fuel", "sat", "mat", "drone", "fuel", "mat", "drone", "kits"],
+          "builder": ["mat", "kits", "mat", "crawler", "kits", "mat", "mat", "kits", "fuel", "mat", "mat", "fuel"],
+          "combatant": ["armour", "armour", "mat", "kits", "fuel", "prov", "med", "mat", "prov", "fuel", "mat", "kits"],
+          "scientist": ["lab", "lab", "med", "lab", "mat", "fuel", "lab", "drone", "mat", "med", "lab", "kits"]
+        } }
+    ]
+  }
+}

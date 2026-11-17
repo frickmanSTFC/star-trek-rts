@@ -271,7 +271,7 @@ public sealed partial class PlanetSurface
             if (crew < 0) continue;
             var crewed = budget.Use / Fix64.Max(domes.LifeSupportPerCrewed, Fix64.Ratio(1, 1000));
             var stock = sim.Players[core.Owner].Stock;
-            var loss = Fix64.Min(stock[crew], domes.CrewLossPerMinute * crewed / Simulation.TicksPerMinute);
+            var loss = Fix64.Min(stock[crew], domes.CrewLossPerMinute * crewed * Fit(core.Owner, FitOutRules.CrewLoss) / Simulation.TicksPerMinute);
             if (loss <= Fix64.Zero) continue;
             stock.Add(crew, -loss);
             core.CrewLost += loss;

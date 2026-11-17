@@ -91,9 +91,10 @@ public sealed partial class PlanetSurface
     public Fix64 SecondsAt(SurfaceStructure s, string recipeId)
     {
         if (!CanMake(s, recipeId)) return Fix64.Zero;
-        if (IsHubWorkshop(s)) return (_data.Flattened(recipeId)?.Seconds ?? Fix64.Zero) * Fab!.Hub.TimeFactor;
+        var fit = Fit(s.Owner, FitOutRules.Fabrication); // the owner's fit-out: both kinds of shop
+        if (IsHubWorkshop(s)) return (_data.Flattened(recipeId)?.Seconds ?? Fix64.Zero) * Fab!.Hub.TimeFactor / (fit * Fit(s.Owner, FitOutRules.HubWorkshop));
         var speed = _data.Building(s.DefId).Fabricator!.Speed;
-        return Fab!.Recipe(recipeId)!.Seconds / speed;
+        return Fab!.Recipe(recipeId)!.Seconds / (speed * fit);
     }
 
     /// <summary>How many of its item one order makes.</summary>
@@ -361,7 +362,8 @@ public sealed partial class PlanetSurface
     /// repair that takes its kits first (waiting while they're short), then restores condition to 100.</summary>
     private RepairResult RepairTick(Simulation sim, SurfaceStructure s, MaintenanceRules rules)
     {
-        var rate = rules.RepairPerSecond * Gravity.CrewWork / Simulation.TickRate * SickShare(s.BaseId); // a sick crew (Excavation.cs)
+        var rate = rules.RepairPerSecond * Gravity.CrewWork / Simulation.TickRate * SickShare(s.BaseId) // a sick crew (Excavation.cs)
+            * Fit(s.Owner, FitOutRules.RepairSpeed);
         if (s.JuryRigOrdered && Fab is { } fab)
         {
             s.MaintenanceWaiting = false;
@@ -402,7 +404,8 @@ public sealed partial class PlanetSurface
     /// or a proper repair that takes its kits first (waiting while short), fits pad tyres, then welds integrity to 100.</summary>
     private void RepairWork(Simulation sim, SurfaceUnit unit, RepairRules repair)
     {
-        var rate = repair.PerSecond * Gravity.CrewWork / Simulation.TickRate * SickShare(RepairPadAt(unit.Owner, unit.Tile)?.Id ?? 0); // a sick crew (Excavation.cs)
+        var rate = repair.PerSecond * Gravity.CrewWork / Simulation.TickRate * SickShare(RepairPadAt(unit.Owner, unit.Tile)?.Id ?? 0) // a sick crew (Excavation.cs)
+            * Fit(unit.Owner, FitOutRules.RepairSpeed);
         if (unit.JuryRigOrdered && Fab is { } fab)
         {
             unit.RepairWaiting = false;

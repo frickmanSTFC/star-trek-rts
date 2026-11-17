@@ -25,6 +25,10 @@ namespace FinalFrontier.Sim.Data;
 // Not covered: rates and time (timers, how long a trickle takes), storage room, power, the map (whether a site can be
 // driven to, comms range), luck (weather, ruins on this world), a ship's start bonus (the walk assumes none), and
 // stock the player wastes. A space chain (no colony) only gets ValidateSpaceReach below.
+//
+// Fit-outs (data/missions/fit_out.json): a fitted-out ship lands with its hold's metal and fuel instead of the landing's
+// own, so each colony chain is walked a second time with the leanest stock any fit-out can give (every cargo line at
+// its minimum, none of its extras: LeanestFitOutStock); what that walk finds is reported as "With the leanest fit-out …".
 public sealed partial class GameData
 {
     /// <summary>The problems of the mission reach check alone (Validate() includes them): empty = every mission of every
@@ -44,6 +48,33 @@ public sealed partial class GameData
             if (chain.Space) ValidateSpaceReach(data, chain, problems);
             else new MissionReach(this, data, chain, problems).Walk();
         }
+        // The same walk on the leanest landing stock a fit-out can give (only when the usual walk is clean, so nothing is said twice).
+        if (problems.Count > 0 || LeanestFitOutStock() is not { } lean) return;
+        var found = new List<string>();
+        foreach (var chain in data.Chains)
+            if (!chain.Space) new MissionReach(this, data, chain, found, lean).Walk();
+        foreach (var p in found) problems.Add($"With the leanest fit-out (every cargo line at its minimum): {p}");
+    }
+
+    /// <summary>The landing stock of the leanest fit-out the rules allow: the landing's start stock with the replaced
+    /// resources (duranium, tritanium, deuterium) at what the cargo lines' minimums give, and nothing else from the hold.
+    /// Null when the data set has no fit-outs.</summary>
+    public IReadOnlyList<ResourceAmount>? LeanestFitOutStock()
+    {
+        if (FitOut is not { } f) return null;
+        var list = new List<ResourceAmount>();
+        foreach (var a in Landing.StartStock)
+            if (!f.ReplacesStartStock.Contains(Resources[a.Resource].Id)) list.Add(a);
+        foreach (var res in f.ReplacesStartStock)
+        {
+            if (!_resources.TryGetValue(res, out var def)) continue;
+            var amount = 0;
+            foreach (var l in f.Cargo)
+                foreach (var s in l.Stock)
+                    if (s.Resource == res) amount += s.Amount * System.Math.Max(0, l.Min);
+            list.Add(new ResourceAmount(def.Index, Fix64.FromInt(amount)));
+        }
+        return list;
     }
 
     /// <summary>A space chain's ship never lands, so it has no income: the body satellites and observation posts its
@@ -131,6 +162,7 @@ public sealed partial class GameData
         private readonly MissionData _data;
         private readonly MissionChainDef _chain;
         private readonly List<string> _problems;
+        private readonly IReadOnlyList<ResourceAmount> _startStock; // the landing's, or a fit-out's leanest
         private readonly List<MissionDef> _mains, _sides;
         private readonly List<BuildingDef> _surface; // every building a colony could ever place or upgrade to
         private readonly BuildingDef? _hub;
@@ -141,9 +173,10 @@ public sealed partial class GameData
         private string _running = ""; // the main mission being walked
         private Dictionary<int, Fix64> _spent = new(); // one-off stock earlier objectives used up
 
-        public MissionReach(GameData d, MissionData data, MissionChainDef chain, List<string> problems)
+        public MissionReach(GameData d, MissionData data, MissionChainDef chain, List<string> problems, IReadOnlyList<ResourceAmount>? startStock = null)
         {
             _d = d;
+            _startStock = startStock ?? d.Landing.StartStock;
             _data = data;
             _chain = chain;
             _problems = problems;
@@ -171,7 +204,7 @@ public sealed partial class GameData
         {
             var state = new ReachState();
             foreach (var id in _d.StartMenu) state.Open.Add(id);
-            foreach (var a in _d.Landing.StartStock) state.Stock[a.Resource] = (state.Stock.TryGetValue(a.Resource, out var v) ? v : Fix64.Zero) + a.Amount;
+            foreach (var a in _startStock) state.Stock[a.Resource] = (state.Stock.TryGetValue(a.Resource, out var v) ? v : Fix64.Zero) + a.Amount;
             var pending = new List<MissionDef>(_sides);
             CheckSides(pending, state, _mains.Count > 0 ? $"from the start, before {_mains[0].Title}" : "from the start");
             foreach (var m in _mains)

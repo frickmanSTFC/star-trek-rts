@@ -14,9 +14,10 @@ public sealed partial class PlanetSurface
             ? Store(sim, player, resource, amount) : Fix64.Zero;
 
     /// <summary>Mission research points: into the active surface tech, the rest (or all, with none active) banked until
-    /// one is started (the excavation's research bank). Returns the text for the debrief.</summary>
+    /// one is started (the excavation's research bank), × the player's fit-out (mission_research: the Scientist's perk).
+    /// Returns the text for the debrief.</summary>
     internal string MissionResearch(Simulation sim, int player, Fix64 points) =>
-        player >= 0 && player < _players.Count && points > Fix64.Zero ? GiveResearch(sim, player, points) : "";
+        player >= 0 && player < _players.Count && points > Fix64.Zero ? GiveResearch(sim, player, points * Fit(player, FitOutRules.MissionResearch)) : "";
 
     /// <summary>Surveys every tile within radius of the centre for the player (a mission's reveal reward).</summary>
     internal void MissionReveal(int player, int centre, int radius)

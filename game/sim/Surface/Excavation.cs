@@ -61,7 +61,7 @@ public sealed partial class PlanetSurface
     {
         if (!_data.Building(site.DefId).RequiresRuin || RuinAt(site.Tile) is not { } ruin || Ex is not { } x) return Fix64.Zero;
         if (ruin.Exhausted) return Fix64.One;
-        return Fix64.Min(Fix64.One, ruin.Progress / Fix64.FromInt(LayerTicks(x)));
+        return Fix64.Min(Fix64.One, ruin.Progress / Fix64.FromInt(LayerTicks(x, site.Owner)));
     }
 
     /// <summary>Why the dig at this site isn't moving ("locked by a defence system: 2:10", "site exhausted"), or null.</summary>
@@ -138,7 +138,9 @@ public sealed partial class PlanetSurface
 
     private static string Clock(int seconds) => $"{seconds / 60}:{seconds % 60:00}";
 
-    private static int LayerTicks(ExcavationRules x) => System.Math.Max(1, x.SecondsPerLayer * Simulation.TickRate);
+    /// <summary>Ticks of full-rate digging a layer takes this player (the fit-out's dig_time lever).</summary>
+    private int LayerTicks(ExcavationRules x, int owner) =>
+        (int)GravityProfile.Ticks(System.Math.Max(1, x.SecondsPerLayer * Simulation.TickRate), Fit(owner, FitOutRules.DigTime));
 
     private bool IsSick(int baseId) => _sickUntil.Count > 0 && _sickUntil.TryGetValue(baseId, out var until) && until > Now;
 
@@ -243,7 +245,7 @@ public sealed partial class PlanetSurface
     {
         if (Ex is not { } x || RuinAt(s.Tile) is not { } ruin || ruin.Exhausted) return;
         ruin.Progress += rate;
-        if (ruin.Progress < Fix64.FromInt(LayerTicks(x))) return;
+        if (ruin.Progress < Fix64.FromInt(LayerTicks(x, s.Owner))) return;
         ruin.Progress = Fix64.Zero;
         ruin.LayersDug++;
         RollFind(sim, s, ruin, x);
@@ -317,6 +319,7 @@ public sealed partial class PlanetSurface
                 var p = x.Pathogen;
                 var seconds = Fix64.FromInt(p.SickSeconds);
                 if (Knows(s.Owner, p.Tech)) seconds *= p.TechSecondsMultiplier;
+                seconds *= Fit(s.Owner, FitOutRules.Sickness); // the owner's fit-out (science crew, medical stores)
                 var ticks = System.Math.Max(1, (seconds * Simulation.TickRate).FloorToInt());
                 Infect(s.BaseId, ticks, p, sim.Tick);
                 AddFind(sim, s, kind, PickName(sim, p.Names), $"the base's crew are sick for {Clock(ticks / Simulation.TickRate)} (work ×{p.WorkMultiplier})");
@@ -377,6 +380,7 @@ public sealed partial class PlanetSurface
         }
         var damage = Fix64.FromInt(sim.Rng.NextInt(d.DamageMin, d.DamageMax + 1));
         if (tech) damage *= d.TechDamageMultiplier;
+        damage *= Fit(site.Owner, FitOutRules.RuinDefence); // the digger's fit-out (defense crew)
         var buildings = 0;
         var vehicles = 0;
         foreach (var s in _structures)
@@ -388,10 +392,11 @@ public sealed partial class PlanetSurface
         foreach (var u in _units)
         {
             if (u.Drone != null || Map.Grid.Distance(u.Tile, site.Tile) > d.Radius) continue; // drones take no damage
-            u.Integrity = Fix64.Max(Fix64.Min(u.Integrity, Fix64.One), u.Integrity - damage);
+            var hit = damage * Fit(u.Owner, FitOutRules.RuinVehicleDamage); // its owner's fit-out (the Combatant's perk)
+            u.Integrity = Fix64.Max(Fix64.Min(u.Integrity, Fix64.One), u.Integrity - hit);
             u.HazardAtTick = sim.Tick;
             u.LastHazard = "ruin defence";
-            u.LastHazardDamage = damage.FloorToInt();
+            u.LastHazardDamage = hit.FloorToInt();
             vehicles++;
         }
         ruin.LockedUntilTick = sim.Tick + (long)d.LockSeconds * Simulation.TickRate;
