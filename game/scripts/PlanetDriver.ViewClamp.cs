@@ -234,6 +234,7 @@ public partial class PlanetDriver
             if (turn != 0)
             {
                 _yawSteps += turn;
+                if (_inOrbit) _yaw = _yawSteps * Mathf.Pi / 2f; // nothing eases it up there: be turned already at the cut to the surface
                 if (!_inOrbit) _hud.PushEvent("View turned to show it: it is in a corner of the map  ·  Q / E turn", new Color(0.62f, 0.82f, 1f));
             }
             return;
