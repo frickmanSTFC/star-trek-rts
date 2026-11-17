@@ -79,21 +79,22 @@ def _vglass():
 
 def _hydro():
     """Greenhouse glazing: panes over lit crop racks."""
-    m = K.panel('hydro', (0.10, 0.42, 0.10), (0.04, 0.24, 0.06), size=(1.3, 2.6), seam=0.07, seam_mul=0.2, rough=0.12, wob=0.004,
+    m = K.panel('hydro', (0.05, 0.13, 0.055), (0.02, 0.06, 0.03), size=(1.3, 2.6), seam=0.07, seam_mul=0.3, rough=0.1, wob=0.004,
                 grime=0.05, coat=1.0)
     t = m.node_tree
     b = next(n for n in t.nodes if n.type == 'BSDF_PRINCIPLED')
     br = next(n for n in t.nodes if n.type == 'TEX_BRICK')
     t.links.new(br.outputs[0], b.inputs['Emission Color'])
-    b.inputs['Emission Strength'].default_value = 0.55
+    b.inputs['Emission Strength'].default_value = 0.9
     return m
 
 
 C.EXTRA['vglass'] = (_vglass, ('sim', (0.02, 0.03, 0.05), 0.0, 0.08))
-C.EXTRA['hydro'] = (_hydro, ('emit', (0.12, 0.75, 0.18), 0.45))
+C.EXTRA['hydro'] = (_hydro, ('emit', (0.12, 0.75, 0.18), 0.35))
+C.EXTRA['wglass'] = (lambda: K.emit('wglass', (1.0, 0.8, 0.55), 0.18, base=(0.015, 0.02, 0.03)), ('emit', (1.0, 0.82, 0.55), 1.0))
 C.EXTRA['floor'] = (lambda: K.panel('floor', (0.42, 0.27, 0.15), (0.34, 0.21, 0.12), size=(2.4, 0.3), seam=0.01, rough=0.45, wob=0.002, grime=0.05),
                     ('sim', (0.40, 0.26, 0.14), 0.0, 0.5))
-C.EXTRA['plant'] = (lambda: K.plain('plant', (0.05, 0.22, 0.04), rough=0.7, bump=0.05, grime=0.4), ('sim', (0.05, 0.22, 0.04), 0.0, 0.7))
+C.EXTRA['plant'] = (lambda: K.plain('plant', (0.03, 0.11, 0.03), rough=0.8, bump=0.08, grime=0.6), ('sim', (0.03, 0.11, 0.03), 0.0, 0.8))
 
 
 # ------------------------------------------------------------------ helpers
@@ -130,11 +131,17 @@ def band(x0, x1, r, mat, h=0.12, seg=96):
 
 
 def frame(x, r, w=0.22, h=0.28, mat='grey', seg=96):
+    if lo():
+        k.lathe([(x - w, r - 0.05), (x - w, r + h), (x + w, r + h), (x + w, r - 0.05)], mat, seg=seg)
+        return
     k.lathe(rrect(x - w, x + w, r - 0.05, r + h, 0.06, 0.06, 1), mat, seg=seg, closed=True)
 
 
 def bearing(x, r):
     """Fixed bearing race beside a rotor."""
+    if lo():
+        k.lathe([(x - 1.0, r - 0.1), (x - 0.9, r + 1.5), (x + 0.9, r + 1.5), (x + 1.0, r - 0.1)], 'grey', seg=96)
+        return
     k.lathe(rrect(x - 1.0, x + 1.0, r - 0.1, r + 1.5, 0.3, 0.3, 2), 'grey', seg=96, closed=True)
     k.lathe(rrect(x - 0.35, x + 0.35, r + 1.4, r + 1.75, 0.08, 0.08, 1), 'dark', seg=96, closed=True)
     for j in range(24):
@@ -241,19 +248,26 @@ def gore(x0, x1, r, h0, h1, ac, mat, t=0.14, n=4):
     v = [P(*q) for q in va]
     uvs = [[(va[i][0], va[i][2] * r + va[i][1]) for i in ff] for ff in f]
     k.add(mat, v, f, uvs)
+    if mat == 'bumper':          # edge frame and two ribs
+        for sg in (-1, 1):
+            k.tube(P(x0, r + t, ac + sg * h0), P(x1, r + t, ac + sg * h1), 0.09, 'grey', seg=5)
+        for u in (0.0, 0.5, 1.0):
+            x, h = x0 + (x1 - x0) * u, h0 + (h1 - h0) * u
+            for j in range(n):
+                k.tube(P(x, r + t, ac - h + 2 * h * j / n), P(x, r + t, ac - h + 2 * h * (j + 1) / n), 0.08, 'grey', seg=4)
 
 
-def side_decal(name, text, x0, x1, ac, hh, lift=0.1):
+def side_decal(name, text, x0, x1, ac, hh, lift=0.1, r=None):
     """Lettering along the hull side: a flat quad tangent to the hull at angle ac (0 = port, pi = starboard), 2*hh tall."""
     port = math.cos(ac) > 0
     pts = []
     for x, s in ((x0, -1), (x1, -1), (x1, 1), (x0, 1)):
-        r = hr(x) + lift
+        rr = (r or hr(x)) + lift
         # tangent direction with +z upward
         ty, tz = -math.sin(ac), math.cos(ac)
         if tz < 0:
             ty, tz = -ty, -tz
-        pts.append((x, r * math.cos(ac) + s * hh * ty, r * math.sin(ac) + s * hh * tz))
+        pts.append((x, rr * math.cos(ac) + s * hh * ty, rr * math.sin(ac) + s * hh * tz))
     if port:
         pts = [pts[1], pts[0], pts[3], pts[2]]
     flat_decal(name, text, *pts)
@@ -354,7 +368,7 @@ def build_aft(drive):
         a = i * TAU / 24
         with k.xf(rotX(a)):
             k.box((-221.7, 12.6, 0), (0.6, 12.6, 0.35), 'grey')
-        if i % 3 == 0:
+        if i % 3 == 1:
             k.tube(P(-222, 18.0, a), P(-210, 5.6, a), 0.22, 'truss', seg=6)
     # --- thermal spine: a structural tube carrying the coolant mains to the fins
     k.lathe([(-222, 5.5), (-100, 5.5)], 'grey', seg=32)
@@ -478,7 +492,7 @@ def build_tanks():
 # =====================================================================================
 # spin rings: one builder for the main wheel and the science ring
 # =====================================================================================
-def gring(S, phase, nmod, rh, sr, hubw, name=None, pano=0, sag=1.6, lit=0.6, skip=None, reg=True):
+def gring(S, phase, nmod, rh, sr, hubw, name=None, dname='name', pano=0, sag=1.6, lit=0.6, skip=None, reg=True):
     """Spin ring: one continuous pressure hull with an arched roof, bumper tiles on the rim, spokes and stays.
     pano: number of panoramic window banks on each side wall (0 = two rows of small ports).
     skip(side, angle) -> True where a side wall carries something else."""
@@ -495,6 +509,8 @@ def gring(S, phase, nmod, rh, sr, hubw, name=None, pano=0, sag=1.6, lit=0.6, ski
         # --- rim bumper: spaced plates over the water jacket, livery band, name, floor windows
         ntile = int(TAU * rOut / (2.5 if not lo() else 6.0))
         nrow = max(4, round((2 * xw - 1.4) / 2.7))
+        if lo():
+            nrow = max(3, (nrow + 1) // 2)
         rw = (2 * xw - 1.4) / nrow
         mid = (nrow // 2 - 1, nrow // 2) if nrow % 2 == 0 else (nrow // 2,)
         blue, port_t = set(), set()
@@ -508,7 +524,7 @@ def gring(S, phase, nmod, rh, sr, hubw, name=None, pano=0, sag=1.6, lit=0.6, ski
                 blue.update(range(i0, i0 + int(ntile * 0.09)))
         for q in range(nsp * 2):          # floor windows in pairs between the spokes
             i0 = int(((q + 0.5) / (nsp * 2) + 0.012) * ntile)
-            port_t.update((i0, i0 + 1, i0 + 3, i0 + 4))
+            port_t.update((i0, i0 + 2))
         for i in range(ntile):
             a0 = (i + 0.035) * TAU / ntile
             a1 = (i + 0.965) * TAU / ntile
@@ -519,14 +535,14 @@ def gring(S, phase, nmod, rh, sr, hubw, name=None, pano=0, sag=1.6, lit=0.6, ski
                 mat = 'tile' if R.random() > 0.035 else 'tile2'
                 if j in mid and i in blue:
                     mat = 'blue'
-                elif pano and j in (1, nrow - 2) and i in port_t and not lo():
-                    mat = 'glass' if R.random() < 0.5 else 'glass_dark'
+                elif pano and j == 1 and i in port_t and not lo():
+                    mat = 'glass_dark'
                 arc_plate(xa, xa + rw - 0.1, rOut - 0.1, rOut, a0, a1, mat, vref=rOut)
-        for j in range(nrow + 1):
+        for j in range(nrow + 1 if not lo() else 0):
             k.torus(-xw + 0.7 + j * rw, rOut - 0.28, 0.1, 'grey', seg=seg, tseg=4)
         if name:
             for c in cs:
-                arc_decal('name', name, -hh, hh, rOut + 0.03, c - ha, c + ha, seg=40)
+                arc_decal(dname, name, -hh, hh, rOut + 0.03, c - ha, c + ha, seg=40)
                 if reg:
                     hr_ = (0.5 * len(REG) + 0.3) * 2.0 * 1.2 / 2 / rOut
                     arc_decal('reg', REG, -hh - 3.4, -hh - 1.4, rOut + 0.03, c - hr_, c + hr_, seg=30)
@@ -546,10 +562,11 @@ def gring(S, phase, nmod, rh, sr, hubw, name=None, pano=0, sag=1.6, lit=0.6, ski
                             continue
                         k.box((xs + s * 0.03, rc, 0), (0.14, hgt + 0.5, wd + 0.5), 'grey')
                         nc, nr = (4, 2) if not lo() else (2, 1)
+                        room = R.random() < lit          # a whole room is lit or dark
                         for u in range(nc):
                             for v in range(nr):
                                 k.box((xs + s * 0.08, rc - hgt / 2 + hgt * (v + 0.5) / nr, -wd / 2 + wd * (u + 0.5) / nc),
-                                      (0.1, hgt / nr - 0.22, wd / nc - 0.22), 'glass' if R.random() < lit else 'glass_dark')
+                                      (0.1, hgt / nr - 0.22, wd / nc - 0.22), 'wglass' if room and R.random() < 0.9 else 'glass_dark')
             else:
                 for i in range(nmod * 4):
                     a = (i + 0.5) * TAU / (nmod * 4)
@@ -561,7 +578,8 @@ def gring(S, phase, nmod, rh, sr, hubw, name=None, pano=0, sag=1.6, lit=0.6, ski
                         if (i % 6) in (4, 5) or R.random() < 0.06:
                             continue
                         with k.xf(rotX((i + 0.5) * TAU / nw)):
-                            k.box((xs + s * 0.03, rw_, 0), (0.1, 1.2, 1.5), 'white_s')
+                            if not lo():
+                                k.box((xs + s * 0.03, rw_, 0), (0.1, 1.2, 1.5), 'white_s')
                             k.box((xs + s * 0.06, rw_, 0), (0.08, 0.8, 1.1), 'glass' if R.random() < lt else 'glass_dark')
             for rr in (rim - 0.9, wall0 + 0.1):
                 k.torus(xs + s * 0.45, rr, 0.045, 'yellow', seg=seg, tseg=4)
@@ -582,7 +600,7 @@ def gring(S, phase, nmod, rh, sr, hubw, name=None, pano=0, sag=1.6, lit=0.6, ski
             a0 = (i + 0.2) * TAU / (nmod * 3)
             a1 = (i + 0.8) * TAU / (nmod * 3)
             arc_plate(-1.5, 1.5, rIn - 0.1, rIn + 0.04, a0, a1, 'grey', seg=3)
-            arc_plate(-1.25, 1.25, rIn - 0.14, rIn - 0.08, a0 + 0.004, a1 - 0.004, 'glass' if R.random() < lit else 'glass_dark', seg=3)
+            arc_plate(-1.25, 1.25, rIn - 0.14, rIn - 0.08, a0 + 0.004, a1 - 0.004, 'glass' if R.random() < (0.6 if pano else lit) else 'glass_dark', seg=3)
         for xx, mat in ((-0.34 * xw, 'silver'), (0.34 * xw, 'gold'), (-0.42 * xw, 'white_s'), (0.62 * xw, 'white_s')):
             k.torus(xx, rIn + sag * (xx / xw) ** 2 - 0.25, 0.2, mat, seg=seg, tseg=6)
         for i in range(nmod * 2):
@@ -652,12 +670,13 @@ def pavilion(xw, ac, half=0.194):
     for i in range(12):
         a = a0 + (a1 - a0) * (i + 0.5) / 12
         with k.xf(rotX(a)):
-            k.box((cx - 0.6, cr - rho + 0.5, 0), (0.5, 0.12, 0.25), 'lamp')
+            k.box((cx - 0.6, cr - rho + 0.5, 0), (0.3, 0.08, 0.16), 'lamp')
             if i % 3 == 1:
                 ycan(cr + 1.2, cr + 2.0, 0.55, 'white_s', x=cx + R.uniform(-0.4, 1.4), seg=12)
             elif i % 3 == 2:
-                k.box((cx - 2.0, cr + 1.6, 0), (1.0, 0.8, 2.2), 'grey')
-                k.box((cx - 2.0, cr + 1.0, 0), (0.9, 0.7, 2.0), 'plant')
+                k.box((cx - 2.0, cr + 1.7, 0), (1.0, 0.6, 2.2), 'grey')
+                for dz in (-0.6, 0.6):
+                    k.sphere((cx - 2.0, cr + 1.1, dz), 0.5, 'plant', seg=10, rings=6)
             k.tube((cx + 2.7, cr + 1.0, -1.5), (cx + 2.7, cr + 1.0, 1.5), 0.04, 'yellow', seg=4)
     C.LIGHTS.append(('POINT', tuple(k.M @ Vector(P(cx, cr - 1.5, ac))), None, 900, (1.0, 0.8, 0.55), 0))
 
@@ -671,7 +690,7 @@ def build_wheel():
 
     def skip(s, a):
         return s > 0 and any(abs(math.atan2(math.sin(a - p), math.cos(a - p))) < 0.235 for p in pav)
-    xw = gring(W, 0.35, 24, 16.4, 2.25, 8.0, name=NAME, pano=48, sag=1.6, lit=0.62, skip=skip)
+    xw = gring(W, 0.35, 24, 16.4, 2.25, 8.0, name=NAME, pano=48, sag=1.6, lit=0.4, skip=skip)
     with k.xf(move(W['x'], 0, 0) @ rotX(0.35)):
         for p in pav:
             pavilion(xw, p)
@@ -683,7 +702,7 @@ def build_sci():
     bearing(S['x'] - 7, 15.3)
     bearing(S['x'] + 7, 15.3)
     C.spin_group('RingS', S['x'], S['g'], S['r'], S['dir'])
-    gring(S, 0.6, 16, 15.2, 1.6, 6.0, name='SCIENCE', pano=0, sag=1.0, lit=0.4, reg=False)
+    gring(S, 0.6, 16, 15.2, 1.6, 6.0, name=REG, dname='reg', pano=0, sag=1.0, lit=0.4, reg=False)
     k.group = 'Hull'
 
 
@@ -708,7 +727,7 @@ def build_drum():
             k.lathe(rrect(-xw - 0.16, xw + 0.16, r0 - 0.16, rim + 0.1, 3.7, 2.1, 3), 'grey', seg=1, a0=a - da, a1=a + da, closed=True, caps=True)
         # rim: bumper tiles with a glazed band over the lit racks
         ntile = int(TAU * H['r'] / (2.5 if not lo() else 6.0))
-        nrow = 10
+        nrow, glazed = (10, (2, 3, 6, 7)) if not lo() else (5, (1, 3))
         rw = (2 * xw - 3.0) / nrow
         for i in range(ntile):
             a0 = (i + 0.035) * TAU / ntile
@@ -717,15 +736,9 @@ def build_drum():
                 if R.random() < 0.012:
                     continue
                 xa = -xw + 1.5 + j * rw + 0.05
-                glz = j in (3, 4, 5, 6)
-                mat = 'hydro' if glz and i % 8 != 7 else ('tile' if R.random() > 0.035 else 'tile2')
-                if glz and lo() and j in (4, 6):
-                    continue
-                if glz and lo():
-                    arc_plate(xa, xa + 2 * rw - 0.1, H['r'] - 0.1, H['r'], a0, a1, mat, vref=H['r'])
-                else:
-                    arc_plate(xa, xa + rw - 0.1, H['r'] - 0.1, H['r'], a0, a1, mat, vref=H['r'])
-        for j in range(nrow + 1):
+                mat = 'hydro' if j in glazed else ('tile' if R.random() > 0.035 else 'tile2')
+                arc_plate(xa, xa + rw - 0.1, H['r'] - 0.1, H['r'], a0, a1, mat, vref=H['r'])
+        for j in range(nrow + 1 if not lo() else 0):
             k.torus(-xw + 1.5 + j * rw, H['r'] - 0.28, 0.1, 'grey', seg=seg, tseg=4)
         # end walls: glazed bays between the frames, rails, gear
         for s in (1, -1):
@@ -739,7 +752,7 @@ def build_drum():
                         for v in range(2 if not lo() else 1):
                             hh = 5.8 / (2 if not lo() else 1)
                             k.box((xs + s * 0.08, 38.6 - 2.9 + hh * (v + 0.5), -6.2 + 12.4 * (u + 0.5) / nc), (0.1, hh - 0.22, 12.4 / nc - 0.22),
-                                  'hydro' if R.random() < 0.85 else 'glass_dark')
+                                  'hydro' if R.random() < 0.9 else 'glass_dark')
                     k.box((xs + s * 0.3, 43.0, 4.0), (0.6, 0.9, R.uniform(1.5, 3.5)), R.choice(GM), bevel=0.05)
                 with k.xf(rotX(a + TAU / nb / 2)):
                     k.box((xs + s * 0.25, R.uniform(35.5, 41.5), 0), (0.5, R.uniform(1.0, 2.4), R.uniform(0.8, 1.6)), R.choice(GM), bevel=0.05)
@@ -788,8 +801,8 @@ def build_flywheel():
             k.box((0, 0.3, 0), (4.6, 0.7, 1.6), 'white_s' if i % 2 else 'dark', bevel=0.08)
         with k.xf(on(x, a + TAU / 48, r - 3.0) @ rotZ(PI)):
             k.box((0, 0.3, 0), (3.4, 0.6, 1.2), 'gold' if i % 3 == 0 else 'grey', bevel=0.06)
-        with k.xf(rotX(a)):
-            k.box((x, r, 0), (6.5, 6.5, 0.3), 'grey')
+        da = 0.16 / r
+        k.lathe(rrect(x - 3.14, x + 3.14, r - 3.14, r + 3.14, 1.7, 1.7, 3), 'grey', seg=1, a0=a - da, a1=a + da, closed=True, caps=True)
     for q in range(6):          # tube struts in A-frames from two hull frames
         a = q * TAU / 6 + TAU / 12
         for dx in (-5.0, 5.0):
@@ -863,8 +876,8 @@ def build_mid():
     hrail(100.5, 113.5, 16.7, 1.2); hrail(100.5, 113.5, 16.7, 4.4)
     for ac in (0.0, PI):
         k.lathe([(100.2, 16.74), (113.8, 16.74)], 'blue', seg=2, a0=ac - 0.055, a1=ac + 0.055)
-    k.box((107, -16.74, 3.1), (9.6, 0.08, 1.9), 'white_s')
-    flat_decal('bay', 'STORM SHELTER', (102.6, -16.8, 2.4), (111.4, -16.8, 2.4), (111.4, -16.8, 3.8), (102.6, -16.8, 3.8))
+    for ac in (PI - 0.2, 0.2):
+        side_decal('bay', 'STORM SHELTER', 102.8, 111.2, ac, 0.75, r=16.7)
 
 
 # =====================================================================================
@@ -903,7 +916,7 @@ def build_fwd():
         axial_pipe(131, 141, 15, a, 0.3, 'gold')
         axial_pipe(159, 166.5, 15, a, 0.3, 'gold')
     for a in (1.2, 4.4):
-        hrail(118, 140, 15.6, a)
+        hrail(131, 141, 15, a)
     tgreeble(159, 176, 30, hmax=0.6)
     build_sci()
     stripes([(116.5, 141.5), (158.5, 219.5), (231.5, 251.5)])
@@ -955,17 +968,15 @@ def build_fwd():
         k.box((175.2, 0, 2.4), (2.4, 2.8, 0.2), 'radw')
         k.box((175.2, 2.3, 0), (2.0, 0.6, 1.8), 'white_s', bevel=0.08)
         with k.xf(orient((210.0, 0, 3.45), (0.55, 0, 1))):          # aperture door, open
-            k.can(0, 0.25, 3.3, 'white_s', seg=40, ch=0.08, oy=0, oz=0)
-        with k.xf(move(210.0, 0, 3.45) @ orient((0, 0, 0), (0.55, 0, 1)) @ move(0, 0, 0)):
-            pass
+            k.can(0, 0.25, 3.3, 'white_s', seg=40, ch=0.08, oz=-3.3)
         for a in (0.9, 2.2):
             hrail(184, 200, 3.0, a)
     floodlight((178, 6, hr(178) + 1.2), (192, 0, tz), energy=5000, spot=1.1)
     # --- shuttle bay: an unpressurised barrel hangar under the hull, clamshell doors open, one shuttle lowered
-    bz = -(hr(195) + 1.2)
-    br = 8.6
+    bz = -(hr(195) + 0.6)
+    br = 9.0
     with k.xf(move(0, 0, bz)):
-        open_a = 0.62          # half-angle of the door opening at the bottom
+        open_a = 0.95          # half-angle of the door opening at the bottom
         a0, a1 = -PI / 2 + open_a, 3 * PI / 2 - open_a
         prof = [(176.0, br - 2.4), (176.8, br - 0.8), (178.2, br), (211.8, br), (213.2, br - 0.8), (214.0, br - 2.4)]
         k.lathe(prof, 'white', seg=40, a0=a0, a1=a1, sharp=40)
@@ -979,32 +990,33 @@ def build_fwd():
             k.lathe(rrect(x - 0.15, x + 0.15, br - 0.9, br - 0.2, 0.05, 0.05, 1), 'truss', seg=40, a0=a0, a1=a1, closed=True, caps=True)
         for s in (1, -1):          # doors swung down and out on their hinges
             hy, hz = s * br * math.sin(open_a), -br * math.cos(open_a)
-            with k.xf(move(0, hy, hz) @ rotX(s * 1.05) @ move(0, -hy, -hz)):
+            with k.xf(move(0, hy, hz) @ rotX(s * 2.0) @ move(0, -hy, -hz)):
                 aa = (-PI / 2, -PI / 2 + open_a) if s > 0 else (-PI / 2 - open_a, -PI / 2)
-                k.lathe([(178.4, br + 0.02), (211.6, br + 0.02), (211.6, br - 0.22), (178.4, br - 0.22)], 'white', seg=8, a0=aa[0], a1=aa[1], closed=True, caps=True)
+                k.lathe([(178.4, br + 0.02), (211.6, br + 0.02), (211.6, br - 0.22), (178.4, br - 0.22)], 'white', seg=10, a0=aa[0], a1=aa[1], closed=True, caps=True)
                 for x in (184, 195, 206):
-                    k.lathe(rrect(x - 0.2, x + 0.2, br - 0.6, br - 0.2, 0.05, 0.05, 1), 'hazard', seg=8, a0=aa[0], a1=aa[1], closed=True, caps=True)
+                    k.lathe(rrect(x - 0.2, x + 0.2, br - 0.6, br - 0.2, 0.05, 0.05, 1), 'hazard', seg=10, a0=aa[0], a1=aa[1], closed=True, caps=True)
             for x in (181, 195, 209):
-                k.tube((x, hy, hz + 0.4), (x, hy * 1.9, hz - 3.0), 0.14, 'steel', seg=6)
-            k.boxX(178.4, 211.6, s * 5.6, 2.6, 0.5, 0.25, 'lamp')
+                k.tube((x, hy * 1.12, hz + 1.6), (x, hy + s * 1.3, hz - 2.6), 0.14, 'steel', seg=6)
+            for x in range(181, 212, 6):
+                k.box((x, s * 8.2, -1.0), (1.4, 0.3, 0.4), 'lamp')
             k.boxX(178.2, 211.8, hy * 1.01, hz, 0.5, 0.5, 'hazard')
-        k.boxX(178, 212, 0, br - 0.9, 1.6, 0.6, 'orange')          # crane rail along the roof
         # the second shuttle on its cradle inside, the first lowered on the cradle below the doors
-        with k.xf(move(193.6, 0, -0.6)):
+        with k.xf(move(193.6, 0, -2.6)):
             shuttle()
-        k.box((203, 0, 1.9), (17, 6.5, 0.5), 'grey', bevel=0.1)
-        with k.xf(move(178.6, 0, -13.4)):
+        k.box((203.2, 0, -4.6), (15, 6.0, 0.4), 'grey_p', bevel=0.1)
+        for dy in (-3.1, 3.1):
+            k.box((203.2, dy, -4.6), (15.2, 0.3, 0.5), 'hazard')
+        with k.xf(move(178.6, 0, -14.4)):
             shuttle()
-            k.box((9.6, 0, 2.5), (15, 6.0, 0.5), 'hazard', bevel=0.1)
-            for dx in (4.0, 15.2):
-                for dy in (-2.2, 2.2):
-                    k.tube((dx, dy, 2.6), (dx, dy, 13.0), 0.2, 'steel', seg=8)
-                    k.tube((dx, dy, 2.6), (dx, dy, 8.0), 0.3, 'grey', seg=8)
+            k.box((9.6, 0, 2.25), (11.5, 5.0, 0.4), 'grey_p', bevel=0.1)
+            for dy in (-2.6, 2.6):
+                k.box((9.6, dy, 2.25), (11.7, 0.3, 0.5), 'hazard')
+            for dx in (5.0, 14.2):
+                for dy in (-2.0, 2.0):
+                    k.tube((dx, dy, 2.4), (dx, dy, 14.0), 0.2, 'steel', seg=8)
+                    k.tube((dx, dy, 8.0), (dx, dy, 14.6), 0.32, 'grey', seg=8)
     for s in (1, -1):
-        floodlight((196, s * 7.5, bz - 5.6), (188, 0, bz - 13), energy=9000, spot=1.3)
-    for x in (178, 212):
-        for s in (1, -1):
-            k.tube((x, s * 7.5, bz + 3.0), (x, s * 10.0, -hr(x) * 0.5), 0.3, 'truss', seg=8)
+        floodlight((196, s * 7.0, bz - 5.6), (188, 0, bz - 14), energy=9000, spot=1.3)
     # --- docking node: four radial ports (visiting craft to port, a shuttle to starboard, lifeboats above and below)
     nx = 225.5
     nr = hr(nx) + 1.0
@@ -1110,12 +1122,13 @@ def build_dome():
             a = i * TAU / 12
             with k.xf(rotX(a)):
                 if i % 2 == 0:
-                    k.box((X + 0.75, 10.4, 0), (1.1, 1.6, 3.6), 'grey', bevel=0.08)
-                    k.box((X + 1.55, 10.4, 0), (0.9, 1.3, 3.2), 'plant')
+                    k.box((X + 0.6, 10.4, 0), (0.8, 1.6, 3.6), 'grey', bevel=0.08)
+                    for dz in (-1.1, 0, 1.1):
+                        k.sphere((X + 1.25 + R.random() * 0.3, 10.4, dz), 0.62, 'plant', seg=10, rings=6)
                 else:
                     k.box((X + 0.55, 8.0, 0), (0.7, 0.9, 2.6), 'white_s', bevel=0.08)
                 k.tube((X + 0.2, 12.9, 0), (X + 3.0, 12.9, 0), 0.06, 'grey', seg=4)
-                k.box((X + 3.1, 12.9, 0), (0.25, 0.3, 0.3), 'lamp')
+                k.box((X + 3.1, 12.9, 0), (0.14, 0.16, 0.16), 'lamp')
         k.torus(X + 1.3, 12.2, 0.05, 'yellow', seg=64, tseg=4)
         C.LIGHTS.append(('POINT', (X + 5, 0, 0), None, 2500, (1.0, 0.82, 0.6), 0))
     # shutters: six tapered gores, each folded in a Z of four panels beside the collar
@@ -1159,10 +1172,19 @@ def build(parts, drive, landers):
 
 SHOTS = {
     'hero':  dict(tgt=(10, 0, 0), cam=(0.64, -0.70, 0.32), dist=1010, lens=70, roll=-7, sun=(0.62, 0.55, 0.56), eoff=(-9, -20), alt=9500),
-    'wheel': dict(tgt=(104, 0, 20), cam=(0.74, -0.58, 0.34), dist=400, lens=50, roll=5, sun=(0.55, 0.60, 0.58), eoff=(-12, -27), alt=9500, elon=120),
+    'wheel': dict(tgt=(92, -22, 62), cam=(0.60, -0.62, 0.50), dist=235, lens=50, roll=5, sun=(0.55, 0.60, 0.58), eoff=(-11, -21), alt=9500, elon=120),
     'stern': dict(tgt=(-150, 0, 0), cam=(-0.80, -0.52, 0.30), dist=640, lens=60, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(10, -25), alt=9500),
     'bow':   dict(tgt=(222, 0, 0), cam=(0.80, -0.50, 0.33), dist=215, lens=50, roll=-4, sun=(0.50, 0.62, 0.60), eoff=(-10, -26), alt=9500, elon=165),
     'side':  dict(tgt=(0, 0, 0), cam=(0.0, -1.0, 0.06), dist=1430, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
+    # working views
+    't_aft':  dict(tgt=(-200, 0, 0), cam=(-0.45, -0.75, 0.42), dist=250, lens=50, roll=0, sun=(-0.3, 0.6, 0.7), eoff=None, alt=0),
+    't_tank': dict(tgt=(-70, 0, 0), cam=(-0.35, -0.8, 0.45), dist=190, lens=50, roll=0, sun=(0.3, 0.6, 0.7), eoff=None, alt=0),
+    't_mid':  dict(tgt=(40, 0, 0), cam=(0.5, -0.75, 0.4), dist=330, lens=50, roll=0, sun=(0.4, 0.6, 0.65), eoff=None, alt=0),
+    't_drum': dict(tgt=(20, 0, 10), cam=(-0.5, -0.75, 0.35), dist=210, lens=50, roll=0, sun=(0.4, 0.6, 0.65), eoff=None, alt=0),
+    't_pav':  dict(tgt=(96, 0, 96), cam=(0.75, -0.55, 0.35), dist=90, lens=50, roll=0, sun=(0.4, 0.6, 0.65), eoff=None, alt=0),
+    't_fwd':  dict(tgt=(200, 0, 0), cam=(0.35, -0.85, 0.35), dist=230, lens=50, roll=0, sun=(0.3, 0.6, 0.7), eoff=None, alt=0),
+    't_bay':  dict(tgt=(196, 0, -22), cam=(0.3, -0.75, -0.55), dist=90, lens=50, roll=0, sun=(0.3, -0.5, 0.7), eoff=None, alt=0),
+    't_dome': dict(tgt=(262, 0, 0), cam=(0.75, -0.55, 0.3), dist=80, lens=50, roll=0, sun=(0.4, 0.6, 0.65), eoff=None, alt=0),
     'top':   dict(tgt=(0, 0, 0), cam=(0.05, -0.2, 1.0), dist=1430, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
 }
 

@@ -12,6 +12,7 @@ section and a Whipple shield at the bow.
 """
 import sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 import build_cochrane as C
@@ -48,6 +49,15 @@ C.EXTRA['green'] = (lambda: K.plain('green', (0.03, 0.2, 0.08), rough=0.5, grime
 def lo():
     """True while the lighter game model is being built."""
     return k.lod < 1
+
+
+def band(x0, x1, r0, r1, mat, seg=48, cr=0.06, minor=False, **kw):
+    """A ring frame or livery band round a hull. The game model gets a plain three-sided strip, and none of the small ones."""
+    if lo():
+        if not minor:
+            k.lathe([(x0, r0), (x0, r1), (x1, r1), (x1, r0)], mat, seg=seg, sharp=30, **kw)
+    else:
+        k.lathe(rrect(x0, x1, r0, r1, cr, cr, 1), mat, seg=seg, closed=True, **kw)
 
 
 def axial_decal(name, text, x0, x1, r, ac, h, up=1, seg=6):
@@ -108,7 +118,7 @@ def chamber(drive, a_out):
         w = 0.9 - i * 0.07
         k.lathe(rrect(x - w, x + w, r - w, r + w, 0.28, 0.28, 3), 'steel', seg=64, closed=True, sharp=30)
         k.lathe(rrect(x - w * 0.5, x + w * 0.5, r - w - 0.1, r + w + 0.1, 0.15, 0.15, 2), 'gold', seg=64, closed=True, sharp=30)
-        for j in range(10):
+        for j in range(10 if not lo() else 0):
             with k.xf(on(x, (j + 0.5) * TAU / 10, r + w)):
                 k.box((0, 0.16, 0), (w * 2.3, 0.4, 0.8), 'grey', bevel=0.05)
     n = 10
@@ -134,9 +144,9 @@ def chamber(drive, a_out):
         big = i in (0, 7)
         w, h = (1.45, 1.6) if big else (1.1, 1.1)
         k.lathe(rrect(x - w, x + w, 6.1, 6.1 + 2 * h, 0.28, 0.28, 3), 'white_s', seg=56, closed=True, sharp=30)
-        k.lathe(rrect(x - w - 0.12, x - w + 0.22, 6.0, 6.1 + 2 * h + 0.14, 0.07, 0.07, 1), 'grey', seg=56, closed=True)
-        k.lathe(rrect(x + w - 0.22, x + w + 0.12, 6.0, 6.1 + 2 * h + 0.14, 0.07, 0.07, 1), 'grey', seg=56, closed=True)
-        for j in range(12):
+        band(x - w - 0.12, x - w + 0.22, 6.0, 6.1 + 2 * h + 0.14, 'grey', seg=56, cr=0.07, minor=True)
+        band(x + w - 0.22, x + w + 0.12, 6.0, 6.1 + 2 * h + 0.14, 'grey', seg=56, cr=0.07, minor=True)
+        for j in range(12 if not lo() else 0):
             gbox(x, (j + 0.5) * TAU / 12, 6.1 + 2 * h, 0.5, 0.5, 0.2, 'dark')
     # cage: twelve longerons, one pointing at the ship's axis, so the three cages can be tied together
     for i in range(12):
@@ -165,8 +175,8 @@ def chamber(drive, a_out):
     # --- direct energy converter: a drum of collector grids with its power conditioning outboard
     k.lathe([(-358, 0), (-358, 7.6), (-357.6, 8.0), (-350.4, 8.0), (-350, 7.6), (-350, 0)], 'white', seg=48)
     for x in (-357.3, -354.0, -350.7):
-        k.lathe(rrect(x - 0.28, x + 0.28, 7.9, 8.45, 0.1, 0.1, 1), 'grey', seg=48, closed=True)
-    k.lathe(rrect(-356.4, -355.2, 7.95, 8.08, 0.02, 0.02, 1), 'blue', seg=48, closed=True)
+        band(x - 0.28, x + 0.28, 7.9, 8.45, 'grey', seg=48, cr=0.1)
+    band(-356.4, -355.2, 7.95, 8.08, 'blue', seg=48, cr=0.02)
     for j in range(-2, 3):
         a = a_out + j * 0.5
         gbox(-352.4, a, 8.0, 2.0, 2.6, 1.2, 'white_s', bevel=0.1)
@@ -223,7 +233,8 @@ def build_drive(drive):
     for i in range(6):          # shield support struts back to the thermal spine
         a = i * TAU / 6
         k.tube(P(x1 + 0.4, 33, a), P(x1 + 16, 5.2, a), 0.3, 'truss', seg=8)
-        k.tube(P(x1 + 0.4, 24, a + TAU / 12), P(x1 + 9, 5.2, a + TAU / 12), 0.2, 'truss', seg=6)
+        k.tube(P(x1 + 0.4, 24, a + 0.25), P(x1 + 9, 5.2, a), 0.2, 'truss', seg=6)
+        k.tube(P(x1 + 0.4, 24, a - 0.25), P(x1 + 9, 5.2, a), 0.2, 'truss', seg=6)
 
 
 # =====================================================================================
@@ -243,7 +254,7 @@ def build_htr():
     # the spine: a structural tube with the coolant headers outside it (the old model had one solid 14 m bar)
     k.lathe([(SH['x1'], 5.0), (-212, 5.0)], 'grey', seg=32)
     for x in np.arange(-331, -212, 9.83):
-        k.lathe(rrect(x - 0.25, x + 0.25, 4.9, 5.45, 0.08, 0.08, 1), 'dark', seg=32, closed=True)
+        band(x - 0.25, x + 0.25, 4.9, 5.45, 'dark', seg=32, cr=0.08, minor=True)
     k.lathe([(-212.6, 5.0), (-212.6, 0)], 'grey', seg=32)
     for s1 in (1, -1):          # the spine's end fitting into the square truss
         for s2 in (1, -1):
@@ -291,9 +302,9 @@ PODT = {'hab': ('white', 'blue', 'HABITAT'), 'mach': ('pgrey', 'hazard', 'MACHIN
 
 def pod(xs, ty, a_ship):
     """A drop pod on the local x axis, heat shield aft at xs. Local -y points at the ship's axis."""
-    body, band, text = PODT[ty]
+    body, bmat, text = PODT[ty]
     r = 7.0
-    seg = 44
+    seg = 44 if not lo() else 34
     # heat shield: a blunt cap of ablator tiles; the pod flies this end first
     k.lathe([(xs, 0), (xs + 0.12, 2.4), (xs + 0.5, 4.7), (xs + 1.1, 6.5), (xs + 1.6, 7.25), (xs + 2.0, 7.42)], 'heat', seg=seg, sharp=50)
     k.lathe([(xs + 2.0, 7.42), (xs + 2.5, 7.42), (xs + 2.9, r)], 'grey', seg=seg, sharp=30)
@@ -301,11 +312,11 @@ def pod(xs, ty, a_ship):
     # back shell and parachute canister
     k.lathe([(xs + 23.5, r), (xs + 24.2, 6.85), (xs + 28.3, 3.7), (xs + 28.6, 3.4)], body, seg=seg, sharp=30)
     k.lathe([(xs + 28.6, 3.4), (xs + 29.7, 3.4), (xs + 30.0, 3.1), (xs + 30.0, 0)], 'grey', seg=24, sharp=40)
-    k.lathe(rrect(xs + 11.2, xs + 13.4, r - 0.02, r + 0.07, 0.03, 0.03, 1), band, seg=seg, closed=True)
+    band(xs + 11.2, xs + 13.4, r - 0.02, r + 0.07, bmat, seg=seg, cr=0.03)
     if not lo():
-        k.lathe(rrect(xs + 29.0, xs + 29.5, 3.38, 3.5, 0.03, 0.03, 1), band, seg=24, closed=True)
-        for x in (xs + 3.4, xs + 8.6, xs + 16.6, xs + 23.2):
-            k.lathe(rrect(x - 0.18, x + 0.18, r - 0.02, r + 0.16, 0.04, 0.04, 1), 'grey', seg=seg, closed=True)
+        band(xs + 29.0, xs + 29.5, 3.38, 3.5, bmat, seg=24, cr=0.03)
+        for x in (xs + 3.4, xs + 16.6, xs + 23.2):
+            band(x - 0.18, x + 0.18, r - 0.02, r + 0.16, 'grey', seg=seg, cr=0.04)
         for q in range(4):          # the pod's own thruster quads
             with k.xf(on(xs + 20.6, q * TAU / 4 + TAU / 8, r + 0.33) @ Matrix.Scale(0.5, 4)):
                 rcs_quad()
@@ -330,8 +341,8 @@ def pod(xs, ty, a_ship):
         greeble(xs + 3.5, xs + 23, r, 5, a0=-1.2, span=2.4, hmax=0.4)
         for ac in (0.62, -0.62):
             up = 1 if math.cos(a_ship + ac) > 0 else -1
-            L = 1.9 * (0.62 * len(text) + 0.3)
-            axial_decal('pod_' + ty, text, xs + 4.2, xs + 4.2 + L, r + 0.03, ac, 1.9, up=up, seg=3)
+            L = 1.6 * (0.47 * len(text) + 0.25)
+            axial_decal('pod_' + ty, text, xs + 3.9, xs + 3.9 + L, r + 0.03, ac, 1.6, up=up, seg=3)
     else:
         for q in range(4):
             gbox(xs + 20.6, q * TAU / 4 + TAU / 8, r, 1.2, 1.2, 0.8, 'white_s', bevel=0)
@@ -422,7 +433,7 @@ def build_spine_aft():
                 k.tube((-206 + dx, s * 10.8, dz), (-206 + dx * 1.5, s * 9.2, dz * 1.6), 0.13, 'truss', seg=6)
         k.pipe([(-206, s * 10.1, 0.8), (-206, s * 8, 0.8), (-209, s * 3.4, 1.0), (-214, s * 3.4, 4.0)], 0.15, 'gold', seg=6)
     spine_truss(-212, -104, 9, 6)
-    utilities(-210, -105)
+    utilities(-210, -106)
     pallets(-196, -108, [(0, 1), (0, -1), (1, 0), (-1, 0)])
     k.boxX(-210, -105, 9.8, 9.2, 0.25, 0.25, 'yellow')
     pod_rows(D['pods']['rows'][:3])
@@ -437,8 +448,8 @@ def build_vault():
     prof = ellipse_head(x0, RJ, 5.0, 8.0, -1)[::-1] + ellipse_head(x1, RJ, 5.0, 8.0, 1)
     k.lathe(prof, 'white_m', seg=96, sharp=30)
     for x in (x0 + 2, x0 + 20, x1 - 20, x1 - 2):
-        k.lathe(rrect(x - 0.45, x + 0.45, RJ - 0.05, RJ + 0.35, 0.08, 0.08, 1), 'grey', seg=96, closed=True)
-    k.lathe(rrect(-68, -64, RJ - 0.02, RJ + 0.12, 0.03, 0.03, 1), 'blue', seg=96, closed=True)
+        band(x - 0.45, x + 0.45, RJ - 0.05, RJ + 0.35, 'grey', seg=96, cr=0.08)
+    band(-68, -64, RJ - 0.02, RJ + 0.12, 'blue', seg=96, cr=0.03)
     for q in range(6):
         a = q * TAU / 6
         axial_pipe(x0 + 1, x1 - 1, RJ, a, 0.32, 'gold', clamp=5.0)
@@ -450,8 +461,7 @@ def build_vault():
     # thrust collars: the vault carries the spine's load between the two truss sections
     for xe, xt, d in ((x0 - 5, -104, -1), (x1 + 5, -29, 1)):
         k.lathe(rrect(xe - 0.7, xe + 0.7, 7.6, 8.7, 0.2, 0.2, 2), 'grey', seg=48, closed=True)
-        if d < 0:
-            k.lathe([(xe, 8.0), (xe, 0)], 'grey', seg=32)
+        k.lathe([(xe, 8.0), (xe, 0)], 'grey', seg=32)
         for s1 in (1, -1):
             for s2 in (1, -1):
                 a = math.atan2(s2, s1)
@@ -460,8 +470,8 @@ def build_vault():
     # revival bay and storm shelter on the vault's forward head, inside the truss; embryo and seed dewars ahead of it
     k.lathe([(x1 + 5, 0), (x1 + 5, 6.0), (x1 + 5.4, 6.4), (x1 + 13.0, 6.4), (x1 + 14.2, 5.6), (x1 + 15.0, 3.6), (x1 + 15.2, 0)], 'white', seg=48, sharp=30)
     for x in (x1 + 6.2, x1 + 12.4):
-        k.lathe(rrect(x - 0.22, x + 0.22, 6.35, 6.7, 0.06, 0.06, 1), 'grey', seg=48, closed=True)
-    k.lathe(rrect(x1 + 8.6, x1 + 9.8, 6.38, 6.5, 0.03, 0.03, 1), 'orange', seg=48, closed=True)
+        band(x - 0.22, x + 0.22, 6.35, 6.7, 'grey', seg=48, cr=0.06, minor=True)
+    band(x1 + 8.6, x1 + 9.8, 6.38, 6.5, 'orange', seg=48, cr=0.03)
     for i in range(10):
         with k.xf(on(x1 + 10.9, i * TAU / 10 + 0.2, 6.4)):
             k.box((0, 0.02, 0), (1.3, 0.08, 1.0), 'grey')
@@ -478,9 +488,9 @@ def build_vault():
         y, z = T['R'] * math.cos(a), T['R'] * math.sin(a)
         k.dome_tank(tx0, tx1, T['r'], 'tank', k=0.6, seg=56, rings=8, oy=y, oz=z)
         for x in (tx0 + 6.5, tx0 + 15, T['xc'], tx1 - 15, tx1 - 6.5):
-            k.lathe(rrect(x - 0.25, x + 0.25, T['r'] - 0.02, T['r'] + 0.12, 0.03, 0.03, 1), 'grey', seg=56, closed=True, oy=y, oz=z)
+            band(x - 0.25, x + 0.25, T['r'] - 0.02, T['r'] + 0.12, 'grey', seg=56, cr=0.03, minor=True, oy=y, oz=z)
         for x in (tx0 + 11, tx1 - 11):
-            k.lathe(rrect(x - 0.7, x + 0.7, T['r'], T['r'] + 0.45, 0.1, 0.1, 1), 'grey', seg=56, closed=True, oy=y, oz=z)
+            band(x - 0.7, x + 0.7, T['r'], T['r'] + 0.45, 'grey', seg=56, cr=0.1, oy=y, oz=z)
             with k.xf(on(x, a, RJ)):
                 k.box((0, 0.7, 0), (1.8, 1.5, 6.5), 'grey', bevel=0.1)
             for da in (-1.0, 1.0):
@@ -488,15 +498,15 @@ def build_vault():
         with k.xf(rotX(a)):
             k.pipe([(tx0 + 0.7, T['R'], 0), (tx0 - 2.0, T['R'], 0), (tx0 - 3.2, 16.8, 0)], 0.42, 'silver', seg=8)
             k.box((tx0 - 2.0, T['R'] + 0.7, 0), (1.5, 1.1, 1.5), 'grey', bevel=0.06)
-            k.pipe([(tx1 - 0.7, T['R'], 0), (tx1 + 1.6, T['R'], 0), (tx1 + 2.6, 13.0, 0)], 0.2, 'silver', seg=6)
+            k.pipe([(tx1 - 0.7, T['R'], 0), (tx1 + 1.6, T['R'], 0), (tx1 + 2.6, 15.2, 0)], 0.2, 'silver', seg=6)
             k.sphere((tx1 + 1.2, T['R'] - 4.6, 0), 1.5, 'gold', seg=16, rings=8)      # pressurant bottle
             hrail(tx0 + 8, tx1 - 8, T['R'] + T['r'], 0.0)
             hatch(T['xc'] + 6, 0.0, T['R'] + T['r'], 0.7)
         with k.xf(move(0, y, z) @ rotX(a)):
             greeble(tx0 + 7, tx1 - 7, T['r'], 6, a0=-0.5, span=1.0, hmax=0.5)
     k.torus(tx0 - 3.2, 16.8, 0.5, 'silver', seg=64, tseg=8)
-    k.pipe([(tx0 - 3.2, 3 + 13.6, 3.0), (tx0 - 9, 9.5, 3.4), (tx0 - 13, 3, 3)], 0.5, 'silver', seg=8)
-    k.torus(tx1 + 2.6, 13.0, 0.25, 'silver', seg=64, tseg=6)
+    k.pipe([(tx0 - 3.2, 16.6, 3.0), (tx0 - 10, 13.5, 3.2), (tx0 - 14.5, 9.6, 3.2), (tx0 - 16, 3, 3)], 0.5, 'silver', seg=8)
+    k.torus(tx1 + 2.6, 15.2, 0.25, 'silver', seg=64, tseg=6)
     floodlight((-66, 0, 15.2), (-50, 30, 40), energy=7000, spot=1.3)
 
 
@@ -568,12 +578,12 @@ def build_hub():
     for xa, xb, motor in ((139.0, 144.6, False), (205.4, 214.6, True), (275.4, 281.0, False)):
         k.lathe(rrect(xa, xb, hr - 0.1, 22.0, 0.5, 0.5, 3), 'grey', seg=120, closed=True, sharp=30)
         for x in (xa + 0.7, xb - 0.7):
-            k.lathe(rrect(x - 0.3, x + 0.3, 21.9, 22.3, 0.08, 0.08, 1), 'dark', seg=120, closed=True)
-        n = 30
+            band(x - 0.3, x + 0.3, 21.9, 22.3, 'dark', seg=120, cr=0.08, minor=True)
+        n = 30 if not lo() else 12
         for j in range(n):
             gbox((xa + xb) / 2, j * TAU / n, 22.0, min(3.2, xb - xa - 2.2), 1.3, 0.4, 'grey')
         if motor:
-            k.lathe(rrect(209.2, 210.8, 21.95, 22.5, 0.08, 0.08, 1), 'orange', seg=120, closed=True)
+            band(209.2, 210.8, 21.95, 22.5, 'orange', seg=120, cr=0.08)
             for j in range(12):
                 a = j * TAU / 12 + 0.1
                 gbox(207.6, a, 22.0, 2.4, 2.6, 1.3, 'white_s', bevel=0.1)
@@ -604,7 +614,7 @@ def drum(xc, phase, lit=0.62):
     def label(a):
         for i in range(6):
             d = (a - i * TAU / 6 + PI) % TAU - PI
-            if abs(d) < 0.215:
+            if abs(d) < 0.2:
                 return True
         return False
 
@@ -624,16 +634,12 @@ def drum(xc, phase, lit=0.62):
                 for j in range(nrow):
                     xa = xa0 + j * rw + 0.06
                     if h == 0 and j in (1, 2):
-                        for i in range(12):
-                            a0, a1 = (i - 0.5) * TAU / 12, (i + 0.5) * TAU / 12
-                            lab = i % 2 == 0
-                            d = 0.215 if lab else TAU / 12 - 0.215 + TAU / 24
+                        for i in range(12):          # a white window round each label, blue between
                             c = i * TAU / 12
-                            # white window round each label, blue between
-                            if lab:
-                                k.lathe([(xa, rOut), (xa + rw - 0.12, rOut)], 'tile', seg=20, a0=c - 0.215, a1=c + 0.215, vref=rOut)
+                            if i % 2 == 0:
+                                k.lathe([(xa, rOut), (xa + rw - 0.12, rOut)], 'tile', seg=20, a0=c - 0.2, a1=c + 0.2, vref=rOut)
                             else:
-                                k.lathe([(xa, rOut), (xa + rw - 0.12, rOut)], 'blue', seg=60, a0=c - TAU / 12 + 0.215, a1=c + TAU / 12 - 0.215, vref=rOut)
+                                k.lathe([(xa, rOut), (xa + rw - 0.12, rOut)], 'blue', seg=60, a0=c - TAU / 12 + 0.2, a1=c + TAU / 12 - 0.2, vref=rOut)
                     else:
                         k.lathe([(xa, rOut), (xa + rw - 0.12, rOut)], 'tile', seg=seg, vref=rOut)
             else:
@@ -675,16 +681,17 @@ def drum(xc, phase, lit=0.62):
                 a = (i + 0.5) * TAU / nfr
                 with k.xf(rotX(a)):
                     k.box((xg, 94.2, 0), (1.5, 5.6, 0.9), 'grey', bevel=0.08)
-                    k.box((xg, rIn + 0.4, 0), (5.0, 0.6, 0.9), 'grey', bevel=0.08)
-                    k.box((xg, hr - 0.9, 0), (4.4, 0.5, 0.9), 'grey', bevel=0.08)
+                    if not low:
+                        k.box((xg, rIn + 0.4, 0), (5.0, 0.6, 0.9), 'grey', bevel=0.08)
+                        k.box((xg, hr - 0.9, 0), (4.4, 0.5, 0.9), 'grey', bevel=0.08)
                 if i % 2 == 0:
                     with k.xf(rotX(a + TAU / nfr / 2)):
                         k.can(xg - 0.75, xg + 0.75, 1.7, 'white_s', seg=16, oy=94.3, ch=0.1)
         # name and registry on the middle hoop's rim, three times round
         for i in range(3):
             c = i * TAU / 3
-            arc_decal('name', NAME, -3.1, 3.1, rOut + 0.04, c - 0.16, c + 0.16, seg=30)
-            arc_decal('reg', REG, -1.5, 1.5, rOut + 0.04, c + TAU / 6 - 0.19, c + TAU / 6 + 0.19, seg=30)
+            arc_decal('name', NAME, -3.1, 3.1, rOut + 0.04, c - 0.13, c + 0.13, seg=30)
+            arc_decal('reg', REG, -1.5, 1.5, rOut + 0.04, c + TAU / 6 - 0.17, c + TAU / 6 + 0.17, seg=30)
         # end walls of the outer hoops: two decks of small windows, rails, lockers
         for s in (1, -1):
             xs = s * (pitch + hw + 0.02)
@@ -738,8 +745,9 @@ def drum(xc, phase, lit=0.62):
                 a = i * TAU / 18 + TAU / 36
                 k.tube(P(xh, rs + 1.4, a), P(xr, rIn + 0.3, a), 0.14, 'truss', seg=5)
                 k.tube(P(xh, rs + 1.4, a), P(xr, rIn + 0.3, a + TAU / 18), 0.07, 'truss', seg=4)
-                with k.xf(rotX(a)):
-                    k.box((xr, rIn + 0.1, 0), (1.6, 0.8, 1.6), 'grey', bevel=0.08)
+                if not low:
+                    with k.xf(rotX(a)):
+                        k.box((xr, rIn + 0.1, 0), (1.6, 0.8, 1.6), 'grey', bevel=0.08)
             k.torus(xh + (xr - xh) * (52 - rs - 1.4) / (rIn + 0.3 - rs - 1.4), 52.0, 0.22, 'truss', seg=120, tseg=5)
         # the turning sleeve on the hub
         k.lathe([(-29.7, rs - 1.5), (-29.7, rs), (29.7, rs), (29.7, rs - 1.5)], 'white_s', seg=96)
@@ -764,18 +772,17 @@ def build_berths(landers):
     hr = D['hubR']
     B = D['berth']
     BX, ROOF, H = B['x'], B['roof'], 6.6
-    for x in (283, 304.5, 327.5):
+    for x in (283, 302.5, 327.5):
         k.lathe(rrect(x - 0.7, x + 0.7, hr - 0.05, hr + 0.75, 0.15, 0.15, 2), 'grey', seg=96, closed=True)
-    k.lathe(rrect(299.5, 301.5, hr - 0.02, hr + 0.1, 0.03, 0.03, 1), 'blue', seg=96, closed=True)
-    greeble(285, 303, hr, 30, a0=0.2, span=PI - 0.4, hmax=0.6)
+    greeble(285, 301, hr, 30, a0=0.2, span=PI - 0.4, hmax=0.6)
     greeble(328.5, 332.5, hr, 22, hmax=0.5)
     # --- lander propellant plant: a process drum slung under the hub (the old one was a flat-sided box)
     zc = -(hr + 6.4)
     with k.xf(move(0, 0, zc)):
         k.dome_tank(283.5, 298.5, 5.4, 'white', k=0.5, seg=48, rings=7)
         for x in (286.5, 291, 295.5):
-            k.lathe(rrect(x - 0.22, x + 0.22, 5.38, 5.72, 0.06, 0.06, 1), 'grey', seg=48, closed=True)
-        k.lathe(rrect(288.2, 289.4, 5.38, 5.5, 0.03, 0.03, 1), 'orange', seg=48, closed=True)
+            band(x - 0.22, x + 0.22, 5.38, 5.72, 'grey', seg=48, cr=0.06)
+        band(288.2, 289.4, 5.38, 5.5, 'orange', seg=48, cr=0.03)
         greeble(285.5, 296.5, 5.4, 16, a0=PI + 0.3, span=PI - 0.6, hmax=0.5)
         hatch(293.2, -0.5, 5.4, 0.8)
         hrail(286, 296, 5.4, -0.2)
@@ -833,15 +840,15 @@ def build_bow():
     # docking node: four radial ports, two with lifeboats
     k.lathe([(337, 13.0), (344, 13.0)], 'white', seg=80)
     for x in (337.4, 343.6):
-        k.lathe(rrect(x - 0.3, x + 0.3, 12.95, 13.4, 0.08, 0.08, 1), 'grey', seg=80, closed=True)
+        band(x - 0.3, x + 0.3, 12.95, 13.4, 'grey', seg=80, cr=0.08)
     for q in range(4):
         with k.xf(rotX(q * TAU / 4) @ orient((340.5, 12.6, 0), (0, 1, 0))):
             dock_port(lifeboat=(q % 2 == 0))
     # command section
     k.lathe([(344, 13.0), (391.6, 13.0), (392.0, 12.7), (398.0, 9.3), (398.6, 8.5), (398.6, 0)], 'white_m', seg=96, sharp=30)
-    k.lathe(rrect(350, 352, 12.98, 13.1, 0.03, 0.03, 1), 'blue', seg=96, closed=True)
+    band(350, 352, 12.98, 13.1, 'blue', seg=96, cr=0.03)
     for x in (344.5, 356, 368, 380, 391.3):
-        k.lathe(rrect(x - 0.22, x + 0.22, 12.95, 13.25, 0.05, 0.05, 1), 'grey', seg=96, closed=True)
+        band(x - 0.22, x + 0.22, 12.95, 13.25, 'grey', seg=96, cr=0.05)
     nw = 30
     for i in range(nw):          # bridge windows
         a = i * TAU / nw
@@ -881,7 +888,7 @@ def build_bow():
     with k.xf(orient((356.6, 0, 15.9), (1, 0, 0.12))):
         k.can(0, 5.2, 1.3, 'white_s', seg=24, c1=False)
         k.lathe([(5.0, 1.18), (5.0, 0)], 'glass_dark', seg=24)
-        k.lathe(rrect(4.7, 5.25, 1.28, 1.42, 0.03, 0.03, 1), 'grey', seg=24, closed=True)
+        band(4.7, 5.25, 1.28, 1.42, 'grey', seg=24, cr=0.03, minor=True)
         k.can(-0.6, 0.0, 1.0, 'gold', seg=16)
     # low-gain antennas and star trackers
     for a in (2.3, 4.2):
@@ -923,7 +930,7 @@ def build_bow():
     C.LIGHTS.append(('POINT', (411.2, 0, 0), None, 1500, (1, 1, 1), 0))
     for s in (1, -1):
         k.box((408.2, s * 17.5, 0), (1.2, 0.9, 0.9), 'navR' if s > 0 else 'navG')
-        C.LIGHTS.append(('POINT', (408.2, s * 18.6, 0), None, 2000, (1, 0.05, 0.03) if s > 0 else (0.05, 1, 0.2), 0))
+        C.LIGHTS.append(('POINT', (408.4, s * 19.4, 0), None, 500, (1, 0.05, 0.03) if s > 0 else (0.05, 1, 0.2), 0))
 
 
 # =====================================================================================
@@ -945,13 +952,14 @@ def build(parts, drive, landers):
     if 'drumf' in want: build_drum('F')
     if 'berth' in want: build_berths(landers)
     if 'bow' in want: build_bow()
+    C.DECALS[:] = list(dict.fromkeys(C.DECALS))      # one entry per decal, so the game export makes one material each
 
 
 SHOTS = {
-    'hero':   dict(tgt=(10, 0, -6), cam=(0.62, -0.72, 0.30), dist=1500, lens=70, roll=-7, sun=(0.62, 0.55, 0.56), eoff=(-9, -20), alt=9500),
+    'hero':   dict(tgt=(45, 0, -8), cam=(0.62, -0.72, 0.30), dist=1620, lens=70, roll=-7, sun=(0.62, 0.55, 0.56), eoff=(-9, -20), alt=9500),
     'drums':  dict(tgt=(222, 0, 6), cam=(0.72, -0.60, 0.34), dist=520, lens=50, roll=5, sun=(0.55, 0.60, 0.58), eoff=(-12, -27), alt=9500, elon=120),
     'stern':  dict(tgt=(-290, 0, 0), cam=(-0.80, -0.52, 0.30), dist=560, lens=55, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(10, -25), alt=9500),
-    'vault':  dict(tgt=(-70, 0, 4), cam=(0.30, -0.84, 0.45), dist=330, lens=45, roll=-3, sun=(0.50, 0.65, 0.57), eoff=(8, -25), alt=9500, elon=165),
+    'vault':  dict(tgt=(-62, 0, 2), cam=(0.34, -0.50, 0.80), dist=300, lens=45, roll=-4, sun=(0.35, 0.50, 0.79), eoff=(3, -26), alt=9500, elon=165),
     'berths': dict(tgt=(350, 0, 0), cam=(0.80, -0.52, 0.30), dist=260, lens=45, roll=6, sun=(-0.45, 0.62, 0.64), eoff=(-14, -24), alt=9500, elon=185),
     'side':   dict(tgt=(0, 0, 0), cam=(0.0, -1.0, 0.06), dist=2100, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
 }

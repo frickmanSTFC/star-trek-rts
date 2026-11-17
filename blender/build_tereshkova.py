@@ -45,8 +45,11 @@ T = dict(
 # the ship's own materials: (Cycles factory, game spec)
 C.EXTRA['ablator'] = (lambda: K.plain('ablator', (0.30, 0.20, 0.12), rough=0.85, grime=0.3, bump=0.01),
                       ('sim', (0.30, 0.20, 0.12), 0.0, 0.85))
-C.EXTRA['grow'] = (lambda: K.emit('grow', (1.0, 0.32, 0.78), 0.9, base=(0.02, 0.02, 0.03)),
-                   ('emit', (1.0, 0.32, 0.78), 1.0))
+C.EXTRA['grow'] = (lambda: K.emit('grow', (1.0, 0.45, 0.82), 0.3, base=(0.02, 0.02, 0.03)),
+                   ('emit', (1.0, 0.45, 0.82), 0.6))
+C.EXTRA['shade'] = (lambda: K.panel('shade', (0.80, 0.78, 0.74), (0.74, 0.72, 0.69), size=(2.4, 9.5), seam=0.02, seam_mul=0.7,
+                                    rough=0.38, metal=0.3, wob=0.03, wrinkle=0.02),
+                    ('pan', (0.80, 0.78, 0.74), (0.74, 0.72, 0.69), 0.7, (2.4, 9.5), 0.3, 0.4))
 
 
 # ------------------------------------------------------------------ helpers
@@ -101,6 +104,28 @@ def side_decal(name, text, xc, length, height, r, side, zc=0.0):
         uv.append([(0, j / n), (1, j / n), (1, (j + 1) / n), (0, (j + 1) / n)])
     k.add('decal_' + name, v, f, uv)
     C.DECALS.append((name, text))
+
+
+def astronaut(M_, reach=True):
+    """Suited figure for scale: boots at the local origin, +y up, facing +x. Stills only."""
+    if k.lod < 1:
+        return
+    with k.xf(M_):
+        for z, kx in ((0.12, 0.06), (-0.12, 0.15)):
+            k.tube((0, 0.06, z), (kx, 0.48, z), 0.085, 'white_s', seg=8)
+            k.tube((kx, 0.48, z), (0, 0.9, z * 0.85), 0.1, 'white_s', seg=8)
+            k.box((0.05, 0.05, z), (0.3, 0.12, 0.15), 'grey')
+        k.box((0, 1.2, 0), (0.3, 0.62, 0.46), 'white_s', bevel=0.06)
+        k.box((-0.27, 1.25, 0), (0.24, 0.72, 0.5), 'white_s', bevel=0.04)
+        k.box((0.17, 1.2, 0), (0.06, 0.24, 0.26), 'grey')
+        k.sphere((0.02, 1.69, 0), 0.18, 'white_s', seg=14, rings=8)
+        k.sphere((0.09, 1.69, 0), 0.135, 'gold', seg=12, rings=6)
+        k.pipe([(0, 1.43, 0.28), (0.24, 1.2, 0.35), (0.5, 1.3, 0.3)], 0.07, 'white_s', seg=6)
+        if reach:
+            k.pipe([(0, 1.43, -0.28), (0.2, 1.58, -0.36), (0.44, 1.85, -0.3)], 0.07, 'white_s', seg=6)
+        else:
+            k.pipe([(0, 1.43, -0.28), (0.2, 1.15, -0.36), (0.46, 1.2, -0.28)], 0.07, 'white_s', seg=6)
+        k.box((-0.05, 1.32, 0.26), (0.2, 0.08, 0.04), 'orange')
 
 
 def truss(x0, x1, h, nb, rl=0.22, rf=0.13, rd=0.10):
@@ -363,7 +388,8 @@ def build_mid():
         k.lathe(C.rrect(x - 0.3, x + 0.3, 10.25, 10.55, 0.06, 0.06, 1), 'dark', seg=80, closed=True)
         for j in range(20):
             C.gbox(x, j * TAU / 20, 10.3, 0.7, 0.8, 0.3, 'grey')
-    greeb(-21.2, -11.2, 9.0, 26)
+    greeb(-21.2, -11.2, 9.0, 13, a0=0.5, span=2.1)
+    greeb(-21.2, -11.2, 9.0, 13, a0=3.7, span=2.1)
     greeb(14.5, 20.6, 9.0, 14)
     for a in (0.35, 1.95, 3.5, 5.1):
         C.axial_pipe(-21.6, -10.9, 9.0, a, 0.2, 'gold')
@@ -375,13 +401,13 @@ def build_mid():
         C.hrail(14, 20.8, 9.0, a + 0.3)
     for a in (0.8, 2.6, 4.4):
         C.hatch(-18.5, a, 9.0, 0.7)
-    band(-14.0, -12.8, 9.0, 'blue', h=0.06, seg=80)
+    band(-12.3, -11.2, 9.0, 'blue', h=0.06, seg=80)
     for i in range(20):                 # the zero-g labs' ports
         a = (i + 0.5) * TAU / 20
         if abs(a - PI / 2) > 0.35 and all(abs(a - pa - 0.55) > 0.22 for pa in (0.35, 1.95, 3.5, 5.1)):
             window(12.6, a, 9.0, 0.8, 0.8, 0.5)
     for s in (1, -1):
-        side_decal('name', NAME, -16.4, 8.6, 1.5, 9.04, s, zc=1.2)
+        side_decal('name', NAME, -17.0, 8.2, 1.5, 9.04, s, zc=1.2)
     # observation cupola on the hub
     C.zcan(8.8, 10.0, 1.7, 'grey', x=16.5, seg=20)
     C.zcan(10.0, 10.25, 1.35, 'glass_dark', x=16.5, seg=20, ch=0.05)
@@ -450,6 +476,8 @@ def build_fwd():
     k.box((74, 4.6, 4.7), (1.6, 0.9, 0.7), 'white_s', bevel=0.06)
     for (y, z) in ((4, 4), (-4, 4), (-4, -4), (4, -4)):
         k.tube((40.0, y, z), (38.6, y * 1.02, z * 1.02), 0.3, 'grey', seg=8)
+    astronaut(move(74.3, 4.6, 5.05) @ rotX(PI / 2), reach=False)          # riding the EVA cart
+    astronaut(move(106.0, 1.6, 4.72) @ rotX(PI / 2) @ rotY(PI))          # checking an orbiter on the dorsal rack
     radiators()
     antennas()
     sample_lab()
@@ -498,7 +526,7 @@ def radiators():
                 k.tube(top, (x + (9 if x < x0 + 30 else -9), s * 4, sz * 4), 0.045, 'truss', seg=4)
         tipy = s * (y0 + w + 0.5)
         k.box((x0 + L['len'] / 2, tipy, 0), (1.2, 0.7, 0.7), 'navR' if s > 0 else 'navG')
-        C.LIGHTS.append(('POINT', (x0 + L['len'] / 2, tipy + s * 1.0, 0), None, 1500, (1, 0.05, 0.03) if s > 0 else (0.05, 1, 0.2), 0))
+        C.LIGHTS.append(('POINT', (x0 + L['len'] / 2, tipy + s * 1.0, 0), None, 500, (1, 0.05, 0.03) if s > 0 else (0.05, 1, 0.2), 0))
 
 
 def antennas():
@@ -574,6 +602,8 @@ def probe(kind):
         k.lathe([(0.4, 0.9), (0.6, 1.1), (1.9, 2.2), (2.05, 2.3)], 'white_s', seg=28, sharp=40)
         k.lathe([(2.05, 2.3), (2.3, 2.12), (2.55, 1.55), (2.72, 0.8), (2.78, 0)], 'ablator', seg=28, sharp=60)
         k.lathe(C.rrect(1.98, 2.1, 2.27, 2.37, 0.02, 0.02, 1), 'grey', seg=28, closed=True)
+        k.lathe([(2.70, 0.62), (2.80, 0.55), (2.84, 0)], 'grey', seg=16)
+        k.torus(2.52, 1.62, 0.035, 'dark', seg=28, tseg=4)
         for i in range(3):
             with k.xf(rotX(i * TAU / 3)):
                 k.box((1.2, 1.7, 0), (0.5, 0.12, 0.5), 'dark')
@@ -695,6 +725,8 @@ def bow():
     C.hatch(140.5, 5.75, r, 0.6)
     for a in (0.45, 0.75, 2.4, 2.7, 3.45, 3.75):
         window(142.6, a, r, 0.7, 0.7, 0.6)
+    astronaut(on(136.2, 1.15, r) @ rotY(PI))             # on the bow hull by the telescope mount
+    astronaut(on(138.0, 1.0, r) @ rotY(2.4), reach=False)
     for s in (1, -1):
         side_decal('breg', REG, 137.2, 5.6, 1.5, r + 0.04, s, zc=2.3)
     # --- survey telescope: fork mount on a turntable, baffled tube, scarfed hood, cryoradiator
@@ -736,7 +768,7 @@ def bow():
     xa, xb, zc, hh = 121.5, 141.0, 10.6, 9.0
     for i in range(4):
         y = -(4.0 + i * 0.45)
-        k.box(((xa + xb) / 2, y, zc), (xb - xa - (3 - i) * 0.7, 0.04, hh - (3 - i) * 0.5), 'silver' if i == 3 else 'gold')
+        k.box(((xa + xb) / 2, y, zc), (xb - xa - (3 - i) * 0.7, 0.04, hh - (3 - i) * 0.5), 'shade' if i == 3 else 'gold')
     for x in (xa - 0.2, (xa + xb) / 2, xb + 0.2):
         k.tube((x, -3.55, 4.25), (x, -4.7, zc - hh / 2 - 0.3), 0.13, 'truss', seg=6)
         k.tube((x, -4.7, zc - hh / 2 - 0.3), (x, -4.7, zc + hh / 2 + 0.3), 0.11, 'truss', seg=6)
@@ -819,8 +851,8 @@ def bow():
     k.can(Wp['x'] - 0.4, Wp['x'] + 1.2, 0.4, 'grey', seg=12)
     k.tube((Wp['x'] + 1.2, 0, 0), (153.6, 0, 0), 0.07, 'grey', seg=5)
     k.box((154.0, 0, 0), (0.8, 0.8, 0.8), 'white_s', bevel=0.05)
-    k.box((154.7, 0, 0), (0.6, 0.5, 0.5), 'navW')
-    C.LIGHTS.append(('POINT', (155.6, 0, 0), None, 900, (1, 1, 1), 0))
+    k.box((154.55, 0, 0), (0.3, 0.24, 0.24), 'navW')
+    C.LIGHTS.append(('POINT', (155.6, 0, 0), None, 120, (1, 1, 1), 0))
 
 
 def build(parts, drive, landers):
@@ -836,18 +868,11 @@ def build(parts, drive, landers):
 
 SHOTS = {
     # tgt: look-at point; cam: direction from it to the camera; sun: direction to the sun in camera space
-    'hero':    dict(tgt=(0, 0, 0), cam=(0.62, -0.66, 0.42), dist=560, lens=70, roll=-7, sun=(0.62, 0.55, 0.56), eoff=(-9, -20), alt=9500),
-    'ring':    dict(tgt=(4, 0, 4), cam=(0.70, -0.60, 0.38), dist=250, lens=50, roll=5, sun=(0.55, 0.60, 0.58), eoff=(-12, -27), alt=9500, elon=120),
-    'stern':   dict(tgt=(-96, 0, 0), cam=(-0.80, -0.52, 0.30), dist=330, lens=60, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(10, -25), alt=9500),
-    'science': dict(tgt=(118, 0, 2), cam=(0.55, 0.70, 0.46), dist=120, lens=50, roll=-4, sun=(-0.45, 0.62, 0.64), eoff=(8, -25), alt=9500, elon=165),
+    'hero':    dict(tgt=(18, 0, -4), cam=(0.62, -0.66, 0.42), dist=590, lens=70, roll=-7, sun=(0.25, 0.62, 0.74), eoff=(-9, -20), alt=9500),
+    'ring':    dict(tgt=(5, 0, 0), cam=(0.70, -0.60, 0.38), dist=300, lens=50, roll=5, sun=(0.55, 0.60, 0.58), eoff=(-12, -25.5), alt=9500, elon=120),
+    'stern':   dict(tgt=(-90, 0, -2), cam=(-0.80, -0.52, 0.30), dist=350, lens=60, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(10, -25), alt=9500),
+    'science': dict(tgt=(121, 0, 2), cam=(0.55, 0.70, 0.46), dist=108, lens=50, roll=-4, sun=(-0.40, 0.66, 0.60), eoff=(15, -27), alt=9500, elon=165),
     'side':    dict(tgt=(0, 0, 0), cam=(0.0, -1.0, 0.06), dist=960, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
-    'taft':    dict(tgt=(-125, 0, 0), cam=(-0.55, -0.72, 0.42), dist=95, lens=45, roll=0, sun=(-0.50, 0.55, 0.66), eoff=None, alt=0),
-    'ttank':   dict(tgt=(-50, 0, 0), cam=(-0.45, -0.75, 0.48), dist=90, lens=45, roll=0, sun=(-0.50, 0.55, 0.66), eoff=None, alt=0),
-    'thub':    dict(tgt=(12, 0, 2), cam=(0.6, -0.65, 0.45), dist=80, lens=40, roll=0, sun=(0.50, 0.55, 0.66), eoff=None, alt=0),
-    'tfwd':    dict(tgt=(78, 0, 0), cam=(0.35, -0.75, 0.55), dist=130, lens=45, roll=0, sun=(0.50, 0.55, 0.66), eoff=None, alt=0),
-    'tprobe':  dict(tgt=(106, 0, 0), cam=(0.30, 0.80, 0.50), dist=60, lens=40, roll=0, sun=(-0.40, 0.55, 0.70), eoff=None, alt=0),
-    'tbow':    dict(tgt=(132, 0, 3), cam=(0.55, -0.60, 0.55), dist=60, lens=40, roll=0, sun=(0.50, 0.55, 0.66), eoff=None, alt=0),
-    'tbow2':   dict(tgt=(132, 0, 0), cam=(0.50, 0.70, -0.45), dist=62, lens=40, roll=0, sun=(-0.40, 0.2, 0.80), eoff=None, alt=0),
     'top':     dict(tgt=(0, 0, 0), cam=(0.0, -0.05, 1.0), dist=960, lens=100, roll=0, sun=(0.40, 0.50, 0.75), eoff=None, alt=0),
 }
 

@@ -40,7 +40,7 @@ A = dict(
     pods=dict(r=45.0, g=0.4, dir=1, R=3.1, len=7.8, floor=6.4, deck2=3.8, fin=dict(u0=2.0, u1=7.0, w=1.8), thr=6.9),
     crew=dict(x0=52.2, bay=(53.2, 58.6), deck=(58.6, 65.0), nose=67.6, bow=70.0, r=4.6, port=56.0),
 )
-PHASE = 0.42          # where the pods are in their turn (radians from dorsal/ventral)
+PHASE = float(os.environ.get('ARM_PHASE', 0.6))          # where the pods are in their turn (radians from dorsal/ventral)
 RSH = A['cone']['r'] + A['cone']['k'] * (A['shield']['x1'] - A['cone']['x'])      # shield radius, 11.0 m
 
 C.EXTRA['tether'] = (lambda: K.plain('tether', (0.82, 0.82, 0.78), rough=0.75, grime=0.1), ('sim', (0.82, 0.82, 0.78), 0.0, 0.75))
@@ -306,6 +306,11 @@ def build_aft(drive):
     k.lathe([(-40.0, cr - 0.2), (-39.65, 5.6), (-38.95, 7.4), (-38.1, 9.7), (-37.75, 10.6), (-37.55, RSH)], 'tungsten', seg=S(96), sharp=25)
     k.lathe([(-37.55, RSH), (-37.15, RSH), (-36.95, RSH - 0.2), (-36.95, 2.2)], 'white', seg=S(96), sharp=40)
     k.torus(-37.35, RSH, 0.2, 'grey', seg=S(96), tseg=8)
+    for (xx, rr) in ((-39.62, 5.68), (-38.93, 7.45), (-38.08, 9.75)):
+        k.torus(xx - 0.03, rr, 0.05, 'steel', seg=S(96), tseg=4)
+    for i in range(16):
+        a = i * TAU / 16
+        k.tube(P(-39.68, 5.62, a), P(-37.58, 10.95, a), 0.035, 'steel', seg=4)
     k.lathe([(-37.1, 2.3), (-37.1, 0.3)], 'dark', seg=S(32))
     for rr in (5.2, 8.2):
         k.lathe(C.rrect(-36.97, -36.8, rr - 0.12, rr + 0.12, 0.03, 0.03, 1), 'grey', seg=S(64), closed=True)
@@ -448,17 +453,17 @@ def build_mid():
             band(xa + 0.3 + i * rw, tr + 0.08, 0.16, 0.1, seg=96)
     k.lathe(C.rrect(xb - 4.4, xb - 3.2, tr + 0.13, tr + 0.165, 0.01, 0.01, 1), 'blue', seg=S(96), closed=True)
     # lettering, port and starboard
-    for a in (0.0, PI):
-        hull_decal('arm_name', NAME, 19.0, tr + 0.16, a + (0.1 if a == 0 else -0.1), 3.4)
-        hull_decal('arm_reg', REG + '   UNITED EARTH', 19.0, tr + 0.16, a - (0.27 if a == 0 else -0.27), 1.3)
+    for a, sg in ((0.0, 1), (PI, -1)):          # 30 degrees above the waterline, where the sun and a camera can both see them
+        hull_decal('arm_name', NAME, 19.0, tr + 0.16, a + sg * 0.52, 3.4)
+        hull_decal('arm_reg', REG + '   UNITED EARTH', 19.0, tr + 0.16, a + sg * 0.17, 1.3)
     # services along the barrel: vent and fill lines, cable tray, rails, fill panel
-    for a, rad, mat in ((0.62, 0.11, 'silver'), (0.7, 0.07, 'gold'), (PI + 0.62, 0.11, 'gold'), (PI + 0.71, 0.06, 'white_s')):
+    for a, rad, mat in ((1.05, 0.11, 'silver'), (1.12, 0.07, 'gold'), (PI + 0.62, 0.11, 'gold'), (PI + 0.71, 0.06, 'white_s')):
         C.axial_pipe(xa - 0.5, xb + 0.5, tr + 0.12, a, rad, mat, clamp=2.5)
-    for a in (-0.62, PI - 0.62):
+    for a in (-0.62, PI - 1.08):
         with k.xf(on(0, a, tr + 0.14)):
-            k.boxX(xa + 0.4, xb - 0.4, 0.06, 0, 0.12, 0.5, 'dark')
+            k.boxX(xa + 0.4, xb - 0.4, 0.05, 0, 0.1, 0.26, 'grey')
         C.hrail(xa + 0.6, xb - 0.6, tr + 0.14, a + 0.12)
-    for a in (0.62, PI + 0.62):          # relief vent stacks
+    for a in (1.05, PI + 0.62):          # relief vent stacks
         with k.xf(on(xb - 1.5, a, tr + 0.14)):
             k.tube((0, 0.2, 0), (0, 1.3, 0), 0.09, 'steel', seg=8)
             k.tube((0, 1.3, 0), (0.35, 1.3, 0), 0.09, 'steel', seg=8)
@@ -470,7 +475,7 @@ def build_mid():
             with k.xf(orient((dx, 0.24, 0), (0, 1, 0))):
                 k.can(0, 0.3, 0.26, 'steel', seg=12, ch=0.04)
                 k.can(0.3, 0.38, 0.3, 'orange', seg=12, ch=0.02)
-    greeble(xa + 1, xb - 1, tr + 0.14, 10, a0=0.45, span=0.5, hmax=0.25, sc=0.4)
+    greeble(xa + 1, xb - 1, tr + 0.14, 10, a0=0.9, span=0.4, hmax=0.25, sc=0.4)
     greeble(xa + 1, xb - 1, tr + 0.14, 10, a0=PI + 0.45, span=0.5, hmax=0.25, sc=0.4)
     # --- low-temperature radiators: two panel wings, dorsal and ventral, on headers and stay rods
     lx0, lx1, w = L['x0'], L['x1'], L['w']
@@ -595,9 +600,9 @@ def build_pod(b, label):
             k.box((0, 0.015, 0), (4.0, 0.05, 0.07), 'white_s')
     for i in range(4):
         a = TAU / 8 + i * TAU / 4
-        porthole(u(3.0), a, PR, 0.3, 0.7)
-        porthole(u(5.3), a, PR, 0.3, 0.6)
-    porthole(u(5.3), 0.0, PR, 0.24, 0.5)
+        porthole(u(3.0), a, PR, 0.24, 0.7)
+        porthole(u(5.3), a, PR, 0.24, 0.6)
+    porthole(u(5.3), 0.0, PR, 0.2, 0.5)
     # radiator fins fore and aft, each on two struts with a coolant loop and stays to the shoulder
     for s in (1, -1):
         zc = s * (PR + 0.3 + F['w'] / 2)
@@ -639,7 +644,7 @@ def build_pod(b, label):
     with k.xf(on(u(2.75), PI, PR)):
         k.box((0, 0.2, 0), (0.5, 0.4, 0.6), 'white_s', bevel=0.03)          # tether power and data junction
     k.tube((u(7.6), 0.3, -1.3), (u(9.2), 0.3, -1.5), 0.02, 'grey', seg=4)
-    k.box((u(7.86), 0, 0), (0.16, 0.5, 0.5), 'navW')
+    k.box((u(7.84), 0, 0), (0.1, 0.16, 0.16), 'navW')
     w = 0.62 * text_aspect(label) / (PR + 0.03)
     C.arc_decal('pod_' + label[-1].lower(), label, u(3.35), u(2.73), PR + 0.03, w / 2, -w / 2, seg=10)
     C.arc_decal('pod_' + label[-1].lower(), label, u(3.35), u(2.73), PR + 0.03, PI + w / 2, PI - w / 2, seg=10)
@@ -647,11 +652,20 @@ def build_pod(b, label):
     greeble(u(2.6), u(6.2), PR, 5, a0=-0.65, span=0.4, hmax=0.2, sc=0.3)
 
 
-def build_tether(b):
+def build_tether(b, stowed=False):
     """Two strands from the two reels to yokes either side of the pod's neck, cross-ties, and the power line."""
     H = A['hub']
     rs = 0.035 if not game() else 0.07
     top = H['r'] + 0.85 + 1.25
+    if stowed:          # wound home: only the last metre of each strand and its bridle are off the reel
+        for s in (1, -1):
+            p0, p1 = Vector((top, 0, s * H['reel'])), Vector((b + 0.75, 0, s * 2.5))
+            k.tube(p0, p1, rs, 'tether', seg=5)
+            k.box(tuple(p1), (0.3, 0.2, 0.3), 'grey', bevel=0.03)
+            for y in (1.35, -1.35):
+                k.tube(p1, (b + 1.12, y * 0.98, s * 1.32), rs * 0.8, 'tether', seg=4)
+        k.pipe([Vector((H['r'] + 0.3, -0.5, 2.3)), Vector((b + 0.6, -1.6, 1.6)), Vector((b + 2.75, -3.3, 0))], 0.03, 'yellow', seg=4, elbow=False)
+        return
     ya = b - 1.3
     for s in (1, -1):
         p0, p1 = Vector((top, 0, s * H['reel'])), Vector((ya, 0, s * 1.5))
@@ -673,11 +687,12 @@ def build_tether(b):
     k.pipe(pts, 0.03 if not game() else 0.066, 'yellow', seg=4, elbow=False)
 
 
-def build_spin():
-    """Everything that turns: the drum between the bearing races, both cradles, reels, tethers and pods."""
+def build_spin(stowed=False):
+    """Everything that turns: the drum between the bearing races, both cradles, reels, tethers and pods.
+    stowed: the burn configuration, pods wound home into their cradles and the drum stopped."""
     H, PD = A['hub'], A['pods']
     C.spin_group('RingPods', H['x'], PD['g'], PD['r'], PD['dir'])
-    with k.xf(move(H['x'], 0, 0) @ rotX(PHASE) @ move(-H['x'], 0, 0)):
+    with k.xf(move(H['x'], 0, 0) @ rotX(0.0 if stowed else PHASE) @ move(-H['x'], 0, 0)):
         x0, x1, r = H['x0'], H['x1'], H['r']
         k.lathe([(x0 + 0.05, r - 0.5), (x0 + 0.05, r - 0.15), (x0 + 0.2, r), (x1 - 0.2, r), (x1 - 0.05, r - 0.15), (x1 - 0.05, r - 0.5)], 'white', seg=S(72))
         for x in (x0 + 0.55, x1 - 0.55):
@@ -694,31 +709,32 @@ def build_spin():
                 with k.xf(on(H['x'], a + da * 1.9, r)):
                     k.sphere((-2.6, 0.5, 0), 0.52, 'silver', seg=S(14), rings=7)
                     k.box((-2.6, 0.05, 0), (0.8, 0.1, 0.8), 'grey')
-        base = PD['r'] - PD['floor']
+        base = H['cradle'] if stowed else PD['r'] - PD['floor']
         for i, a in enumerate((PI / 2, 3 * PI / 2)):
             with k.xf(pod_frame(a)):
                 build_cradle()
-                build_tether(base)
+                build_tether(base, stowed)
                 build_pod(base, 'POD ' + 'AB'[i])
     k.group = 'Hull'
 
 
-def build_fwd():
+def build_fwd(stowed=False):
     H, CM, T = A['hub'], A['crew'], A['tank']
     r = CM['r']
     # --- despun hub: the fixed core tube, a bearing race at each end, the turning drum between them
     k.lathe([(T['x1'] - 0.6, H['core']), (CM['x0'] + 0.2, H['core'])], 'grey', seg=S(40))
     for x in (H['x0'] - 0.5, H['x1'] + 0.5):
         d = 1 if x > H['x'] else -1
-        k.lathe([(x + d * 0.5, H['core']), (x + d * 0.5, H['r'] + 0.3), (x + d * 0.3, H['r'] + 0.7), (x - d * 0.3, H['r'] + 0.7), (x - d * 0.5, H['r'] + 0.3), (x - d * 0.5, H['r'] - 0.6)],
-                'grey', seg=S(72), sharp=30)
+        k.lathe(C.rrect(x - 0.5, x + 0.5, H['r'] - 0.75, H['r'] + 0.7, 0.2, 0.3, 3), 'grey', seg=S(72), closed=True, sharp=30)
+        k.lathe(C.rrect(x + d * 0.5 - 0.1, x + d * 0.5 + 0.1, H['core'] - 0.02, H['core'] + 0.3, 0.04, 0.04, 1), 'grey', seg=S(40), closed=True)
         k.lathe(C.rrect(x - 0.12, x + 0.12, H['r'] + 0.68, H['r'] + 0.8, 0.03, 0.03, 1), 'dark', seg=S(72), closed=True)
         for j in range(16):
             C.gbox(x, j * TAU / 16, H['r'] + 0.7, 0.5, 0.5, 0.16, 'grey', bevel=0.0)
-        for j in range(8):          # web struts from the core to the race
-            a = j * TAU / 8
-            k.tube(P(x + d * 0.5, H['core'], a), P(x + d * 0.5, H['r'] + 0.2, a), 0.07, 'truss', seg=5)
-    build_spin()
+        for j in range(12):          # V struts from the core to the race
+            a = j * TAU / 12
+            for da in (-0.5, 0.5):
+                k.tube(P(x + d * 0.45, H['core'] + 0.1, a), P(x + d * 0.2, H['r'] - 0.7, a + da * TAU / 12), 0.09, 'truss', seg=6)
+    build_spin(stowed)
     # --- crew module: aft dome, priority cargo bay, flight deck with storm shelter, nose
     n = 6 if not game() else 3
     dome = [(53.3 - 1.3 * math.cos(PI / 2 * i / n), H['core'] + (r - H['core']) * math.sin(PI / 2 * i / n)) for i in range(n + 1)]
@@ -738,10 +754,10 @@ def build_fwd():
         for sa in (-1, 1):
             with k.xf(on(55.9, a + sa * (da + 0.07), r)):
                 k.box((1.1, 0.08, 0), (6.6, 0.1, 0.12), 'grey')
-            with k.xf(on(54.6, a + sa * da * 0.5, r + 0.12)):
+            with k.xf(on(54.6, a + sa * da * 0.82, r + 0.12)):
                 k.box((0, 0.04, 0), (0.3, 0.1, 0.5), 'dark')
                 k.box((2.6, 0.04, 0), (0.3, 0.1, 0.5), 'dark')
-        hull_decal('arm_bay', 'PRIORITY CARGO', 55.9, r + 0.13, a + (0.2 if a == 0 else -0.2), 0.8, seg=3)
+        hull_decal('arm_bay', 'PRIORITY CARGO', 55.9, r + 0.13, a + (0.17 if a == 0 else -0.17), 0.5, seg=3)
     # storm shelter: the flight deck's thick-walled refuge, a water jacket outside the hull
     k.lathe(C.rrect(59.9, 62.6, r - 0.02, r + 0.16, 0.06, 0.06, 2), 'white_s', seg=S(64), closed=True)
     k.lathe(C.rrect(59.05, 59.55, r - 0.02, r + 0.04, 0.01, 0.01, 1), 'blue', seg=S(64), closed=True)
@@ -752,11 +768,13 @@ def build_fwd():
     k.lathe([(67.75, 2.52), (68.2, 2.2), (68.5, 1.6), (68.62, 0.8), (68.65, 0)], 'white_s', seg=S(48), sharp=60)
     band(67.75, 2.5, 0.14, 0.07, seg=48)
     slope = math.atan2(4.36 - 2.86, 67.3 - 65.5)
-    for i in range(10):
-        a = (i + 0.5) * TAU / 10
-        with k.xf(on(66.2, a, 3.78) @ rotZ(-slope)):
-            k.box((0, 0.03, 0), (1.0, 0.06, 1.12), 'grey')
-            k.box((0, 0.06, 0), (0.76, 0.05, 0.86), 'glass' if R.random() < 0.6 else 'glass_dark')
+    for i in range(12):
+        a = (i + 0.5) * TAU / 12
+        if i in (7, 10):          # the ventral pair is blanked off behind the antenna mast
+            continue
+        with k.xf(on(66.3, a, 3.7) @ rotZ(-slope)):
+            k.box((0, 0.025, 0), (0.78, 0.05, 0.7), 'grey')
+            k.box((0, 0.05, 0), (0.56, 0.04, 0.5), 'glass' if R.random() < 0.5 else 'glass_dark')
     for a in (PI / 2 + 0.5, PI / 2 - 0.5, -PI / 2 + 0.45, -PI / 2 - 0.45):
         porthole(63.8, a, r, 0.28, 0.6)
         porthole(61.2, a, r + 0.16, 0.22, 0.4)
@@ -777,8 +795,8 @@ def build_fwd():
         for rr in (1.4, 3.0, 4.7):
             k.tube(P(69.6, rr, i * TAU / 18), P(69.95, rr, i * TAU / 18), 0.025, 'grey', seg=4)
     k.can(69.3, 70.0, 0.22, 'grey', seg=10, ch=0.04)
-    k.box((70.05, 0, 0), (0.2, 0.5, 0.5), 'navW')
-    C.LIGHTS.append(('POINT', (70.6, 0, 0), None, 120, (1, 1, 1), 0))
+    k.box((70.05, 0, 0), (0.12, 0.2, 0.2), 'navW')
+    C.LIGHTS.append(('POINT', (70.6, 0, 0), None, 12, (1, 1, 1), 0))
     # --- dorsal docking port above the cargo bay
     with k.xf(orient((CM['port'], 0, r - 0.15), (0, 0, 1))):
         k.lathe([(0, 1.25), (0.5, 1.1), (1.25, 1.1), (1.25, 1.3), (1.6, 1.3), (1.6, 0.85)], 'white_s', seg=S(28), sharp=30)
@@ -817,8 +835,8 @@ def build_fwd():
     # --- navigation lights, forward RCS, rails, hatches, equipment
     for s in (1, -1):
         k.tube((63.8, s * (r - 0.1), 0), (63.8, s * 5.8, 0), 0.06, 'grey', seg=6)
-        k.box((63.8, s * 6.0, 0), (0.55, 0.4, 0.4), 'navR' if s > 0 else 'navG')
-        C.LIGHTS.append(('POINT', (63.8, s * 6.5, 0), None, 160, (1, 0.05, 0.03) if s > 0 else (0.05, 1, 0.2), 0))
+        k.box((63.8, s * 5.95, 0), (0.3, 0.3, 0.2), 'navR' if s > 0 else 'navG')
+        C.LIGHTS.append(('POINT', (63.8, s * 6.6, 0), None, 14, (1, 0.05, 0.03) if s > 0 else (0.05, 1, 0.2), 0))
     for q in range(4):
         quad_on_stalk(61.25, TAU / 8 + q * TAU / 4, r + 0.14, 6.0, sc=0.4)
     small_hatch(63.75, 3.6, r, 0.5)
@@ -844,19 +862,40 @@ def build(parts, drive, landers):
     if 'mid' in parts:
         build_mid()
     if 'fwd' in parts:
-        build_fwd()
+        build_fwd(stowed=drive)          # pods are wound home before every burn
 
 
+def shot(tgt, cam, dist, lens, roll, sun_world, eoff, **kw):
+    """A SHOTS entry with the sun given in ship coordinates (the pipeline wants it in camera space)."""
+    d = Vector(cam).normalized()
+    CM = (-d).to_track_quat('-Z', 'Y').to_matrix() @ Matrix.Rotation(math.radians(roll), 3, 'Z')
+    sun = tuple(CM.inverted() @ Vector(sun_world).normalized())
+    return dict(tgt=tuple(tgt), cam=tuple(d), dist=dist, lens=lens, roll=roll, sun=sun, eoff=eoff, alt=kw.pop('alt', 9500), **kw)
+
+
+def _pod(i=0):
+    """Unit vectors at pod i: radial out, direction of travel; and the hub centre."""
+    a = PI / 2 + i * PI + PHASE
+    return Vector((0, math.cos(a), math.sin(a))), Vector((0, -math.sin(a), math.cos(a))), Vector((A['hub']['x'], 0, 0))
+
+
+_r, _t, _h = _pod(0)
+_bow = Vector((1, 0, 0))
+_E = lambda key, d: float(os.environ.get('ARM_' + key, d))
 SHOTS = {
-    'hero':  dict(tgt=(2, 0, 0), cam=(0.62, -0.72, 0.30), dist=390, lens=70, roll=-7, sun=(0.62, 0.55, 0.56), eoff=(-9, -20), alt=9500),
-    'pod':   dict(tgt=(46, 0, 30), cam=(0.55, -0.62, 0.56), dist=120, lens=50, roll=0, sun=(0.55, 0.60, 0.58), eoff=(-12, -27), alt=9500, elon=120),
-    'stern': dict(tgt=(-30, 0, 0), cam=(-0.80, -0.52, 0.30), dist=260, lens=60, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(10, -25), alt=9500),
-    'hub':   dict(tgt=(50, 0, 1), cam=(0.50, -0.80, 0.34), dist=70, lens=45, roll=-3, sun=(0.50, 0.65, 0.57), eoff=(8, -25), alt=9500, elon=165),
-    'side':  dict(tgt=(0, 0, 0), cam=(0.0, -1.0, 0.06), dist=420, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
-    'aft':   dict(tgt=(-50, 0, 0), cam=(-0.55, -0.75, 0.36), dist=90, lens=50, roll=0, sun=(-0.40, 0.60, 0.69), eoff=None, alt=0),
-    'mid':   dict(tgt=(18, 0, 0), cam=(0.35, -0.85, 0.40), dist=95, lens=50, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
-    'bow':   dict(tgt=(60, 0, 0), cam=(0.70, -0.62, 0.35), dist=48, lens=50, roll=0, sun=(0.55, 0.60, 0.58), eoff=None, alt=0),
-    'podc':  dict(tgt=(46, -17, 38), cam=(0.45, -0.80, 0.25), dist=30, lens=50, roll=0, sun=(0.55, 0.60, 0.58), eoff=None, alt=0),
+    'hero':  shot((6, 0, 6), (0.62, -0.72, 0.30), _E('DIST', 288), 70, _E('ROLL', -35), (0.35, -0.25, 0.9), (-10, -19)),
+    'pod':   shot(_h + _r * 31 + _bow * 2, _r * 0.86 + _bow * 0.30 - _t * 0.40, _E('DIST', 48), 28, _E('ROLL', -75), _r * 0.75 + _bow * 0.45 - _t * 0.5, (_E('EX', 25), _E('EY', -26)), elon=120),
+    'stern': shot((-20, 0, 0), (-0.80, -0.52, 0.30), _E('DIST', 185), 60, _E('ROLL', 4), (-0.3, -0.45, 0.84), (_E('EX', 10), _E('EY', -25))),
+    'hub':   shot((49, 0, 2), (0.42, -0.80, 0.42), _E('DIST', 52), 45, _E('ROLL', -3), (0.4, -0.2, 0.9), (_E('EX', 8), _E('EY', -25)), elon=165),
+    # working views (no Earth)
+    'side':  shot((0, 0, 0), (0.0, -1.0, 0.06), 420, 100, 0, (0.3, -0.6, 0.74), None),
+    'aft':   shot((-52, 0, 0), (-0.25, -0.85, 0.45), 62, 50, 0, (-0.1, -0.6, 0.8), None),
+    'spine': shot((-22, 0, 0), (0.15, -0.55, 0.82), 60, 50, 0, (0.3, -0.3, 0.9), None),
+    'mid':   shot((18, 0, 0), (0.35, -0.85, 0.40), 95, 50, 0, (0.4, -0.5, 0.77), None),
+    'cradle': shot(_h + _r * 7, _r * 0.5 + _bow * 0.35 - _t * 0.8, 32, 50, 0, _r * 0.7 + _bow * 0.4 - _t * 0.6, None),
+    'bow':   shot((60, 0, 0), (0.70, -0.62, 0.35), 48, 50, 0, (0.5, -0.4, 0.77), None),
+    'podc':  shot(_h + _r * 42, -_r * 0.25 + _bow * 0.55 - _t * 0.8, 24, 50, 0, -_r * 0.3 + _bow * 0.5 - _t * 0.8, None),
+    'podd':  shot(_h + _r * 42, _r * 0.5 - _bow * 0.45 + _t * 0.75, 24, 50, 0, _r * 0.6 - _bow * 0.3 + _t * 0.75, None),
 }
 
 if __name__ == '__main__':

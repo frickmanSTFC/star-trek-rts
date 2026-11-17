@@ -120,7 +120,7 @@ def slab(pts, th, mat):
     k.add(mat, [tuple(v) for v in V], fc, U)
 
 
-def plates(x0, x1, A, B, nrow, split, mat, gap=0.3, sgap=0.22, th=0.12, posts=None):
+def plates(x0, x1, A, B, nrow, split, mat, gap=0.3, sgap=0.22, th=0.12, posts=None, bolts=True):
     """Spaced armour: rows of flat plates over the outlines A (at x0) to B (at x1). split[i] plates across face i.
     mat(row, face, j) -> material name or None to leave the plate off."""
     for r in range(nrow):
@@ -143,8 +143,20 @@ def plates(x0, x1, A, B, nrow, split, mat, gap=0.3, sgap=0.22, th=0.12, posts=No
                     for u in ((u0, u1) if order == (0, 1) else (u1, u0)):
                         w = p.lerp(q, u)
                         pts.append((xx, w.x, w.y))
-                # pts: (xa,u0) (xa,u1) (xb,u1) (xb,u0)
-                slab([pts[0], pts[3], pts[2], pts[1]], th, m)
+                # pts: (xa,u0) (xa,u1) (xb,u1) (xb,u0); real plates never sit perfectly flush
+                cq = [Vector(pts[q_]) for q_ in (0, 3, 2, 1)]
+                nq = (cq[1] - cq[0]).cross(cq[3] - cq[0]).normalized()
+                ctr = (cq[0] + cq[1] + cq[2] + cq[3]) / 4
+                if nq.dot(Vector((0, ctr.y, ctr.z))) < 0:
+                    nq = -nq
+                jit = nq * (R.uniform(-0.025, 0.025) if k.lod >= 1 else 0.0)
+                cq = [c_ + jit for c_ in cq]
+                slab(cq, th, m)
+                if bolts and k.lod >= 1:          # fastener bosses near the corners
+                    for c_ in cq:
+                        b_ = c_.lerp(ctr, 0.13) + nq * 0.02
+                        with k.xf(orient(b_, nq)):
+                            k.lathe([(0, 0.13), (0.03, 0.13), (0.045, 0.09), (0.045, 0)], 'grey', seg=6)
                 if posts and k.lod >= 1:
                     for pt in (pts[0], pts[2]):
                         c = Vector(pt)
@@ -178,6 +190,13 @@ def fhatch(i, x, t=0.0, rad=0.8):
     a, d, _ = FACE[i]
     with k.xf(rotX(a) @ move(0, 0, t)):
         C.hatch(x, 0.0, d, rad)
+
+
+def port(i, x, t=0.0, lit=True, rad=0.42):
+    """Small armoured viewport."""
+    with k.xf(F(i, x, t) @ orient((0, 0, 0), (0, 1, 0))):
+        k.lathe([(0, rad + 0.22), (0.14, rad + 0.22), (0.14, rad), (0.05, rad)], 'grey', seg=14, sharp=30)
+        k.lathe([(0.06, rad), (0.06, 0)], 'glass' if lit else 'glass_dark', seg=12)
 
 
 def locker(i, x, t=0.0):
@@ -331,6 +350,10 @@ def build_aft_end(drive):
     SH = octp(S['w'], S['h'], S['c'])
     k.extrudeX(SH, -102.0, -101.75, 'tungsten')
     k.extrudeX(octp(S['w'] - 0.5, S['h'] - 0.5, S['c'] - 0.15), -101.75, -101.25, 'white')
+    for yy in np.arange(-17.5, 17.6, 5.0):          # retainer rails between the tungsten tiles
+        k.box((-102.02, yy, 0), (0.06, 0.14, 2 * (S['h'] / 2 - max(0.0, abs(yy) - (S['w'] / 2 - S['c']))) - 0.6), 'grey')
+    for zz in np.arange(-8.66, 8.7, 4.33):
+        k.box((-102.02, 0, zz), (0.06, 2 * (S['w'] / 2 - max(0.0, abs(zz) - (S['h'] / 2 - S['c']))) - 0.6, 0.14), 'grey')
     for i in range(8):          # rim channel
         p, q = SH[i], SH[(i + 1) % 8]
         k.tube((-101.6, p[0], p[1]), (-101.6, q[0], q[1]), 0.28, 'grey', seg=6)
@@ -608,6 +631,9 @@ def build_aft_hull():
                 C.ycan(0.2, 0.7, 0.3, 'steel', seg=10)
         fpipe(i, D['htr']['x0'] - 1, x1 - 1, 3.55, 0.2, 'gold')
         fpipe(i, D['htr']['x0'] - 1, x1 - 1, -3.55, 0.2, 'white_s')
+    for i in CHAMF[:2]:          # a few small viewports through the armour (wardroom and sick bay)
+        for x in (-33.5, -31.0, -28.6):
+            port(i, x, 1.2 * (1 if i == PT else -1), R.random() < 0.7)
     # detail pass: equipment, lockers, hatches, rails
     fgreeble(T_, -54, -37, 18)
     fgreeble(T_, -95, -88, 6, span=0.5)
@@ -787,11 +813,10 @@ def build_mid():
                 prof = [(xh + dd.x * sv + nv.x * o, 13.0 + dd.y * sv + nv.y * o) for (sv, o) in ((s0, 0.16), (s1, 0.16), (s1, 0.28), (s0, 0.28))]
                 k.lathe(prof, 'tile' if R.random() > 0.06 else 'tile2', seg=3 if k.lod >= 1 else 1, a0=j * TAU / nseg + da, a1=(j + 1) * TAU / nseg - da,
                         closed=True, caps=True, sharp=30)
-        for j in range(16):          # gussets
-            a = (j + 0.5) * TAU / 16
-            with k.xf(rotX(a)):
-                k.tube((xh + s * 2.6, 12.9, 0), (xo + s * 0.3, rC - 1.6, 0), 0.16, 'truss', seg=5)
-                k.tube((xh + s * 2.6, 12.9, 0), (xh + s * 0.2, 13.6, 0), 0.12, 'truss', seg=5)
+        for j in range(16):          # ribs between the plates carry the collar on the hull's end frame
+            with k.xf(rotX(j * TAU / 16)):
+                k.tube((xh + nv.x * 0.3, 13.0 + nv.y * 0.3, 0), (xo + nv.x * 0.3, rC - 1.35 + nv.y * 0.3, 0), 0.13, 'grey', seg=6)
+        k.lathe(C.rrect(xo - 0.25, xo + 0.25, rC - 1.5, rC - 0.2, 0.06, 0.06, 1), 'grey', seg=96, closed=True)
         # collar rim: spaced plates, edge bands
         nt = 30
         for j in range(nt):
@@ -801,7 +826,7 @@ def build_mid():
                 C.arc_plate(min(s * xa, s * xb), max(s * xa, s * xb), rC - 0.12, rC, a0, a1, m, seg=3, vref=rC)
         for xe in (Cc['x0'] + 0.45, Cc['x1'] - 0.45):
             k.lathe(C.rrect(s * xe - 0.4, s * xe + 0.4, rC - 0.25, rC + 0.15, 0.06, 0.06, 1), 'grey', seg=96, closed=True)
-        k.lathe(C.rrect(s * (Cc['x0'] + 0.1) - 0.12, s * (Cc['x0'] + 0.1) + 0.12, 21.3, rC - 0.2, 0.04, 0.04, 1), 'hazard', seg=96, closed=True)
+        k.lathe(C.rrect(s * (Cc['x0'] + 0.1) - 0.12, s * (Cc['x0'] + 0.1) + 0.12, rC - 0.85, rC - 0.3, 0.04, 0.04, 1), 'hazard', seg=96, closed=True)
         # spin motor-generators: four housings on each collar, cooling panels on top
         xm = s * (Cc['x0'] + Cc['x1']) / 2
         for q in range(4):
@@ -869,6 +894,9 @@ def build_drum():
             if R.random() < 0.008:
                 continue
             mat = 'tile' if R.random() > 0.05 else 'tile2'
+            am = ((a0 + a1) / 2) % (TAU / 3)
+            if j in (4, 5) and 1.66 < am < 2.0:
+                mat = 'blue'          # livery band after the name
             xa = x0 + j * rw + 0.06
             C.arc_plate(xa, xa + rw - 0.12, rO - 0.12, rO, a0, a1, mat, seg=3, vref=rO)
     for j in range(nrow + 1):          # hoop frames the plates bolt to
@@ -936,6 +964,10 @@ def build_fwd():
         face_decal('hull', REG, i, 68.0, 0.0, 5.2)
     for i in (SB, PB):
         face_decal('hull', REG, i, 68.0, 0.0, 5.2)
+    for i in CHAMF:          # viewports: duty stations forward of the flywheel bay
+        sg = 1 if i in (PT, SB) else -1
+        for x in (33.0, 35.4, 46.2, 48.4, 63.0, 80.8):
+            port(i, x, sg * 2.3 if x < 60 else -sg * 2.6, R.random() < 0.65)
     # detail pass
     fgreeble(T_, 31, 42, 10, span=0.5)
     fgreeble(B_, 31, 42, 10, span=0.5)
@@ -975,7 +1007,7 @@ def build_bow():
     xa, xb = 96.0, 123.5
     WA = scale_sec(lerp_sec(OCT, BOW, bt(xa)), 1.055)
     WB = scale_sec(lerp_sec(OCT, BOW, bt(xb)), 1.14)
-    plates(xa, xb, WA, WB, 5, [1, 1, 2, 1, 1, 1, 2, 1], lambda r, i, j: 'bumper', gap=0.22, sgap=0.18, th=0.05)
+    plates(xa, xb, WA, WB, 5, [1, 1, 2, 1, 1, 1, 2, 1], lambda r, i, j: 'bumper', gap=0.22, sgap=0.18, th=0.05, bolts=False)
     for xx in (xa + 0.3, 101.6, 107.1, 112.6, 118.1, xb - 0.3):
         A0 = lerp_sec(OCT, BOW, bt(xx))
         A1 = scale_sec(A0, 1.055 + (1.14 - 1.055) * (xx - xa) / (xb - xa))
@@ -1058,13 +1090,14 @@ def build(parts, drive, landers):
 
 
 SHOTS = {
-    'hero':  dict(tgt=(0, 0, 0), cam=(0.62, -0.72, 0.30), dist=560, lens=70, roll=-7, sun=(0.62, 0.55, 0.56), eoff=(-9, -20), alt=9500),
-    'drum':  dict(tgt=(4, 0, 4), cam=(0.50, -0.78, 0.38), dist=150, lens=45, roll=4, sun=(0.55, 0.60, 0.58), eoff=(-12, -27), alt=9500, elon=120),
-    'stern': dict(tgt=(-70, 0, 0), cam=(-0.78, -0.55, 0.30), dist=420, lens=60, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(10, -25), alt=9500),
-    'guns':  dict(tgt=(74, 0, 4), cam=(0.80, -0.48, 0.36), dist=190, lens=45, roll=-4, sun=(0.50, 0.65, 0.57), eoff=(8, -25), alt=9500, elon=165),
-    'bay':   dict(tgt=(-66, 0, 12), cam=(-0.35, -0.70, 0.62), dist=120, lens=45, roll=3, sun=(-0.45, 0.62, 0.64), eoff=None, alt=0),
+    'hero':  dict(tgt=(8, 0, -2), cam=(0.62, -0.72, 0.30), dist=520, lens=70, roll=-7, sun=(-0.45, 0.45, 0.77), eoff=(-9, -20), alt=9500, elon=20),
+    'drum':  dict(tgt=(4, 0, 4), cam=(0.50, -0.78, 0.38), dist=150, lens=45, roll=4, sun=(-0.45, 0.45, 0.77), eoff=(-12, -27), alt=9500, elon=40),
+    'stern': dict(tgt=(-82, 0, 0), cam=(-0.80, -0.52, 0.30), dist=300, lens=55, roll=4, sun=(0.5, 0.45, 0.74), eoff=(10, -25), alt=9500, elon=140),
+    'guns':  dict(tgt=(66, 0, 11), cam=(0.58, -0.62, 0.53), dist=92, lens=40, roll=-4, sun=(-0.5, 0.45, 0.74), eoff=(8, -25), alt=9500, elon=165),
+    'bay':   dict(tgt=(-70, 0, 12), cam=(-0.30, -0.45, 0.84), dist=110, lens=45, roll=3, sun=(-0.2, 0.3, 0.93), eoff=None, alt=0),
     'side':  dict(tgt=(0, 0, 0), cam=(0.0, -1.0, 0.06), dist=700, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),
     'top':   dict(tgt=(0, 0, 0), cam=(0.02, -0.05, 1.0), dist=700, lens=100, roll=0, sun=(0.40, 0.50, 0.75), eoff=None, alt=0),
+    'under': dict(tgt=(0, 0, 0), cam=(0.45, 0.55, -0.70), dist=480, lens=70, roll=0, sun=(0.2, 0.4, 0.9), eoff=None, alt=0),
 }
 
 if __name__ == '__main__':
