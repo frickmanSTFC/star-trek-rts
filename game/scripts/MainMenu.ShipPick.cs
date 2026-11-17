@@ -239,7 +239,8 @@ public partial class MainMenu
         if (FitOutApplies(ship))
         {
             // docs/fit-out-contract.md: this ship is fitted out on the next page (MainMenu.FitOut.cs).
-            var next = HudKit.Label("Next: fit out the ship. Pick a focus, split the crew and load the hold; then pick the world.", 14 * _s, HudKit.Sky);
+            var next = HudKit.Label(ship.Colonizes ? "Next: fit out the ship. Pick a focus, split the crew and load the hold; then pick the world."
+                : "Next: fit out the ship. Pick a focus, split the crew and load the hold; then pick where it starts.", 14 * _s, HudKit.Sky);
             next.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             text.AddChild(next);
         }
@@ -342,8 +343,8 @@ public partial class MainMenu
     private void ChooseShip()
     {
         if (PickedShip is not { } ship) return;
-        // A colony ship is fitted out before it leaves (docs/fit-out-contract.md); every other ship, and any ship when
-        // the data has no fit-out rules, goes straight to the system as before.
+        // A ship the fit-out data lists is fitted out before it leaves (docs/fit-out-contract.md: the colony ships and the
+        // four that never land); any other ship, and any ship when the data has no fit-out rules, goes straight to the system.
         ShowPage(FitOutApplies(ship) ? Page.FitOut : Page.System);
     }
 }

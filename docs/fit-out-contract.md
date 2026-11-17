@@ -204,3 +204,36 @@ posts payable) should count free satellites/posts from the leanest legal load.
 **UI:** the same `MainMenu.FitOut.cs` page, showing the ship's own cargo lines and, in the summary, "Aboard" (free
 satellites, free scans, free posts, flights, culture shock) instead of "At landing", and the space levers under "During
 play". The flagship card and pause card already show the focus and split.
+
+## Phase 2, filled in (2026-11-17)
+
+- **Data shape:** one `fit_out.json` for both kinds of ship. A lever or cargo line with `"space": true` belongs to the
+  ships that never land (ship_choice.json `colonizes: false`); everything else to the colony ships. Each kind of ship
+  shows and carries only its own lines, its levers move only on it (the other kind's are exactly 1), and `Problem`
+  refuses the other kind's lines ("Building materials lands with a colony, and the Bastion never lands"). Groups have
+  `space_floor` beside `floor`; focuses have `space_perk` / `space_perk_levers` beside `perk` / `perk_levers`. New
+  cargo fields (space lines only): `system_satellites`, `posts`, `probes`, `shock_points`. A seventh space lever,
+  `scan_range` (no division), carries the Explorer's perk (x 1.25 = 400 of 320). The Combatant's 20 s of 30 is
+  `alongside_time` x 0.6667. Validated: lever/line kinds match, space lines give no stock/units/research, colony
+  lines none of the space fields, base and fill use the ship's own kind, the free satellites and posts a full load can
+  carry fit the system's satellite max and the post max, every preset legal on all six ships.
+- **Sim:** `StarSystemState.ScanCooldownTicksFor`, `SweepTicksFor` (also the `swept` mission condition),
+  `ScanRangeFor`, `TravelTicksFor` (x flight_time after the ship's speed), the study rate (/ study_time),
+  `ShockChance` (x shock_chance, rounded, then + the gifts' points, then clamped), `MissionBook.HoldSecondsOf`
+  (with_ship holds x alongside_time, rounded, at least 1). Free body satellites and posts are used before stock
+  (`SatelliteProblem` / `PostProblem` let them through with an empty stock); a sensor probe lets `ScanProblem`
+  through while the scanners recharge, and that scan leaves the recharge as it was (`ScanUsesProbe`). Counters
+  `Simulation.FitOutFreeSystemSatellites`, `FitOutFreePosts`, `FitOutProbes`, `FitOutShockPoints`; hashed only for a
+  fitted-out ship that never lands (colony fit-outs hash as in phase 1). A ship that never lands keeps the start stock.
+- **Mission reach:** a space ship's stock doesn't change with a fit-out and the leanest legal load carries no free
+  satellites or posts (every space line's minimum is 0), so the check with no fit-out is already the hardest case;
+  nothing new to walk (noted in `ValidateSpaceReach`).
+- **No fit-out = today:** every earlier test passes; `ShipPickTests.NoFitOutPlaysTheChainExactlyAsBefore` plays each
+  space chain to the end through the 5-argument and the 6-argument game with null and compares every second's hash;
+  `FitOutSpaceTests.NoFitOutIsTheGameItAlwaysWas` the same for scans, flights and a satellite. Six phase 1 assertions
+  that said "the space ships are not fitted out" were changed to say what they are now.
+- **UI:** the page appears for the four ships; ABOARD (satellites ready to place, scans with no recharge wait,
+  listening posts ready, flights from reaction mass, culture shock from gifts, scan reach) replaces AT LANDING; DURING
+  PLAY lists the space levers as seconds (scan recharge, sweep, a 60 s flight, study, time alongside) or a percentage
+  (culture shock). In game: the flagship card's ABOARD row counts down, and the scan button reads
+  "LONG-RANGE SCAN · PROBE n" while a probe would make the scan.
