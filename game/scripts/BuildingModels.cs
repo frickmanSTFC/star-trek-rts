@@ -531,7 +531,7 @@ public static partial class BuildingModels
         Add(spin, new BoxMesh { Size = new Vector3(1.4f, 0.12f, 0.12f) }, Vector3.Zero, dark);
         Add(spin, new CylinderMesh { TopRadius = 0.06f, BottomRadius = 0.06f, Height = 1.4f }, new Vector3(0.6f, -0.6f, 0), dark);
         n.AddChild(spin);
-        // Parasteel ingots stacked by the door (how many, and on which side, varies).
+        // Parsteel ingots stacked by the door (how many, and on which side, varies).
         var ingot = Metal(new Color(0.62f, 0.66f, 0.74f), 0.85f, 0.25f);
         var bars = v.IsPlain ? 6 : 3 + v.Int(6);
         for (var i = 0; i < bars; i++)

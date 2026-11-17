@@ -12,7 +12,7 @@
       "effect": "Air, water and heat for a base's crewed buildings.", "description": "Scrubbers, electrolysers and heat exchangers that keep a base's air breathable. On a world that needs domes every crewed building draws life support: short of it they slow down, and with none for long the base starts losing crew. Each plant supports four crewed buildings and needs power. Only on Domes worlds.",
       "build_seconds": 25, "power_use": 6, "life_support": 4, "wear_per_min": 1, "footprint_radius": 7, "access": [0, 9.5] },
     { "id": "arcology", "name": "Arcology", "layer": "surface", "category": "habitation", "source": "original",
-      "cost": { "parasteel": 300 }, "requires_tech": "industrial_replicators", "effect": "+Pop cap (large); uses 1 slot for 4 habitats' worth." },
+      "cost": { "parsteel": 300 }, "requires_tech": "industrial_replicators", "effect": "+Pop cap (large); uses 1 slot for 4 habitats' worth." },
     { "id": "underground_shelter", "name": "Kelbonite Shelter", "layer": "surface", "category": "habitation", "source": "original",
       "cost": { "kelbonite": 30, "duranium": 50 }, "effect": "Population immune to scans, transporter raids, Crystalline Entity, thalaron sweeps." }
   ]

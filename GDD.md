@@ -95,8 +95,10 @@ layer above it once the surface game is fun.
   colony can't live without them). Everything else unlocks **through the missions** of First Light, so the menu grows
   with the story: Ground Truth (starts with the first refinery or 3 minutes after the uplink) → Research Lab + Vehicle
   Bay; The Lost Pathfinder → Prefab Habitat + Deep-Core Mine (which still needs its research); Wings, as it starts →
-  Machine Shop + Drone Pad, and as its reward → Alloy Foundry; Beyond the Ridge (or the Lost Signal side job, ruins
-  found by drone) → Excavation Site. Locked buildings stay out of the build drawer; the feed says "New buildings: …"
+  Machine Shop + Drone Pad + Alloy Foundry (its scout drones need power couplings, which need parsteel: 2026-11-17, the
+  foundry used to be Wings' reward, so Wings could not be finished); Beyond the Ridge (or the Lost Signal side job,
+  ruins found by drone, offered once Wings is done) → Excavation Site. `GameData.Validate()` walks every chain and
+  fails when a mission asks for something nothing unlocked by then can make (`game/sim/Data/GameData.MissionReach.cs`). Locked buildings stay out of the build drawer; the feed says "New buildings: …"
   when they unlock. With missions off (the DEBUG sandbox) everything is open; the test panel's MISSIONS tab can unlock
   everything or go back to the start menu.
 - **Ship pick** (decided 2026-11-16: "the player will decide which ship they are going to use. Based on the ship, the
@@ -123,7 +125,7 @@ layer above it once the surface game is fun.
   wait in order; unfinished buildings can be cancelled for a full refund. Buildings turn in 60° steps (hex sides).
   - *Storage Container:* +1000 storage. *Ore Refinery:* 2 ore → 1 duranium or tritanium (25 loads a minute, so 50 ore;
     shares its work between the ores in stock), +200 storage, uses power. *Alloy Foundry:* 2 duranium + 1 tritanium → 1
-    Parasteel, uses power.
+    Parsteel, uses power.
   - *Mining Complex:* must sit on a deposit; digs it into storage (80/min) until it runs out. Uses power.
   - *Deep-Core Mine* (needs the Deep-Core Mining tech): goes on a used-up deposit and reopens it once at
     50% of its first size; slower (48/min) and power-hungry.
@@ -175,7 +177,7 @@ layer above it once the surface game is fun.
   at a time per base, oldest order first. **Automatic**: Mk III buildings and the Automated Maintenance tech add
   drones that fix a building whenever it drops below 70%, without the crew. Worn reactors supply less power.
 - **Building levels**: refineries, mines and foundries upgrade Mk I → Mk II → Mk III (U). Mk II: +25–30% speed,
-  25% less wear. Mk III (needs Colonial Administration and parasteel): +50–60% speed, +10% yield (refinery,
+  25% less wear. Mk III (needs Colonial Administration and parsteel): +50–60% speed, +10% yield (refinery,
   foundry), 40% less wear and drones. An upgrade refits the building to 100% condition.
 - **Research** (first version, 2026-11-03): a Research Lab makes 16 research points a minute (10 until the 2026-11-07 retune) toward the tech you
   pick (select the lab: its techs replace the build card). Techs: Improved Smelting (refinery yield +20%), Ore
@@ -233,7 +235,7 @@ layer above it once the surface game is fun.
 - **Strategic resources (gate specific techs/modules):** Verterium Cortenide, Kelbonite, Pergium, Topaline, Zenite,
   Rodinium, Uridium, Cormaline, Trellium-D, Boronite, Benamite, Sirillium
 - **Exotic (late game / dangerous):** Protomatter, Neutronium, Trilithium, Omega Molecule, Red Matter (Kelvin-only)
-- **Refined components (produced, not mined):** Antimatter, Parasteel, Isolinear Chips, Bio-neural Gel Packs,
+- **Refined components (produced, not mined):** Antimatter, Parsteel, Isolinear Chips, Bio-neural Gel Packs,
   Transparent Aluminum, Warp Coils, Plasma Conduits, Photon Warheads
 - **Faction-specific:** Ketracel-white (Dominion), Nanoprobes (Borg), Bloodwine (Klingon morale), Singularity Cores (Romulan)
 
@@ -243,7 +245,7 @@ Full table → `data/resources/`.
 
 ```
 Asteroid ──▶ Tritanium Ore ──▶ [Refinery] ──▶ Tritanium ─┐
-Moon     ──▶ Duranium Ore  ──▶ [Refinery] ──▶ Duranium  ─┴─▶ [Foundry] ──▶ Parasteel ──▶ Hull Sections
+Moon     ──▶ Duranium Ore  ──▶ [Refinery] ──▶ Duranium  ─┴─▶ [Foundry] ──▶ Parsteel ──▶ Hull Sections
 Gas Giant ─▶ Deuterium ─────────────────────────────────────▶ [Antimatter Plant + Energy] ──▶ Antimatter
 Crystal deposit ─▶ Raw Dilithium ─▶ [Recrystallizer] ─▶ Dilithium ─┐
 Verterium (synth) ──────────────────────────────────────────────────┴─▶ Warp Core + Warp Coils ──▶ Warp-capable ship
@@ -341,7 +343,7 @@ Keystone Yard Tender, Nova surveyor; Cardassian Groumall; Ferengi Latinum Hauler
 cubes do everything.
 
 **Build cost, time, crew and tech gate** (placeholders, one formula on hull size s and role, `data/ships/rules.json`,
-applied by `tools/ship_costs.py`): duranium 30·s², tritanium 12·s², dilithium 6·s, parasteel above size 3, warp coils
+applied by `tools/ship_costs.py`): duranium 30·s², tritanium 12·s², dilithium 6·s, parsteel above size 3, warp coils
 above size 4, scaled by role (freighter ×0.6 … combat ×1); build (20 + 15·s^1.5) s (frigate 1:40, explorer 4:00,
 titan 6:00). **Crew cost** is separate from the complement and on the colony economy's scale (start crew 150, a Colony
 Hub makes 6 a minute): 2·√complement × role (frigate 28, explorer 63, titan 110; colony transports ×1.5 for colonists).

@@ -155,15 +155,15 @@ public class MiningTests
     }
 
     [Fact]
-    public void FoundryMakesParasteel()
+    public void FoundryMakesParsteel()
     {
         var sim = Landed(out var hub, out _);
         var a = FreeTile(sim, hub);
         Build(sim, "foundry", a);
         var stock = sim.Players[0].Stock;
-        var before = stock[R("parasteel")];
+        var before = stock[R("parsteel")];
         for (var i = 0; i < Simulation.TicksPerMinute; i++) sim.Step();
-        Assert.InRange((stock[R("parasteel")] - before).ToDouble(), Data.Building("foundry").CyclesPerMinute.ToDouble() - 0.1, Data.Building("foundry").CyclesPerMinute.ToDouble() + 0.1);
+        Assert.InRange((stock[R("parsteel")] - before).ToDouble(), Data.Building("foundry").CyclesPerMinute.ToDouble() - 0.1, Data.Building("foundry").CyclesPerMinute.ToDouble() + 0.1);
     }
 
     [Fact]

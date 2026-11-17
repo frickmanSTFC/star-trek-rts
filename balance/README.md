@@ -79,7 +79,7 @@ order; a step waits until it can be done (and its conditions hold), then the bot
                 "refuel": { "resource": "deuterium", "below": 60, "until": 200 } },
   "upkeep":   { "maintain_below": 55, "repair_below": 45 },
   "research": ["improved_smelting", "ore_conveyors", "preventive_maintenance"],
-  "pause": [ { "building": "foundry", "when": "parasteel >= 40 or duranium < 50", "resume": "parasteel < 20 and duranium >= 100" } ],
+  "pause": [ { "building": "foundry", "when": "parsteel >= 40 or duranium < 50", "resume": "parsteel < 20 and duranium >= 100" } ],
   "steps": [
     { "build": "storage_container" },
     { "build": "refinery" },
@@ -88,7 +88,7 @@ order; a step waits until it can be done (and its conditions hold), then the bot
     { "upgrade": "refinery" },
     { "unit": "mining_crawler" },
     { "build": "foundry", "when": "duranium >= 200 and tritanium >= 80" },
-    { "upgrade": "refinery", "after": "colonial_administration", "when": "parasteel >= 20" }
+    { "upgrade": "refinery", "after": "colonial_administration", "when": "parsteel >= 20" }
   ]
 }
 ```
@@ -113,7 +113,7 @@ order; a step waits until it can be done (and its conditions hold), then the bot
   deuterium source.)
 - `pause` (optional): standing pause rules. Every building of that type is switched off (`PauseCommand`) while `when`
   holds and back on when `resume` holds (without `resume`: as soon as `when` no longer does). E.g. keep the Alloy
-  Foundry from eating the metal you are saving, or stop it once there is parasteel enough.
+  Foundry from eating the metal you are saving, or stop it once there is parsteel enough.
 - `upkeep.maintain_below`: send the base crew (`MaintainCommand`) to any building below this condition or broken.
   `upkeep.repair_below`: send rovers below this integrity to the repair pad; a flat tyre is changed with the spare
   (`ChangeTyreCommand`), or the rover goes to the pad when there is none; broken crawlers and disabled rovers go to the pad.
@@ -140,7 +140,7 @@ Every step can also have:
 
 - `"when": "<condition>"`: terms joined by `and` (and groups of those joined by `or`, which binds looser), each
   `<name> <op> <number>` with `>= <= > < ==`. Names: a resource id
-  (stock, e.g. `duranium`, `duranium_ore`, `parasteel`), `minute`, `storage_free`, `storage_pct`, `power_free` (main
+  (stock, e.g. `duranium`, `duranium_ore`, `parsteel`), `minute`, `storage_free`, `storage_pct`, `power_free` (main
   base supply − use), `income:<resource>` (per minute, the HUD's number), `count:<building or unit id>`.
 - `"after": "<id>"` (or a list): a finished building of that type, a known tech, a unit of that type, or `second_base`,
   `landed`, `hub_ready`.
@@ -150,7 +150,7 @@ Every step can also have:
 
 The orders shipped: `standard_opener` (storage, refinery, a duranium mine (else tritanium), lab, a second refinery
 once ore piles up, storage, refinery Mk II, Vehicle Bay + second crawler, the reactor when the foundry needs the power,
-foundry (paused while metal is short or parasteel piles up), Colonial Administration, refinery Mk III; the newest crawler
+foundry (paused while metal is short or parsteel piles up), Colonial Administration, refinery Mk III; the newest crawler
 fetches deuterium when the reactor runs low; no beams), `storage_skip` (a naive opener: no Storage Container and one
 refinery, otherwise like the standard one; it checks that storage fills fast), `fast_expand` (beams the hold down,
 refinery + duranium mine, Vehicle Bay at 2 min, construction rover → second base, mine and storage there, second crawler,
@@ -181,10 +181,10 @@ longer); `2/3` = seeds whose own value is inside. The median of the seeds is wha
 reach: the median of those that did). Milestones a target names are listed even when no run reached them.
 
 The windows set for the economy retune (2026-11-07), standard opener: refinery 1–2 min, Vehicle Bay 6–9, second crawler
-9–12, first parasteel 12–18, Colonial Administration 20–30, power needed beyond the core (a reactor decision) 10–20, all
+9–12, first parsteel 12–18, Colonial Administration 20–30, power needed beyond the core (a reactor decision) 10–20, all
 seven surface techs 35–45 with one lab, refinery idle ≤ 5 min, duranium income ≥ 35 a minute; storage_skip: storage first
 full 10–15 min; fast_expand: bay ≤ 4, second base 4–10, second crawler ≤ 15; tech_rush: all techs 18–30 with two labs,
-first parasteel ≤ 15; every order: no power shortage over a minute, deuterium ≥ 20 at the end, no crash.
+first parsteel ≤ 15; every order: no power shortage over a minute, deuterium ≥ 20 at the end, no crash.
 
 **Factions.** Today the surface economy is Federation-first: every faction has the same build menu, buildings, units,
 costs and techs. What does differ in the sim is the ship in orbit (name only) and the **transporter level** (surfaces.json
@@ -212,7 +212,7 @@ or decide what to build by itself — it is a build-order player, not an AI. Sur
 
 ## Reading the report
 
-- **Tiles** at the top: headline numbers (first metal, refinery, first parasteel, second base, duranium and tritanium at
+- **Tiles** at the top: headline numbers (first metal, refinery, first parsteel, second base, duranium and tritanium at
   the end, peak storage fill, minutes with storage full, crawler uptime, idle building time, speed), the median of the
   seeds with the range under it; with several variants, the others' medians in their colours.
 - **Over time**: pick a series (stocks, income per minute, storage fill and capacity, main-base power use vs supply,
@@ -221,7 +221,7 @@ or decide what to build by itself — it is a build-order player, not an AI. Sur
 - **Key numbers**: every measure for every variant as median (min–max); `2/3` means only two of three seeds reached a
   milestone. With variants, the change against the first is green when better for the player, red when worse, and
   "same" under 2%; changed cells are highlighted.
-  - *Milestones*: first time something happened (a building type finished, first refined metal, first parasteel,
+  - *Milestones*: first time something happened (a building type finished, first refined metal, first parsteel,
     first Mk II / Mk III, a core upgrade, second base up, each tech, every surface tech known, each vehicle rolled out of
     a bay, storage first 80% full and first full, power needed beyond the core (a base using more than its own core
     supplies: the reactor decision), build order finished).
@@ -268,7 +268,7 @@ trickle (4 duranium, 2 tritanium), reactor upkeep, deuterium deposits, landing s
 **Sim:** any building that works can be paused (`PauseCommand`, P / the building panel; status Paused: no input, no
 output, no upkeep, no wear, no power). **Orders/bot:** pause rules, `crawlers.refuel`, deposit lists, `or` in conditions;
 the standard opener now builds its reactor when the foundry needs it, a second refinery once ore piles up, and pauses the
-foundry when metal is short or parasteel piles up; new order `storage_skip`.
+foundry when metal is short or parsteel piles up; new order `storage_skip`.
 
 **Standard opener, median of seeds 1, 1701, 99999** (original = old data, old orders and bot; before = old data with the
 new orders and bot; after = now):
@@ -279,7 +279,7 @@ new orders and bot; after = now):
 | Vehicle Bay done | 6–9 | 19:52 | 10:45 | 8:19 | 8:19 |
 | Second crawler rolled out | 9–12 | 22:46 (2/3) | 25:17 | 10:37 | 10:37 |
 | Power needed beyond the core | 10–20 | (reactor at 2:28) | 13:11 (1/3) | 16:09 (2/3) | 16:09 (2/3) |
-| First parasteel | 12–18 | 23:32 (1/3) | 20:43 (1/3) | 16:27 | 16:27 |
+| First parsteel | 12–18 | 23:32 (1/3) | 20:43 (1/3) | 16:27 | 16:27 |
 | Colonial Administration | 20–30 | never (75 min) | 28:42 (1/3); 43:38 in 60 min | 23:07 (2/3) | 23:30 |
 | All seven techs, one lab | 35–45 | 63 min | not in 60 | – | 41:32 |
 | Duranium income a minute | ≥ 35 | 20 | 19 | 52 | 54 |
@@ -288,7 +288,7 @@ new orders and bot; after = now):
 | Targets in window | | | 7 of 11 (5 of 12 at 60) | 11 of 11 | 12 of 12 |
 
 Other orders (30 min, after): storage_skip storage first full 14:43 (target 10–15; before: never) and then 9.6 min full;
-fast_expand 6 of 6 (bay 2:05, second base 4:47, second crawler 5:54); tech_rush 5 of 5 (first parasteel 4:52, all techs
+fast_expand 6 of 6 (bay 2:05, second base 4:47, second crawler 5:54); tech_rush 5 of 5 (first parsteel 4:52, all techs
 21:56). Seven seeds × 45 min (1, 1701, 99999, 42, 2024, 7, 314) keep the standard opener at 12 of 12.
 
 - **Duranium is no longer the bottleneck:** ~50 a minute instead of ~20; Vehicle Bay at ~8 min, second crawler ~10:40,
@@ -304,7 +304,7 @@ fast_expand 6 of 6 (bay 2:05, second base 4:47, second crawler 5:54); tech_rush 
   402 at 60 min. The reactor also comes later now (~11 min, when needed), not at 2:30.
 - **Mines last:** a mine on a 1200–3000 duranium deposit works 17–32 min (the old "5 minutes" was the bot putting its
   mine on a dilithium deposit of ~200). The bot still doesn't salvage used-up mines.
-- **Pause:** the foundry spends most of its time paused once it has 40 parasteel (it only feeds Mk III upgrades so
+- **Pause:** the foundry spends most of its time paused once it has 40 parsteel (it only feeds Mk III upgrades so
   far); the rule pauses it below 50 duranium too. Generic: any converter, mine, bay, lab or reactor.
 - **Seed variance is big:** on seed 1701 there is no duranium ore in the hub's radius, so the mine digs tritanium
   (1,200+ tritanium piles up) and Colonial Administration comes at ~37 min; one seed in three misses it in 30 min.
@@ -326,7 +326,7 @@ Domes tier because O2 13.5% is below 16%) with the domes kit: a Life Support Pla
 life support carries the hub and the lab), a Pressure Dome two tiles out (the hub's field only reaches its ring), the
 Fusion Reactor before the bay (the dome and the plant draw power). The bot keeps automated buildings off covered ground
 and puts a dome past the hub's field. New measure: `metal:<minute>` = refined metal made by then (the HUD's net
-duranium + tritanium + parasteel income summed), the gravity doc's "refined metal at minute 10 and 20".
+duranium + tritanium + parsteel income summed), the gravity doc's "refined metal at minute 10 and 20".
 
 | median of seeds 1 / 1701 / 99999 | Tarsis (M) | Veyra (Domes) | Veyra ÷ M |
 |---|---|---|---|
@@ -334,7 +334,7 @@ duranium + tritanium + parasteel income summed), the gravity doc's "refined meta
 | Duranium / tritanium income a minute | 52.2 / 23.0 | 57.2 / 14.9 | 110% / 65% |
 | Life Support Plant, Pressure Dome | — | 8:11, 11:20 | |
 | Vehicle Bay, second crawler | 8:19, 10:37 | 14:40, 17:02 | 1.76×, 1.60× |
-| Fusion Reactor, first parasteel | 11:21, 16:27 | 12:06, 21:20 | 1.07×, 1.30× |
+| Fusion Reactor, first parsteel | 11:21, 16:27 | 12:06, 21:20 | 1.07×, 1.30× |
 | Colonial Administration | 23:07 | 27:38 | 1.20× |
 | A base short of power | 0 min | 3.9 min | |
 | Crew at the end | 353 | 337 | 95% (none lost to failed life support) |
@@ -344,10 +344,10 @@ Tuning done (placeholders): Pressure Dome 200 duranium + 60 tritanium, 45 s, 8 p
 power (the doc's Domes-tier row; `habitability.domes` crewed_metal_cost / crewed_extra_power); the plant moved after the
 second refinery in the order. **Findings:**
 
-- **Update 2026-11-08 (owner: "yes, make refineries crewed on dome worlds"):** the Ore Refinery is `crewed: true`, so on a Domes world it needs cover, costs 15% more metal and draws 2 more power; the order now builds the Life Support Plant right after the first refinery and the mine. Seeds 1/1701/99999 × 30 min (median): refined metal **299 / 790 / 1,300** at minutes 10 / 20 / 30 vs Tarsis 550 / 1,362 / 2,262 = **54% / 58% / 57%**, a little under the doc's 60–80% band; Vehicle Bay 20:48 (2.5× Tarsis; it waits for the dome), no parasteel by 30 min, base short of power 1.4 min. Tried and reverted (no effect on these numbers): core life support 2/3/4 → 3/4/5, crewed_extra_power 2 → 1. The rest of this section is the earlier, automated-refinery result. Report: `reports/veyra_opener/`.
+- **Update 2026-11-08 (owner: "yes, make refineries crewed on dome worlds"):** the Ore Refinery is `crewed: true`, so on a Domes world it needs cover, costs 15% more metal and draws 2 more power; the order now builds the Life Support Plant right after the first refinery and the mine. Seeds 1/1701/99999 × 30 min (median): refined metal **299 / 790 / 1,300** at minutes 10 / 20 / 30 vs Tarsis 550 / 1,362 / 2,262 = **54% / 58% / 57%**, a little under the doc's 60–80% band; Vehicle Bay 20:48 (2.5× Tarsis; it waits for the dome), no parsteel by 30 min, base short of power 1.4 min. Tried and reverted (no effect on these numbers): core life support 2/3/4 → 3/4/5, crewed_extra_power 2 → 1. The rest of this section is the earlier, automated-refinery result. Report: `reports/veyra_opener/`.
 - **Refined metal stays at ~97–101% of class M, above the doc's 60–80% band.** The refineries set the pace of refined
   metal, and they are automated (crewed: false, as the doc lists the Ore Refinery), so the domes kit never slows them:
-  it costs metal and time instead (bay 1.76×, second crawler 1.6×, parasteel 1.3×, Colonial Administration 1.2×).
+  it costs metal and time instead (bay 1.76×, second crawler 1.6×, parsteel 1.3×, Colonial Administration 1.2×).
   Veyra's map (more hills) even gives more duranium. Making the kit dearer only moved things when it pushed the second
   refinery past its 240 s window (one refinery all game: ~60%), which is a cliff, not a dial. Making Veyra's ore
   poorer (duranium/tritanium chance 0.09) changed nothing: one crawler and a mine already outrun two refineries.
@@ -366,7 +366,7 @@ second refinery in the order. **Findings:**
 Repairs now take spare kits instead of duranium a point (`data/surfaces/fabrication.json`: one kit per 25 points, a
 broken-down crawler 1/2/3 more by severity, a pad tyre 1 Rover Spares), and every player starts with keep-in-stock
 targets of 2 for each kit their buildings and vehicles use, so from touchdown the Colony Hub's small workshop makes
-Mechanical Spares (8 duranium + 3 tritanium, 130 s each) and queues Rover Spares (they need parasteel, so they wait for
+Mechanical Spares (8 duranium + 3 tritanium, 130 s each) and queues Rover Spares (they need parsteel, so they wait for
 the foundry). None of the orders builds a Machine Shop. The bot jury-rigs a repair that waits 60 s for kits
 (`upkeep.jury_rig_after`). Before = the commit with the contract stubs (699fab4), after = now; same orders and seeds;
 median of seeds 1 / 1701 / 99999:
@@ -376,7 +376,7 @@ median of seeds 1 / 1701 / 99999:
 | Targets in window | 11 of 11 → 11 of 11 | 6 of 6 → 6 of 6 | 5 of 5 → 5 of 5 | 4 of 4 → 4 of 4 |
 | Vehicle Bay done | 8:19 → 8:31 | 2:05 → 2:05 | – | 4:52 → 5:18 |
 | Second crawler | 10:37 → 10:49 | 5:54 → 5:54 | – | 8:52 → 9:10 |
-| First parasteel | 16:27 → 16:02 | – | 4:52 → 5:15 | 19:59 → 19:14 |
+| First parsteel | 16:27 → 16:02 | – | 4:52 → 5:15 | 19:59 → 19:14 |
 | Colonial Administration (2 of 3 seeds) | 23:07 → 21:14 | – | – | 25:52 → 25:13 |
 | Metal made by minute 30 | 2,262 → 2,282 | 1,780 → 1,776 | 1,324 → 1,314 | 1,337 → 1,344 |
 | Crawler time digging | 92.7% → 85.5% | 78.2% → 75.1% | 57.1% → 58.2% | 56.3% → 59.0% |
@@ -429,7 +429,7 @@ Before = the commit before this change (old data, old orders), after = fields + 
 | Metal made by minute 30 | 2,282 → 2,300 | 1,776 → 1,788 | 1,314 → 1,314 | 1,344 → 1,336 | 1,306 → 1,309 |
 | Duranium made a minute | 48.6 → 59.5 | 39.1 → 41.0 | 42.3 → 42.3 | 32.8 → 27.4 | 37.7 → 37.4 |
 | Tritanium made a minute | 27.2 → 16.9 | 20.8 → 19.2 | 0.5 → 0.5 | 10.9 → 16.0 | 6.3 → 6.6 |
-| First parasteel | 16:02 → 15:46 | – | 5:15 → 5:15 | 19:14 → 21:13 | – |
+| First parsteel | 16:02 → 15:46 | – | 5:15 → 5:15 | 19:14 → 21:13 | – |
 | Colonial Administration (seeds) | 21:14 (2) → 20:57 (2) | – | – | 25:13 (2) → 25:35 (1) | – |
 | Crawler time digging | 85.5% → 87.1% | 75.1% → 75.2% | 58.2% → 58.4% | 59.0% → 46.6% | 88.5% → 93.0% |
 

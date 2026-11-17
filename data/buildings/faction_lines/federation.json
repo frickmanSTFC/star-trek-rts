@@ -20,7 +20,7 @@
           "id": "deep_space_station",
           "name": "Deep Space Station",
           "cost": {
-            "parasteel": 300
+            "parsteel": 300
           },
           "effect": "K-7 style trade hub.",
           "stats": {
@@ -33,7 +33,7 @@
           "id": "starbase",
           "name": "Starbase",
           "cost": {
-            "parasteel": 600,
+            "parsteel": 600,
             "isolinear_chips": 50,
             "photon_warheads": 40
           },
@@ -48,7 +48,7 @@
           "id": "spacedock",
           "name": "Spacedock",
           "cost": {
-            "parasteel": 1200,
+            "parsteel": 1200,
             "plasma_conduits": 150
           },
           "effect": "Interior bay; builds size-6 hulls.",
@@ -62,7 +62,7 @@
           "id": "yorktown_station",
           "name": "Yorktown",
           "cost": {
-            "parasteel": 4000,
+            "parsteel": 4000,
             "isolinear_chips": 300,
             "dilithium": 200
           },
@@ -126,7 +126,7 @@
           "id": "fed_governors_complex",
           "name": "Governor's Complex",
           "cost": {
-            "parasteel": 280,
+            "parsteel": 280,
             "isolinear_chips": 30
           },
           "effect": "Column carries a starbase-style saucer deck; three-storey ring modules; second saucer building; +1 morale in system.",
@@ -141,7 +141,7 @@
           "id": "planetary_capital",
           "name": "Planetary Capital",
           "cost": {
-            "parasteel": 400,
+            "parsteel": 400,
             "isolinear_chips": 50
           },
           "effect": "Spire of three saucer decks, ring of saucer-topped towers, Academy-style arches, pod monument; +2 morale in system.",
@@ -174,7 +174,7 @@
           "id": "orbital_shipyard",
           "name": "Orbital Shipyard",
           "cost": {
-            "parasteel": 300,
+            "parsteel": 300,
             "plasma_conduits": 40
           },
           "effect": "Double frame with cranes; cruisers.",
@@ -188,7 +188,7 @@
           "id": "fleet_yards",
           "name": "Fleet Yards",
           "cost": {
-            "parasteel": 3000,
+            "parsteel": 3000,
             "warp_coils": 200
           },
           "effect": "Utopia Planitia; titan berth, -20% build time.",
@@ -229,7 +229,7 @@
           "id": "arcology",
           "name": "Arcology",
           "cost": {
-            "parasteel": 300
+            "parsteel": 300
           },
           "effect": "Terraced megastructure; needs industrial replicators.",
           "stats": {

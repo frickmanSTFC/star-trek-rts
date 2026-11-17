@@ -17,7 +17,7 @@
           "id": "ketracel_facility",
           "name": "Ketracel-white Facility",
           "cost": {
-            "parasteel": 300,
+            "parsteel": 300,
             "zenite": 30
           },
           "effect": "+6 White/cycle; losing it makes nearby Jem'Hadar feral.",
@@ -31,7 +31,7 @@
           "id": "dom_vorta_command_station",
           "name": "Vorta Command Station",
           "cost": {
-            "parasteel": 600,
+            "parsteel": 600,
             "isolinear_chips": 50
           },
           "effect": "Fleet aura; Vorta diplomacy with neighbours.",
@@ -44,7 +44,7 @@
           "id": "dom_wormhole_citadel",
           "name": "Wormhole Citadel",
           "cost": {
-            "parasteel": 1400,
+            "parsteel": 1400,
             "isolinear_chips": 100
           },
           "effect": "On a stable wormhole; free reinforcement wave every 10 min.",
@@ -83,7 +83,7 @@
           "id": "great_link_pool",
           "name": "Founders' Sanctuary",
           "cost": {
-            "parasteel": 500,
+            "parsteel": 500,
             "isolinear_chips": 60
           },
           "effect": "The Great Link; trains Changeling infiltrators, loyalty aura.",
@@ -112,7 +112,7 @@
           "id": "dom_shipyard",
           "name": "Dominion Shipyard",
           "cost": {
-            "parasteel": 500,
+            "parsteel": 500,
             "plasma_conduits": 60
           },
           "effect": "Skips cruisers; Jem'Hadar battle cruiser.",
@@ -125,7 +125,7 @@
           "id": "dom_stellar_forge",
           "name": "Stellar Forge",
           "cost": {
-            "parasteel": 2800,
+            "parsteel": 2800,
             "warp_coils": 200
           },
           "effect": "Star-powered; Jem'Hadar battleship; no energy upkeep.",
@@ -152,7 +152,7 @@
           "id": "cloning_facility",
           "name": "Cloning Facility",
           "cost": {
-            "parasteel": 260,
+            "parsteel": 260,
             "zenite": 40
           },
           "effect": "3 squads/cycle; Vorta revival.",
@@ -165,7 +165,7 @@
           "id": "dom_cloning_complex",
           "name": "Cloning Complex",
           "cost": {
-            "parasteel": 600,
+            "parsteel": 600,
             "zenite": 80
           },
           "effect": "8 squads/cycle, instant crews in system; huge White demand.",

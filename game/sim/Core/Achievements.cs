@@ -355,7 +355,7 @@ public sealed class AchievementTracker
             if (_sim.Data.Techs.Count > 0 && me.Known.All(k => k)) Reach("research_all");
         }
         foreach (var r in _sim.Data.Resources)
-            if (r.Id == "parasteel" && _sim.Players[p].Stock[r.Index] > Fix64.Zero) Reach("first_parasteel");
+            if (r.Id == "parsteel" && _sim.Players[p].Stock[r.Index] > Fix64.Zero) Reach("first_parsteel");
         return fresh;
     }
 

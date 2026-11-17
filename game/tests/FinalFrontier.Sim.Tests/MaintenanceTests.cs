@@ -26,7 +26,7 @@ public class MaintenanceTests
         var stock = sim.Players[0].Stock;
         stock.Add(data.Resource("duranium").Index, Fix64.FromInt(1500));
         stock.Add(data.Resource("tritanium").Index, Fix64.FromInt(500));
-        stock.Add(data.Resource("parasteel").Index, Fix64.FromInt(100));
+        stock.Add(data.Resource("parsteel").Index, Fix64.FromInt(100));
         stock.Add(data.Resource("mechanical_spares").Index, Fix64.FromInt(20)); // repairs take spare kits
         return sim;
     }

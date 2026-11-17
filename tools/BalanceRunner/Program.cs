@@ -193,7 +193,7 @@ internal static class Cli
             Console.WriteLine($"{v.Label}: {t.Count(m => m.Target!.Verdict == "in")} of {t.Count} targets in their window" +
                 string.Concat(t.Where(m => m.Target!.Verdict != "in").Select(m => $"\n    out: {m.Label} = {Show(m)} ({m.Target!.Verdict}; target {Targets.Window(new TargetWindow(m.Target.Min, m.Target.Max, ""), m.Unit)})")));
         }
-        var keys = new[] { "ms:built:refinery", "ms:first_metal", "ms:built:vehicle_bay", "ms:first_parasteel", "ms:mk2", "ms:second_base", "end:duranium", "end:tritanium", "end:parasteel", "peak_storage", "stall:storage_full", "crawler_uptime", "speed" };
+        var keys = new[] { "ms:built:refinery", "ms:first_metal", "ms:built:vehicle_bay", "ms:first_parsteel", "ms:mk2", "ms:second_base", "end:duranium", "end:tritanium", "end:parsteel", "peak_storage", "stall:storage_full", "crawler_uptime", "speed" };
         Console.WriteLine($"{"measure (median of seeds)",-44}" + string.Join("", variants.Select(v => $"{v.Label,22}")));
         foreach (var k in keys)
         {

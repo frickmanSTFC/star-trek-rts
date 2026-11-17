@@ -19,7 +19,7 @@
           "id": "kli_battle_station",
           "name": "Battle Station",
           "cost": {
-            "parasteel": 320
+            "parsteel": 320
           },
           "effect": "Armored hub with wing arms; cloaked ships rearm without decloaking.",
           "stats": {
@@ -31,7 +31,7 @@
           "id": "kli_starbase",
           "name": "Klingon Starbase",
           "cost": {
-            "parasteel": 600,
+            "parsteel": 600,
             "isolinear_chips": 40,
             "photon_warheads": 30
           },
@@ -45,7 +45,7 @@
           "id": "asteroid_fortress",
           "name": "Asteroid Fortress",
           "cost": {
-            "parasteel": 1000,
+            "parsteel": 1000,
             "kelbonite": 80
           },
           "effect": "Ty'Gokor style hollowed asteroid; kelbonite hides hangars from scans.",
@@ -86,7 +86,7 @@
           "id": "great_hall",
           "name": "Great Hall",
           "cost": {
-            "parasteel": 450,
+            "parsteel": 450,
             "honor": 100,
             "bloodwine": 50
           },
@@ -116,7 +116,7 @@
           "id": "kli_imperial_shipyard",
           "name": "Imperial Shipyard",
           "cost": {
-            "parasteel": 300,
+            "parsteel": 300,
             "plasma_conduits": 40
           },
           "effect": "Three claw pairs; battlecruisers.",
@@ -129,7 +129,7 @@
           "id": "kli_imperial_fleet_yards",
           "name": "Imperial Fleet Yards",
           "cost": {
-            "parasteel": 2800,
+            "parsteel": 2800,
             "warp_coils": 200
           },
           "effect": "Titan berth (Negh'Var); Great House sponsorship cuts cost 30%.",
@@ -167,7 +167,7 @@
           "id": "kli_warrior_citadel",
           "name": "Warrior Citadel",
           "cost": {
-            "parasteel": 320,
+            "parsteel": 320,
             "rodinium": 60
           },
           "effect": "Crag city; trains elite warriors, hardest to invade.",

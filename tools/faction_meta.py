@@ -6,7 +6,7 @@ NAMES = {"federation": "Federation", "klingon": "Klingon", "cardassian": "Cardas
 ROLES = ["core", "housing", "extraction", "power", "research", "defense", "signature"]
 LINE_NAMES = {"deep_space": "Deep space", "command": "Command", "shipyards": "Shipyards",
               "habitation": "Habitation", "clones": "Clones (Dominion)", "drones": "Drones (Borg)"}
-RES = {"duranium": "duranium", "tritanium": "tritanium", "parasteel": "parasteel", "crew": "crew",
+RES = {"duranium": "duranium", "tritanium": "tritanium", "parsteel": "parsteel", "crew": "crew",
        "deuterium": "deuterium", "isolinear_chips": "isolinear", "plasma_conduits": "plasma conduits",
        "warp_coils": "warp coils", "dilithium": "dilithium", "rodinium": "rodinium", "kelbonite": "kelbonite",
        "uridium": "uridium", "antimatter": "antimatter", "singularity_core": "singularity cores",

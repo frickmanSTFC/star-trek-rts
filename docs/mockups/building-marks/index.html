@@ -260,7 +260,7 @@ footer { padding-block: 28px 48px; color: var(--dim); font-size: 14px; display: 
             <span class="card-sub"><span class="pips" aria-label="Mk III of Mk V, upgrading to Mk IV"><i class="on"></i><i class="on"></i><i class="on"></i><i class="next"></i><i></i></span><span>Mk III Motor Pool → Mk IV Twin Line</span><span style="color:var(--hud-dim)">· Production · Base 1</span></span></div>
           <span class="x" aria-hidden="true">×</span></div>
         <div class="hero"><img src="img/vehicle_bay-mk4-hero.jpg" alt="Vehicle Bay Mk IV: a wider hall with two roll-up doors under twin barrel roofs, a roof tower with a sensor array" loading="lazy"><span class="badge"><span class="src prop">Mk IV preview</span></span><span class="drag">Drag to turn</span></div>
-        <div class="costline"><span><i class="dot" style="background:#9fb2c8"></i>120 Parasteel<span class="have">/ 184</span></span><span><i class="dot" style="background:#7fd7ff"></i>30 Transparent Aluminum<span class="have">/ 42</span></span><span style="color:var(--hud-dim)">· 55 s upgrade</span></div>
+        <div class="costline"><span><i class="dot" style="background:#9fb2c8"></i>120 Parsteel<span class="have">/ 184</span></span><span><i class="dot" style="background:#7fd7ff"></i>30 Transparent Aluminum<span class="have">/ 42</span></span><span style="color:var(--hud-dim)">· 55 s upgrade</span></div>
         <div class="hstats"><div><span>Lines</span><b class="good">1 → 2</b></div><div><span>Speed</span><b class="good">170%</b></div><div><span>Queue</span><b>8 → 10</b></div><div><span>Power</span><b>−8 → −12</b></div></div>
         <p class="desc">The hall widens to two assembly lines under twin barrel roofs, each with its own door, so two vehicles are built at once. Exocomps rebuild it around the working bay: the line in use keeps going at half speed while the new hall goes up.</p>
         <div class="okline"><span>Automated Assembly researched · Dominion War era allows up to Mk V · Mk III finished</span></div>
@@ -329,7 +329,7 @@ footer { padding-block: 28px 48px; color: var(--dim); font-size: 14px; display: 
       <li>Bay panel shows both lines' progress; lab card shows two project slots at Mk V.</li>
       <li>Runtime thumbnails per mark (the cache key gains the level).</li></ul></div>
   </div>
-  <pre class="code">{ "name": "Mk IV", "cost": { "parasteel": 120, "transparent_aluminum": 30 }, "build_seconds": 55,
+  <pre class="code">{ "name": "Mk IV", "cost": { "parsteel": 120, "transparent_aluminum": 30 }, "build_seconds": 55,
   "requires_level": 3, "requires_tech": "automated_assembly", "power_use": 12, "storage": 100,
   "production_lines": 2, "production_queue": 10, "adds_produces": ["hover_apc"],
   "modifiers": [ { "stat": "speed", "add": 0.7 }, { "stat": "wear", "add": -0.5 }, { "stat": "auto_maintain" } ] }</pre>
@@ -377,9 +377,9 @@ const BUILDINGS = [
       { title: "Starfleet Motor Pool", changes: ["One sweeping canopy over both lines, a porch over the doors", "Glass control bridge above the doors", "Spire with dish and beacon", "Industrial transporter pad for parts", "Blue light strips, nav lights"] },
     ],
     tiles: [["Lines × speed", ["1 × 100%", "1 × 130%", "1 × 160%", "2 × 170%", "2 × 220%"]], ["Queue", ["5", "6", "8", "10", "12"]], ["Power", ["6", "7", "8", "12", "14"]], ["Crawler takes", ["45 s", "35 s", "28 s", "26 s × 2", "20 s × 2"]]],
-    gate: ["Placed from the build menu", "Mk I finished", "Mk II finished; costs parasteel (foundry)", "Mk III + <b>Automated Assembly</b>; costs transparent aluminum", "Mk IV + <b>Industrial Transporters</b> + era TNG or later; costs plasma conduits"],
+    gate: ["Placed from the build menu", "Mk I finished", "Mk II finished; costs parsteel (foundry)", "Mk III + <b>Automated Assembly</b>; costs transparent aluminum", "Mk IV + <b>Industrial Transporters</b> + era TNG or later; costs plasma conduits"],
     rows: [
-      ["Cost", ["180 Dur · 60 Tri", "150 Dur · 50 Tri", "160 Dur · 40 Parasteel", "120 Parasteel · 30 Transp. Aluminum", "150 Parasteel · 30 Plasma Conduits · 10 Dilithium"]],
+      ["Cost", ["180 Dur · 60 Tri", "150 Dur · 50 Tri", "160 Dur · 40 Parsteel", "120 Parsteel · 30 Transp. Aluminum", "150 Parsteel · 30 Plasma Conduits · 10 Dilithium"]],
       ["Build / upgrade", ["30 s", "30 s", "40 s", "55 s", "70 s"]],
       ["Assembly", ["1 line, 100%", "+1 line, 130%", "+1 line, 160%", "+2 lines, 170% each", "+2 lines, 220% each"]],
       ["Mining Crawler", ["45 s", "35 s", "28 s", "+26 s, two at once", "+20 s, two at once"]],
@@ -405,9 +405,9 @@ const BUILDINGS = [
       { title: "Starfleet Science Station", changes: ["Observation saucer on a column rising out of the lab", "Three domes", "Big dish, larger containment ring with a field column", "Nav lights, lit column"] },
     ],
     tiles: [["Research", ["10/min", "13/min", "16/min", "20/min", "25/min × 2"]], ["Projects", ["1", "1", "1", "1", "2 at once"]], ["Power", ["8", "9", "10", "13", "16"]], ["New branch", ["Industry", "Field Survey", "Advanced", "Subspace", "Starfleet R&D"]]],
-    gate: ["Placed from the build menu", "Mk I finished", "Mk II finished; costs parasteel (foundry)", "Mk III + <b>Isolinear Data Cores</b>; costs transparent aluminum", "Mk IV + <b>Positronic Research</b> + era TNG or later; costs plasma conduits"],
+    gate: ["Placed from the build menu", "Mk I finished", "Mk II finished; costs parsteel (foundry)", "Mk III + <b>Isolinear Data Cores</b>; costs transparent aluminum", "Mk IV + <b>Positronic Research</b> + era TNG or later; costs plasma conduits"],
     rows: [
-      ["Cost", ["120 Dur · 40 Tri", "100 Dur · 40 Tri", "80 Tri · 30 Parasteel", "60 Parasteel · 30 Transp. Aluminum", "80 Parasteel · 40 Plasma Conduits · 10 Dilithium"]],
+      ["Cost", ["120 Dur · 40 Tri", "100 Dur · 40 Tri", "80 Tri · 30 Parsteel", "60 Parsteel · 30 Transp. Aluminum", "80 Parsteel · 40 Plasma Conduits · 10 Dilithium"]],
       ["Build / upgrade", ["30 s", "30 s", "40 s", "55 s", "70 s"]],
       ["Research", ["10 RP/min", "+13 RP/min", "+16 RP/min", "+20 RP/min", "+25 RP/min per project"]],
       ["Today's 7 techs", ["63 min with one lab (balance runner)", "48 min", "39 min", "32 min", "25 min (or two at once)"]],
@@ -423,7 +423,7 @@ const BUILDINGS = [
   },
   {
     id: "foundry", anchor: "alloy-foundry", name: "Alloy Foundry", eyebrow: "Industry · footprint 7",
-    blurb: "A casting hall at the back, the melt out front under an arch or gantry (the glowing crucible with the stirrer, Spin), stacks, parasteel ingots by the door. Mk IV and V each add a recipe with its own line.",
+    blurb: "A casting hall at the back, the melt out front under an arch or gantry (the glowing crucible with the stirrer, Spin), stacks, parsteel ingots by the door. Mk IV and V each add a recipe with its own line.",
     src: ["data", "data", "data", "prop", "prop"],
     marks: [
       { title: "Crucible Shed", changes: ["Open-fronted lean-to shed with a glowing mould", "One crucible on a stand under a steel arch, stirrer (Spin)", "One stack, an ingot pallet, gas bottles"] },
@@ -432,15 +432,15 @@ const BUILDINGS = [
       { title: "Arc + Glass Line", changes: ["Electric arc furnace: three electrodes through the lid", "Transparent aluminum kiln with glass walls and a cooling tunnel", "Scrubbers on both stacks, white cladding", "Covered conveyor, robot arm at the kiln", "Light strips on the gantry and hall"] },
       { title: "Plasma Conduit Line", changes: ["Vaulted white roof with a skylight ribbon", "Plasma-conduit line: winder, conduit, glowing test chamber", "Third stack", "Glass control gallery on the hall front", "Second robot arm"] },
     ],
-    tiles: [["Cycles", ["6/min", "7.8/min", "9.6/min", "11.4/min", "13.2/min"]], ["Parasteel", ["6/min", "7.8/min", "10.6/min", "13.1/min", "15.8/min"]], ["Power", ["10", "11", "12", "16", "20"]], ["Recipes", ["1", "1", "1", "2", "3"]]],
-    gate: ["Placed from the build menu", "Mk I finished (in data)", "Mk II finished (in data); costs parasteel", "Mk III + <b>Transparent Aluminum</b>", "Mk IV + <b>Plasma Conduit Fabrication</b> + era TNG or later; costs transparent aluminum"],
+    tiles: [["Cycles", ["6/min", "7.8/min", "9.6/min", "11.4/min", "13.2/min"]], ["Parsteel", ["6/min", "7.8/min", "10.6/min", "13.1/min", "15.8/min"]], ["Power", ["10", "11", "12", "16", "20"]], ["Recipes", ["1", "1", "1", "2", "3"]]],
+    gate: ["Placed from the build menu", "Mk I finished (in data)", "Mk II finished (in data); costs parsteel", "Mk III + <b>Transparent Aluminum</b>", "Mk IV + <b>Plasma Conduit Fabrication</b> + era TNG or later; costs transparent aluminum"],
     rows: [
-      ["Cost", ["150 Dur · 50 Tri", "150 Dur · 60 Tri", "60 Tri · 30 Parasteel", "120 Tri · 60 Parasteel", "100 Parasteel · 40 Transp. Aluminum"]],
+      ["Cost", ["150 Dur · 50 Tri", "150 Dur · 60 Tri", "60 Tri · 30 Parsteel", "120 Tri · 60 Parsteel", "100 Parsteel · 40 Transp. Aluminum"]],
       ["Build / upgrade", ["35 s", "30 s", "40 s", "55 s", "70 s"]],
       ["Speed / yield", ["base", "+speed +0.3", "+speed +0.6, yield +0.1", "+speed +0.9, yield +0.15", "+speed +1.2, yield +0.2"]],
       ["Cycles", ["6/min", "+7.8/min", "+9.6/min", "+11.4/min", "+13.2/min"]],
-      ["Recipes", ["2 Dur + 1 Tri → 1 Parasteel", "same", "same", "+ 3 Tri + 1 Dur → 1 Transparent Aluminum", "+ 2 Parasteel + 1 Transp. Al → 1 Plasma Conduit"]],
-      ["All on parasteel", ["6/min from 12 Dur + 6 Tri", "+7.8/min from 15.6 + 7.8", "+10.6/min from 19.2 + 9.6", "+13.1/min from 22.8 + 11.4", "+15.8/min from 26.4 + 13.2"]],
+      ["Recipes", ["2 Dur + 1 Tri → 1 Parsteel", "same", "same", "+ 3 Tri + 1 Dur → 1 Transparent Aluminum", "+ 2 Parsteel + 1 Transp. Al → 1 Plasma Conduit"]],
+      ["All on parsteel", ["6/min from 12 Dur + 6 Tri", "+7.8/min from 15.6 + 7.8", "+10.6/min from 19.2 + 9.6", "+13.1/min from 22.8 + 11.4", "+15.8/min from 26.4 + 13.2"]],
       ["Power", ["10", "11", "12", "16", "20"]],
       ["Upkeep", ["inputs only", "inputs only", "inputs only", "inputs only", "inputs only"]],
       ["Storage", ["—", "—", "+50 (ingot yard)", "+100", "+150"]],

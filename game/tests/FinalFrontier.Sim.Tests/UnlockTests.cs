@@ -98,11 +98,13 @@ public class UnlockTests
         Assert.Contains("unlocks Research Lab, Vehicle Bay", sim.Missions.View(0, "ground_truth")!.Rewards);
         Do(sim, new PlaceBuildingCommand(0, "science_lab", Spot(sim, "science_lab"), 0));
 
-        // Wings opens the Machine Shop and the Drone Pad as it starts (its objectives build them), the Foundry as its reward.
+        // Wings opens the Machine Shop, the Drone Pad and the Alloy Foundry as it starts: its objectives build them,
+        // and its drones' power couplings need the foundry's parsteel (the foundry used to be Wings' reward).
+        Assert.False(s.BuildingUnlocked(0, "foundry"));
         Do(sim, new DebugMissionCommand(0, 0, "wings", DebugMissionAction.Start, "", "", -1));
         Assert.True(s.BuildingUnlocked(0, "machine_shop"));
         Assert.True(s.BuildingUnlocked(0, "drone_pad"));
-        Assert.False(s.BuildingUnlocked(0, "foundry"));
+        Assert.True(s.BuildingUnlocked(0, "foundry"));
         Do(sim, new DebugMissionCommand(0, 0, "wings", DebugMissionAction.Complete, "", "", -1));
         Assert.True(s.BuildingUnlocked(0, "foundry"));
 

@@ -16,13 +16,13 @@ public class MissionTests
     private static GameData Data => TestData.Real;
 
     /// <summary>A landed one-player game on seed 1701 with missions on (or off), outpost assembled.</summary>
-    private static Simulation Game(GameData? data = null, bool missions = true, int players = 1)
+    internal static Simulation Game(GameData? data = null, bool missions = true, int players = 1, bool stockTargets = false)
     {
         data ??= Data;
         var sim = MatchSetup.CreatePlanetLanding(data, 1701);
         if (players > 1) sim.AddPlayer("cardassian");
         if (missions) Assert.Null(sim.Missions.Enable("dawn_of_warp"));
-        TestData.NoStockTargets(sim);
+        if (!stockTargets) TestData.NoStockTargets(sim);
         var map = sim.Surface!.Map;
         var first = Enumerable.Range(0, map.Grid.Count).First(t => sim.Surface.CanLand(0, t));
         sim.Schedule(0, new LandColonyCommand(0, first));
@@ -119,7 +119,9 @@ public class MissionTests
 
     /// <summary>
     /// Plays First Light along a scripted path of real orders until the mission stopAfter completes (null: all seven).
-    /// The test panel only places buildings at once (lab, Machine Shop, Drone Pad, the second outpost) and tops up stock.
+    /// The test panel only places buildings at once (refinery, Machine Shop, Drone Pad, Alloy Foundry, the second outpost)
+    /// and tops up the metals; every part and drone is made by the Machine Shop from what the open buildings make
+    /// (HonestCampaignTests plays up to the end of Wings with no test-panel help at all).
     /// </summary>
     internal static Simulation PlayFirstLight(string? stopAfter, List<ulong>? hashes = null)
     {
@@ -197,22 +199,35 @@ public class MissionTests
         Assert.Contains("earth_link", sim.Missions.Flags(0));
         if (stopAfter == "calling_home") return sim;
 
-        // 4. Wings: a Machine Shop and a Drone Pad, then two scout drones fabricated (the pad unpacks them into its bays).
+        // 4. Wings: a Machine Shop, a Drone Pad and an Alloy Foundry, then two scout drones fabricated (the pad unpacks
+        // them into its bays). The drones' power couplings need parsteel, which only the foundry makes, so Wings opens
+        // all three as it starts (owner 2026-11-17: the foundry used to be Wings' reward, and Wings couldn't be done).
         Seconds(sim, 1);
         Assert.Equal(MissionState.Active, State(sim, "wings"));
         Assert.Equal("Chief Okafor", View(sim, "wings").GiverName);
-        Assert.True(s.BuildingUnlocked(0, "machine_shop") && s.BuildingUnlocked(0, "drone_pad")); // opened as Wings starts
-        Assert.False(s.BuildingUnlocked(0, "foundry"));
+        Assert.True(s.BuildingUnlocked(0, "machine_shop") && s.BuildingUnlocked(0, "drone_pad") && s.BuildingUnlocked(0, "foundry")); // opened as Wings starts
+        Assert.Equal(Fix64.Zero, sim.Players[0].Stock[R("power_coupling")]); // nothing handed over: the shop has to make them
+        Assert.Equal(Fix64.Zero, sim.Players[0].Stock[R("parsteel")]);
         Do(sim, new DebugPlaceBuildingCommand(0, 0, "machine_shop", FreeTile(sim, "machine_shop"), 0));
         Do(sim, new DebugPlaceBuildingCommand(0, 0, "drone_pad", FreeTile(sim, "drone_pad"), 0));
         var shop = s.Structures.First(x => x.Owner == 0 && x.DefId == "machine_shop");
         var pad = s.Structures.First(x => x.Owner == 0 && x.DefId == "drone_pad");
+        Do(sim, new FabricateCommand(0, shop.Id, "structural_frame", 2));
+        Do(sim, new FabricateCommand(0, shop.Id, "control_module", 2)); // two more came with the Pathfinder's recorder
+        Do(sim, new FabricateCommand(0, shop.Id, "power_coupling", 2));
         Do(sim, new FabricateCommand(0, shop.Id, "scout_drone", 2));
         Seconds(sim, 2);
         var drones = View(sim, "wings").Objectives.Single(o => o.Id == "drones");
         Assert.Equal(Fix64.FromInt(2), drones.Target);
         Assert.False(drones.Done);
-        StepUntil(sim, () => State(sim, "wings") == MissionState.Completed, 200, "two scout drones fabricated");
+        // Without the foundry the couplings (and so the drones) never come: frames and modules are done, the rest waits.
+        Seconds(sim, 150);
+        Assert.Equal(Fix64.Zero, sim.Players[0].Stock[R("power_coupling")]);
+        Assert.Equal(Fix64.Zero, sim.Players[0].Stock[R("scout_drone")]);
+        Assert.Equal(MissionState.Active, State(sim, "wings"));
+        Assert.False(View(sim, "wings").Objectives.Single(o => o.Id == "foundry").Done);
+        Do(sim, new DebugPlaceBuildingCommand(0, 0, "foundry", FreeTile(sim, "foundry"), 0));
+        StepUntil(sim, () => State(sim, "wings") == MissionState.Completed, 300, "two scout drones fabricated");
         Done("wings");
         Assert.True(s.BuildingUnlocked(0, "foundry"));
         Assert.Contains(sim.Missions.Messages(0), m => m.MissionId == "wings" && m.Text.Contains("2 Power Coupling")); // paid into storage
@@ -277,11 +292,12 @@ public class MissionTests
         return sim;
     }
 
-    /// <summary>Plenty of metal and drone parts in stock (relays, drone recipes).</summary>
+    /// <summary>Plenty of metal in stock (relays, the Machine Shop's recipes). No parts: the shop has to make them from
+    /// what the open buildings make, so a recipe nothing unlocked can feed stops the golden path.</summary>
     internal static void TopUp(Simulation sim)
     {
         var stock = sim.Players[0].Stock;
-        var values = new[] { ("duranium", 2000), ("tritanium", 1000), ("structural_frame", 4), ("power_coupling", 4), ("control_module", 8) }
+        var values = new[] { ("duranium", 2000), ("tritanium", 1000) }
             .Select(x => new ResourceAmount(R(x.Item1), Fix64.Max(stock[R(x.Item1)], Fix64.FromInt(x.Item2)))).ToList();
         Do(sim, new DebugStockCommand(0, 0, values));
         Do(sim, new DebugFlagCommand(0, 0, DebugFlag.NoStorageCap, true));

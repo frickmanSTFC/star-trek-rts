@@ -447,11 +447,15 @@ public class CommandFuzzTests
     [Fact]
     public void NegativeStocksHoldsAndCostsAreRefusedData()
     {
-        foreach (var label in new[] { "landing › start_stock › duranium", "orbit › hold › deuterium" })
+        foreach (var label in new[] { "landing › start_stock › duranium", "landing › start_stock › latinum", "orbit › hold › deuterium" })
         {
             var n = DataTuning.Numbers(Data).First(x => x.Label == label);
             Assert.NotNull(DataTuning.Rebuild(Data, new[] { new DataEdit(n.File, n.Path, "-1") }, Array.Empty<DataFile>(), out _));
-            Assert.Null(DataTuning.Rebuild(Data, new[] { new DataEdit(n.File, n.Path, "0") }, Array.Empty<DataFile>(), out _));
+            var zero = DataTuning.Rebuild(Data, new[] { new DataEdit(n.File, n.Path, "0") }, Array.Empty<DataFile>(), out _);
+            // Zero is fine data, except where a mission needs the stock: a ship that never lands pays for the Long Survey's
+            // body satellites out of the duranium it starts with (GameData.MissionReach.cs).
+            if (label.EndsWith("duranium")) Assert.Contains("The Long Survey can't be done", zero);
+            else Assert.Null(zero);
         }
     }
 

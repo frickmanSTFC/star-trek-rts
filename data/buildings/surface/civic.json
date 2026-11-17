@@ -8,6 +8,6 @@
       "cost": { "duranium": 80, "latinum": 20 }, "requires_tech": "holotechnology",
       "effect": "+Morale, +Latinum; crew XP trickle. (Quark's)" },
     { "id": "embassy", "name": "Embassy", "layer": "surface", "category": "civic", "source": "canon",
-      "cost": { "parasteel": 100, "latinum": 50 }, "effect": "Opens diplomacy with a faction; espionage defense." }
+      "cost": { "parsteel": 100, "latinum": 50 }, "effect": "Opens diplomacy with a faction; espionage defense." }
   ]
 }

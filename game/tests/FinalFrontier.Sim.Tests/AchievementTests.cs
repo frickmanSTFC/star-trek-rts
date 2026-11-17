@@ -269,13 +269,13 @@ public class AchievementTests
                 "\"trigger\": { \"kind\": \"all_of\", \"rules\": [ { \"kind\": \"milestone\", \"milestone\": \"uplink\" }, { \"kind\": \"count\", \"measure\": \"units\", \"at_least\": 3 } ] }"),
             ("achievements/colony.json", "\"trigger\": { \"kind\": \"milestone\", \"milestone\": \"first_metal\" }",
                 "\"trigger\": { \"kind\": \"any_of\", \"rules\": [ { \"kind\": \"milestone\", \"milestone\": \"first_metal\" }, { \"kind\": \"count\", \"measure\": \"units\", \"at_least\": 30 } ] }"),
-            ("achievements/colony.json", "\"trigger\": { \"kind\": \"milestone\", \"milestone\": \"first_parasteel\" }",
+            ("achievements/colony.json", "\"trigger\": { \"kind\": \"milestone\", \"milestone\": \"first_parsteel\" }",
                 "\"trigger\": { \"kind\": \"any_of\", \"rules\": [ { \"kind\": \"milestone\", \"milestone\": \"landed\" }, { \"kind\": \"count\", \"measure\": \"units\", \"at_least\": 30 } ] }"));
         Assert.Empty(data.Validate());
         var sim = Landed(data);
         Assert.True(Earned(sim, "first_light")); // both hold
         Assert.False(Earned(sim, "refined_taste")); // neither
-        Assert.True(Earned(sim, "parasteel_age")); // one does
+        Assert.True(Earned(sim, "parsteel_age")); // one does
     }
 
     [Fact]

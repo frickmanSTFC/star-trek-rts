@@ -674,6 +674,9 @@ public sealed partial class GameData
         ValidateMissions(problems);
         ValidateShipChoices(problems);
         ValidateUnlocks(problems);
+        // Whether every mission can be done with what is unlocked by then (GameData.MissionReach.cs): only on data that
+        // is otherwise clean, since it reads ids the checks above vouch for.
+        if (problems.Count == 0) ValidateMissionReach(problems);
         return problems;
     }
 

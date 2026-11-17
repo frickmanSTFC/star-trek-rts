@@ -9,7 +9,7 @@ public static class Report
     /// <summary>The series the HTML page embeds (the full set stays in runs/*.json and *.csv).</summary>
     private static readonly string[] ChartSeries =
     {
-        "stock:duranium", "stock:tritanium", "stock:duranium_ore", "stock:tritanium_ore", "stock:parasteel", "stock:deuterium", "stock:crew",
+        "stock:duranium", "stock:tritanium", "stock:duranium_ore", "stock:tritanium_ore", "stock:parsteel", "stock:deuterium", "stock:crew",
         "income:duranium", "income:tritanium", "storage_pct", "storage_cap", "storage_used", "power_supply:1", "power_use:1",
         "research_known", "crawlers_mining", "rover_integrity_avg", "buildings", "buildings_idle", "surveyed_tiles",
     };
@@ -213,7 +213,7 @@ $("#sub").innerHTML = `${V.length > 1 ? V.length + " variants · " : ""}${seeds.
 
 // ---- tiles: the headline numbers of the first variant (and the change in the others)
 const M = (v, key) => v.measures.find((m) => m.key === key);
-const TILES = ["ms:first_metal", "ms:built:refinery", "ms:first_parasteel", "ms:second_base", "end:duranium", "end:tritanium", "peak_storage", "stall:storage_full", "crawler_uptime", "idle_share", "speed"];
+const TILES = ["ms:first_metal", "ms:built:refinery", "ms:first_parsteel", "ms:second_base", "end:duranium", "end:tritanium", "peak_storage", "stall:storage_full", "crawler_uptime", "idle_share", "speed"];
 $("#tiles").innerHTML = TILES.map((k) => {
   const m = M(V[0], k); if (!m) return "";
   const others = V.slice(1).map((v, i) => { const o = M(v, k); return `<span>${SW(i + 1)}${esc(v.label)} ${fmt(o.spread.median, o.unit)}</span>`; }).join(" · ");
@@ -236,7 +236,7 @@ if (R.has_targets) {
 // ---- chart
 const METRICS = [
   ["stock:duranium", "Duranium"], ["stock:tritanium", "Tritanium"], ["stock:duranium_ore", "Duranium ore"], ["stock:tritanium_ore", "Tritanium ore"],
-  ["stock:parasteel", "Parasteel"], ["stock:deuterium", "Deuterium"], ["income:duranium", "Duranium income/min"], ["income:tritanium", "Tritanium income/min"],
+  ["stock:parsteel", "Parsteel"], ["stock:deuterium", "Deuterium"], ["income:duranium", "Duranium income/min"], ["income:tritanium", "Tritanium income/min"],
   ["storage_pct", "Storage fill %"], ["storage_cap", "Storage capacity"], ["power", "Power, main base"], ["research_known", "Techs known"],
   ["crawlers_mining", "Crawlers digging"], ["rover_integrity_avg", "Rover integrity (mean)"], ["buildings", "Finished buildings"], ["buildings_idle", "Idle buildings"], ["surveyed_tiles", "Surveyed tiles"],
 ];

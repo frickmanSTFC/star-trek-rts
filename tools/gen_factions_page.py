@@ -38,7 +38,7 @@ ERA_SHORT = {"ent": "Enterprise", "tos": "TOS", "tng": "TNG", "dominion_war": "D
 ROLE = {"great": "Great power", "era": "Era power", "minor": "Minor power", "dlc_or_minor": "Minor power",
         "pirate": "Pirates", "insurgent": "Insurgents", "crisis": "Crisis"}
 VCATS = ["small_craft", "probes_and_drones", "ground_forces", "ground_vehicles", "heroes"]
-COMMON = {"duranium", "tritanium", "parasteel", "crew", "deuterium", "energy"}
+COMMON = {"duranium", "tritanium", "parsteel", "crew", "deuterium", "energy"}
 
 
 def words(s):

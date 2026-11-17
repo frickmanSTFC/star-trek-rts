@@ -128,7 +128,7 @@
     rover_spares: "Suspension parts, armour patches and a spare tyre. Repairs survey rovers and the construction rover, and fits new tyres on the repair pad.",
     environmental_spares: "Filters, membranes and pressure seals. Keeps Pressure Domes and Life Support Plants airtight.",
     structural_frame: "A welded duranium truss with tritanium joints. The skeleton of mechanical spare kits and prefab modules.",
-    hull_plating: "Pressed parasteel plates, riveted and ready to fit. Armour for rover spares and the walls of prefab modules.",
+    hull_plating: "Pressed parsteel plates, riveted and ready to fit. Armour for rover spares and the walls of prefab modules.",
     mechanism: "A geared drive train with its housing. Goes into mechanical and rover spares, and into machinery sets.",
     power_coupling: "A sealed connector that joins high-power lines. Goes into electrical spares, machinery sets and scout drones.",
     control_module: "A ruggedised circuit board in a sealed case: the brain of a machine. Goes into electrical and environmental spares, machinery sets and scout drones.",

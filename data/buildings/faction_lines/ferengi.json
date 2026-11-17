@@ -18,7 +18,7 @@
           "id": "fer_bazaar_station",
           "name": "Bazaar Station",
           "cost": {
-            "parasteel": 280,
+            "parsteel": 280,
             "latinum": 60
           },
           "effect": "10% cut of all trades docked here; sells repairs.",
@@ -30,7 +30,7 @@
           "id": "fer_marauder_station",
           "name": "Marauder Station",
           "cost": {
-            "parasteel": 560,
+            "parsteel": 560,
             "latinum": 150
           },
           "effect": "Horseshoe starbase; mercenary contracts.",
@@ -43,7 +43,7 @@
           "id": "fer_grand_exchange",
           "name": "Grand Exchange",
           "cost": {
-            "parasteel": 2000,
+            "parsteel": 2000,
             "latinum": 1000
           },
           "effect": "Sets market prices for all players; attack = market crash.",
@@ -80,7 +80,7 @@
           "id": "tower_of_commerce",
           "name": "Tower of Commerce",
           "cost": {
-            "parasteel": 400,
+            "parsteel": 400,
             "latinum": 500
           },
           "effect": "All Rules perks; bribe AI factions and rival governors.",
@@ -108,7 +108,7 @@
           "id": "fer_marauder_yard",
           "name": "Marauder Yard",
           "cost": {
-            "parasteel": 280,
+            "parsteel": 280,
             "latinum": 100
           },
           "effect": "D'Kora Marauder.",
@@ -121,7 +121,7 @@
           "id": "fer_acquisition_yards",
           "name": "Acquisition Yards",
           "cost": {
-            "parasteel": 1800,
+            "parsteel": 1800,
             "latinum": 800
           },
           "effect": "Refit any acquired foreign hull; no cap.",
@@ -161,7 +161,7 @@
           "id": "fer_resort_spire",
           "name": "Resort Spire",
           "cost": {
-            "parasteel": 300,
+            "parsteel": 300,
             "latinum": 150
           },
           "effect": "Holosuites + dabo; +3 Latinum per trade partner.",

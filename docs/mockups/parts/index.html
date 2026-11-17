@@ -451,18 +451,18 @@ var IT = {
   dilithium: { n: "Dilithium", c: "ore", sub: "raw deposit" },
   duranium: { n: "Duranium", c: "metal", by: "Ore Refinery", in: { duranium_ore: 2 }, t: 2.4 },
   tritanium: { n: "Tritanium", c: "metal", by: "Ore Refinery", in: { tritanium_ore: 2 }, t: 2.4 },
-  parasteel: { n: "Parasteel", c: "mat", by: "Alloy Foundry", in: { duranium: 2, tritanium: 1 }, t: 6 },
+  parsteel: { n: "Parsteel", c: "mat", by: "Alloy Foundry", in: { duranium: 2, tritanium: 1 }, t: 6 },
   transparent_aluminum: { n: "Transparent Aluminum", short: "Transp. Aluminum", c: "mat", by: "Alloy Foundry Mk IV", in: { duranium: 1 }, pw: 2, t: 10 },
   plasma_conduits: { n: "Plasma Conduits", c: "mat", by: "Alloy Foundry Mk V", in: { duranium: 1 }, pw: 1, t: 12 },
   isolinear_chips: { n: "Isolinear Chips", c: "mat", by: "Chip Fab (new)", in: { dilithium: 0.1 }, pw: 2, t: 15 },
   circuit_boards: { n: "Circuit Boards", code: "CB", c: "mat", by: "Machine Shop", in: { duranium: 1 }, pw: 6, t: 20, st: 1 },
   frame: { n: "Structural Frame", code: "SF", c: "part", in: { duranium: 4, tritanium: 1 }, t: 20, st: 1 },
-  plating: { n: "Hull Plating", code: "HP", c: "part", in: { parasteel: 2 }, t: 25, st: 1 },
-  plating_pol: { n: "Polarized Hull Plating", short: "Polarized Plating", code: "HP", c: "part", in: { parasteel: 2, plasma_conduits: 1 }, t: 30, st: 1 },
+  plating: { n: "Hull Plating", code: "HP", c: "part", in: { parsteel: 2 }, t: 25, st: 1 },
+  plating_pol: { n: "Polarized Hull Plating", short: "Polarized Plating", code: "HP", c: "part", in: { parsteel: 2, plasma_conduits: 1 }, t: 30, st: 1 },
   mechanism: { n: "Mechanism", code: "ME", c: "part", in: { duranium: 2, tritanium: 1 }, t: 15, st: 1 },
   coupling: { n: "Power Coupling", code: "PC", c: "part", in: { plasma_conduits: 1, duranium: 1 }, t: 20, st: 1 },
   control: { n: "Control Module", code: "CM", c: "part", in: { isolinear_chips: 1, tritanium: 1 }, t: 30, st: 1 },
-  seal: { n: "Seal Kit", code: "SK", c: "part", in: { transparent_aluminum: 1, parasteel: 1 }, t: 20, st: 1 },
+  seal: { n: "Seal Kit", code: "SK", c: "part", in: { transparent_aluminum: 1, parsteel: 1 }, t: 20, st: 1 },
   mech_sp: { n: "Mechanical Spares", code: "MS", c: "spare", in: { mechanism: 2, frame: 1 }, t: 15, st: 2, use: "mines, crawlers, refinery" },
   elec_sp: { n: "Electrical Spares", code: "ES", c: "spare", in: { coupling: 1, control: 1 }, t: 15, st: 2, use: "reactors, labs" },
   rover_sp: { n: "Rover Spares", code: "RS", c: "spare", in: { mechanism: 1, plating: 1 }, t: 12, st: 2, use: "vehicles (tyre + axle)" },
@@ -500,7 +500,7 @@ function shopList() { return (E().chips === "circuit_boards" ? ["circuit_boards"
 var COLS = [
   { h: "ORE", ids: function () { return ["duranium_ore", "tritanium_ore"].concat(E().chips === "isolinear_chips" ? ["dilithium"] : []); } },
   { h: "METALS", ids: function () { return ["duranium", "tritanium"]; } },
-  { h: "MATERIALS", ids: function () { return ["parasteel", "transparent_aluminum", "plasma_conduits", E().chips].concat(E().replicator ? ["replicator"] : []); } },
+  { h: "MATERIALS", ids: function () { return ["parsteel", "transparent_aluminum", "plasma_conduits", E().chips].concat(E().replicator ? ["replicator"] : []); } },
   { h: "PARTS", ids: function () { return ["frame", "mechanism", "plating", "seal", "coupling", "control"]; } },
   { h: "KITS", ids: function () { return ["prefab", "mech_sp", "rover_sp", "env_sp", "elec_sp", "machinery"]; } },
   { h: "USED BY", ids: function () { return ["u_build", "u_mine", "u_veh", "u_dome", "u_power", "u_up"]; } }
@@ -617,7 +617,7 @@ function renderReadout(id) {
 
 // ------------------------------------------------------------------ B/C: live shop + inventory state
 var S, speed = 5, uid = 1, autoOn = true, mode = "fab", shopBuilt = true;
-var INCOME = { duranium: 50, tritanium: 16, parasteel: 6, plasma_conduits: 1.5, transparent_aluminum: 2, isolinear_chips: 1 }; // per minute
+var INCOME = { duranium: 50, tritanium: 16, parsteel: 6, plasma_conduits: 1.5, transparent_aluminum: 2, isolinear_chips: 1 }; // per minute
 var USE_H = { mech_sp: 9, elec_sp: 3, rover_sp: 4, env_sp: 1.2, prefab: 4, machinery: 2.5 };          // per hour, ×era wear for spares
 var PLAN = { frame: [30, 24], plating: [24, 20], mechanism: [40, 44], coupling: [18, 16], control: [14, 18], seal: [12, 8],
   mech_sp: [8], elec_sp: [4], rover_sp: [5], env_sp: [2], prefab: [4], machinery: [2] };            // made/h, used/h (parts)
@@ -627,7 +627,7 @@ var CAP = 2500, BULK = 1680;                                                    
 var USED_HERE = { mech_sp: 1, elec_sp: 1, rover_sp: 1 };
 function defaults() { var t = {}; ALL.forEach(function (id) { t[id] = USED_HERE[id] ? 2 : 0; }); return t; }
 function fresh() {
-  S = { t: 0, stock: { duranium: 420, tritanium: 140, parasteel: 36, plasma_conduits: 0, transparent_aluminum: 10, isolinear_chips: 3, circuit_boards: 2,
+  S = { t: 0, stock: { duranium: 420, tritanium: 140, parsteel: 36, plasma_conduits: 0, transparent_aluminum: 10, isolinear_chips: 3, circuit_boards: 2,
       frame: 3, plating: 4, mechanism: 5, coupling: 1, control: 1, seal: 3, mech_sp: 1, elec_sp: 2, rover_sp: 3, env_sp: 0, prefab: 1, machinery: 0 },
     target: defaults(),
     queue: [], hub: [], debt: {}, made: 0, feed: [], cond: 88, ship: { left: 680, req: { mech_sp: 1, elec_sp: 1, rover_sp: 1, env_sp: 0 } } };
@@ -770,7 +770,7 @@ function put(el, html) { if (el.__h !== html) { el.__h = html; el.innerHTML = ht
 function topbar(el, extra) {
   var s = S.stock, pu = powerUse(), ps = powerSupply(), used = BULK + partsStorage();
   function r(id, label, cls) { var v = Math.floor(s[id] || 0); return '<div class="r' + (v === 0 ? " bad" : v < 5 ? " low" : "") + '"><i style="background:var(' + COL[IT[id].c] + ')"></i><span>' + label + "</span><b>" + v + "</b></div>"; }
-  put(el, r("duranium", "DUR") + r("tritanium", "TRI") + r("parasteel", "PARA") + r("plasma_conduits", "PLASMA") + r("transparent_aluminum", "T-ALU") +
+  put(el, r("duranium", "DUR") + r("tritanium", "TRI") + r("parsteel", "PARA") + r("plasma_conduits", "PLASMA") + r("transparent_aluminum", "T-ALU") +
     r(E().chips, E().chips === "isolinear_chips" ? "CHIPS" : "BOARDS") +
     '<div class="r' + (pu > ps ? " bad" : "") + '"><i style="background:var(--hud-sky)"></i><span>POWER</span><b>' + pu + " / " + ps + "</b></div>" +
     '<div class="r"><span>STORAGE</span><b>' + Math.round(used) + " / " + CAP + '</b><div class="meter"><i style="width:' + Math.min(100, used / CAP * 100) + '%"></i></div></div>' +

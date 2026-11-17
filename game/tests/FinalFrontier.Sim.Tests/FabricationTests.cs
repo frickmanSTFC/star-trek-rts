@@ -26,7 +26,7 @@ public class FabricationTests
         var stock = sim.Players[0].Stock;
         stock.Add(R("duranium"), F(600));
         stock.Add(R("tritanium"), F(300));
-        stock.Add(R("parasteel"), F(100));
+        stock.Add(R("parsteel"), F(100));
         // Room for all that (the hub's vault alone would be over full).
         var tile = FreeTile(sim, hub, "storage_container", 3);
         Do(sim, new DebugPlaceBuildingCommand(0, 0, "storage_container", tile, 0));

@@ -37,7 +37,7 @@ fixed; add members, don't rename.
 | --- | --- | --- | --- |
 | first_light | bronze | milestone uplink (uplink online) | name_beacon → rover_name: BEACON |
 | refined_taste | bronze | milestone first_metal | hull_10 → hull_number: 10 |
-| parasteel_age | silver | milestone first_parasteel | paint_steel_blue → paint: #4f7fb8 solid |
+| parsteel_age | silver | milestone first_parsteel | paint_steel_blue → paint: #4f7fb8 solid |
 | seat_of_government | silver | built colonial_administration | beam_violet → beam_colour: #b48cff |
 | capital_idea | gold | built planetary_capital | finish_chrome → finish: chrome |
 | lights_stay_on | silver | streak no_power_short 1800 s | paint_amber_band → paint: #f5a624 band, #1b2233 |
