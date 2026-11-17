@@ -95,8 +95,10 @@ layer above it once the surface game is fun.
   colony can't live without them). Everything else unlocks **through the missions** of First Light, so the menu grows
   with the story: Ground Truth (starts with the first refinery or 3 minutes after the uplink) → Research Lab + Vehicle
   Bay; The Lost Pathfinder → Prefab Habitat + Deep-Core Mine (which still needs its research); Wings, as it starts →
-  Machine Shop + Drone Pad, and as its reward → Alloy Foundry; Beyond the Ridge (or the Lost Signal side job, ruins
-  found by drone) → Excavation Site. Locked buildings stay out of the build drawer; the feed says "New buildings: …"
+  Machine Shop + Drone Pad + Alloy Foundry (its scout drones need power couplings, which need parsteel: 2026-11-17, the
+  foundry used to be Wings' reward, so Wings could not be finished); Beyond the Ridge (or the Lost Signal side job,
+  ruins found by drone, offered once Wings is done) → Excavation Site. `GameData.Validate()` walks every chain and
+  fails when a mission asks for something nothing unlocked by then can make (`game/sim/Data/GameData.MissionReach.cs`). Locked buildings stay out of the build drawer; the feed says "New buildings: …"
   when they unlock. With missions off (the DEBUG sandbox) everything is open; the test panel's MISSIONS tab can unlock
   everything or go back to the start menu.
 - **Ship pick** (decided 2026-11-16: "the player will decide which ship they are going to use. Based on the ship, the

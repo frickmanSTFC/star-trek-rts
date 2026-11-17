@@ -190,8 +190,10 @@ Content (S2, `data/missions/`; English text inline; givers are original placehol
    coverage includes the outpost (the first base, `covers: hub`), then bring the wreck site under coverage (the same
    relay or another; the wreck keeps its marker though the site was done in mission 2). Reward: research
    40 + flag `earth_link`.
-4. **Wings** (make drones): build a Machine Shop (skip if built) and a Drone Pad; fabricate 2 scout drones. Reward:
-   2 power couplings, research 20.
+4. **Wings** (make drones): build a Machine Shop (skip if built), a Drone Pad and an Alloy Foundry (all three open as
+   it starts: a drone's power coupling needs parsteel, which only the foundry makes; 2026-11-17, the foundry used to
+   be the reward, so the mission could not be finished); fabricate 2 scout drones. Reward: 2 power couplings,
+   research 20.
 5. **First Flight** (launch drones): launch a drone; three `photo_point` sites beyond the nearest mountains or water
    (inside coverage or reachable once a relay covers them): a drone loiters at each. Reward: research 50, reveal.
 6. **Beyond the Ridge** (find things with drones): a faint signal: drones visit 2 of 3 bearing points (markers), then
@@ -200,7 +202,7 @@ Content (S2, `data/missions/`; English text inline; givers are original placehol
 Side jobs (offered when triggered, accept / decline, at most 2 active, offers expire after 90 s, no fail costs):
 **Rich Vein** (a rich deposit surveyed → mine or crawler on it, store 300 from it), **Storm Watch** (a storm forecast
 near a base → a rover parked outside cover during it for 60 s, or any rover in the open on a world without domes),
-**Lost Signal** (a ruins region hint exists → a drone loiters over the hint area → the ruin revealed), **Sky Survey**
+**Lost Signal** (a ruins region hint exists and Wings is done, so the player has drones → a drone loiters over the hint area → the ruin revealed), **Sky Survey**
 (satellites have covered 50% of the map's tiles → research), **Rescue** (a rover disabled more than 6 tiles from a
 pad → another vehicle reaches it or a drone loiters over it within 5 min). Rewards small (≈ a minute or two of income).
 

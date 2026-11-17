@@ -57,18 +57,20 @@
 
     { "id": "wings", "chain": "first_light", "kind": "main", "title": "Wings", "giver": "ops",
       "needs": ["machine_shop", "drone_pad", "scout_drone"],
-      "briefing": "Okafor here. The rovers can't cross half of what's out there. We can build scout drones from parts: a Machine Shop to make them, a Drone Pad to fly them from. Both are in your build menu now. Two drones to start.",
+      "briefing": "Okafor here. The rovers can't cross half of what's out there. We can build scout drones from parts: a Machine Shop to make them, a Drone Pad to fly them from, and an Alloy Foundry for the parsteel their power couplings need. All three are in your build menu now. Two drones to start.",
       "stages": [
         { "id": "build", "title": "Build the drone kit",
-          "on_enter": [ { "unlock_buildings": ["machine_shop", "drone_pad"] } ],
+          "on_enter": [ { "unlock_buildings": ["machine_shop", "drone_pad", "foundry"] } ],
           "objectives": [
             { "id": "shop", "text": "Build a Machine Shop", "cond": { "building": { "id": "machine_shop" } } },
             { "id": "pad", "text": "Build a Drone Pad", "cond": { "building": { "id": "drone_pad" } } },
+            { "id": "foundry", "text": "Build an Alloy Foundry", "cond": { "building": { "id": "foundry" } },
+              "hint": "It turns duranium and tritanium into parsteel, which the power couplings need." },
             { "id": "drones", "text": "Fabricate 2 scout drones", "cond": { "fabricated": { "item": "scout_drone", "count": 2 } },
-              "hint": "Machine Shop: order Scout Drones (frame, power coupling, control modules)." } ],
+              "hint": "Machine Shop: order Scout Drones. Each takes a frame, a power coupling and two control modules; the shop makes those first, and a coupling needs parsteel from the Alloy Foundry." } ],
           "next": "complete" } ],
-      "rewards": [ { "grant": { "power_coupling": 2 } }, { "research": { "points": 20 } }, { "unlock_buildings": ["foundry"] } ],
-      "debrief": "Two drones on the pad and charging. Mind the batteries and keep them inside comms coverage. Better frames need parsteel: the Alloy Foundry plans are yours." },
+      "rewards": [ { "grant": { "power_coupling": 2 } }, { "research": { "points": 20 } } ],
+      "debrief": "Two drones on the pad and charging. Mind the batteries and keep them inside comms coverage. Two spare power couplings are on their way down: lose a drone and the shop can build another." },
 
     { "id": "first_flight", "chain": "first_light", "kind": "main", "title": "First Flight", "giver": "science",
       "needs": ["drone_pad", "scout_drone"],

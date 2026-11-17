@@ -32,7 +32,7 @@
 
     { "id": "lost_signal", "chain": "first_light", "kind": "side", "title": "Lost Signal", "giver": "science",
       "needs": ["drone_pad", "scout_drone"],
-      "trigger": { "ruin_hint": { "bind": "ruin" } },
+      "trigger": { "all": [ { "ruin_hint": { "bind": "ruin" } }, { "mission": { "id": "wings", "state": "completed" } } ] },
       "briefing": "Reyes: orbit picked up regular shapes under the ground in the marked area. Artificial, maybe. A drone pass over it would tell us.",
       "stages": [
         { "id": "overfly", "title": "Overfly the area",
