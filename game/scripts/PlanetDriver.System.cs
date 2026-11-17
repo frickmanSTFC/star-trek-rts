@@ -53,7 +53,11 @@ public partial class PlanetDriver
         var ship = GameSetup.Mode == GameMode.Campaign ? data.ShipChoice(GameSetup.ShipId) : null;
         var startBody = ship is { Colonizes: false } ? (world.Length > 0 ? world : null) : home?.Id;
         if (ship != null) GD.Print($"Ship: {ship.Name} ({ship.Id}, {(ship.Colonizes ? "colony ship" : "never lands")}), chain {ship.Chain}, start {startBody ?? "the system's pick"}");
-        _sim = MatchSetup.CreateSystemGame(data, Seed, StartFaction, startBody, ship?.Id);
+        // The menu's Fit Out Your Ship choice (docs/fit-out-contract.md); none = the game as it always was.
+        var fitOut = ship != null ? GameSetup.FitOut : null;
+        if (fitOut != null) GD.Print($"Fit-out: {FitOutLogLine(data, fitOut)}");
+        _sim = fitOut != null ? MatchSetup.CreateSystemGame(data, Seed, StartFaction, startBody, ship!.Id, fitOut)
+            : MatchSetup.CreateSystemGame(data, Seed, StartFaction, startBody, ship?.Id);
         var sys = _sim.System;
         var body = sys?.Bodies.FirstOrDefault(b => b.Id == sys.SurfaceBody) ?? home;
         var classId = _sim.Surface?.Map.Def.ClassId ?? "?";
@@ -431,6 +435,7 @@ public partial class PlanetDriver
         rows.Add(new HelmRow("HEADING", HeadingText(s)));
         rows.Add(new HelmRow("CARGO", string.IsNullOrEmpty(s.Cargo) ? "none declared" : s.Cargo));
         AddCargoRows(s, rows); // the mission cargo aboard our flagship (PlanetDriver.ShipPick.cs)
+        AddFitOutRows(s, rows); // our flagship's focus and crew split (PlanetDriver.FitOut.cs)
         if (SystemSource.InFlight(s)) rows.Add(new HelmRow("ETA", $"{_system.SecondsToArrival(s)} s"));
         var buttons = new List<HelmAction>();
         if (s.Owner == LocalPlayer) buttons.Add(new HelmAction("sys:scan", "", "LONG-RANGE SCAN", ScanProblem() == null));

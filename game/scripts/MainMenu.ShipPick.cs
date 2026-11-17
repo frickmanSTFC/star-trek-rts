@@ -11,7 +11,7 @@ namespace FinalFrontier;
 // ship's detail: the art, its class, length, crew and speed, what it brings (colonizers' start bonus), "Your mission:
 // <title>" with the summary, whether it lands, and ‹ BACK / CHOOSE <NAME> ›. Left / Right pick, Enter chooses.
 // The pick decides what the system page asks for (MainMenu.SystemPick.cs): a world to land on, or any body to start
-// in orbit of. With no ships in the data the page is skipped (era → system, the old start).
+// in orbit of. A ship the fit-out data lists (the colony ships) goes through Fit Out Your Ship first (MainMenu.FitOut.cs). With no ships in the data the page is skipped (era → system, the old start).
 // A ship with a 3D model (docs/ship-model-contract.md: models/ships/<id>.glb, ShipModels) shows it live in the detail
 // panel in place of the still picture: turning slowly, rings spinning, drag to turn it (ShipViewer). The six cards and
 // every ship without a glb keep their flat pictures. Debug builds: Shift+F11 swaps a primitive stand-in in for a
@@ -42,8 +42,9 @@ public partial class MainMenu
         ShowPage(Page.Ship);
     }
 
-    /// <summary>The page before the system: the ship pick, or the era when there is none.</summary>
-    private Page BeforeSystem => ShipChoices.Count > 0 ? Page.Ship : Page.Era;
+    /// <summary>The page before the system: the fit-out when the picked ship has one, else the ship pick, or the era
+    /// when the data has no ships.</summary>
+    private Page BeforeSystem => ShipChoices.Count == 0 ? Page.Era : FitOutApplies(PickedShip) ? Page.FitOut : Page.Ship;
 
     /// <summary>Card art by res:// path (cached; null = missing or not imported yet).</summary>
     private static Texture2D? ShipTexture(string path)
@@ -333,7 +334,9 @@ public partial class MainMenu
 
     private void ChooseShip()
     {
-        if (PickedShip == null) return;
-        ShowPage(Page.System);
+        if (PickedShip is not { } ship) return;
+        // A colony ship is fitted out before it leaves (docs/fit-out-contract.md); every other ship, and any ship when
+        // the data has no fit-out rules, goes straight to the system as before.
+        ShowPage(FitOutApplies(ship) ? Page.FitOut : Page.System);
     }
 }

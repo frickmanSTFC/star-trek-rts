@@ -28,6 +28,7 @@ public partial class PlanetDriver
         if (GameSetup.Mode == GameMode.Campaign && GameSetup.Era is { } era && EraNames.TryGetValue(era, out var eraName))
             mode = $"CAMPAIGN · {eraName.ToUpperInvariant()}";
         _pause.Subtitle = $"{PlanetName.ToUpperInvariant()}  ·  {mode}";
+        _pause.Detail = FitOutPauseText(); // the focus and the crew split, when the ship was fitted out
         _pause.Open();
         GetViewport().SetInputAsHandled();
     }
