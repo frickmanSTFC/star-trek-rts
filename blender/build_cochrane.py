@@ -15,13 +15,17 @@ import cochrane_kit as K
 from cochrane_kit import Kit, rotX, rotY, rotZ, move, orient, TAU, PI
 
 G0 = 9.81
-D = dict(ringF=dict(r=78, rIn=70, w=18, g=0.8, n=6), ringA=dict(r=58, rIn=50, w=20, g=0.3, n=4),
+D = dict(ringF=dict(r=78, rIn=70, w=18, g=0.8, n=6, dir=-1), ringA=dict(r=58, rIn=50, w=20, g=0.3, n=4, dir=1),
          htr=dict(len=68, w0=13, w1=31), ltr=dict(len=66, w=64), tanks=dict(n=6, r=5, len=40))
 
 k = Kit(seed=2063)
 k.group = 'Hull'
 R = k.rnd
 LIGHTS = []          # (kind, loc, dir, energy, colour, spot angle)
+PIVOTS = {}          # turning group -> its centre on the axis (ship coordinates)
+SPIN = {}            # turning group -> rad/s for Godot's RotateZ
+PLUMES = []          # dict(x=throat, length, r0, r1) for build_plume
+EXTRA = {}           # more materials for other ships: name -> (cycles factory, game spec); see export_game
 DECALS = []          # (name, text, pts, flip)
 
 
@@ -513,9 +517,20 @@ def hub(x0, x1, r, xr, ring):
         axial_pipe(xr + w / 2 + 2.7, x1 - 0.6, r, a + 0.12, 0.16, 'silver')
 
 
-def hab_ring(xc, ring, phase, nmod, name, workshop=False):
+def spin_group(name, xc, g, r, direction):
+    """Start a turning group: parts added until k.group changes go under node `name`, pivot on the axis at xc.
+    direction is the spin about the bow axis (+x), as on the class pages."""
+    k.group = name
+    PIVOTS[name] = (xc, 0, 0)
+    SPIN[name] = -direction * math.sqrt(g * G0 / r)
+
+
+def hab_ring(xc, ring, phase, nmod, name, workshop=False, reg='FT-05   UNITED EARTH', rh=15.0):
     """Spin-gravity ring: one continuous pressure hull, bumper tiles on the rim, spokes and stay rods."""
     rIn, rOut, w, nsp = ring['rIn'], ring['r'], ring['w'], ring['n']
+    if k.group != 'Hull':
+        PIVOTS[k.group] = (xc, 0, 0)
+        SPIN[k.group] = -ring.get('dir', 1) * math.sqrt(ring['g'] * G0 / rOut)
     hr = rOut - 0.5
     xw = w / 2 - 0.5
     with k.xf(move(xc, 0, 0) @ rotX(phase)):
@@ -550,7 +565,7 @@ def hab_ring(xc, ring, phase, nmod, name, workshop=False):
         if name:
             for c in (0.0, TAU / 3, 2 * TAU / 3):
                 arc_decal('name', name, -2.6, 2.6, rOut + 0.03, c - 0.30, c + 0.30, seg=40)
-                arc_decal('reg', 'FT-05   UNITED EARTH', -1.1, 1.1, rOut + 0.03, c + 0.37, c + 0.37 + 0.4, seg=30)
+                arc_decal('reg', reg, -1.1, 1.1, rOut + 0.03, c + 0.37, c + 0.37 + 0.4, seg=30)
         # side walls: frames, windows on two decks, rails
         for s in (1, -1):
             xs = s * (xw + 0.02)
@@ -592,7 +607,6 @@ def hab_ring(xc, ring, phase, nmod, name, workshop=False):
             with k.xf(rotX(a) @ move(R.uniform(-5.5, 5.5), rIn, 0) @ rotZ(PI)):
                 k.box((0, 0.35, 0), (R.uniform(1, 2.6), 0.7, R.uniform(1, 2.2)), R.choice(GM), bevel=0.06)
         # elevator spokes with landing lobbies, and stay rods like a bicycle wheel
-        rh = 15.0
         for q in range(nsp):
             a = q * TAU / nsp + TAU / (2 * nsp)
             with k.xf(rotX(a)):
@@ -1065,6 +1079,8 @@ def make_materials(drive):
     M['plasma'] = K.emit('plasma', (0.55, 0.6, 1.0), 30.0)
     for i, c in enumerate([(0.62, 0.62, 0.6), (0.5, 0.42, 0.3), (0.5, 0.2, 0.08), (0.12, 0.2, 0.33), (0.3, 0.33, 0.24)]):
         M['ctr%d' % i] = K.corrugated('ctr%d' % i, c)
+    for name, (factory, _) in EXTRA.items():
+        M[name] = factory()
     return M
 
 
@@ -1117,15 +1133,15 @@ def import_landers(landers, coll):
         root.matrix_world = Matrix(((X.x, Y.x, Z.x, o.x), (X.y, Y.y, Z.y, o.y), (X.z, Y.z, Z.z, o.z), (0, 0, 0, 1)))
 
 
-def build_plume(coll):
+def build_plume(coll, x=-221.0, length=260.0, r0=6.0, r1=40.0):
     """Fusion exhaust: thin and faint, a cool violet glow that fades fast."""
     me = bpy.data.meshes.new('Plume')
     ob = bpy.data.objects.new('Plume', me)
     coll.objects.link(ob)
     import bmesh
     bm = bmesh.new()
-    bmesh.ops.create_cone(bm, cap_ends=True, segments=48, radius1=40, radius2=6.0, depth=260,
-                          matrix=Matrix.Translation((-351, 0, 0)) @ Matrix.Rotation(PI / 2, 4, 'Y'))
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=48, radius1=r1, radius2=r0, depth=length,
+                          matrix=Matrix.Translation((x - length / 2, 0, 0)) @ Matrix.Rotation(PI / 2, 4, 'Y'))
     bm.to_mesh(me)
     bm.free()
     m = bpy.data.materials.new('plume')
@@ -1138,9 +1154,9 @@ def build_plume(coll):
     sep = t.nodes.new('ShaderNodeSeparateXYZ')
     t.links.new(tc.outputs['Object'], sep.inputs[0])
     # distance behind the throat (0 at x=-221), radial distance from the axis
-    dist = K._math(t, 'MULTIPLY', K._math(t, 'ADD', sep.outputs[0], 221.0), -1.0)
+    dist = K._math(t, 'MULTIPLY', K._math(t, 'ADD', sep.outputs[0], -x), -1.0)
     rad = K._math(t, 'SQRT', K._math(t, 'ADD', K._math(t, 'POWER', sep.outputs[1], 2.0), K._math(t, 'POWER', sep.outputs[2], 2.0)))
-    width = K._math(t, 'ADD', 5.0, K._math(t, 'MULTIPLY', dist, 0.12))
+    width = K._math(t, 'ADD', r0 * 0.85, K._math(t, 'MULTIPLY', dist, (r1 - r0) / length * 0.92))
     core = K._math(t, 'POWER', K._math(t, 'SUBTRACT', 1.0, K._math(t, 'DIVIDE', rad, width), clamp=True), 2.0)
     fall = K._math(t, 'POWER', 2.718, K._math(t, 'MULTIPLY', dist, -0.016))
     dens = K._math(t, 'MULTIPLY', K._math(t, 'MULTIPLY', core, fall), 0.016)
@@ -1314,7 +1330,16 @@ def game_material(name, col, metal=0.0, rough=0.5, emis=None, estr=0.0, alb=None
     return m
 
 
-def export_game(path, tmp):
+def default_build(parts, drive, landers):
+    if 'aft' in parts:
+        build_aft(drive)
+        if drive:
+            PLUMES.append(dict(x=-221.0, length=260.0, r0=6.0, r1=40.0))
+    if 'mid' in parts: build_mid()
+    if 'fwd' in parts: build_fwd(landers)
+
+
+def export_game(path, tmp, build=None):
     """Write the game model (see docs/ship-model-contract.md)."""
     t0 = time.time()
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -1324,7 +1349,7 @@ def export_game(path, tmp):
     k.lod, k.min_r, k.min_box, k.one_key = 0.3, 0.065, 0.5, True
     k.M = rotZ(PI / 2)                  # bow to Blender +Y, which the exporter turns into Godot -Z
     landers = []
-    build_aft(False); build_mid(); build_fwd(landers)
+    (build or default_build)(['aft', 'mid', 'fwd'], False, landers)
     # panel materials: (c1, c2, seam darkening, panel size in metres, metal, rough)
     PAN = {'white': ((0.80, 0.80, 0.78), (0.72, 0.72, 0.71), 0.55, (2.6, 1.7), 0, 0.55),
            'white_m': ((0.83, 0.83, 0.81), (0.74, 0.74, 0.73), 0.62, (3.4, 2.1), 0, 0.7),
@@ -1363,6 +1388,16 @@ def export_game(path, tmp):
     M['hot'] = game_material('hot', (0.012, 0.012, 0.013), 0, 0.7, emis=(1.0, 0.16, 0.03), estr=0.12)
     M['hot2'] = game_material('hot2', (0.012, 0.012, 0.013), 0, 0.7, emis=(1.0, 0.16, 0.03), estr=0.12)
     M['hotpipe'] = game_material('hotpipe', (0.02, 0.018, 0.016), 0, 0.5, emis=(1.0, 0.28, 0.05), estr=0.3)
+    # a ship's own materials: game spec ('pan', c1, c2, seam, (w, h), metal, rough) | ('sim', col, metal, rough) | ('emit', col, strength)
+    for name, (_, spec) in EXTRA.items():
+        if spec[0] == 'pan':
+            a_, n_ = panel_textures(name, spec[1], spec[2], spec[3], tmp)
+            M[name] = game_material(name, (1, 1, 1), spec[5], spec[6], alb=a_, nrm=n_)
+            uvs[name] = (1 / (4 * spec[4][0]), 1 / (4 * spec[4][1]))
+        elif spec[0] == 'sim':
+            M[name] = game_material(name, spec[1], spec[2], spec[3])
+        else:
+            M[name] = game_material(name, (0.02, 0.02, 0.02), 0, 0.3, emis=spec[1], estr=spec[2])
     # decals
     make_decals({}, tmp)
     for name, text in DECALS:
@@ -1370,16 +1405,20 @@ def export_game(path, tmp):
         M['decal_' + name] = game_material('decal_' + name, (0.02, 0.02, 0.025) if name != 'bay' else (0.6, 0.1, 0.02), 0, 0.6, alpha=img)
     root = bpy.data.objects.new('Ship', None); coll.objects.link(root)
     R90 = rotZ(PI / 2)
-    piv = {'Hull': (0, 0, 0), 'RingF': tuple(R90 @ Vector((190, 0, 0))), 'RingA': tuple(R90 @ Vector((-22, 0, 0)))}
+    piv = {'Hull': (0, 0, 0)}
+    for g, c in PIVOTS.items():
+        piv[g] = tuple(R90 @ Vector(c))
     par = {}
     for g, pv in piv.items():
         e = bpy.data.objects.new(g, None); coll.objects.link(e); e.parent = root; e.location = pv
+        if g in SPIN:
+            e['spin'] = SPIN[g]
         par[g] = e
     obs = k.build(M, coll, bevels=False, uvscale=uvs, pivots=piv, parents=par)
     for i, (bx, a, rb) in enumerate(landers):
         rad = Vector((0, math.cos(a), math.sin(a))); tan = Vector((0, -math.sin(a), math.cos(a)))
         X, Y, Z = -tan, Vector((1, 0, 0)), -rad
-        o = rad * 24.0 + Vector((bx, 0, 0))
+        o = rad * (rb - 6.6) + Vector((bx, 0, 0))          # the roof plane: landers are listed by their pad radius
         e = bpy.data.objects.new('Berth%d' % i, None); coll.objects.link(e); e.parent = root
         e.matrix_world = R90 @ Matrix(((X.x, Y.x, Z.x, o.x), (X.y, Y.y, Z.y, o.y), (X.z, Y.z, Z.z, o.z), (0, 0, 0, 1)))
     bpy.context.view_layer.update()
@@ -1388,8 +1427,9 @@ def export_game(path, tmp):
         print('  %-28s %7d' % (o.name, sum(len(p.vertices) - 2 for p in o.data.polygons)))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', export_yup=True, export_apply=True, export_image_format='AUTO',
-                              export_jpeg_quality=85, export_cameras=False, export_lights=False, export_animations=False)
+                              export_jpeg_quality=85, export_cameras=False, export_lights=False, export_animations=False, export_extras=True)
     print('game model: %d tris, %d meshes, %.1f MB, %.0fs' % (tris, len(obs), os.path.getsize(path) / 1e6, time.time() - t0))
+    print('spin (Godot RotateZ, rad/s):', {g: round(v, 4) for g, v in SPIN.items()})
 
 
 SHOTS = {
@@ -1474,7 +1514,8 @@ def finish(ship, earth, out, scene, grain=0.012):
     Image.fromarray((im * 255 + 0.5).astype(np.uint8)).save(out, quality=93, subsampling=0)
 
 
-def main():
+def main(build=None, shots=None, ship_id='cochrane'):
+    """build(parts, drive, landers) adds the ship to k; other ships' scripts pass their own (see blender/prewarp_ships.md)."""
     ap = argparse.ArgumentParser()
     ap.add_argument('--shot', default='hero')
     ap.add_argument('--res', default='1920x1080')
@@ -1495,13 +1536,13 @@ def main():
     a = ap.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:])
     os.makedirs(a.tmp, exist_ok=True)
     if a.game:
-        export_game(a.game, a.tmp)
+        export_game(a.game, a.tmp, build)
         return
     os.makedirs(a.out, exist_ok=True)
     t0 = time.time()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
-    sh = SHOTS[a.shot]
+    sh = (shots or SHOTS)[a.shot]
     W, Hh = [int(v) for v in a.res.split('x')]
     # ---- ship
     ship = bpy.data.collections.new('Ship')
@@ -1509,15 +1550,13 @@ def main():
     parts = a.only.split(',')
     landers = []
     if not a.earth_only:
-        if 'aft' in parts: build_aft(a.drive)
-        if 'mid' in parts: build_mid()
-        if 'fwd' in parts: build_fwd(landers)
+        (build or default_build)(parts, a.drive, landers)
     M = make_materials(a.drive)
     make_decals(M, a.tmp)
     k.build(M, ship)
     import_landers(landers, ship)
-    if a.drive and 'aft' in parts and not a.earth_only:
-        build_plume(ship)
+    for pl in PLUMES:
+        build_plume(ship, **pl)
     print('geometry: %d faces, %.1fs' % (k.stats(), time.time() - t0)); sys.stdout.flush()
     # ---- lights
     cam = setup_camera(sh)
@@ -1599,7 +1638,7 @@ def main():
     earth_px = render_pass('earth', True, False, max(24, a.spp // 4)) if earth_coll else None
     if ship_px is None:
         ship_px = np.zeros_like(earth_px)
-    out = os.path.join(a.out, 'cochrane-%s.jpg' % (a.name or a.shot))
+    out = os.path.join(a.out, '%s-%s.jpg' % (ship_id, a.name or a.shot))
     finish(ship_px, earth_px, out, scene)
     print('wrote %s  total %.0fs' % (out, time.time() - t0))
 
