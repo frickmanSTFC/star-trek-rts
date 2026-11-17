@@ -28,8 +28,9 @@ namespace FinalFrontier;
 // stands higher and sees farther). It is followed up at once and down only while the limits are not pushing the camera,
 // so a hill at the edge can't make the camera bounce against its own limit.
 //
-// Limits: the footprint's far corners are wider than its near ones, so right in a corner of the map a spot on the near
-// side can end up off screen; FlyTo then turns the view a quarter (TurnToShow) so that corner is the far one. The
+// Limits: the footprint is wider on its far side than its near side, so the last few hexes along a side edge only show
+// in the upper part of the screen, and a near corner of the map not at all until the view is turned (Q / E); FlyTo
+// turns it by itself when what it flies to would be off screen (TurnToShow). The
 // limits are measured against each edge's lowest ground, not the exact relief (the ring of edge tiles takes up the
 // difference), and assume the HUD's two bars are up (they always are on the surface).
 public partial class PlanetDriver
@@ -216,8 +217,8 @@ public partial class PlanetDriver
         _hud.PushEvent("Zoomed out as far as the map goes  ·  O for the view from orbit", new Color(0.62f, 0.82f, 1f));
     }
 
-    /// <summary>FlyTo's last step. Right in a corner of the map the pan limits can leave a spot on the near side of the
-    /// view off screen; a quarter turn puts that corner on the far side, where the view is widest. Tries the view as it
+    /// <summary>FlyTo's last step. Close to a side edge or in a corner of the map the pan limits can leave a spot off
+    /// screen (the view is widest on its far side); a quarter turn puts that edge on the far side. Tries the view as it
     /// is first, then a quarter turn either way, then the half turn; changes nothing if none shows it.</summary>
     private void TurnToShow(Vector3 point)
     {
@@ -235,7 +236,7 @@ public partial class PlanetDriver
             {
                 _yawSteps += turn;
                 if (_inOrbit) _yaw = _yawSteps * Mathf.Pi / 2f; // nothing eases it up there: be turned already at the cut to the surface
-                if (!_inOrbit) _hud.PushEvent("View turned to show it: it is in a corner of the map  ·  Q / E turn", new Color(0.62f, 0.82f, 1f));
+                if (!_inOrbit) _hud.PushEvent("View turned to show it (it is at the edge of the map)  ·  Q / E turn the view", new Color(0.62f, 0.82f, 1f));
             }
             return;
         }

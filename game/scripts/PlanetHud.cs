@@ -568,7 +568,7 @@ public partial class PlanetHud : CanvasLayer
                 ("Left-click", "select a building, vehicle, base or tile"), ("Shift+click", "add vehicles to the selection"), ("A", "select all vehicles"),
                 ("Right-click", "drive there (a crawler on a deposit mines it)"), ("F", "crawler: unfurl / pack up / send for repair (in orbit: outpost video feed)"), ("V", "rovers: wipers auto / on / off"), ("L", "vehicles: headlights auto / on / off"),
                 ("R", "send damaged vehicles to the repair pad"), ("T", "rovers: change a flat tyre (uses a spare)"),
-                ("Z", "ping: a beacon and name over every vehicle of yours, arrows to the ones off screen; twice quickly keeps the vehicle list open"),
+                ("Z", "ping: beacons and names over your vehicles, arrows to those off screen; Z Z keeps the list"),
                 ("I", "inventory: parts, spare kits, construction parts, keep-in-stock targets"),
                 ("J", "jury-rig the selected building or vehicles: no kits, capped, wears faster"),
                 ("1–9, 0", "Machine Shop / workshop: queue a recipe (Shift +5); click a tile: its card; Backspace: cancel last"),

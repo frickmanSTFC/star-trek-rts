@@ -2488,7 +2488,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     {
         _focusTarget = _view.TileCentre(tile) with { Y = 0 };
         _distanceTarget = distance;
-        TurnToShow(_focusTarget); // in a corner of the map the pan limits can leave it off screen: a quarter turn shows it (PlanetDriver.ViewClamp.cs)
+        TurnToShow(_focusTarget); // at a side edge or corner the pan limits can leave it off screen: a quarter turn shows it (PlanetDriver.ViewClamp.cs)
     }
 
     private void MoveCamera(float delta)
