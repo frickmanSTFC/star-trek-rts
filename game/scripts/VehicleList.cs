@@ -36,6 +36,7 @@ public partial class VehicleList : PanelContainer
         public int Id;
         public Button Button = null!;
         public Label Kind = null!, Name = null!, State = null!;
+        public string KindText = "", NameText = "", StateText = "";
         public Color StateColour;
     }
 
@@ -100,9 +101,10 @@ public partial class VehicleList : PanelContainer
                 if (HoveredId == ui.Id) HoveredId = ui.Button.IsHovered() ? row.Id : 0; // the row under the mouse changed vehicle
                 ui.Id = row.Id;
             }
-            if (ui.Kind.Text != row.Kind) ui.Kind.Text = row.Kind;
-            if (ui.Name.Text != row.Name) ui.Name.Text = row.Name;
-            if (ui.State.Text != row.State) ui.State.Text = row.State;
+            // Compared against our own copies: reading a Label's text back makes a new string every time.
+            if (!ReferenceEquals(ui.KindText, row.Kind) && ui.KindText != row.Kind) ui.Kind.Text = ui.KindText = row.Kind;
+            if (!ReferenceEquals(ui.NameText, row.Name) && ui.NameText != row.Name) ui.Name.Text = ui.NameText = row.Name;
+            if (!ReferenceEquals(ui.StateText, row.State) && ui.StateText != row.State) ui.State.Text = ui.StateText = row.State;
             if (ui.StateColour != row.StateColour)
             {
                 ui.StateColour = row.StateColour;

@@ -202,10 +202,12 @@ public partial class PingOverlay : Control
         for (var attempt = 0; attempt < 5; attempt++)
         {
             length = (attempt == 4 ? 64f : 96f + 30f * attempt) * s;
+            // Near the top of the view the beam is as tall as fits under the top bar.
+            length = Mathf.Max(Mathf.Min(length, foot.Y - view.Position.Y - 18f * s), 28f * s);
             var head = foot + new Vector2(0, -length);
             // Beside the head: to the right, or to the left when that would leave the view.
             var x = head.X + 13f * s + labelWidth > view.End.X ? head.X - 13f * s - labelWidth : head.X + 13f * s;
-            label = new Rect2(x, head.Y - 12f * s, labelWidth, labelHeight);
+            label = new Rect2(x, Mathf.Max(head.Y - 12f * s, view.Position.Y + 2f), labelWidth, labelHeight);
             if (!Overlaps(label)) break;
         }
         _taken.Add(label);

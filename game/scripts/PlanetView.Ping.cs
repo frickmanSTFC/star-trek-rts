@@ -25,14 +25,18 @@ public struct PingTarget
 // rocks, buildings and the fog never hide them; the driver's part is PlanetDriver.Ping.cs.
 public partial class PlanetView
 {
+    private readonly Dictionary<int, float> _pingTops = new();
+
     /// <summary>Fills <paramref name="into"/> with every vehicle of the local player that is on the map: rovers, crawlers
     /// (folded or deployed), construction rovers, survey teams and scout drones (docked, flying or coming down). Vehicles
     /// still riding in a drop ship's bay are left out. Never another player's.</summary>
     public void PingTargets(List<PingTarget> into)
     {
         into.Clear();
-        foreach (var u in _surface.Units)
+        var units = _surface.Units;
+        for (var i = 0; i < units.Count; i++)
         {
+            var u = units[i];
             if (u.Owner != _localPlayer || _aboard.Contains(u.Id)) continue;
             Node3D? model;
             Vector3 at;
@@ -50,7 +54,9 @@ public partial class PlanetView
                 at = model.Position;
                 ground = at.Y;
             }
-            into.Add(new PingTarget { Id = u.Id, At = at, GroundY = ground, Top = MarkerHeight(model) });
+            // The model's height is measured once per vehicle (MarkerHeight reads a meta: not something to do every frame).
+            if (!_pingTops.TryGetValue(u.Id, out var top)) _pingTops[u.Id] = top = MarkerHeight(model);
+            into.Add(new PingTarget { Id = u.Id, At = at, GroundY = ground, Top = top });
         }
     }
 
