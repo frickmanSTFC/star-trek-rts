@@ -869,7 +869,7 @@ def build(parts, drive, landers):
 SHOTS = {
     # tgt: look-at point; cam: direction from it to the camera; sun: direction to the sun in camera space
     'hero':    dict(tgt=(18, 0, -4), cam=(0.62, -0.66, 0.42), dist=590, lens=70, roll=-7, sun=(0.25, 0.62, 0.74), eoff=(-9, -20), alt=9500),
-    'ring':    dict(tgt=(5, 0, 0), cam=(0.70, -0.60, 0.38), dist=300, lens=50, roll=5, sun=(0.55, 0.60, 0.58), eoff=(-12, -25.5), alt=9500, elon=120),
+    'ring':    dict(tgt=(5, 0, 3), cam=(0.70, -0.60, 0.38), dist=320, lens=50, roll=5, sun=(0.55, 0.60, 0.58), eoff=(-12, -25.5), alt=9500, elon=120),
     'stern':   dict(tgt=(-90, 0, -2), cam=(-0.80, -0.52, 0.30), dist=350, lens=60, roll=4, sun=(-0.70, 0.45, 0.55), eoff=(10, -25), alt=9500),
     'science': dict(tgt=(121, 0, 2), cam=(0.55, 0.70, 0.46), dist=108, lens=50, roll=-4, sun=(-0.40, 0.66, 0.60), eoff=(15, -27), alt=9500, elon=165),
     'side':    dict(tgt=(0, 0, 0), cam=(0.0, -1.0, 0.06), dist=960, lens=100, roll=0, sun=(0.50, 0.62, 0.60), eoff=None, alt=0),

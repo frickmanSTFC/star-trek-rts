@@ -2,7 +2,8 @@
 
 On the Cochrane pipeline (see blender/prewarp_ships.md). Run with the bpy module:
   /home/user/.bpyvenv/bin/python blender/build_armstrong.py --shot hero --out blender/previews/armstrong --tmp <dir> --earth-tex <bmng.jpg>
-  --shot hero|pod|stern|hub|side   --drive (reactor at full power)   --only aft,mid,fwd   --game game/models/ships/armstrong.glb
+  --shot hero|pod|stern|hub (stills; stern is rendered with --drive)   side|aft|spine|mid|cradle|bow|podc|podd (working views)
+  --drive (reactor at full power, pods wound home)   --only aft,mid,fwd   --game game/models/ships/armstrong.glb
 Layout and sizes follow the class page: x toward the bow, y to port, z dorsal; metres; origin amidships on the axis
 (the ship runs x -70 .. +70). Cruise configuration: both crew pods reeled out to 45 m and turning.
 
@@ -40,7 +41,7 @@ A = dict(
     pods=dict(r=45.0, g=0.4, dir=1, R=3.1, len=7.8, floor=6.4, deck2=3.8, fin=dict(u0=2.0, u1=7.0, w=1.8), thr=6.9),
     crew=dict(x0=52.2, bay=(53.2, 58.6), deck=(58.6, 65.0), nose=67.6, bow=70.0, r=4.6, port=56.0),
 )
-PHASE = float(os.environ.get('ARM_PHASE', 0.6))          # where the pods are in their turn (radians from dorsal/ventral)
+PHASE = 0.6          # where the pods are in their turn (radians from dorsal/ventral)
 RSH = A['cone']['r'] + A['cone']['k'] * (A['shield']['x1'] - A['cone']['x'])      # shield radius, 11.0 m
 
 C.EXTRA['tether'] = (lambda: K.plain('tether', (0.82, 0.82, 0.78), rough=0.75, grime=0.1), ('sim', (0.82, 0.82, 0.78), 0.0, 0.75))
@@ -644,7 +645,7 @@ def build_pod(b, label):
     with k.xf(on(u(2.75), PI, PR)):
         k.box((0, 0.2, 0), (0.5, 0.4, 0.6), 'white_s', bevel=0.03)          # tether power and data junction
     k.tube((u(7.6), 0.3, -1.3), (u(9.2), 0.3, -1.5), 0.02, 'grey', seg=4)
-    k.box((u(7.84), 0, 0), (0.1, 0.16, 0.16), 'navW')
+    k.box((u(7.84), 0, 0), (0.1, 0.5, 0.16) if game() else (0.1, 0.16, 0.16), 'navW')
     w = 0.62 * text_aspect(label) / (PR + 0.03)
     C.arc_decal('pod_' + label[-1].lower(), label, u(3.35), u(2.73), PR + 0.03, w / 2, -w / 2, seg=10)
     C.arc_decal('pod_' + label[-1].lower(), label, u(3.35), u(2.73), PR + 0.03, PI + w / 2, PI - w / 2, seg=10)
@@ -795,7 +796,7 @@ def build_fwd(stowed=False):
         for rr in (1.4, 3.0, 4.7):
             k.tube(P(69.6, rr, i * TAU / 18), P(69.95, rr, i * TAU / 18), 0.025, 'grey', seg=4)
     k.can(69.3, 70.0, 0.22, 'grey', seg=10, ch=0.04)
-    k.box((70.05, 0, 0), (0.12, 0.2, 0.2), 'navW')
+    k.box((70.05, 0, 0), (0.12, 0.5, 0.2) if game() else (0.12, 0.2, 0.2), 'navW')
     C.LIGHTS.append(('POINT', (70.6, 0, 0), None, 12, (1, 1, 1), 0))
     # --- dorsal docking port above the cargo bay
     with k.xf(orient((CM['port'], 0, r - 0.15), (0, 0, 1))):
@@ -835,7 +836,7 @@ def build_fwd(stowed=False):
     # --- navigation lights, forward RCS, rails, hatches, equipment
     for s in (1, -1):
         k.tube((63.8, s * (r - 0.1), 0), (63.8, s * 5.8, 0), 0.06, 'grey', seg=6)
-        k.box((63.8, s * 5.95, 0), (0.3, 0.3, 0.2), 'navR' if s > 0 else 'navG')
+        k.box((63.8, s * 5.95, 0), (0.5, 0.3, 0.2) if game() else (0.3, 0.3, 0.2), 'navR' if s > 0 else 'navG')
         C.LIGHTS.append(('POINT', (63.8, s * 6.6, 0), None, 14, (1, 0.05, 0.03) if s > 0 else (0.05, 1, 0.2), 0))
     for q in range(4):
         quad_on_stalk(61.25, TAU / 8 + q * TAU / 4, r + 0.14, 6.0, sc=0.4)
@@ -863,6 +864,8 @@ def build(parts, drive, landers):
         build_mid()
     if 'fwd' in parts:
         build_fwd(stowed=drive)          # pods are wound home before every burn
+    seen = set()          # one entry per lettering image (the pipeline makes a material for each entry)
+    C.DECALS[:] = [d for d in C.DECALS if not (d[0] in seen or seen.add(d[0]))]
 
 
 def shot(tgt, cam, dist, lens, roll, sun_world, eoff, **kw):
@@ -881,12 +884,11 @@ def _pod(i=0):
 
 _r, _t, _h = _pod(0)
 _bow = Vector((1, 0, 0))
-_E = lambda key, d: float(os.environ.get('ARM_' + key, d))
 SHOTS = {
-    'hero':  shot((6, 0, 6), (0.62, -0.72, 0.30), _E('DIST', 288), 70, _E('ROLL', -35), (0.35, -0.25, 0.9), (-10, -19)),
-    'pod':   shot(_h + _r * 31 + _bow * 2, _r * 0.86 + _bow * 0.30 - _t * 0.40, _E('DIST', 48), 28, _E('ROLL', -75), _r * 0.75 + _bow * 0.45 - _t * 0.5, (_E('EX', 25), _E('EY', -26)), elon=120),
-    'stern': shot((-20, 0, 0), (-0.80, -0.52, 0.30), _E('DIST', 185), 60, _E('ROLL', 4), (-0.3, -0.45, 0.84), (_E('EX', 10), _E('EY', -25))),
-    'hub':   shot((49, 0, 2), (0.42, -0.80, 0.42), _E('DIST', 52), 45, _E('ROLL', -3), (0.4, -0.2, 0.9), (_E('EX', 8), _E('EY', -25)), elon=165),
+    'hero':  shot((6, 0, 6), (0.62, -0.72, 0.30), 288, 70, -35, (0.35, -0.25, 0.9), (-10, -19)),
+    'pod':   shot(_h + _r * 31 + _bow * 2, _r * 0.86 + _bow * 0.30 - _t * 0.40, 48, 28, -75, _r * 0.75 + _bow * 0.45 - _t * 0.5, (25, -26), elon=120),
+    'stern': shot((-20, 0, 0), (-0.80, -0.52, 0.30), 185, 60, 4, (-0.3, -0.45, 0.84), (10, -25)),
+    'hub':   shot((49, 0, 2), (0.42, -0.80, 0.42), 52, 45, -3, (0.4, -0.2, 0.9), (8, -25), elon=165),
     # working views (no Earth)
     'side':  shot((0, 0, 0), (0.0, -1.0, 0.06), 420, 100, 0, (0.3, -0.6, 0.74), None),
     'aft':   shot((-52, 0, 0), (-0.25, -0.85, 0.45), 62, 50, 0, (-0.1, -0.6, 0.8), None),
