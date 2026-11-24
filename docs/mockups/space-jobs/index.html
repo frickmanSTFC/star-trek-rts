@@ -1,0 +1,673 @@
+<title>Space Jobs Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@500;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: design-review page. Header with the decisions, then the helm frame at game scale (1280×720) with three
+   screens (system plot with space sites, away-team event, ship status), then the rules, the site catalogue,
+   one fully written job, chain additions and open questions. Page shell follows the theme (dark first);
+   the helm frame keeps the game's own colours (HelmScreen.cs), like the other game mockups. */
+:root {
+  color-scheme: dark;
+  --page: #06080e; --page-2: #0d1322; --ink: #e8ecf5; --dim: #97a3bd; --rule: #252e46; --mark: #f2a65a; --focus: #9ed1ff;
+  --good: #8fd16a; --warn: #f0b840; --bad: #ef6b5e;
+  /* helm (HelmScreen.cs), fixed in both themes */
+  --h-bg: #000; --h-panel: #0a0c13; --h-panel-2: #11141d; --h-line: #272b38;
+  --h-peach: #f2a65a; --h-lav: #a9a3e0; --h-sky: #7fb0e8; --h-rust: #c8664a; --h-cyan: #5ff2e6; --h-green: #9be37a;
+  --h-red: #e8645a; --h-amber: #f5c04a; --h-ink: #f2e6d8; --h-grey: #3d404b; --h-greytext: #8d909a;
+  --fc: #7fb0e8;
+  --display: "Antonio", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { color-scheme: light; --page: #eceff5; --page-2: #ffffff; --ink: #151b29; --dim: #4e5970; --rule: #cdd3e0; --mark: #a8561a; --focus: #1f5fbf; --good: #2f7a1c; --warn: #8a5f00; --bad: #b3261e; }
+}
+:root[data-theme="light"] { color-scheme: light; --page: #eceff5; --page-2: #ffffff; --ink: #151b29; --dim: #4e5970; --rule: #cdd3e0; --mark: #a8561a; --focus: #1f5fbf; --good: #2f7a1c; --warn: #8a5f00; --bad: #b3261e; }
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font: 15px/1.55 var(--body); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; }
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 22px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+h1, h2, h3 { text-wrap: balance; }
+header.page h1 { font: 700 clamp(34px, 5vw, 54px)/1 var(--display); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 10px; }
+header.page p { margin: 0 0 8px; color: var(--dim); max-width: 75ch; }
+.eyebrow { display: inline-block; font: 600 13px/1 var(--label); letter-spacing: .16em; text-transform: uppercase; color: var(--mark);
+  border: 1px solid var(--mark); border-radius: 12px; padding: 5px 10px; margin-bottom: 12px; }
+.decided { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip { font: 600 13px/1 var(--label); letter-spacing: .08em; text-transform: uppercase; border-radius: 12px; padding: 6px 10px; border: 1px solid var(--rule); background: var(--page-2); }
+.chip.yes { border-color: var(--good); color: var(--good); }
+.chip.open { border-color: var(--warn); color: var(--warn); }
+
+/* stepper */
+.steps { display: flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; width: fit-content; max-width: 100%; }
+.steps button { display: flex; align-items: center; gap: 8px; border: 0; border-right: 1px solid var(--rule); background: var(--page-2);
+  padding: 9px 14px; font: 600 15px/1 var(--label); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.steps button:last-child { border-right: 0; }
+.steps button b { font: 700 13px/1 var(--display); color: var(--mark); }
+.steps button[aria-current="true"] { color: var(--ink); background: color-mix(in srgb, var(--mark) 16%, var(--page-2)); }
+.cap { font: 600 12px/1.3 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+
+/* ---------------------------------------------------------------- helm frame */
+.scroller { overflow-x: auto; border-radius: 12px; }
+.helm { position: relative; background: var(--h-bg); color: var(--h-ink); border-radius: 12px; width: 100%; min-width: 1100px; aspect-ratio: 16 / 9;
+  display: grid; grid-template-columns: 104px minmax(0, 1fr); grid-template-rows: 34px minmax(0, 1fr) 28px; gap: 4px;
+  grid-template-areas: "et et" "rail hb" "eb eb"; font: 400 14px/1.4 var(--body); overflow: hidden; }
+.et { grid-area: et; display: flex; gap: 4px; }
+.et .c0 { width: 104px; flex: none; background: var(--h-peach); border-radius: 12px 0 0 0; }
+.et .bar { flex: 1; background: var(--h-lav); color: #000; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px;
+  font: 700 17px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; min-width: 0; white-space: nowrap; overflow: hidden; }
+.et .bar small { font: 600 12px/1 var(--label); letter-spacing: .14em; }
+.et .hull { flex: none; width: 290px; background: var(--h-panel-2); border-radius: 0 12px 0 0; display: flex; align-items: center; gap: 10px; padding: 0 12px;
+  font: 600 12px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--h-greytext); }
+.et .hull b { color: var(--h-ink); font: 700 15px/1 var(--display); letter-spacing: .06em; }
+.minibar { flex: 1; height: 8px; background: #1a1d27; border-radius: 0 4px 4px 0; overflow: hidden; }
+.minibar i { display: block; height: 100%; background: var(--h-amber); }
+.rail { grid-area: rail; display: flex; flex-direction: column; gap: 4px; }
+.rail span { background: var(--h-grey); color: #000; text-align: right; padding: 22px 9px 5px; font: 600 13px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; }
+.rail span.on { background: var(--h-peach); }
+.rail .fill { flex: 1; background: var(--h-grey); }
+.rail .tag { background: var(--fc); }
+.eb { grid-area: eb; display: flex; gap: 4px; }
+.eb .c0 { width: 104px; flex: none; background: var(--h-peach); border-radius: 0 0 0 12px; }
+.eb .bar { flex: 1; background: var(--h-grey); color: #000; display: flex; align-items: center; gap: 18px; padding: 0 14px; font: 600 12px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; }
+.eb .bar:last-child { flex: none; width: 200px; background: var(--h-lav); border-radius: 0 0 12px 0; justify-content: center; }
+.hb { grid-area: hb; min-width: 0; min-height: 0; padding: 8px 10px 8px 6px; }
+.screen { height: 100%; display: none; }
+.screen.on { display: grid; }
+
+/* screen 1: system + sites */
+.s1 { grid-template-columns: minmax(0, 1fr) 360px; gap: 10px; }
+.plot { position: relative; background: radial-gradient(circle at 50% 50%, #0b1020 0, #000 70%); border: 1px solid var(--h-line); border-radius: 0 14px 14px 0; min-height: 0; }
+.plot svg { width: 100%; height: 100%; display: block; }
+.plot .legend { position: absolute; left: 10px; bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px 12px; font: 600 11px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--h-greytext); }
+.plot .legend i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; vertical-align: -1px; transform: rotate(45deg); }
+.site { cursor: pointer; }
+.site:focus { outline: none; }
+.site:focus-visible .ring, .site.sel .ring { stroke: var(--h-ink); stroke-width: 1.6; opacity: 1; }
+.site .ring { fill: none; stroke: var(--h-peach); stroke-width: 1; opacity: 0; }
+.site:hover .ring { opacity: .6; }
+.side { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; min-height: 0; }
+.panel { background: var(--h-panel); border-left: 8px solid var(--h-peach); border-radius: 0 14px 14px 0; padding: 9px 12px; display: grid; gap: 6px; min-width: 0; align-content: start; }
+.panel.lav { border-left-color: var(--h-lav); } .panel.sky { border-left-color: var(--h-sky); } .panel.red { border-left-color: var(--h-red); } .panel.green { border-left-color: var(--h-green); }
+.panel h5 { margin: 0; font: 700 16px/1.05 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--h-peach); display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.panel h5 small { font: 600 11px/1 var(--label); letter-spacing: .14em; color: var(--h-greytext); white-space: nowrap; }
+.job { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px; align-items: center; background: var(--h-panel-2); padding: 5px 8px; border-radius: 0 9px 9px 0; font-size: 13px; }
+.job .k { font: 700 10px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; color: #000; background: var(--h-green); border-radius: 0 6px 6px 0; padding: 3px 4px; text-align: center; }
+.job .k.off { background: var(--h-amber); }
+.job b { font: 600 14px/1.2 var(--label); letter-spacing: .04em; display: block; }
+.job span { color: var(--h-greytext); font-size: 12px; }
+.job em { font-style: normal; font: 600 12px/1 var(--label); color: var(--h-greytext); }
+.rows { display: grid; gap: 3px; }
+.row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; font-size: 13px; }
+.row > span:first-child { font: 600 11px/1.6 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--h-greytext); }
+.row .bad { color: var(--h-red); } .row .good { color: var(--h-green); } .row .amber { color: var(--h-amber); }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.pill { border: 0; border-radius: 0 12px 12px 0; background: var(--h-peach); color: #000; padding: 6px 12px; font: 700 13px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; }
+.pill.lav { background: var(--h-lav); } .pill.grey { background: var(--h-grey); color: var(--h-greytext); } .pill.red { background: var(--h-red); }
+.note { font-size: 12px; color: var(--h-greytext); }
+.scroll { overflow: auto; min-height: 0; }
+
+/* screen 2: away team */
+.s2 { grid-template-columns: minmax(0, 1fr) 340px; gap: 10px; }
+.view { position: relative; border: 1px solid var(--h-line); border-radius: 0 14px 14px 0; overflow: hidden; background: #000; min-height: 0; }
+.view canvas { width: 100%; height: 100%; display: block; }
+.event { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); width: min(640px, 92%); background: rgba(10,12,19,.94); border-left: 8px solid var(--h-cyan);
+  border-radius: 0 14px 14px 0; padding: 10px 14px 12px; display: grid; gap: 8px; }
+.event h4 { margin: 0; font: 700 18px/1.05 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--h-cyan); }
+.event .sub { font: 600 12px/1.3 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--h-greytext); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.run { height: 4px; background: #1a1d27; } .run i { display: block; height: 100%; width: 58%; background: var(--h-cyan); }
+.stepnames { display: flex; gap: 4px; }
+.stepnames span { flex: 1; font: 600 11px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; padding: 5px 6px; background: var(--h-panel-2); color: var(--h-greytext); border-top: 3px solid var(--h-grey); }
+.stepnames span.done { border-top-color: var(--h-green); color: var(--h-ink); }
+.stepnames span.now { border-top-color: var(--h-cyan); color: var(--h-ink); }
+.choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.choice { border: 0; text-align: left; background: var(--h-panel-2); border-left: 5px solid var(--h-grey); border-radius: 0 10px 10px 0; padding: 7px 9px; display: grid; gap: 3px; color: var(--h-ink); }
+.choice b { font: 700 14px/1.1 var(--label); letter-spacing: .06em; text-transform: uppercase; }
+.choice span { font-size: 12px; color: var(--h-greytext); line-height: 1.3; }
+.choice em { font-style: normal; font: 600 11px/1.2 var(--label); letter-spacing: .06em; }
+.choice[aria-pressed="true"] { border-left-color: var(--h-cyan); background: #142027; }
+.risk { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.risk div { display: grid; gap: 3px; font: 600 11px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--h-greytext); }
+.risk b { font: 700 18px/1 var(--display); letter-spacing: .04em; color: var(--h-ink); }
+.meter { height: 7px; background: #1a1d27; border-radius: 0 4px 4px 0; overflow: hidden; } .meter i { display: block; height: 100%; transition: width .25s; }
+.team { display: grid; gap: 4px; }
+.mem { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 13px; background: var(--h-panel-2); padding: 4px 8px; border-radius: 0 8px 8px 0; }
+.mem i { width: 10px; height: 10px; border-radius: 50%; }
+.mem span { color: var(--h-greytext); font: 600 11px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; }
+
+/* screen 3: ship */
+.s3 > .side { align-content: start; grid-template-rows: none !important; }
+.s3 { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, .9fr); gap: 10px; }
+.big { font: 700 44px/1 var(--display); letter-spacing: .02em; }
+.bands { position: relative; height: 16px; background: #1a1d27; border-radius: 0 8px 8px 0; overflow: hidden; }
+.bands i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--h-red), var(--h-amber) 40%, var(--h-green)); }
+.bands u { position: absolute; top: 0; bottom: 0; width: 1px; background: #000; }
+.ticks { position: relative; height: 14px; font: 600 10px/1 var(--label); color: var(--h-greytext); letter-spacing: .08em; }
+.ticks span { position: absolute; transform: translateX(-50%); }
+.sys { display: grid; grid-template-columns: 96px minmax(0, 1fr) 64px; gap: 8px; align-items: center; font-size: 13px; }
+.sys b { font: 600 12px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--h-greytext); font-weight: 600; }
+.sys em { font-style: normal; text-align: right; font: 600 12px/1 var(--label); letter-spacing: .06em; }
+.div { display: grid; grid-template-columns: 92px minmax(0, 1fr) 70px; gap: 8px; align-items: center; font-size: 13px; }
+.div .track { position: relative; height: 10px; background: #1a1d27; border-radius: 0 5px 5px 0; }
+.div .track i { position: absolute; inset: 0 auto 0 0; border-radius: 0 5px 5px 0; }
+.div .track s { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--h-red); text-decoration: none; }
+.div .track u { position: absolute; inset: 0 auto 0 0; background: repeating-linear-gradient(135deg, rgba(232,100,90,.7) 0 3px, transparent 3px 6px); }
+.log { display: grid; gap: 3px; font-size: 12px; }
+.log div { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; background: var(--h-panel-2); padding: 4px 8px; border-radius: 0 8px 8px 0; }
+.log span { color: var(--h-greytext); font: 600 11px/1.4 var(--label); }
+
+/* ---------------------------------------------------------------- design notes */
+section.notes { display: grid; gap: 14px; }
+section.notes h2 { font: 700 30px/1.05 var(--display); letter-spacing: .05em; text-transform: uppercase; margin: 10px 0 0; }
+section.notes h3 { font: 600 19px/1.2 var(--label); letter-spacing: .05em; text-transform: uppercase; margin: 6px 0 0; color: var(--mark); }
+section.notes p, section.notes li { max-width: 78ch; }
+section.notes p { margin: 0; }
+section.notes ul, section.notes ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; }
+.box { background: var(--page-2); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.box h3 { margin: 0; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 14px; background: var(--page-2); }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+th { font: 600 12px/1.2 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); background: var(--page); position: sticky; top: 0; }
+td b { font-weight: 600; }
+td small { color: var(--dim); }
+.tag { display: inline-block; font: 600 11px/1 var(--label); letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--rule); border-radius: 8px; padding: 3px 6px; margin: 0 3px 3px 0; color: var(--dim); white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+.stage { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; }
+.stage .n { font: 700 22px/1 var(--display); color: var(--mark); }
+.outcomes { display: grid; gap: 4px; }
+.outcomes div { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; font-size: 14px; }
+.outcomes b { font-variant-numeric: tabular-nums; }
+.q { counter-reset: q; list-style: none; padding: 0 !important; }
+.q li { counter-increment: q; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 8px; background: var(--page-2); border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; }
+.q li::before { content: counter(q); font: 700 20px/1 var(--display); color: var(--warn); }
+.q li p { margin: 0; color: var(--dim); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <span class="eyebrow">Design · missions for ships that never land</span>
+    <h1>Space Jobs</h1>
+    <p>Wrecks, debris fields, asteroids, anomalies and lifepods placed between the bodies of the system. You find them with the scanner, fly out and work them. Any ship can take them as side jobs, and each space chain gets two new main missions built on them.</p>
+    <p>Below: three screens at game scale, then the rules, the catalogue of site kinds, one job written out in full, the chain additions and the questions still open. Every number is a placeholder.</p>
+    <div class="decided">
+      <span class="chip yes">Hull damage: yes</span>
+      <span class="chip yes">Crew can be lost: yes</span>
+      <span class="chip open">Mined ore: open (Q1)</span>
+      <span class="chip open">Colony ships: open (Q2)</span>
+    </div>
+  </header>
+
+  <div class="steps" role="tablist" aria-label="Screens">
+    <button role="tab" aria-current="true" data-s="1"><b>1</b>System · sites &amp; jobs</button>
+    <button role="tab" aria-current="false" data-s="2"><b>2</b>Away team</button>
+    <button role="tab" aria-current="false" data-s="3"><b>3</b>Ship status</button>
+  </div>
+  <p class="cap" id="capline">Click a site on the plot to see its card. Unknown contacts show only what the scanner has learned.</p>
+
+  <div class="scroller">
+  <div class="helm">
+    <div class="et"><div class="c0"></div>
+      <div class="bar"><span>Kessa System</span><small id="title-sub">Tereshkova · long-range survey · 6 sites detected</small></div>
+      <div class="hull">Hull <b id="hullTop">78%</b><div class="minibar"><i style="width:78%"></i></div>Crew <b>38/40</b></div>
+    </div>
+    <div class="rail">
+      <span class="on" id="r1">System</span><span>Orbit</span><span id="r3">Ship</span><span id="r4">Jobs</span><span>Sats</span><span class="fill"></span><span class="tag">UE-16</span>
+    </div>
+    <div class="hb">
+
+      <!-- ===================== screen 1 ===================== -->
+      <div class="screen s1 on" id="sc1">
+        <div class="plot">
+          <svg id="plot" viewBox="0 0 800 560" role="img" aria-label="System plot with bodies and space sites"></svg>
+          <div class="legend">
+            <span><i style="background:#8d909a"></i>Unknown contact</span>
+            <span><i style="background:#c8664a"></i>Wreck / debris</span>
+            <span><i style="background:#f5c04a"></i>Asteroid</span>
+            <span><i style="background:#a9a3e0"></i>Anomaly</span>
+            <span><i style="background:#5ff2e6"></i>Lifepods / people</span>
+          </div>
+        </div>
+        <div class="side">
+          <div class="panel green">
+            <h5>Jobs <small>2 of 2 active · 1 offer</small></h5>
+            <div class="job"><span class="k">Main</span><div><b>The Whole Map</b><span>Chart every body · 7 / 9</span></div><em></em></div>
+            <div class="job"><span class="k">Side</span><div><b>The Quiet Hulk</b><span>Come alongside the derelict</span></div><em>C-3</em></div>
+            <div class="job"><span class="k">Side</span><div><b>Hollow Rock</b><span>Survey asteroid K-7 · 12 s</span></div><em>A-1</em></div>
+            <div class="job"><span class="k off">Offer</span><div><b>Twelve Lifepods</b><span>Declines in 1:04 · full at 2 jobs</span></div><em>P-5</em></div>
+          </div>
+          <div class="panel" id="card"></div>
+        </div>
+      </div>
+
+      <!-- ===================== screen 2 ===================== -->
+      <div class="screen s2" id="sc2">
+        <div class="view">
+          <canvas id="hulk" width="1200" height="760" aria-label="The derelict seen from the flagship"></canvas>
+          <div class="event">
+            <h4>Away team · unknown derelict C-3</h4>
+            <div class="sub"><span>Step 2 of 3 · 0:38 left (then the first choice is taken)</span><span>Keep the ship alongside</span></div>
+            <div class="run"><i></i></div>
+            <div class="stepnames"><span class="done">1 · Who goes ✓</span><span class="now">2 · How we get in</span><span>3 · What we bring back</span></div>
+            <div class="choices" id="choices">
+              <button class="choice" aria-pressed="true" data-c="0"><b>Use their airlock</b><span>Slow and quiet. The door may be rigged.</span><em>Injury −0 · Loss −0 · Time +30 s</em></button>
+              <button class="choice" aria-pressed="false" data-c="1"><b>Cut through the hull</b><span>Fast. Decompression risk inside.</span><em>Injury +12 · Loss +3 · Time −20 s</em></button>
+              <button class="choice" aria-pressed="false" data-c="2"><b>Space-walk to the bridge</b><span>Exploration crew lead. Long EVA.</span><em>Injury +6 · Loss +1 · Find +15</em></button>
+            </div>
+            <div class="risk">
+              <div>Injury chance, each<b id="rInj">14%</b><span class="meter"><i id="mInj" style="background:#f5c04a"></i></span></div>
+              <div>Loss chance, each<b id="rLoss">3%</b><span class="meter"><i id="mLoss" style="background:#e8645a"></i></span></div>
+              <div>Good find<b id="rFind">55%</b><span class="meter"><i id="mFind" style="background:#9be37a"></i></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="side" style="grid-template-rows: auto auto minmax(0,1fr)">
+          <div class="panel sky">
+            <h5>Team <small>4 of 38 aboard</small></h5>
+            <div class="team">
+              <div class="mem"><i style="background:#7fb0e8"></i>Lt. Okonjo, pilot<span>Exploration</span></div>
+              <div class="mem"><i style="background:#7fb0e8"></i>Ens. Varga, sensors<span>Exploration</span></div>
+              <div class="mem"><i style="background:#f5c04a"></i>CPO Lindqvist, engineer<span>Engineering</span></div>
+              <div class="mem"><i style="background:#e8645a"></i>Sgt. Abara, security<span>Defense</span></div>
+            </div>
+            <div class="note">Each Defense member takes 4 points off the loss chance. A medic (Science) turns half of all losses into injuries.</div>
+          </div>
+          <div class="panel">
+            <h5>What the scan says <small>scanned 1:12 ago</small></h5>
+            <div class="rows">
+              <div class="row"><span>Hull</span><span>~180 m · unknown design · cold</span></div>
+              <div class="row"><span>Power</span><span class="amber">one trickle reading, aft</span></div>
+              <div class="row"><span>Life</span><span class="amber">faint, one reading (unclear)</span></div>
+              <div class="row"><span>Atmosphere</span><span>none in the forward half</span></div>
+            </div>
+          </div>
+          <div class="panel lav">
+            <h5>If it goes wrong</h5>
+            <div class="note" style="font-size:13px;line-height:1.45">Injured crew are out for 3 min (sickbay) and then come back. Lost crew are gone for the rest of the match and their division shrinks. Leaving orbit calls the team back and ends the job with no reward.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== screen 3 ===================== -->
+      <div class="screen s3" id="sc3">
+        <div class="side" style="grid-template-rows: auto auto minmax(0,1fr)">
+          <div class="panel">
+            <h5>Hull integrity <small>Tereshkova · UE-16</small></h5>
+            <div style="display:flex;align-items:baseline;gap:12px"><span class="big">78%</span><span class="note">−6% from debris at C-3 · −10% in the ion storm</span></div>
+            <div class="bands"><i style="width:78%"></i><u style="left:25%"></u><u style="left:50%"></u><u style="left:75%"></u></div>
+            <div class="ticks"><span style="left:25%">25 Crippled below</span><span style="left:50%">50 Slowed</span><span style="left:75%">75 Scuffed</span></div>
+            <div class="rows">
+              <div class="row"><span>Now</span><span class="good">Scuffed: no effect yet</span></div>
+              <div class="row"><span>Below 50</span><span>flights +25%, scan reach −20%</span></div>
+              <div class="row"><span>Below 25</span><span>no hazardous jobs, flights +60%</span></div>
+              <div class="row"><span>At 0</span><span class="bad">crippled: adrift, active jobs fail</span></div>
+            </div>
+          </div>
+          <div class="panel green">
+            <h5>Repairs</h5>
+            <div class="rows">
+              <div class="row"><span>Field repair</span><span>Engineering crew, +1% / 10 s up to 60%</span></div>
+              <div class="row"><span>Hull patch kits</span><span>2 in the hold · +15% each, 30 s</span></div>
+              <div class="row"><span>Dockyard</span><span>colony or allied station: back to 100%</span></div>
+            </div>
+            <div class="btns"><button class="pill">Fit patch kit</button><button class="pill grey">Dock for repair (none in range)</button></div>
+          </div>
+          <div class="panel lav"><h5>Damage log</h5>
+            <div class="log">
+              <div><span>14:22</span>Debris strike at C-3 · hull −6%</div>
+              <div><span>11:05</span>Ion storm, inner ring · hull −10% · sensors damaged</div>
+              <div><span>09:40</span>Field repair to 60% stopped · already above</div>
+            </div>
+          </div>
+        </div>
+        <div class="side" style="grid-template-rows: auto auto">
+          <div class="panel sky">
+            <h5>Systems</h5>
+            <div class="sys"><b>Sensors</b><span class="amber" style="color:var(--h-amber)">Damaged · scans 30% slower</span><em style="color:var(--h-amber)">1:40</em></div>
+            <div class="sys"><b>Engines</b><span>OK</span><em style="color:var(--h-green)">100%</em></div>
+            <div class="sys"><b>Tractor</b><span>OK</span><em style="color:var(--h-green)">100%</em></div>
+            <div class="sys"><b>Life support</b><span>OK</span><em style="color:var(--h-green)">100%</em></div>
+            <div class="note">A hazard can knock out one system. It comes back on its own after the time shown; a patch kit fixes it at once.</div>
+          </div>
+          <div class="panel">
+            <h5>Crew <small>38 of 40 · 1 injured · 1 lost</small></h5>
+            <div class="div"><span>Exploration</span><span class="track"><i style="width:45%;background:#7fb0e8"></i><s style="left:10%"></s></span><em class="num">17 of 18</em></div>
+            <div class="div"><span>Engineering</span><span class="track"><i style="width:25%;background:#f5c04a"></i><s style="left:10%"></s></span><em class="num">10</em></div>
+            <div class="div"><span>Science</span><span class="track"><i style="width:15%;background:#9be37a"></i><u style="left:15%;width:2.5%"></u><s style="left:10%"></s></span><em class="num">6 · 1 inj.</em></div>
+            <div class="div"><span>Defense</span><span class="track"><i style="width:12.5%;background:#e8645a"></i><s style="left:10%"></s></span><em class="num">5</em></div>
+            <div class="note">Red mark = the 10% floor. Losing Ens. Varga took Exploration from 18 to 17: scans and sweeps 1.6% slower.</div>
+          </div>
+        </div>
+        <div class="side" style="grid-template-rows: auto auto">
+          <div class="panel red">
+            <h5>Lost and injured</h5>
+            <div class="log">
+              <div><span>14:31</span>Ens. Varga (Exploration) lost: decompression aboard C-3</div>
+              <div><span>14:31</span>Dr. Ise (Science) injured: back 17:31</div>
+            </div>
+          </div>
+          <div class="panel">
+            <h5>Hold <small>11 of 12 containers</small></h5>
+            <div class="rows">
+              <div class="row"><span>Patch kits</span><span>2</span></div>
+              <div class="row"><span>Sensor probes</span><span>1</span></div>
+              <div class="row"><span>Satellites</span><span>2</span></div>
+              <div class="row"><span>Ore</span><span>3 containers (90 duranium ore)</span></div>
+              <div class="row"><span>Salvage</span><span>1 alien power cell</span></div>
+              <div class="row"><span>Medical</span><span>2 (injuries 3 → 2 min)</span></div>
+            </div>
+            <div class="note">Ore and salvage take the same space as cargo. A full hold stops mining.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="eb"><div class="c0"></div><div class="bar"><span>T+14:46</span><span>Sector scan ready 0:22</span><span>Probe ×1</span></div><div class="bar">Exploration focus</div></div>
+  </div>
+  </div>
+
+  <!-- ===================================================================== notes -->
+  <section class="notes">
+    <h2>How it plays</h2>
+    <div class="grid2">
+      <div class="box">
+        <h3>Space sites</h3>
+        <p>Each system rolls 4 to 7 sites at the start, placed off the orbits between bodies. More arrive during the match (about one every 6 minutes): a distress call, a comet passing through, a rogue asteroid, a ship that limps in.</p>
+        <ul>
+          <li><b>Detected:</b> a grey contact with a size. The long-range scan finds them like bodies.</li>
+          <li><b>Identified:</b> fly within 120 map units and scan (20–45 s). Kind, hazards and a first look at what is there.</li>
+          <li><b>Worked:</b> the ship is alongside or inside the site. Most work is time on site plus choices.</li>
+          <li><b>Spent:</b> the site stays on the plot, greyed, until it drifts out after 5 minutes.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Side-job pool</h3>
+        <p>Every ship gets side jobs, not only the colony. A site offers its job when it is identified (or when an event arrives); at most 2 jobs run at once, offers lapse after 90 s and come back once a slot is free.</p>
+        <ul>
+          <li>Main chains go on as now. Each space chain also gets two new missions built on sites (below).</li>
+          <li>Failing a job still costs only its reward, but the hull damage and crew lost on the way stay.</li>
+          <li>Which divisions you took in the fit-out decide how good a ship is at each kind of job.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Hull damage</h3>
+        <p>The flagship gets hull integrity, 0–100, and four systems that can be knocked out: sensors, engines, tractor, life support.</p>
+        <ul>
+          <li><b>75–100</b> scuffed, no effect. <b>50–75</b> flights +10%. <b>25–50</b> flights +25%, scan reach −20%. <b>Below 25</b> no hazardous jobs, flights +60%.</li>
+          <li><b>At 0</b> crippled: the ship drifts where it is, every active job fails, field repairs bring it back to 20% over 3 minutes. No game over.</li>
+          <li><b>Repairs:</b> Engineering crew patch it up to 60% for free (speed from the Engineering share); hull patch kits from the hold add 15% each; a dock at the colony or an allied station restores 100%.</li>
+          <li>When combat arrives it uses this same bar.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Crew loss</h3>
+        <p>Crew are counted by division, as the fit-out set them. Away teams and some hazards roll per person.</p>
+        <ul>
+          <li><b>Injured:</b> out for 3 minutes, then back. <b>Lost:</b> gone for the match.</li>
+          <li>A division's share sets its effects (0.4% a point, as in the fit-out), so a lost pilot makes scans a little slower.</li>
+          <li>Below a division's 10% floor its effects stop and the ship card warns. A ship needs half its crew to fly at full speed.</li>
+          <li>Defense on the team lowers the loss chance; a Science medic turns half the losses into injuries; medical stores shorten injuries.</li>
+          <li>The Armstrong (6 crew) can send a team of 2 at most, so its jobs lean to towing and runs, not boarding.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Site catalogue</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Site</th><th>How you work it</th><th>Hazards</th><th>Rewards</th><th>Best division</th></tr></thead>
+        <tbody>
+          <tr><td><b>Derelict, unknown origin</b><br><small>alien hull, no transponder</small></td><td>Scan, come alongside 20 s, send an away team (3 timed steps: who goes, how in, what to bring back).</td><td>Rigged door, power surge (hull −8 to −15), automated defences (crew loss), something brought aboard (crew sick 3 min).</td><td>Research 80–150, an alien part or a tech fragment (a shared tech), data that opens a follow-up job.</td><td><span class="tag">Defense</span><span class="tag">Science</span></td></tr>
+          <tr><td><b>Derelict, known origin</b><br><small>Earth ship, trader or a native ship</small></td><td>Come alongside, restore power (1 patch kit or 60 s of Engineering), recover the logs, search for the crew. Optionally tow it to a body.</td><td>Reactor near failure (timer), loose debris.</td><td>Survivors (crew join you), latinum or standing from the owners; a native ship returned lowers awareness and builds trust.</td><td><span class="tag">Engineering</span></td></tr>
+          <tr><td><b>Debris field</b><br><small>a ship that was destroyed</small></td><td>Fly into the field and sweep it: 3–5 things to find (black box, cargo pods, lifepods). Slow flight inside the field.</td><td>Hull −1% every 10 s inside, more at full speed.</td><td>Cargo, survivors; the black box tells what happened and opens the next job (who did it).</td><td><span class="tag">Exploration</span></td></tr>
+          <tr><td><b>Asteroid</b><br><small>common · metal-rich · ice · hollow (rare)</small></td><td>Survey 20 s. Mine with tractor and cutters: 1 container of ore every 30 s into the hold. A hollow one hides a cache or an old base (away team).</td><td>Rock falls while mining (hull −2 to −5), tumbling rocks.</td><td>Ore (see Q1), ice turns into deuterium, the hollow one's find.</td><td><span class="tag">Engineering</span></td></tr>
+          <tr><td><b>Rogue asteroid</b><br><small>event · on course for a body</small></td><td>Reach it before the timer, then push alongside with the tractor for 60–120 s, or place charges (away team, faster, riskier).</td><td>Strikes while pushing; the timer.</td><td>A world saved: big standing; a civilization's world saved: awareness and trust. Fail: impact, the body is damaged.</td><td><span class="tag">Engineering</span></td></tr>
+          <tr><td><b>Anomaly / ion storm</b></td><td>Hold position and record. Three rings: outer slow and safe, middle, inner fast with damage.</td><td>Inner ring: hull −2%/10 s, a chance to knock out sensors or engines.</td><td>Research, scaled by time and ring.</td><td><span class="tag">Science</span></td></tr>
+          <tr><td><b>Comet</b><br><small>event · crosses the system</small></td><td>Meet it in a window (it moves on the plot) and sample the tail for 30 s.</td><td>Light hull wear.</td><td>Research, ice into deuterium.</td><td><span class="tag">Science</span><span class="tag">Exploration</span></td></tr>
+          <tr><td><b>Lifepods</b><br><small>event · scattered round a site</small></td><td>Each pod has its own air timer. Fly within range and pick it up (5 s each). People take hold space until dropped at a body or a station.</td><td>The timers; pods inside a debris field.</td><td>Crew (survivors can join), standing.</td><td><span class="tag">Exploration</span></td></tr>
+          <tr><td><b>Stranded ship</b></td><td>Bring power or a patch kit, then escort it to a body.</td><td>Sometimes a trap (the distress call was bait).</td><td>Latinum, an ally freighter, standing.</td><td><span class="tag">Engineering</span><span class="tag">Defense</span></td></tr>
+          <tr><td><b>Hidden ship</b><br><small>Bastion</small></td><td>Search a belt with timed scans, then come alongside to inspect.</td><td>It runs or fights back (later, with combat).</td><td>Contraband, standing.</td><td><span class="tag">Exploration</span><span class="tag">Defense</span></td></tr>
+          <tr><td><b>Alien probe</b><br><small>Meridian</small></td><td>It follows the ship and sends a pattern. Hold still and decode it (Science), then answer.</td><td>A wrong answer and it shuts down or leaves.</td><td>A language key: later first contacts start with less culture shock.</td><td><span class="tag">Science</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>One job in full: The Quiet Hulk</h2>
+    <div class="grid2">
+      <div class="box">
+        <p><b>Side job · any ship with 3 or more crew · offered by Science.</b> “Long-range contact near Kessa IV: a hull with no power and no transponder. Nobody has filed a flight plan for it. Go and look.”</p>
+        <div class="stage"><span class="n">1</span><div><b>Identify.</b> Fly within range and scan it (30 s × the sweep lever). Reveals size, design (unknown), power (one trickle reading), life (a faint reading, 50% real).</div></div>
+        <div class="stage"><span class="n">2</span><div><b>Come alongside.</b> 20 s next to it (alongside lever). One debris roll: 40% for −2 to −6 hull.</div></div>
+        <div class="stage"><span class="n">3</span><div><b>Away team.</b> Three steps, 60 s each, the game never pauses; a step that runs out takes its first choice.
+          <ol style="margin-top:4px">
+            <li>Who goes: 2–6 crew from any division.</li>
+            <li>How in: their airlock (slow, rigged 20%) · cut the hull (fast, decompression 12%) · space-walk to the bridge (Exploration, finds +15).</li>
+            <li>What to bring back: the data core (research, opens a follow-up) · the power cell (a part, takes 1 container) · the life reading (if real: a survivor who joins the crew; if not, nothing).</li>
+          </ol></div></div>
+        <div class="stage"><span class="n">4</span><div><b>Leave.</b> The team is back aboard after 20 s. The job completes; leaving orbit earlier fails it.</div></div>
+      </div>
+      <div class="box">
+        <h3>What can happen (rolled once, after step 3)</h3>
+        <div class="outcomes">
+          <div><b>60%</b><span>Clean. Research 120 and the chosen item.</span></div>
+          <div><b>20%</b><span>Power surge. Hull −12, one team member injured, item still recovered.</span></div>
+          <div><b>12%</b><span>Defences wake. Each team member rolls loss at 8% (−4 per Defense member, half become injuries with a medic). Item recovered on a coin flip.</span></div>
+          <div><b>8%</b><span>Something came back with them. The team is in quarantine 3 min (counts as injured); Science stores shorten it.</span></div>
+        </div>
+        <p class="note" style="color:var(--dim)">The step 2 choice shifts these odds (screen 2 shows it live). The data core opens “Where They Came From”: a second site, far out, with the hulk's home beacon.</p>
+        <h3>In the data</h3>
+        <p style="font-size:14px;color:var(--dim)">The same missions format as now (<code>data/missions/side_jobs.json</code>): new conditions <code>site</code> (identified / alongside / boarded / swept / mined), <code>hull</code>, <code>crew</code>, <code>hold</code>; new actions <code>place_space_site</code>, <code>away_team</code> (the event), <code>damage</code>, <code>lose_crew</code>, <code>give_crew</code>. Sites live in the star system state and are hashed with it.</p>
+      </div>
+    </div>
+
+    <h2>New main missions per chain</h2>
+    <div class="grid2">
+      <div class="box"><h3>Tereshkova · The Long Survey</h3><ul><li><b>Wreck at the Edge</b>: a debris field past the last orbit; sweep it and recover the black box.</li><li><b>Hollow Rock</b>: survey the belt, find the one asteroid with a cavity, send a team in.</li></ul></div>
+      <div class="box"><h3>Armstrong · Priority Run</h3><ul><li><b>Twelve Lifepods</b>: a liner broke up; pick up pods against their air timers. Small hold, so several trips to the nearest station.</li><li><b>Tow Line</b>: drag a disabled freighter to a body before its reactor fails.</li></ul></div>
+      <div class="box"><h3>Bastion · Watch Station</h3><ul><li><b>Rogue Rock</b>: an asteroid on course for an inhabited moon; reach it and push it off course in time.</li><li><b>The Smuggler's Belt</b>: a ship hiding in the belt; timed scans to flush it out, then inspect.</li></ul></div>
+      <div class="box"><h3>Meridian · Envoy</h3><ul><li><b>The Probe That Talks</b>: decode an alien probe's signal; a good answer makes the later first contact easier.</li><li><b>Their Lost Ship</b>: a native ship adrift; return it (towed or crewed) for trust, or study it and risk an incident.</li></ul></div>
+    </div>
+
+    <h2>Fit-out ties</h2>
+    <div class="grid2">
+      <div class="box"><h3>Division levers (new)</h3><ul>
+        <li><b>Exploration:</b> site scan time, debris-field search, lifepod pick-up.</li>
+        <li><b>Engineering:</b> field repair speed, mining rate, tow speed, push strength.</li>
+        <li><b>Science:</b> anomaly research, decoding, quarantine length.</li>
+        <li><b>Defense:</b> away-team loss chance, trap detection.</li></ul></div>
+      <div class="box"><h3>New space cargo</h3><ul>
+        <li><b>Hull patch kit</b> (Engineering, 1 container): +15% hull or fixes a system at once.</li>
+        <li><b>Medical stores</b> (Science, space version): injuries 1 min shorter each, max 3.</li>
+        <li><b>Cutting gear</b> (Engineering, 1 container): mining +25%.</li>
+        <li>Ore, salvage and survivors take hold space too, so a full hold is a real choice.</li></ul></div>
+    </div>
+
+    <h2>Open questions</h2>
+    <ol class="q">
+      <li><div><b>Mined ore: where does it go on a ship that never lands?</b><p>Suggested: sell it to trade freighters and stations for latinum (a new score for space ships), or hand it in for jobs that ask for it. Upgrading the ship with it is bigger work.</p></div></li>
+      <li><div><b>Do the Horizon and Cochrane get space jobs too?</b><p>Suggested: yes, but their flagship stays near the colony body, so only sites within one flight; leaving orbit blocks drop ships and landings as today.</p></div></li>
+      <li><div><b>Can lost crew be replaced?</b><p>Suggested: survivors from rescues can join (by division), and a station visit hires 2 a time. Otherwise losses stay for the match.</p></div></li>
+      <li><div><b>Crippled at 0 hull: is drifting with all jobs failed enough, or should it end the scenario?</b><p>Suggested: drift and recover. No game over until combat exists.</p></div></li>
+      <li><div><b>Four ship systems (sensors, engines, tractor, life support), or only the hull bar?</b><p>Systems make anomalies and traps more varied; the hull bar alone is simpler to read.</p></div></li>
+      <li><div><b>Towing: is it worth it?</b><p>Flights 1.6× slower while towing, wrecks and derelicts can be brought to a body for more reward. Adds the Tow Line mission.</p></div></li>
+      <li><div><b>Which first?</b><p>Suggested order: sites + scanning + hull damage + the derelict and debris jobs (with the away team), then asteroids and mining, then events (rogue asteroid, comet, lifepods), then the chain missions.</p></div></li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------------------------------------------------------------- stepper
+  const caps = {
+    1: "Click a site on the plot to see its card. Unknown contacts show only what the scanner has learned.",
+    2: "The away team event, the same shape as first contact: three timed steps. Click a choice in step 2 to see the risk move.",
+    3: "The ship card: hull bar with its bands, knocked-out systems, crew by division with the floor, and what the hold carries."
+  };
+  const tabs = document.querySelectorAll(".steps button");
+  function show(n) {
+    tabs.forEach(b => b.setAttribute("aria-current", b.dataset.s == n ? "true" : "false"));
+    [1, 2, 3].forEach(i => document.getElementById("sc" + i).classList.toggle("on", i == n));
+    document.getElementById("capline").textContent = caps[n];
+    document.getElementById("r1").classList.toggle("on", n == 1);
+    document.getElementById("r3").classList.toggle("on", n == 3);
+    document.getElementById("r4").classList.toggle("on", n == 2);
+    if (n == 2) drawHulk();
+  }
+  tabs.forEach(b => b.addEventListener("click", () => show(+b.dataset.s)));
+
+  // ---------------------------------------------------------------- plot
+  const C = { grey: "#8d909a", rust: "#c8664a", amber: "#f5c04a", lav: "#a9a3e0", cyan: "#5ff2e6", peach: "#f2a65a", sky: "#7fb0e8", ink: "#f2e6d8", line: "#272b38" };
+  const cx = 400, cy = 280;
+  const bodies = [
+    { n: "Kessa I", r: 70, a: 40, s: 6, c: "#c8664a" },
+    { n: "Kessa II", r: 120, a: 200, s: 8, c: "#d6b77a" },
+    { n: "Kessa III", r: 170, a: 320, s: 9, c: "#6fa36a" },
+    { n: "Belt", r: 205, belt: true },
+    { n: "Kessa IV", r: 240, a: 110, s: 14, c: "#c9a46a" },
+    { n: "Kessa V", r: 300, a: 250, s: 11, c: "#8fb4d8" }
+  ];
+  const sites = [
+    { id: "C-3", kind: "derelict", x: 565, y: 150, c: C.rust, label: "C-3 · DERELICT",
+      title: "Derelict C-3", sub: "identified · 0:42 away", rows: [["Kind", "Derelict, unknown origin"], ["Size", "~180 m · cold hull"], ["Signs", "one power trickle · faint life (unclear)"], ["Hazards", "<span class='amber'>rigged doors likely · loose debris</span>"], ["Job", "The Quiet Hulk (active)"]],
+      btn: ["Come alongside", "Away team"], note: "Board with 2–6 crew. Defense lowers the loss chance, a medic turns losses into injuries." },
+    { id: "D-2", kind: "debris", x: 230, y: 120, c: C.rust, label: "D-2 · DEBRIS",
+      title: "Debris field D-2", sub: "identified · 1:10 away", rows: [["Kind", "Debris field · freighter, Ferengi build"], ["Spread", "~40 map units"], ["Signals", "black box pinging · 2 cargo pods"], ["Hazards", "<span class='bad'>hull −1% / 10 s inside</span>"], ["Job", "Sweep the field (offered when a slot is free)"]],
+      btn: ["Set course", "Sweep"], note: "Fly through slowly. Each find needs 10 s within 6 units." },
+    { id: "A-1", kind: "asteroid", x: 588, y: 372, c: C.amber, label: "K-7 · ASTEROID",
+      title: "Asteroid K-7", sub: "in the belt · surveying 12 s", rows: [["Kind", "Metal-rich · 2.4 km"], ["Survey", "<span class='amber'>density low in the core: hollow?</span>"], ["Ore", "duranium ore ~900"], ["Hazards", "rock falls while mining"], ["Job", "Hollow Rock (active)"]],
+      btn: ["Mine", "Away team"], note: "1 container of ore every 30 s while the hold has room." },
+    { id: "N-4", kind: "anomaly", x: 135, y: 360, c: C.lav, label: "N-4 · ION STORM",
+      title: "Ion storm N-4", sub: "identified · 1:30 away", rows: [["Kind", "Ion storm · drifting 2 units/min"], ["Rings", "outer 1× · middle 2× · inner 4× research"], ["Hazards", "<span class='bad'>inner: hull −2% / 10 s, sensors or engines knocked out</span>"], ["Job", "none yet"]],
+      btn: ["Set course", "Record (outer)"], note: "Choose the ring. Science crew raise research in every ring." },
+    { id: "P-5", kind: "pods", x: 300, y: 450, c: C.cyan, label: "P-5 · LIFEPODS",
+      title: "Lifepods P-5", sub: "event · distress beacon", rows: [["Kind", "12 lifepods round a broken liner"], ["Air", "<span class='bad'>first pod 4:10 · last 9:30</span>"], ["Room", "3 pods per container"], ["Job", "Twelve Lifepods (offer, 1:04)"]],
+      btn: ["Accept", "Set course"], note: "Both job slots are full: accept replaces nothing, so drop one first." },
+    { id: "U-6", kind: "unknown", x: 650, y: 70, c: C.grey, label: "UNKNOWN · SIZE ~2",
+      title: "Unknown contact", sub: "detected · 2:05 away", rows: [["Kind", "unknown"], ["Size", "~2 (small)"], ["To learn", "fly within 120 units and scan"]],
+      btn: ["Set course", "Scan (out of range)"], note: "Most unknown contacts are rocks. Some are not." }
+  ];
+  const svg = document.getElementById("plot");
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (t, a, p = svg) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p.appendChild(e); return e; };
+  // stars
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 140; i++) el("circle", { cx: rnd() * 800, cy: rnd() * 560, r: rnd() * 0.9 + 0.2, fill: "#fff", opacity: 0.15 + rnd() * 0.35 });
+  el("circle", { cx, cy, r: 26, fill: "#f5c04a", opacity: 0.12 });
+  el("circle", { cx, cy, r: 13, fill: "#ffd27a" });
+  bodies.forEach(b => {
+    el("circle", { cx, cy, r: b.r, fill: "none", stroke: b.belt ? "#3a3420" : C.line, "stroke-width": b.belt ? 9 : 1, "stroke-dasharray": b.belt ? "1 4" : "" });
+    if (b.belt) return;
+    const t = b.a * Math.PI / 180, x = cx + Math.cos(t) * b.r, y = cy + Math.sin(t) * b.r;
+    el("circle", { cx: x, cy: y, r: b.s, fill: b.c });
+    const tx = el("text", { x: x + b.s + 5, y: y + 4, fill: C.greyText || "#8d909a", "font-size": 11, "font-family": "Barlow Condensed, sans-serif", "letter-spacing": "1.5" });
+    tx.textContent = b.n.toUpperCase();
+  });
+  // ship + course
+  const shipX = 480, shipY = 215;
+  el("line", { x1: shipX, y1: shipY, x2: 552, y2: 160, stroke: C.peach, "stroke-width": 1.2, "stroke-dasharray": "4 4" });
+  const sh = el("polygon", { points: "0,-8 6,6 0,3 -6,6", fill: C.sky, transform: `translate(${shipX},${shipY}) rotate(45)` });
+  const st = el("text", { x: shipX - 70, y: shipY + 20, fill: C.sky, "font-size": 11, "font-family": "Barlow Condensed, sans-serif", "letter-spacing": "1.5" }); st.textContent = "TERESHKOVA";
+  // scan range
+  el("circle", { cx: shipX, cy: shipY, r: 120, fill: "none", stroke: C.sky, "stroke-opacity": .25, "stroke-dasharray": "2 5" });
+
+  function glyph(g, s) {
+    const c = s.c;
+    if (s.kind === "derelict") { el("path", { d: "M-9,4 L-3,-6 L9,-3 L6,5 Z", fill: "none", stroke: c, "stroke-width": 1.8 }, g); el("line", { x1: -3, y1: -6, x2: 1, y2: 4, stroke: c, "stroke-width": 1 }, g); }
+    else if (s.kind === "debris") { [[-8, -3, 2.2], [-2, 5, 1.6], [5, -5, 2], [8, 4, 1.3], [0, -1, 1.2], [-6, 7, 1]].forEach(p => el("rect", { x: p[0], y: p[1], width: p[2] * 1.6, height: p[2], fill: c, transform: `rotate(${p[0] * 9} ${p[0]} ${p[1]})` }, g)); }
+    else if (s.kind === "asteroid") { el("path", { d: "M-8,-2 L-4,-8 L4,-7 L9,-1 L6,7 L-3,8 L-9,3 Z", fill: c, opacity: .85 }, g); }
+    else if (s.kind === "anomaly") { [10, 6.5, 3].forEach((r, i) => el("circle", { r, fill: "none", stroke: c, "stroke-width": 1.4, opacity: .4 + i * .25 }, g)); }
+    else if (s.kind === "pods") { [[-6, -4], [4, -6], [7, 3], [-3, 6], [0, 0]].forEach(p => el("circle", { cx: p[0], cy: p[1], r: 2, fill: c }, g)); el("circle", { r: 11, fill: "none", stroke: c, opacity: .35 }, g); }
+    else { el("rect", { x: -6, y: -6, width: 12, height: 12, fill: "none", stroke: c, "stroke-width": 1.6, transform: "rotate(45)" }, g); const q = el("text", { x: 0, y: 4, fill: c, "font-size": 10, "text-anchor": "middle", "font-family": "Antonio, sans-serif" }, g); q.textContent = "?"; }
+  }
+  const nodes = {};
+  sites.forEach(s => {
+    const g = el("g", { class: "site", transform: `translate(${s.x},${s.y})`, tabindex: 0, role: "button", "aria-label": s.title });
+    el("circle", { r: 16, class: "ring" }, g);
+    el("circle", { r: 18, fill: "transparent" }, g);
+    glyph(g, s);
+    const t = el("text", { x: 16, y: -10, fill: s.c, "font-size": 10.5, "font-family": "Barlow Condensed, sans-serif", "letter-spacing": "1.4" }, g); t.textContent = s.label;
+    g.addEventListener("click", () => pick(s.id));
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(s.id); } });
+    nodes[s.id] = g;
+  });
+  const card = document.getElementById("card");
+  function pick(id) {
+    const s = sites.find(x => x.id === id);
+    Object.values(nodes).forEach(n => n.classList.remove("sel"));
+    nodes[id].classList.add("sel");
+    card.style.borderLeftColor = s.c;
+    card.innerHTML = `<h5 style="color:${s.c}">${s.title}<small>${s.sub}</small></h5>
+      <div class="rows">${s.rows.map(r => `<div class="row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join("")}</div>
+      <div class="btns"><button class="pill">${s.btn[0]}</button><button class="pill lav">${s.btn[1]}</button></div>
+      <div class="note">${s.note}</div>`;
+  }
+  pick("C-3");
+
+  // ---------------------------------------------------------------- away team choices
+  const base = { inj: 14, loss: 3, find: 55 };
+  const deltas = [{ inj: 0, loss: 0, find: 0 }, { inj: 12, loss: 3, find: 0 }, { inj: 6, loss: 1, find: 15 }];
+  const choiceBtns = document.querySelectorAll(".choice");
+  function setChoice(i) {
+    choiceBtns.forEach(b => b.setAttribute("aria-pressed", b.dataset.c == i ? "true" : "false"));
+    const d = deltas[i], inj = base.inj + d.inj, loss = base.loss + d.loss, find = base.find + d.find;
+    document.getElementById("rInj").textContent = inj + "%";
+    document.getElementById("rLoss").textContent = loss + "%";
+    document.getElementById("rFind").textContent = find + "%";
+    document.getElementById("mInj").style.width = Math.min(100, inj * 2.5) + "%";
+    document.getElementById("mLoss").style.width = Math.min(100, loss * 6) + "%";
+    document.getElementById("mFind").style.width = find + "%";
+  }
+  choiceBtns.forEach(b => b.addEventListener("click", () => setChoice(+b.dataset.c)));
+  setChoice(0);
+
+  // ---------------------------------------------------------------- derelict picture (canvas)
+  let drawn = false;
+  function drawHulk() {
+    if (drawn) return; drawn = true;
+    const cv = document.getElementById("hulk"), g = cv.getContext("2d"), W = cv.width, H = cv.height;
+    g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+    let s = 11; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 420; i++) { g.fillStyle = `rgba(255,255,255,${0.1 + r() * 0.5})`; g.fillRect(r() * W, r() * H, r() * 1.6 + .4, r() * 1.6 + .4); }
+    // planet limb
+    const pg = g.createRadialGradient(W * 0.15, H * 1.9, H * 0.9, W * 0.15, H * 1.9, H * 1.35);
+    pg.addColorStop(0, "#5a4630"); pg.addColorStop(0.92, "#3b2e22"); pg.addColorStop(0.97, "rgba(120,160,220,.5)"); pg.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = pg; g.fillRect(0, 0, W, H);
+    // hulk: long tapered hull, tilted, with a broken section
+    g.save(); g.translate(W * 0.56, H * 0.66); g.rotate(-0.22);
+    const hull = (x0, x1, h0, h1, shade) => {
+      const gr = g.createLinearGradient(0, -h0, 0, h0); gr.addColorStop(0, shade[0]); gr.addColorStop(0.45, shade[1]); gr.addColorStop(1, shade[2]);
+      g.fillStyle = gr; g.beginPath(); g.moveTo(x0, -h0); g.lineTo(x1, -h1); g.lineTo(x1, h1); g.lineTo(x0, h0); g.closePath(); g.fill();
+    };
+    const sh = ["#8a8577", "#4c4a44", "#1b1a18"];
+    hull(-420, -60, 52, 70, sh);
+    hull(-20, 330, 70, 34, sh);
+    // jagged break
+    g.fillStyle = "#000"; g.beginPath(); g.moveTo(-60, -70); [[-48, -40], [-62, -10], [-40, 18], [-58, 44], [-44, 70], [-20, 70], [-30, 40], [-14, 10], [-32, -20], [-18, -70]].forEach(p => g.lineTo(p[0], p[1])); g.closePath(); g.fill();
+    // panel lines
+    g.strokeStyle = "rgba(0,0,0,.45)"; g.lineWidth = 1.2;
+    for (let x = -400; x < 320; x += 34) { if (x > -64 && x < -14) continue; g.beginPath(); g.moveTo(x, -70); g.lineTo(x, 70); g.stroke(); }
+    // fins
+    g.fillStyle = "#3a3833"; g.beginPath(); g.moveTo(-380, -52); g.lineTo(-300, -150); g.lineTo(-250, -150); g.lineTo(-260, -58); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(-380, 52); g.lineTo(-320, 130); g.lineTo(-280, 130); g.lineTo(-280, 56); g.closePath(); g.fill();
+    // one faint aft light
+    const lg = g.createRadialGradient(-392, 8, 0, -392, 8, 30); lg.addColorStop(0, "rgba(255,170,90,.9)"); lg.addColorStop(1, "rgba(255,170,90,0)");
+    g.fillStyle = lg; g.fillRect(-430, -30, 80, 80);
+    // floating debris
+    g.fillStyle = "#6b675d";
+    for (let i = 0; i < 26; i++) { const x = -90 + r() * 120, y = -110 + r() * 220; g.save(); g.translate(x + (x > -40 ? 40 : -40) * r(), y); g.rotate(r() * 6); g.fillRect(-r() * 6, -r() * 3, 4 + r() * 10, 2 + r() * 4); g.restore(); }
+    g.restore();
+    // scanner brackets
+    g.strokeStyle = "rgba(95,242,230,.7)"; g.lineWidth = 2;
+    const bx = W * 0.2, by = H * 0.43, bw = W * 0.72, bh = H * 0.48, k = 26;
+    [[bx, by, 1, 1], [bx + bw, by, -1, 1], [bx, by + bh, 1, -1], [bx + bw, by + bh, -1, -1]].forEach(([x, y, dx, dy]) => { g.beginPath(); g.moveTo(x + dx * k, y); g.lineTo(x, y); g.lineTo(x, y + dy * k); g.stroke(); });
+    g.fillStyle = "rgba(95,242,230,.85)"; g.font = "600 20px 'Barlow Condensed', sans-serif";
+    g.fillText("C-3 · 182 M · NO TRANSPONDER · RANGE 0.4 KM", bx + 8, by + bh + 28);
+  }
+})();
+</script>
