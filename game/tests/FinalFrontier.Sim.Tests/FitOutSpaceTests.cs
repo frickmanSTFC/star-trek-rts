@@ -106,7 +106,7 @@ public class FitOutSpaceTests
         Assert.Empty(Real.Validate());
         Assert.Equal(new[] { ("tereshkova", 40, 12, "explorer"), ("armstrong", 6, 6, "builder"), ("bastion", 85, 14, "combatant"), ("meridian", 350, 20, "scientist") },
             f.Ships.Skip(2).Select(s => (s.ShipId, s.Crew, s.Hold, s.Suggest)));
-        Assert.Equal(new[] { "ssat", "probe", "mass", "post", "gifts" }, f.LinesFor(true).Select(l => l.Id));
+        Assert.Equal(new[] { "ssat", "probe", "mass", "post", "gifts", "patch", "med_space" }, f.LinesFor(true).Select(l => l.Id)); // patch, med_space: space jobs (docs/space-jobs-contract.md)
         Assert.Equal(new[] { ("exploration", 1), ("engineering", 1), ("science", 1), ("defense", 0), ("ship", 0) }, f.Groups.Select(g => (g.Id, g.SpaceFloor)));
         Assert.Equal(FitOutRules.SpaceLevers.OrderBy(x => x), f.LeversFor(true).Select(l => l.Id).OrderBy(x => x));
         Assert.Equal(6, f.LeversFor(true).Count(l => l.Division.Length > 0));

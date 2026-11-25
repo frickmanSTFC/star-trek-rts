@@ -42,7 +42,7 @@ public class StateHashTests
         // The star system's counter, in a game that has one.
         var game = MatchSetup.CreateSystemGame(TestData.Real, 1701);
         var systemCounters = Counters(typeof(StarSystemState)).ToList();
-        Assert.Equal(new[] { "_nextShipId" }, systemCounters.Select(f => f.Name));
+        Assert.Equal(new[] { "_nextShipId", "_nextSiteId" }, systemCounters.Select(f => f.Name).OrderBy(n => n, StringComparer.Ordinal)); // _nextSiteId: space sites
         foreach (var f in systemCounters)
         {
             var before = game.StateHash();

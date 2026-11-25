@@ -102,7 +102,9 @@
       "maps/notes.json",
       "maps/mvp_duel.json",
       "maps/generator.json",
-      "maps/system.json"
+      "maps/system.json",
+      "maps/sites.json",
+      "maps/ship_status.json"
     ],
     "surfaces": [
       "surfaces/notes.json",

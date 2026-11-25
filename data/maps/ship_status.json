@@ -1,0 +1,91 @@
+{
+  "_notes_ship_status": "A flagship's hull, systems, crew and hold (docs/space-jobs-contract.md; game/sim/Space/ShipStatus.cs, AwayTeam.cs). hull.bands: from (the band holds hull >= from, highest first; crippled at 0), flight (× flight times), scan_reach (× long-range scan and site identify range), hazardous (false: no hazardous site work in this band), text (its effect for the card). hull.crippled: at 0 the ship drifts (no course), every active space job fails, and it recovers to recover_to over recover_seconds. systems: id (a ShipSystem in snake case), name, effect (scan × site scans, flight × flights; tractor = no sweeping or pick-ups; life_support = injured crew don't recover), text; down_seconds [min, max] when a hazard knocks one out. repairs: field (Engineering crew: per_10s percent every 10 s up to up_to, × the field_repair lever; none while crippled or below the Engineering floor), patch (a hull patch kit from the hold: hull percent after seconds, or fixes one knocked-out system at once), dock (at a station: back to 100% and every system fixed after the station's dock_seconds; a colony ship also docks at its colony's body). crew: injury_seconds an injured member is out, medical_seconds taken off per medical store aboard (at most medical_max count), injury_min_seconds the least it can be, half_crew_flight (× flights while fewer than half the starting crew are on duty), log (lines kept), ranks / roles (per division) / names: away-team member names, from the player's hash. default_ship: a flagship with no fit-out record (a sandbox ship): crew per division (fit_out divisions order), hold containers, focus; every flagship without a fit-out also gets default_patch_kits patch kits. hold: survivors_per_container (survivors take a container per this many, rounded up; they always come aboard, even into a full hold, and join the crew while it is below where it started). away_team: min / max people, max_share of the crew on duty, max_by_ship (a picked ship's cap), step_seconds a step runs before its first choice is taken, return_seconds the team takes to come back after the last step (+ the picked choices' seconds, at least 5), defense_loss (loss points per person off for each Defense member), medic_division (a member of it on the team turns medic_share of the losses into injuries), quarantine_seconds. tables (per site kind's away_table): base odds in percent per person (injury, loss) and find (a good find), unpowered (added to the base while a known derelict is dark), steps (title; choices: label, hint, injury / loss / find points, seconds, shift = points added to outcome weights, bring = what the step-3 choice brings back if the find roll succeeds: research true (the site's research), salvage id, or survivors [min, max] with chance percent that the reading is real), outcomes (rolled once when the team is back: id, weight, text, research true (the site's research into the bank), hull damage, system knocked out, injure (members injured), loss_mult (× each member's loss chance), find_mult (× the find chance), quarantine (the whole team out for quarantine_seconds)). Each member then rolls loss (a medic turns medic_share into injuries) and injury. All numbers are placeholders.",
+  "ship_status": {
+    "hull": {
+      "bands": [
+        { "id": "scuffed", "from": 75, "flight": 1, "scan_reach": 1, "hazardous": true, "text": "no effect yet" },
+        { "id": "worn", "from": 50, "flight": 1.1, "scan_reach": 1, "hazardous": true, "text": "flights +10%" },
+        { "id": "damaged", "from": 25, "flight": 1.25, "scan_reach": 0.8, "hazardous": true, "text": "flights +25%, scan reach −20%" },
+        { "id": "critical", "from": 1, "flight": 1.6, "scan_reach": 0.8, "hazardous": false, "text": "no hazardous jobs, flights +60%" },
+        { "id": "crippled", "from": 0, "flight": 1, "scan_reach": 0.8, "hazardous": false, "text": "adrift: no course, active jobs failed" }
+      ],
+      "crippled": { "recover_to": 20, "recover_seconds": 180 }
+    },
+    "systems": [
+      { "id": "sensors", "name": "Sensors", "scan": 1.3, "flight": 1, "text": "scans 30% slower" },
+      { "id": "engines", "name": "Engines", "scan": 1, "flight": 1.3, "text": "flights +30%" },
+      { "id": "tractor", "name": "Tractor", "scan": 1, "flight": 1, "text": "no sweeping, towing or pick-ups" },
+      { "id": "life_support", "name": "Life support", "scan": 1, "flight": 1, "text": "injured crew don't recover" }
+    ],
+    "down_seconds": [60, 180],
+    "repairs": {
+      "field": { "per_10s": 1, "up_to": 60 },
+      "patch": { "hull": 15, "seconds": 30 }
+    },
+    "crew": {
+      "injury_seconds": 180, "medical_seconds": 60, "medical_max": 3, "injury_min_seconds": 30,
+      "half_crew_flight": 1.25, "log": 40,
+      "ranks": ["Ens.", "Lt.", "Lt. Cmdr.", "CPO", "Sgt.", "Dr.", "Spc."],
+      "roles": { "exploration": ["pilot", "sensors", "surveyor"], "engineering": ["engineer", "mechanic", "damage control"],
+        "science": ["medic", "xenologist", "analyst"], "defense": ["security", "marksman", "escort"] },
+      "names": ["Okonjo", "Varga", "Lindqvist", "Abara", "Ise", "Moreno", "Tanaka", "Kowalczyk", "Haddad", "Nkemelu", "Sorensen", "Petrov",
+                "Achebe", "Duarte", "Iqbal", "Rasmussen", "Chen", "Mbeki", "Oyelaran", "Novak", "Fischer", "Quispe", "Halloran", "Yilmaz"]
+    },
+    "default_ship": { "crew": [10, 10, 10, 10], "hold": 8, "focus": "allround" },
+    "default_patch_kits": 1,
+    "hold": { "survivors_per_container": 3 },
+    "away_team": {
+      "min": 2, "max": 6, "max_share": 0.5, "max_by_ship": { "armstrong": 2 },
+      "step_seconds": 60, "return_seconds": 20,
+      "defense_loss": 4, "medic_division": "science", "medic_share": 0.5, "quarantine_seconds": 180,
+      "tables": {
+        "derelict": {
+          "base": { "injury": 4, "loss": 1, "find": 50 },
+          "steps": [
+            { "title": "How we get in", "choices": [
+              { "label": "Use their airlock", "hint": "Slow and quiet. The door may be rigged.", "injury": 2, "loss": 0, "find": 0, "seconds": 30, "shift": { "surge": 5 } },
+              { "label": "Cut through the hull", "hint": "Fast. Decompression risk inside.", "injury": 12, "loss": 3, "find": 0, "seconds": -20 },
+              { "label": "Space-walk to the bridge", "hint": "Exploration crew lead. Long EVA.", "injury": 6, "loss": 1, "find": 15, "seconds": 20 } ] },
+            { "title": "Inside", "choices": [
+              { "label": "Sweep the decks slowly", "hint": "Careful. Less chance of waking anything.", "injury": 0, "loss": 0, "find": 5, "seconds": 20, "shift": { "defences": -4 } },
+              { "label": "Straight to the bridge", "hint": "Quick, but past whatever guards it.", "injury": 4, "loss": 1, "find": 10, "seconds": -10, "shift": { "defences": 6 } },
+              { "label": "Split into pairs", "hint": "Covers more. Harder to get everyone back.", "injury": 2, "loss": 2, "find": 15, "seconds": -10, "shift": { "quarantine": 4 } } ] },
+            { "title": "What we bring back", "choices": [
+              { "label": "The data core", "hint": "Research, and maybe where it came from.", "injury": 0, "loss": 0, "find": 0, "seconds": 0, "bring": { "salvage": "data_core" } },
+              { "label": "The power cell", "hint": "An alien part. Takes a container.", "injury": 3, "loss": 0, "find": 0, "seconds": 10, "bring": { "salvage": "power_cell" } },
+              { "label": "The life reading", "hint": "If it is real: a survivor who may join us.", "injury": 2, "loss": 1, "find": -10, "seconds": 10, "bring": { "survivors": [1, 1], "chance": 50 } } ] }
+          ],
+          "outcomes": [
+            { "id": "clean", "weight": 60, "text": "A clean boarding", "research": true },
+            { "id": "surge", "weight": 20, "text": "A power surge tore through the hull", "hull": 12, "injure": 1, "system": "sensors" },
+            { "id": "defences", "weight": 12, "text": "Automated defences woke", "loss_mult": 2, "find_mult": 0.5 },
+            { "id": "quarantine", "weight": 8, "text": "Something came back with them: the team is in quarantine", "quarantine": true }
+          ]
+        },
+        "known_derelict": {
+          "base": { "injury": 3, "loss": 1, "find": 60 },
+          "unpowered": { "injury": 4, "loss": 1, "find": -10 },
+          "steps": [
+            { "title": "How we board", "choices": [
+              { "label": "Their airlock", "hint": "Safe if it still has power.", "injury": 0, "loss": 0, "find": 0, "seconds": 10 },
+              { "label": "Cut in at the cargo bay", "hint": "Fast. The hull may be weak.", "injury": 8, "loss": 2, "find": 0, "seconds": -15 },
+              { "label": "EVA to the bridge", "hint": "Exploration crew lead.", "injury": 5, "loss": 1, "find": 10, "seconds": 15 } ] },
+            { "title": "Search pattern", "choices": [
+              { "label": "Crew quarters first", "hint": "Where survivors would be.", "injury": 0, "loss": 0, "find": 15, "seconds": 15 },
+              { "label": "Engineering first", "hint": "Keep the reactor in check.", "injury": 2, "loss": 0, "find": 0, "seconds": 10, "shift": { "collapse": -6 } },
+              { "label": "Everywhere at once", "hint": "Quicker, thinner.", "injury": 3, "loss": 1, "find": 10, "seconds": -15, "shift": { "collapse": 4 } } ] },
+            { "title": "What we bring back", "choices": [
+              { "label": "Survivors", "hint": "Anyone still alive comes with us.", "injury": 0, "loss": 0, "find": 0, "seconds": 10, "bring": { "survivors": [1, 3], "chance": 70 } },
+              { "label": "The cargo", "hint": "A cargo pod for the hold.", "injury": 2, "loss": 0, "find": 10, "seconds": 10, "bring": { "salvage": "cargo_pod" } },
+              { "label": "The ship's computer", "hint": "Research and the owners' records.", "injury": 0, "loss": 0, "find": 5, "seconds": 0, "bring": { "research": true } } ] }
+          ],
+          "outcomes": [
+            { "id": "clean", "weight": 70, "text": "A clean search" },
+            { "id": "surge", "weight": 15, "text": "A power surge", "hull": 8, "injure": 1 },
+            { "id": "collapse", "weight": 15, "text": "A bulkhead gave way", "loss_mult": 2 }
+          ]
+        }
+      }
+    }
+  }
+}

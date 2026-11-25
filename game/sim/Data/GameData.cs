@@ -586,6 +586,8 @@ public sealed partial class GameData
             BuildingWorlds = ReadBuildingWorlds(buildingsRoot),
             SystemGenerator = ReadSystemGenerator(mapsRoot),
             SystemRules = ReadSystemRules(mapsRoot, Amounts),
+            SpaceSites = ReadSpaceSites(mapsRoot),
+            ShipStatus = ReadShipStatus(mapsRoot),
             Sources = sources,
             Files = parts,
             Setup = setup,
@@ -669,6 +671,7 @@ public sealed partial class GameData
         ValidateLandingField(problems);
         ValidateWorlds(problems);
         ValidateSystem(problems);
+        ValidateSpaceJobs(problems);
         ValidateEras(problems);
         ValidateTechTree(problems);
         ValidateStartingSets(problems);

@@ -60,18 +60,22 @@ public static class FitOutRules
     public const string AlongsideTime = "alongside_time";
     /// <summary>Long-range scan reach (scan.range; no division: the Explorer's perk).</summary>
     public const string ScanRange = "scan_range";
+    /// <summary>Space jobs: the Engineering crew's field repair of the hull (ship_status repairs.field).</summary>
+    public const string FieldRepair = "field_repair";
+    /// <summary>Space jobs: each away-team member's loss chance (Defense).</summary>
+    public const string AwayLoss = "away_loss";
 
     /// <summary>Every lever id the sim reads; the data may only list these.</summary>
     public static readonly IReadOnlyList<string> KnownLevers = new[]
     {
         DriveSpeed, SatelliteSweep, DroneBattery, RoverHazard, BuildTime, RepairSpeed, Fabrication, Wear, ResearchRate, DigTime,
         Sickness, Wildlife, RuinDefence, CrewLoss, HazardDamage, WildlifeDamage, RuinVehicleDamage, HubWorkshop, MissionResearch,
-        ScanCooldown, SweepTime, FlightTime, StudyTime, ShockChance, AlongsideTime, ScanRange,
+        ScanCooldown, SweepTime, FlightTime, StudyTime, ShockChance, AlongsideTime, ScanRange, FieldRepair, AwayLoss,
     };
 
     /// <summary>The levers of the star-system layer (the data marks them "space": true; they move only on a ship that never
     /// lands, and the others only on a colony ship).</summary>
-    public static readonly IReadOnlyList<string> SpaceLevers = new[] { ScanCooldown, SweepTime, FlightTime, StudyTime, ShockChance, AlongsideTime, ScanRange };
+    public static readonly IReadOnlyList<string> SpaceLevers = new[] { ScanCooldown, SweepTime, FlightTime, StudyTime, ShockChance, AlongsideTime, ScanRange, FieldRepair, AwayLoss };
 
     /// <summary>Whether this is a fitted-out ship that never lands (its cargo and levers are the space ones).</summary>
     public static bool IsSpace(GameData data, string? shipId) => data.FitOut?.Ship(shipId) != null && data.ShipChoice(shipId) is { Colonizes: false };
@@ -406,6 +410,8 @@ public sealed partial class Simulation
     /// <summary>The multiplier this player's fit-out puts on a lever (1 with none).</summary>
     public Fix64 FitOutFactor(int player, string leverId)
     {
+        // Space jobs: a flagship that lost or has injured crew moves its levers by the crew on duty (Space/ShipStatus.cs).
+        if (System is { } system && system.CrewFactor(player, leverId) is { } crew) return crew;
         if (_fitOuts.Count == 0 || FitOutStateOf(player) is not { } s) return Fix64.One;
         if (!ReferenceEquals(s.FactorsFor, Data))
         {
