@@ -97,6 +97,7 @@ public partial class OrbitView
         }
         UpdateSiteWork(site.Id); // OrbitView.Mining.cs: the mining beam and ore, a wreck in tow
         UpdateSiteEvent(site, delta); // OrbitView.Events.cs: comets, rogue rocks, lifepods, stranded ships, ion storms
+        UpdateChainSite(site); // OrbitView.Chain.cs: a ship running dark, an alien probe
     }
 
     /// <summary>From ApplyDisplay: at a site, the globe displays hide the planet, its air, clouds, moon and tracks.</summary>
@@ -127,6 +128,7 @@ public partial class OrbitView
         _siteBeacons.Clear();
         ClearSiteWork(); // OrbitView.Mining.cs
         ClearEventFx(); // OrbitView.Events.cs
+        ClearChainFx(); // OrbitView.Chain.cs
     }
 
     private void BuildSiteScene(SpaceSite site, string key)
@@ -200,6 +202,8 @@ public partial class OrbitView
                 var name = n.Name.ToString();
                 if (name == "Ring") _siteRings.Add(n);
                 else if (name == "Beacon" || name.StartsWith("Beacon")) _siteBeacons.Add(n);
+                else if (name.StartsWith("RunLight")) _siteRunLights.Add(n); // phase 4 (OrbitView.Chain.cs)
+                else if (name == "Glow") _siteGlows.Add(n);
                 if (spent && n is GeometryInstance3D g) g.Transparency = 0.35f;
             }
             CollectSiteParts(child, spent);

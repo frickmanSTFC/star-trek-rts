@@ -119,6 +119,18 @@ public sealed partial class StarSystemState
         return (centre, radius);
     }
 
+    /// <summary>The player is hunting this hidden ship (a mission or the test panel set them on it, and it isn't found yet).
+    /// No allocation: the plot asks every frame.</summary>
+    public bool IsHunting(int player, string siteId) =>
+        Site(siteId) is { Kind: SiteKind.HiddenShip } && Record(player, siteId) is { Knowledge: SiteKnowledge.Unknown };
+
+    /// <summary>The player has answered this alien probe. No allocation: the site view asks every frame.</summary>
+    public bool ProbeAnswered(int player, string siteId) => Record(player, siteId) is { Answer.Length: > 0 };
+
+    /// <summary>The site of the player's away run still out (a boarding, or a probe's answer being sent), or null. No
+    /// allocation.</summary>
+    public string? AwayRunSiteOf(int player) => Status(player)?.Away is { Done: false } run ? run.Site : null;
+
     /// <summary>Fixes the player has on a hidden ship (0 for any other site), and how many find it.</summary>
     public (int Fixes, int Need) HiddenFixes(int player, string siteId) =>
         Site(siteId) is { Kind: SiteKind.HiddenShip } site && SiteKindOf(site)?.Hidden is { } hd ? (Record(player, siteId)?.Fixes.Count ?? 0, hd.Fixes) : (0, 0);

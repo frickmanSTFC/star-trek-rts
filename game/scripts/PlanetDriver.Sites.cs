@@ -643,8 +643,10 @@ public partial class PlanetDriver
         var problems = new string?[ev.Choices.Count];
         if (!ev.Done && chosen < 0)
             for (var i = 0; i < problems.Length; i++) problems[i] = sys.AwayChoiceProblem(LocalPlayer, ev.SiteId, i);
-        var title = $"AWAY TEAM · {SiteTitle(ev.SiteId).ToUpperInvariant()}";
-        var sub = ev.Done ? $"{ev.Team.Count} CREW · BACK ABOARD" : "KEEP THE SHIP ALONGSIDE: LEAVING RECALLS THE TEAM (JOB FAILED, NO REWARD)";
+        var probe = sys.Site(ev.SiteId) is { Kind: SiteKind.AlienProbe }; // phase 4: the answer to a probe runs on the same event, with no team
+        var title = probe ? $"ANSWER TO {SiteTitle(ev.SiteId).ToUpperInvariant()}" : $"AWAY TEAM · {SiteTitle(ev.SiteId).ToUpperInvariant()}";
+        var sub = probe ? ev.Done ? "ANSWER SENT" : "STAY WITH THE PROBE: LEAVING CALLS THE ANSWER OFF"
+            : ev.Done ? $"{ev.Team.Count} CREW · BACK ABOARD" : "KEEP THE SHIP ALONGSIDE: LEAVING RECALLS THE TEAM (JOB FAILED, NO REWARD)";
         return new AwayEventView(ev.SiteId, title, sub, ev.Step, System.Math.Max(1, ev.Steps), ev.StepTitle,
             Mathf.Max(0f, (ev.StepEndTick - _sim.Tick) / rate), Mathf.Max(1f, (ev.StepEndTick - ev.StepStartTick) / rate),
             ev.Choices, problems, chosen, ev.Picked, ev.Team, Mathf.Clamp(ev.InjuryPct, 0, 100), Mathf.Clamp(ev.LossPct, 0, 100), Mathf.Clamp(ev.FindPct, 0, 100),

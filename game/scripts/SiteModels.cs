@@ -89,12 +89,42 @@ public static class SiteModels
                 if (kind == SiteKind.Comet) model.AddChild(CometTail()); // the comet holds still so its tail keeps one way
                 if (kind == SiteKind.RogueAsteroid) root.AddChild(RockTrail()); // phase 3: the dust it drags along its course
                 if (kind == SiteKind.StrandedShip) model.AddChild(Part("Beacon", Ball(1.8f, 8), "Beacon", new Vector3(0f, 11f, -6f))); // its distress light (blinks)
+                if (kind == SiteKind.HiddenShip) RunDark(model); // phase 4: a freighter running dark, only its running lights on
                 root.AddChild(model);
                 break;
             }
         }
         return root;
     }
+
+    /// <summary>A ship running dark (phase 4): every mesh dimmed by a dark overlay, a red running light to port and a green
+    /// one to starboard at mid-length on top (RunLight0 / RunLight1: OrbitView.Chain.cs blinks them).</summary>
+    private static void RunDark(Node3D model)
+    {
+        DarkOverlay ??= new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.01f, 0.012f, 0.02f, 0.62f),
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        };
+        void Dim(Node node)
+        {
+            foreach (var child in node.GetChildren())
+            {
+                if (child is GeometryInstance3D g) g.MaterialOverlay = DarkOverlay;
+                Dim(child);
+            }
+        }
+        Dim(model);
+        var box = Bounds(model);
+        var r = Mathf.Max(0.6f, Mathf.Max(box.Size.X, Mathf.Max(box.Size.Y, box.Size.Z)) * 0.018f);
+        var mid = box.GetCenter();
+        var top = box.Position.Y + box.Size.Y * 0.8f;
+        model.AddChild(Part("RunLight0", Ball(r, 8), "NavRed", new Vector3(box.Position.X - r, top, mid.Z)));
+        model.AddChild(Part("RunLight1", Ball(r, 8), "NavGreen", new Vector3(box.End.X + r, top, mid.Z)));
+    }
+
+    private static StandardMaterial3D? DarkOverlay;
 
     /// <summary>Meta on a node of the site: its own slow tumble (rad/s).</summary>
     public const string TumbleMeta = "site_tumble";
@@ -180,6 +210,8 @@ public static class SiteModels
             "Lamp" => new StandardMaterial3D { AlbedoColor = new Color(1f, 0.85f, 0.6f), EmissionEnabled = true, Emission = new Color(1f, 0.8f, 0.55f), EmissionEnergyMultiplier = 2f },
             "Beacon" => new StandardMaterial3D { AlbedoColor = new Color(1f, 0.3f, 0.2f), EmissionEnabled = true, Emission = new Color(1f, 0.25f, 0.15f), EmissionEnergyMultiplier = 4f },
             "Glow" => new StandardMaterial3D { AlbedoColor = new Color(0.66f, 0.62f, 1f), EmissionEnabled = true, Emission = new Color(0.6f, 0.55f, 1f), EmissionEnergyMultiplier = 3f },
+            "NavRed" => new StandardMaterial3D { AlbedoColor = new Color(1f, 0.15f, 0.1f), EmissionEnabled = true, Emission = new Color(1f, 0.1f, 0.05f), EmissionEnergyMultiplier = 5f },
+            "NavGreen" => new StandardMaterial3D { AlbedoColor = new Color(0.2f, 1f, 0.35f), EmissionEnabled = true, Emission = new Color(0.1f, 1f, 0.3f), EmissionEnergyMultiplier = 5f },
             _ => new StandardMaterial3D { AlbedoColor = new Color(0.1f, 0.1f, 0.11f), Roughness = 1f }, // "Dark": holes, cavity
         };
         m.ResourceName = name;

@@ -111,6 +111,9 @@ public partial class PlanetDriver
         "record_inner" => "Hold at the inner ring: the most research, hull wear, and discharges can knock out sensors or engines",
         "restore_power" => "Engineering crew restore its power (60 s); a stranded ship's air stops running out",
         "restore_power_kit" => "Fit a hull patch kit to restore its power at once",
+        "inspect" => "From alongside, a boarding party goes through her holds (about 30 s): a fine in latinum, and what she was carrying",
+        "decode" => "Science crew work out the probe's pattern while the ship holds at it (Science on duty; the work is kept if you leave)",
+        "answer" => "Compose the answer: three choices, a minute each (the first is taken when time runs out); no one leaves the ship. Stay with the probe until it is sent",
         _ => "",
     };
 }
