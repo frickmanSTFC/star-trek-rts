@@ -604,7 +604,7 @@ public partial class OrbitView : Node3D
     /// <summary>The tile under the mouse, or -1 (space, or the polar caps).</summary>
     public int PickTile(Vector2 mouse)
     {
-        if (Display == OrbitDisplay.System || !_atColony) return -1; // only the colony's globe is the tile map
+        if (Display == OrbitDisplay.System || !_atColony || _siteMode) return -1; // only the colony's globe is the tile map
         // The camera's real transform carries the view-rect shift (FrameViewRect moves it, no H/V offsets), so Godot's rays are exact.
         var origin = _camera.ProjectRayOrigin(mouse) - _globe.GlobalPosition;
         var dir = _camera.ProjectRayNormal(mouse);
@@ -869,6 +869,7 @@ public partial class OrbitView : Node3D
         var shipAngle = _time * 0.05f + 0.4f;
         _shipMarker.Position = new Vector3(Mathf.Sin(shipAngle), 0f, Mathf.Cos(shipAngle)) * ShipOrbit;
         UpdateShip(delta, cameraDistance); // the flagship's model there, and the camera while it is followed (OrbitView.Ship.cs)
+        UpdateSiteView(delta, cameraDistance); // at a space site: its model and the ship beside it instead of a planet (OrbitView.Sites.cs)
 
         if (_sweepTime >= 0f)
         {
@@ -1042,6 +1043,7 @@ public partial class OrbitView : Node3D
         if (!globe) _sweep.Visible = false;
         ApplySatelliteDisplay(); // OrbitView.Satellites.cs
         RefreshOverlay(force: true);
+        ApplySiteDisplay(); // at a space site the globe displays show the site, not a planet (OrbitView.Sites.cs)
     }
 
     /// <summary>The body the globe displays show: the flagship's (SystemSource.OrbitBodyId), else CurrentBodyName.</summary>
@@ -1096,6 +1098,38 @@ public partial class OrbitView : Node3D
         return best;
     }
 
+    /// <summary>The space site glyph under the mouse (within ~16 px), or null (also on the other displays).</summary>
+    public string? PickSite(Vector2 mouse)
+    {
+        if (Display != OrbitDisplay.System) return null;
+        string? best = null;
+        var bestDistance = 16f * Mathf.Max(1f, ViewportSize().Y / 720f);
+        foreach (var s in _system.Sites)
+        {
+            if (!_system.TryLocateSite(s.Id, out var at) || _camera.IsPositionBehind(at)) continue;
+            var d = _camera.UnprojectPosition(at).DistanceTo(mouse);
+            if (d < bestDistance)
+            {
+                best = s.Id;
+                bestDistance = d;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>The space sites on the System plot (as known).</summary>
+    public IReadOnlyList<SystemSiteMark> SystemSites() => _system.Sites;
+
+    /// <summary>Ring one space site of the System plot in cyan; null clears it.</summary>
+    public void HighlightSite(string? id) => _system.HighlightSite(id);
+
+    /// <summary>The site-scan reach drawn round the flagship on the plot (map units).</summary>
+    public float SiteScanRange
+    {
+        get => _system.SiteScanRange;
+        set => _system.SiteScanRange = value;
+    }
+
     /// <summary>The System plot body under the mouse (id), or null (also on the other displays).</summary>
     public string? PickBody(Vector2 mouse)
     {
@@ -1134,6 +1168,8 @@ public partial class OrbitView : Node3D
     {
         if (Display == OrbitDisplay.System)
         {
+            if (objectName.StartsWith("site:"))
+                return _system.TryLocateSite(objectName[5..], out var siteAt) && !_camera.IsPositionBehind(siteAt) ? _camera.UnprojectPosition(siteAt) : null;
             if (objectName.StartsWith("ship:") && int.TryParse(objectName[5..], out var shipId))
                 return _system.TryLocateShip(shipId, out var ship) && !_camera.IsPositionBehind(ship) ? _camera.UnprojectPosition(ship) : null;
             return _system.TryLocate(objectName, out var body, out _) && !_camera.IsPositionBehind(body) ? _camera.UnprojectPosition(body) : null;

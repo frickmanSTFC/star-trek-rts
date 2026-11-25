@@ -25,8 +25,9 @@ public sealed record HelmRow(string Label, string Value, Color? ValueColour = nu
 /// <summary>A titled block of rows in the helm's data panel.</summary>
 public sealed record HelmSection(string Title, Color Colour, IReadOnlyList<HelmRow> Rows);
 
-/// <summary>One deploy or command button along the helm's bottom strip. Id is what the driver acts on.</summary>
-public sealed record HelmAction(string Id, string Key, string Label, bool Enabled = true, bool Highlight = false, Color? Colour = null);
+/// <summary>One deploy or command button along the helm's bottom strip. Id is what the driver acts on. Tip = the
+/// button's tooltip (a greyed button's reason: the sim's problem text).</summary>
+public sealed record HelmAction(string Id, string Key, string Label, bool Enabled = true, bool Highlight = false, Color? Colour = null, string? Tip = null);
 
 /// <summary>Something tracked in orbit (our ship, survey satellites, moons, deliveries on the way down).</summary>
 public sealed record OrbitObject(string Name, string Kind, string Status, Color Colour);

@@ -550,6 +550,7 @@ public partial class HelmScreen : Control
         titleRow.AddChild(_subtitleLabel);
         titleMargin.AddChild(titleRow);
         topBar.AddChild(titleMargin);
+        topBar.AddChild(BuildHullChip()); // the flagship's hull and crew, space jobs (HelmScreen.Space.cs)
         topBar.AddChild(BuildStandingChip()); // Starfleet Standing, Federation in a Prime Directive era (HelmScreen.Civ.cs)
         foreach (var (display, label) in Displays)
         {
@@ -724,6 +725,7 @@ public partial class HelmScreen : Control
             var item = _rail[i];
             pill.Id = item.Id;
             pill.Set(Caption(item), Tone(item.Colour ?? (item.Highlight ? Peach : Sky)), !item.Enabled, 0, 0, P(_panelOpen ? 10 : 6), P(8));
+            pill.TooltipText = item.Tip ?? "";
         }
     }
 
@@ -753,6 +755,7 @@ public partial class HelmScreen : Control
             pill.AddThemeFontSizeOverride("font_size", PillFont());
             pill.Set(Caption(item), Tone(item.Colour ?? (item.Highlight ? Peach : Lavender)), !item.Enabled,
                 i == 0 ? round : 0, i == _actions.Count - 1 ? round : 0, P((_panelOpen ? 14 : 12) * _pillFit), 0);
+            pill.TooltipText = item.Tip ?? "";
         }
     }
 
@@ -961,6 +964,7 @@ public partial class HelmScreen : Control
                 FontOf(pill, F(14));
                 var bg = item.Colour ?? (item.Highlight || i == 0 ? _cardColour : Lavender);
                 pill.Set(Caption(item), Tone(bg), !item.Enabled, i == 0 ? P(12) : 0, i == _cardButtons.Count - 1 ? P(12) : 0, P(10), P(3));
+                pill.TooltipText = item.Tip ?? "";
                 pill.Pressed += () => ActionPicked?.Invoke(pill.Id);
                 buttons.AddChild(pill);
             }

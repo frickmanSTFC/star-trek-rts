@@ -147,6 +147,26 @@ public sealed class SystemSource
 
     public static bool InFlight(SystemShip ship) => ship.AtBody == null && ship.ToBody != null;
 
+    // ---------------------------------------------------------------- space sites (docs/space-jobs-contract.md)
+
+    /// <summary>The site a ship holds at (StarSystemState.ShipSite), or null.</summary>
+    public string? SiteOf(SystemShip? ship) => ship == null ? null : State?.ShipSite(ship);
+
+    /// <summary>The site a ship flies to (StarSystemState.SiteBound), or null.</summary>
+    public string? SiteBoundOf(SystemShip? ship) => ship == null || ship.AtBody != null ? null : State?.SiteBound(ship);
+
+    /// <summary>Between places: flying to a body (<see cref="InFlight(SystemShip)"/>) or to a space site.</summary>
+    public bool Flying(SystemShip ship) => InFlight(ship) || (ship.AtBody == null && SiteOf(ship) == null && SiteBoundOf(ship) != null);
+
+    /// <summary>The flagship holds at a space site (not in orbit of anything): the globe displays show the site.</summary>
+    public string? FlagshipSite => SiteOf(Flagship);
+
+    /// <summary>The flagship flies to a space site.</summary>
+    public string? FlagshipSiteBound => SiteBoundOf(Flagship);
+
+    /// <summary>Where a site is on the plot (map units), or null for an unknown id.</summary>
+    public Vector2? SitePosition(string? siteId) => State?.Site(siteId) is { } s ? new Vector2(s.Position.X.ToFloat(), s.Position.Y.ToFloat()) : null;
+
     /// <summary>The body the helm's PLANET / ORBIT / ATMOS displays show: where the flagship is in orbit; while it flies,
     /// the body it left; with no flagship, the colony's body.</summary>
     public string? OrbitBodyId
@@ -159,26 +179,26 @@ public sealed class SystemSource
         }
     }
 
-    /// <summary>The flagship is between bodies.</summary>
-    public bool FlagshipInFlight => Flagship is { } f && InFlight(f);
+    /// <summary>The flagship is between places (bodies or space sites).</summary>
+    public bool FlagshipInFlight => Flagship is { } f && Flying(f);
 
-    /// <summary>In orbit of the colony's body (not flying away from it): the orbit actions (land, outpost, drop ship,
-    /// transporter, survey satellite) and the scans are only here.</summary>
-    public bool AtColony => !FlagshipInFlight && OrbitBodyId != null && OrbitBodyId == ColonyBodyId;
+    /// <summary>In orbit of the colony's body (not flying away from it, not out at a space site): the orbit actions
+    /// (land, outpost, drop ship, transporter, survey satellite) and the scans are only here.</summary>
+    public bool AtColony => !FlagshipInFlight && FlagshipSite == null && OrbitBodyId != null && OrbitBodyId == ColonyBodyId;
 
     /// <summary>Where a ship is on the plot (map units), smoothed between sim ticks by alpha.</summary>
     public Vector2 ShipPosition(SystemShip ship, float alpha)
     {
         if (State == null) return Vector2.Zero;
         var a = State.ShipPosition(ship, _sim.Tick);
-        if (!InFlight(ship)) return new Vector2(a.X.ToFloat(), a.Y.ToFloat());
+        if (!Flying(ship)) return new Vector2(a.X.ToFloat(), a.Y.ToFloat());
         var b = State.ShipPosition(ship, _sim.Tick + 1);
         return new Vector2(a.X.ToFloat(), a.Y.ToFloat()).Lerp(new Vector2(b.X.ToFloat(), b.Y.ToFloat()), Mathf.Clamp(alpha, 0f, 1f));
     }
 
     /// <summary>Whole seconds (rounded up) until a ship in flight arrives; 0 when it isn't flying.</summary>
     public long SecondsToArrival(SystemShip ship) =>
-        InFlight(ship) ? Math.Max(0, (ship.ArriveTick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate) : 0;
+        Flying(ship) ? Math.Max(0, (ship.ArriveTick - _sim.Tick + Simulation.TickRate - 1) / Simulation.TickRate) : 0;
 
     /// <summary>Flight time from the flagship's body to another, in whole seconds, or null (no flagship, in flight, same body).</summary>
     public long? FlightSeconds(string toBody)
@@ -197,7 +217,7 @@ public sealed class SystemSource
     {
         Vector2 from;
         var f = Flagship;
-        if (f != null && State != null) from = InFlight(f) ? ShipPosition(f, alpha) : Body(f.AtBody) is { } at ? PositionOf(at) : ShipPosition(f, alpha);
+        if (f != null && State != null) from = Flying(f) ? ShipPosition(f, alpha) : Body(f.AtBody) is { } at ? PositionOf(at) : SitePosition(SiteOf(f)) ?? ShipPosition(f, alpha);
         else if (Body(ColonyBodyId) is { } home) from = PositionOf(home);
         else return null;
         return from.DistanceTo(PositionOf(body));
@@ -285,6 +305,7 @@ public sealed class SystemSource
             }
             Mix((OrbitBodyId ?? "").GetHashCode());
             Mix(FlagshipInFlight ? 1 : 0);
+            Mix((FlagshipSite ?? "").GetHashCode());
             Mix((Flagship?.SweepBody ?? "").GetHashCode());
             return h;
         }
@@ -305,6 +326,8 @@ public sealed class SystemSource
                 Mix((s.ToBody ?? "").GetHashCode());
                 Mix(s.DepartTick);
                 Mix(s.ArriveTick);
+                Mix((SiteOf(s) ?? "").GetHashCode());
+                Mix((SiteBoundOf(s) ?? "").GetHashCode());
             }
             return h;
         }
