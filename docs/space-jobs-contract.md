@@ -510,3 +510,37 @@ with STOP ESCORT. F9 SPACE: EVENTS (the next turn's countdown, events running, a
 condition); the side job counts pods. A stranded ship has no model of its own (a derelict model + a distress beacon).
 Achievements don't hear events. Events don't avoid a crowded system beyond max_live and the placement tries. The phase 4
 chain versions (e.g. "Twelve Lifepods") are not built.
+
+## Phase 4: two new main missions per space chain (one agent: sim/data + the small view bits)
+
+Each space chain goes from five main missions to seven; place the two where they fit the chain's story (not both at the
+end) and keep every chain finishable on every fit-out preset and with no fit-out (tests play each chain twice, same
+hashes). Missions place their own sites with `place_space_site` (bound, so the pool doesn't offer them) and never depend
+on the random event clock.
+
+- **Tereshkova · The Long Survey:** *Wreck at the Edge* (a debris field past the last orbit: sweep it, recover the
+  black box; the box's log points to the next mission) and *Hollow Rock* (survey asteroids in a belt until one reads
+  hollow, then send an away team in: the `hollow` table).
+- **Armstrong · Priority Run:** *Twelve Lifepods* (a liner broke up: lifepods with air timers; the Armstrong's small hold
+  means several trips to the Station; the clock is the story) and *Tow Line* (drag a disabled freighter to a body before
+  its reactor fails: tow + timer).
+- **Bastion · Watch Station:** *Rogue Rock* (a rogue asteroid on course for an inhabited body: push it aside in time;
+  uses the phase 3 rogue rules, placed by the mission) and *The Smuggler's Belt* (new `SiteKind.HiddenShip`: a ship hiding
+  in a belt; timed scans from different spots narrow it down, then come alongside and inspect; it may run once found,
+  no combat).
+- **Meridian · Envoy:** *The Probe That Talks* (new `SiteKind.AlienProbe`: it follows the flagship and sends a pattern;
+  hold still near it to decode (Science), then answer with a three-step choice event like the away team; a good answer
+  gives the later first contact less culture shock — a flag the contact code reads) and *Their Lost Ship* (a native
+  ship adrift: tow it home for trust/awareness down, or study it for research with an incident risk).
+- New kinds need: data in `sites.json` (chain-only: never rolled at start or by the event clock), work actions, plot glyph
+  + card + site view (`probe_alien` model exists; the hidden ship can reuse a derelict model, darkened, with running
+  lights), F9 SPACE spawn buttons.
+- Achievements: let the tracker hear space jobs where it is cheap (e.g. a few events: first site identified, first away
+  team home, first ore sold, a rogue turned) only if it fits the existing achievement data without new categories;
+  otherwise leave it and say so.
+- Same rules as before (planet-only and balance hashes unchanged against the base commit; system games deterministic;
+  refusals change nothing; fuzz; `Validate()` / `DataChecks.All` empty; 993+ tests green). Fill in "Phase 4, filled in".
+
+## Phase 4, filled in
+
+(the agent writes this when done)
