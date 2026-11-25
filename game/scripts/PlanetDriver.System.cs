@@ -457,6 +457,7 @@ public partial class PlanetDriver
         AddShipViewButton(s, buttons); // VIEW SHIP on our flagship's card when it has a 3D model (PlanetDriver.Ship.cs)
         AllyCard(s, rows, buttons); // an allied native ship: ALLY / TASK rows, ESCORT / SCOUT (PlanetDriver.Contact.cs)
         TradeCard(s, rows); // a native trade freighter: TRADE / ROUTE / RUN rows (PlanetDriver.Contact.cs)
+        OreTradeCard(s, rows, buttons); // a neutral freighter / tanker buys ore: SELL ORE TO … (PlanetDriver.Mining.cs)
         var colour = s.AllyOf >= 0 ? (s.AllyOf == LocalPlayer ? HelmScreen.Green : PlanetDriver.ColorOf(s.AllyOf))
             : s.TradeFor >= 0 ? (s.TradeFor == LocalPlayer ? HelmScreen.Cyan : PlanetDriver.ColorOf(s.TradeFor))
             : s.Owner == LocalPlayer ? HelmScreen.Peach : s.Owner < 0 ? HelmScreen.Lavender : PlanetDriver.ColorOf(s.Owner);
@@ -561,6 +562,7 @@ public partial class PlanetDriver
         var f = _system.Flagship;
         if (OnPostAction(id, when)) return; // sys:post:<body>: a hidden observation post (PlanetDriver.Civ.cs)
         if (OnAllyAction(id, when)) return; // sys:ally:escort|scout:<ship> (PlanetDriver.Contact.cs)
+        if (OnOreSaleAction(id, when)) return; // sys:sellore:<ship> (PlanetDriver.Mining.cs)
         string? problem;
         string done;
         if (id.StartsWith("sys:course:"))

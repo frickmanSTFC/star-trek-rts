@@ -27,6 +27,31 @@ public sealed record SiteReactorDef(int Seconds, int Hull);
 public sealed record SiteSweepDef(int Seconds, int HullEverySeconds, int Hull, int FindsMin, int FindsMax, IReadOnlyList<string> Always,
     IReadOnlyList<Weighted> Items, int SurvivorsMin, int SurvivorsMax);
 
+/// <summary>What one asteroid variant holds: ContainersMin..Max containers of ore (by its hash), each container's ore picked
+/// from Ores (resource id: weight) by the hash.</summary>
+public sealed record SiteOreDef(string Variant, int ContainersMin, int ContainersMax, IReadOnlyList<Weighted> Ores);
+
+/// <summary>Rock falls while mining: ChancePerMin percent a minute (rolled each second) of HullMin..HullMax damage; Tractor
+/// percent of them knock the tractor out.</summary>
+public sealed record SiteRockfallDef(int ChancePerMin, int HullMin, int HullMax, int Tractor);
+
+/// <summary>Mining an asteroid (phase 2): a container of ore every Seconds (÷ the mining lever); what each variant holds.</summary>
+public sealed record SiteMiningDef(int Seconds, IReadOnlyList<SiteOreDef> Ore, SiteRockfallDef? Rockfall)
+{
+    public SiteOreDef? OreOf(string variant) => Ore.FirstOrDefault(o => o.Variant == variant);
+}
+
+/// <summary>A site that can be towed (phase 2): what dropping it pays at a station (latinum) and at a colony ship's colony
+/// body (research and duranium), each [min, max] by the site's hash.</summary>
+public sealed record SiteTowDef(int LatinumMin, int LatinumMax, int ResearchMin, int ResearchMax, int DuraniumMin, int DuraniumMax);
+
+/// <summary>An ore the hold can carry (maps space_sites ore.kinds): Id = a resource id, Latinum a unit at a station.</summary>
+public sealed record OreKindDef(string Id, string Name, Fix64 Latinum);
+
+/// <summary>Asteroids rolled with a system (generation.asteroids): CountMin..Max, NearBelt percent of them at a belt's
+/// distance from the star ± BeltSpread, Spacing from other sites.</summary>
+public sealed record AsteroidGenDef(int CountMin, int CountMax, int NearBelt, Fix64 BeltSpread, Fix64 Spacing);
+
 /// <summary>One kind of space site (maps/sites.json kinds).</summary>
 public sealed record SiteKindDef(string Id, SiteKind Kind, string Name, string Letter, int ScanSeconds, int SizeMin, int SizeMax,
     IReadOnlyList<Weighted> Variants, IReadOnlyList<(string Variant, string Text)> Origin, bool Hazardous, IReadOnlyList<string> Hazards)
@@ -40,6 +65,21 @@ public sealed record SiteKindDef(string Id, SiteKind Kind, string Name, string L
     public string AwayTable { get; init; } = "";
     public int ResearchMin { get; init; }
     public int ResearchMax { get; init; }
+    /// <summary>Phase 2: mining (asteroids), towing, and per-variant away tables (variant, table; over AwayTable).</summary>
+    public SiteMiningDef? Mining { get; init; }
+    public SiteTowDef? Tow { get; init; }
+    public IReadOnlyList<(string Variant, string Table)> VariantAway { get; init; } = Array.Empty<(string, string)>();
+
+    /// <summary>The away table a site of this variant boards with ("" = none).</summary>
+    public string AwayTableFor(string variant)
+    {
+        foreach (var (v, t) in VariantAway)
+            if (v == variant) return t;
+        return AwayTable;
+    }
+
+    /// <summary>Whether any variant of the kind can be boarded.</summary>
+    public bool AnyAway => AwayTable.Length > 0 || VariantAway.Count > 0;
 
     public string OriginOf(string variant)
     {
@@ -61,6 +101,19 @@ public sealed record SpaceSiteRules(int CountMin, int CountMax, Fix64 OrbitMin, 
     IReadOnlyList<Weighted> Weights, Fix64 IdentifyRange, int SpentSeconds, int ColonyReachSeconds, IReadOnlyList<SiteKindDef> Kinds,
     IReadOnlyList<SalvageDef> Salvage, StationRules Station)
 {
+    /// <summary>Phase 2: asteroids rolled with the system (null = none).</summary>
+    public AsteroidGenDef? Asteroids { get; init; }
+    /// <summary>Units of ore in a hold container.</summary>
+    public int OrePerContainer { get; init; } = 30;
+    public IReadOnlyList<OreKindDef> Ores { get; init; } = Array.Empty<OreKindDef>();
+    /// <summary>Roles of neutral ships that buy ore, and their share of the station's price.</summary>
+    public IReadOnlyList<string> TraderRoles { get; init; } = Array.Empty<string>();
+    public Fix64 TraderShare { get; init; } = Fix64.One;
+    /// <summary>× a ship's flights while it tows something.</summary>
+    public Fix64 TowFlight { get; init; } = Fix64.One;
+
+    public OreKindDef? Ore(string? id) => id == null ? null : Ores.FirstOrDefault(o => o.Id == id);
+
     public SiteKindDef? Kind(SiteKind kind) => Kinds.FirstOrDefault(k => k.Kind == kind);
     public SiteKindDef? Kind(string id) => Kinds.FirstOrDefault(k => k.Id == id);
     public SalvageDef? SalvageItem(string? id) => id == null ? null : Salvage.FirstOrDefault(s => s.Id == id);

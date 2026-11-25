@@ -102,7 +102,7 @@ public sealed partial class StarSystemState
         if (Status(player) is not { } st || FlagshipOf(player) is not { } ship) return "no ship to send a team from";
         if (Site(siteId) is not { } site || SiteKnowledgeOf(player, siteId) == SiteKnowledge.Unknown) return "no such site";
         var def = SiteKindOf(site);
-        if (def is not { AwayTable.Length: > 0 } || AwayTableAt(siteId) == null) return "nothing there to board";
+        if (def == null || def.AwayTableFor(site.Variant).Length == 0 || AwayTableAt(siteId) == null) return "nothing there to board";
         if (StarfleetHoldProblem(player) is { } held) return held;
         if (ship.AtSite != siteId) return $"the ship must be at {SiteNameFor(player, siteId)}";
         if (SiteKnowledgeOf(player, siteId) < SiteKnowledge.Identified) return "scan it first";
@@ -151,7 +151,7 @@ public sealed partial class StarSystemState
     }
 
     private AwayTableDef? AwayTableAt(string? siteId) =>
-        Site(siteId) is { } site && SiteKindOf(site) is { AwayTable.Length: > 0 } def ? StatusRules?.Table(def.AwayTable) : null;
+        Site(siteId) is { } site && SiteKindOf(site) is { } def && def.AwayTableFor(site.Variant) is { Length: > 0 } table ? StatusRules?.Table(table) : null;
 
     /// <summary>The odds now (percent per person: injury, loss; find), from the base, a dark known derelict, the picked
     /// choices, the Defense members (defense_loss each) and the away_loss lever.</summary>
@@ -399,7 +399,7 @@ public sealed partial class StarSystemState
         {
             RecordFor(player, site.Id).Boarded = true;
             ShipLog(player, $"Away team back from {siteName}: {run.Result}", fate.Contains(2) ? "bad" : fate.Contains(1) ? "warn" : "good");
-            Spend(player, site, "boarded");
+            if (site.Kind != SiteKind.Asteroid || AsteroidDone(player, site)) Spend(player, site, "boarded"); // a hollow asteroid: once its ore is mined too
         }
     }
 

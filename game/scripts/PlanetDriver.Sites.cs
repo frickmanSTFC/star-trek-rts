@@ -381,6 +381,9 @@ public partial class PlanetDriver
         "away_team" => "Send an away team across: pick who goes, then three timed steps",
         "alongside" => "Come alongside: needed before boarding",
         "sweep" => "Fly through the field slowly and recover what is there",
+        "mine" => "Cut ore out of the rock: a container into the hold every 30 s while the tractor works (rock falls scuff the hull)",
+        "tow" => "Lock the tractor on and take it in tow: flights are slower; drop it at a station (latinum) or a colony ship's colony",
+        "release" => "Let the tow go here: it stays where it is",
         "stop" => "Stop the work here",
         _ => "",
     };
@@ -721,10 +724,17 @@ public partial class PlanetDriver
             var buttons = new List<StatusButton>();
             foreach (var (action, label) in new[] { ("sell", "SELL"), ("drop", "DROP"), ("jettison", "JETTISON") })
                 if (sys.HoldProblem(LocalPlayer, action, h.Item, h.Count) == null)
-                    buttons.Add(new StatusButton($"hold:{action}:{h.Count}:{h.Item}", label, true, $"{label.ToLowerInvariant()} {h.Count} {h.Label}", action == "jettison" ? HelmScreen.Red : HelmScreen.Peach));
+                {
+                    var shown = h.Item == StarSystemState.TowItem && action == "jettison" ? "RELEASE" : label;
+                    var tip = h.Item.StartsWith(StarSystemState.OrePrefix) && action == "sell"
+                        ? $"sell {h.Count} {h.Label.ToLowerInvariant()} for about {sys.OreValue(h.Item, h.Count, _system.FlagshipSite == null)} latinum"
+                        : h.Item == StarSystemState.TowItem ? (action == "drop" ? "hand the tow over for its salvage" : "let the tow go here")
+                        : $"{label.ToLowerInvariant()} {h.Count} {h.Label}";
+                    buttons.Add(new StatusButton($"hold:{action}:{h.Count}:{h.Item}", shown, true, tip, action == "jettison" ? HelmScreen.Red : HelmScreen.Peach));
+                }
             hold.Add(new StatusLine(h.Label, $"{h.Count}{(h.Containers > 0 ? $" · {h.Containers} container{(h.Containers == 1 ? "" : "s")}" : "")}", HelmScreen.Ink, Buttons: buttons));
         }
-        right.Add(new StatusSection("HOLD", SpaceAmber, hold, "Ore, salvage and survivors take hold space too: a full hold stops mining and pick-ups."));
+        right.Add(new StatusSection("HOLD", SpaceAmber, hold, $"Ore ({_data.SpaceSites?.OrePerContainer ?? 30} to a container), salvage and survivors take hold space: a full hold stops mining and pick-ups. Ore sells at a station or to a freighter in orbit with you; a colony ship can drop it to its colony."));
 
         var hire = new List<StatusLine>();
         foreach (var d in Divisions)

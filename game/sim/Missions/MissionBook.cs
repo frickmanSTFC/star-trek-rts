@@ -305,6 +305,7 @@ public sealed partial class MissionBook
                     run.End = Now;
                     if (Def(run) is { } d) Say(p, run, d.Giver, $"Offer lapsed: {d.Title}.", "feed");
                 }
+            PoolOffersReturn(p, book); // MissionSpaceJobs.cs: a pool's declined or lapsed offers come back
             StartMain(p, book);
             // Side jobs whose trigger holds now.
             foreach (var run in book.Runs)

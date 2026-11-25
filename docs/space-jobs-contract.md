@@ -259,4 +259,93 @@ achievements don't listen to space jobs yet.
 
 ## Phase 2, filled in
 
-(the agent writes this when done)
+Built by the phase 2 agent (2026-11-25), sim + view. Every number is a placeholder in data; `Validate()` and
+`DataChecks.All` check all of it.
+
+**Data.**
+- `data/maps/sites.json`: `generation.asteroids` (count [3, 6], near_belt 75 %, belt_spread 25, spacing 40; rolled after
+  the other sites on their own salt, so the phase 1 sites of every seed are exactly where they were: test
+  `AsteroidsAreRolledAfterTheOtherSitesMostlyNearTheBelts` compares against a data copy with no asteroids); kind `asteroid`
+  (A, scan 20 s, size 1–4, variants common 5 / metal 3 / ice 3 / hollow 1, hazardous, `mining` { seconds 30, `ore` per
+  variant: containers [min, max] + ores (resource: weight): common 6–10 duranium_ore 4 / tritanium_ore 1, metal 5–8
+  tritanium_ore 3 / duranium_ore 2, ice 6–10 deuterium, hollow 2–4 duranium_ore; `rockfall` 15 % a minute (rolled each
+  second on `sim.Rng`), hull 2–5, 20 % of them knock the tractor out }, `alongside` 15 s (offered only where there is
+  something to board), `away_tables` { hollow: hollow }, research 60–120); `tow` on `derelict` (latinum 50–90, research
+  30–60, duranium 80–140) and `known_derelict` (40–70 / 10–30 / 100–160); salvage `cache_crate` (Supply cache, 45 latinum,
+  10 research); `ore` { per_container 30, kinds duranium_ore 0.5 / tritanium_ore 0.8 / deuterium 0.6 latinum a unit,
+  `traders` roles freighter + tanker, share 0.6 }; `tow` { flight 1.6 }.
+- `data/maps/ship_status.json`: away table `hollow` (into the cavity / what's down there / what we bring back: the cache,
+  the old base's records, the power cell; outcomes clean 65 (+ site research) / rockslide 20 / gas 10 / the old base woke 5).
+- `data/missions/fit_out.json`: space lever `mining` (Engineering, more is better; `FitOutRules.Mining`, in `KnownLevers`
+  and `SpaceLevers`) and space cargo `cutting_gear` (engineering, 1 container, max 2, `levers` { mining: 0.25 }). In no
+  preset's base or fill, so every preset is as before.
+- `data/missions/rules.json`: the pool chain `space_jobs` has `return_seconds` 600 (`MissionChainDef.ReturnSeconds`;
+  only a pool may have it).
+- `data/missions/space_jobs.json`: `pay_dirt` (ops; asteroid common/metal detected: identify → 60 ore in the hold →
+  sell 60 ore; 30 latinum + 20 research), `ice_run` (control; ice asteroid: identify → 60 deuterium aboard → 60 sold or
+  dropped; 40 latinum + a patch kit), `tow_job` (ops; a derelict or known derelict, identified, worked out or not: take it
+  in tow → deliver it; 50 latinum + a patch kit). Vocabulary in `missions/notes.json`.
+
+**Sim API added.**
+- `Space/Mining.cs`: `AsteroidContainers(site)`, `AsteroidOre(site, k)` (the k-th container's ore, by the site's hash),
+  `AsteroidOreLeft(player, site)`, `OreItem(ore)` ("ore:duranium_ore"), `MiningSeconds(player, mining)`, `Tally(player,
+  prefix)`, `OreBuyers(player)` (neutral ships of a trader role in orbit of the flagship's body), `BuysOre(player, shipId)`,
+  `OreValue(item, count, trader)`. Site work "mine": a `WorkRun` per container (`mining.seconds` ÷ the mining lever); at
+  its end 30 ore of that container's kind go into the hold and the next run starts, until the next container doesn't
+  fit (stops, "the hold is full") or the rock is mined out (spent; a hollow one only once its cavity is boarded too).
+  The tractor going down stops it; towing blocks it; an away team out blocks it.
+- `Space/Towing.cs`: `TowerOf(siteId)` (player, -1), `TowOf(player)`. Site work "tow" (alongside, tractor up, nobody else
+  at / flying to / from it, not delivered, its reactor not blown; a worked-out wreck can still be come alongside and
+  towed), "release" (wherever the ship is: the wreck stays where it is). The towed site's `Position` = its ship's
+  `ShipPosition` each tick (`StepTows`, first in `StepSpaceJobs`); `SystemShip.FromPos` (hashed only when set) is where
+  a flight began when it left a site in tow (that site moves with it). Flights × `tow.flight` while towing
+  (`StatusFlightFactor`). Ends: tractor knocked out, crippled ("the tow line parted"), the reactor failing in tow (the ship
+  takes its hull damage), dropped, released. Course to a towed site is refused; a towed site never drifts off.
+- Hold: items `ore:<resource>` (counted in units, `ore.per_container` to a container, per kind) and `tow` (a line of 0
+  containers while something is in tow; `StarSystemState.OrePrefix`, `TowItem`). `ShipHoldCommand`: "sell" ore at a
+  station (full price), or away from a station to the first trader in orbit with the flagship; "sell:<ship id>" to that
+  ship (share price; only ore); "drop" ore at the landed colony's body (what storage takes; the rest stays aboard) or at a
+  trade partner's world (station price in latinum); "drop" tow at a station (latinum) or a colony ship's colony body
+  (research + duranium through storage); "jettison" ore, or tow = release. Salvage sales are tallied too.
+- Tally (hashed): keys "sold:<item>", "drop:<item>", "mined:<item>", "tow:station", "tow:colony".
+- `SiteWorkState` gained `Mined`, `MinedOut`, `Towing`, `Towed`; `SiteReport` rows for asteroids (ORE, MINED, RATE,
+  CAVITY), wrecks (SALVAGE / TOW); actions "mine", "tow", "release"; labels MINE, TAKE IN TOW, RELEASE TOW.
+- Missions: `space_site` states `mined`, `towing`, `towed`; a trigger may list `kinds` / `variants` and set `spent: true`;
+  condition `space_tally` { key or keys, count } (since the objective's stage began; nested in all/any from the start);
+  `hold` item `ore` (every ore) or `ore:<resource>`. Pool offers that were declined or lapsed come back (Locked again,
+  re-triggered) `return_seconds` after they ended (`PoolOffersReturn`). A trigger now skips only sites held by another
+  *offered or active* job (one that ended lets its site go, so a boarded wreck can be towed in).
+- `DataChecks.SpaceSiteProblems` also wants generation.asteroids.count[0] asteroids on seeds 1/1701/99999.
+
+**Hash.** Planet-only games and the balance runner keep their hashes (checked against the base commit 7e7f296: the
+golden scripted game, a two-player First Light game sampled every 40 s for 400 s, a Dawn of Warp landing sampled for 300 s,
+and the balance runner's standard_opener on seeds 1/1701 at 15 min all hash the same). New state is hashed in system games
+only: site records' `Mined` / `Towed` and the flagship's `Tow` / `TowTick` / tally only once used; `FromPos` only when set.
+Every system game's hash moved (asteroids are rolled). Randomness: asteroid placement, contents and ores from the system
+seed's hash; rock falls on `sim.Rng`.
+
+**Tests.** `AsteroidTests` (7: rolled after the others near the belts, mining a container every 30 s until full or mined
+out, rock falls + tractor, selling at the station and to a freighter, a colony ship dropping ore, a hollow asteroid boarded
+and spent only once mined out, refusals change nothing), `TowTests` (3), `SpaceJobPhase2Tests` (each phase 2 job on all six
+ships, twice, same hashes; a declined / lapsed offer comes back), `SpaceJobFuzzTests` now sends mine / tow / release,
+"sell:<id>", ore and tow items (+ a towed-site invariant). Changed expectations: `SpaceSiteTests` (the site count leaves the
+asteroids out), `SpaceJobTests.ThePoolIs…` (the pool lists the three new jobs), `FitOutSpaceTests` (the new space line
+`cutting_gear` and lever `mining`). 949 tests.
+
+**View.** `SystemPlot.Sites.cs`: asteroid glyph colour by variant (`AsteroidColour`: common amber, metal brass, ice pale
+blue), hollow = the rock glyph with a hole (`GlyphKind.HollowRock`), a towed site drawn just behind its ship's chevron
+(`TowedPlot`, the label says IN TOW) and a solid tow line from the ship (ours sky blue) in the same ImmediateMesh as the
+course lines. `OrbitView.Mining.cs` (from `UpdateSiteView`, nodes made once per site scene): an amber cutting beam from the
+flagship to the rock and 10 ore chunks drifting to the ship while it mines; a wreck in tow (held at another site, e.g. the
+station) trails behind the ship on a blue tractor line, slowly tumbling. `PlanetDriver.Mining.cs`: a neutral freighter's /
+tanker's ship card shows BUYS and SELL ORE TO <NAME> (`sys:sellore:<id>`, greyed unless in orbit with it). Status screen
+hold: ore lines with SELL (tooltip with the price) / DROP / JETTISON, the tow line with DROP / RELEASE; the hold note says
+how ore is sold. Site card tips for MINE / TAKE IN TOW / RELEASE TOW; mining progress comes through the existing WORK row
+(`SiteWorkProgress` "Mining"). F9 SPACE: +30 duranium / tritanium / ice buttons, the tow line kept out of the item rows,
+the variant pick's tooltip names the asteroid variants (spawning any asteroid variant was already generic).
+
+**Not done / open.** A debris field's cargo pod can't be towed (pods come aboard as salvage; only derelicts and known
+derelicts tow). Ore can't be dropped at the station (sell it there) and the deuterium a colony gets is ore-kind
+`deuterium` straight into stock. No "how full is the rock" model change (the asteroid doesn't shrink). Traders buy every
+ore at one share (tankers aren't deuterium-only). Asteroids don't move; rogue asteroids are phase 3. Space ships carry
+`cutting_gear` only if picked on the fit-out page (no preset loads it).

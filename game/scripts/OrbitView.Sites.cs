@@ -95,6 +95,7 @@ public partial class OrbitView
                 if (toShip.LengthSquared() > 0.5f) _shipFill.Basis = Basis.LookingAt(toShip, Mathf.Abs(toShip.Y) > 0.98f ? Vector3.Forward : Vector3.Up);
             }
         }
+        UpdateSiteWork(site.Id); // OrbitView.Mining.cs: the mining beam and ore, a wreck in tow
     }
 
     /// <summary>From ApplyDisplay: at a site, the globe displays hide the planet, its air, clouds, moon and tracks.</summary>
@@ -123,6 +124,7 @@ public partial class OrbitView
         _siteTumblers.Clear();
         _siteRings.Clear();
         _siteBeacons.Clear();
+        ClearSiteWork(); // OrbitView.Mining.cs
     }
 
     private void BuildSiteScene(SpaceSite site, string key)
