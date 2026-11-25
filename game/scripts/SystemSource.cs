@@ -145,7 +145,8 @@ public sealed class SystemSource
         return null;
     }
 
-    public static bool InFlight(SystemShip ship) => ship.AtBody == null && ship.ToBody != null;
+    /// <summary>Between places (to a body or a space site): the sim's own rule.</summary>
+    public static bool InFlight(SystemShip ship) => ship.InFlight;
 
     // ---------------------------------------------------------------- space sites (docs/space-jobs-contract.md)
 
