@@ -38,6 +38,53 @@
           "next": "complete" } ],
       "debrief": "Beautiful data. Storm bands, rings of ice, magnetic fields like nothing on the charts at home." },
 
+    { "id": "wreck_at_the_edge", "chain": "long_survey", "kind": "main", "title": "Wreck at the Edge", "giver": "science",
+      "briefing": "Reyes. The long-range picture has a smear past the last orbit, where nothing should be. It reads like a ship that came apart. Fly out, sweep the debris and bring back her black box: whoever she was, she came a long way to end up there.",
+      "stages": [
+        { "id": "find", "title": "Find the debris",
+          "on_enter": [
+            { "place_space_site": { "kind": "debris", "variant": "freighter", "bind": "field", "near": "edge", "min": 40, "max": 90 } },
+            { "marker": { "at": "field", "label": "Wreck at the edge" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Fly out to the contact past the last orbit and identify it", "cond": { "space_site": { "site": "field", "state": "identified" } },
+              "hint": "Set course for the contact past the last orbit ({field.distance} s), then SCAN it from within range." } ],
+          "next": "sweep" },
+        { "id": "sweep", "title": "Sweep for the black box",
+          "on_enter": [ { "marker": { "at": "field", "label": "Black box" } } ],
+          "objectives": [
+            { "id": "box", "text": "Recover the black box", "cond": { "hold": { "item": "salvage:black_box", "count": 1 } },
+              "hint": "SWEEP THE FIELD: the box turns up first. The hull wears inside the field, the tractor must work and the hold needs a free container (jettison a used probe or satellite if it is full)." },
+            { "id": "swept", "text": "Sweep the whole field", "cond": { "space_site": { "site": "field", "state": "swept" } }, "optional": true } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 80 } } ],
+      "debrief": "The recorder plays. She was the Sable Crane, a prospector out of Luna, and her last entries are about a rock in the belt that rang hollow under the drills. Reyes wants that rock." },
+
+    { "id": "hollow_rock", "chain": "long_survey", "kind": "main", "title": "Hollow Rock", "giver": "science",
+      "briefing": "The Sable Crane's log names three rocks in the belt, and one of them rang hollow. Survey them until one reads hollow, then send a team into the cavity: if her crew found something in there, it is still there.",
+      "stages": [
+        { "id": "survey", "title": "Survey the belt contacts",
+          "on_enter": [
+            { "place_space_site": { "kind": "asteroid", "variant": "common", "bind": "rock_a", "near": "belt", "min": 50, "max": 120 } },
+            { "place_space_site": { "kind": "asteroid", "variant": "hollow", "bind": "rock_b", "near": "belt", "min": 50, "max": 120 } },
+            { "place_space_site": { "kind": "asteroid", "variant": "metal", "bind": "rock_c", "near": "belt", "min": 50, "max": 120 } },
+            { "marker": { "at": "rock_a", "label": "Belt contact" } },
+            { "marker": { "at": "rock_b", "label": "Belt contact" } },
+            { "marker": { "at": "rock_c", "label": "Belt contact" } } ],
+          "objectives": [
+            { "id": "hollow", "text": "Survey the belt contacts until one reads hollow", "cond": { "space_site": { "site": "rock_b", "state": "identified" } },
+              "hint": "Fly to each marked contact and SCAN it: the card says what it is. One of the three is hollow." } ],
+          "next": "board" },
+        { "id": "board", "title": "Into the cavity",
+          "on_enter": [ { "marker": { "at": "rock_b", "label": "Hollow rock" } } ],
+          "objectives": [
+            { "id": "alongside", "text": "Come alongside {rock_b}", "cond": { "space_site": { "site": "rock_b", "state": "alongside" } },
+              "hint": "Hold position at the hollow rock and COME ALONGSIDE." },
+            { "id": "board", "text": "Send an away team into the cavity and bring them back", "cond": { "space_site": { "site": "rock_b", "state": "boarded" } },
+              "hint": "AWAY TEAM: Defense lowers the loss chance, a Science medic turns losses into injuries. Leaving the rock calls them back." } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 100 } } ],
+      "debrief": "Inside the rock: the Sable Crane's forward camp, and under it something older that nobody from Earth built. Reyes has a lot of questions and, for once, some answers." },
+
     { "id": "faint_signal", "chain": "long_survey", "kind": "main", "title": "A Faint Signal", "giver": "science",
       "briefing": "Something just came through the static: a faint, regular signal from {signal}, the farthest body out. It isn't natural. Take us there and sweep the area.",
       "stages": [

@@ -47,6 +47,18 @@ public sealed partial class MissionBook
         return null;
     }
 
+    /// <summary>Why a main mission's stage can't be finished any more (phase 4): a required objective's space-site state
+    /// was lost (StarSystemState.SiteStateLost); the stage then goes to its on_lost. Null otherwise (and always without a
+    /// star system).</summary>
+    private string? StageLost(int p, MissionRun run)
+    {
+        if (Sys is not { } sys || Def(run) is not { } d || run.Stage < 0 || run.Stage >= d.Stages.Count) return null;
+        var stage = d.Stages[run.Stage];
+        for (var k = 0; k < stage.Objectives.Count && k < run.Done.Length; k++)
+            if (!run.Done[k] && !stage.Objectives[k].Optional && EventLost(sys, p, run, stage.Objectives[k].Cond) is { } lost) return lost;
+        return null;
+    }
+
     /// <summary>Why an event condition (space_site with an event state, alone or inside all) can't come true any more, or null.</summary>
     private static string? EventLost(StarSystemState sys, int p, MissionRun run, MissionCondDef c)
     {
@@ -61,7 +73,7 @@ public sealed partial class MissionBook
     }
 
     /// <summary>space_site states of the event sites (phase 3); the ones with a count compare it.</summary>
-    private static readonly string[] EventStates = { "deflected", "sampled", "picked", "escorted", "recorded" };
+    private static readonly string[] EventStates = { "deflected", "sampled", "picked", "escorted", "recorded", "delivered" };
 
     /// <summary>The site a reference names (a site binding), or null.</summary>
     private static string? SiteRef(MissionRun? run, string? name) => name != null && run?.Find(name) is { Site: { } site } ? site : null;
@@ -86,6 +98,9 @@ public sealed partial class MissionBook
                 var state = c.F("state") ?? "identified";
                 if (state is "picked" or "recorded") // counted: pods picked up, research recorded
                     return MissionEval.Count(sys.SiteWork(p, id) is { } w ? state == "picked" ? w.Picked : w.Recorded : 0, c.I("count", 1));
+                if (state == "delivered") // phase 4: a mission's tow in orbit of that body (handed over by the hand_over action)
+                    return MissionEval.Of(BodyRef(run, c.F("body")) is { } body && sys.SiteWork(p, id) is { } dw
+                        && (dw.Delivered == body || (dw.Towing && sys.FlagshipOf(p)?.AtBody == body)));
                 return MissionEval.Of(SiteState(sys, p, id, state));
             }
             case "hull":
@@ -180,6 +195,10 @@ public sealed partial class MissionBook
             "sampled" => w.Sampled,
             "escorting" => w.Escorting,
             "escorted" => w.Rescued,
+            "inspected" => w.Inspected,
+            "decoded" => w.Decoded,
+            "answered" => w.Answer.Length > 0,
+            "answered_well" => w.AnsweredWell,
             _ => false,
         };
     }
@@ -187,19 +206,26 @@ public sealed partial class MissionBook
     /// <summary>The space-job actions; false when the kind isn't one.</summary>
     private bool SpaceJobAct(int p, MissionRun run, MissionActionDef a)
     {
-        if (a.Kind is not ("place_space_site" or "bind_site" or "damage" or "lose_crew" or "give_crew" or "hold_add")) return false;
+        if (a.Kind is not ("place_space_site" or "bind_site" or "damage" or "lose_crew" or "give_crew" or "hold_add" or "hand_over" or "civ")) return false;
         if (Sys is not { } sys || _sim == null) return true;
         switch (a.Kind)
         {
             case "place_space_site":
             {
                 if (a.F("bind") is not { } name || SpaceSiteRules.KindOf(a.F("kind")) is not { } kind) return true;
-                if (run.Find(name) is { Site: { } placed } && sys.Site(placed) != null) return true; // placed already (a stage entered again)
-                var near = a.F("near") == "colony" && sys.Body(sys.SurfaceBody) is { } colony ? colony.Position
-                    : Flagship(p) is { } ship ? sys.ShipPosition(ship, Now) : FixVec2.Zero;
-                var site = sys.SpawnSite(kind, a.F("variant"), near, Fix64.FromInt(System.Math.Max(0, a.I("min", 0))), Fix64.FromInt(System.Math.Max(1, a.I("max", 100))));
+                // Placed already (a stage entered again) unless again: true (a fresh site, e.g. after the last one was lost).
+                if (a.F("again") != "true" && run.Find(name) is { Site: { } placed } && sys.Site(placed) != null) return true;
+                var min = Fix64.FromInt(System.Math.Max(0, a.I("min", 0)));
+                var max = Fix64.FromInt(System.Math.Max(1, a.I("max", 100)));
+                var near = PlaceNear(p, run, a.F("near"), ref min, ref max);
+                var site = sys.SpawnSite(kind, a.F("variant"), near, min, max, a.I("pods", 0), BodyRef(run, a.F("target")));
                 if (site == null) return true;
-                sys.MissionDetectSite(p, site.Id);
+                if (kind == SiteKind.HiddenShip) sys.MissionHunt(p, site.Id); // never detected: the player's scans find it
+                else if (a.F("known") == "true") sys.MissionIdentifySite(p, site.Id); // the mission says what it is (named on the card)
+                else sys.MissionDetectSite(p, site.Id);
+                if (kind == SiteKind.AlienProbe) sys.MissionFollow(p, site.Id);
+                if (a.F("hold_room") == "true") sys.MissionHoldRoom(site.Id);
+                if (a.F("cold_reactor") == "true") sys.MissionNoReactor(site.Id);
                 run.Bind(new Binding { Name = name, Site = site.Id, Text = site.Name });
                 return true;
             }
@@ -233,8 +259,63 @@ public sealed partial class MissionBook
             case "hold_add":
                 if (a.F("item") is { } item) sys.MissionHoldAdd(p, item, a.I("count", 1));
                 return true;
+            case "hand_over":
+                if (SiteRef(run, a.F("site")) is { } towed) sys.HandOver(p, towed);
+                return true;
+            case "civ":
+                if (BodyRef(run, a.F("at")) is { } world)
+                    sys.MissionCiv(_sim, p, world, a.I("awareness", 0), a.I("incident", 0), a.F("settle") == "true");
+                return true;
         }
         return true;
+    }
+
+    /// <summary>Where a place_space_site goes round (phase 4 adds edge, belt and bindings): the flagship (ship, the default),
+    /// the colony's body, the star with min / max moved past the outermost orbit (edge), the belt nearest the flagship (the
+    /// outermost planet when there is none), or a body or site binding.</summary>
+    private FixVec2 PlaceNear(int p, MissionRun run, string? near, ref Fix64 min, ref Fix64 max)
+    {
+        var sys = Sys!;
+        var here = Flagship(p) is { } ship ? sys.ShipPosition(ship, Now) : FixVec2.Zero;
+        switch (near)
+        {
+            case null:
+            case "ship":
+                return here;
+            case "colony":
+                return sys.Body(sys.SurfaceBody) is { } colony ? colony.Position : here;
+            case "edge":
+            {
+                var edge = Fix64.Zero;
+                foreach (var b in sys.Bodies)
+                {
+                    var d = (b.Parent != null && sys.Body(b.Parent) is { } parent ? parent.Position : b.Position).Length();
+                    if (d > edge) edge = d;
+                }
+                min += edge;
+                max += edge;
+                return FixVec2.Zero;
+            }
+            case "belt":
+            {
+                BodyDef? best = null;
+                var bestD = Fix64.Zero;
+                foreach (var b in sys.Bodies)
+                {
+                    if (Data?.SystemGenerator is not { } g || !g.IsBelt(b.ClassId)) continue;
+                    var d = FixVec2.Distance(b.Position, here);
+                    if (best == null || d < bestD) (best, bestD) = (b, d);
+                }
+                if (best != null) return best.Position;
+                foreach (var b in sys.Bodies) // no belt: the outermost planet
+                    if (b.Parent == null && (best == null || b.Position.Length() > best.Position.Length())) best = b;
+                return best?.Position ?? here;
+            }
+            default:
+                if (BodyRef(run, near) is { } body && sys.Body(body) is { } bd) return bd.Position;
+                if (SiteRef(run, near) is { } siteId && sys.Site(siteId) is { } s) return s.Position;
+                return here;
+        }
     }
 
     /// <summary>A space-job reward as paid ("" for none), or null when the kind isn't one.</summary>
@@ -248,6 +329,8 @@ public sealed partial class MissionBook
             case "lose_crew":
             case "place_space_site":
             case "bind_site":
+            case "hand_over":
+            case "civ":
                 SpaceJobAct(p, run, a);
                 return a.Kind switch
                 {

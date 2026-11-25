@@ -152,7 +152,10 @@ public sealed partial class StarSystemState
     }
 
     private AwayTableDef? AwayTableAt(string? siteId) =>
-        Site(siteId) is { } site && SiteKindOf(site) is { } def && def.AwayTableFor(site.Variant) is { Length: > 0 } table ? StatusRules?.Table(table) : null;
+        Site(siteId) is { } site && SiteKindOf(site) is { } def
+            ? def.AwayTableFor(site.Variant) is { Length: > 0 } table ? StatusRules?.Table(table)
+            : def.Probe is { } pr ? StatusRules?.Table(pr.ReplyTable) : null // phase 4: the reply to an alien probe (no one leaves the ship)
+            : null;
 
     /// <summary>The odds now (percent per person: injury, loss; find), from the base, a dark known derelict, the picked
     /// choices, the Defense members (defense_loss each) and the away_loss lever.</summary>
@@ -396,7 +399,12 @@ public sealed partial class StarSystemState
         run.Result = string.Join("; ", lines);
         run.ShowUntil = sim.Tick + (long)AwayResultSeconds * Simulation.TickRate;
         Version++;
-        if (site != null)
+        if (site is { Kind: SiteKind.AlienProbe }) // phase 4: the reply to a probe (SpaceChainSites.cs)
+        {
+            ProbeAnswered(player, site, outcome);
+            ShipLog(player, $"Answer to {siteName}: {run.Result}", SiteKindOf(site)?.Probe?.Good.Contains(outcome.Id) == true ? "good" : "warn");
+        }
+        else if (site != null)
         {
             RecordFor(player, site.Id).Boarded = true;
             ShipLog(player, $"Away team back from {siteName}: {run.Result}", fate.Contains(2) ? "bad" : fate.Contains(1) ? "warn" : "good");

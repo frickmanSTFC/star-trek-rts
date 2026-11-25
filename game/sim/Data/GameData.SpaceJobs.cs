@@ -101,6 +101,11 @@ public sealed partial class GameData
                         : null,
                     Stranded = JObj(k, "stranded") is { ValueKind: JsonValueKind.Object } sd ? ReadStranded(sd) : null,
                     Anomaly = JObj(k, "anomaly") is { ValueKind: JsonValueKind.Object } an ? ReadAnomaly(an) : null,
+                    Hidden = JObj(k, "hidden") is { ValueKind: JsonValueKind.Object } hd ? ReadHidden(hd) : null,
+                    Probe = JObj(k, "probe") is { ValueKind: JsonValueKind.Object } pr
+                        ? new SiteProbeDef(JFix(pr, "keep", Fix64.FromInt(50)), JFix(pr, "speed", Fix64.FromInt(4)), JInt(pr, "decode_seconds", 90),
+                            JStr(pr, "reply_table"), JStrings(pr, "good"), JInt(pr, "shock", 0))
+                        : null,
                 };
                 kinds.Add(def);
             }
@@ -182,6 +187,14 @@ public sealed partial class GameData
                     JInt(r, "knock", 0), JBool(r, "hazardous")));
         return new SiteAnomalyDef(JInt(an, "every_seconds", 10), JInt(an, "research_cap", 0), JStrings(an, "systems"), JPair(an, "life_seconds", 900, 1500).Min,
             JPair(an, "life_seconds", 900, 1500).Max, JFix(an, "drift", Fix64.Zero), rings);
+    }
+
+    private static SiteHiddenDef ReadHidden(JsonElement hd)
+    {
+        var reward = JObj(hd, "reward");
+        return new SiteHiddenDef(JInt(hd, "fixes", 3), JFix(hd, "fix_range", Fix64.FromInt(200)), JFix(hd, "spacing", Fix64.FromInt(50)), JFix(hd, "area", Fix64.FromInt(150)),
+            JInt(hd, "inspect_seconds", 30), JInt(hd, "run_chance", 0), JFix(hd, "run_distance", Fix64.FromInt(100)), JInt(hd, "run_seconds", 60),
+            JPair(reward, "latinum", 0, 0).Min, JPair(reward, "latinum", 0, 0).Max, JPair(reward, "research", 0, 0).Min, JPair(reward, "research", 0, 0).Max);
     }
 
     private static SiteMiningDef ReadMining(JsonElement mn)
@@ -415,6 +428,7 @@ public sealed partial class GameData
             }
             if (r.Weights.Any(x => x.Id == "asteroid")) problems.Add($"{w}: asteroids are rolled by generation.asteroids, not by weight.");
             ValidateSpaceEvents(r, problems); // GameData.SpaceEvents.cs (phase 3)
+            ValidateChainSites(r, problems); // GameData.ChainSites.cs (phase 4)
             if (r.OrePerContainer < 1 || r.OrePerContainer > 10000) problems.Add($"{w}: ore per_container must be 1..10000.");
             var oreIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var o in r.Ores)

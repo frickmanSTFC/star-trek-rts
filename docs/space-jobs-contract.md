@@ -543,4 +543,113 @@ on the random event clock.
 
 ## Phase 4, filled in
 
-(the agent writes this when done)
+Built by the phase 4 agent (2026-11-25), sim + data + view. Every number is a placeholder in data; `Validate()` and
+`DataChecks.All` check all of it.
+
+**The eight missions** (each space chain now has seven main missions; ids in the chain files, in chain order):
+- **Long Survey** (`long_survey.json`): outbound, eyes_everywhere, close_look, **wreck_at_the_edge** (a debris field placed
+  past the outermost orbit, `near: edge`, unidentified: fly out, SCAN, SWEEP until the black box is in the hold; sweeping
+  the whole field optional; 80 research; the box's log names a rock that "rang hollow"), **hollow_rock** (three rocks placed
+  near the nearest belt, one hollow; survey them until the hollow one is identified, come alongside, send an away team
+  into the cavity on the existing `hollow` table; 100 research), faint_signal, whole_map.
+- **Priority Run** (`priority_run.json`): shakedown, medicine_run, **tow_line** (a known Earth freighter with a failing
+  reactor placed 80–160 out, `known: true`; port = `nearest_planet` to the freighter; take her in tow and bring her into
+  orbit of the port before the reactor's 300 s run out; `hand_over` reward + 50 latinum; reactor failed → `on_lost` places
+  a fresh freighter), mail_circuit, **twelve_lifepods** (a liner's 12 pods, `pods: 12`, `hold_room: true`, `known: true`;
+  pick up 6 (12 optional), the Armstrong's small hold stops the pick-up until the survivors are set down at the nearest
+  station (`bind_site station`); too few pods left → `on_lost` puts a fresh cluster out; 60 latinum), diplomatic_pouch,
+  against_the_clock.
+- **Watch Station** (`watch_station.json`): patrol_route, traffic_check, **watch_rogue_rock** (title "Rogue Rock"; a rogue
+  asteroid placed by the mission with `target` = `bind_body pick inhabited` (the living civilization's world, else the
+  nearest planet or moon, never a belt), `known: true`; turn it aside before impact (push or charges, the phase 3 rules and
+  reward) + 40 latinum; a strike → `on_lost` sends another), distress_call, escort, **smugglers_belt** (new kind
+  hidden_ship placed near the nearest belt, plus three rocks round it marked "Scan from here"; long-range scans from
+  different spots near her are fixes, three find her; she may run once; then catch her, SCAN, come alongside, INSPECT HER:
+  a fine in latinum + research from her kind, and 30 research), picket.
+- **Envoy** (`envoy.json`): showing_the_flag, **probe_that_talks** (new kind alien_probe placed 70–110 from the ship; it
+  follows the flagship; SCAN it, hold at it and DECODE THE PATTERN (Science), then ANSWER IT (three timed choices); "be
+  understood" optional; 40 research; a good answer takes 15 points off the player's later first-contact culture shock),
+  listening_post, study, first_words, **their_lost_ship** (a known native derelict with a cold reactor placed near the
+  civilization's world; come alongside, then a timed choice (90 s, default tow): tow her home into orbit of their world →
+  `hand_over`, `civ` awareness −15 + settle (unrest and the trade wait end), hold orbit 15 s; or study her (restore power,
+  recover logs) → `civ` incident 30% (rolled on sim.Rng), hold at her 15 s; 60 research either way), guests_aboard.
+
+**Data.**
+- `data/maps/sites.json` kinds `hidden_ship` (H, scan 20, variant smuggler, alongside 20 s; `hidden`: fixes 3, fix_range
+  200, spacing 50, area 150, inspect_seconds 30, run_chance 50, run_distance 100, run_seconds 60, reward latinum [40, 80] +
+  research [20, 40]) and `alien_probe` (Q, scan 15, variant pattern, research [40, 80]; `probe`: keep 50, speed 4,
+  decode_seconds 90, reply_table probe_reply, good [understood], shock −15). Records `SiteHiddenDef`, `SiteProbeDef`
+  (`SiteKindDef.Hidden` / `Probe`), read in `GameData.SpaceJobs.cs`, checked in the new `GameData.ChainSites.cs`
+  (`GameData.ChainOnlyKinds`; never in generation weights or event weights; a probe's reply table may not hurt anyone).
+- `data/maps/ship_status.json` away table `probe_reply` (how we answer / what we tell it / how we sign off; outcomes
+  understood 50 / confused 30 / alarmed 20; no injury, loss, damage).
+- Notes: `missions/notes.json`, `maps/sites.json` and `maps/ship_status.json` notes describe all of it. No new files (the
+  manifest is unchanged).
+
+**Sim API added** (`Space/SpaceChainSites.cs`, hooks in `SpaceSites.cs`, `SpaceEvents.cs`, `AwayTeam.cs`, `Contact.cs`;
+missions in `MissionSpaceJobs.cs`, `MissionSpace.cs`, `MissionBook.cs`, `MissionActions.cs`, `GameData.Missions.cs`).
+- `SpaceSite.Follow` (an alien probe follows that player's flagship, -1 none), `HoldRoom` (lifepods whose survivors need
+  hold room), `NoReactor` (a cold reactor); hashed in a "p4" block only when set or for a chain-only kind.
+- `SiteWorkState` gained `Fixes`, `Inspected`, `Decode` (0..1), `Decoded`, `Answer` (outcome id), `AnsweredWell`,
+  `Delivered` (the body a mission's tow was handed over at). Per-player record "p4" block (fix spots, inspected, decode
+  ticks, decoded, answer, delivered) only once used.
+- `StarSystemState.HiddenSearchArea(player, site)` (centre, radius; null once found), `HiddenFixes(player, site)`,
+  `IsHunting(player, site)`, `ProbeAnsweredWell(player)`, `ProbeAnswered(player, site)`, `AwayRunSiteOf(player)` (no
+  allocation: the views call them every frame), `MissionIdentifySite`. Work actions `inspect`, `decode`, `answer` (in
+  `WorkActions`, labels INSPECT HER / DECODE THE PATTERN / ANSWER IT); "decode" shows through `SiteWorkProgress`.
+- Rules: a hidden ship is never Detected by long-range scans, arrival or a mission; `DetectSites` makes each long-range
+  scan a fix when within fix_range and spacing from the player's earlier fix spots (misses are logged for a player who is
+  hunting it); the last fix Detects it and, by its hash, it may run once (a path; no coming alongside while running).
+  An alien probe moves toward its player's flagship each tick (after the tows) until keep from it, holds while the ship is
+  at it or once answered. Answering starts an `AwayRun` with no team on the probe's reply table (choices through
+  `AwayTeamChoiceCommand`, `AwayTeamOf` shows it, leaving the probe calls it off); its outcome is the answer, the probe is
+  then spent and stops following. `Contact.ShockChance` adds `ProbeShockPoints(player)`. Mission lifepods with HoldRoom
+  refuse / stop the pick-up when the next pod's hold-bound survivors (those who don't join the crew) don't fit.
+  `SpawnSite` / `SpawnEvent` take a pod count and a rogue target. A cold reactor starts no clock.
+- Missions: stage field `on_lost` (main missions only): when a required objective's site state can't come true any more
+  (`StageLost`, the same `SiteStateLost` as pool jobs, plus `delivered`), the stage goes there (or fails without one).
+  `place_space_site` fields `near` edge | belt | a body or site binding, `again`, `known`, `pods`, `hold_room`, `target`,
+  `cold_reactor`. `space_site` states `inspected`, `decoded`, `answered`, `answered_well`, `delivered` {body}. Actions
+  `hand_over` {site} and `civ` {at, awareness, incident, settle}. `bind_body` picks `nearest_planet` and `inhabited`, and
+  `near` (a site binding). A hidden ship's marker shows as a SpaceMarker of kind `search` until it is found. In a space
+  chain every mission's grant goes into the player's stock and its research where observation research goes (× the
+  `mission_research` lever: the Scientist's perk now does something on space ships).
+
+**Hash.** Planet-only games and the balance runner keep their hashes (checked against the base commit 6861074: the golden
+scripted game, a two-player First Light game sampled every 40 s for 400 s, a Dawn of Warp landing sampled every 30 s for
+300 s, and standard_opener on seeds 1 / 1701 at 15 min hash the same). New state is hashed in system games only. The
+chains' play-throughs changed (two more missions each) and each is played twice with the same hashes.
+
+**Tests.** `SpaceChainJobTests` (16: chain-only kinds never rolled or arriving as events (fast events on six seeds) and
+the checks; bad phase 4 mission data (6 cases); the smuggler found by three fixes from different rocks, a repeat spot
+gives no fix, inspected; some smugglers run once, others stay; the probe follows, needs Science, keeps its decoding when
+the ship leaves, is answered with no one hurt; a good answer lowers a first contact's shock by the data's points; twelve
+lifepods stop on a full hold and start again after the survivors are set down; a tow handed over at its body, a lost one
+replaced; the rogue flies at the bound body and a strike puts another out; their lost ship studied instead of towed;
+refusals change nothing). `ShipPickTests`: the pilot plays the new missions (`ShipPickTests.SitePilot.cs`); every chain
+twice with the same hashes, every focus preset still finishes each chain. `SpaceJobFuzzTests` sends inspect / decode /
+answer and spawns the new kinds (+ invariants: fixes never past the need, a hunted hidden ship has a search area, only a
+probe follows). Changed expectations: `ShipPickTests.Play` asserts 7 missions per chain (was 5: it is what
+`NoFitOutPlaysTheChainExactlyAsBefore` and the play-throughs go through), `ShipPickTests.TheSixShipsComeFromTheData`
+(7 main missions per space chain), `ShipPickTests.ACourierTimer…` (Watch Station's rogue rock now comes before the distress
+call: completed by the test panel too), `SpaceJobTests.ThePoolIsOffered…` (the chain lists 7). 1009 tests.
+
+**View.** `SystemPlot.Chain.cs`: glyphs for the probe (a diamond with four antennae, lavender) and a ship running dark
+(a dashed hull with two running lights, rust); a dashed rust circle for a hunted hidden ship's search area, shrinking with
+each fix, with one label "SEARCH AREA · FIX n OF 3"; label tags RUNNING 0:40, FOLLOWING US, DECODED 40 %, DECODED · ANSWER
+IT, UNDERSTOOD / ANSWERED. `SiteModels`: a hidden ship is the trader derelict dimmed by a dark overlay with RunLight0 (red,
+port) and RunLight1 (green, starboard). `OrbitView.Chain.cs`: the running lights blink slowly; the probe's Glow flickers in
+a repeating pattern (steady once answered) and a lavender beam runs from the flagship to it while decoding or answering.
+`PlanetDriver`: tips for INSPECT HER / DECODE THE PATTERN / ANSWER IT; the away panel titles the probe's reply "ANSWER TO
+…" ("STAY WITH THE PROBE: LEAVING CALLS THE ANSWER OFF"). F9 SPACE: CHAIN SITES (Ship running dark, Alien probe); the
+generic spawn list has both kinds too.
+
+**Not done / open.** Achievements don't hear space jobs: every achievement in the data carries a reward cosmetic and the set
+is sized at 30 (HANGAR, the page), so adding even a few means new cosmetics too: left for the owner. A hidden ship's fix
+spots are the mission's three rocks, the belt and nearby bodies; if a seed's rocks land too close together (SpawnSite's
+fallback) the player has to scan from bodies near the area (the pilot does). The mission's rogue rock and lifepods arrive as
+events (announced to everyone, counted in max_live, and they advance the event serial, so later clock events roll
+differently: the clock's timing is untouched). Pool jobs can be offered on a chain mission's leftover site once the main
+mission is over (e.g. Pods in the Dark on the liner's remaining pods). The chain "Rogue Rock" shares its title with the pool
+job (ids differ: `watch_rogue_rock`, `rogue_rock`). No model of its own for the hidden ship or for the native ship (the
+derelict models are reused). The probe's answer outcome is rolled on sim.Rng (the choices shift the odds).

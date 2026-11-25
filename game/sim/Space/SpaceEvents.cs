@@ -136,8 +136,9 @@ public sealed partial class StarSystemState
     }
 
     /// <summary>An event of that kind arrives now (variant null = by the hash): placed, announced and Detected for every
-    /// player. Null when the data has no such kind or nowhere to put it.</summary>
-    internal SpaceSite? SpawnEvent(Simulation sim, SiteKind kind, string? variant)
+    /// player. Null when the data has no such kind or nowhere to put it. A chain mission may set the number of lifepods
+    /// (pods &gt; 0) and a rogue asteroid's target body (phase 4).</summary>
+    internal SpaceSite? SpawnEvent(Simulation sim, SiteKind kind, string? variant, int pods = 0, string? target = null)
     {
         if (SiteRules is not { } r || r.Kind(kind) is not { } def) return null;
         var n = _eventSerial++;
@@ -154,13 +155,13 @@ public sealed partial class StarSystemState
         {
             case SiteKind.RogueAsteroid when def.Rogue is { } ro:
             {
-                if (RogueTarget(ro, Roll(3), Roll(4)) is not { } target) return null;
+                if ((target != null ? Body(target) : RogueTarget(ro, Roll(3), Roll(4))) is not { } aim) return null;
                 var start = Direction(Roll(5)) * (edgeMin + (edgeMax - edgeMin) * SystemGenerator.Unit(Roll(6)));
                 var ticks = (long)SystemGenerator.Int(Roll(7), ro.FlightMin, ro.FlightMax) * Simulation.TickRate;
                 site = AddSite(kind, v, null, start, size, sim.Tick);
-                SetPath(site, start, target.Position, sim.Tick, sim.Tick + ticks);
-                site.TargetBody = target.Id;
-                text = $"Sensor alert: {site.Name}, a rock on a collision course with {target.Name}: impact in {Clock((int)(ticks / Simulation.TickRate))}";
+                SetPath(site, start, aim.Position, sim.Tick, sim.Tick + ticks);
+                site.TargetBody = aim.Id;
+                text = $"Sensor alert: {site.Name}, a rock on a collision course with {aim.Name}: impact in {Clock((int)(ticks / Simulation.TickRate))}";
                 break;
             }
             case SiteKind.Comet when def.Comet is { } co:
@@ -187,7 +188,7 @@ public sealed partial class StarSystemState
                     : PlaceBy(r, EventSalt, n * 1000L + 100, r.OrbitMin, r.OrbitMax, r.Spacing);
                 if (at is not { } spot) return null;
                 site = AddSite(kind, v, null, spot, size, sim.Tick);
-                site.PodCount = SystemGenerator.Int(Roll(4), po.CountMin, po.CountMax);
+                site.PodCount = pods > 0 ? System.Math.Min(pods, 31) : SystemGenerator.Int(Roll(4), po.CountMin, po.CountMax);
                 text = $"Distress call: {site.PodCount} lifepods adrift at {site.Name}, their air running out";
                 distress = true;
                 break;
@@ -466,6 +467,7 @@ public sealed partial class StarSystemState
                 if (PodsLeft(site) <= 0) return "no pods left";
                 if (IsDown(st, ShipSystem.Tractor)) return "the tractor is down: no pods can be brought in";
                 if (st.Tow.Length > 0) return $"the tractor is holding {SiteNameFor(player, st.Tow)} in tow: release or drop it first";
+                if (def?.Pods is { } pods && !PodFits(player, st, site, pods)) return "no room in the hold for the next pod's survivors: set them down at a station first"; // phase 4
                 return null;
             case "escort":
                 if (def?.Stranded == null) return "nothing to escort";
@@ -600,6 +602,12 @@ public sealed partial class StarSystemState
                 }
                 if (sim.Tick < w.End) return true;
                 st.Work = null;
+                if (!PodFits(player, st, site, po)) // phase 4: a mission's pods need hold room
+                {
+                    ShipLog(player, $"Pick-up at {site.Name} stopped: no room in the hold for the next pod's survivors", "warn");
+                    Version++;
+                    return true;
+                }
                 PickUpPod(sim, player, site, r, po);
                 if (site.Outcome.Length == 0 && PodsLeft(site) > 0)
                     st.Work = new WorkRun { Site = site.Id, Action = "pickup", Start = sim.Tick, End = sim.Tick + (long)po.PickupSeconds * Simulation.TickRate };
@@ -952,6 +960,12 @@ public sealed partial class StarSystemState
             case "recorded":
                 if ((r?.Recorded ?? 0) >= count) return null;
                 if (site == null || site.Outcome.Length > 0) return "the storm has gone";
+                return null;
+            case "delivered": // phase 4: a mission's tow, before it is handed over
+                if (r is { Delivered.Length: > 0 }) return null;
+                if (r is { ReactorDone: true }) return "her reactor failed before we got her there";
+                if (site == null) return "she is gone";
+                if (r is { Towed: true } || (TowerOf(siteId) is var tower and >= 0 && tower != player)) return "someone else took her in";
                 return null;
         }
         return null;

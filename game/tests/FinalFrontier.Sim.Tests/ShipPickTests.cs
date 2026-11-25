@@ -13,7 +13,7 @@ namespace FinalFrontier.Sim.Tests;
 /// name, speed, start orbit), the colonizers' start bonus, no landing for the others, and the four space chains played to
 /// the end through commands only (twice: the same hash sequence).
 /// </summary>
-public class ShipPickTests
+public partial class ShipPickTests
 {
     private readonly ITestOutputHelper _out;
 
@@ -68,7 +68,7 @@ public class ShipPickTests
         // Every space chain has five main missions and no side jobs.
         foreach (var chain in new[] { "long_survey", "priority_run", "watch_station", "envoy" })
         {
-            Assert.Equal(5, Real.Missions.List.Count(m => m.Chain == chain && m.IsMain));
+            Assert.Equal(7, Real.Missions.List.Count(m => m.Chain == chain && m.IsMain)); // five, plus two space-site missions each (space jobs phase 4)
             Assert.Equal(0, Real.Missions.List.Count(m => m.Chain == chain && !m.IsMain));
         }
     }
@@ -332,6 +332,7 @@ public class ShipPickTests
         Seconds(patrol, 1);
         Debug(patrol, "patrol_route", DebugMissionAction.Complete);
         Debug(patrol, "traffic_check", DebugMissionAction.Complete);
+        Debug(patrol, "watch_rogue_rock", DebugMissionAction.Complete); // space jobs phase 4: the rock comes before the distress call
         Seconds(patrol, 2);
         Assert.Equal(MissionState.Active, patrol.Missions.View(0, "distress_call")!.State);
         Assert.Contains(patrol.Missions.SpaceMarkers(0), m => m.Kind == "beacon" && m.Label == "Distress beacon");
@@ -395,7 +396,7 @@ public class ShipPickTests
         _out.WriteLine($"{shipId}: {sim.Tick / Simulation.TickRate} s, refused {sim.RefusedCommands} ({sim.LastRefusal})");
         foreach (var m in sim.Missions.Messages(0).Where(m => m.Channel == "comms")) _out.WriteLine($"  {m.Tick / Simulation.TickRate} s {m.GiverName}: {m.Text}");
         var states = sim.Missions.States(0);
-        Assert.Equal(5, states.Count);
+        Assert.Equal(7, states.Count); // space jobs phase 4: two site missions per chain (was 5)
         Assert.All(states, s => Assert.True(s.State == MissionState.Completed, $"{s.Id} is {s.State}"));
         return (hashes, sim, pilot);
     }
@@ -525,7 +526,7 @@ public class ShipPickTests
     /// markers on the system plot and the ship's card. Commands only (SetCourse, LongRangeScan, SystemSatellite,
     /// ObservationPost, FirstContact, ContactChoice), sent once a second.
     /// </summary>
-    private sealed class Pilot
+    private sealed partial class Pilot
     {
         private readonly Simulation _sim;
         public readonly List<string> Log = new();
@@ -574,6 +575,7 @@ public class ShipPickTests
             var open = view.Objectives.Where(o => !o.Done).ToList();
             if (open.Any(o => o.Text.Contains("long-range scan", StringComparison.OrdinalIgnoreCase))) Scan();
             if (Ship.InFlight) return;
+            if (SiteMission(view, markers)) return; // ShipPickTests.SitePilot.cs: the space jobs phase 4 missions
             switch (view.Id)
             {
                 case "outbound":

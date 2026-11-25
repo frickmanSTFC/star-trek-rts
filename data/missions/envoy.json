@@ -19,6 +19,30 @@
           "next": "complete" } ],
       "debrief": "In orbit of {world}, and they are real: towns, roads, fields. We are the first humans to see them." },
 
+    { "id": "probe_that_talks", "chain": "envoy", "kind": "main", "title": "The Probe That Talks", "giver": "envoy", "imports": ["showing_the_flag.world"],
+      "briefing": "Osei. Something has been shadowing us since we reached {world}: a small probe, not ours, sending the same pattern over and over. Let it come to us, decode the pattern, then answer it. If it is theirs, our answer is the first thing they will ever hear from us.",
+      "stages": [
+        { "id": "decode", "title": "Decode the pattern",
+          "on_enter": [
+            { "place_space_site": { "kind": "alien_probe", "bind": "probe", "near": "ship", "min": 70, "max": 110 } },
+            { "marker": { "at": "probe", "label": "The probe" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Identify the probe", "cond": { "space_site": { "site": "probe", "state": "identified" } },
+              "hint": "It follows the ship: hold still and it comes to you, then SCAN it." },
+            { "id": "decoded", "text": "Decode its pattern", "cond": { "space_site": { "site": "probe", "state": "decoded" } },
+              "hint": "Set course for the probe, hold there and DECODE THE PATTERN (Science crew; the work is kept if you leave)." } ],
+          "next": "answer" },
+        { "id": "answer", "title": "Answer it",
+          "on_enter": [ { "marker": { "at": "probe", "label": "The probe" } } ],
+          "objectives": [
+            { "id": "answered", "text": "Answer the probe", "cond": { "space_site": { "site": "probe", "state": "answered" } },
+              "hint": "ANSWER IT: three choices, a minute each (the first is taken when time runs out). Stay with the probe until the answer is sent." },
+            { "id": "well", "text": "Be understood", "cond": { "space_site": { "site": "probe", "state": "answered_well" } }, "optional": true,
+              "hint": "Understood, our first contact with its makers will go easier." } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 40 } } ],
+      "debrief": "The probe has gone home with our answer. If {world} built it, they have heard from us before they have seen us." },
+
     { "id": "listening_post", "chain": "envoy", "kind": "main", "title": "Listening Post", "giver": "envoy", "imports": ["showing_the_flag.world"],
       "briefing": "Before we say a word to them we have to understand them. Put a hidden observation post on {world}: small, quiet, out of sight.",
       "stages": [
@@ -51,6 +75,61 @@
               "hint": "In orbit of {world}: FIRST CONTACT on its card, then make the three choices. Leaving orbit calls it off." } ],
           "next": "complete" } ],
       "debrief": "First words spoken. Whatever comes of it, the people of {world} know now that they are not alone." },
+
+    { "id": "their_lost_ship", "chain": "envoy", "kind": "main", "title": "Their Lost Ship", "giver": "envoy", "imports": ["showing_the_flag.world"],
+      "briefing": "Osei. Now that they know us, the people of {world} have asked for help: one of their ships, {lost}, has been adrift since before we came. Her reactor is cold and her crew long gone. We can tow her home, which they would never forget, or study her first, which the science team is begging for, and which they may not take kindly to.",
+      "stages": [
+        { "id": "find", "title": "Find her",
+          "on_enter": [
+            { "place_space_site": { "kind": "known_derelict", "variant": "native", "bind": "lost", "near": "world", "min": 90, "max": 160, "cold_reactor": true, "known": true } },
+            { "marker": { "at": "lost", "label": "Their lost ship" } } ],
+          "objectives": [
+            { "id": "alongside", "text": "Reach {lost} and come alongside", "cond": { "space_site": { "site": "lost", "state": "alongside" } },
+              "hint": "Set course for her ({lost.distance} s) and COME ALONGSIDE: her reactor is cold, there is no clock." } ],
+          "next": "choose" },
+        { "id": "choose", "title": "Tow her home, or study her", "timer_seconds": 90, "on_timeout": "tow",
+          "on_enter": [ { "marker": { "at": "lost", "label": "Their lost ship" } } ],
+          "choices": [
+            { "id": "tow", "text": "Tow her home to {world}", "next": "tow" },
+            { "id": "study", "text": "Study her first (they may call it an incident)", "next": "study" } ] },
+        { "id": "tow", "title": "Bring her home",
+          "on_enter": [
+            { "marker": { "at": "lost", "label": "Their lost ship" } },
+            { "marker": { "at": "world", "label": "Home" } } ],
+          "objectives": [
+            { "id": "towing", "text": "Take her in tow", "cond": { "space_site": { "site": "lost", "state": "towing" } },
+              "hint": "TAKE IN TOW from alongside (come alongside again if you left her)." },
+            { "id": "home", "text": "Bring her into orbit of {world}", "cond": { "space_site": { "site": "lost", "state": "delivered", "body": "world" } },
+              "hint": "Set course for {world} with her in tow." } ],
+          "next": "handover" },
+        { "id": "handover", "title": "Hand her over",
+          "on_enter": [
+            { "hand_over": { "site": "lost" } },
+            { "civ": { "at": "world", "awareness": -15, "settle": true } },
+            { "message": { "giver": "envoy", "channel": "comms", "text": "Osei: Their crews are coming up for her. Hold orbit while they take her: they have never had anyone bring one of theirs home before." } } ],
+          "objectives": [
+            { "id": "hold", "text": "Hold orbit at {world} while their crews take her", "cond": { "ship_at": { "body": "world", "hold_seconds": 15 } },
+              "hint": "Stay in orbit of {world}." } ],
+          "next": "complete" },
+        { "id": "study", "title": "Study her",
+          "on_enter": [ { "marker": { "at": "lost", "label": "Their lost ship" } } ],
+          "objectives": [
+            { "id": "powered", "text": "Restore power aboard", "cond": { "space_site": { "site": "lost", "state": "powered" } },
+              "hint": "RESTORE POWER (Engineering work, or a patch kit at once). Come alongside again first if you left her." },
+            { "id": "logs", "text": "Copy her logs", "cond": { "space_site": { "site": "lost", "state": "logs" } },
+              "hint": "RECOVER LOGS once she has power." } ],
+          "next": "studied" },
+        { "id": "studied", "title": "What they make of it",
+          "on_enter": [
+            { "civ": { "at": "world", "incident": 30 } },
+            { "message": { "giver": "envoy", "channel": "comms", "text": "Osei: The science team has her logs. Now we tell {world} what we did, and hope they see it our way." } },
+            { "marker": { "at": "lost", "label": "Their lost ship" } } ],
+          "objectives": [
+            { "id": "hold", "text": "Hold position at {lost} while the data is copied", "cond": { "space_site": { "site": "lost", "state": "at" } }, "hold_seconds": 15,
+              "hint": "Stay with her a little longer." } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 60 } } ],
+      "debrief": "Whatever we chose, {world} will remember how we treated one of theirs. Osei is writing it all down for Earth." },
 
     { "id": "guests_aboard", "chain": "envoy", "kind": "main", "title": "Guests Aboard", "giver": "envoy", "imports": ["showing_the_flag.world"],
       "briefing": "They have accepted our invitation: a delegation is coming up to the Meridian. Hold orbit of {world} while they are aboard.",

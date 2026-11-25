@@ -38,7 +38,7 @@ public partial class SystemPlot
         public SiteKnowledge Knowledge;
     }
 
-    private enum GlyphKind { Unknown, Wreck, Debris, Rock, Anomaly, Pods, Station, HollowRock, Comet }
+    private enum GlyphKind { Unknown, Wreck, Debris, Rock, Anomaly, Pods, Station, HollowRock, Comet, Probe, Dark }
 
     /// <summary>Asteroids by variant (phase 2): common amber, metal brass, ice pale blue, hollow amber with a hole.</summary>
     public static Color AsteroidColour(string variant) => variant switch
@@ -83,11 +83,13 @@ public partial class SystemPlot
 
     private static GlyphKind GlyphOf(SiteKind kind, SiteKnowledge knowledge) => knowledge < SiteKnowledge.Identified ? GlyphKind.Unknown : kind switch
     {
-        SiteKind.Derelict or SiteKind.KnownDerelict or SiteKind.StrandedShip or SiteKind.HiddenShip => GlyphKind.Wreck,
+        SiteKind.Derelict or SiteKind.KnownDerelict or SiteKind.StrandedShip => GlyphKind.Wreck,
+        SiteKind.HiddenShip => GlyphKind.Dark, // phase 4: a hull running dark, two running lights (SystemPlot.Chain.cs)
+        SiteKind.AlienProbe => GlyphKind.Probe, // phase 4: a diamond with four antennae
         SiteKind.Debris => GlyphKind.Debris,
         SiteKind.Comet => GlyphKind.Comet,
         SiteKind.Asteroid or SiteKind.RogueAsteroid => GlyphKind.Rock,
-        SiteKind.Anomaly or SiteKind.AlienProbe => GlyphKind.Anomaly,
+        SiteKind.Anomaly => GlyphKind.Anomaly,
         SiteKind.Lifepods => GlyphKind.Pods,
         SiteKind.Station => GlyphKind.Station,
         _ => GlyphKind.Unknown,
@@ -175,6 +177,7 @@ public partial class SystemPlot
                 else if (sys.EscorterOf(s.Id) == source.Player) text += " · ESCORTING";
                 else if (bound == s.Id) text += " · COURSE";
                 text += EventTag(sys, source.Player, s, k); // phase 3: impact / tail / pods / air countdowns (SystemPlot.Events.cs)
+                text += ChainTag(sys, source.Player, s, k); // phase 4: running, decoding, answered (SystemPlot.Chain.cs)
                 if (text != node.Text)
                 {
                     node.Text = text;
@@ -320,6 +323,7 @@ public partial class SystemPlot
             }
         }
         DrawEventLines(source, ref started); // phase 3: rogue courses, comet paths, storm rings, escort lines (SystemPlot.Events.cs)
+        DrawSearchAreas(source, ref started); // phase 4: a hidden ship's search area (SystemPlot.Chain.cs)
         // Tow lines (phase 2): from each ship to the wreck it has in tow, solid, ours sky blue.
         for (var p = 0; p < 8; p++)
         {
@@ -420,6 +424,8 @@ public partial class SystemPlot
                 Mathf.Max(Stroke(Mathf.Abs(p.Length() - 6.5f * k), 1.6f) * 0.7f, Stroke(Mathf.Abs(p.Length() - 3f * k), 1.6f) * 0.95f)),
             GlyphKind.Pods => PodsAlpha,
             GlyphKind.Comet => CometAlpha,
+            GlyphKind.Probe => ProbeAlpha, // SystemPlot.Chain.cs
+            GlyphKind.Dark => DarkHullAlpha,
             _ => p => Mathf.Max(Stroke(Mathf.Abs(p.Length() - 8.5f * k), 2.4f), Mathf.Max(Disc(p, Vector2.Zero, 2.4f * k),
                 Mathf.Max(Stroke(SegmentDistance(p, new Vector2(-8.5f, 0) * k, new Vector2(8.5f, 0) * k), 1.2f), Stroke(SegmentDistance(p, new Vector2(0, -8.5f) * k, new Vector2(0, 8.5f) * k), 1.2f)))),
         };

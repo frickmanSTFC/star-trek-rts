@@ -472,6 +472,7 @@ public sealed partial class StarSystemState
             if (fit != Fix64.One) chance = (Fix64.FromInt(chance) * fit + Fix64.Half).FloorToInt();
             chance += sim.FitOutShockPoints(player);
         }
+        chance += ProbeShockPoints(player); // phase 4 (SpaceChainSites.cs): a good answer to an alien probe
         return System.Math.Clamp(chance, c.ShockMin, c.ShockMax);
     }
 

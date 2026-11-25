@@ -10,7 +10,8 @@ namespace FinalFrontier.Sim.Tests;
 internal static class SpaceFuzz
 {
     private static readonly string[] Actions = { "alongside", "restore_power", "restore_power_kit", "recover_logs", "sweep", "dock", "stop", "mine", "tow", "release", "mine", "tow", "", "fly",
-        "push", "sample", "pickup", "escort", "record_outer", "record_middle", "record_inner", "record_", "record_nope", "push", "pickup", "escort" }; // phase 3: events
+        "push", "sample", "pickup", "escort", "record_outer", "record_middle", "record_inner", "record_", "record_nope", "push", "pickup", "escort", // phase 3: events
+        "inspect", "decode", "answer", "decode", "answer" }; // phase 4: the hidden ship and the alien probe
     private static readonly string[] Repairs = { "patch", "fix:sensors", "fix:engines", "fix:tractor", "fix:lifesupport", "fix:life_support", "dock", "fix:", "nope" };
     private static readonly string[] HoldActions = { "sell", "drop", "jettison", "hire", "steal", "sell:1", "sell:4", "sell:x", "drop", "sell" };
     private static readonly string[] Items =
@@ -55,7 +56,7 @@ internal static class SpaceFuzz
                 var field = Chance(95) ? (DebugSpaceField)N(Enum.GetValues<DebugSpaceField>().Length) : (DebugSpaceField)rng.NextInt(-3, 20);
                 var id = field switch
                 {
-                    DebugSpaceField.SpawnSite => Pick(new[] { "derelict", "known_derelict", "debris", "station", "asteroid", "nope", "comet", "lifepods" }),
+                    DebugSpaceField.SpawnSite => Pick(new[] { "derelict", "known_derelict", "debris", "station", "asteroid", "nope", "comet", "lifepods", "hidden_ship", "alien_probe", "alien_probe" }),
                     DebugSpaceField.SpawnEvent => Pick(new[] { "rogue_asteroid", "comet", "lifepods", "stranded_ship", "anomaly", "derelict", "station", "nope" }),
                     DebugSpaceField.SystemDown => Pick(new[] { "sensors", "engines", "tractor", "lifesupport", "life_support", "nope" }),
                     DebugSpaceField.Crew or DebugSpaceField.Injure => Pick(new[] { "exploration", "engineering", "science", "defense", "nope" }),
@@ -138,6 +139,18 @@ public class SpaceJobFuzzTests
             if (s.Outcome.Length > 0) Assert.True(s.ExpireTick >= 0, $"{s.Id} ended without leaving");
         }
         Assert.True(sys.LiveEvents() <= sys.Sites.Count);
+        foreach (var s in sys.Sites) // phase 4: a hidden ship is never known before its fixes are in; a probe follows a real player
+        {
+            if (s.Kind == SiteKind.HiddenShip)
+                for (var p = 0; p < sim.Players.Count; p++)
+                {
+                    var (fixes, need) = sys.HiddenFixes(p, s.Id);
+                    Assert.True(fixes <= need, "no more fixes than it takes");
+                    if (sys.SiteKnowledgeOf(p, s.Id) == SiteKnowledge.Unknown) Assert.NotNull(sys.HiddenSearchArea(p, s.Id));
+                }
+            if (s.Kind == SiteKind.AlienProbe) Assert.True(s.Follow >= -1 && s.Follow < sim.Players.Count);
+            else Assert.Equal(-1, s.Follow);
+        }
         Assert.Equal(sys.Sites.Count, sys.Sites.Select(s => s.Id).Distinct().Count());
         Assert.All(sim.Players, pl => Assert.All(Enumerable.Range(0, pl.Stock.Count), r => Assert.True(pl.Stock[r] >= Fix64.Zero)));
     }

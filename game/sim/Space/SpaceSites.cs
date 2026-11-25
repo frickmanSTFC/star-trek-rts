@@ -65,6 +65,15 @@ public sealed class SpaceSite
     public int PodsTaken { get; internal set; }
     public int PodsLost { get; internal set; }
 
+    // Phase 4 (SpaceChainSites.cs): what a chain mission set on the site it placed.
+
+    /// <summary>An alien probe follows this player's flagship (-1 = no one).</summary>
+    public int Follow { get; internal set; } = -1;
+    /// <summary>Lifepods whose survivors need room in the hold (those who don't join the crew).</summary>
+    public bool HoldRoom { get; internal set; }
+    /// <summary>A derelict whose reactor is cold: coming alongside starts no failure timer.</summary>
+    public bool NoReactor { get; internal set; }
+
     internal void AddToHash(ref StateHasher h)
     {
         h.Add(Id);
@@ -96,6 +105,13 @@ public sealed class SpaceSite
             h.Add(PodsTaken);
             h.Add(PodsLost);
         }
+        if (Follow >= 0 || HoldRoom || NoReactor || GameData.ChainOnlyKinds.Contains(Kind)) // phase 4 (other sites keep their hashes)
+        {
+            h.Add("p4");
+            h.Add(Follow);
+            h.Add(HoldRoom);
+            h.Add(NoReactor);
+        }
     }
 }
 
@@ -126,6 +142,16 @@ public sealed record SiteWorkState(bool Alongside, bool Powered, bool Logs, bool
     public int Recorded { get; init; }
     public bool Escorting { get; init; }
     public bool Rescued { get; init; }
+
+    /// <summary>Phase 4: fixes on a hidden ship; it was inspected; an alien probe decoded (share 0..1) and answered (the
+    /// outcome id, "" = not yet; AnsweredWell = a good answer); the body a mission's tow was handed over at ("" = none).</summary>
+    public int Fixes { get; init; }
+    public bool Inspected { get; init; }
+    public Fix64 Decode { get; init; }
+    public bool Decoded { get; init; }
+    public string Answer { get; init; } = "";
+    public bool AnsweredWell { get; init; }
+    public string Delivered { get; init; } = "";
 }
 
 /// <summary>A work action on a site card: Id (SiteWorkCommand.Action, or "scan", "course", "away_team"), Label, and
@@ -146,7 +172,7 @@ public sealed partial class StarSystemState
 
     /// <summary>Work actions a site card can offer (SiteWorkCommand.Action).</summary>
     public static readonly IReadOnlyList<string> WorkActions = new[] { "alongside", "restore_power", "restore_power_kit", "recover_logs", "sweep", "mine", "tow",
-        "push", "sample", "pickup", "escort", "record_outer", "record_middle", "record_inner", "release", "dock", "stop" };
+        "push", "sample", "pickup", "escort", "record_outer", "record_middle", "record_inner", "inspect", "decode", "answer", "release", "dock", "stop" };
 
     public SpaceSite? Site(string? id)
     {
@@ -181,11 +207,18 @@ public sealed partial class StarSystemState
                     : Fix64.Min(Fix64.One, Fix64.FromRaw((long)(((System.Int128)r.PushTicks << Fix64.FractionalBits) / System.Math.Max(1L, PushNeed(player, rock))))),
                 Deflected = r.Deflected, Sampled = r.Sampled, Picked = r.Picked, Recorded = r.Recorded,
                 Escorting = EscortOf(player) == siteId, Rescued = r.Rescued,
+                Fixes = r.Fixes.Count, Inspected = r.Inspected, Decoded = r.Decoded, Answer = r.Answer, Delivered = r.Delivered,
+                Decode = r.Decoded ? Fix64.One : Site(siteId) is { } probe && SiteKindOf(probe)?.Probe is { } pr
+                    ? Fix64.Min(Fix64.One, Fix64.FromRaw((long)(((System.Int128)r.DecodeTicks << Fix64.FractionalBits) / System.Math.Max(1L, DecodeNeed(player, pr))))) : Fix64.Zero,
+                AnsweredWell = r.Answer.Length > 0 && SiteRules?.Kind(SiteKind.AlienProbe)?.Probe?.Good.Contains(r.Answer) == true,
             }
             : null;
 
     /// <summary>A mission names a site to the player (at least Detected).</summary>
     internal void MissionDetectSite(int player, string siteId) => SetKnowledge(player, siteId, SiteKnowledge.Detected);
+
+    /// <summary>A mission says what a site is (place_space_site known: true): Identified, named on the card.</summary>
+    internal void MissionIdentifySite(int player, string siteId) => SetKnowledge(player, siteId, SiteKnowledge.Identified);
 
     /// <summary>A mission puts something in the hold (hold_add: patch_kit, medical, salvage:&lt;id&gt;).</summary>
     internal void MissionHoldAdd(int player, string item, int count)
@@ -294,10 +327,10 @@ public sealed partial class StarSystemState
 
     /// <summary>A mission (place_space_site) or the test panel puts a new site near a spot: the hash of its number picks
     /// the angle and distance (min..max map units), clear of bodies and other sites where it can.</summary>
-    internal SpaceSite? SpawnSite(SiteKind kind, string? variant, FixVec2 near, Fix64 min, Fix64 max)
+    internal SpaceSite? SpawnSite(SiteKind kind, string? variant, FixVec2 near, Fix64 min, Fix64 max, int pods = 0, string? target = null)
     {
         if (SiteRules is not { } r || r.Kind(kind) is not { } def) return null;
-        if (IsEventKind(kind) && _sim != null) return SpawnEvent(_sim, kind, variant); // an event kind arrives as an event (its path, pods, air)
+        if (IsEventKind(kind) && _sim != null) return SpawnEvent(_sim, kind, variant, pods, target); // an event kind arrives as an event (its path, pods, air)
         var number = _nextSiteId;
         FixVec2 at = near;
         for (var t = 0; t < System.Math.Max(1, r.Tries); t++)
@@ -361,6 +394,12 @@ public sealed partial class StarSystemState
         public long PushTicks;
         public bool Deflected, Sampled, Rescued;
         public int Picked, Recorded;
+        /// <summary>Phase 4 (SpaceChainSites.cs): where the player's fixes on a hidden ship were taken; inspected; an alien
+        /// probe's decoding (ticks), decoded and the answer's outcome id; the body a mission's tow was handed over at.</summary>
+        public readonly List<FixVec2> Fixes = new();
+        public bool Inspected, Decoded;
+        public long DecodeTicks;
+        public string Answer = "", Delivered = "";
 
         public void AddToHash(ref StateHasher h)
         {
@@ -393,6 +432,21 @@ public sealed partial class StarSystemState
                 h.Add(Rescued);
                 h.Add(Picked);
                 h.Add(Recorded);
+            }
+            if (Fixes.Count > 0 || Inspected || Decoded || DecodeTicks != 0 || Answer.Length > 0 || Delivered.Length > 0) // phase 4
+            {
+                h.Add("p4");
+                h.Add(Fixes.Count);
+                foreach (var f in Fixes)
+                {
+                    h.Add(f.X);
+                    h.Add(f.Y);
+                }
+                h.Add(Inspected);
+                h.Add(Decoded);
+                h.Add(DecodeTicks);
+                h.Add(Answer);
+                h.Add(Delivered);
             }
         }
     }
@@ -449,8 +503,9 @@ public sealed partial class StarSystemState
     private void DetectSites(int player, FixVec2 at, Fix64 range)
     {
         foreach (var s in _sites)
-            if (SiteKnowledgeOf(player, s.Id) == SiteKnowledge.Unknown && FixVec2.Distance(s.Position, at) <= range)
+            if (SiteKnowledgeOf(player, s.Id) == SiteKnowledge.Unknown && s.Kind != SiteKind.HiddenShip && FixVec2.Distance(s.Position, at) <= range)
                 SetKnowledge(player, s.Id, SiteKnowledge.Detected);
+        FixHidden(player, at); // SpaceChainSites.cs: a hidden ship isn't detected, a scan near it is a fix
     }
 
     /// <summary>The player has worked the site out: Spent, and it drifts off spent_seconds later.</summary>
@@ -538,6 +593,10 @@ public sealed partial class StarSystemState
             case SiteKind.Anomaly:
                 EventRows(player, site, r, rows); // SpaceEvents.cs
                 break;
+            case SiteKind.HiddenShip:
+            case SiteKind.AlienProbe:
+                ChainRows(player, site, r, rows); // SpaceChainSites.cs
+                break;
         }
         if (def?.Tow != null && site.Kind != SiteKind.Asteroid)
         {
@@ -584,11 +643,12 @@ public sealed partial class StarSystemState
         return action switch
         {
             "alongside" => def?.Alongside != null && !r.Alongside && !towing && !r.ReactorDone && !r.Towed && site.Outcome.Length == 0
-                && (def.AwayTableFor(site.Variant).Length > 0 || def.RestorePower != null || def.Tow != null || def.Rogue != null),
+                && (def.AwayTableFor(site.Variant).Length > 0 || def.RestorePower != null || def.Tow != null || def.Rogue != null || def.Hidden != null),
             "mine" => def?.Mining != null && r.Mined < AsteroidContainers(site),
             "tow" => def?.Tow != null && !towing && !r.Towed && !r.ReactorDone && TowerOf(site.Id) < 0,
             "release" => towing || EscortOf(player) == site.Id,
             "push" or "sample" or "pickup" or "escort" or "record_outer" or "record_middle" or "record_inner" => OffersEvent(player, site, r, action), // SpaceEvents.cs
+            "inspect" or "decode" or "answer" => OffersChain(site, r, action), // SpaceChainSites.cs
             "restore_power" or "restore_power_kit" => def?.RestorePower != null && !r.Powered && site.Outcome.Length == 0 && (action == "restore_power" || def.RestorePower.Kits > 0),
             "recover_logs" => def?.Logs != null && !r.Logs,
             "sweep" => def?.Sweep != null && !r.Swept,
@@ -601,6 +661,7 @@ public sealed partial class StarSystemState
     private string WorkLabel(string action, SiteKindDef? def, SpaceSite site) => action switch
     {
         "push" or "sample" or "pickup" or "escort" or "record_outer" or "record_middle" or "record_inner" => EventWorkLabel(action, site), // SpaceEvents.cs
+        "inspect" or "decode" or "answer" => ChainWorkLabel(action), // SpaceChainSites.cs
         "release" when def?.Stranded != null => "STOP ESCORT",
         "alongside" => "COME ALONGSIDE",
         "restore_power" => "RESTORE POWER",
@@ -684,12 +745,14 @@ public sealed partial class StarSystemState
         if (def is { Hazardous: true } && !HazardousOk(st)) return "the hull is critical: no hazardous jobs until it is repaired";
         if (action is "push" or "sample" or "pickup" or "escort" or "record_outer" or "record_middle" or "record_inner")
             return EventWorkProblem(player, st, site, r, action); // SpaceEvents.cs
+        if (IsChainAction(action)) return ChainWorkProblem(player, st, site, r, action); // SpaceChainSites.cs
         if (site.Outcome.Length > 0) return $"too late: {OutcomeText(player, site)}";
         switch (action)
         {
             case "alongside":
                 if (def?.Alongside == null) return "nothing to come alongside";
                 if (st.Tow == siteId) return "it is in tow behind us";
+                if (Running(site)) return "she is running: wait until she stops"; // SpaceChainSites.cs: a hidden ship
                 return r.Alongside ? "alongside already" : null;
             case "mine":
                 return MineProblem(player, st, site, r); // Mining.cs
@@ -748,6 +811,13 @@ public sealed partial class StarSystemState
                 return (EventWorkText(w.Action), Fix64.Clamp(Fix64.FromRaw((long)(((System.Int128)done << Fix64.FractionalBits) / System.Math.Max(1L, need))), Fix64.Zero, Fix64.One),
                     (int)((need - done + Simulation.TickRate - 1) / Simulation.TickRate));
             }
+            if (w.Action == "decode" && Site(siteId) is { } probe && SiteKindOf(probe)?.Probe is { } pr)
+            {
+                var need = DecodeNeed(player, pr);
+                var done = Record(player, siteId)?.DecodeTicks ?? 0;
+                return (ChainWorkText(w.Action), Fix64.Clamp(Fix64.FromRaw((long)(((System.Int128)done << Fix64.FractionalBits) / System.Math.Max(1L, need))), Fix64.Zero, Fix64.One),
+                    (int)((need - done + Simulation.TickRate - 1) / Simulation.TickRate));
+            }
             if (w.Action.StartsWith("record_", System.StringComparison.Ordinal) && Site(siteId) is { } storm && SiteKindOf(storm)?.Anomaly is { } an
                 && an.Ring(w.Action[7..]) is { Research: > 0 } ring)
             {
@@ -769,6 +839,7 @@ public sealed partial class StarSystemState
         "restore_power" => "Restoring power",
         "recover_logs" => "Recovering the logs",
         "sweep" => "Sweeping the field",
+        "inspect" or "decode" or "answer" => ChainWorkText(action), // SpaceChainSites.cs
         _ => EventWorkText(action), // SpaceEvents.cs
     };
 
@@ -877,6 +948,11 @@ public sealed partial class StarSystemState
             case "mine":
                 BeginMining(sim, player, site, r); // Mining.cs
                 return;
+            case "inspect":
+            case "decode":
+            case "answer":
+                StartChainWork(sim, player, st, site, r, action); // SpaceChainSites.cs
+                return;
             case "restore_power_kit":
                 Take(st, PatchKitItem, def.RestorePower!.Kits);
                 r.Powered = true;
@@ -951,6 +1027,7 @@ public sealed partial class StarSystemState
     {
         if (_status.Count == 0 && _sites.Count == 0) return;
         StepTows(sim); // Towing.cs: towed sites follow their ships
+        StepProbes(sim); // SpaceChainSites.cs: an alien probe follows its player's flagship
         StepSpaceEvents(sim); // SpaceEvents.cs: the event clock, moving sites, impacts, air, escorts
         for (var i = _sites.Count - 1; i >= 0; i--)
         {
@@ -1014,6 +1091,7 @@ public sealed partial class StarSystemState
             return;
         }
         if (StepEventWork(sim, player, st, site, r, w)) return; // SpaceEvents.cs
+        if (StepChainWork(sim, player, st, site, r, w)) return; // SpaceChainSites.cs
         if (w.Action == "sweep" && def?.Sweep is { } sw)
         {
             if (IsDown(st, ShipSystem.Tractor))
@@ -1058,7 +1136,7 @@ public sealed partial class StarSystemState
             case "alongside":
                 r.Alongside = true;
                 ShipLog(player, $"Alongside {site.Name}", "good");
-                if (def?.Reactor is { } re && r.ReactorTick < 0 && !r.ReactorDone)
+                if (def?.Reactor is { } re && r.ReactorTick < 0 && !r.ReactorDone && !site.NoReactor)
                 {
                     r.ReactorTick = sim.Tick + (long)re.Seconds * Simulation.TickRate;
                     ShipLog(player, $"{site.Name}'s reactor is failing: {re.Seconds} s", "bad");
@@ -1215,7 +1293,10 @@ public sealed partial class StarSystemState
                 var ship = FlagshipOf(p)!;
                 var variant = command.Value >= 0 ? def.Variants[command.Value].Id : null;
                 var site = SpawnSite(kind, variant, ShipPosition(ship, sim.Tick), Fix64.FromInt(25), Fix64.FromInt(45));
-                if (site != null) SetKnowledge(p, site.Id, SiteKnowledge.Detected);
+                if (site == null) return;
+                if (kind == SiteKind.HiddenShip) MissionHunt(p, site.Id); // phase 4: hunted with scans (IdentifySite skips the hunt)
+                else SetKnowledge(p, site.Id, SiteKnowledge.Detected);
+                if (kind == SiteKind.AlienProbe) MissionFollow(p, site.Id);
                 return;
             }
             case DebugSpaceField.SpawnEvent:

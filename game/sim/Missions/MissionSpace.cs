@@ -229,7 +229,9 @@ public sealed partial class MissionBook
             case "bind_body":
             {
                 if (a.F("as") is not { } name) return true;
-                var body = PickBody(p, run, a.F("pick") ?? "random_other", Excluded(run, a), name);
+                // near: a space-site binding the pick is measured from (phase 4), else the flagship.
+                var from = a.F("near") is { } nr && SiteRef(run, nr) is { } sid && Sys?.Site(sid) is { } ss ? ss.Position : (FixVec2?)null;
+                var body = PickBody(p, run, a.F("pick") ?? "random_other", Excluded(run, a), name, from);
                 var b = new Binding { Name = name, Body = body, Text = body != null ? Sys!.Body(body)!.Name : "an unknown body" };
                 run.Bind(b);
                 if (body != null) Sys!.MissionIdentify(p, body); // the mission names it: its name shows from now on
@@ -299,12 +301,12 @@ public sealed partial class MissionBook
 
     /// <summary>The body a bind_body pick names (never the one the flagship is at or heading to, except "here"; never an
     /// excluded one), or null when the system has nothing left. Falls back to nearest_other when a pick finds nothing.</summary>
-    private string? PickBody(int p, MissionRun run, string pick, List<string> exclude, string name)
+    private string? PickBody(int p, MissionRun run, string pick, List<string> exclude, string name, FixVec2? from = null)
     {
         if (Sys is not { } sys || Flagship(p) is not { } ship) return null;
         var here = ship.AtBody ?? ship.ToBody;
         if (pick == "here") return here;
-        var at = sys.ShipPosition(ship, Now);
+        var at = from ?? sys.ShipPosition(ship, Now);
         var options = sys.Bodies.Where(b => b.Id != here && !exclude.Contains(b.Id)).ToList();
         if (options.Count == 0) return null;
         Fix64 FromStar(BodyDef b) => (b.Parent != null && sys.Body(b.Parent) is { } parent ? parent.Position : b.Position).Length();
@@ -345,6 +347,16 @@ public sealed partial class MissionBook
                 return nearest?.Id;
             case "random_other":
                 return options[(int)(SpaceRoll(p, run.Id, name, 0) % (ulong)options.Count)].Id;
+            case "inhabited": // phase 4: the living civilization's world, else the nearest planet or moon (never a belt)
+                foreach (var c in sys.Civilizations)
+                    if (c.Living && options.Any(b => b.Id == c.BodyId)) return c.BodyId;
+                goto case "nearest_planet";
+            case "nearest_planet": // phase 4: the nearest other body that isn't a belt (the flagship's own when it is the only one)
+            {
+                bool Planet(BodyDef b) => Data?.SystemGenerator is not { } g || !g.IsBelt(b.ClassId);
+                if (Best(options.Where(Planet), FromShip, most: false) is { } planet) return planet.Id;
+                return here != null && sys.Body(here) is { } own && Planet(own) && !exclude.Contains(here) ? here : nearest?.Id;
+            }
             default: // nearest_other
                 return nearest?.Id;
         }
@@ -441,7 +453,9 @@ public sealed partial class MissionBook
                 if (!m.InSpace) continue;
                 if (m.SpaceSite != null)
                 {
-                    if (sys.Site(m.SpaceSite) != null && sys.SiteKnowledgeOf(player, m.SpaceSite) != SiteKnowledge.Spent)
+                    // A hidden ship not found yet: its search area (StarSystemState.HiddenSearchArea), never the site itself.
+                    if (sys.HiddenSearchArea(player, m.SpaceSite) != null) list.Add(new SpaceMarker("search", null, -1, m.Label) { SiteId = m.SpaceSite });
+                    else if (sys.Site(m.SpaceSite) != null && sys.SiteKnowledgeOf(player, m.SpaceSite) != SiteKnowledge.Spent)
                         list.Add(new SpaceMarker("site", null, -1, m.Label) { SiteId = m.SpaceSite });
                     continue;
                 }

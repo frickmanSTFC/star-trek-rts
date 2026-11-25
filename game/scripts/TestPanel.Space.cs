@@ -87,6 +87,15 @@ public partial class TestPanel
                 Apply($"space: a {label.ToLowerInvariant()} event now", new DebugCommand[] { SpaceCommand(DebugSpaceField.SpawnEvent, id, -1) }, null), 0, 30));
         _content.AddChild(events);
 
+        // ---- chain-only sites (phase 4): a ship running dark (hunted with long-range scans: its search area shows; Identify
+        // for me below skips the hunt) and an alien probe that follows our flagship
+        _content.AddChild(Section("CHAIN SITES"));
+        var chain = Grid(2);
+        foreach (var (id, label) in new[] { ("hidden_ship", "Ship running dark"), ("alien_probe", "Alien probe") })
+            chain.AddChild(MakeButton(label, Yellow, () =>
+                Apply($"space: spawned a {label.ToLowerInvariant()}", new DebugCommand[] { SpaceCommand(DebugSpaceField.SpawnSite, id, -1) }, null), 0, 30));
+        _content.AddChild(chain);
+
         var sites = sys.Sites;
         if (sites.Count == 0) _content.AddChild(Wrapped("No sites in this system yet.", 12, Dim));
         else

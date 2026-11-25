@@ -75,7 +75,7 @@ public sealed partial class GameData
         ["with_ship"] = new[] { "ship", "hold_seconds", "at_arrival" },
         ["contact"] = new[] { "body", "stage" },
         // Space jobs (docs/space-jobs-contract.md; Missions/MissionSpaceJobs.cs): space sites and the flagship's status.
-        ["space_site"] = new[] { "site", "state", "kind", "kinds", "variant", "variants", "spent", "bind", "count" },
+        ["space_site"] = new[] { "site", "state", "kind", "kinds", "variant", "variants", "spent", "bind", "count", "body" },
         ["space_tally"] = new[] { "key", "keys", "count" },
         ["hull"] = new[] { "below", "at_least" },
         ["crew"] = new[] { "division", "at_least", "below" },
@@ -90,7 +90,7 @@ public sealed partial class GameData
     /// by the player), recorded (research recorded at an anomaly: count). A trigger with bind may only ask detected or
     /// identified. An active pool job fails when its stage's event state can no longer come true.</summary>
     public static readonly IReadOnlyList<string> MissionSpaceSiteStates = new[] { "detected", "identified", "at", "alongside", "powered", "logs", "boarded", "swept", "done", "mined", "towing", "towed",
-        "deflected", "sampled", "picked", "escorting", "escorted", "recorded" };
+        "deflected", "sampled", "picked", "escorting", "escorted", "recorded", "inspected", "decoded", "answered", "answered_well", "delivered" };
 
     /// <summary>space_tally key prefixes: sold (ore or salvage sold: sold:ore, sold:ore:deuterium), drop (ore dropped at the
     /// colony or a trade partner's world), mined (ore mined: mined:ore:…), tow (tows delivered: tow:station, tow:colony).</summary>
@@ -99,8 +99,10 @@ public sealed partial class GameData
     /// <summary>bind_site picks: nearest (to the flagship) or random (by the hash) of the sites of that kind the player knows.</summary>
     public static readonly IReadOnlyList<string> MissionSitePicks = new[] { "nearest", "random" };
 
-    /// <summary>place_space_site near: the flagship (ship) or the colony's body (colony).</summary>
-    public static readonly IReadOnlyList<string> MissionSiteNear = new[] { "ship", "colony" };
+    /// <summary>place_space_site near: the flagship (ship), the colony's body (colony), the star past the outermost orbit
+    /// (edge: min and max are measured beyond it), the belt nearest the flagship (belt; the outermost planet when there is
+    /// none), or a body or space-site binding.</summary>
+    public static readonly IReadOnlyList<string> MissionSiteNear = new[] { "ship", "colony", "edge", "belt" };
 
     /// <summary>Action kinds and their fields (grant: resource ids → amounts instead).</summary>
     public static readonly IReadOnlyDictionary<string, string[]> MissionActionFields = new Dictionary<string, string[]>(StringComparer.Ordinal)
@@ -118,12 +120,14 @@ public sealed partial class GameData
         ["complete"] = Array.Empty<string>(),
         ["fail"] = Array.Empty<string>(),
         // Space chains (Missions/MissionSpace.cs).
-        ["bind_body"] = new[] { "as", "pick", "exclude" },
+        ["bind_body"] = new[] { "as", "pick", "exclude", "near" },
         ["bind_ship"] = new[] { "as", "pick" },
         ["place_beacon"] = new[] { "at", "label" },
         ["load_cargo"] = new[] { "id", "label", "from", "to" },
         // Space jobs (Missions/MissionSpaceJobs.cs).
-        ["place_space_site"] = new[] { "kind", "variant", "bind", "near", "min", "max" },
+        ["place_space_site"] = new[] { "kind", "variant", "bind", "near", "min", "max", "again", "pods", "hold_room", "target", "cold_reactor", "known" },
+        ["hand_over"] = new[] { "site" },
+        ["civ"] = new[] { "at", "awareness", "incident", "settle" },
         ["bind_site"] = new[] { "as", "kind", "pick" },
         ["damage"] = new[] { "hull", "system", "seconds" },
         ["lose_crew"] = new[] { "division", "count" },
@@ -136,7 +140,8 @@ public sealed partial class GameData
     /// bodies in a system without one); civ = the
     /// living civilization's world; random_other = any other body, by the hash; nearest_other = the nearest other body;
     /// here = where the flagship is. Every pick but here skips the flagship's body and the excluded ones.</summary>
-    public static readonly IReadOnlyList<string> MissionBodyPicks = new[] { "farthest", "outermost_moon", "gas_or_ice", "civ", "random_other", "nearest_other", "here" };
+    public static readonly IReadOnlyList<string> MissionBodyPicks = new[] { "farthest", "outermost_moon", "gas_or_ice", "civ", "random_other", "nearest_other", "here",
+        "nearest_planet", "inhabited" };
 
     /// <summary>bind_ship picks: freighter = a civilian freighter of the traffic; departing = the civilian ship whose next
     /// arrival the flagship can beat by the most.</summary>
@@ -244,7 +249,7 @@ public sealed partial class GameData
                             : new List<MissionChoiceDef>();
                         var timeout = S(s, "on_timeout");
                         stages.Add(new MissionStageDef(S(s, "id"), S(s, "title"), ReadMissionActions(s, "on_enter", sw, problems), objectives, choices,
-                            S(s, "next"), I(s, "timer_seconds", 0), timeout.Length > 0 ? timeout : MissionFail, S(s, "hint")));
+                            S(s, "next"), I(s, "timer_seconds", 0), timeout.Length > 0 ? timeout : MissionFail, S(s, "hint")) { OnLost = S(s, "on_lost") });
                     }
                 var needs = m.TryGetProperty("needs", out var nd) && nd.ValueKind == JsonValueKind.Array
                     ? nd.EnumerateArray().Select(x => x.GetString() ?? "").ToList() : new List<string>();
@@ -436,6 +441,8 @@ public sealed partial class GameData
             if (s.Objectives.Count == 0 && s.Next.Length > 0 && !Target(s.Next)) problems.Add($"{sw}: next '{s.Next}' is not a stage, complete or fail.");
             if (s.TimerSeconds < 0) problems.Add($"{sw}: timer_seconds must be 0 (none) or more.");
             if (s.TimerSeconds > 0 && !Target(s.OnTimeout)) problems.Add($"{sw}: on_timeout '{s.OnTimeout}' is not a stage, complete or fail.");
+            if (s.OnLost.Length > 0 && !Target(s.OnLost)) problems.Add($"{sw}: on_lost '{s.OnLost}' is not a stage, complete or fail.");
+            if (s.OnLost.Length > 0 && m.Kind != "main") problems.Add($"{sw}: on_lost is for main missions (a side job fails when its site is lost).");
             if (s.Choices.Count == 1 || s.Choices.Count > 4) problems.Add($"{sw}: a branch has 2 to 4 choices.");
             var oids = new HashSet<string>(StringComparer.Ordinal);
             foreach (var o in s.Objectives)
@@ -532,6 +539,7 @@ public sealed partial class GameData
         if (s.Objectives.Count > 0 || s.Next.Length > 0) yield return s.Next;
         foreach (var c in s.Choices) yield return c.Next;
         if (s.TimerSeconds > 0) yield return s.OnTimeout;
+        if (s.OnLost.Length > 0) yield return s.OnLost;
     }
 
     private static void CheckText(string text, string where, List<string> bound, List<string> problems)
@@ -749,6 +757,8 @@ public sealed partial class GameData
                     if (c.F("kind") != null || c.F("variant") != null || c.L("kinds").Count > 0 || c.L("variants").Count > 0 || c.F("spent") != null)
                         problems.Add($"{cw}: kind(s), variant(s) and spent only go with bind (a trigger).");
                 }
+                if (c.F("state") == "delivered") CheckSpaceRef(c.F("body"), BodyRefTag, cw, bound, problems);
+                else if (c.F("body") != null) problems.Add($"{cw}: body only goes with state delivered.");
                 break;
             }
             case "hull":
@@ -839,6 +849,11 @@ public sealed partial class GameData
                 var excluded = a.L("exclude").ToList();
                 if (a.F("exclude") is { } ex) excluded.Add(ex);
                 foreach (var x in excluded) CheckSpaceRef(x, BodyRefTag, aw, bound, problems);
+                if (a.F("near") is { } bn)
+                {
+                    if (a.Kind != "bind_body") problems.Add($"{aw}: near only goes with bind_body.");
+                    else CheckSpaceRef(bn, SiteRefTag, aw, bound, problems);
+                }
                 if (a.F("as") is not { } name || !SnakeId.IsMatch(name) || MissionBuiltInRefs.Contains(name)) problems.Add($"{aw}: needs as (a lower-case id, not base/hub).");
                 else
                 {
@@ -863,8 +878,24 @@ public sealed partial class GameData
                 if (SpaceSiteRules.KindOf(a.F("kind")) is not { } k || k == Space.SiteKind.Station || (SpaceSites != null && SpaceSites.Kind(k) == null))
                     problems.Add($"{aw}: kind '{a.F("kind")}' is not a site kind in maps space_sites (not the station).");
                 else if (a.F("variant") is { } v && SpaceSites?.Kind(k)?.Variants.All(x => x.Id != v) == true) problems.Add($"{aw}: variant '{v}' is not one of that kind's.");
-                CheckOne(a.Fields, "near", MissionSiteNear, aw, problems);
+                if (a.F("near") is { } near && !MissionSiteNear.Contains(near))
+                {
+                    if (!bound.Contains(near) || !(bound.Contains(BodyRefTag + near) || bound.Contains(SiteRefTag + near)))
+                        problems.Add($"{aw}: near '{near}' is not one of {string.Join(", ", MissionSiteNear)} or a body or space-site binding.");
+                }
                 if (a.I("max", 0) <= 0 || a.I("max", 0) < a.I("min", 0) || a.I("max", 0) > 2000) problems.Add($"{aw}: needs max (map units, 1..2000) at least min.");
+                foreach (var f in new[] { "again", "hold_room", "cold_reactor", "known" })
+                    if (a.F(f) is { } fv && fv is not ("true" or "false")) problems.Add($"{aw}: {f} is true or false.");
+                var placed = SpaceSiteRules.KindOf(a.F("kind"));
+                if (a.F("pods") != null && (placed != Space.SiteKind.Lifepods || a.I("pods", 0) is < 1 or > 31)) problems.Add($"{aw}: pods (1..31) only for lifepods.");
+                if (a.F("hold_room") != null && placed != Space.SiteKind.Lifepods) problems.Add($"{aw}: hold_room only for lifepods.");
+                if (a.F("target") is { } tg)
+                {
+                    if (placed != Space.SiteKind.RogueAsteroid) problems.Add($"{aw}: target only for a rogue_asteroid.");
+                    CheckSpaceRef(tg, BodyRefTag, aw, bound, problems);
+                }
+                if (a.F("cold_reactor") != null && (placed is not { } ck || SpaceSites?.Kind(ck)?.Reactor == null)) problems.Add($"{aw}: cold_reactor only for a kind with a reactor.");
+                if (a.F("known") == "true" && placed == Space.SiteKind.HiddenShip) problems.Add($"{aw}: a hidden ship can't be known (the player's scans find it).");
                 if (a.F("bind") is not { } b || !SnakeId.IsMatch(b) || MissionBuiltInRefs.Contains(b)) problems.Add($"{aw}: needs bind (a lower-case id, not base/hub).");
                 else
                 {
@@ -882,6 +913,17 @@ public sealed partial class GameData
                     if (!bound.Contains(sn)) bound.Add(sn);
                     bound.Add(SiteRefTag + sn);
                 }
+                break;
+            case "hand_over":
+                CheckSpaceRef(a.F("site"), SiteRefTag, aw, bound, problems);
+                break;
+            case "civ":
+                CheckSpaceRef(a.F("at"), BodyRefTag, aw, bound, problems);
+                if (a.F("awareness") is { } aws && (!TryFix(aws, out var av) || av != Fix64.FromInt(av.FloorToInt()) || av < Fix64.FromInt(-100) || av > Fix64.FromInt(100)))
+                    problems.Add($"{aw}: awareness is a whole number -100..100.");
+                if (a.F("incident") is { } inc && (!TryFix(inc, out var iv) || iv < Fix64.Zero || iv > Fix64.FromInt(100))) problems.Add($"{aw}: incident is a chance 0..100.");
+                if (a.F("settle") is { } st && st is not ("true" or "false")) problems.Add($"{aw}: settle is true or false.");
+                if (a.F("awareness") == null && a.F("incident") == null && a.F("settle") == null) problems.Add($"{aw}: needs awareness, incident or settle.");
                 break;
             case "damage":
                 CheckNumber(a.Fields, "hull", aw, problems);
