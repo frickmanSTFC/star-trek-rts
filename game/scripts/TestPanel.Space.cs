@@ -71,6 +71,22 @@ public partial class TestPanel
             Apply($"space: spawned a {kind} site", new DebugCommand[] { SpaceCommand(DebugSpaceField.SpawnSite, kind, _spaceVariant) }, null);
         }, 0, 34));
 
+        // ---- events (phase 3): each arrives now, as the system's clock would bring it (placed by its own hash, announced)
+        _content.AddChild(Section("EVENTS"));
+        var clock = Wrapped("", 12, Soft);
+        _content.AddChild(clock);
+        _refreshers.Add(() =>
+        {
+            var next = sys.NextEventTick;
+            var seconds = next < 0 ? -1 : Math.Max(0, (next - Sim.Tick) / Simulation.TickRate);
+            clock.Text = (next < 0 ? "No events in this data set." : $"Next event turn in {seconds / 60}:{seconds % 60:00}") + $" · {sys.LiveEvents()} event(s) running";
+        });
+        var events = Grid(3);
+        foreach (var (id, label) in new[] { ("rogue_asteroid", "Rogue rock"), ("comet", "Comet"), ("lifepods", "Lifepods"), ("stranded_ship", "Stranded ship"), ("anomaly", "Ion storm") })
+            events.AddChild(MakeButton(label, id is "lifepods" or "stranded_ship" ? Red : Yellow, () =>
+                Apply($"space: a {label.ToLowerInvariant()} event now", new DebugCommand[] { SpaceCommand(DebugSpaceField.SpawnEvent, id, -1) }, null), 0, 30));
+        _content.AddChild(events);
+
         var sites = sys.Sites;
         if (sites.Count == 0) _content.AddChild(Wrapped("No sites in this system yet.", 12, Dim));
         else

@@ -39,8 +39,9 @@ public static class SiteModels
         _ => "",
     };
 
-    /// <summary>The whole site as a scene node (not in the tree), centred on its origin, in model metres.</summary>
-    public static Node3D Build(SiteKind kind, string variant, ulong seed)
+    /// <summary>The whole site as a scene node (not in the tree), centred on its origin, in model metres. count: lifepods
+    /// in the cluster (the sim's PodCount; -1 = 6-10 by the seed).</summary>
+    public static Node3D Build(SiteKind kind, string variant, ulong seed, int count = -1)
     {
         var root = new Node3D { Name = "Site" };
         var rng = new RandomNumberGenerator { Seed = seed == 0 ? 1UL : seed };
@@ -49,9 +50,9 @@ public static class SiteModels
             case SiteKind.Debris:
             {
                 // 9–12 pieces of the six kinds scattered through a loose cloud; the black box near the middle
-                var count = 9 + rng.RandiRange(0, 3);
+                var pieces = 9 + rng.RandiRange(0, 3);
                 string[] names = { "debris_piece_a", "debris_piece_b", "debris_piece_c", "debris_piece_d", "debris_piece_e", "debris_piece_f" };
-                for (var i = 0; i < count; i++)
+                for (var i = 0; i < pieces; i++)
                 {
                     var piece = Model(i == 0 ? names[5] : names[rng.RandiRange(0, 4)]);
                     var r = i == 0 ? 10f : Mathf.Sqrt(rng.Randf()) * 140f;
@@ -65,11 +66,11 @@ public static class SiteModels
             }
             case SiteKind.Lifepods:
             {
-                var count = 6 + rng.RandiRange(0, 4);
-                for (var i = 0; i < count; i++)
+                var pods = count >= 0 ? count : 6 + rng.RandiRange(0, 4);
+                for (var i = 0; i < pods; i++)
                 {
                     var pod = Model("lifepod");
-                    var a = i / (float)count * Mathf.Tau + rng.RandfRange(-0.2f, 0.2f);
+                    var a = i / (float)System.Math.Max(1, pods) * Mathf.Tau + rng.RandfRange(-0.2f, 0.2f);
                     var r = rng.RandfRange(25f, 70f);
                     pod.Position = new Vector3(Mathf.Sin(a) * r, rng.RandfRange(-12f, 12f), Mathf.Cos(a) * r);
                     pod.Basis = RandomBasis(rng);
@@ -84,8 +85,10 @@ public static class SiteModels
             default:
             {
                 var model = Model(ModelName(kind, variant));
-                model.SetMeta(TumbleMeta, kind is SiteKind.Station or SiteKind.AlienProbe ? 0f : rng.RandfRange(0.02f, 0.06f));
-                if (kind == SiteKind.Comet) model.AddChild(CometTail());
+                model.SetMeta(TumbleMeta, kind is SiteKind.Station or SiteKind.AlienProbe or SiteKind.Comet ? 0f : rng.RandfRange(0.02f, 0.06f));
+                if (kind == SiteKind.Comet) model.AddChild(CometTail()); // the comet holds still so its tail keeps one way
+                if (kind == SiteKind.RogueAsteroid) root.AddChild(RockTrail()); // phase 3: the dust it drags along its course
+                if (kind == SiteKind.StrandedShip) model.AddChild(Part("Beacon", Ball(1.8f, 8), "Beacon", new Vector3(0f, 11f, -6f))); // its distress light (blinks)
                 root.AddChild(model);
                 break;
             }
@@ -322,6 +325,24 @@ public static class SiteModels
         n.AddChild(Part("Glow", Ball(9f, 12), "Glow", Vector3.Zero));
         return n;
     }
+
+    /// <summary>A rogue asteroid's faint dust trail (named Tail so it doesn't size the site).</summary>
+    private static Node3D RockTrail() => new MeshInstance3D
+    {
+        Name = "Tail",
+        Mesh = new CylinderMesh { TopRadius = 10f, BottomRadius = 60f, Height = 360f, RadialSegments = 16, Rings = 1, CapTop = false, CapBottom = false },
+        Position = new Vector3(0, 0, 200f),
+        RotationDegrees = new Vector3(-90f, 0, 0),
+        CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        MaterialOverride = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.75f, 0.6f, 0.45f, 0.06f),
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            BlendMode = BaseMaterial3D.BlendModeEnum.Add,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+        },
+    };
 
     /// <summary>A faint additive tail behind a comet's nucleus (away along +Z).</summary>
     private static Node3D CometTail() => new MeshInstance3D
