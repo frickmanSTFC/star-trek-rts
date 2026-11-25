@@ -101,6 +101,7 @@ public partial class SystemPlot : Node3D
             BuildCourses(source, ownerColour);
         }
         MoveShips(source, alpha, ownerColour);
+        UpdateSites(source); // space sites, the site-scan ring, course lines to sites (SystemPlot.Sites.cs)
         UpdateMarkers(source); // space-chain mission markers (SystemPlot.Markers.cs)
         PlaceHighlight();
     }
@@ -348,7 +349,7 @@ public partial class SystemPlot : Node3D
             var ours = s.Owner == source.Player;
             var ally = source.IsOurAlly(s);
             var trade = source.IsOurTrade(s);
-            var flying = SystemSource.InFlight(s);
+            var flying = source.Flying(s); // to a body or to a space site
             alive.Add(s.Id);
             if (_ships.TryGetValue(s.Id, out var stale) && _shipAlly.GetValueOrDefault(s.Id, -1) != s.AllyOf)
             {
@@ -398,12 +399,13 @@ public partial class SystemPlot : Node3D
                 at = bn.Node.Position + offset + Vector3.Up * 1.2f;
                 facing = new Vector3(Mathf.Cos(angle), 0f, -Mathf.Sin(angle));
             }
+            else if (!flying && SiteParking(source, s, parked, out at, out facing)) { } // holding at a space site (SystemPlot.Sites.cs)
             else
             {
                 at = PlotPosition(source.ShipPosition(s, alpha)) + Vector3.Up * 1.2f;
                 var from = source.Body(s.FromBody);
                 var to = source.Body(s.ToBody);
-                facing = from != null && to != null ? PlotPosition(to) - PlotPosition(from) : Vector3.Forward;
+                facing = from != null && to != null ? PlotPosition(to) - PlotPosition(from) : SiteHeading(source, s, at);
             }
             entry.Node.Position = at;
             if (facing.LengthSquared() > 1e-4f)
@@ -457,6 +459,7 @@ public partial class SystemPlot : Node3D
     {
         _highlightBody = id;
         _highlightShip = null;
+        _highlightSite = null;
         PlaceHighlight();
     }
 
@@ -465,6 +468,7 @@ public partial class SystemPlot : Node3D
     {
         _highlightShip = id;
         _highlightBody = null;
+        _highlightSite = null;
         PlaceHighlight();
     }
 
@@ -476,6 +480,13 @@ public partial class SystemPlot : Node3D
             _highlight.Visible = true;
             _highlight.Position = ship.Node.Position;
             _highlight.Scale = Vector3.One * 4.2f;
+            return;
+        }
+        if (_highlightSite != null && _siteNodes.TryGetValue(_highlightSite, out var site))
+        {
+            _highlight.Visible = true;
+            _highlight.Position = site.Node.Position;
+            _highlight.Scale = Vector3.One * 4.6f;
             return;
         }
         if (_highlightBody == null || !_nodes.TryGetValue(_highlightBody, out var n))
