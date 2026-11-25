@@ -69,6 +69,10 @@ public sealed class SystemShip
     public string? FromSite { get; internal set; }
     public string? ToSite { get; internal set; }
 
+    /// <summary>Where the flight began when the ship left a site it tows (that site moves with it, so the flight can't
+    /// start from it); null otherwise (space jobs phase 2).</summary>
+    public FixVec2? FromPos { get; internal set; }
+
     /// <summary>When its long-range scanners are ready again (sim tick).</summary>
     public long ScanReadyTick { get; internal set; }
 
@@ -153,6 +157,12 @@ public sealed class SystemShip
             Text(ref h, AtSite);
             Text(ref h, FromSite);
             Text(ref h, ToSite);
+        }
+        if (FromPos is { } fp) // a flight that left a site in tow (phase 2)
+        {
+            h.Add("frompos");
+            h.Add(fp.X);
+            h.Add(fp.Y);
         }
         if (Speed != Fix64.One) // a picked ship's speed (games without a ship pick keep their hashes)
         {
@@ -388,7 +398,7 @@ public sealed partial class StarSystemState
     {
         if (ship.AtBody != null) return Body(ship.AtBody)?.Position ?? FixVec2.Zero;
         if (ship.AtSite != null) return SitePlace(ship.AtSite) ?? FixVec2.Zero;
-        var from = ship.FromSite != null ? SitePlace(ship.FromSite) : Body(ship.FromBody)?.Position;
+        var from = ship.FromPos ?? (ship.FromSite != null ? SitePlace(ship.FromSite) : Body(ship.FromBody)?.Position);
         var to = ship.ToSite != null ? SitePlace(ship.ToSite) : Body(ship.ToBody)?.Position;
         if (from is not { } a || to is not { } b) return to ?? from ?? FixVec2.Zero;
         return a + (b - a) * FlightShare(ship, tick);
@@ -581,7 +591,7 @@ public sealed partial class StarSystemState
     public FixVec2 Heading(SystemShip ship)
     {
         if (!ship.InFlight) return FixVec2.Zero;
-        var from = ship.FromSite != null ? SitePlace(ship.FromSite) : Body(ship.FromBody)?.Position;
+        var from = ship.FromPos ?? (ship.FromSite != null ? SitePlace(ship.FromSite) : Body(ship.FromBody)?.Position);
         var to = ship.ToSite != null ? SitePlace(ship.ToSite) : Body(ship.ToBody)?.Position;
         if (from is not { } a2 || to is not { } b2) return FixVec2.Zero;
         var d = b2 - a2;
@@ -830,6 +840,7 @@ public sealed partial class StarSystemState
                 ship.FromBody = null;
                 ship.ToBody = null;
                 ship.FromSite = null;
+                ship.FromPos = null;
                 Version++;
                 if (ship.Owner >= 0 && ship.AtBody != null) BeginSweep(ship, tick);
                 if (ship.Owner >= 0 && ship.AtBody != null && FlagshipOf(ship.Owner) == ship) sim.Achievements.FlagshipArrived(ship.Owner, ship.AtBody);
@@ -898,6 +909,8 @@ public sealed partial class StarSystemState
     {
         Version++;
         ship.SweepBody = null; // leaving orbit calls the sweep off
+        // Leaving a site the ship tows: the site goes along, so the flight starts from where it was (SpaceSites phase 2).
+        ship.FromPos = ship.AtSite != null && ship.Owner >= 0 && FlagshipOf(ship.Owner) == ship && Status(ship.Owner)?.Tow == ship.AtSite ? SitePlace(ship.AtSite) : null;
         ship.FromBody = ship.AtBody;
         ship.FromSite = ship.AtSite;
         ship.AtSite = null;

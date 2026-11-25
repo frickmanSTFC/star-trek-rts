@@ -75,7 +75,8 @@ public sealed partial class GameData
         ["with_ship"] = new[] { "ship", "hold_seconds", "at_arrival" },
         ["contact"] = new[] { "body", "stage" },
         // Space jobs (docs/space-jobs-contract.md; Missions/MissionSpaceJobs.cs): space sites and the flagship's status.
-        ["space_site"] = new[] { "site", "state", "kind", "variant", "bind" },
+        ["space_site"] = new[] { "site", "state", "kind", "kinds", "variant", "variants", "spent", "bind" },
+        ["space_tally"] = new[] { "key", "keys", "count" },
         ["hull"] = new[] { "below", "at_least" },
         ["crew"] = new[] { "division", "at_least", "below" },
         ["hold"] = new[] { "item", "count" },
@@ -83,8 +84,13 @@ public sealed partial class GameData
 
     /// <summary>space_site states: detected / identified (what the player knows), at (the flagship holds there),
     /// alongside, powered, logs (a known derelict), boarded (an away team came back from it), swept (a debris field), done
-    /// (worked out: Spent). A trigger with bind may only ask detected or identified.</summary>
-    public static readonly IReadOnlyList<string> MissionSpaceSiteStates = new[] { "detected", "identified", "at", "alongside", "powered", "logs", "boarded", "swept", "done" };
+    /// (worked out: Spent); phase 2: mined (an asteroid mined out), towing (in tow behind the flagship now), towed (delivered
+    /// at a station or the colony). A trigger with bind may only ask detected or identified.</summary>
+    public static readonly IReadOnlyList<string> MissionSpaceSiteStates = new[] { "detected", "identified", "at", "alongside", "powered", "logs", "boarded", "swept", "done", "mined", "towing", "towed" };
+
+    /// <summary>space_tally key prefixes: sold (ore or salvage sold: sold:ore, sold:ore:deuterium), drop (ore dropped at the
+    /// colony or a trade partner's world), mined (ore mined: mined:ore:…), tow (tows delivered: tow:station, tow:colony).</summary>
+    public static readonly IReadOnlyList<string> MissionTallyKinds = new[] { "sold", "drop", "mined", "tow" };
 
     /// <summary>bind_site picks: nearest (to the flagship) or random (by the hash) of the sites of that kind the player knows.</summary>
     public static readonly IReadOnlyList<string> MissionSitePicks = new[] { "nearest", "random" };
@@ -198,6 +204,7 @@ public sealed partial class GameData
                 c.ValueKind == JsonValueKind.Object && c.TryGetProperty("space", out var sp) && sp.ValueKind == JsonValueKind.True)
             {
                 Pool = c.ValueKind == JsonValueKind.Object && c.TryGetProperty("pool", out var pl) && pl.ValueKind == JsonValueKind.True,
+                ReturnSeconds = I(c, "return_seconds", 0),
             }).ToList()
             : new List<MissionChainDef>();
         var list = new List<MissionDef>();
@@ -375,7 +382,9 @@ public sealed partial class GameData
                 if (c.Space) problems.Add($"{w} chain {c.Id}: a pool is offered to every chain; it can't be a space chain too.");
                 if (data.List.Any(m => m.Chain == c.Id && m.IsMain)) problems.Add($"{w} chain {c.Id}: a pool holds side jobs only.");
                 if (data.Chains.Count > 0 && data.Chains[0] == c) problems.Add($"{w} chain {c.Id}: a pool can't be the first chain (the default a game plays).");
+                if (c.ReturnSeconds < 0 || c.ReturnSeconds > 36000) problems.Add($"{w} chain {c.Id}: return_seconds must be 0..36000.");
             }
+            else if (c.ReturnSeconds != 0) problems.Add($"{w} chain {c.Id}: return_seconds is for a pool."); 
             else if (!data.List.Any(m => m.Chain == c.Id && m.IsMain)) problems.Add($"{w} chain {c.Id}: has no main mission.");
         }
         foreach (var m in data.List) ValidateMission(data, m, problems);
@@ -716,16 +725,25 @@ public sealed partial class GameData
                 if (c.F("bind") != null)
                 {
                     if (c.F("site") != null) problems.Add($"{cw}: site or bind, not both.");
-                    if (SpaceSiteRules.KindOf(c.F("kind")) is not { } k || k == Space.SiteKind.Station || (SpaceSites != null && SpaceSites.Kind(k) == null))
-                        problems.Add($"{cw}: kind '{c.F("kind")}' is not a site kind in maps space_sites (not the station).");
+                    var kinds = c.L("kinds").ToList();
+                    if (c.F("kind") is { } one) kinds.Add(one);
+                    if (kinds.Count == 0) problems.Add($"{cw}: a binding trigger needs kind (or kinds).");
+                    foreach (var kn in kinds)
+                        if (SpaceSiteRules.KindOf(kn) is not { } k || k == Space.SiteKind.Station || (SpaceSites != null && SpaceSites.Kind(k) == null))
+                            problems.Add($"{cw}: kind '{kn}' is not a site kind in maps space_sites (not the station).");
                     if (c.F("state") is { } bs && bs is not ("detected" or "identified")) problems.Add($"{cw}: a binding trigger asks detected or identified.");
-                    if (c.F("variant") is { } v && SpaceSites != null && SpaceSiteRules.KindOf(c.F("kind")) is { } vk && SpaceSites.Kind(vk)?.Variants.All(x => x.Id != v) == true)
-                        problems.Add($"{cw}: variant '{v}' is not one of that kind's.");
+                    var variants = c.L("variants").ToList();
+                    if (c.F("variant") is { } v1) variants.Add(v1);
+                    foreach (var v in variants)
+                        if (SpaceSites != null && !kinds.Any(kn => SpaceSiteRules.KindOf(kn) is { } vk && SpaceSites.Kind(vk)?.Variants.Any(x => x.Id == v) == true))
+                            problems.Add($"{cw}: variant '{v}' is not one of that kind's.");
+                    if (c.F("spent") is { } sp && sp is not ("true" or "false")) problems.Add($"{cw}: spent is true or false.");
                 }
                 else
                 {
                     CheckSpaceRef(c.F("site"), SiteRefTag, cw, bound, problems);
-                    if (c.F("kind") != null || c.F("variant") != null) problems.Add($"{cw}: kind and variant only go with bind (a trigger).");
+                    if (c.F("kind") != null || c.F("variant") != null || c.L("kinds").Count > 0 || c.L("variants").Count > 0 || c.F("spent") != null)
+                        problems.Add($"{cw}: kind(s), variant(s) and spent only go with bind (a trigger).");
                 }
                 break;
             }
@@ -740,8 +758,18 @@ public sealed partial class GameData
                 if (c.F("division") is { } div && FitOut?.DivisionIndex(div) < 0) problems.Add($"{cw}: unknown division '{div}'.");
                 break;
             case "hold":
-                if (!ValidHoldItem(c.F("item"))) problems.Add($"{cw}: item '{c.F("item")}' is not patch_kit, medical, salvage:<id> or survivors.");
+                if (!ValidHoldItem(c.F("item"))) problems.Add($"{cw}: item '{c.F("item")}' is not patch_kit, medical, salvage:<id>, ore, ore:<id> or survivors.");
                 break;
+            case "space_tally":
+            {
+                var keys = c.L("keys").ToList();
+                if (c.F("key") is { } k1) keys.Add(k1);
+                if (keys.Count == 0) problems.Add($"{cw}: needs key (or keys).");
+                foreach (var k in keys)
+                    if (!MissionTallyKinds.Any(t => k == t || k.StartsWith(t + ":", StringComparison.Ordinal))) problems.Add($"{cw}: key '{k}' starts with none of {string.Join(", ", MissionTallyKinds)}.");
+                CheckNumber(c.Fields, "count", cw, problems, positive: true);
+                break;
+            }
         }
         foreach (var child in c.Children) ValidateMissionCond(data, child, where, bound, available, problems, trigger);
     }

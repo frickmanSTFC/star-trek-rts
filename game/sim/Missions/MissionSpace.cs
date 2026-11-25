@@ -217,7 +217,7 @@ public sealed partial class MissionBook
     /// <summary>What a space counter that counts "since the stage began" starts from: charted {count} = bodies charted now.</summary>
     private Fix64 SpaceBaseline(int p, MissionCondDef c) =>
         c.Kind == "charted" && c.F("share") == null && Sys is { } sys
-            ? Fix64.FromInt(sys.Bodies.Count(b => sys.KnowledgeOf(p, b.Id) == BodyKnowledge.Charted)) : Fix64.Zero;
+            ? Fix64.FromInt(sys.Bodies.Count(b => sys.KnowledgeOf(p, b.Id) == BodyKnowledge.Charted)) : SpaceJobBaseline(p, c); // MissionSpaceJobs.cs
 
     // ---------------------------------------------------------------- actions
 

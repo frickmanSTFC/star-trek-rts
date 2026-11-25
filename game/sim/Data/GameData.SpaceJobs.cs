@@ -85,6 +85,14 @@ public sealed partial class GameData
                             JPair(sw, "finds", 3, 5).Max, JStrings(sw, "always"), JWeights(sw, "items"), JPair(sw, "lifepod_survivors", 1, 1).Min,
                             JPair(sw, "lifepod_survivors", 1, 1).Max)
                         : null,
+                    Mining = JObj(k, "mining") is { ValueKind: JsonValueKind.Object } mn ? ReadMining(mn) : null,
+                    Tow = JObj(k, "tow") is { ValueKind: JsonValueKind.Object } tw
+                        ? new SiteTowDef(JPair(tw, "latinum", 0, 0).Min, JPair(tw, "latinum", 0, 0).Max, JPair(tw, "research", 0, 0).Min, JPair(tw, "research", 0, 0).Max,
+                            JPair(tw, "duranium", 0, 0).Min, JPair(tw, "duranium", 0, 0).Max)
+                        : null,
+                    VariantAway = JObj(k, "away_tables") is { ValueKind: JsonValueKind.Object } va
+                        ? va.EnumerateObject().Select(x => (x.Name, x.Value.ValueKind == JsonValueKind.String ? x.Value.GetString()! : "")).ToList()
+                        : new List<(string, string)>(),
                 };
                 kinds.Add(def);
             }
@@ -97,9 +105,42 @@ public sealed partial class GameData
         var hire = JObj(st, "hire");
         var station = new StationRules(JStrings(st, "names"), stOrbit.Min, stOrbit.Max, JInt(st, "dock_seconds", 30), JInt(hire, "per_visit", 2),
             JInt(hire, "latinum", 15), JInt(st, "survivor_latinum", 10));
+        var ast = JObj(gen, "asteroids");
+        var ore = JObj(s, "ore");
+        var ores = new List<OreKindDef>();
+        if (ore.ValueKind == JsonValueKind.Object && ore.TryGetProperty("kinds", out var oks) && oks.ValueKind == JsonValueKind.Array)
+            foreach (var x in oks.EnumerateArray())
+                ores.Add(new OreKindDef(JStr(x, "id"), JStr(x, "name"), JFix(x, "latinum", Fix64.Zero)));
+        var traders = JObj(ore, "traders");
         return new SpaceSiteRules(count.Min, count.Max, orbit.Min, orbit.Max, JFix(gen, "clear_of_body", Fix64.FromInt(40)), JFix(gen, "spacing", Fix64.FromInt(70)),
             JInt(gen, "tries", 40), JWeights(gen, "weights"), JFix(s, "identify_range", Fix64.FromInt(120)), JInt(s, "spent_seconds", 300),
-            JInt(s, "colony_reach_seconds", 60), kinds, salvage, station);
+            JInt(s, "colony_reach_seconds", 60), kinds, salvage, station)
+        {
+            Asteroids = ast.ValueKind == JsonValueKind.Object
+                ? new AsteroidGenDef(JPair(ast, "count", 0, 0).Min, JPair(ast, "count", 0, 0).Max, JInt(ast, "near_belt", 0), JFix(ast, "belt_spread", Fix64.FromInt(25)),
+                    JFix(ast, "spacing", Fix64.FromInt(40)))
+                : null,
+            OrePerContainer = JInt(ore, "per_container", 30),
+            Ores = ores,
+            TraderRoles = JStrings(traders, "roles"),
+            TraderShare = JFix(traders, "share", Fix64.One),
+            TowFlight = JFix(JObj(s, "tow"), "flight", Fix64.One),
+        };
+    }
+
+    private static SiteMiningDef ReadMining(JsonElement mn)
+    {
+        var list = new List<SiteOreDef>();
+        var ore = JObj(mn, "ore");
+        if (ore.ValueKind == JsonValueKind.Object)
+            foreach (var v in ore.EnumerateObject())
+            {
+                var c = JPair(v.Value, "containers", 0, 0);
+                list.Add(new SiteOreDef(v.Name, c.Min, c.Max, JWeights(v.Value, "ores")));
+            }
+        var rf = JObj(mn, "rockfall");
+        return new SiteMiningDef(JInt(mn, "seconds", 30), list, rf.ValueKind == JsonValueKind.Object
+            ? new SiteRockfallDef(JInt(rf, "chance_per_min", 0), JPair(rf, "hull", 0, 0).Min, JPair(rf, "hull", 0, 0).Max, JInt(rf, "tractor", 0)) : null);
     }
 
     private static ShipStatusRules? ReadShipStatus(JsonElement maps)
@@ -281,8 +322,52 @@ public sealed partial class GameData
                 }
                 if (k.ResearchMin < 0 || k.ResearchMax < k.ResearchMin || k.ResearchMax > 100000) problems.Add($"{kw}: research needs 0 <= min <= max.");
                 if (k.AwayTable.Length > 0 && ShipStatus?.Table(k.AwayTable) == null) problems.Add($"{kw}: away_table '{k.AwayTable}' is not in ship_status away_team tables.");
-                if (k.AwayTable.Length > 0 && k.Alongside == null) problems.Add($"{kw}: an away team needs alongside (the team crosses from alongside).");
+                if (k.AnyAway && k.Alongside == null) problems.Add($"{kw}: an away team needs alongside (the team crosses from alongside).");
+                foreach (var (v, t) in k.VariantAway)
+                {
+                    if (k.Variants.All(x => x.Id != v)) problems.Add($"{kw}: away_tables names unknown variant '{v}'.");
+                    if (ShipStatus?.Table(t) == null) problems.Add($"{kw}: away_tables {v} '{t}' is not in ship_status away_team tables.");
+                }
+                if (k.Mining is { } mn)
+                {
+                    if (mn.Seconds < 1 || mn.Seconds > 3600) problems.Add($"{kw}: mining seconds must be 1..3600.");
+                    foreach (var v in k.Variants)
+                        if (mn.OreOf(v.Id) == null) problems.Add($"{kw}: mining ore has nothing for variant {v.Id}.");
+                    foreach (var o in mn.Ore)
+                    {
+                        if (k.Variants.All(x => x.Id != o.Variant)) problems.Add($"{kw}: mining ore for unknown variant '{o.Variant}'.");
+                        if (o.ContainersMin < 1 || o.ContainersMax < o.ContainersMin || o.ContainersMax > 100) problems.Add($"{kw}: mining ore {o.Variant} needs 1 <= containers min <= max <= 100.");
+                        if (o.Ores.Count == 0 || o.Ores.Sum(x => System.Math.Max(0, x.Weight)) <= 0 || o.Ores.Any(x => x.Weight < 0)) problems.Add($"{kw}: mining ore {o.Variant} needs ores with weights >= 0 and a positive sum.");
+                        foreach (var x in o.Ores)
+                            if (r.Ore(x.Id) == null) problems.Add($"{kw}: mining ore {o.Variant}: '{x.Id}' is not in space_sites ore kinds.");
+                    }
+                    if (mn.Rockfall is { } rf && (rf.ChancePerMin < 0 || rf.ChancePerMin > 100 || rf.HullMin < 0 || rf.HullMax < rf.HullMin || rf.HullMax > 100 || rf.Tractor < 0 || rf.Tractor > 100))
+                        problems.Add($"{kw}: mining rockfall needs chance_per_min 0..100, 0 <= hull min <= max <= 100, tractor 0..100.");
+                }
+                if (k.Tow is { } tw && (tw.LatinumMin < 0 || tw.LatinumMax < tw.LatinumMin || tw.ResearchMin < 0 || tw.ResearchMax < tw.ResearchMin || tw.DuraniumMin < 0
+                        || tw.DuraniumMax < tw.DuraniumMin || tw.LatinumMax > 100000 || tw.ResearchMax > 100000 || tw.DuraniumMax > 100000))
+                    problems.Add($"{kw}: tow needs 0 <= min <= max (latinum, research, duranium).");
+                if (k.Tow != null && k.Alongside == null) problems.Add($"{kw}: towing needs alongside (the tractor locks on from alongside).");
+                if (k.Kind == SiteKind.Station && (k.Tow != null || k.Mining != null)) problems.Add($"{kw}: the station can't be mined or towed.");
             }
+            if (r.Asteroids is { } ag)
+            {
+                if (ag.CountMin < 0 || ag.CountMax < ag.CountMin || ag.CountMax > 20) problems.Add($"{w}: generation asteroids count needs 0 <= min <= max <= 20.");
+                if (ag.NearBelt < 0 || ag.NearBelt > 100 || ag.BeltSpread < Fix64.Zero || ag.BeltSpread > Fix64.FromInt(1000) || ag.Spacing < Fix64.Zero || ag.Spacing > Fix64.FromInt(1000))
+                    problems.Add($"{w}: generation asteroids needs near_belt 0..100, belt_spread and spacing 0..1000.");
+                if (ag.CountMax > 0 && r.Kind(SiteKind.Asteroid) == null) problems.Add($"{w}: generation asteroids needs an asteroid kind.");
+            }
+            if (r.Weights.Any(x => x.Id == "asteroid")) problems.Add($"{w}: asteroids are rolled by generation.asteroids, not by weight.");
+            if (r.OrePerContainer < 1 || r.OrePerContainer > 10000) problems.Add($"{w}: ore per_container must be 1..10000.");
+            var oreIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var o in r.Ores)
+            {
+                if (!oreIds.Add(o.Id) || o.Name.Length == 0) problems.Add($"{w}: ore '{o.Id}' needs a unique id and a name.");
+                if (!_resources.ContainsKey(o.Id)) problems.Add($"{w}: ore '{o.Id}' is not a resource.");
+                if (o.Latinum < Fix64.Zero || o.Latinum > Fix64.FromInt(10000)) problems.Add($"{w}: ore {o.Id} latinum must be 0..10000.");
+            }
+            if (r.TraderShare < Fix64.Zero || r.TraderShare > Fix64.FromInt(10)) problems.Add($"{w}: ore traders share must be 0..10.");
+            if (r.TowFlight < Fix64.One || r.TowFlight > Fix64.FromInt(10)) problems.Add($"{w}: tow flight must be 1..10.");
             if (r.Kind(SiteKind.Station) == null) problems.Add($"{w}: needs a station kind.");
             foreach (var k in new[] { SiteKind.Derelict, SiteKind.KnownDerelict, SiteKind.Debris })
                 if (r.Kind(k) == null) problems.Add($"{w}: needs a {SpaceSiteRules.IdOf(k)} kind (phase 1).");
@@ -390,6 +475,8 @@ public sealed partial class GameData
         if (item is StarSystemState.PatchKitItem or StarSystemState.MedicalItem or "survivors") return true;
         if (item.StartsWith(StarSystemState.SalvagePrefix, StringComparison.Ordinal)) return SpaceSites?.SalvageItem(item[StarSystemState.SalvagePrefix.Length..]) != null;
         if (item.StartsWith(StarSystemState.SurvivorsPrefix, StringComparison.Ordinal)) return FitOut?.DivisionIndex(item[StarSystemState.SurvivorsPrefix.Length..]) >= 0;
+        if (item == "ore") return SpaceSites?.Ores.Count > 0;
+        if (item.StartsWith(StarSystemState.OrePrefix, StringComparison.Ordinal)) return SpaceSites?.Ore(item[StarSystemState.OrePrefix.Length..]) != null;
         return false;
     }
 

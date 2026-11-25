@@ -79,6 +79,11 @@ public sealed partial class StarSystemState
         public WorkRun? Work;
         public AwayRun? Away;
         public readonly List<SiteRecord> Records = new();
+        /// <summary>Phase 2: the site in tow ("" = none) and since when; what was sold, dropped, mined and towed in, by key
+        /// ("sold:ore:duranium_ore", "drop:ore:deuterium", "mined:ore:tritanium_ore", "tow:station", "tow:colony"), sorted.</summary>
+        public string Tow = "";
+        public long TowTick = -1;
+        public readonly List<(string Key, int Count)> Tally = new();
 
         // Not state: the crew factors cache (worked out from the crew above).
         public bool CrewDirty;
@@ -139,6 +144,18 @@ public sealed partial class StarSystemState
             Away?.AddToHash(ref h);
             h.Add(Records.Count);
             foreach (var r in Records) r.AddToHash(ref h);
+            if (Tow.Length > 0 || Tally.Count > 0) // phase 2 (a ship that never mined, sold or towed keeps its hash)
+            {
+                h.Add("p2");
+                h.Add(Tow);
+                h.Add(TowTick);
+                h.Add(Tally.Count);
+                foreach (var (k, n) in Tally)
+                {
+                    h.Add(k);
+                    h.Add(n);
+                }
+            }
         }
     }
 
@@ -164,6 +181,10 @@ public sealed partial class StarSystemState
 
     /// <summary>Hold item ids.</summary>
     public const string PatchKitItem = "patch_kit", MedicalItem = "medical", SalvagePrefix = "salvage:", SurvivorsPrefix = "survivors:";
+
+    /// <summary>Phase 2 hold items: ore by resource ("ore:duranium_ore", counted in units, ore.per_container a container),
+    /// and the site in tow ("tow": a line of no containers while something is in tow).</summary>
+    public const string OrePrefix = "ore:", TowItem = "tow";
 
     private static string SalvageItemId(string salvage) => SalvagePrefix + salvage;
 
@@ -278,6 +299,7 @@ public sealed partial class StarSystemState
             }
         foreach (var (item, n) in st.Hold)
             if (n > 0) list.Add(new HoldLine(item, n, Containers(item, n), ItemLabel(item)));
+        if (st.Tow.Length > 0 && Site(st.Tow) is { } towed) list.Add(new HoldLine(TowItem, 1, 0, $"In tow: {towed.Name}"));
         return list;
     }
 
@@ -294,6 +316,11 @@ public sealed partial class StarSystemState
     private int Containers(string item, int n)
     {
         if (n <= 0) return 0;
+        if (item.StartsWith(OrePrefix, System.StringComparison.Ordinal))
+        {
+            var per = System.Math.Max(1, SiteRules?.OrePerContainer ?? 30);
+            return (n + per - 1) / per;
+        }
         if (item.StartsWith(SurvivorsPrefix, System.StringComparison.Ordinal))
         {
             var per = System.Math.Max(1, StatusRules?.SurvivorsPerContainer ?? 3);
@@ -307,6 +334,8 @@ public sealed partial class StarSystemState
         if (item == PatchKitItem) return "Hull patch kits";
         if (item == MedicalItem) return "Medical stores";
         if (item.StartsWith(SalvagePrefix, System.StringComparison.Ordinal)) return SiteRules?.SalvageItem(item[SalvagePrefix.Length..])?.Name ?? item;
+        if (item.StartsWith(OrePrefix, System.StringComparison.Ordinal)) return SiteRules?.Ore(item[OrePrefix.Length..])?.Name ?? item;
+        if (item == TowItem) return "Tow";
         if (item.StartsWith(SurvivorsPrefix, System.StringComparison.Ordinal))
             return $"Survivors ({Data?.FitOut?.Divisions.FirstOrDefault(d => d.Id == item[SurvivorsPrefix.Length..])?.Name ?? item[SurvivorsPrefix.Length..]})";
         return item;
@@ -320,7 +349,8 @@ public sealed partial class StarSystemState
     {
         if (item.StartsWith(SurvivorsPrefix, System.StringComparison.Ordinal)) return true;
         var player = _status.IndexOf(st);
-        return HoldUsed(player, st) + ContainersEach(item) * n <= st.HoldSize;
+        var have = Count(st, item);
+        return HoldUsed(player, st) + Containers(item, have + n) - Containers(item, have) <= st.HoldSize;
     }
 
     private bool KnownHoldItem(string? item)
@@ -328,6 +358,7 @@ public sealed partial class StarSystemState
         if (item == null) return false;
         if (item is PatchKitItem or MedicalItem) return true;
         if (item.StartsWith(SalvagePrefix, System.StringComparison.Ordinal)) return SiteRules?.SalvageItem(item[SalvagePrefix.Length..]) != null;
+        if (item.StartsWith(OrePrefix, System.StringComparison.Ordinal)) return SiteRules?.Ore(item[OrePrefix.Length..]) != null;
         if (item.StartsWith(SurvivorsPrefix, System.StringComparison.Ordinal)) return DivisionIndex(item[SurvivorsPrefix.Length..]) >= 0;
         return false;
     }
@@ -390,6 +421,7 @@ public sealed partial class StarSystemState
         foreach (var d in st.Down)
             if (rules.System(d.System) is { } sys) f *= sys.Flight;
         if (st.CrewTotal * 2 < st.StartTotal) f *= rules.HalfCrewFlight;
+        if (st.Tow.Length > 0 && SiteRules is { } sr) f *= sr.TowFlight; // phase 2: towing
         return f;
     }
 
@@ -499,6 +531,7 @@ public sealed partial class StarSystemState
             st.RepairEnd = -1;
         }
         if (st.Away is { Done: false }) RecallAwayTeam(sim, player, "the ship is crippled");
+        if (st.Tow.Length > 0) ReleaseTow(player, "the tow line parted as the ship was crippled");
         ShipLog(player, "Hull at 0%: the ship is crippled and adrift", "bad");
         Version++;
     }
@@ -510,11 +543,12 @@ public sealed partial class StarSystemState
         st.Down.Add(new SystemDown(system, sim.Tick + (long)seconds * Simulation.TickRate));
         st.Down.Sort((a, b) => a.System.CompareTo(b.System));
         ShipLog(player, $"{StatusRules?.System(system)?.Name ?? system.ToString()} knocked out ({why}): back in {seconds} s", "bad");
-        if (system == ShipSystem.Tractor && st.Work is { Action: "sweep" })
+        if (system == ShipSystem.Tractor && st.Work is { Action: "sweep" or "mine" } w)
         {
             st.Work = null;
-            ShipLog(player, "Sweep stopped: the tractor is down", "warn");
+            ShipLog(player, $"{(w.Action == "mine" ? "Mining" : "Sweep")} stopped: the tractor is down", "warn");
         }
+        if (system == ShipSystem.Tractor && st.Tow.Length > 0) ReleaseTow(player, "the tractor went down");
         Version++;
     }
 
@@ -663,6 +697,10 @@ public sealed partial class StarSystemState
         if (action == null || item == null) return "nothing to do";
         if (count < 1 || count > 1000) return "count 1..1000";
         var atStation = ship.AtSite is { } sid && Site(sid) is { Kind: SiteKind.Station };
+        if (SellerAction(ref action, out var buyer) is { } bad) return bad; // "sell:<ship id>": to a ship in orbit with us
+        if (item == TowItem) return TowHoldProblem(player, st, ship, action); // Towing.cs
+        if (item.StartsWith(OrePrefix, System.StringComparison.Ordinal)) return OreHoldProblem(player, st, ship, action, item, count, buyer, atStation); // Mining.cs
+        if (buyer >= 0) return "only ore sells to a ship";
         switch (action)
         {
             case "hire":
@@ -728,7 +766,19 @@ public sealed partial class StarSystemState
         var st = Status(c.Player)!;
         var p = c.Player;
         Version++;
-        switch (c.Action)
+        var action = c.Action;
+        SellerAction(ref action, out var buyer);
+        if (c.Item == TowItem)
+        {
+            ApplyTowHold(sim, p, st, ship, action); // Towing.cs
+            return;
+        }
+        if (c.Item.StartsWith(OrePrefix, System.StringComparison.Ordinal))
+        {
+            ApplyOreHold(sim, p, st, ship, action, c.Item, c.Count, buyer); // Mining.cs
+            return;
+        }
+        switch (action)
         {
             case "hire":
             {
@@ -743,6 +793,7 @@ public sealed partial class StarSystemState
                 var each = SiteRules?.SalvageItem(c.Item[SalvagePrefix.Length..])?.Latinum ?? 0;
                 Take(st, c.Item, c.Count);
                 var paid = GiveLatinum(sim, p, each * c.Count);
+                AddTally(st, "sold:" + c.Item, c.Count);
                 ShipLog(p, $"Sold {c.Count} × {ItemLabel(c.Item)} for {paid} latinum", "good");
                 return;
             }

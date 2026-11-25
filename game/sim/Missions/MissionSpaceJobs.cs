@@ -16,6 +16,18 @@ public sealed partial class MissionBook
     /// <summary>A mission of a side-job pool (offered to every chain in a game with a star system).</summary>
     private bool InPool(MissionDef d) => _sim?.System != null && Defs?.Chain(d.Chain) is { Pool: true };
 
+    /// <summary>A pool's offers that were declined or lapsed come back (Locked, to be offered again when their trigger
+    /// holds) once the chain's return_seconds have passed since they ended (0 = never).</summary>
+    private void PoolOffersReturn(int p, PlayerBook book)
+    {
+        foreach (var run in book.Runs)
+        {
+            if (run.State != MissionState.Declined || run.End < 0 || Def(run) is not { } d || !InPool(d)) continue;
+            if (Defs?.Chain(d.Chain) is not { ReturnSeconds: > 0 } chain || Now < run.End + (long)chain.ReturnSeconds * Simulation.TickRate) continue;
+            Clear(p, run); // MissionBook.Debug.cs: back to a fresh Locked run
+        }
+    }
+
     /// <summary>Why an active pool job fails now, or null: the flagship is crippled, or the boarding of a site it is about
     /// was called off (the team recalled after the job started).</summary>
     private string? SpaceJobFailure(int p, MissionRun run)
@@ -31,9 +43,9 @@ public sealed partial class MissionBook
     private static string? SiteRef(MissionRun? run, string? name) => name != null && run?.Find(name) is { Site: { } site } ? site : null;
 
     /// <summary>The space-job conditions, or null when the kind isn't one (then the space chains' run).</summary>
-    private MissionEval? SpaceJobCheck(int p, MissionRun? run, MissionCondDef c, List<Binding>? bind)
+    private MissionEval? SpaceJobCheck(int p, MissionRun? run, int obj, MissionCondDef c, List<Binding>? bind)
     {
-        if (c.Kind is not ("space_site" or "hull" or "crew" or "hold")) return null;
+        if (c.Kind is not ("space_site" or "hull" or "crew" or "hold" or "space_tally")) return null;
         if (Sys is not { } sys) return MissionEval.No;
         switch (c.Kind)
         {
@@ -65,8 +77,15 @@ public sealed partial class MissionBook
             case "hold":
             {
                 if (sys.StatusOf(p) is not { } st || c.F("item") is not { } item) return MissionEval.No;
-                var n = st.Hold.Where(l => item == "survivors" ? l.Item.StartsWith(StarSystemState.SurvivorsPrefix, System.StringComparison.Ordinal) : l.Item == item).Sum(l => l.Count);
+                var n = st.Hold.Where(l => item == "survivors" ? l.Item.StartsWith(StarSystemState.SurvivorsPrefix, System.StringComparison.Ordinal)
+                    : item == "ore" ? l.Item.StartsWith(StarSystemState.OrePrefix, System.StringComparison.Ordinal) : l.Item == item).Sum(l => l.Count);
                 return MissionEval.Count(n, c.I("count", 1));
+            }
+            case "space_tally":
+            {
+                // What was sold / dropped / mined / towed in since the objective's stage began (the baseline).
+                var since = run != null && obj >= 0 && obj < run.Base.Length ? run.Base[obj].FloorToInt() : 0;
+                return MissionEval.Count(System.Math.Max(0, TallyOf(sys, p, c) - since), c.I("count", 1));
             }
         }
         return MissionEval.No;
@@ -77,14 +96,22 @@ public sealed partial class MissionBook
     /// reach of the colony's body.</summary>
     private SpaceSite? TriggerSite(int p, MissionCondDef c)
     {
-        if (Sys is not { } sys || SpaceSiteRules.KindOf(c.F("kind")) is not { } kind) return null;
+        if (Sys is not { } sys) return null;
+        var kinds = new List<SiteKind>();
+        foreach (var id in c.L("kinds").Append(c.F("kind") ?? ""))
+            if (SpaceSiteRules.KindOf(id) is { } kind) kinds.Add(kind);
+        if (kinds.Count == 0) return null;
         var want = c.F("state") == "identified" ? SiteKnowledge.Identified : SiteKnowledge.Detected;
-        var variant = c.F("variant");
+        var variants = c.L("variants").ToList();
+        if (c.F("variant") is { } one) variants.Add(one);
+        var spentOk = c.F("spent") == "true"; // a worked-out wreck (tow it in) may be bound too
         foreach (var s in sys.Sites)
         {
-            if (s.Kind != kind || (variant != null && s.Variant != variant)) continue;
+            if (!kinds.Contains(s.Kind) || (variants.Count > 0 && !variants.Contains(s.Variant))) continue;
             var k = sys.SiteKnowledgeOf(p, s.Id);
-            if (k < want || k == SiteKnowledge.Spent) continue;
+            if (k < want || (k == SiteKnowledge.Spent && !spentOk)) continue;
+            if (spentOk && (sys.SiteWork(p, s.Id) is { Towed: true } || sys.TowerOf(s.Id) is var tower and >= 0 && tower != p)) continue;
+            if (k == SiteKnowledge.Spent && s.ExpireTick >= 0 && s.ExpireTick - Now < 60L * Simulation.TickRate) continue; // drifting off soon
             if (Track(p).Runs.Any(r => r.State != MissionState.Locked && r.Bindings.Any(b => b.Site == s.Id))) continue;
             if (!SpaceChain && !InColonyReach(sys, p, s)) continue;
             return s;
@@ -117,6 +144,9 @@ public sealed partial class MissionBook
             "logs" => w.Logs,
             "boarded" => w.Boarded,
             "swept" => w.Swept,
+            "mined" => w.MinedOut,
+            "towing" => w.Towing,
+            "towed" => w.Towed,
             _ => false,
         };
     }
@@ -195,6 +225,19 @@ public sealed partial class MissionBook
         }
         return null;
     }
+
+    /// <summary>A space_tally's count now: the sum over its keys of the player's tally (StarSystemState.Tally).</summary>
+    private static int TallyOf(StarSystemState sys, int p, MissionCondDef c)
+    {
+        var n = 0;
+        foreach (var k in c.L("keys")) n += sys.Tally(p, k);
+        if (c.F("key") is { } key) n += sys.Tally(p, key);
+        return n;
+    }
+
+    /// <summary>The baseline of a space-job condition when its stage begins (space_tally: the tally then).</summary>
+    private Fix64 SpaceJobBaseline(int p, MissionCondDef c) =>
+        c.Kind == "space_tally" && Sys is { } sys ? Fix64.FromInt(TallyOf(sys, p, c)) : Fix64.Zero;
 
     private string HoldItemText(string? item) =>
         item == StarSystemState.PatchKitItem ? "hull patch kit" : item == StarSystemState.MedicalItem ? "medical stores"

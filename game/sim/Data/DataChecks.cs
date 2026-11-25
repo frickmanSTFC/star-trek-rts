@@ -25,8 +25,9 @@ public static class DataChecks
         return problems;
     }
 
-    /// <summary>Space sites (maps/sites.json): a system game on the seed gets its station and at least generation.count[0]
-    /// other sites (none crowded out by the bodies), each clear of every body; the station is Identified for the player.</summary>
+    /// <summary>Space sites (maps/sites.json): a system game on the seed gets its station, at least generation.count[0]
+    /// other sites and generation.asteroids.count[0] asteroids (none crowded out by the bodies), each clear of every body;
+    /// the station is Identified for the player.</summary>
     public static List<string> SpaceSiteProblems(GameData data, ulong seed)
     {
         var problems = new List<string>();
@@ -45,8 +46,11 @@ public static class DataChecks
         var station = sys.Sites.Where(s => s.Kind == Space.SiteKind.Station).ToList();
         if (station.Count != 1) problems.Add($"{where}: {station.Count} stations (needs one: widen station.orbit or shrink clear_of_body).");
         else if (sys.SiteKnowledgeOf(0, station[0].Id) != Space.SiteKnowledge.Identified) problems.Add($"{where}: the station isn't on the player's chart.");
-        var others = sys.Sites.Count(s => s.Kind != Space.SiteKind.Station);
+        var others = sys.Sites.Count(s => s.Kind is not (Space.SiteKind.Station or Space.SiteKind.Asteroid));
         if (others < r.CountMin) problems.Add($"{where}: only {others} sites placed (count {r.CountMin}..{r.CountMax}; the bodies crowd them out: lower clear_of_body / spacing).");
+        var rocks = sys.Sites.Count(s => s.Kind == Space.SiteKind.Asteroid);
+        if (r.Asteroids is { } ag && rocks < ag.CountMin)
+            problems.Add($"{where}: only {rocks} asteroids placed (generation.asteroids count {ag.CountMin}..{ag.CountMax}; lower its spacing or clear_of_body).");
         foreach (var s in sys.Sites)
             foreach (var b in sys.Bodies)
                 if (Math.FixVec2.Distance(s.Position, b.Position) < r.ClearOfBody) problems.Add($"{where}: {s.Id} sits on {b.Id}.");

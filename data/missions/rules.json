@@ -15,6 +15,6 @@
     { "id": "priority_run", "name": "Priority Run", "era": "dawn_of_warp", "space": true },
     { "id": "watch_station", "name": "Watch Station", "era": "dawn_of_warp", "space": true },
     { "id": "envoy", "name": "Envoy", "era": "dawn_of_warp", "space": true },
-    { "id": "space_jobs", "name": "Space jobs", "era": "", "pool": true }
+    { "id": "space_jobs", "name": "Space jobs", "era": "", "pool": true, "return_seconds": 600 }
   ]
 }

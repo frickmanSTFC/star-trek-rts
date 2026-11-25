@@ -90,6 +90,10 @@ public sealed record MissionChainDef(string Id, string Name, string Era, bool Sp
     /// players in a game with a star system (space jobs: docs/space-jobs-contract.md). It has no main mission, and a game
     /// never plays it as its chain.</summary>
     public bool Pool { get; init; }
+
+    /// <summary>A pool's offers that were declined or lapsed come back after this many seconds (0 = never; space jobs
+    /// phase 2).</summary>
+    public int ReturnSeconds { get; init; }
 }
 
 /// <summary>rules.json: MaxSideActive 2 side jobs at once, OfferSeconds 90 for an offer to stand, MessageLog lines kept

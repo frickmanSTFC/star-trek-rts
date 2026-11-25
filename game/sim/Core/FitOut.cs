@@ -64,18 +64,20 @@ public static class FitOutRules
     public const string FieldRepair = "field_repair";
     /// <summary>Space jobs: each away-team member's loss chance (Defense).</summary>
     public const string AwayLoss = "away_loss";
+    /// <summary>Space jobs phase 2: asteroid mining speed (Engineering; the cutting_gear cargo adds to it).</summary>
+    public const string Mining = "mining";
 
     /// <summary>Every lever id the sim reads; the data may only list these.</summary>
     public static readonly IReadOnlyList<string> KnownLevers = new[]
     {
         DriveSpeed, SatelliteSweep, DroneBattery, RoverHazard, BuildTime, RepairSpeed, Fabrication, Wear, ResearchRate, DigTime,
         Sickness, Wildlife, RuinDefence, CrewLoss, HazardDamage, WildlifeDamage, RuinVehicleDamage, HubWorkshop, MissionResearch,
-        ScanCooldown, SweepTime, FlightTime, StudyTime, ShockChance, AlongsideTime, ScanRange, FieldRepair, AwayLoss,
+        ScanCooldown, SweepTime, FlightTime, StudyTime, ShockChance, AlongsideTime, ScanRange, FieldRepair, AwayLoss, Mining,
     };
 
     /// <summary>The levers of the star-system layer (the data marks them "space": true; they move only on a ship that never
     /// lands, and the others only on a colony ship).</summary>
-    public static readonly IReadOnlyList<string> SpaceLevers = new[] { ScanCooldown, SweepTime, FlightTime, StudyTime, ShockChance, AlongsideTime, ScanRange, FieldRepair, AwayLoss };
+    public static readonly IReadOnlyList<string> SpaceLevers = new[] { ScanCooldown, SweepTime, FlightTime, StudyTime, ShockChance, AlongsideTime, ScanRange, FieldRepair, AwayLoss, Mining };
 
     /// <summary>Whether this is a fitted-out ship that never lands (its cargo and levers are the space ones).</summary>
     public static bool IsSpace(GameData data, string? shipId) => data.FitOut?.Ship(shipId) != null && data.ShipChoice(shipId) is { Colonizes: false };
