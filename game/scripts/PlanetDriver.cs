@@ -730,7 +730,7 @@ public partial class PlanetDriver : Node3D, ITestHost
             : _orbitAction == "land" && me.Phase == LandingPhase.InOrbit ? "CLICK A GREEN (SAFE) SITE TO LAND THE COLONY"
             : _orbitAction != null ? "CLICK THE PLANET TO CHOOSE WHERE · RIGHT-CLICK CANCELS" : null);
         var shipLine = ShipLine(); // the flagship's name and class (PlanetDriver.System.cs)
-        var atColony = _orbit.AtColony; // the globe shows the colony's own body (else another body: OrbitView.Bodies.cs)
+        var atColony = _orbit.AtColony && _system.FlagshipSite == null; // the globe (not while holding at a space site) shows the colony's own body (else another body: OrbitView.Bodies.cs)
 
         // Rail: the scans (+ grid) on the colony's globe, the bodies (fogged) on the system plot.
         var rail = new List<HelmAction>();
@@ -822,7 +822,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         var actions = new List<HelmAction>();
         if (display == OrbitDisplay.System)
         {
-            actions.Add(new HelmAction("display:planet", "", "BACK TO PLANET", Colour: HelmScreen.Peach));
+            actions.Add(new HelmAction("display:planet", "", _system.FlagshipSite != null ? "BACK TO SITE" : "BACK TO PLANET", Colour: HelmScreen.Peach));
             if (_system.State != null) actions.Add(new HelmAction("sys:scan", "", ScanLabel(), ScanProblem() == null, Colour: HelmScreen.Lavender));
         }
         // Orbit-only bodies get no deployment cards (land, outpost, drop ships, beams are the colony's), but a

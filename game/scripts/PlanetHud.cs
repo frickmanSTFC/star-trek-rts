@@ -581,6 +581,7 @@ public partial class PlanetHud : CanvasLayer
                 ("Crew sick", "chip by the base tabs: a dig pathogen slows the crew; vehicles can carry it"),
                 ("N", "mission log: active, completed, failed, declined; briefings and debriefs (Esc closes)"),
                 ("Y", "incoming transmission: open the comms card (accept / decline / choices); again: next or close"),
+                ("Space sites", "plot: grey ? = unknown contact (fly inside the dashed ring, SCAN); a site's card: SET COURSE, work it, AWAY TEAM"),
             },
             new[]
             {
@@ -605,6 +606,8 @@ public partial class PlanetHud : CanvasLayer
                 ("Drone Pad: L / R", "launch a drone (click a tile inside comms coverage) / recall them; a drone: R return, right-click retarget"),
                 ("G", "comms coverage on the map (also while launching or with drones selected); RELAY on the orbit strip widens it"),
                 ("SHIP (orbit)", "helm rail, or click your ship: the view follows it close up; wheel zooms; drag or Esc lets go"),
+                ("U (orbit)", "ship status: hull, systems, crew, hold, repairs (also STATUS on the rail and the HULL chip; Esc closes)"),
+                ("F9 › SPACE", "spawn sites, hull, systems, crew, hold, finish an away team (F9 works in orbit for ships that never land)"),
             },
         };
         foreach (var g in groups)

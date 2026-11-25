@@ -37,6 +37,9 @@ public partial class PlanetDriver
     private HullBand? _bandSeen;
     private bool _crippledSeen;
     private string? _siteArrivedSeen;
+    private AwayPickerView? _pickerView;
+    private string _pickerKey = "";
+    private double _pickerAt;
 
     private static readonly Color SpaceAmber = Color.FromHtml("#f5c04a");
     private static readonly Color Warn = new(1f, 0.7f, 0.42f);
@@ -226,6 +229,9 @@ public partial class PlanetDriver
                 if (events) _hud.PushEvent(line.Text, line.Tone switch { "bad" => HelmScreen.Red, "warn" => Warn, "good" => HelmScreen.Green, _ => HelmScreen.Sky });
             }
             _shipLogSeen = newest;
+            _shipLogUsed |= st.Log.Count > 0;
+            if (!_shipLogUsed) StatusDiffEvents(st, events); // the sim keeps no log (yet): say what changed
+            _statusSeen = st;
             if (_bandSeen is { } before && before != st.Band && events && !st.Crippled)
                 _hud.PushEvent($"Hull {BandName(st.Band).ToLowerInvariant()} ({st.Hull.ToFloat():0}%){(st.BandEffect.Length > 0 ? $": {st.BandEffect}" : "")}", BandColour(st.Band));
             _bandSeen = st.Band;
@@ -247,6 +253,35 @@ public partial class PlanetDriver
         {
             _awayDoneSeen = true;
             if (events) _hud.PushEvent($"Away team back from {SiteTitle(ev.SiteId)}: {ev.Outcome ?? "done"}{(ev.Result is { Length: > 0 } r ? $". {r}" : "")}", OutcomeColour(ev.Outcome));
+        }
+    }
+
+    private bool _shipLogUsed;
+    private ShipStatusView? _statusSeen;
+
+    /// <summary>Event lines from the difference between two status polls (only while the sim's ship log is empty, so
+    /// nothing is said twice): hull down / repaired, a system knocked out / back, crew injured / lost / back.</summary>
+    private void StatusDiffEvents(ShipStatusView now, bool events)
+    {
+        if (_statusSeen is not { } was || !events) return;
+        var name = Flagship?.Name ?? "The ship";
+        var before = Mathf.RoundToInt(was.Hull.ToFloat());
+        var after = Mathf.RoundToInt(now.Hull.ToFloat());
+        if (after < before) _hud.PushEvent($"{name}: hull −{before - after}% (now {after}%)", after < 25 ? HelmScreen.Red : Warn);
+        else if (after > before && (after == 100 || after == now.FieldRepairTo || after / 10 > before / 10))
+            _hud.PushEvent($"{name}: hull repaired to {after}%", HelmScreen.Green);
+        foreach (var d in now.Down)
+            if (was.Down.All(x => x.System != d.System)) _hud.PushEvent($"{SystemName(d.System)} knocked out: {SystemEffect(d.System)} (back in {SecondsTo(d.BackTick)} s)", HelmScreen.Red);
+        foreach (var d in was.Down)
+            if (now.Down.All(x => x.System != d.System)) _hud.PushEvent($"{SystemName(d.System)} back on line", HelmScreen.Green);
+        foreach (var c in now.Crew)
+        {
+            var old = was.Crew.FirstOrDefault(x => x.Division == c.Division);
+            if (old == null) continue;
+            var division = Divisions.FirstOrDefault(d => string.Equals(d.Id, c.Division, System.StringComparison.OrdinalIgnoreCase))?.Name ?? c.Division;
+            if (c.Lost > old.Lost) _hud.PushEvent($"{c.Lost - old.Lost} {division} crew lost", HelmScreen.Red);
+            if (c.Injured > old.Injured) _hud.PushEvent($"{c.Injured - old.Injured} {division} crew injured (back in a while)", Warn);
+            else if (c.Injured < old.Injured && c.Lost == old.Lost) _hud.PushEvent($"{old.Injured - c.Injured} {division} crew back on duty", HelmScreen.Green);
         }
     }
 
@@ -544,7 +579,18 @@ public partial class PlanetDriver
         else if (_pickSite != null && sys != null)
         {
             if (_system.FlagshipSite != _pickSite) _pickSite = null; // left the site
-            else picker = PickerView(sys, _pickSite);
+            else
+            {
+                // the sim's problem check (and who would go) 4×/s, or at once when the picks change
+                var key = $"{_pickSite}|{string.Join(",", _pickCrew)}";
+                if (_pickerView == null || key != _pickerKey || _clock - _pickerAt >= 0.25)
+                {
+                    _pickerView = PickerView(sys, _pickSite);
+                    _pickerKey = key;
+                    _pickerAt = _clock;
+                }
+                picker = _pickerView;
+            }
         }
         if (_dossier.IsOpen) picker = null;
         var screen = GetViewport().GetVisibleRect().Size;
