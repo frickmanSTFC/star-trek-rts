@@ -351,8 +351,12 @@ public sealed partial class MissionBook
                 foreach (var c in sys.Civilizations)
                     if (c.Living && options.Any(b => b.Id == c.BodyId)) return c.BodyId;
                 goto case "nearest_planet";
-            case "nearest_planet": // phase 4: the nearest other body that isn't a belt
-                return (Best(options.Where(b => Data?.SystemGenerator is not { } g || !g.IsBelt(b.ClassId)), FromShip, most: false) ?? nearest)?.Id;
+            case "nearest_planet": // phase 4: the nearest other body that isn't a belt (the flagship's own when it is the only one)
+            {
+                bool Planet(BodyDef b) => Data?.SystemGenerator is not { } g || !g.IsBelt(b.ClassId);
+                if (Best(options.Where(Planet), FromShip, most: false) is { } planet) return planet.Id;
+                return here != null && sys.Body(here) is { } own && Planet(own) && !exclude.Contains(here) ? here : nearest?.Id;
+            }
             default: // nearest_other
                 return nearest?.Id;
         }

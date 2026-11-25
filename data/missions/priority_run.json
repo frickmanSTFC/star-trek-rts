@@ -44,10 +44,8 @@
             { "marker": { "at": "hauler", "label": "Disabled freighter" } },
             { "marker": { "at": "port", "label": "Tow her here" } } ],
           "objectives": [
-            { "id": "alongside", "text": "Reach {hauler} and come alongside", "cond": { "space_site": { "site": "hauler", "state": "alongside" } },
-              "hint": "Set course for her ({hauler.distance} s), then COME ALONGSIDE: her reactor's clock starts once you are." },
-            { "id": "towing", "text": "Take her in tow", "cond": { "space_site": { "site": "hauler", "state": "towing" } },
-              "hint": "TAKE IN TOW (the tractor must work). Flights are slower with her on the line." },
+            { "id": "towing", "text": "Reach {hauler} and take her in tow", "cond": { "space_site": { "site": "hauler", "state": "towing" } },
+              "hint": "Set course for her ({hauler.distance} s), COME ALONGSIDE (her reactor's clock starts then) and TAKE IN TOW: the tractor must work, and flights are slower with her on the line." },
             { "id": "port", "text": "Tow her into orbit of {port} before her reactor fails", "cond": { "space_site": { "site": "hauler", "state": "delivered", "body": "port" } },
               "hint": "Set course for {port} with her in tow. The card counts her reactor down." } ],
           "next": "complete" } ],
