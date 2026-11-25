@@ -17,6 +17,7 @@ public sealed partial class MissionBook
     {
         if (_sim?.Surface is not { } s) return;
         if (SpaceAct(p, run, d, a)) return; // MissionSpace.cs: bind_body, bind_ship, place_beacon, load_cargo
+        if (SpaceJobAct(p, run, a)) return; // MissionSpaceJobs.cs: place_space_site, bind_site, damage, lose_crew, give_crew, hold_add
         switch (a.Kind)
         {
             case "message":
@@ -98,6 +99,7 @@ public sealed partial class MissionBook
     {
         if (_sim?.Surface is not { } s) return "";
         var data = _sim.Data;
+        if (SpaceJobReward(p, run, a) is { } spaceJob) return spaceJob; // MissionSpaceJobs.cs
         switch (a.Kind)
         {
             case "grant":
@@ -106,12 +108,21 @@ public sealed partial class MissionBook
                 foreach (var (id, amount) in a.Amounts)
                 {
                     if (id == data.PowerResource || !Has(data, id, out var r)) continue;
-                    var got = s.MissionGrant(_sim, p, r, amount);
+                    // A ship that never lands: into the player's stock (nothing to store it in); else the colony's storage.
+                    Fix64 got;
+                    if (SpaceChain && Def(run) is { } gd && InPool(gd))
+                    {
+                        _sim.Players[p].Stock.Add(r, amount);
+                        got = amount;
+                    }
+                    else got = s.MissionGrant(_sim, p, r, amount);
                     if (got > Fix64.Zero) lines.Add($"{Whole(got)} {data.Resources[r].Name}");
                 }
                 return string.Join(", ", lines);
             }
             case "research":
+                if (SpaceChain && Def(run) is { } rd && InPool(rd) && Sys is { } sys) // a ship that never lands: where observation research goes
+                    return sys.GiveSpaceResearch(_sim, p, a.N("points", Fix64.Zero) * _sim.FitOutFactor(p, FitOutRules.MissionResearch));
                 return s.MissionResearch(_sim, p, a.N("points", Fix64.Zero));
             case "reveal":
             {
@@ -168,6 +179,10 @@ public sealed partial class MissionBook
                 var ids = GameData.UnlockIds(a).Where(data.EveryBuildMenu.Contains).ToList();
                 return ids.Count > 0 ? "unlocks " + string.Join(", ", ids.Select(id => data.Building(id).Name)) : "";
             }
+            case "give_crew":
+                return $"{a.I("count", 1)} crew join ({data.FitOut?.Divisions.FirstOrDefault(x => x.Id == a.F("division"))?.Name ?? a.F("division")})";
+            case "hold_add":
+                return $"{a.I("count", 1)} × {HoldItemText(a.F("item"))}";
             default:
                 return "";
         }
@@ -190,6 +205,7 @@ public sealed partial class MissionBook
             var tiles = TilesOf(p, run, name);
             var b = run.Find(name);
             if (b != null && (b.Body != null || b.Ship > 0)) return SpaceFill(p, b, prop); // MissionSpace.cs
+            if (b is { Site: not null }) return SiteFill(p, b, prop); // MissionSpaceJobs.cs
             switch (prop)
             {
                 case "res":

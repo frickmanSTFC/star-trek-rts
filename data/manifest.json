@@ -102,7 +102,9 @@
       "maps/notes.json",
       "maps/mvp_duel.json",
       "maps/generator.json",
-      "maps/system.json"
+      "maps/system.json",
+      "maps/sites.json",
+      "maps/ship_status.json"
     ],
     "surfaces": [
       "surfaces/notes.json",
@@ -215,7 +217,8 @@
       "missions/long_survey.json",
       "missions/priority_run.json",
       "missions/watch_station.json",
-      "missions/envoy.json"
+      "missions/envoy.json",
+      "missions/space_jobs.json"
     ]
   }
 }

@@ -43,7 +43,7 @@ public sealed partial class GameData
     private void ValidateMissionReach(List<string> problems)
     {
         if (Missions is not { } data) return;
-        foreach (var chain in data.Chains)
+        foreach (var chain in data.Chains.Where(c => !c.Pool)) // a side-job pool (space_jobs) has no story to walk
         {
             if (chain.Space) ValidateSpaceReach(data, chain, problems);
             else new MissionReach(this, data, chain, problems).Walk();
@@ -51,7 +51,7 @@ public sealed partial class GameData
         // The same walk on the leanest landing stock a fit-out can give (only when the usual walk is clean, so nothing is said twice).
         if (problems.Count > 0 || LeanestFitOutStock() is not { } lean) return;
         var found = new List<string>();
-        foreach (var chain in data.Chains)
+        foreach (var chain in data.Chains.Where(c => !c.Pool)) // a side-job pool (space_jobs) has no story to walk
             if (!chain.Space) new MissionReach(this, data, chain, found, lean).Walk();
         foreach (var p in found) problems.Add($"With the leanest fit-out (every cargo line at its minimum): {p}");
     }

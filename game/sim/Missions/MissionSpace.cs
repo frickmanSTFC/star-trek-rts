@@ -9,7 +9,11 @@ namespace FinalFrontier.Sim.Missions;
 
 /// <summary>A space-chain marker: Kind "beacon" | "pickup" | "dropoff" | "target" | "ship"; BodyId (null for a ship);
 /// ShipId (-1 unless Kind is "ship"); Label for the plot.</summary>
-public sealed record SpaceMarker(string Kind, string? BodyId, int ShipId, string Label);
+public sealed record SpaceMarker(string Kind, string? BodyId, int ShipId, string Label)
+{
+    /// <summary>Space jobs: a marker on a space site (Kind "site"; BodyId null, ShipId -1).</summary>
+    public string? SiteId { get; init; }
+}
 
 /// <summary>Where a piece of mission cargo is: at its pick-up body, aboard the flagship, or delivered.</summary>
 public enum CargoState { Waiting, Aboard, Delivered }
@@ -268,8 +272,13 @@ public sealed partial class MissionBook
     /// the reference isn't a space binding (the surface marker runs instead).</summary>
     private bool SpaceMarker(int p, MissionRun run, MissionActionDef a)
     {
-        if (a.F("at") is not { } at || run.Find(at) is not { } b || (b.Body == null && b.Ship <= 0)) return false;
+        if (a.F("at") is not { } at || run.Find(at) is not { } b || (b.Body == null && b.Ship <= 0 && b.Site == null)) return false;
         var label = Fill(p, run, a.F("label") ?? "");
+        if (b.Site != null)
+        {
+            run.Markers.Add(new MarkerRun { Kind = "site", SpaceSite = b.Site, Label = label });
+            return true;
+        }
         run.Markers.Add(b.Body != null ? new MarkerRun { Kind = "target", Body = b.Body, Label = label } : new MarkerRun { Kind = "ship", Ship = b.Ship, Label = label });
         return true;
     }
@@ -430,6 +439,12 @@ public sealed partial class MissionBook
             foreach (var m in run.Markers)
             {
                 if (!m.InSpace) continue;
+                if (m.SpaceSite != null)
+                {
+                    if (sys.Site(m.SpaceSite) != null && sys.SiteKnowledgeOf(player, m.SpaceSite) != SiteKnowledge.Spent)
+                        list.Add(new SpaceMarker("site", null, -1, m.Label) { SiteId = m.SpaceSite });
+                    continue;
+                }
                 if (m.Ship > 0)
                 {
                     if (sys.FindShip(m.Ship) is not { } s) continue;

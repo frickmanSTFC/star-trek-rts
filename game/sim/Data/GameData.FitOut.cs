@@ -116,6 +116,8 @@ public sealed partial class GameData
                 Posts = I(c, "posts", where),
                 Probes = I(c, "probes", where),
                 ShockPoints = I(c, "shock_points", where),
+                PatchKits = I(c, "patch_kits", where),
+                Medical = I(c, "medical", where),
             });
         }
 
@@ -245,7 +247,8 @@ public sealed partial class GameData
                 if (!_surfaceUnits.ContainsKey(l.Unit)) problems.Add($"{where}: unknown surface unit '{l.Unit}'.");
                 else if (IsAerialUnit(l.Unit)) problems.Add($"{where}: {l.Unit} flies from a pad; it can't land with the colony (load it as stock).");
             }
-            if (l.Satellites < 0 || l.Research < 0 || l.SystemSatellites < 0 || l.Posts < 0 || l.Probes < 0) problems.Add($"{where}: satellites, research, system_satellites, posts and probes can't be negative.");
+            if (l.Satellites < 0 || l.Research < 0 || l.SystemSatellites < 0 || l.Posts < 0 || l.Probes < 0 || l.PatchKits < 0 || l.Medical < 0)
+                problems.Add($"{where}: satellites, research, system_satellites, posts, probes, patch_kits and medical can't be negative.");
             foreach (var e in l.Levers)
             {
                 if (!leverIds.Contains(e.Lever)) problems.Add($"{where}: levers: '{e.Lever}' is not one of the levers.");
@@ -255,12 +258,12 @@ public sealed partial class GameData
             // What lands with the colony can't ride a ship that never lands, and what acts in the star system only on such a ship.
             if (l.Space && (l.Stock.Count > 0 || l.Unit.Length > 0 || l.Satellites > 0 || l.Research > 0))
                 problems.Add($"{where}: a space line never lands, so it can't give stock, a unit, survey satellites or research.");
-            if (!l.Space && (l.SystemSatellites > 0 || l.Posts > 0 || l.Probes > 0 || l.ShockPoints != 0))
-                problems.Add($"{where}: system_satellites, posts, probes and shock_points are for ships that never land (\"space\": true).");
+            if (!l.Space && (l.SystemSatellites > 0 || l.Posts > 0 || l.Probes > 0 || l.ShockPoints != 0 || l.PatchKits > 0 || l.Medical > 0))
+                problems.Add($"{where}: system_satellites, posts, probes, shock_points, patch_kits and medical are for ships that never land (\"space\": true).");
             if ((long)l.ShockPoints * System.Math.Max(0, l.Max) < -100 || l.ShockPoints > 100) problems.Add($"{where}: shock_points must stay within 100 points for a full load.");
             if (l.Stock.Count == 0 && l.Unit.Length == 0 && l.Satellites == 0 && l.Research == 0 && l.Levers.Count == 0
-                && l.SystemSatellites == 0 && l.Posts == 0 && l.Probes == 0 && l.ShockPoints == 0)
-                problems.Add($"{where}: it gives nothing (stock, unit, satellites, research, levers, system_satellites, posts, probes or shock_points).");
+                && l.SystemSatellites == 0 && l.Posts == 0 && l.Probes == 0 && l.ShockPoints == 0 && l.PatchKits == 0 && l.Medical == 0)
+                problems.Add($"{where}: it gives nothing (stock, unit, satellites, research, levers, system_satellites, posts, probes, shock_points, patch_kits or medical).");
         }
         foreach (var g in f.Groups)
             foreach (var space in new[] { false, true })

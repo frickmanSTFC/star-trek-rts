@@ -58,8 +58,16 @@ public sealed class SystemShip
     /// <summary>An allied native ship (<see cref="AllyOf"/> ≥ 0): Owner -1, follows its player's orders.</summary>
     public bool IsAlly => AllyOf >= 0;
 
-    /// <summary>In flight (not in orbit of anything).</summary>
-    public bool InFlight => AtBody == null;
+    /// <summary>In flight: between places (not in orbit of a body and not holding at a space site).</summary>
+    public bool InFlight => AtBody == null && AtSite == null;
+
+    /// <summary>Space jobs (docs/space-jobs-contract.md): the space site it holds position at (then AtBody is null and it is
+    /// not in flight), or null.</summary>
+    public string? AtSite { get; internal set; }
+
+    /// <summary>In flight from / to a space site (instead of FromBody / ToBody), or null.</summary>
+    public string? FromSite { get; internal set; }
+    public string? ToSite { get; internal set; }
 
     /// <summary>When its long-range scanners are ready again (sim tick).</summary>
     public long ScanReadyTick { get; internal set; }
@@ -138,6 +146,13 @@ public sealed class SystemShip
         {
             Text(ref h, TradeHome);
             h.Add(TradeArriveTick);
+        }
+        if (AtSite != null || FromSite != null || ToSite != null) // space sites (games that never fly to one keep their hashes)
+        {
+            h.Add("site");
+            Text(ref h, AtSite);
+            Text(ref h, FromSite);
+            Text(ref h, ToSite);
         }
         if (Speed != Fix64.One) // a picked ship's speed (games without a ship pick keep their hashes)
         {
@@ -248,7 +263,7 @@ public sealed partial class StarSystemState
     /// <summary>This player's long-range scan range (<see cref="ScanRange"/> × the scan_range lever: the Explorer's perk).</summary>
     public Fix64 ScanRangeFor(int player)
     {
-        var f = Fit(player, FitOutRules.ScanRange);
+        var f = Fit(player, FitOutRules.ScanRange) * ScanReachFactor(player); // ShipStatus.cs: a damaged hull reaches less far
         return f == Fix64.One ? ScanRange : ScanRange * f;
     }
 
@@ -266,6 +281,7 @@ public sealed partial class StarSystemState
     {
         _sim = sim;
         InitCivilizations(sim.Data); // Civilizations.cs: the sites are rolled once, with the system
+        InitSpaceSites(sim.Data); // SpaceSites.cs: the space sites too
     }
 
     // ---------------------------------------------------------------- the contract
@@ -371,11 +387,15 @@ public sealed partial class StarSystemState
     public FixVec2 ShipPosition(SystemShip ship, long tick)
     {
         if (ship.AtBody != null) return Body(ship.AtBody)?.Position ?? FixVec2.Zero;
-        var from = ship.FromBody != null ? Body(ship.FromBody) : null;
-        var to = ship.ToBody != null ? Body(ship.ToBody) : null;
-        if (from == null || to == null) return to?.Position ?? from?.Position ?? FixVec2.Zero;
-        return from.Position + (to.Position - from.Position) * FlightShare(ship, tick);
+        if (ship.AtSite != null) return SitePlace(ship.AtSite) ?? FixVec2.Zero;
+        var from = ship.FromSite != null ? SitePlace(ship.FromSite) : Body(ship.FromBody)?.Position;
+        var to = ship.ToSite != null ? SitePlace(ship.ToSite) : Body(ship.ToBody)?.Position;
+        if (from is not { } a || to is not { } b) return to ?? from ?? FixVec2.Zero;
+        return a + (b - a) * FlightShare(ship, tick);
     }
+
+    /// <summary>Where a space site is (null when there is no such site).</summary>
+    private FixVec2? SitePlace(string id) => Site(id)?.Position;
 
     /// <summary>Flight time between two bodies in ticks (impulse; 20-90 s by distance: maps/system.json travel).</summary>
     public long TravelTicks(string fromBody, string toBody)
@@ -383,12 +403,18 @@ public sealed partial class StarSystemState
         var a = Body(fromBody);
         var b = Body(toBody);
         if (a == null || b == null || a.Id == b.Id) return 0;
+        return TravelTicks(a.Position, b.Position);
+    }
+
+    /// <summary>Flight time between two places on the plot in ticks (the same model as between bodies; space sites use it).</summary>
+    public long TravelTicks(FixVec2 from, FixVec2 to)
+    {
         var r = Data?.SystemRules;
         var min = r?.TravelMinSeconds ?? 20;
         var max = r?.TravelMaxSeconds ?? 90;
         var near = r?.TravelNear ?? Fix64.Zero;
         var far = r?.TravelFar ?? Fix64.FromInt(1000);
-        var share = Fix64.Clamp((FixVec2.Distance(a.Position, b.Position) - near) / (far - near), Fix64.Zero, Fix64.One);
+        var share = Fix64.Clamp((FixVec2.Distance(from, to) - near) / (far - near), Fix64.Zero, Fix64.One);
         var seconds = Fix64.FromInt(min) + Fix64.FromInt(max - min) * share;
         return System.Math.Max(1L, (seconds * Simulation.TickRate).FloorToInt());
     }
@@ -396,12 +422,20 @@ public sealed partial class StarSystemState
     /// <summary>Flight time of this ship from one body to another in ticks: <see cref="TravelTicks(string, string)"/>
     /// divided by the ship's <see cref="SystemShip.Speed"/> (a picked ship's speed; at least 1 tick), times its owner's
     /// fit-out flight_time lever (engineering crew, reaction mass, the Builder's perk; 1 with none).</summary>
-    public long TravelTicksFor(SystemShip ship, string fromBody, string toBody)
+    public long TravelTicksFor(SystemShip ship, string fromBody, string toBody) => ShipTravel(ship, TravelTicks(fromBody, toBody));
+
+    /// <summary>This ship's flight time between two places on the plot (TravelTicks(FixVec2, FixVec2) with the same speed,
+    /// fit-out and ship-status factors as <see cref="TravelTicksFor(SystemShip, string, string)"/>).</summary>
+    public long TravelTicksFor(SystemShip ship, FixVec2 from, FixVec2 to) => ShipTravel(ship, FixVec2.Distance(from, to) == Fix64.Zero ? 0 : TravelTicks(from, to));
+
+    /// <summary>A flight's ticks for this ship: ÷ its speed, × its owner's flight_time lever, × its status (hull band,
+    /// engines down, fewer than half its crew: ShipStatus.cs; exactly 1 on a sound ship).</summary>
+    private long ShipTravel(SystemShip ship, long ticks)
     {
-        var ticks = TravelTicks(fromBody, toBody);
         if (ticks > 0 && ship.Speed != Fix64.One && ship.Speed > Fix64.Zero)
             ticks = System.Math.Max(1L, (Fix64.FromInt((int)System.Math.Min(int.MaxValue, ticks)) / ship.Speed).FloorToInt());
-        return Scaled(ticks, Fit(ship.Owner, FitOutRules.FlightTime));
+        ticks = Scaled(ticks, Fit(ship.Owner, FitOutRules.FlightTime));
+        return ticks > 0 ? Scaled(ticks, StatusFlightFactor(ship)) : ticks;
     }
 
     /// <summary>Why the ship can't set course there now, or null.</summary>
@@ -412,9 +446,10 @@ public sealed partial class StarSystemState
         if (ship.Owner != player || player < 0) return "not your ship";
         if (StarfleetHoldProblem(player) is { } held) return held;
         if (bodyId == null || Body(bodyId) == null || KnowledgeOf(player, bodyId) == BodyKnowledge.Unknown) return "no such body";
-        if (ship.AtBody == null)
-            return $"in flight to {NameFor(player, ship.ToBody!)} (arrives in {SecondsUntil(ship.ArriveTick)} s)";
+        if (ship.InFlight)
+            return $"in flight to {FlightGoalName(player, ship)} (arrives in {SecondsUntil(ship.ArriveTick)} s)";
         if (ship.AtBody == bodyId) return $"already in orbit of {NameFor(player, bodyId)}";
+        if (CrippledProblem(player, ship) is { } crippled) return crippled; // ShipStatus.cs
         return null;
     }
 
@@ -540,13 +575,16 @@ public sealed partial class StarSystemState
     }
 
     /// <summary>Seconds (rounded up) until a ship in flight arrives; 0 in orbit.</summary>
-    public int EtaSeconds(SystemShip ship, long tick) => ship.AtBody != null ? 0 : (int)System.Math.Max(0, (ship.ArriveTick - tick + Simulation.TickRate - 1) / Simulation.TickRate);
+    public int EtaSeconds(SystemShip ship, long tick) => !ship.InFlight ? 0 : (int)System.Math.Max(0, (ship.ArriveTick - tick + Simulation.TickRate - 1) / Simulation.TickRate);
 
     /// <summary>Direction of travel (unit vector) of a ship in flight, or zero in orbit.</summary>
     public FixVec2 Heading(SystemShip ship)
     {
-        if (ship.AtBody != null || Body(ship.FromBody) is not { } a || Body(ship.ToBody) is not { } b) return FixVec2.Zero;
-        var d = b.Position - a.Position;
+        if (!ship.InFlight) return FixVec2.Zero;
+        var from = ship.FromSite != null ? SitePlace(ship.FromSite) : Body(ship.FromBody)?.Position;
+        var to = ship.ToSite != null ? SitePlace(ship.ToSite) : Body(ship.ToBody)?.Position;
+        if (from is not { } a2 || to is not { } b2) return FixVec2.Zero;
+        var d = b2 - a2;
         return d.LengthSquared() > Fix64.Zero ? d.Normalized() : FixVec2.Zero;
     }
 
@@ -567,7 +605,7 @@ public sealed partial class StarSystemState
         if (ship == null) return "no such ship";
         if (ship.Owner != player || player < 0) return "not your ship";
         if (StarfleetHoldProblem(player) is { } held) return held;
-        if (ship.AtBody == null) return "the ship is in flight (scan from orbit)";
+        if (ship.InFlight) return "the ship is in flight (scan from orbit)";
         // A sensor probe from the fit-out's hold scans while the scanners recharge.
         if (ship.ScanReadyTick > Now && (_sim?.FitOutProbes(player) ?? 0) <= 0) return $"the long-range scanners are recharging ({SecondsUntil(ship.ScanReadyTick)} s)";
         return null;
@@ -638,6 +676,7 @@ public sealed partial class StarSystemState
             });
         if (home != null) Chart(slot, home, report: false); // the home body is known from the start: no achievement event
         AddCivPlayer(slot, faction); // Civilizations.cs
+        AddShipStatus(sim, slot); // ShipStatus.cs: the flagship's hull, systems, crew and hold
         Version++;
     }
 
@@ -724,7 +763,11 @@ public sealed partial class StarSystemState
                     return;
                 }
                 var ship = FindShip(course.ShipId)!;
-                Depart(ship, course.BodyId, sim.Tick, TravelTicksFor(ship, ship.AtBody!, course.BodyId));
+                var ticks = ship.AtBody != null ? TravelTicksFor(ship, ship.AtBody, course.BodyId)
+                    : TravelTicksFor(ship, ShipPosition(ship, sim.Tick), Body(course.BodyId)!.Position);
+                if (ship.AtSite != null)
+                    LeaveSite(sim, ship, $"set course for {NameFor(course.Player, course.BodyId)}"); // SpaceSites.cs: calls the work there off
+                Depart(ship, course.BodyId, sim.Tick, System.Math.Max(1L, ticks));
                 return;
             }
             case LongRangeScanCommand scan:
@@ -739,6 +782,7 @@ public sealed partial class StarSystemState
                 // recharge runs on as it was; otherwise the scanners do it and recharge.
                 var probe = ship.ScanReadyTick > sim.Tick && sim.UseProbe(scan.Player);
                 foreach (var id in ScanTargets(ship)) Identify(scan.Player, id);
+                DetectSites(scan.Player, ShipPosition(ship, sim.Tick), ScanRangeFor(scan.Player)); // SpaceSites.cs
                 ship.LastScanTick = sim.Tick;
                 Version++;
                 if (!probe) ship.ScanReadyTick = sim.Tick + ScanCooldownTicksFor(scan.Player);
@@ -775,11 +819,17 @@ public sealed partial class StarSystemState
         var tick = sim.Tick;
         foreach (var ship in _ships)
         {
-            if (ship.AtBody == null && tick >= ship.ArriveTick)
+            if (ship.InFlight && ship.ToSite != null && tick >= ship.ArriveTick)
+            {
+                ArriveAtSite(sim, ship); // SpaceSites.cs: holds position there (not in orbit of anything)
+                continue;
+            }
+            if (ship.InFlight && tick >= ship.ArriveTick)
             {
                 ship.AtBody = ship.ToBody;
                 ship.FromBody = null;
                 ship.ToBody = null;
+                ship.FromSite = null;
                 Version++;
                 if (ship.Owner >= 0 && ship.AtBody != null) BeginSweep(ship, tick);
                 if (ship.Owner >= 0 && ship.AtBody != null && FlagshipOf(ship.Owner) == ship) sim.Achievements.FlagshipArrived(ship.Owner, ship.AtBody);
@@ -806,6 +856,7 @@ public sealed partial class StarSystemState
         }
         StepCivilizations(sim); // Civilizations.cs
         StepContact(sim); // Contact.cs
+        StepSpaceJobs(sim); // SpaceSites.cs, ShipStatus.cs, AwayTeam.cs
     }
 
     internal void AddToHash(ref StateHasher h)
@@ -828,6 +879,7 @@ public sealed partial class StarSystemState
             h.Add(s.PlacedTick);
         }
         AddCivsToHash(ref h); // Civilizations.cs
+        AddSpaceJobsToHash(ref h); // SpaceSites.cs
     }
 
     // ---------------------------------------------------------------- helpers
@@ -847,6 +899,9 @@ public sealed partial class StarSystemState
         Version++;
         ship.SweepBody = null; // leaving orbit calls the sweep off
         ship.FromBody = ship.AtBody;
+        ship.FromSite = ship.AtSite;
+        ship.AtSite = null;
+        ship.ToSite = null;
         ship.ToBody = to;
         ship.AtBody = null;
         ship.DepartTick = tick;

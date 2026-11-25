@@ -77,6 +77,10 @@ public sealed record FitOutCargoLine(string Id, string Name, string Group, int C
     public int Posts { get; init; }
     public int Probes { get; init; }
     public int ShockPoints { get; init; }
+    /// <summary>Space jobs (docs/space-jobs-contract.md): hull patch kits one item puts in the hold.</summary>
+    public int PatchKits { get; init; }
+    /// <summary>Space jobs: medical stores one item puts in the hold (injuries shorter; ship_status crew).</summary>
+    public int Medical { get; init; }
 
     public IReadOnlyList<FitOutStock> Stock { get; init; } = Array.Empty<FitOutStock>();
     public string Unit { get; init; } = "";
