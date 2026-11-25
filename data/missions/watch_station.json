@@ -45,19 +45,17 @@
       "debrief": "Manifest checks out: deuterium, ore and a crate of Andorian ale nobody declared. We let them off with a warning." },
 
     { "id": "watch_rogue_rock", "chain": "watch_station", "kind": "main", "title": "Rogue Rock", "giver": "patrol",
-      "briefing": "Hale. Tracking has a rock on a collision course with {target}, and there are people there. Catch {rock}, come alongside and lean on it with the tractor until it misses. Charges are quicker, if you trust your boarding party with them.",
+      "briefing": "Hale. Tracking has {rock} on a collision course with {target}, and there are people there. Catch it, come alongside and lean on it with the tractor until it misses. Charges are quicker, if you trust your boarding party with them.",
       "stages": [
         { "id": "turn", "title": "Turn it aside", "on_lost": "turn",
           "on_enter": [
-            { "bind_body": { "as": "target", "pick": "civ" } },
-            { "place_space_site": { "kind": "rogue_asteroid", "bind": "rock", "target": "target", "again": true, "max": 100 } },
+            { "bind_body": { "as": "target", "pick": "inhabited" } },
+            { "place_space_site": { "kind": "rogue_asteroid", "bind": "rock", "target": "target", "again": true, "known": true, "max": 100 } },
             { "marker": { "at": "rock", "label": "Rogue rock" } },
             { "marker": { "at": "target", "label": "In its path" } } ],
           "objectives": [
-            { "id": "scan", "text": "Catch {rock} and identify it", "cond": { "space_site": { "site": "rock", "state": "identified" } },
-              "hint": "It is moving: set course for it, then SCAN. The card counts down to impact." },
             { "id": "turned", "text": "Turn {rock} aside before it strikes {target}", "cond": { "space_site": { "site": "rock", "state": "deflected" } },
-              "hint": "COME ALONGSIDE, then PUSH IT ASIDE with the tractor (quicker with Engineering), or send an AWAY TEAM to plant charges." } ],
+              "hint": "It is moving: set course for it (the card counts down to impact). COME ALONGSIDE, then PUSH IT ASIDE with the tractor (quicker with Engineering), or send an AWAY TEAM to plant charges." } ],
           "next": "complete" } ],
       "rewards": [ { "grant": { "latinum": 40 } } ],
       "debrief": "It will miss {target} by a comfortable margin now. Nobody down there will ever know how close it came, which is how Hale likes it." },
@@ -114,7 +112,7 @@
         { "id": "inspect", "title": "Inspect her",
           "on_enter": [ { "marker": { "at": "smuggler", "label": "Smuggler" } } ],
           "objectives": [
-            { "id": "scan", "text": "Catch {smuggler} and identify her", "cond": { "space_site": { "site": "smuggler", "state": "identified" } },
+            { "id": "scan", "text": "Catch her and identify her", "cond": { "space_site": { "site": "smuggler", "state": "identified" } },
               "hint": "Set course for her (if she runs, follow) and SCAN her." },
             { "id": "alongside", "text": "Come alongside", "cond": { "space_site": { "site": "smuggler", "state": "alongside" } },
               "hint": "COME ALONGSIDE once she has stopped." },

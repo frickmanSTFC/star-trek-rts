@@ -217,6 +217,9 @@ public sealed partial class StarSystemState
     /// <summary>A mission names a site to the player (at least Detected).</summary>
     internal void MissionDetectSite(int player, string siteId) => SetKnowledge(player, siteId, SiteKnowledge.Detected);
 
+    /// <summary>A mission says what a site is (place_space_site known: true): Identified, named on the card.</summary>
+    internal void MissionIdentifySite(int player, string siteId) => SetKnowledge(player, siteId, SiteKnowledge.Identified);
+
     /// <summary>A mission puts something in the hold (hold_add: patch_kit, medical, salvage:&lt;id&gt;).</summary>
     internal void MissionHoldAdd(int player, string item, int count)
     {

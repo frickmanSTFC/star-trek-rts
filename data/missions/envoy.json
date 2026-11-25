@@ -33,6 +33,7 @@
               "hint": "Set course for the probe, hold there and DECODE THE PATTERN (Science crew; the work is kept if you leave)." } ],
           "next": "answer" },
         { "id": "answer", "title": "Answer it",
+          "on_enter": [ { "marker": { "at": "probe", "label": "The probe" } } ],
           "objectives": [
             { "id": "answered", "text": "Answer the probe", "cond": { "space_site": { "site": "probe", "state": "answered" } },
               "hint": "ANSWER IT: three choices, a minute each (the first is taken when time runs out). Stay with the probe until the answer is sent." },
@@ -80,19 +81,21 @@
       "stages": [
         { "id": "find", "title": "Find her",
           "on_enter": [
-            { "place_space_site": { "kind": "known_derelict", "variant": "native", "bind": "lost", "near": "world", "min": 90, "max": 160, "cold_reactor": true } },
+            { "place_space_site": { "kind": "known_derelict", "variant": "native", "bind": "lost", "near": "world", "min": 90, "max": 160, "cold_reactor": true, "known": true } },
             { "marker": { "at": "lost", "label": "Their lost ship" } } ],
           "objectives": [
-            { "id": "scan", "text": "Reach {lost} and identify her", "cond": { "space_site": { "site": "lost", "state": "identified" } },
-              "hint": "Set course for her and SCAN her from within range." },
-            { "id": "alongside", "text": "Come alongside", "cond": { "space_site": { "site": "lost", "state": "alongside" } },
-              "hint": "COME ALONGSIDE: her reactor is cold, there is no clock." } ],
+            { "id": "alongside", "text": "Reach {lost} and come alongside", "cond": { "space_site": { "site": "lost", "state": "alongside" } },
+              "hint": "Set course for her ({lost.distance} s) and COME ALONGSIDE: her reactor is cold, there is no clock." } ],
           "next": "choose" },
         { "id": "choose", "title": "Tow her home, or study her", "timer_seconds": 90, "on_timeout": "tow",
+          "on_enter": [ { "marker": { "at": "lost", "label": "Their lost ship" } } ],
           "choices": [
             { "id": "tow", "text": "Tow her home to {world}", "next": "tow" },
             { "id": "study", "text": "Study her first (they may call it an incident)", "next": "study" } ] },
         { "id": "tow", "title": "Bring her home",
+          "on_enter": [
+            { "marker": { "at": "lost", "label": "Their lost ship" } },
+            { "marker": { "at": "world", "label": "Home" } } ],
           "objectives": [
             { "id": "towing", "text": "Take her in tow", "cond": { "space_site": { "site": "lost", "state": "towing" } },
               "hint": "TAKE IN TOW from alongside (come alongside again if you left her)." },
@@ -109,6 +112,7 @@
               "hint": "Stay in orbit of {world}." } ],
           "next": "complete" },
         { "id": "study", "title": "Study her",
+          "on_enter": [ { "marker": { "at": "lost", "label": "Their lost ship" } } ],
           "objectives": [
             { "id": "powered", "text": "Restore power aboard", "cond": { "space_site": { "site": "lost", "state": "powered" } },
               "hint": "RESTORE POWER (Engineering work, or a patch kit at once). Come alongside again first if you left her." },
@@ -118,7 +122,8 @@
         { "id": "studied", "title": "What they make of it",
           "on_enter": [
             { "civ": { "at": "world", "incident": 30 } },
-            { "message": { "giver": "envoy", "channel": "comms", "text": "Osei: The science team has her logs. Now we tell {world} what we did, and hope they see it our way." } } ],
+            { "message": { "giver": "envoy", "channel": "comms", "text": "Osei: The science team has her logs. Now we tell {world} what we did, and hope they see it our way." } },
+            { "marker": { "at": "lost", "label": "Their lost ship" } } ],
           "objectives": [
             { "id": "hold", "text": "Hold position at {lost} while the data is copied", "cond": { "space_site": { "site": "lost", "state": "at" } }, "hold_seconds": 15,
               "hint": "Stay with her a little longer." } ],

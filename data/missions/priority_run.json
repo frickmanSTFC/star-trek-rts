@@ -39,15 +39,13 @@
       "stages": [
         { "id": "haul", "title": "Tow her in", "on_lost": "haul",
           "on_enter": [
-            { "place_space_site": { "kind": "known_derelict", "variant": "earth", "bind": "hauler", "near": "ship", "min": 80, "max": 160, "again": true } },
-            { "bind_body": { "as": "port", "pick": "nearest_other", "near": "hauler" } },
+            { "place_space_site": { "kind": "known_derelict", "variant": "earth", "bind": "hauler", "near": "ship", "min": 80, "max": 160, "again": true, "known": true } },
+            { "bind_body": { "as": "port", "pick": "nearest_planet", "near": "hauler" } },
             { "marker": { "at": "hauler", "label": "Disabled freighter" } },
             { "marker": { "at": "port", "label": "Tow her here" } } ],
           "objectives": [
-            { "id": "scan", "text": "Reach {hauler} and identify her", "cond": { "space_site": { "site": "hauler", "state": "identified" } },
-              "hint": "Set course for the freighter, then SCAN her from within range." },
-            { "id": "alongside", "text": "Come alongside", "cond": { "space_site": { "site": "hauler", "state": "alongside" } },
-              "hint": "COME ALONGSIDE: her reactor's clock starts once you are." },
+            { "id": "alongside", "text": "Reach {hauler} and come alongside", "cond": { "space_site": { "site": "hauler", "state": "alongside" } },
+              "hint": "Set course for her ({hauler.distance} s), then COME ALONGSIDE: her reactor's clock starts once you are." },
             { "id": "towing", "text": "Take her in tow", "cond": { "space_site": { "site": "hauler", "state": "towing" } },
               "hint": "TAKE IN TOW (the tractor must work). Flights are slower with her on the line." },
             { "id": "port", "text": "Tow her into orbit of {port} before her reactor fails", "cond": { "space_site": { "site": "hauler", "state": "delivered", "body": "port" } },
@@ -78,15 +76,13 @@
       "stages": [
         { "id": "rescue", "title": "Bring them in", "on_lost": "rescue",
           "on_enter": [
-            { "place_space_site": { "kind": "lifepods", "variant": "liner", "bind": "liner", "pods": 12, "hold_room": true, "again": true, "max": 100 } },
+            { "place_space_site": { "kind": "lifepods", "variant": "liner", "bind": "liner", "pods": 12, "hold_room": true, "again": true, "known": true, "max": 100 } },
             { "bind_site": { "as": "station", "kind": "station", "pick": "nearest" } },
             { "marker": { "at": "liner", "label": "Lifepods" } },
             { "marker": { "at": "station", "label": "Set them down here" } } ],
           "objectives": [
-            { "id": "scan", "text": "Reach {liner} and fix the beacons", "cond": { "space_site": { "site": "liner", "state": "identified" } },
-              "hint": "Set course for the pods and SCAN them." },
             { "id": "picked", "text": "Pick up 6 of the lifepods", "cond": { "space_site": { "site": "liner", "state": "picked", "count": 6 } },
-              "hint": "PICK UP PODS (least air first). When the hold is full, fly to {station} and set the survivors down (ship status hold: DROP), then come back." },
+              "hint": "Set course for {liner} and PICK UP PODS (least air first). When the hold is full, fly to {station} and set the survivors down (ship status hold: DROP), then come back." },
             { "id": "home", "text": "Set every survivor down at {station}", "cond": { "all": [ { "space_site": { "site": "liner", "state": "picked", "count": 6 } }, { "not": { "hold": { "item": "survivors", "count": 1 } } } ] },
               "hint": "At {station}: ship status, hold, DROP the survivors." },
             { "id": "all", "text": "Pick up all twelve", "cond": { "space_site": { "site": "liner", "state": "picked", "count": 12 } }, "optional": true } ],

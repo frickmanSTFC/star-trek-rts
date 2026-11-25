@@ -39,14 +39,14 @@
       "debrief": "Beautiful data. Storm bands, rings of ice, magnetic fields like nothing on the charts at home." },
 
     { "id": "wreck_at_the_edge", "chain": "long_survey", "kind": "main", "title": "Wreck at the Edge", "giver": "science",
-      "briefing": "Reyes. The long-range picture has a smear past the last orbit, where nothing should be: {field}. It reads like a ship that came apart. Fly out, sweep the debris and bring back her black box: whoever she was, she came a long way to end up there.",
+      "briefing": "Reyes. The long-range picture has a smear past the last orbit, where nothing should be. It reads like a ship that came apart. Fly out, sweep the debris and bring back her black box: whoever she was, she came a long way to end up there.",
       "stages": [
         { "id": "find", "title": "Find the debris",
           "on_enter": [
             { "place_space_site": { "kind": "debris", "variant": "freighter", "bind": "field", "near": "edge", "min": 40, "max": 90 } },
             { "marker": { "at": "field", "label": "Wreck at the edge" } } ],
           "objectives": [
-            { "id": "scan", "text": "Fly out to {field} and identify it", "cond": { "space_site": { "site": "field", "state": "identified" } },
+            { "id": "scan", "text": "Fly out to the contact past the last orbit and identify it", "cond": { "space_site": { "site": "field", "state": "identified" } },
               "hint": "Set course for the contact past the last orbit ({field.distance} s), then SCAN it from within range." } ],
           "next": "sweep" },
         { "id": "sweep", "title": "Sweep for the black box",

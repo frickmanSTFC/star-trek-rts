@@ -221,6 +221,7 @@ public sealed partial class MissionBook
                 var site = sys.SpawnSite(kind, a.F("variant"), near, min, max, a.I("pods", 0), BodyRef(run, a.F("target")));
                 if (site == null) return true;
                 if (kind == SiteKind.HiddenShip) sys.MissionHunt(p, site.Id); // never detected: the player's scans find it
+                else if (a.F("known") == "true") sys.MissionIdentifySite(p, site.Id); // the mission says what it is (named on the card)
                 else sys.MissionDetectSite(p, site.Id);
                 if (kind == SiteKind.AlienProbe) sys.MissionFollow(p, site.Id);
                 if (a.F("hold_room") == "true") sys.MissionHoldRoom(site.Id);

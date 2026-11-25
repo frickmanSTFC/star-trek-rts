@@ -125,7 +125,7 @@ public sealed partial class GameData
         ["place_beacon"] = new[] { "at", "label" },
         ["load_cargo"] = new[] { "id", "label", "from", "to" },
         // Space jobs (Missions/MissionSpaceJobs.cs).
-        ["place_space_site"] = new[] { "kind", "variant", "bind", "near", "min", "max", "again", "pods", "hold_room", "target", "cold_reactor" },
+        ["place_space_site"] = new[] { "kind", "variant", "bind", "near", "min", "max", "again", "pods", "hold_room", "target", "cold_reactor", "known" },
         ["hand_over"] = new[] { "site" },
         ["civ"] = new[] { "at", "awareness", "incident", "settle" },
         ["bind_site"] = new[] { "as", "kind", "pick" },
@@ -140,7 +140,8 @@ public sealed partial class GameData
     /// bodies in a system without one); civ = the
     /// living civilization's world; random_other = any other body, by the hash; nearest_other = the nearest other body;
     /// here = where the flagship is. Every pick but here skips the flagship's body and the excluded ones.</summary>
-    public static readonly IReadOnlyList<string> MissionBodyPicks = new[] { "farthest", "outermost_moon", "gas_or_ice", "civ", "random_other", "nearest_other", "here" };
+    public static readonly IReadOnlyList<string> MissionBodyPicks = new[] { "farthest", "outermost_moon", "gas_or_ice", "civ", "random_other", "nearest_other", "here",
+        "nearest_planet", "inhabited" };
 
     /// <summary>bind_ship picks: freighter = a civilian freighter of the traffic; departing = the civilian ship whose next
     /// arrival the flagship can beat by the most.</summary>
@@ -883,7 +884,7 @@ public sealed partial class GameData
                         problems.Add($"{aw}: near '{near}' is not one of {string.Join(", ", MissionSiteNear)} or a body or space-site binding.");
                 }
                 if (a.I("max", 0) <= 0 || a.I("max", 0) < a.I("min", 0) || a.I("max", 0) > 2000) problems.Add($"{aw}: needs max (map units, 1..2000) at least min.");
-                foreach (var f in new[] { "again", "hold_room", "cold_reactor" })
+                foreach (var f in new[] { "again", "hold_room", "cold_reactor", "known" })
                     if (a.F(f) is { } fv && fv is not ("true" or "false")) problems.Add($"{aw}: {f} is true or false.");
                 var placed = SpaceSiteRules.KindOf(a.F("kind"));
                 if (a.F("pods") != null && (placed != Space.SiteKind.Lifepods || a.I("pods", 0) is < 1 or > 31)) problems.Add($"{aw}: pods (1..31) only for lifepods.");
@@ -894,6 +895,7 @@ public sealed partial class GameData
                     CheckSpaceRef(tg, BodyRefTag, aw, bound, problems);
                 }
                 if (a.F("cold_reactor") != null && (placed is not { } ck || SpaceSites?.Kind(ck)?.Reactor == null)) problems.Add($"{aw}: cold_reactor only for a kind with a reactor.");
+                if (a.F("known") == "true" && placed == Space.SiteKind.HiddenShip) problems.Add($"{aw}: a hidden ship can't be known (the player's scans find it).");
                 if (a.F("bind") is not { } b || !SnakeId.IsMatch(b) || MissionBuiltInRefs.Contains(b)) problems.Add($"{aw}: needs bind (a lower-case id, not base/hub).");
                 else
                 {
