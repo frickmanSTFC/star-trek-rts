@@ -172,7 +172,7 @@ def make_materials():
              tile=6)
     material("HullGrey", tex=panel_tex("hull_grey", (0.30, 0.31, 0.32), var=0.07, line=0.5, seed=23), rough=0.55,
              metal=0.2, tile=6)
-    material("HullTrader", tex=panel_tex("hull_trader", (0.32, 0.20, 0.10), var=0.12, line=0.45, seed=31,
+    material("HullTrader", tex=panel_tex("hull_trader", (0.20, 0.13, 0.07), var=0.12, line=0.45, seed=31,
                                          rows=(5, 10), cols=(3, 7), grime=0.18), metal=0.45, rough=0.5, tile=10)
     material("HullNative", tex=panel_tex("hull_native", (0.20, 0.30, 0.30), var=0.06, line=0.6, seed=41, rows=(6, 12),
                                          cols=(1, 2)), metal=0.2, rough=0.45, tile=7)
@@ -188,8 +188,8 @@ def make_materials():
     material("Lamp", (0.9, 0.85, 0.7), emit=(1.0, 0.78, 0.45), estr=4.0)
     material("Beacon", (0.9, 0.1, 0.05), emit=(1.0, 0.12, 0.04), estr=6.0)
     material("Glow", (0.1, 0.4, 0.35), emit=(0.2, 1.0, 0.8), estr=5.0)
-    material("Rock", tex=rock_tex("rock", (0.16, 0.14, 0.12), (0.34, 0.31, 0.27), seed=61), rough=0.85, tile=40)
-    material("Ice", tex=rock_tex("ice", (0.48, 0.56, 0.62), (0.82, 0.88, 0.92), seed=71, speck=0.05), rough=0.25,
+    material("Rock", tex=rock_tex("rock", (0.06, 0.055, 0.05), (0.17, 0.15, 0.13), seed=61), rough=0.85, tile=40)
+    material("Ice", tex=rock_tex("ice", (0.36, 0.44, 0.52), (0.70, 0.78, 0.84), seed=71, speck=0.05), rough=0.3,
              tile=40)
     material("CometRock", tex=rock_tex("comet", (0.035, 0.033, 0.03), (0.09, 0.085, 0.08), seed=81), rough=0.9, tile=60)
 
@@ -202,12 +202,19 @@ EMPTIES = {}       # name -> (parent name or None, location (kit frame), rotatio
 SPIN = {}
 
 
+CUR = [""]   # the root being built: child node names are kept as "root:name" so Beacon/Light0 can repeat
+
+
+def key(name):
+    return name if (not name or name == CUR[0]) else CUR[0] + ":" + name
+
+
 def node(name, parent, loc=(0, 0, 0), rot=None, **props):
-    EMPTIES[name] = (parent, Vector(loc), rot, props)
+    EMPTIES[key(name) if parent else name] = (key(parent) if parent else None, Vector(loc), rot, props)
 
 
 def group(name):
-    k.group = name
+    k.group = key(name)
 
 
 # kit frame: x toward the bow, y to port, z dorsal; the export turns x to Blender +Y (= glTF/Godot -Z)
@@ -292,7 +299,7 @@ def plate(poly, thick, mat):
 
 
 def rock_mesh(R, seed, sub=4, scale=(1, 1, 1), craters=12, rough=0.35, waist=0.0, mats=("Rock",), split=None,
-              hole=None):
+              hole=None, funnel=None, edge=None):
     """Displaced icosphere. split(p, n) -> material index per face; hole=(dir, cos) drops faces in that cone."""
     bm = bmesh.new()
     bmesh.ops.create_icosphere(bm, subdivisions=sub, radius=1.0)
@@ -306,8 +313,12 @@ def rock_mesh(R, seed, sub=4, scale=(1, 1, 1), craters=12, rough=0.35, waist=0.0
         h += 0.05 * noise.noise(d * 6 + off)
         for c, rad, depth in cr:
             t = math.acos(max(-1, min(1, d.dot(c)))) / rad
-            if t < 1.3:
-                h -= depth * (1 - t * t) if t < 1 else -depth * 0.25 * (1.3 - t) / 0.3 * 1.0
+            if t < 1.6:
+                h -= depth * max(0.0, 1 - t * t) ** 1.5 - 0.3 * depth * math.exp(-((t - 1) / 0.18) ** 2)
+        if funnel:
+            t = math.acos(max(-1, min(1, d.dot(funnel[0]))))
+            u = max(0.0, min(1.0, (funnel[1] - t) / (funnel[1] - funnel[2])))
+            h *= 1 - funnel[3] * u * u * (3 - 2 * u)
         p = d * h
         p.x *= scale[0]
         p.y *= scale[1]
@@ -321,6 +332,8 @@ def rock_mesh(R, seed, sub=4, scale=(1, 1, 1), craters=12, rough=0.35, waist=0.0
     for f in bm.faces:
         c = f.calc_center_median()
         if hole and c.normalized().dot(hole[0]) > hole[1]:
+            if edge is not None:
+                edge.extend(tuple(v.co) for v in f.verts)
             continue
         mi = split(c / R, f.normal) if split else 0
         groups.setdefault(mi, []).append(f)
@@ -709,15 +722,15 @@ def debris_f():  # black box (BlackBox -> Beacon)
 
 def asteroid_common():
     group("asteroid_common")
-    rock_mesh(70, seed=101, sub=5, scale=(1.4, 0.95, 0.8), craters=16)
+    rock_mesh(70, seed=101, sub=6, scale=(1.4, 0.95, 0.8), craters=16)
 
 
 def asteroid_metal():
     group("asteroid_metal")
 
     def split(p, nn):
-        return 1 if noise.noise(p * 3.2 + Vector((7, 3, 1))) > 0.25 else 0
-    rock_mesh(58, seed=202, sub=5, scale=(1.15, 1.0, 0.9), craters=10, rough=0.45, mats=("Rock", "Metal"), split=split)
+        return 1 if noise.noise(p * 2.0 + Vector((7, 3, 1))) > 0.2 else 0
+    rock_mesh(58, seed=202, sub=6, scale=(1.15, 1.0, 0.9), craters=10, rough=0.4, mats=("Rock", "Metal"), split=split)
 
 
 def asteroid_ice():
@@ -725,29 +738,41 @@ def asteroid_ice():
 
     def split(p, nn):
         return 1 if noise.noise(p * 2.5 + Vector((1, 9, 4))) > 0.35 else 0
-    rock_mesh(55, seed=303, sub=5, scale=(1.3, 0.9, 1.0), craters=8, rough=0.28, mats=("Ice", "Rock"), split=split)
+    rock_mesh(55, seed=303, sub=6, scale=(1.3, 0.9, 1.0), craters=8, rough=0.28, mats=("Ice", "Rock"), split=split)
 
 
 def asteroid_hollow():
     g = "asteroid_hollow"
     group(g)
     R = 110
-    rock_mesh(R, seed=404, sub=5, scale=(1.1, 1.0, 0.85), craters=14, rough=0.3,
-              hole=(Vector((1, 0, 0)), math.cos(0.16)))
-    # the cavity: a rocky throat into the asteroid, ending in a chamber
-    mx = R * 1.1 * 0.80
-    prof = [(mx + 18, 30), (mx + 6, 22), (mx - 10, 17), (mx - 40, 14), (mx - 70, 16), (mx - 85, 10), (mx - 90, 0)]
-    k.lathe(prof, "Rock", seg=28)
-    # rim: a lumpy collar to blend the throat into the surface
-    k.torus(mx + 12, 26, 8, "Rock", seg=28, tseg=8)
-    node("Mouth", g, (mx + 18, 0, 0))
+    # a funnel pressed into the rock toward the bow, cut open at its bottom
+    edge = []
+    rock_mesh(R, seed=404, sub=6, scale=(1.1, 1.0, 0.85), craters=12, rough=0.3,
+              funnel=(Vector((1, 0, 0)), 0.75, 0.34, 0.45), hole=(Vector((1, 0, 0)), math.cos(0.34)), edge=edge)
+    ex = sum(p[0] for p in edge) / len(edge)
+    er = sum(math.hypot(p[1], p[2]) for p in edge) / len(edge)
+    # the cavity: a rocky throat (noisy rings) from the funnel's lip into a chamber
+    prof = [(ex + 3, er * 1.12), (ex - 8, er * 0.95), (ex - 26, er * 0.85), (ex - 48, er * 1.05), (ex - 66, er * 1.25),
+            (ex - 80, er * 0.8), (ex - 86, 0)]
+    rings = []
+    for i, (x, r) in enumerate(prof[:-1]):
+        ring = []
+        for jj in range(28):
+            a = TAU * jj / 28
+            d = Vector((0.03 * x, math.cos(a), math.sin(a)))
+            f = 1 + 0.18 * noise.noise(d * 2.2 + Vector((i * 0.7, 3, 1)))
+            ring.append((x, r * f * math.cos(a), 0.85 * r * f * math.sin(a)))
+        rings.append(ring)
+    loft("Rock", rings, closed1=True)
+    node("Mouth", g, (ex, 0, 0))
     # something built inside: an old platform and one dim lamp deep in
-    k.box((mx - 60, 0, -10), (16, 10, 1.0), "HullGrey")
-    k.box((mx - 62, 2, -7), (5, 4, 5), "HullGrey")
-    k.tube((mx - 56, -3, -9.5), (mx - 56, -3, 2), 0.3, "Metal", seg=5)
-    node("Light0", g, (mx - 56, -3, 2.4))
+    px = ex - 60
+    k.box((px, 0, -er * 0.8), (18, 12, 1.0), "HullGrey")
+    k.box((px - 3, 3, -er * 0.8 + 3), (6, 5, 5), "HullGrey")
+    k.tube((px + 4, -3, -er * 0.8), (px + 4, -3, -er * 0.8 + 9), 0.35, "Metal", seg=5)
+    node("Light0", g, (px + 4, -3, -er * 0.8 + 9.5))
     group("Light0")
-    k.sphere((0, 0, 0), 0.5, "Lamp", seg=8, rings=4)
+    k.sphere((0, 0, 0), 0.6, "Lamp", seg=8, rings=4)
 
 
 def lifepod():
@@ -773,7 +798,7 @@ def comet_nucleus():
 
     def split(p, nn):
         return 1 if noise.noise(p * 2.2 + Vector((3, 3, 8))) > 0.42 else 0
-    rock_mesh(140, seed=505, sub=5, scale=(1.5, 0.9, 0.85), craters=18, rough=0.4, waist=0.28,
+    rock_mesh(140, seed=505, sub=6, scale=(1.5, 0.9, 0.85), craters=18, rough=0.4, waist=0.28,
               mats=("CometRock", "Ice"), split=split)
     # vent points: local +Z (Blender) = Godot +Y points out of the surface
     for i, d in enumerate([(0.4, 0.3, 0.86), (-0.6, -0.5, 0.6), (0.9, -0.2, -0.4)]):
@@ -884,6 +909,7 @@ def assemble(names):
         bpy.data.objects.remove(o)
     coll = bpy.context.scene.collection
     for nm in names:
+        CUR[0] = nm
         node(nm, None)
         group(nm)
         BUILDERS[nm]()
@@ -894,7 +920,7 @@ def assemble(names):
     R3 = KIT_TO_BL.to_3x3()
     objs = {}
     for name, (par, loc, rot, props) in EMPTIES.items():
-        e = bpy.data.objects.new(name, None)
+        e = bpy.data.objects.new(name.split(":")[-1], None)
         e.empty_display_size = 1.0
         coll.objects.link(e)
         objs[name] = e
@@ -912,7 +938,20 @@ def assemble(names):
             e.matrix_parent_inverse = objs[par].matrix_world.inverted()
     # a node's own parts are built in its local frame (child groups) and hang under it unmoved
     meshes = k.build(MATS, coll, prefix="", bevels=False, uvscale=UVSCALE, parents=objs)
+    for ob in meshes:  # rocks are smooth all over (no sharp edges between the displaced facets)
+        root = ob
+        while root.parent is not None:
+            root = root.parent
+        if root.name.startswith(("asteroid_", "comet_")) and ob.data.materials[0].name in SMOOTH_MATS:
+            ob.data.set_sharp_from_angle(angle=math.pi)
     return objs, meshes
+
+
+SMOOTH_MATS = ("Rock", "Ice", "CometRock", "Metal")
+# preview camera direction per model (Blender axes; the bow is +Y), default forward-right-above
+CAMS = {"asteroid_hollow": (0.25, 0.92, 0.3), "derelict_earth": (0.85, 0.35, 0.5), "lifepod": (0.8, 0.45, 0.45),
+        "debris_piece_f": (0.8, 0.5, 0.5)}
+SUNS = {"asteroid_hollow": (0.5, 0.8, 0.45)}
 
 
 def tri_count(root):
@@ -951,7 +990,7 @@ def fix_glb_names(path):
     doc = json.loads(data[20:20 + jlen].decode("utf-8"))
     rest = data[20 + jlen:]
     for n in doc.get("nodes", []):
-        n["name"] = re.sub(r"\.\d{3}$", "", n.get("name", ""))
+        n["name"] = re.sub(r"\.\d{3}$", "", n.get("name", "")).replace(":", "_")
     js = json.dumps(doc, separators=(",", ":")).encode("utf-8")
     js += b" " * ((4 - len(js) % 4) % 4)
     out = struct.pack("<III", magic, version, 12 + 8 + len(js) + len(rest)) + struct.pack("<II", len(js), jtype) + js + rest
@@ -1015,7 +1054,7 @@ def preview(objs, names, folder):
         c = (lo + hi) / 2
         rad = (hi - lo).length / 2
         # view from forward-right-above (bow is Blender +Y)
-        d = Vector((0.9, 0.3, 0.42)).normalized()
+        d = Vector(CAMS.get(nm, (0.9, 0.3, 0.42))).normalized()
         q = (-d).to_track_quat("-Z", "Y")
         right, up = q @ Vector((1, 0, 0)), q @ Vector((0, 1, 0))
         th = 18 / cam.data.lens          # half the 36 mm sensor width over the lens
@@ -1031,7 +1070,7 @@ def preview(objs, names, folder):
         cam.location = c + d * dist
         cam.rotation_euler = q.to_euler()
         cam.data.clip_start = max(0.01, dist - rad * 2)
-        sdir = Vector((0.9, 0.2, 0.55)).normalized()
+        sdir = Vector(SUNS.get(nm, (0.9, 0.2, 0.55))).normalized()
         sun.rotation_euler = (-sdir).to_track_quat("-Z", "Y").to_euler()
         fdir = Vector((-0.7, -0.3, -0.4)).normalized()
         fill.rotation_euler = (-fdir).to_track_quat("-Z", "Y").to_euler()
