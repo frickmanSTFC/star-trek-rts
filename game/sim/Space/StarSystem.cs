@@ -762,6 +762,10 @@ public sealed partial class StarSystemState
             case FirstContactCommand or ContactChoiceCommand or MembershipCommand or AllyShipOrderCommand:
                 ApplyContact(sim, command); // Contact.cs
                 return;
+            case SiteCourseCommand or SiteScanCommand or SiteWorkCommand or AwayTeamCommand or AwayTeamChoiceCommand
+                or ShipRepairCommand or ShipHoldCommand:
+                ApplySpaceJobs(sim, command); // SpaceSites.cs
+                return;
         }
     }
 

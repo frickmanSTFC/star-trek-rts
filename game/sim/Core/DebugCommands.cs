@@ -192,3 +192,31 @@ public sealed record DebugMissionCommand(int Player, int Target, string MissionI
 /// <summary>Test panel: open (Unlocked) or close one building for the Target player; BuildingId "" = every building
 /// (Unlocked) or back to surfaces.json start_menu (locked). Works with missions off too (then nothing else opens them).</summary>
 public sealed record DebugUnlockCommand(int Player, int Target, string BuildingId, bool Unlocked) : DebugCommand(Player);
+
+/// <summary>Test panel SPACE edits (docs/space-jobs-contract.md): Target = the player whose flagship / knowledge it
+/// touches.</summary>
+public enum DebugSpaceField
+{
+    /// <summary>Spawn a site of kind Id (a SiteKind name, lower case) next to the flagship (Value = variant index, -1 random).</summary>
+    SpawnSite,
+    /// <summary>Remove site Id.</summary>
+    RemoveSite,
+    /// <summary>Make site Id Identified for the player.</summary>
+    IdentifySite,
+    /// <summary>Set the flagship's hull to Value (0-100).</summary>
+    Hull,
+    /// <summary>Knock out system Id (a ShipSystem name, lower case) for Value seconds (0 = fix it).</summary>
+    SystemDown,
+    /// <summary>Lose (Value &lt; 0) or add (Value &gt; 0) crew in division Id.</summary>
+    Crew,
+    /// <summary>Injure Value crew of division Id.</summary>
+    Injure,
+    /// <summary>Set the count of hold item Id to Value.</summary>
+    HoldItem,
+    /// <summary>Finish the running away-team event now (Value = outcome index, -1 = roll).</summary>
+    FinishAwayTeam,
+}
+
+/// <summary>Test panel: a space-jobs edit (see <see cref="DebugSpaceField"/>).</summary>
+public sealed record DebugSpaceCommand(int Player, int Target, DebugSpaceField Field, string? Id, int Value) : DebugCommand(Player);
+

@@ -55,6 +55,16 @@ public static class CommandChecks
             case AllyShipOrderCommand c: return c.BodyId == null ? null : Id(c.BodyId);
             case RecallDroneCommand c: return Ids(c.UnitIds);
             case MissionChoiceCommand c: return Id(c.MissionId) ?? Id(c.Option);
+            case SiteCourseCommand c: return Id(c.SiteId);
+            case SiteScanCommand c: return Id(c.SiteId);
+            case SiteWorkCommand c: return Id(c.SiteId) ?? Id(c.Action);
+            case AwayTeamCommand c:
+                if (c.Crew == null) return "no crew";
+                return c.Crew.Count <= 16 ? Id(c.SiteId) : "too many divisions";
+            case AwayTeamChoiceCommand c: return Id(c.SiteId);
+            case ShipRepairCommand c: return Id(c.Action);
+            case ShipHoldCommand c: return Id(c.Action) ?? Id(c.Item);
+            case DebugSpaceCommand c: return !Enum.IsDefined(c.Field) ? "unknown field" : c.Id == null ? null : Id(c.Id);
             case DebugCivCommand c: return Enum.IsDefined(c.Field) ? Id(c.BodyId) : "unknown field";
             case DebugUnitCommand c: return Enum.IsDefined(c.Field) ? null : "unknown field";
             case DebugMissionCommand c: return !Enum.IsDefined(c.Action) ? "unknown action" : Id(c.MissionId) ?? Id(c.Stage) ?? Id(c.Objective);
@@ -151,6 +161,13 @@ public static class CommandHash
         RecallDroneCommand => 37,
         RelaySatelliteCommand => 38,
         MissionChoiceCommand => 39,
+        SiteCourseCommand => 40,
+        SiteScanCommand => 41,
+        SiteWorkCommand => 42,
+        AwayTeamCommand => 43,
+        AwayTeamChoiceCommand => 44,
+        ShipRepairCommand => 45,
+        ShipHoldCommand => 46,
         // Test panel.
         DebugUnitCommand => 101,
         DebugMoveUnitCommand => 102,
@@ -173,6 +190,7 @@ public static class CommandHash
         DebugMissionCommand => 119,
         DebugJackCommand => 120,
         DebugUnlockCommand => 121,
+        DebugSpaceCommand => 122,
         _ => UnknownTag,
     };
 
@@ -208,6 +226,14 @@ public static class CommandHash
             case SetCourseCommand c: h.Add(c.ShipId); Text(ref h, c.BodyId); break;
             case LongRangeScanCommand c: h.Add(c.ShipId); break;
             case SystemSatelliteCommand c: Text(ref h, c.BodyId); break;
+            case SiteCourseCommand c: h.Add(c.ShipId); Text(ref h, c.SiteId); break;
+            case SiteScanCommand c: h.Add(c.ShipId); Text(ref h, c.SiteId); break;
+            case SiteWorkCommand c: h.Add(c.ShipId); Text(ref h, c.SiteId); Text(ref h, c.Action); break;
+            case AwayTeamCommand c: h.Add(c.ShipId); Text(ref h, c.SiteId); Ids(ref h, c.Crew); break;
+            case AwayTeamChoiceCommand c: Text(ref h, c.SiteId); h.Add(c.Choice); break;
+            case ShipRepairCommand c: h.Add(c.ShipId); Text(ref h, c.Action); break;
+            case ShipHoldCommand c: h.Add(c.ShipId); Text(ref h, c.Action); Text(ref h, c.Item); h.Add(c.Count); break;
+            case DebugSpaceCommand c: h.Add(c.Target); h.Add((int)c.Field); Text(ref h, c.Id); h.Add(c.Value); break;
             case FabricateCommand c: h.Add(c.StructureId); Text(ref h, c.RecipeId); h.Add(c.Count); break;
             case CancelFabricateCommand c: h.Add(c.StructureId); h.Add(c.OrderId); break;
             case StockTargetCommand c: Text(ref h, c.ItemId); h.Add(c.Target); break;

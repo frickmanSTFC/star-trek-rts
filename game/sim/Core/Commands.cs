@@ -148,3 +148,34 @@ public sealed record RelaySatelliteCommand(int Player, int Tile) : Command(Playe
 /// <summary>Answer a mission: Option "accept" / "decline" for an offer, or a branch option id at a choice
 /// (Missions/MissionBook.cs).</summary>
 public sealed record MissionChoiceCommand(int Player, string MissionId, string Option) : Command(Player);
+
+// ---- space jobs (Space/SpaceSites.cs, Space/ShipStatus.cs, Space/AwayTeam.cs; docs/space-jobs-contract.md; refused in
+// games without a star system)
+
+/// <summary>Send one of your ships to a space site (a wreck, debris field, asteroid, anomaly…) it knows of: it flies
+/// there like to a body and holds position at the site. Refused while it is in flight or crippled.</summary>
+public sealed record SiteCourseCommand(int Player, int ShipId, string SiteId) : Command(Player);
+
+/// <summary>Scan a detected site from within scan range (takes the site's scan seconds; the ship must stay in range):
+/// it becomes Identified (kind, size, hazards, what is there).</summary>
+public sealed record SiteScanCommand(int Player, int ShipId, string SiteId) : Command(Player);
+
+/// <summary>Work the site the ship holds at: Action is one of the site's work actions ("alongside", "sweep",
+/// "restore_power", "mine", "record:outer|middle|inner", "sample", "tow", "push", "pickup", "dock", "stop").</summary>
+public sealed record SiteWorkCommand(int Player, int ShipId, string SiteId, string Action) : Command(Player);
+
+/// <summary>Send an away team to the site the ship holds alongside: Crew = how many from each division, in
+/// fit_out.json division order (exploration, engineering, science, defense). Starts the timed away-team event.</summary>
+public sealed record AwayTeamCommand(int Player, int ShipId, string SiteId, IReadOnlyList<int> Crew) : Command(Player);
+
+/// <summary>Pick option Choice (0-based) at the current step of your away-team event at the site.</summary>
+public sealed record AwayTeamChoiceCommand(int Player, string SiteId, int Choice) : Command(Player);
+
+/// <summary>Ship repairs: Action "patch" (fit a hull patch kit from the hold), "fix:&lt;system&gt;" (a patch kit fixes a
+/// knocked-out system at once), "dock" (full repair at a dockyard the ship is at).</summary>
+public sealed record ShipRepairCommand(int Player, int ShipId, string Action) : Command(Player);
+
+/// <summary>The ship's hold: Action "sell" (ore/salvage to a buyer the ship is at), "drop" (survivors, ore or salvage
+/// at a body or station that takes them), "jettison" (throw it away), "hire" (crew at a station; Item = division id).</summary>
+public sealed record ShipHoldCommand(int Player, int ShipId, string Action, string Item, int Count) : Command(Player);
+

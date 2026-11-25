@@ -280,7 +280,9 @@ public sealed partial class Simulation
             return;
         }
         if (command is SetCourseCommand or LongRangeScanCommand or SystemSatelliteCommand or ObservationPostCommand
-            or FirstContactCommand or ContactChoiceCommand or MembershipCommand or AllyShipOrderCommand)
+            or FirstContactCommand or ContactChoiceCommand or MembershipCommand or AllyShipOrderCommand
+            or SiteCourseCommand or SiteScanCommand or SiteWorkCommand or AwayTeamCommand or AwayTeamChoiceCommand
+            or ShipRepairCommand or ShipHoldCommand)
         {
             if (System == null) Refuse(command, "no star system");
             else System.Apply(this, command);
@@ -380,6 +382,8 @@ public sealed partial class Simulation
                 return DataTuning.Rebuild(Data, Array.Empty<DataEdit>(), reload.Files, out _);
             case DebugCivCommand civ:
                 return System == null ? "no star system" : System.DebugCivProblem(this, civ);
+            case DebugSpaceCommand space:
+                return System == null ? "no star system" : System.DebugSpaceProblem(this, space);
             case DebugMissionCommand mission:
                 return Missions.DebugProblem(mission);
             default:
@@ -433,6 +437,9 @@ public sealed partial class Simulation
                 break;
             case DebugCivCommand civ:
                 System!.ApplyDebugCiv(this, civ);
+                break;
+            case DebugSpaceCommand space:
+                System!.ApplyDebugSpace(this, space);
                 break;
             case DebugMissionCommand mission:
                 Missions.ApplyDebug(mission);
