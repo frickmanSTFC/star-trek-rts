@@ -537,11 +537,11 @@ public sealed partial class StarSystemState
         var def = SiteKindOf(site);
         var r = Record(player, siteId)!;
         if (ship.AtSite != siteId) return $"the ship must be at {SiteNameFor(player, siteId)}";
+        if (action == "dock") return RepairProblem(player, "dock"); // a crippled ship at a station can still be mended
         if (StarfleetHoldProblem(player) is { } held) return held;
         if (SiteKnowledgeOf(player, siteId) < SiteKnowledge.Identified) return "scan it first";
         if (SiteKnowledgeOf(player, siteId) == SiteKnowledge.Spent) return $"{site.Name} is worked out";
         if (st.Crippled) return "the ship is crippled";
-        if (action == "dock") return RepairProblem(player, "dock");
         if (st.Work != null) return $"busy: {WorkText(st.Work.Action).ToLowerInvariant()}";
         if (def is { Hazardous: true } && !HazardousOk(st)) return "the hull is critical: no hazardous jobs until it is repaired";
         switch (action)

@@ -127,4 +127,104 @@ a contact sheet. Time-box: one finished preview of the derelict first, then the 
 
 ## Phase 1 sim side, filled in
 
-(the SIM agent writes this when done: every added member, data file and number, the hash rules, what isn't done)
+Built by the SIM agent (2026-11-25). Every number is a placeholder in data; `Validate()` checks all of it.
+
+**Data.**
+- `data/maps/sites.json` `space_sites` (maps document; `GameData.SpaceSites` = `SpaceSiteRules`, `sim/Data/SpaceJobDefs.cs`,
+  read + checked in `GameData.SpaceJobs.cs`): generation count [4, 7] over orbit 130–480 map units, clear_of_body 40,
+  spacing 70, 40 tries, weights derelict 3 / known_derelict 3 / debris 4; identify_range 120; spent_seconds 300;
+  colony_reach_seconds 60; kinds station (S, scan 20, variant trade), derelict (C, scan 30, variant unknown, alongside 20 s
+  + 40% debris roll for hull 2–6, away table derelict, research 80–150), known_derelict (K, scan 25, variants earth 2 /
+  trader 2 / native 1, alongside 20 s + 30% for 1–4, restore_power 60 s or 1 patch kit, logs 20 s → latinum 20–40 +
+  research 20–40, reactor fails 300 s after coming alongside: hull −15 if still alongside, then spent), debris (D, scan 20,
+  variants freighter 2 / explorer 1, sweep 90 s, hull −1 every 10 s inside, 3–5 finds: the black box first, then
+  cargo_pod 4 / lifepod 2 / hull_alloy 2, lifepods 1–3 survivors); salvage cargo_pod 25 latinum, hull_alloy 15,
+  black_box 10 + 40 research, power_cell 60 + 30, data_core 30 + 60 (1 container each); station names, orbit 200–320,
+  dock 30 s, hires 2 a visit at 15 latinum, survivor_latinum 10. Kind ids are `SpaceSiteRules.IdOf(SiteKind)`
+  (snake case: `known_derelict`); `KindOf` also takes `knownderelict`.
+- `data/maps/ship_status.json` `ship_status` (`GameData.ShipStatus` = `ShipStatusRules`): hull bands scuffed 75 /
+  worn 50 (flight ×1.1) / damaged 25 (×1.25, scan reach ×0.8) / critical 1 (×1.6, no hazardous jobs) / crippled 0;
+  crippled recovers to 20 over 180 s; systems sensors (scan ×1.3) / engines (flight ×1.3) / tractor / life_support,
+  down 60–180 s; field repair 1% per 10 s up to 60 (× `field_repair` lever, needs Engineering at its floor); patch
+  +15 in 30 s; injury 180 s − 60 s per medical store (max 3, at least 30); half crew → flights ×1.25; log 40 lines;
+  ranks / roles / names for away-team members; default_ship crew [10, 10, 10, 10], hold 8, focus allround;
+  default_patch_kits 1 (every flagship without a fit-out); hold survivors_per_container 3; away_team min 2, max 6,
+  max_share 0.5, max_by_ship armstrong 2, step 60 s, return 20 s (+ choice seconds, at least 5), defense_loss 4,
+  medic science (half the losses become injuries), quarantine 180 s, tables `derelict` (The Quiet Hulk's: how in /
+  inside / what we bring back; outcomes clean 60 (+ site research) / surge 20 (hull 12, 1 injured, sensors down) /
+  defences 12 (loss ×2, find ×0.5) / quarantine 8) and `known_derelict` (how we board / search pattern / bring back:
+  survivors 1–3 at 70%, a cargo pod, or the computer's research; outcomes clean 70 / surge 15 / collapse 15; while dark:
+  injury +4, loss +1, find −10).
+- `data/missions/fit_out.json`: space levers `field_repair` (Engineering, more is better) and `away_loss` (Defense,
+  less is better) (`FitOutRules.FieldRepair` / `AwayLoss`, in `KnownLevers` and `SpaceLevers`); space cargo `patch`
+  (Hull patch kit, engineering, 1 container, max 4, `patch_kits: 1`) and `med_space` (Medical stores, science, 1
+  container, max 3, `medical: 1`) → `FitOutCargoLine.PatchKits` / `Medical`. Not in any preset's base or fill, so
+  every preset is as before. Site scans use the existing `sweep_time` lever; coming alongside `alongside_time`.
+- `data/missions/rules.json`: chain `space_jobs` with `"pool": true` (`MissionChainDef.Pool`): a side-job pool, never a
+  game's chain (`Enable("space_jobs")` is refused; it can't be the first chain), its missions offered to every chain's
+  players in games with a star system. `data/missions/space_jobs.json` (manifest): `quiet_hulk` (science; unknown
+  derelict: identify → alongside → board; 120 research), `dead_in_the_water` (ops; known derelict: identify → alongside +
+  power → logs + search; 40 latinum + 40 research), `what_happened_here` (control; debris: identify → the black box in the
+  hold (sweeping the whole field optional); 30 latinum + 40 research + a patch kit). Vocabulary in `missions/notes.json`.
+
+**Sim API added (beyond the stubs).**
+- `SystemShip`: `AtSite`, `FromSite`, `ToSite` (internal set); `InFlight` = `AtBody == null && AtSite == null`. Flights
+  to and from sites set `DepartTick` / `ArriveTick` like body flights. Hashed only once a ship has used a site.
+- `StarSystemState`: `TravelTicks(FixVec2, FixVec2)`, `TravelTicksFor(ship, FixVec2, FixVec2)`, `SiteTravelTicksFor(ship,
+  siteId)`, `SiteFlightSeconds(player, siteId)`, `SiteScanRange(player)` = `IdentifyRangeFor(player)`, `SiteNameFor`,
+  `UnknownContactName`, `SiteKindOf(site)` (data), `KnownSites(player)`, `SiteWork(player, siteId)` → `SiteWorkState(Alongside,
+  Powered, Logs, Boarded, Swept, Finds, Recalled)`, `SiteResearch`, `SiteLogs`, `SiteFinds`, `WorkActions`, `IsCrippled`,
+  `AwayTeamPreview(player, crew)` and `(player, siteId, crew)`, `AwayResultSeconds` (30: how long a finished event stays in
+  `AwayTeamOf`), `AwayRecalledSince`, hold item ids `PatchKitItem` "patch_kit", `MedicalItem` "medical", `SalvagePrefix`
+  "salvage:", `SurvivorsPrefix` "survivors:". `ShipStatusView` gained `Repair` ("patch" | "dock" | ""), `RepairShare`,
+  `RepairSecondsLeft`, `CrippledSecondsLeft`, `LogCount` (lines ever written: tells the feed which lines are new),
+  `InjuredBack` (division, back tick). `SpaceMarker.SiteId` (Kind "site").
+- `SiteReport` actions: "course", "scan", the kind's work actions (`alongside`, `restore_power`, `restore_power_kit`,
+  `recover_logs`, `sweep`, `dock` at the station) and "away_team", each with its problem. "stop" stops running work.
+  `SiteWorkCommand` "dock" = `ShipRepairCommand` "dock".
+- `ShipRepairCommand`: "patch", "fix:<system>" (`fix:sensors`, `fix:engines`, `fix:tractor`, `fix:lifesupport`; also
+  `fix:life_support`), "dock" (a station; a colony ship also at its colony's body). `DebugSpaceCommand` SystemDown ids
+  take the same names. `ShipHoldCommand`: "sell" salvage at a station; "drop" survivors ("survivors" = every division)
+  or salvage at a station or the landed colony's body (survivors join while the crew is short, else latinum; salvage
+  gives its research); "jettison" salvage, patch kits, medical, and the fit-out's used-up space cargo (`probe`, `ssat`,
+  `post`); "hire" (Item = division id) at a station.
+- `AwayTeamCommand.Crew` is in `GameData.FitOut.Divisions` order; `CrewLine.Division` is the division id.
+- Missions: conditions `space_site`, `hull`, `crew`, `hold`; actions `place_space_site`, `bind_site`, `damage`,
+  `lose_crew`, `give_crew`, `hold_add` (`Missions/MissionSpaceJobs.cs`, vocabulary in `GameData.Missions.cs`; the existing
+  surface `site` condition keeps its name, so sites are `space_site`). `MissionBook.PoolStates(player)`; `States(player)`
+  lists only the game's chain. A pool job fails when the flagship is crippled or its site's away team is recalled.
+- `Simulation.FitOutFactor` asks `StarSystemState.CrewFactor` first: while the crew on duty differs from the start, a
+  fitted-out ship's levers use the crew on duty (a division below its floor counts as empty); a ship without a fit-out
+  uses its suggested preset's factor with the crew on duty ÷ with its start crew (exactly 1 until someone is lost or
+  injured). `DataChecks.SpaceSiteProblems` (in `All`).
+
+**Rules as built.** Long-range scans (also from a site) detect sites within the scan range; arriving at a site detects
+it; the station is Identified for everyone. A ship holding at a site is not in orbit (`OrbitProblem`, drop ships,
+landings, sweeps, contact, observation, comms delay by distance all treat it as away) and not in flight; allies stay
+at their body while the flagship is at a site; neutral traffic never uses sites; `FlagshipArrived` (achievements) only
+for bodies. Leaving a site stops its work and a dock repair, resets "alongside" and recalls an away team. A sweep that
+can't fit its next find (or the tractor goes down) stops and keeps its progress. Spent sites drift off `spent_seconds`
+later unless a ship is at, flying to or from them; per-player records (and so mission conditions) remain. Survivors
+always come aboard (people, even into a full hold) and join while the crew is below where it started. A crippled ship
+recovers by itself; patch kits and the dock still work. The ship log gets lines for damage, crippling, systems down /
+back, crew injured / lost / back / joined / hired, repairs, sales, identifications, work and away-team results.
+
+**Hash.** `StarSystemState.AddToHash` → `AddSpaceJobsToHash`: `_nextSiteId`, every site, every flagship's status
+(hull, crippled, systems, crew arrays, injured, hold, repair, log, hires, teams sent, scan / work / away runs, per-site
+records). System games only, so planet-only games keep their hashes (checked against the base commit: the golden
+scripted game, a two-player First Light game and a Dawn of Warp landing hash the same); every system game's hash moved
+(sites are rolled). Ship fields and mission bindings / markers add their site parts only when used. Randomness: sites,
+contents, names and away-team members from the system seed's hash; debris rolls, away outcomes and each member's fate
+on `sim.Rng`.
+
+**Tests.** `SpaceSiteTests` (9), `ShipStatusTests` (8), `AwayTeamTests` (5), `SpaceJobTests` (each job on all six
+ships, twice, same hashes; pool listing; crippled fails), `SpaceJobFuzzTests` (3 system games × 9000 ticks of random
+space commands, invariants, determinism); `CommandFuzzTests` kind 51 sends them to a planet-only game (refused).
+Changed expectations: `StateHashTests` (`_nextSiteId`), `FitOutSpaceTests` (the two new space lines and levers),
+`MissionTests` (side jobs counted per chain).
+
+**Not done (later phases or open).** Asteroids, mining, ore, towing, moving sites, events (phase 2–3); chain missions
+(phase 4); sites arriving during the match; a black box opening a follow-up job; native ships returned for trust;
+standing from owners; declined or lapsed pool offers never come back (MissionBook keeps Declined); away-team members
+stay counted on duty while they are out; colony ships can't carry patch kits or medical stores (space cargo lines);
+achievements don't listen to space jobs yet.
