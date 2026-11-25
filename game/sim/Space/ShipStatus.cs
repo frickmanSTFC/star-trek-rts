@@ -195,6 +195,10 @@ public sealed partial class StarSystemState
     /// and the site in tow ("tow": a line of no containers while something is in tow).</summary>
     public const string OrePrefix = "ore:", TowItem = "tow";
 
+    /// <summary>Phase 3: the stranded ship under escort (a line of no containers while one follows the ship; jettison =
+    /// stop the escort).</summary>
+    public const string EscortItem = "escort";
+
     private static string SalvageItemId(string salvage) => SalvagePrefix + salvage;
 
     // ---------------------------------------------------------------- set-up
@@ -309,6 +313,8 @@ public sealed partial class StarSystemState
         foreach (var (item, n) in st.Hold)
             if (n > 0) list.Add(new HoldLine(item, n, Containers(item, n), ItemLabel(item)));
         if (st.Tow.Length > 0 && Site(st.Tow) is { } towed) list.Add(new HoldLine(TowItem, 1, 0, $"In tow: {towed.Name}"));
+        if (st.Escort.Length > 0 && Site(st.Escort) is { } escorted)
+            list.Add(new HoldLine(EscortItem, 1, 0, $"Escorting: {escorted.Name} to {Body(escorted.TargetBody)?.Name ?? "port"}"));
         return list;
     }
 
@@ -710,6 +716,8 @@ public sealed partial class StarSystemState
         var atStation = ship.AtSite is { } sid && Site(sid) is { Kind: SiteKind.Station };
         if (SellerAction(ref action, out var buyer) is { } bad) return bad; // "sell:<ship id>": to a ship in orbit with us
         if (item == TowItem) return TowHoldProblem(player, st, ship, action); // Towing.cs
+        if (item == EscortItem) // phase 3: an escort isn't cargo; jettison stops it where the ship is
+            return action == "jettison" ? st.Escort.Length > 0 ? null : "not escorting anyone" : "bring the escorted ship to its destination, or stop the escort";
         if (item.StartsWith(OrePrefix, System.StringComparison.Ordinal)) return OreHoldProblem(player, st, ship, action, item, count, buyer, atStation); // Mining.cs
         if (buyer >= 0) return "only ore sells to a ship";
         switch (action)
@@ -782,6 +790,11 @@ public sealed partial class StarSystemState
         if (c.Item == TowItem)
         {
             ApplyTowHold(sim, p, st, ship, action); // Towing.cs
+            return;
+        }
+        if (c.Item == EscortItem)
+        {
+            StopEscort(p, "cast off"); // SpaceEvents.cs
             return;
         }
         if (c.Item.StartsWith(OrePrefix, System.StringComparison.Ordinal))

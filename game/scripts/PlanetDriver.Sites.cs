@@ -728,10 +728,11 @@ public partial class PlanetDriver
             foreach (var (action, label) in new[] { ("sell", "SELL"), ("drop", "DROP"), ("jettison", "JETTISON") })
                 if (sys.HoldProblem(LocalPlayer, action, h.Item, h.Count) == null)
                 {
-                    var shown = h.Item == StarSystemState.TowItem && action == "jettison" ? "RELEASE" : label;
+                    var shown = h.Item == StarSystemState.TowItem && action == "jettison" ? "RELEASE" : h.Item == StarSystemState.EscortItem ? "STOP ESCORT" : label;
                     var tip = h.Item.StartsWith(StarSystemState.OrePrefix) && action == "sell"
                         ? $"sell {h.Count} {h.Label.ToLowerInvariant()} for about {sys.OreValue(h.Item, h.Count, _system.FlagshipSite == null)} latinum"
                         : h.Item == StarSystemState.TowItem ? (action == "drop" ? "hand the tow over for its salvage" : "let the tow go here")
+                        : h.Item == StarSystemState.EscortItem ? "stop the escort: the ship stays adrift where we are"
                         : $"{label.ToLowerInvariant()} {h.Count} {h.Label}";
                     buttons.Add(new StatusButton($"hold:{action}:{h.Count}:{h.Item}", shown, true, tip, action == "jettison" ? HelmScreen.Red : HelmScreen.Peach));
                 }

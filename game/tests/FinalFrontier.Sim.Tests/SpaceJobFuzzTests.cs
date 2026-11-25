@@ -17,7 +17,7 @@ internal static class SpaceFuzz
     {
         "patch_kit", "medical", "salvage:cargo_pod", "salvage:black_box", "salvage:data_core", "salvage:nope", "survivors", "survivors:science",
         "science", "engineering", "probe", "ssat", "post", "mass", "",
-        "ore:duranium_ore", "ore:tritanium_ore", "ore:deuterium", "ore:nope", "tow", "tow", "cutting_gear",
+        "ore:duranium_ore", "ore:tritanium_ore", "ore:deuterium", "ore:nope", "tow", "tow", "cutting_gear", "escort",
     };
 
     public static Command Next(DeterministicRng rng, Simulation sim)

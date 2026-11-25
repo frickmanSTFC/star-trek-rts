@@ -322,6 +322,29 @@ public class SpaceEventTests
     }
 
     [Fact]
+    public void AnEscortShowsInTheHoldAndCanBeStoppedAndPickedUpAgain()
+    {
+        var sim = Game("tereshkova", 1701, data: Events(("\"bait\": 20", "\"bait\": 0")));
+        var sys = sim.System!;
+        var wreck = Spawn(sim, "stranded_ship");
+        Identify(sim, wreck.Id);
+        var ship = Ship(sim);
+        Work(sim, wreck.Id, "alongside", () => sys.SiteWork(0, wreck.Id)!.Alongside);
+        Do(sim, new SiteWorkCommand(0, ship.Id, wreck.Id, "restore_power_kit"));
+        Assert.True(sys.SiteWork(0, wreck.Id)!.Powered);
+        Do(sim, new SiteWorkCommand(0, ship.Id, wreck.Id, "escort"));
+        Assert.Contains(sys.StatusOf(0)!.Hold, l => l.Item == StarSystemState.EscortItem && l.Containers == 0);
+        Assert.NotNull(sys.HoldProblem(0, "sell", StarSystemState.EscortItem, 1));
+        Do(sim, new ShipHoldCommand(0, ship.Id, "jettison", StarSystemState.EscortItem, 1));
+        Assert.Null(sys.EscortOf(0));
+        Assert.DoesNotContain(sys.StatusOf(0)!.Hold, l => l.Item == StarSystemState.EscortItem);
+        Assert.Null(sys.SiteWorkProblem(0, ship.Id, wreck.Id, "escort")); // still adrift here, still powered
+        Do(sim, new SiteWorkCommand(0, ship.Id, wreck.Id, "escort"));
+        Do(sim, new SiteWorkCommand(0, ship.Id, wreck.Id, "release"));
+        Assert.Null(sys.EscortOf(0));
+    }
+
+    [Fact]
     public void ABaitCallSpringsAnAmbushOnArrival()
     {
         var sim = Game("bastion", 1701, data: Events(("\"bait\": 20", "\"bait\": 100")));
