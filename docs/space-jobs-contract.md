@@ -228,3 +228,35 @@ Changed expectations: `StateHashTests` (`_nextSiteId`), `FitOutSpaceTests` (the 
 standing from owners; declined or lapsed pool offers never come back (MissionBook keeps Declined); away-team members
 stay counted on duty while they are out; colony ships can't carry patch kits or medical stores (space cargo lines);
 achievements don't listen to space jobs yet.
+
+## Phase 2: asteroids, mining, selling, towing (one agent: sim + view)
+
+- **Asteroids** (`SiteKind.Asteroid`, variants common / metal / ice / hollow; weights in data; most placed near the
+  system's belts, a few loose). Scan as other sites. Ore content by variant (common: duranium ore, little tritanium;
+  metal: tritanium ore + duranium ore; ice: water ice → deuterium (`deuterium` resource); hollow: rock + a cavity with a
+  cache or an old base, worked by an away team with its own table `hollow`). Hazard: rock falls while mining (chance
+  per minute, hull 2–5, now and then the tractor knocked out).
+- **Mining** (`SiteWorkCommand` "mine" at an identified asteroid; needs the tractor): 1 container of ore (30) every 30 s
+  into the hold, × an Engineering lever `mining` and × the new space cargo `cutting_gear` (+25% each, max 2); stops when
+  the hold is full or the asteroid is mined out (then Spent). Ore lines in the hold (`ShipHoldCommand`).
+- **Selling / handing in:** at the Station ("sell": latinum per ore by kind, data), to a neutral freighter or tanker the
+  flagship is with at the same body ("sell" with the ship as buyer; lower price) — add what's needed so the view can
+  offer it; a colony ship drops ore at its colony's body into the colony's stock through storage ("drop"); a space ship
+  can also drop it at a civilization that trades with it (if that exists in the phase-2 civ code; else leave it).
+- **Towing** (`SiteWorkCommand` "tow" at a derelict, known derelict or debris cargo pod; needs the tractor): the towed
+  site moves with the flagship (its position follows the ship); flights ×1.6 while towing; "drop" a tow at the Station
+  (salvage value in latinum) or a colony ship's colony body (research + duranium); "stop" releases it where it is.
+- **Pool jobs** (`data/missions/space_jobs.json`): at least three new ones, e.g. "Pay Dirt" (mine and sell N ore),
+  "Ice Run" (bring ice/deuterium to the station or colony), "Tow Job" (tow a derelict to the station). Fix the phase 1
+  gap: declined or lapsed pool offers come back after a cooldown (data).
+- **View** (`game/scripts/`): asteroid glyph by variant, a tow line from the flagship to the towed site and the towed
+  site following it on the plot, mining progress on the card, ore lines with SELL / DROP, a SELL TO <ship> button on a
+  neutral freighter's card when the flagship is with it, the orbit view at an asteroid with a mining beam from the
+  flagship and ore chunks drifting to it, and a towed model trailing the flagship in the site view. F9 SPACE: hold items
+  for the ores, spawn asteroid variants (generic already?).
+- Same rules as phase 1: planet-only and balance hashes unchanged, system games deterministic, refusals change nothing,
+  fuzz covers new actions, `Validate()` / `DataChecks.All` empty, 919+ tests green. Fill in "Phase 2, filled in" below.
+
+## Phase 2, filled in
+
+(the agent writes this when done)
