@@ -44,9 +44,6 @@ public partial class PlanetDriver
     private static readonly Color SpaceAmber = Color.FromHtml("#f5c04a");
     private static readonly Color Warn = new(1f, 0.7f, 0.42f);
 
-    // The sim may add these (not in the contract's stubs); read by reflection so this builds against the stubs.
-    private static readonly System.Reflection.MethodInfo? PreviewMethod = typeof(StarSystemState).GetMethod("AwayTeamPreview");
-    private static readonly System.Reflection.MethodInfo? ScanRangeMethod = typeof(StarSystemState).GetMethod("SiteScanRange", new[] { typeof(int) });
 
     private void SetupSpace()
     {
@@ -84,17 +81,7 @@ public partial class PlanetDriver
     /// <summary>Site-scan reach in map units: the sim's number when it has one, else the contract's placeholder (less below half hull).</summary>
     private float SiteReach()
     {
-        if (_sim.System is { } sys && ScanRangeMethod != null)
-        {
-            try
-            {
-                var v = ScanRangeMethod.Invoke(sys, new object[] { LocalPlayer });
-                if (v is int i) return i;
-                if (v is float f) return f;
-                if (v is FinalFrontier.Sim.Math.Fix64 x) return x.ToFloat();
-            }
-            catch (System.Exception) { }
-        }
+        if (_sim.System is { } sys) return sys.SiteScanRange(LocalPlayer).ToFloat();
         return SystemPlot.DefaultSiteScanRange * (_status != null && _status.Band >= HullBand.Damaged ? 0.8f : 1f);
     }
 
@@ -623,15 +610,7 @@ public partial class PlanetDriver
         var crew = (IReadOnlyList<int>)_pickCrew;
         var problem = _pickCrew.Sum() == 0 ? "pick at least one crew member" : sys.AwayTeamProblem(LocalPlayer, siteId, crew);
         var preview = new List<string>();
-        if (PreviewMethod != null)
-        {
-            try
-            {
-                if (PreviewMethod.Invoke(sys, new object[] { LocalPlayer, siteId, crew }) is IEnumerable<AwayMember> members)
-                    preview.AddRange(members.Select(m => m.Role.Length > 0 ? $"{m.Name}, {m.Role}" : m.Name));
-            }
-            catch (System.Exception) { }
-        }
+        preview.AddRange(sys.AwayTeamPreview(LocalPlayer, siteId, crew).Select(m => m.Role.Length > 0 ? $"{m.Name}, {m.Role}" : m.Name));
         const string note = "Each Defense member lowers the loss chance; a Science medic turns half of all losses into injuries. Injured crew are out for a while, lost crew are gone for the match. Leaving the site recalls the team: the job fails with no reward.";
         return new AwayPickerView(siteId, SiteTitle(siteId), rows, sys.MaxAwayTeam(LocalPlayer), problem, preview, note);
     }
