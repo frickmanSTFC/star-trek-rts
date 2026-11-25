@@ -32,6 +32,7 @@ public sealed partial class StarSystemState
         if (r.Towed) return "towed in already";
         if (r.ReactorDone) return "its reactor failed: nothing left worth towing";
         if (st.Tow.Length > 0) return st.Tow == site.Id ? "in tow already" : $"towing {SiteNameFor(player, st.Tow)} already: drop or release it first";
+        if (st.Escort.Length > 0) return $"escorting {SiteNameFor(player, st.Escort)}: stop the escort first";
         if (TowerOf(site.Id) >= 0) return "another ship has it in tow";
         if (!r.Alongside) return "come alongside first";
         if (IsDown(st, ShipSystem.Tractor)) return "the tractor is down: nothing can be towed";

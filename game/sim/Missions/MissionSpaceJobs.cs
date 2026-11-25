@@ -36,8 +36,32 @@ public sealed partial class MissionBook
         if (sys.IsCrippled(p)) return "the ship is crippled";
         foreach (var b in run.Bindings)
             if (b.Site != null && sys.AwayRecalledSince(p, b.Site, run.Start)) return "the away team was called back";
+        // Phase 3: an event objective of the stage that can no longer come true (the rock struck, the comet left, the pods
+        // ran out of air, the stranded ship was bait or lost, the storm dispersed).
+        if (Def(run) is { } d && run.Stage >= 0 && run.Stage < d.Stages.Count)
+        {
+            var stage = d.Stages[run.Stage];
+            for (var k = 0; k < stage.Objectives.Count && k < run.Done.Length; k++)
+                if (!run.Done[k] && !stage.Objectives[k].Optional && EventLost(sys, p, run, stage.Objectives[k].Cond) is { } lost) return lost;
+        }
         return null;
     }
+
+    /// <summary>Why an event condition (space_site with an event state, alone or inside all) can't come true any more, or null.</summary>
+    private static string? EventLost(StarSystemState sys, int p, MissionRun run, MissionCondDef c)
+    {
+        if (c.Kind == "all")
+        {
+            foreach (var child in c.Children)
+                if (EventLost(sys, p, run, child) is { } why) return why;
+            return null;
+        }
+        if (c.Kind != "space_site" || c.F("bind") != null || SiteRef(run, c.F("site")) is not { } id) return null;
+        return c.F("state") is { } state && EventStates.Contains(state) ? sys.SiteStateLost(p, id, state, c.I("count", 1)) : null;
+    }
+
+    /// <summary>space_site states of the event sites (phase 3); the ones with a count compare it.</summary>
+    private static readonly string[] EventStates = { "deflected", "sampled", "picked", "escorted", "recorded" };
 
     /// <summary>The site a reference names (a site binding), or null.</summary>
     private static string? SiteRef(MissionRun? run, string? name) => name != null && run?.Find(name) is { Site: { } site } ? site : null;
@@ -59,7 +83,10 @@ public sealed partial class MissionBook
                     return MissionEval.Yes;
                 }
                 if (SiteRef(run, c.F("site")) is not { } id) return MissionEval.No;
-                return MissionEval.Of(SiteState(sys, p, id, c.F("state") ?? "identified"));
+                var state = c.F("state") ?? "identified";
+                if (state is "picked" or "recorded") // counted: pods picked up, research recorded
+                    return MissionEval.Count(sys.SiteWork(p, id) is { } w ? state == "picked" ? w.Picked : w.Recorded : 0, c.I("count", 1));
+                return MissionEval.Of(SiteState(sys, p, id, state));
             }
             case "hull":
             {
@@ -149,6 +176,10 @@ public sealed partial class MissionBook
             "mined" => w.MinedOut,
             "towing" => w.Towing,
             "towed" => w.Towed,
+            "deflected" => w.Deflected,
+            "sampled" => w.Sampled,
+            "escorting" => w.Escorting,
+            "escorted" => w.Rescued,
             _ => false,
         };
     }

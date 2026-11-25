@@ -84,6 +84,9 @@ public sealed partial class StarSystemState
         public string Tow = "";
         public long TowTick = -1;
         public readonly List<(string Key, int Count)> Tally = new();
+        /// <summary>Phase 3: the stranded ship under escort ("" = none) and since when (SpaceEvents.cs).</summary>
+        public string Escort = "";
+        public long EscortTick = -1;
 
         // Not state: the crew factors cache (worked out from the crew above).
         public bool CrewDirty;
@@ -155,6 +158,12 @@ public sealed partial class StarSystemState
                     h.Add(k);
                     h.Add(n);
                 }
+            }
+            if (Escort.Length > 0) // phase 3
+            {
+                h.Add("p3");
+                h.Add(Escort);
+                h.Add(EscortTick);
             }
         }
     }
@@ -422,6 +431,7 @@ public sealed partial class StarSystemState
             if (rules.System(d.System) is { } sys) f *= sys.Flight;
         if (st.CrewTotal * 2 < st.StartTotal) f *= rules.HalfCrewFlight;
         if (st.Tow.Length > 0 && SiteRules is { } sr) f *= sr.TowFlight; // phase 2: towing
+        if (st.Escort.Length > 0 && Site(st.Escort) is { } escorted && SiteKindOf(escorted)?.Stranded is { } sd) f *= sd.EscortFlight; // phase 3: escorting
         return f;
     }
 
@@ -532,6 +542,7 @@ public sealed partial class StarSystemState
         }
         if (st.Away is { Done: false }) RecallAwayTeam(sim, player, "the ship is crippled");
         if (st.Tow.Length > 0) ReleaseTow(player, "the tow line parted as the ship was crippled");
+        if (st.Escort.Length > 0) StopEscort(player, "it fell behind as the ship was crippled"); // SpaceEvents.cs
         ShipLog(player, "Hull at 0%: the ship is crippled and adrift", "bad");
         Version++;
     }
@@ -543,10 +554,10 @@ public sealed partial class StarSystemState
         st.Down.Add(new SystemDown(system, sim.Tick + (long)seconds * Simulation.TickRate));
         st.Down.Sort((a, b) => a.System.CompareTo(b.System));
         ShipLog(player, $"{StatusRules?.System(system)?.Name ?? system.ToString()} knocked out ({why}): back in {seconds} s", "bad");
-        if (system == ShipSystem.Tractor && st.Work is { Action: "sweep" or "mine" } w)
+        if (system == ShipSystem.Tractor && st.Work is { Action: "sweep" or "mine" or "push" or "pickup" } w)
         {
             st.Work = null;
-            ShipLog(player, $"{(w.Action == "mine" ? "Mining" : "Sweep")} stopped: the tractor is down", "warn");
+            ShipLog(player, $"{w.Action switch { "mine" => "Mining", "push" => "Pushing", "pickup" => "Picking up pods", _ => "Sweep" }} stopped: the tractor is down", "warn");
         }
         if (system == ShipSystem.Tractor && st.Tow.Length > 0) ReleaseTow(player, "the tractor went down");
         Version++;

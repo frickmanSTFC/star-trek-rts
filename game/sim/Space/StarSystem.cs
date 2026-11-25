@@ -397,12 +397,15 @@ public sealed partial class StarSystemState
     public FixVec2 ShipPosition(SystemShip ship, long tick)
     {
         if (ship.AtBody != null) return Body(ship.AtBody)?.Position ?? FixVec2.Zero;
-        if (ship.AtSite != null) return SitePlace(ship.AtSite) ?? FixVec2.Zero;
+        if (ship.AtSite != null) return SitePlace(ship.AtSite, tick) ?? FixVec2.Zero;
         var from = ship.FromPos ?? (ship.FromSite != null ? SitePlace(ship.FromSite) : Body(ship.FromBody)?.Position);
-        var to = ship.ToSite != null ? SitePlace(ship.ToSite) : Body(ship.ToBody)?.Position;
+        var to = ship.ToSite != null ? SitePlace(ship.ToSite, tick) : Body(ship.ToBody)?.Position;
         if (from is not { } a || to is not { } b) return to ?? from ?? FixVec2.Zero;
         return a + (b - a) * FlightShare(ship, tick);
     }
+
+    /// <summary>Where a space site is at a tick (a moving site on its path: SpaceEvents.cs), or null.</summary>
+    private FixVec2? SitePlace(string id, long tick) => Site(id) is { } s ? SitePosition(s, tick) : null;
 
     /// <summary>Where a space site is (null when there is no such site).</summary>
     private FixVec2? SitePlace(string id) => Site(id)?.Position;
@@ -910,7 +913,8 @@ public sealed partial class StarSystemState
         Version++;
         ship.SweepBody = null; // leaving orbit calls the sweep off
         // Leaving a site the ship tows: the site goes along, so the flight starts from where it was (SpaceSites phase 2).
-        ship.FromPos = ship.AtSite != null && ship.Owner >= 0 && FlagshipOf(ship.Owner) == ship && Status(ship.Owner)?.Tow == ship.AtSite ? SitePlace(ship.AtSite) : null;
+        ship.FromPos = ship.AtSite != null && ship.Owner >= 0 && FlagshipOf(ship.Owner) == ship && (Status(ship.Owner)?.Tow == ship.AtSite || Status(ship.Owner)?.Escort == ship.AtSite)
+            ? SitePlace(ship.AtSite) : null; // a site in tow or under escort (phase 3) goes along
         ship.FromBody = ship.AtBody;
         ship.FromSite = ship.AtSite;
         ship.AtSite = null;

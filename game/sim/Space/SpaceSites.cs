@@ -41,6 +41,30 @@ public sealed class SpaceSite
     /// <summary>Its own seed (model variety, contents); a hash of the system seed and its id.</summary>
     public ulong Seed { get; init; }
 
+    // Phase 3 (SpaceEvents.cs): events and moving sites.
+
+    /// <summary>It arrived during the match (an event: announced, Detected for everyone).</summary>
+    public bool Event { get; internal set; }
+    /// <summary>A moving site's straight path: from PathFrom at PathStart to PathTo at PathEnd (PathStart &lt; 0 = it
+    /// doesn't move). <see cref="StarSystemState.SitePosition"/> gives the place at any tick.</summary>
+    public FixVec2 PathFrom { get; internal set; }
+    public FixVec2 PathTo { get; internal set; }
+    public long PathStart { get; internal set; } = -1;
+    public long PathEnd { get; internal set; } = -1;
+    /// <summary>A rogue asteroid's target body; a stranded ship's destination ("" = none).</summary>
+    public string TargetBody { get; internal set; } = "";
+    /// <summary>How an event ended ("" while it runs: deflected, impact, gone, cleared, rescued, trap, lost), by whom (-1
+    /// none) and when.</summary>
+    public string Outcome { get; internal set; } = "";
+    public int OutcomeBy { get; internal set; } = -1;
+    public long OutcomeTick { get; internal set; } = -1;
+    /// <summary>A stranded ship's air runs out at this tick (-1 = powered, or none).</summary>
+    public long AirTick { get; internal set; } = -1;
+    /// <summary>Lifepods: how many, and which were picked up / lost (bit k = pod k).</summary>
+    public int PodCount { get; internal set; }
+    public int PodsTaken { get; internal set; }
+    public int PodsLost { get; internal set; }
+
     internal void AddToHash(ref StateHasher h)
     {
         h.Add(Id);
@@ -53,6 +77,25 @@ public sealed class SpaceSite
         h.Add(SpawnTick);
         h.Add(ExpireTick);
         h.Add(Seed);
+        if (Event || PathStart >= 0 || GameData.EventKinds.Contains(Kind)) // phase 3 (other sites keep their hashes)
+        {
+            h.Add("p3");
+            h.Add(Event);
+            h.Add(PathFrom.X);
+            h.Add(PathFrom.Y);
+            h.Add(PathTo.X);
+            h.Add(PathTo.Y);
+            h.Add(PathStart);
+            h.Add(PathEnd);
+            h.Add(TargetBody);
+            h.Add(Outcome);
+            h.Add(OutcomeBy);
+            h.Add(OutcomeTick);
+            h.Add(AirTick);
+            h.Add(PodCount);
+            h.Add(PodsTaken);
+            h.Add(PodsLost);
+        }
     }
 }
 
@@ -73,6 +116,16 @@ public sealed record SiteWorkState(bool Alongside, bool Powered, bool Logs, bool
     public bool MinedOut { get; init; }
     public bool Towing { get; init; }
     public bool Towed { get; init; }
+
+    /// <summary>Phase 3: a rogue asteroid's push done (0..1) and turned aside by the player; a comet sampled; lifepods picked
+    /// up; research recorded at an anomaly; a stranded ship under escort by the player now, and brought in by them.</summary>
+    public Fix64 Pushed { get; init; }
+    public bool Deflected { get; init; }
+    public bool Sampled { get; init; }
+    public int Picked { get; init; }
+    public int Recorded { get; init; }
+    public bool Escorting { get; init; }
+    public bool Rescued { get; init; }
 }
 
 /// <summary>A work action on a site card: Id (SiteWorkCommand.Action, or "scan", "course", "away_team"), Label, and
@@ -92,7 +145,8 @@ public sealed partial class StarSystemState
     private const ulong SiteSalt = 0x5_17E5_0001UL, SiteContentSalt = 0x5_17E5_0002UL;
 
     /// <summary>Work actions a site card can offer (SiteWorkCommand.Action).</summary>
-    public static readonly IReadOnlyList<string> WorkActions = new[] { "alongside", "restore_power", "restore_power_kit", "recover_logs", "sweep", "mine", "tow", "release", "dock", "stop" };
+    public static readonly IReadOnlyList<string> WorkActions = new[] { "alongside", "restore_power", "restore_power_kit", "recover_logs", "sweep", "mine", "tow",
+        "push", "sample", "pickup", "escort", "record_outer", "record_middle", "record_inner", "release", "dock", "stop" };
 
     public SpaceSite? Site(string? id)
     {
@@ -123,6 +177,10 @@ public sealed partial class StarSystemState
             {
                 Mined = r.Mined, MinedOut = Site(siteId) is { } s && SiteKindOf(s)?.Mining != null && r.Mined >= AsteroidContainers(s),
                 Towing = Status(player)?.Tow == siteId, Towed = r.Towed,
+                Pushed = r.PushTicks <= 0 || Site(siteId) is not { } rock ? Fix64.Zero
+                    : Fix64.Min(Fix64.One, Fix64.FromRaw((long)(((System.Int128)r.PushTicks << Fix64.FractionalBits) / System.Math.Max(1L, PushNeed(player, rock))))),
+                Deflected = r.Deflected, Sampled = r.Sampled, Picked = r.Picked, Recorded = r.Recorded,
+                Escorting = EscortOf(player) == siteId, Rescued = r.Rescued,
             }
             : null;
 
@@ -187,6 +245,7 @@ public sealed partial class StarSystemState
             AddSite(kind, variant, null, at, SystemGenerator.Int(Hash(SiteSalt, 300 + k), def.SizeMin, def.SizeMax), 0);
         }
         InitAsteroids(data, r); // Mining.cs: after the others, on their own salt (the others stay where they were)
+        InitSpaceEvents(r); // SpaceEvents.cs: anomalies (after the asteroids, their own salt) and the event clock
     }
 
     /// <summary>A free spot between the orbits: tries angles and distances (by the hash) until one is clear of every body
@@ -296,6 +355,11 @@ public sealed partial class StarSystemState
         /// <summary>Phase 2: containers mined there; towed in (delivered).</summary>
         public int Mined;
         public bool Towed;
+        /// <summary>Phase 3: ticks pushed at a rogue asteroid, turned aside by us; a comet sampled; lifepods picked up;
+        /// research recorded at an anomaly; a stranded ship brought in by us.</summary>
+        public long PushTicks;
+        public bool Deflected, Sampled, Rescued;
+        public int Picked, Recorded;
 
         public void AddToHash(ref StateHasher h)
         {
@@ -318,6 +382,16 @@ public sealed partial class StarSystemState
                 h.Add("p2");
                 h.Add(Mined);
                 h.Add(Towed);
+            }
+            if (PushTicks != 0 || Deflected || Sampled || Rescued || Picked != 0 || Recorded != 0) // phase 3
+            {
+                h.Add("p3");
+                h.Add(PushTicks);
+                h.Add(Deflected);
+                h.Add(Sampled);
+                h.Add(Rescued);
+                h.Add(Picked);
+                h.Add(Recorded);
             }
         }
     }
@@ -386,7 +460,7 @@ public sealed partial class StarSystemState
         if (r.Knowledge == SiteKnowledge.Spent) return;
         r.Knowledge = SiteKnowledge.Spent;
         r.SpentTick = Now;
-        if (site.ExpireTick < 0 && SiteRules is { } rules) site.ExpireTick = Now + (long)rules.SpentSeconds * Simulation.TickRate;
+        if (site.ExpireTick < 0 && !IsEventKind(site.Kind) && SiteRules is { } rules) site.ExpireTick = Now + (long)rules.SpentSeconds * Simulation.TickRate; // events end with their outcome (SpaceEvents.cs)
         Version++;
         ShipLog(player, $"{site.Name} worked out: {why}", "good");
     }
@@ -456,6 +530,13 @@ public sealed partial class StarSystemState
             case SiteKind.Asteroid:
                 AsteroidRows(player, site, r, rows); // Mining.cs
                 break;
+            case SiteKind.RogueAsteroid:
+            case SiteKind.Comet:
+            case SiteKind.Lifepods:
+            case SiteKind.StrandedShip:
+            case SiteKind.Anomaly:
+                EventRows(player, site, r, rows); // SpaceEvents.cs
+                break;
         }
         if (def?.Tow != null && site.Kind != SiteKind.Asteroid)
         {
@@ -474,15 +555,15 @@ public sealed partial class StarSystemState
             foreach (var a in WorkActions)
             {
                 if (!Offers(player, site, r, a)) continue;
-                actions.Add(new SiteAction(a, WorkLabel(a, def), ship == null ? "no ship" : SiteWorkProblem(player, ship.Id, siteId, a)));
+                actions.Add(new SiteAction(a, WorkLabel(a, def, site), ship == null ? "no ship" : SiteWorkProblem(player, ship.Id, siteId, a)));
             }
-            if (def != null && def.AwayTableFor(site.Variant).Length > 0 && !r.Boarded)
+            if (def != null && def.AwayTableFor(site.Variant).Length > 0 && !r.Boarded && site.Outcome.Length == 0)
                 actions.Add(new SiteAction("away_team", "AWAY TEAM", AwayTeamProblem(player, siteId, null)));
         }
         else if (def?.Tow != null) // a worked-out wreck can still be towed in for its salvage
             foreach (var a in new[] { "alongside", "tow", "release" })
                 if (Offers(player, site, r, a))
-                    actions.Add(new SiteAction(a, WorkLabel(a, def), ship == null ? "no ship" : SiteWorkProblem(player, ship.Id, siteId, a)));
+                    actions.Add(new SiteAction(a, WorkLabel(a, def, site), ship == null ? "no ship" : SiteWorkProblem(player, ship.Id, siteId, a)));
         return new SiteReport(siteId, site.Kind, know, site.Name, origin, site.Position, rows, actions, hazards);
     }
 
@@ -501,12 +582,13 @@ public sealed partial class StarSystemState
         var towing = Status(player)?.Tow == site.Id;
         return action switch
         {
-            "alongside" => def?.Alongside != null && !r.Alongside && !towing && !r.ReactorDone && !r.Towed
-                && (def.AwayTableFor(site.Variant).Length > 0 || def.RestorePower != null || def.Tow != null),
+            "alongside" => def?.Alongside != null && !r.Alongside && !towing && !r.ReactorDone && !r.Towed && site.Outcome.Length == 0
+                && (def.AwayTableFor(site.Variant).Length > 0 || def.RestorePower != null || def.Tow != null || def.Rogue != null),
             "mine" => def?.Mining != null && r.Mined < AsteroidContainers(site),
             "tow" => def?.Tow != null && !towing && !r.Towed && !r.ReactorDone && TowerOf(site.Id) < 0,
-            "release" => towing,
-            "restore_power" or "restore_power_kit" => def?.RestorePower != null && !r.Powered && (action == "restore_power" || def.RestorePower.Kits > 0),
+            "release" => towing || EscortOf(player) == site.Id,
+            "push" or "sample" or "pickup" or "escort" or "record_outer" or "record_middle" or "record_inner" => OffersEvent(player, site, r, action), // SpaceEvents.cs
+            "restore_power" or "restore_power_kit" => def?.RestorePower != null && !r.Powered && site.Outcome.Length == 0 && (action == "restore_power" || def.RestorePower.Kits > 0),
             "recover_logs" => def?.Logs != null && !r.Logs,
             "sweep" => def?.Sweep != null && !r.Swept,
             "dock" => site.Kind == SiteKind.Station,
@@ -515,8 +597,10 @@ public sealed partial class StarSystemState
         };
     }
 
-    private static string WorkLabel(string action, SiteKindDef? def) => action switch
+    private string WorkLabel(string action, SiteKindDef? def, SpaceSite site) => action switch
     {
+        "push" or "sample" or "pickup" or "escort" or "record_outer" or "record_middle" or "record_inner" => EventWorkLabel(action, site), // SpaceEvents.cs
+        "release" when def?.Stranded != null => "STOP ESCORT",
         "alongside" => "COME ALONGSIDE",
         "restore_power" => "RESTORE POWER",
         "restore_power_kit" => $"RESTORE POWER ({def?.RestorePower?.Kits ?? 1} PATCH KIT)",
@@ -581,7 +665,7 @@ public sealed partial class StarSystemState
         if (ship.Owner != player || player < 0) return "not your ship";
         if (Status(player) is not { } st) return "this ship can't work sites";
         if (action == "stop") return st.Work != null && st.Work.Site == siteId ? null : "nothing is running there";
-        if (action == "release") return st.Tow.Length > 0 && st.Tow == siteId ? null : "not towing it"; // wherever the ship is
+        if (action == "release") return (st.Tow.Length > 0 && st.Tow == siteId) || (st.Escort.Length > 0 && st.Escort == siteId) ? null : "not towing or escorting it"; // wherever the ship is
         if (Site(siteId) is not { } site || SiteKnowledgeOf(player, siteId) == SiteKnowledge.Unknown) return "no such site";
         if (!WorkActions.Contains(action)) return $"no such work '{action}'";
         var def = SiteKindOf(site);
@@ -596,6 +680,9 @@ public sealed partial class StarSystemState
         if (st.Crippled) return "the ship is crippled";
         if (st.Work != null) return $"busy: {WorkText(st.Work.Action).ToLowerInvariant()}";
         if (def is { Hazardous: true } && !HazardousOk(st)) return "the hull is critical: no hazardous jobs until it is repaired";
+        if (action is "push" or "sample" or "pickup" or "escort" or "record_outer" or "record_middle" or "record_inner")
+            return EventWorkProblem(player, st, site, r, action); // SpaceEvents.cs
+        if (site.Outcome.Length > 0) return $"too late: {OutcomeText(player, site)}";
         switch (action)
         {
             case "alongside":
@@ -652,6 +739,20 @@ public sealed partial class StarSystemState
                 return (WorkText(w.Action), Fix64.Clamp(Fix64.FromRaw((long)(((System.Int128)done << Fix64.FractionalBits) / System.Math.Max(1, need))), Fix64.Zero, Fix64.One),
                     (int)((need - done + Simulation.TickRate - 1) / Simulation.TickRate));
             }
+            if (w.Action == "push" && Site(siteId) is { } rock)
+            {
+                var need = PushNeed(player, rock);
+                var done = Record(player, siteId)?.PushTicks ?? 0;
+                return (EventWorkText(w.Action), Fix64.Clamp(Fix64.FromRaw((long)(((System.Int128)done << Fix64.FractionalBits) / System.Math.Max(1L, need))), Fix64.Zero, Fix64.One),
+                    (int)((need - done + Simulation.TickRate - 1) / Simulation.TickRate));
+            }
+            if (w.Action.StartsWith("record_", System.StringComparison.Ordinal) && Site(siteId) is { } storm && SiteKindOf(storm)?.Anomaly is { } an
+                && an.Ring(w.Action[7..]) is { Research: > 0 } ring)
+            {
+                var got = Record(player, siteId)?.Recorded ?? 0;
+                var seconds = (an.ResearchCap - got + ring.Research - 1) / ring.Research * an.EverySeconds;
+                return (EventWorkText(w.Action), Fix64.Clamp(Fix64.FromInt(got) / Fix64.FromInt(System.Math.Max(1, an.ResearchCap)), Fix64.Zero, Fix64.One), seconds);
+            }
             return (WorkText(w.Action), Share(w.Start, w.End), SecondsUntil(w.End));
         }
         if (st.RepairAction == "dock" && FlagshipOf(player)?.AtSite == siteId)
@@ -666,7 +767,7 @@ public sealed partial class StarSystemState
         "restore_power" => "Restoring power",
         "recover_logs" => "Recovering the logs",
         "sweep" => "Sweeping the field",
-        _ => action,
+        _ => EventWorkText(action), // SpaceEvents.cs
     };
 
     private Fix64 Share(long start, long end)
@@ -759,7 +860,17 @@ public sealed partial class StarSystemState
                 BeginTow(sim, player, site); // Towing.cs
                 return;
             case "release":
-                ReleaseTow(player, "released where it is");
+                if (st.Escort == site.Id) StopEscort(player, "left where it is"); // SpaceEvents.cs
+                else ReleaseTow(player, "released where it is");
+                return;
+            case "push":
+            case "sample":
+            case "pickup":
+            case "escort":
+            case "record_outer":
+            case "record_middle":
+            case "record_inner":
+                StartEventWork(sim, player, st, site, r, action); // SpaceEvents.cs
                 return;
             case "mine":
                 BeginMining(sim, player, site, r); // Mining.cs
@@ -767,6 +878,7 @@ public sealed partial class StarSystemState
             case "restore_power_kit":
                 Take(st, PatchKitItem, def.RestorePower!.Kits);
                 r.Powered = true;
+                EventPowered(site); // SpaceEvents.cs: a stranded ship's air
                 ShipLog(player, $"Power restored aboard {site.Name} with {def.RestorePower.Kits} patch kit{(def.RestorePower.Kits == 1 ? "" : "s")}", "good");
                 return;
         }
@@ -802,6 +914,7 @@ public sealed partial class StarSystemState
             st.HiredThisVisit = 0;
             ShipLog(ship.Owner, $"Holding position at {SiteNameFor(ship.Owner, id)}", "");
         }
+        ArriveAtEvent(sim, ship, site); // SpaceEvents.cs: a stranded ship's bait
     }
 
     /// <summary>The ship leaves its site: work there stops (alongside has to be done again), a dock repair stops, and an
@@ -836,6 +949,7 @@ public sealed partial class StarSystemState
     {
         if (_status.Count == 0 && _sites.Count == 0) return;
         StepTows(sim); // Towing.cs: towed sites follow their ships
+        StepSpaceEvents(sim); // SpaceEvents.cs: the event clock, moving sites, impacts, air, escorts
         for (var i = _sites.Count - 1; i >= 0; i--)
         {
             var s = _sites[i];
@@ -859,7 +973,7 @@ public sealed partial class StarSystemState
     {
         foreach (var s in _ships)
             if (s.AtSite == siteId || s.ToSite == siteId || s.FromSite == siteId) return true;
-        return TowerOf(siteId) >= 0;
+        return TowerOf(siteId) >= 0 || EscorterOf(siteId) >= 0;
     }
 
     private void StepScan(Simulation sim, int player, ShipState st)
@@ -897,6 +1011,7 @@ public sealed partial class StarSystemState
             StepMining(sim, player, st, site, r, w); // Mining.cs
             return;
         }
+        if (StepEventWork(sim, player, st, site, r, w)) return; // SpaceEvents.cs
         if (w.Action == "sweep" && def?.Sweep is { } sw)
         {
             if (IsDown(st, ShipSystem.Tractor))
@@ -951,6 +1066,7 @@ public sealed partial class StarSystemState
                 break;
             case "restore_power":
                 r.Powered = true;
+                EventPowered(site); // SpaceEvents.cs: a stranded ship's air
                 ShipLog(player, $"Power restored aboard {site.Name}", "good");
                 break;
             case "recover_logs":
@@ -1046,6 +1162,11 @@ public sealed partial class StarSystemState
                 if (kind == SiteKind.Station) return "a system has one station";
                 if (command.Value < -1 || command.Value >= def.Variants.Count) return $"variant index -1..{def.Variants.Count - 1}";
                 return FlagshipOf(p) == null ? "no flagship to put it next to" : null;
+            case DebugSpaceField.SpawnEvent:
+                if (SpaceSiteRules.KindOf(command.Id) is not { } ek || !IsEventKind(ek) || SiteRules?.Kind(ek) is not { } edef)
+                    return $"no event kind '{command.Id}' ({string.Join(", ", GameData.EventKinds.Select(SpaceSiteRules.IdOf))})";
+                if (command.Value < -1 || command.Value >= edef.Variants.Count) return $"variant index -1..{edef.Variants.Count - 1}";
+                return null;
             case DebugSpaceField.RemoveSite:
                 if (Site(command.Id) is not { } rs) return $"no site '{command.Id}'";
                 if (rs.Kind == SiteKind.Station) return "the station stays";
@@ -1093,6 +1214,13 @@ public sealed partial class StarSystemState
                 var variant = command.Value >= 0 ? def.Variants[command.Value].Id : null;
                 var site = SpawnSite(kind, variant, ShipPosition(ship, sim.Tick), Fix64.FromInt(25), Fix64.FromInt(45));
                 if (site != null) SetKnowledge(p, site.Id, SiteKnowledge.Detected);
+                return;
+            }
+            case DebugSpaceField.SpawnEvent:
+            {
+                var kind = SpaceSiteRules.KindOf(command.Id)!.Value;
+                var def = SiteRules!.Kind(kind)!;
+                SpawnEvent(sim, kind, command.Value >= 0 ? def.Variants[command.Value].Id : null); // SpaceEvents.cs
                 return;
             }
             case DebugSpaceField.RemoveSite:
@@ -1145,5 +1273,6 @@ public sealed partial class StarSystemState
             h.Add(st != null);
             st?.AddToHash(ref h);
         }
+        AddEventsToHash(ref h); // SpaceEvents.cs
     }
 }

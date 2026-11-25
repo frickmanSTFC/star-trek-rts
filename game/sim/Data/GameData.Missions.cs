@@ -75,7 +75,7 @@ public sealed partial class GameData
         ["with_ship"] = new[] { "ship", "hold_seconds", "at_arrival" },
         ["contact"] = new[] { "body", "stage" },
         // Space jobs (docs/space-jobs-contract.md; Missions/MissionSpaceJobs.cs): space sites and the flagship's status.
-        ["space_site"] = new[] { "site", "state", "kind", "kinds", "variant", "variants", "spent", "bind" },
+        ["space_site"] = new[] { "site", "state", "kind", "kinds", "variant", "variants", "spent", "bind", "count" },
         ["space_tally"] = new[] { "key", "keys", "count" },
         ["hull"] = new[] { "below", "at_least" },
         ["crew"] = new[] { "division", "at_least", "below" },
@@ -85,8 +85,12 @@ public sealed partial class GameData
     /// <summary>space_site states: detected / identified (what the player knows), at (the flagship holds there),
     /// alongside, powered, logs (a known derelict), boarded (an away team came back from it), swept (a debris field), done
     /// (worked out: Spent); phase 2: mined (an asteroid mined out), towing (in tow behind the flagship now), towed (delivered
-    /// at a station or the colony). A trigger with bind may only ask detected or identified.</summary>
-    public static readonly IReadOnlyList<string> MissionSpaceSiteStates = new[] { "detected", "identified", "at", "alongside", "powered", "logs", "boarded", "swept", "done", "mined", "towing", "towed" };
+    /// at a station or the colony); phase 3 (events): deflected (a rogue asteroid turned aside by the player), sampled (a
+    /// comet's tail), picked (lifepods picked up: count), escorting / escorted (a stranded ship under escort now / brought in
+    /// by the player), recorded (research recorded at an anomaly: count). A trigger with bind may only ask detected or
+    /// identified. An active pool job fails when its stage's event state can no longer come true.</summary>
+    public static readonly IReadOnlyList<string> MissionSpaceSiteStates = new[] { "detected", "identified", "at", "alongside", "powered", "logs", "boarded", "swept", "done", "mined", "towing", "towed",
+        "deflected", "sampled", "picked", "escorting", "escorted", "recorded" };
 
     /// <summary>space_tally key prefixes: sold (ore or salvage sold: sold:ore, sold:ore:deuterium), drop (ore dropped at the
     /// colony or a trade partner's world), mined (ore mined: mined:ore:…), tow (tows delivered: tow:station, tow:colony).</summary>
