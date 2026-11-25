@@ -767,6 +767,7 @@ public sealed partial class StarSystemState
                 r.SpentTick = Now;
             }
             if (st.Work is { } w && w.Site == site.Id) st.Work = null;
+            if (st.Away is { Done: false } away && away.Site == site.Id && _sim != null) RecallAwayTeam(_sim, p, text.ToLowerInvariant());
             if (st.Escort == site.Id)
             {
                 st.Escort = "";
@@ -877,6 +878,17 @@ public sealed partial class StarSystemState
         st.EscortTick = -1;
         Version++;
         ShipLog(player, $"{name} no longer under escort: {why}", "warn");
+    }
+
+    /// <summary>Why flying to a moving event site is pointless: it will have left the system (a comet, a storm) or struck
+    /// (a rock still on course) before the ship gets there; null otherwise.</summary>
+    private string? EventCourseProblem(int player, SystemShip ship, SpaceSite site)
+    {
+        if (!IsEventKind(site.Kind) || site.Outcome.Length > 0 || site.PathEnd < 0 || !site.Event) return null;
+        var arrive = Now + TravelTicksFor(ship, ShipPosition(ship, Now), SitePosition(site, Now));
+        if (arrive < site.PathEnd) return null;
+        return site.Kind == SiteKind.RogueAsteroid ? $"{SiteNameFor(player, site.Id)} would strike before we got there"
+            : $"{SiteNameFor(player, site.Id)} will be gone before we get there";
     }
 
     /// <summary>A ship arriving at an event site: a stranded ship's bait springs.</summary>

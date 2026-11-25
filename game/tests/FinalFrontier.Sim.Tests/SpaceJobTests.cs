@@ -47,7 +47,7 @@ public class SpaceJobTests
         Assert.Null(sim.Missions.Enable(Campaign.ShipChoice("tereshkova")!.Chain));
         Seconds(sim, 1);
         Assert.Equal(5, sim.Missions.States(0).Count); // the chain alone (tests and the test panel count on it)
-        Assert.Equal(JobSite.Keys.Concat(SpaceJobPhase2Tests.Jobs).OrderBy(x => x), sim.Missions.PoolStates(0).Select(s => s.Id).OrderBy(x => x)); // + phase 2's
+        Assert.Equal(JobSite.Keys.Concat(SpaceJobPhase2Tests.Jobs).Concat(SpaceEventTests.Jobs).OrderBy(x => x), sim.Missions.PoolStates(0).Select(s => s.Id).OrderBy(x => x)); // + phase 2's and 3's
         Assert.NotEqual("space_jobs", sim.Missions.ChainId);
         Assert.NotNull(sim.Missions.EnableProblem("space_jobs")); // never a game's chain
 

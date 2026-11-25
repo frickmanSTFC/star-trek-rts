@@ -46,7 +46,7 @@ public static class DataChecks
         var station = sys.Sites.Where(s => s.Kind == Space.SiteKind.Station).ToList();
         if (station.Count != 1) problems.Add($"{where}: {station.Count} stations (needs one: widen station.orbit or shrink clear_of_body).");
         else if (sys.SiteKnowledgeOf(0, station[0].Id) != Space.SiteKnowledge.Identified) problems.Add($"{where}: the station isn't on the player's chart.");
-        var others = sys.Sites.Count(s => s.Kind is not (Space.SiteKind.Station or Space.SiteKind.Asteroid));
+        var others = sys.Sites.Count(s => s.Kind is not (Space.SiteKind.Station or Space.SiteKind.Asteroid or Space.SiteKind.Anomaly));
         if (others < r.CountMin) problems.Add($"{where}: only {others} sites placed (count {r.CountMin}..{r.CountMax}; the bodies crowd them out: lower clear_of_body / spacing).");
         var rocks = sys.Sites.Count(s => s.Kind == Space.SiteKind.Asteroid);
         if (r.Asteroids is { } ag && rocks < ag.CountMin)
@@ -54,6 +54,22 @@ public static class DataChecks
         foreach (var s in sys.Sites)
             foreach (var b in sys.Bodies)
                 if (Math.FixVec2.Distance(s.Position, b.Position) < r.ClearOfBody) problems.Add($"{where}: {s.Id} sits on {b.Id}.");
+        var storms = sys.Sites.Count(s => s.Kind == Space.SiteKind.Anomaly);
+        if (r.Anomalies is { } am && storms < am.CountMin) problems.Add($"{where}: only {storms} anomalies placed (generation.anomalies count {am.CountMin}..{am.CountMax}).");
+        // Phase 3: every event kind with a weight can arrive on this seed (placed clear of the bodies).
+        if (r.Events is { } ev)
+            foreach (var w in ev.Weights)
+            {
+                if (w.Weight <= 0 || SpaceSiteRules.KindOf(w.Id) is not { } kind) continue;
+                var before = sys.Sites.Count;
+                sim.Schedule(sim.Tick, new DebugSpaceCommand(0, 0, DebugSpaceField.SpawnEvent, w.Id, -1));
+                sim.Step();
+                var site = sys.Sites.Count > before ? sys.Sites[^1] : null;
+                if (site == null || site.Kind != kind) problems.Add($"{where}: a {w.Id} event can't be placed (widen generation.orbit or events.edge).");
+                else if (kind != Space.SiteKind.RogueAsteroid && kind != Space.SiteKind.Comet)
+                    foreach (var b in sys.Bodies)
+                        if (Math.FixVec2.Distance(site.Position, b.Position) < r.ClearOfBody) problems.Add($"{where}: the {w.Id} event {site.Id} sits on {b.Id}.");
+            }
         return problems;
     }
 

@@ -297,6 +297,7 @@ public sealed partial class StarSystemState
     internal SpaceSite? SpawnSite(SiteKind kind, string? variant, FixVec2 near, Fix64 min, Fix64 max)
     {
         if (SiteRules is not { } r || r.Kind(kind) is not { } def) return null;
+        if (IsEventKind(kind) && _sim != null) return SpawnEvent(_sim, kind, variant); // an event kind arrives as an event (its path, pods, air)
         var number = _nextSiteId;
         FixVec2 at = near;
         for (var t = 0; t < System.Math.Max(1, r.Tries); t++)
@@ -628,6 +629,7 @@ public sealed partial class StarSystemState
         if (TowerOf(siteId) is var tower and >= 0) return tower == player ? $"{SiteNameFor(player, siteId)} is in tow behind us" : $"{SiteNameFor(player, siteId)} is under tow by another ship";
         if (CrippledProblem(player, ship) is { } crippled) return crippled;
         if (site.ExpireTick >= 0 && site.ExpireTick - Now < Simulation.TickRate * 2) return $"{SiteNameFor(player, siteId)} is drifting out of the system";
+        if (EventCourseProblem(player, ship, site) is { } late) return late; // SpaceEvents.cs: a comet leaving, a rock striking first
         return null;
     }
 
@@ -665,7 +667,7 @@ public sealed partial class StarSystemState
         if (ship.Owner != player || player < 0) return "not your ship";
         if (Status(player) is not { } st) return "this ship can't work sites";
         if (action == "stop") return st.Work != null && st.Work.Site == siteId ? null : "nothing is running there";
-        if (action == "release") return (st.Tow.Length > 0 && st.Tow == siteId) || (st.Escort.Length > 0 && st.Escort == siteId) ? null : "not towing or escorting it"; // wherever the ship is
+        if (action == "release") return (st.Tow.Length > 0 && st.Tow == siteId) || (st.Escort.Length > 0 && st.Escort == siteId) ? null : "not towing it"; // a tow or an escort, wherever the ship is
         if (Site(siteId) is not { } site || SiteKnowledgeOf(player, siteId) == SiteKnowledge.Unknown) return "no such site";
         if (!WorkActions.Contains(action)) return $"no such work '{action}'";
         var def = SiteKindOf(site);
