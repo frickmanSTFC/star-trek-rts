@@ -148,7 +148,7 @@ public static class SiteModels
             {
                 if (child is not Node3D n) continue;
                 var t = frame * n.Transform;
-                if (n is MeshInstance3D { Mesh: { } mesh })
+                if (n is MeshInstance3D { Mesh: { } mesh } && n.Name != "Tail") // a comet's tail doesn't size the site
                 {
                     var b = t * mesh.GetAabb();
                     box = any ? box.Merge(b) : b;

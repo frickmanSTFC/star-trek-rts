@@ -110,9 +110,13 @@ public partial class PlanetDriver
             _status = sys.StatusOf(LocalPlayer);
             SpaceEvents(sys);
             _orbit.SiteScanRange = SiteReach();
+            UpdateHullChip();
         }
-        if (sys == null) _status = null;
-        UpdateHullChip();
+        if (sys == null && _status != null)
+        {
+            _status = null;
+            UpdateHullChip();
+        }
         UpdateAwayPanel(sys);
         if (!_inOrbit && _statusScreen.IsOpen) _statusScreen.Close();
         if (_statusScreen.IsOpen && (_spacePollAt == _clock || _statusPage == null)) _statusPage = _status == null ? null : StatusPage(_status);
