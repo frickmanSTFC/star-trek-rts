@@ -44,7 +44,7 @@
           "next": "complete" } ],
       "debrief": "Manifest checks out: deuterium, ore and a crate of Andorian ale nobody declared. We let them off with a warning." },
 
-    { "id": "watch_rogue_rock", "chain": "watch_station", "kind": "main", "title": "Rogue Rock", "giver": "patrol",
+    { "id": "watch_rogue_rock", "chain": "watch_station", "kind": "main", "title": "Collision Course", "giver": "patrol",
       "briefing": "Hale. Tracking has {rock} on a collision course with {target}, and there are people there. Catch it, come alongside and lean on it with the tractor until it misses. Charges are quicker, if you trust your boarding party with them.",
       "stages": [
         { "id": "turn", "title": "Turn it aside", "on_lost": "turn",
