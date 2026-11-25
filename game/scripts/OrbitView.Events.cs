@@ -256,20 +256,20 @@ public partial class OrbitView
         }
     }
 
-    private static StandardMaterial3D Additive(Color colour) => new()
+    private static StandardMaterial3D Additive(Color colour, bool vertexColour = false) => new()
     {
         AlbedoColor = colour,
         Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
         BlendMode = BaseMaterial3D.BlendModeEnum.Add,
         ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
         CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-        VertexColorUseAsAlbedo = true,
+        VertexColorUseAsAlbedo = vertexColour,
     };
 
     /// <summary>A soft additive particle cloud (billboards) in a ball of the radius round the scene's centre.</summary>
     private CpuParticles3D Cloud(string name, int amount, float life, float radius, Color colour, float sizeMin, float sizeMax, float speedMin, float speedMax)
     {
-        var material = Additive(Colors.White);
+        var material = Additive(Colors.White, true); // the particles' colour comes as vertex colour
         material.BillboardMode = BaseMaterial3D.BillboardModeEnum.Particles;
         var cloud = new CpuParticles3D
         {

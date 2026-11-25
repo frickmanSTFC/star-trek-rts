@@ -388,4 +388,125 @@ ore at one share (tankers aren't deuterium-only). Asteroids don't move; rogue as
 
 ## Phase 3, filled in
 
-(the agent writes this when done)
+Built by the phase 3 agent (2026-11-25), sim + view. Every number is a placeholder in data; `Validate()` and
+`DataChecks.All` check all of it. Decisions given with the brief: keep it simple and data-driven; a rogue strike on a
+colony body is bounded and deterministic and never destroys anything; a failed escort or a lost pod costs only the
+reward plus a log line.
+
+**Data.** A new part of the maps document, `data/maps/events.json` (manifest after `ship_status.json`): it adds to the
+`space_sites` table (its `kinds` list is joined after sites.json's, `generation` gains `anomalies`, plus `events`) and one
+away table (`charges`) to `ship_status`; notes in its `_notes_space_events`.
+- `events` (`SpaceSiteRules.Events` = `SpaceEventRules`): calm_seconds 300, every_seconds [300, 420], max_live 3,
+  edge [500, 560] (where moving things come in), weights rogue_asteroid 2 / comet 2 / lifepods 2 / stranded_ship 2 /
+  anomaly 1. `generation.anomalies` (`AnomalyGenDef`): count [0, 1], drift 40 map units over drift_seconds 3600.
+- Kinds (`SiteKindDef` gained `Rogue`, `Comet`, `Pods`, `Stranded`, `Anomaly`; records in `SpaceJobDefs.cs`, read in
+  `GameData.SpaceJobs.cs`, checked in the new `GameData.SpaceEvents.cs`; `GameData.EventKinds`):
+  `rogue_asteroid` (R, scan 15, variants stony / iron, hazardous, alongside 15 s + 20% for hull 1-3, away table
+  `charges`, research 30-60; `rogue`: flight_seconds [360, 480] to its body, colony_chance 50, push_seconds [60, 120]
+  (by the rock's hash ÷ the Engineering lever `mining`), veer 600 units over 90 s, reward latinum [20, 40] + research
+  [40, 80], civ_awareness −10 (saved quietly) / civ_strike_awareness +25, impact { spread 6, radius 3, damage [20, 40],
+  max_buildings 6, max_vehicles 4 }); `comet` (M, scan 15; `comet`: cross_seconds [360, 540] passing [120, 260] from
+  the star, window [0.25, 0.8] of the crossing, sample 30 s, hull −1 every 10 s, research [60, 120], ice [1, 2]
+  containers of deuterium); `lifepods` (P, scan 10, variants freighter / liner; `pods`: count [6, 12], survivors [1, 3]
+  each, air [240, 600] s from the call, pickup 5 s each, near_debris 60); `stranded_ship` (T, scan 20, variants
+  freighter / trader / science, alongside 20 s, restore_power 60 s or 1 patch kit; `stranded`: air [600, 900] s unless
+  powered, escort_flight 1.2, bait 20%, ambush hull [10, 20] + one of sensors / engines / tractor down, reward latinum
+  [30, 60] + research [10, 30]); `anomaly` ("Ion storm", I, scan 20; `anomaly`: every 10 s, research_cap 240, systems
+  sensors / engines, life_seconds [900, 1500] and drift 60 for event storms; rings outer (radius 30, +2) / middle (20,
+  +4, hull −1) / inner (10, +8, hull −2, knock 10%, hazardous)).
+- `ship_status` away table `charges` (where / how much / firing; outcomes turned 60 `deflect`, split 20 `deflect` + hull 6
+  + 1 injured, fizzle 20). `AwayOutcomeDef.Deflect`.
+- `data/missions/space_jobs.json`: `rogue_rock` (control: identify → turn it aside; 40 latinum + 40 research),
+  `catch_the_comet` (science: identify → sample the tail; 80 research), `pods_in_the_dark` (ops: identify → pick up 3
+  pods; 30 latinum + medical stores), `dead_stick` (ops: identify → alongside + power → escort to its destination;
+  40 latinum + 20 research), `into_the_storm` (science: identify → record 60 research; 60 research). Vocabulary in
+  `missions/notes.json`.
+
+**Sim API added** (`Space/SpaceEvents.cs`, hooks in `SpaceSites.cs`, `ShipStatus.cs`, `Towing.cs`, `AwayTeam.cs`,
+`StarSystem.cs`; `Surface/Impacts.cs`).
+- `SpaceSite` gained (internal set): `Event`, a straight path `PathFrom` / `PathTo` / `PathStart` / `PathEnd`
+  (PathStart < 0 = it doesn't move), `TargetBody` (a rogue's target, a stranded ship's destination), `Outcome` ("" while
+  it runs: deflected, impact, gone, cleared, rescued, trap, lost) / `OutcomeBy` / `OutcomeTick`, `AirTick` (a stranded
+  ship's air, -1 once powered), `PodCount` / `PodsTaken` / `PodsLost` (bitmasks). Hashed in a "p3" block only for event
+  kinds or moving sites.
+- `StarSystemState`: `SitePosition(site, tick)` (a moving site's place at any tick; `ShipPosition` of a ship at or flying
+  to a site now uses it, so the view can lerp), `EventOf(siteId)` → `SpaceEventView` (path, target, impact tick, the
+  comet's window, air, pods, outcome), `PodsOf(siteId)` → `PodView(Index, Survivors, AirTick, State)`, `PodAirTick`,
+  `TailWindow`, `EscortOf(player)`, `EscorterOf(siteId)`, `RecordingRing(player)`, `WorkActionOf` / `WorkSiteOf` (no
+  allocation), `LiveEvents()`, `NextEventTick`, `EventNotes` (newest 20 `SpaceEventNote(Tick, SiteId, Kind, Text,
+  Distress)`) + `EventNoteCount`. Hold item `EscortItem` "escort" (a line of 0 containers while escorting; `ShipHoldCommand`
+  jettison = stop the escort). `SiteWorkState` gained `Pushed`, `Deflected`, `Sampled`, `Picked`, `Recorded`, `Escorting`,
+  `Rescued`. `PlanetSurface.LastImpactTile` / `LastImpactTick` (hashed once set).
+- Work actions (`SiteWorkCommand`): `push` (rogue: alongside, tractor up, no tow, no away team; progress kept per player
+  like a sweep), `sample` (comet: only if the whole sample fits in the window), `pickup` (lifepods: the pod with the least
+  air, one after another until none is left; tractor), `escort` (stranded ship, powered, nobody else escorting, no tow),
+  `record_outer` / `record_middle` / `record_inner` (anomaly; the inner ring refuses a critical hull); `release` stops an
+  escort too (label STOP ESCORT). Course to a moving event the ship can't reach in time is refused ("will be gone before
+  we get there" / "would strike before we got there"). `DebugSpaceField.SpawnEvent` (Id = event kind, Value = variant
+  or -1); `SpawnSite` / `place_space_site` of an event kind goes through `SpawnEvent`.
+- Missions: `space_site` states `deflected`, `sampled`, `picked` {count}, `escorting`, `escorted`, `recorded` {count}
+  (`count` added to the field list). A pool job also fails when a required objective of its stage can no longer come
+  true (`StarSystemState.SiteStateLost`: struck / turned by another ship, the comet left or its tail went quiet, too few
+  pods left, bait / crew lost / brought in by another ship, the storm dispersed); that costs only the reward.
+
+**Rules as built.** The clock: `_nextEventTick` = calm + a gap by the system's hash, each turn picks the kind by the hash
+of the turn and spawns it unless max_live events are running; gaps by the hash; never sim.Rng. An event is announced on
+every player's ship log (and `EventNotes`) and is Detected for every player with a flagship; identifying it needs a
+scan. Event placement uses its own salts (`EventSalt`, `AnomalySalt`), and the start anomalies are rolled after the
+asteroids, so the phase 1-2 sites of a seed are exactly where they were (test). A rogue comes in from the edge straight at
+its body; pushed aside or turned by charges it veers outward and leaves; unturned it strikes at `PathEnd`: on the colony
+body (someone landed) `PlanetSurface.RogueImpact` picks a core and a spot within `spread` by the rock's seed, every
+building within `radius` loses damage × (1 − d ÷ (radius + 1)) condition and every vehicle that integrity, the nearest
+max_buildings / max_vehicles only, never below 1 (as the ruin defences: nothing is destroyed or broken by it); anywhere
+else a log line; a living civilization's world it was heading for: awareness −10 when saved, +25 when struck. A comet
+crosses on its path and leaves at the end; sampling inside the window gives research and ice (deuterium ore, what fits;
+tallied as mined), once per player (Spent for that player only). Lifepods: one site, pods by index with their own air;
+pods are shared (taken by whoever picks them up); air running out loses a pod (log); no pods left → cleared for all.
+Survivors join the crew while it is short, else ride in the hold. A stranded ship's air stops when anyone restores its
+power; escorted, it follows the flagship (flights × 1.2, also tow-like on the plot) and is rescued in orbit of its
+destination (reward, then it leaves); its air running out = lost; a bait call (20% by its hash) springs an ambush on the
+first ship to arrive (hull, a system down on sim.Rng) and is spent. Ion storms: recording runs until stopped, every 10 s
+the ring's research (up to the cap: then Spent for that player), hull wear and knock roll (sim.Rng); event storms
+disperse at their path's end. An ended event is Spent for everyone who knew it, their work there stops, an escort ends,
+an away team there is recalled; it drifts off spent_seconds later (comets and storms at once, a rescued ship at once, a
+turned rock at the end of its veer) unless a ship holds there.
+
+**Hash.** Planet-only games and the balance runner keep their hashes (checked against the base commit 36c7e5e: the golden
+scripted game, a two-player First Light game sampled every 40 s for 400 s, a Dawn of Warp landing sampled for 300 s, and
+standard_opener on seeds 1 / 1701 at 15 min hash the same). New state is hashed in system games only: the event clock and
+notes (`AddEventsToHash`), the site "p3" block, the per-player record "p3" block and the flagship's escort only once used,
+the surface's last impact once there was one. Every system game's hash moved (start anomalies, the event clock).
+
+**Tests.** `SpaceEventTests` (44: the clock (twice, same notes and hashes; first event after calm + a gap; Detected and
+logged for everyone), phase 1-2 sites unchanged without the phase 3 data, rogue pushed aside (moves, ship goes along,
+reward, veers off), charges (fizzle / turned), a colony strike (bounded, never below 1, nothing removed, twice the same),
+comet window and leaving, lifepods (least air first, cleared, air running out), stranded ship rescued, escort as a hold
+line, bait ambush, crew lost, storm rings (outer safe, inner wears), refusals change nothing (twin games), a job failing
+when its rock strikes, and each of the five jobs on all six ships twice with the same hashes, played on a data copy whose
+events come fast and of one kind (calm 5 s, every 20 s, no bait)); `SpaceJobFuzzTests` sends the new actions, the escort
+item and SpawnEvent (+ invariants: escort consistent, pods taken xor lost, ended events leave). Changed expectations:
+`SpaceSiteTests.SitesAreRolledFromTheSeedBetweenTheBodies` and `AsteroidTests.AsteroidsAreRolledAfterTheOtherSites…`
+(the start anomalies are left out of the phase 1 count / compared lists, they come after the asteroids),
+`SpaceJobTests.ThePoolIsOffered…` (the pool lists the five new jobs). `DataChecks.SpaceSiteProblems` also wants
+generation.anomalies.count[0] storms and every weighted event kind placeable on seeds 1/1701/99999. 993 tests.
+
+**View.** `SystemPlot.Events.cs`: moving sites drawn between ticks (`SitePosition` at this tick and the next, lerped by the
+frame's alpha; ships holding at them follow), a rogue's dashed red course to its body with a cross on the impact point
+(glyph colour `SiteDanger`), a comet's dashed path with its tail window in cyan (`GlyphKind.Comet`), an ion storm's three
+rings at the data radii (inner dashed), a dashed escort line to the stranded ship drawn just behind its escorting ship
+(as a tow), and label countdowns (IMPACT 3:12, TAIL IN 1:05 / TAIL ACTIVE 0:40 / LEAVING, 5 PODS · AIR 1:20, AIR 6:00 /
+POWERED, DISPERSES 12:00, RECORDING INNER, ESCORTING). `PlanetDriver.SpaceEvents.cs`: a distress call (lifepods, a
+stranded ship) plays the alarm twice, a sensor alert the tutorial chime (the ship log already writes the event lines);
+card bars: TO IMPACT, TAIL, each waiting pod's air (least first, six at most), a stranded ship's AIR, RECORDED; tips for
+the new buttons. `OrbitView.Events.cs` (the site view): a comet's coma and jets (and tail) bright while its window is open
+and a cyan sampling beam; a blue push beam on a rogue rock (plus a faint dust trail in `SiteModels`); lifepods built with
+the sim's PodCount, picked-up / lost pods hidden, the next pod drawn in along a tractor beam; a stranded ship's distress
+beacon (blinks) and a red pulsing light until its power is back, then a steady warm one; an ion storm's plasma cloud and
+lightning (more the deeper the ship records), the ship holding at the ring it records at. Status screen: the escort line
+with STOP ESCORT. F9 SPACE: EVENTS (the next turn's countdown, events running, a button per kind).
+
+**Not done / open.** "Trust" with a saved civilization (only awareness moves). Rogue rocks are pushed by the existing
+`mining` lever (no tractor lever of its own). Survivors from lifepods are not tallied for missions (no "rescued N people"
+condition); the side job counts pods. A stranded ship has no model of its own (a derelict model + a distress beacon).
+Achievements don't hear events. Events don't avoid a crowded system beyond max_live and the placement tries. The phase 4
+chain versions (e.g. "Twelve Lifepods") are not built.
