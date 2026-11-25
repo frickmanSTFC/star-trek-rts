@@ -349,3 +349,43 @@ derelicts tow). Ore can't be dropped at the station (sell it there) and the deut
 `deuterium` straight into stock. No "how full is the rock" model change (the asteroid doesn't shrink). Traders buy every
 ore at one share (tankers aren't deuterium-only). Asteroids don't move; rogue asteroids are phase 3. Space ships carry
 `cutting_gear` only if picked on the fit-out page (no preset loads it).
+
+## Phase 3: events and anomalies (one agent: sim + view)
+
+- **Sites that arrive during the match** (the phase 1 "not done" item): after a calm start (data, ~5 min), a new event
+  about every 6 min (data; deterministic from the system seed and the tick, never `sim.Rng` for when/what), at most a
+  few live at once; each announced with an event line / ship log line and detected for every player (an event is a
+  distress call or a sensor alert, not something you have to scan to notice; identify still needs a scan).
+- **Rogue asteroid** (`SiteKind.RogueAsteroid`): moves along a straight course toward a body, impact at a known tick
+  (shown as a countdown on the card and the plot: course line + impact point). Push it off course: hold alongside with
+  the tractor for 60–120 s (Engineering lever `mining`/tractor strength or a new one), or an away team plants charges
+  (faster, riskier: its own table). Success: reward (latinum, research; a civilization's world saved: awareness down,
+  trust with that civ). Failure: impact; on a colony's body the surface takes damage (a few buildings / vehicles near a
+  random spot lose condition, a bounded, deterministic list; never destroyed outright), elsewhere a log line.
+- **Comet** (`SiteKind.Comet`): crosses the system on a curve/line over several minutes, then leaves. Meet it in its
+  window and "sample" the tail for 30 s while it is in range (the ship has to keep up: hold at the comet = follow it):
+  research + ice → deuterium ore in the hold. Light hull wear while sampling.
+- **Lifepods** (`SiteKind.Lifepods`): a cluster of 6–12 pods round a point (usually by a debris field), each with its own
+  air deadline (minutes). "pickup" a pod within range takes 5 s (tractor); people go into the hold (3 per container) and
+  are dropped at the Station or a colony body (crew join while short, else latinum/standing). Pods whose air runs out
+  are lost (log). The site is Spent when no pods remain.
+- **Stranded ship** (`SiteKind.StrandedShip`): a neutral ship adrift; bring power (60 s alongside or a patch kit), then
+  escort it to a body (it follows the flagship like an ally escort). Sometimes (data, ~20%) the distress call is bait:
+  on arrival an ambush burst (hull damage, a system down, no combat yet) and the site is Spent.
+- **Anomaly** (`SiteKind.Anomaly`, ion storm etc.; not yet built): hold position at a ring (outer / middle / inner) and
+  "record": research by time × ring; inner ring hull −2% / 10 s and a chance to knock out sensors or engines; the storm
+  drifts. Some at the start (like asteroids), some as events.
+- **Pool jobs** in `data/missions/space_jobs.json` for each event: e.g. "Rogue Rock" side version, "Catch the Comet",
+  "Twelve Lifepods" side version (the chain one is phase 4), "Dead Stick" (stranded ship), "Into the Storm" (anomaly).
+- **View:** moving sites on the plot (smooth from `ShipPosition`-style interpolation), rogue course line + impact
+  countdown, comet path + window, pod dots with air bars on the card, escort line for a stranded ship, anomaly rings on
+  the plot and in the site view (`OrbitView.Sites.cs`: comet coma + tail, ion storm volume, pods round the lifepod
+  model, the rogue rock with a push beam), event lines and an alert sound (`Sfx.Ui("error")` or similar) for a distress
+  call. F9 SPACE: spawn each event now.
+- Same rules as before: planet-only and balance hashes unchanged (check against the base commit), system games
+  deterministic, refusals change nothing, fuzz covers new actions, `Validate()` / `DataChecks.All` empty, 949+ tests
+  green. Fill in "Phase 3, filled in" below.
+
+## Phase 3, filled in
+
+(the agent writes this when done)
