@@ -234,7 +234,7 @@ public sealed partial class StarSystemState
     public ShipStatusView? StatusOf(int player)
     {
         if (Status(player) is not { } st || FlagshipOf(player) is not { } ship || StatusRules is not { } rules) return null;
-        var band = rules.BandOf(st.Hull);
+        var band = BandFor(rules, st);
         var crew = new List<CrewLine>();
         var ids = DivisionIds();
         for (var i = 0; i < st.OnDuty.Length && i < ids.Count; i++)
@@ -365,8 +365,12 @@ public sealed partial class StarSystemState
 
     private static bool IsDown(ShipState st, ShipSystem system) => st.Down.Any(d => d.System == system);
 
+    /// <summary>The band the ship is in: Crippled while it is (even as the hull creeps back), else by the hull.</summary>
+    private static HullBandDef? BandFor(ShipStatusRules rules, ShipState st) =>
+        st.Crippled ? rules.Bands.FirstOrDefault(b => b.Band == HullBand.Crippled) ?? rules.BandOf(st.Hull) : rules.BandOf(st.Hull);
+
     /// <summary>Whether the hull's band allows hazardous jobs.</summary>
-    private bool HazardousOk(ShipState st) => !st.Crippled && (StatusRules?.BandOf(st.Hull)?.Hazardous ?? true);
+    private bool HazardousOk(ShipState st) => !st.Crippled && ((StatusRules is { } br ? BandFor(br, st)?.Hazardous : null) ?? true);
 
     private int CrippledSeconds(ShipState st)
     {
@@ -382,7 +386,7 @@ public sealed partial class StarSystemState
     private Fix64 StatusFlightFactor(SystemShip ship)
     {
         if (ship.Owner < 0 || Status(ship.Owner) is not { } st || FlagshipOf(ship.Owner) != ship || StatusRules is not { } rules) return Fix64.One;
-        var f = rules.BandOf(st.Hull)?.Flight ?? Fix64.One;
+        var f = BandFor(rules, st)?.Flight ?? Fix64.One;
         foreach (var d in st.Down)
             if (rules.System(d.System) is { } sys) f *= sys.Flight;
         if (st.CrewTotal * 2 < st.StartTotal) f *= rules.HalfCrewFlight;
@@ -391,7 +395,7 @@ public sealed partial class StarSystemState
 
     /// <summary>× on the player's long-range scan reach and site identify range (a damaged hull's band). 1 when sound.</summary>
     private Fix64 ScanReachFactor(int player) =>
-        Status(player) is { } st && StatusRules is { } rules ? rules.BandOf(st.Hull)?.ScanReach ?? Fix64.One : Fix64.One;
+        Status(player) is { } st && StatusRules is { } rules ? BandFor(rules, st)?.ScanReach ?? Fix64.One : Fix64.One;
 
     /// <summary>Why a crippled flagship can't set course, or null.</summary>
     private string? CrippledProblem(int player, SystemShip ship) =>

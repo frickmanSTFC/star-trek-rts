@@ -109,7 +109,7 @@ public class FitOutSpaceTests
         Assert.Equal(new[] { "ssat", "probe", "mass", "post", "gifts", "patch", "med_space" }, f.LinesFor(true).Select(l => l.Id)); // patch, med_space: space jobs (docs/space-jobs-contract.md)
         Assert.Equal(new[] { ("exploration", 1), ("engineering", 1), ("science", 1), ("defense", 0), ("ship", 0) }, f.Groups.Select(g => (g.Id, g.SpaceFloor)));
         Assert.Equal(FitOutRules.SpaceLevers.OrderBy(x => x), f.LeversFor(true).Select(l => l.Id).OrderBy(x => x));
-        Assert.Equal(6, f.LeversFor(true).Count(l => l.Division.Length > 0));
+        Assert.Equal(8, f.LeversFor(true).Count(l => l.Division.Length > 0)); // + field_repair, away_loss (space jobs)
         Assert.Equal((1, 1, 1, -3), (f.Line("ssat")!.SystemSatellites, f.Line("post")!.Posts, f.Line("probe")!.Probes, f.Line("gifts")!.ShockPoints));
         foreach (var ship in SpaceShips)
         {

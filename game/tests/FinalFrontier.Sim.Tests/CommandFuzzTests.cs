@@ -158,6 +158,7 @@ public class CommandFuzzTests
             25, 8, 8, // 45..47 drones and comms: launch a drone, recall drones, put up a relay satellite
             20, 8, // 48, 49 missions: a choice (accept / decline / a branch), the test panel's mission edits
             4, // 50 the test panel's building unlocks
+            6, // 51 space jobs (commands 40-46, debug 122): refused here, a planet-only game (SpaceJobFuzzTests runs them in a system)
         };
 
         private static readonly int TotalWeight = Weights.Sum();
@@ -240,6 +241,7 @@ public class CommandFuzzTests
                 case 47: return new RelaySatelliteCommand(p, Tile());
                 case 48: return new MissionChoiceCommand(p, MissionId()!, Text(new[] { "accept", "accept", "decline", "launch" })!);
                 case 50: return new DebugUnlockCommand(p, Player(), Chance(30) ? "" : BuildingId()!, Chance(60));
+                case 51: return SpaceFuzz.Next(_rng, _sim);
                 default:
                     return new DebugMissionCommand(p, Player(), MissionId()!, Chance(3) ? DebugMissionAction.Enable : Enum<DebugMissionAction>(),
                         Text(Data.Missions?.List.SelectMany(m => m.Stages.Select(st => st.Id)).ToList() ?? new List<string>())!,

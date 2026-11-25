@@ -21,6 +21,35 @@ public static class DataChecks
         problems.AddRange(SymmetryProblems(data));
         foreach (var seed in PlanetSeeds) problems.AddRange(SystemProblems(data, seed));
         problems.AddRange(CivilizationProblems(data));
+        foreach (var seed in PlanetSeeds) problems.AddRange(SpaceSiteProblems(data, seed));
+        return problems;
+    }
+
+    /// <summary>Space sites (maps/sites.json): a system game on the seed gets its station and at least generation.count[0]
+    /// other sites (none crowded out by the bodies), each clear of every body; the station is Identified for the player.</summary>
+    public static List<string> SpaceSiteProblems(GameData data, ulong seed)
+    {
+        var problems = new List<string>();
+        if (data.SpaceSites is not { } r || data.SystemGenerator == null) return problems;
+        var where = $"Space sites, seed {seed}";
+        Simulation sim;
+        try
+        {
+            sim = MatchSetup.CreateSystemGame(data, seed);
+        }
+        catch (System.Exception)
+        {
+            return problems; // SystemProblems reports it
+        }
+        var sys = sim.System!;
+        var station = sys.Sites.Where(s => s.Kind == Space.SiteKind.Station).ToList();
+        if (station.Count != 1) problems.Add($"{where}: {station.Count} stations (needs one: widen station.orbit or shrink clear_of_body).");
+        else if (sys.SiteKnowledgeOf(0, station[0].Id) != Space.SiteKnowledge.Identified) problems.Add($"{where}: the station isn't on the player's chart.");
+        var others = sys.Sites.Count(s => s.Kind != Space.SiteKind.Station);
+        if (others < r.CountMin) problems.Add($"{where}: only {others} sites placed (count {r.CountMin}..{r.CountMax}; the bodies crowd them out: lower clear_of_body / spacing).");
+        foreach (var s in sys.Sites)
+            foreach (var b in sys.Bodies)
+                if (Math.FixVec2.Distance(s.Position, b.Position) < r.ClearOfBody) problems.Add($"{where}: {s.Id} sits on {b.Id}.");
         return problems;
     }
 
