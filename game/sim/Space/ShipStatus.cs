@@ -689,11 +689,21 @@ public sealed partial class StarSystemState
             }
             case "jettison":
                 if (item == "survivors" || item.StartsWith(SurvivorsPrefix, System.StringComparison.Ordinal)) return "people don't go out of the airlock";
+                if (JettisonableLine(player, item) is { } line)
+                {
+                    var left = line.Probes > 0 ? sim.FitOutProbes(player) : line.SystemSatellites > 0 ? sim.FitOutFreeSystemSatellites(player) : sim.FitOutFreePosts(player);
+                    return left < count ? $"have {left}" : null;
+                }
                 if (!KnownHoldItem(item)) return $"no '{item}' aboard";
                 return Count(st, item) < count ? $"have {Count(st, item)}" : null;
         }
         return $"no hold action '{action}'";
     }
+
+    /// <summary>A fit-out space cargo line the hold can throw out to make room (sensor probes, system satellites, listening
+    /// posts: the ones that are used up), by its line id; null for anything else.</summary>
+    private FitOutCargoLine? JettisonableLine(int player, string item) =>
+        _sim?.FitOutOf(player) != null && Data?.FitOut?.Line(item) is { Space: true } line && (line.Probes > 0 || line.SystemSatellites > 0 || line.Posts > 0) ? line : null;
 
     private static int Latinum(Simulation sim, int player) =>
         sim.Data.HasResource(GameData.Latinum) ? sim.Players[player].Stock[sim.Data.Resource(GameData.Latinum).Index].FloorToInt() : 0;
@@ -760,6 +770,13 @@ public sealed partial class StarSystemState
                 }
                 return;
             case "jettison":
+                if (JettisonableLine(p, c.Item) is { } line)
+                {
+                    for (var k = 0; k < c.Count; k++)
+                        _ = line.Probes > 0 ? sim.UseProbe(p) : line.SystemSatellites > 0 ? sim.UseFreeSystemSatellite(p) : sim.UseFreePost(p);
+                    ShipLog(p, $"Jettisoned {c.Count} × {line.Name}", "warn");
+                    return;
+                }
                 Take(st, c.Item, c.Count);
                 ShipLog(p, $"Jettisoned {c.Count} × {ItemLabel(c.Item)}", "warn");
                 return;
@@ -819,6 +836,7 @@ public sealed partial class StarSystemState
             var gain = rules.FieldPer10s * Fit(player, FitOutRules.FieldRepair);
             st.Hull = Fix64.Min(Fix64.FromInt(rules.FieldUpTo), st.Hull + gain);
             Version++;
+            if (st.Hull >= Fix64.FromInt(rules.FieldUpTo)) ShipLog(player, $"Field repairs: hull back to {rules.FieldUpTo}% (the most the crew can do outside a dock)", "good");
         }
         if (st.RepairAction.Length > 0 && tick >= st.RepairEnd)
         {

@@ -217,7 +217,8 @@
       "missions/long_survey.json",
       "missions/priority_run.json",
       "missions/watch_station.json",
-      "missions/envoy.json"
+      "missions/envoy.json",
+      "missions/space_jobs.json"
     ]
   }
 }

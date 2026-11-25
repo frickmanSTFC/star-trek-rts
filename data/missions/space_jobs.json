@@ -1,0 +1,70 @@
+{
+  "_notes_space_jobs": "Space jobs, phase 1 (docs/space-jobs-contract.md; design page docs/mockups/space-jobs): side jobs of the pool chain space_jobs (rules.json \"pool\": true), offered to every chain's players in a game with a star system, from the sites their long-range scans have found (a space_site trigger binds the site; a colony ship is offered only sites within maps space_sites colony_reach_seconds of its colony's body). At most rules.max_side_active side jobs at once (counted with the chain's own); an offer lapses after offer_seconds. A pool job fails when the ship is crippled or its away team is called back; failing costs only the reward (hull damage and crew lost stay). Rewards: a ship that never lands gets grants into its stock and research where observation research goes; a colony ship as its colony's missions. All numbers are placeholders.",
+  "missions": [
+    { "id": "quiet_hulk", "chain": "space_jobs", "kind": "side", "title": "The Quiet Hulk", "giver": "science",
+      "trigger": { "space_site": { "kind": "derelict", "variant": "unknown", "state": "detected", "bind": "hulk" } },
+      "briefing": "Long-range contact: {hulk}, a hull with no power and no transponder. Nobody has filed a flight plan for it. Go and look.",
+      "stages": [
+        { "id": "identify", "title": "Identify the contact",
+          "on_enter": [ { "marker": { "at": "hulk", "label": "The hulk" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Fly within range of {hulk} and scan it", "cond": { "space_site": { "site": "hulk", "state": "identified" } },
+              "hint": "Set course for the contact, then SCAN from within range." } ],
+          "next": "alongside" },
+        { "id": "alongside", "title": "Come alongside",
+          "objectives": [
+            { "id": "alongside", "text": "Come alongside {hulk}", "cond": { "space_site": { "site": "hulk", "state": "alongside" } },
+              "hint": "Hold position at the hulk and COME ALONGSIDE (20 s). Loose debris may strike the hull." } ],
+          "next": "board" },
+        { "id": "board", "title": "Send an away team",
+          "objectives": [
+            { "id": "board", "text": "Board {hulk} with an away team and bring them back", "cond": { "space_site": { "site": "hulk", "state": "boarded" } },
+              "hint": "AWAY TEAM: pick 2 to 6. Defense lowers the loss chance; a Science medic turns losses into injuries. Leaving fails the job." } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 120 } } ],
+      "debrief": "Whatever built it, it wasn't anyone we know. Reyes wants everything the team saw written down tonight." },
+
+    { "id": "dead_in_the_water", "chain": "space_jobs", "kind": "side", "title": "Dead in the Water", "giver": "ops",
+      "trigger": { "space_site": { "kind": "known_derelict", "state": "detected", "bind": "wreck" } },
+      "briefing": "A dark ship on the long-range scan: {wreck}. Somebody owns it and somebody may still be aboard. Get power on, read the logs, search her.",
+      "stages": [
+        { "id": "identify", "title": "Identify the ship",
+          "on_enter": [ { "marker": { "at": "wreck", "label": "Dark ship" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Scan {wreck} from within range", "cond": { "space_site": { "site": "wreck", "state": "identified" } } } ],
+          "next": "power" },
+        { "id": "power", "title": "Restore power",
+          "objectives": [
+            { "id": "alongside", "text": "Come alongside", "cond": { "space_site": { "site": "wreck", "state": "alongside" } },
+              "hint": "Her reactor is failing: a timer starts once you are alongside. Be gone before it blows." },
+            { "id": "powered", "text": "Restore power aboard", "cond": { "space_site": { "site": "wreck", "state": "powered" } },
+              "hint": "60 s of Engineering work, or a hull patch kit at once." } ],
+          "next": "search" },
+        { "id": "search", "title": "Logs and survivors",
+          "objectives": [
+            { "id": "logs", "text": "Recover the logs", "cond": { "space_site": { "site": "wreck", "state": "logs" } } },
+            { "id": "board", "text": "Search her for the crew", "cond": { "space_site": { "site": "wreck", "state": "boarded" } },
+              "hint": "Send an away team. Survivors who come aboard can join our crew." } ],
+          "next": "complete" } ],
+      "rewards": [ { "grant": { "latinum": 40 } }, { "research": { "points": 40 } } ],
+      "debrief": "Her owners will want to know what happened. The logs tell most of it." },
+
+    { "id": "what_happened_here", "chain": "space_jobs", "kind": "side", "title": "What Happened Here", "giver": "control",
+      "trigger": { "space_site": { "kind": "debris", "state": "detected", "bind": "field" } },
+      "briefing": "A debris cloud at {field}: a ship broke up there, and not long ago. Sweep it, and find the black box.",
+      "stages": [
+        { "id": "identify", "title": "Identify the cloud",
+          "on_enter": [ { "marker": { "at": "field", "label": "Debris" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Scan {field} from within range", "cond": { "space_site": { "site": "field", "state": "identified" } } } ],
+          "next": "sweep" },
+        { "id": "sweep", "title": "Sweep the field",
+          "objectives": [
+            { "id": "box", "text": "Recover the black box", "cond": { "hold": { "item": "salvage:black_box", "count": 1 } },
+              "hint": "SWEEP THE FIELD. The hull wears while you are inside; the tractor must work and the hold needs room." },
+            { "id": "swept", "text": "Sweep the whole field", "cond": { "space_site": { "site": "field", "state": "swept" } }, "optional": true } ],
+          "next": "complete" } ],
+      "rewards": [ { "grant": { "latinum": 30 } }, { "research": { "points": 40 } }, { "hold_add": { "item": "patch_kit", "count": 1 } } ],
+      "debrief": "The recorder's damaged, but there's enough on it to start asking who did this." }
+  ]
+}

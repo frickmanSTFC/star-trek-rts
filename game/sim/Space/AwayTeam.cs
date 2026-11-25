@@ -92,6 +92,10 @@ public sealed partial class StarSystemState
         return list;
     }
 
+    /// <summary>The view's picker: who a team of this many per division would be at that site (the site doesn't change
+    /// the names; the same picks give the same people until a team is sent).</summary>
+    public IReadOnlyList<AwayMember> AwayTeamPreview(int player, string siteId, IReadOnlyList<int> crew) => AwayTeamPreview(player, crew);
+
     /// <summary>Why an away team can't go to the site now (or with that crew), or null.</summary>
     public string? AwayTeamProblem(int player, string siteId, IReadOnlyList<int>? crew)
     {

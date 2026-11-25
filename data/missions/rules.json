@@ -14,6 +14,7 @@
     { "id": "long_survey", "name": "The Long Survey", "era": "dawn_of_warp", "space": true },
     { "id": "priority_run", "name": "Priority Run", "era": "dawn_of_warp", "space": true },
     { "id": "watch_station", "name": "Watch Station", "era": "dawn_of_warp", "space": true },
-    { "id": "envoy", "name": "Envoy", "era": "dawn_of_warp", "space": true }
+    { "id": "envoy", "name": "Envoy", "era": "dawn_of_warp", "space": true },
+    { "id": "space_jobs", "name": "Space jobs", "era": "", "pool": true }
   ]
 }

@@ -329,7 +329,8 @@ public sealed partial class MissionBook
                 return MissionEval.No;
             }
             default:
-                return SpaceCheck(p, run, obj, c); // MissionSpace.cs: ship_at, visited, charted, scanned, swept, cargo, …
+                return SpaceJobCheck(p, run, c, bind) // MissionSpaceJobs.cs: space_site, hull, crew, hold
+                    ?? SpaceCheck(p, run, obj, c); // MissionSpace.cs: ship_at, visited, charted, scanned, swept, cargo, …
         }
     }
 

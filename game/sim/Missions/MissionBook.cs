@@ -135,11 +135,11 @@ public sealed partial class MissionBook
 
     private static MissionChainDef? ResolveChain(MissionData defs, string id)
     {
-        if (id.Length == 0) return defs.Chains.Count > 0 ? defs.Chains[0] : null;
+        if (id.Length == 0) return defs.Chains.FirstOrDefault(c => !c.Pool);
         foreach (var c in defs.Chains)
-            if (c.Id == id) return c;
+            if (c.Id == id && !c.Pool) return c;
         foreach (var c in defs.Chains)
-            if (c.Era == id) return c;
+            if (c.Era == id && !c.Pool) return c;
         return null;
     }
 
@@ -158,9 +158,12 @@ public sealed partial class MissionBook
         public string? Body;
         public int Ship;
 
+        /// <summary>Space jobs (MissionSpaceJobs.cs): a space site (a space_site trigger, bind_site, place_space_site).</summary>
+        public string? Site;
+
         public Binding Copy()
         {
-            var b = new Binding { Name = Name, UnitId = UnitId, Text = Text, Res = Res, Body = Body, Ship = Ship };
+            var b = new Binding { Name = Name, UnitId = UnitId, Text = Text, Res = Res, Body = Body, Ship = Ship, Site = Site };
             b.Tiles.AddRange(Tiles);
             b.Sites.AddRange(Sites);
             return b;
@@ -181,7 +184,10 @@ public sealed partial class MissionBook
         public int Ship;
         public string Kind = "";
 
-        public bool InSpace => Body != null || Ship > 0;
+        /// <summary>Space jobs: a marker on a space site.</summary>
+        public string? SpaceSite;
+
+        public bool InSpace => Body != null || Ship > 0 || SpaceSite != null;
     }
 
     internal sealed class SiteRun
@@ -247,7 +253,7 @@ public sealed partial class MissionBook
             var book = new PlayerBook();
             if (Defs is { } defs)
                 foreach (var m in defs.List)
-                    if (m.Chain == ChainId && Data!.MissionAvailable(m)) book.Runs.Add(new MissionRun(m.Id));
+                    if ((m.Chain == ChainId || InPool(m)) && Data!.MissionAvailable(m)) book.Runs.Add(new MissionRun(m.Id));
             _players.Add(book);
         }
         return _players[player];
@@ -406,6 +412,12 @@ public sealed partial class MissionBook
     private void StepActive(int p, MissionRun run)
     {
         if (Def(run) is not { } d || run.Stage < 0 || run.Stage >= d.Stages.Count) return;
+        if (InPool(d) && SpaceJobFailure(p, run) is { } failure) // MissionSpaceJobs.cs: crippled, or the boarding was called off
+        {
+            Say(p, run, d.Giver, $"{d.Title}: {failure}.", "feed");
+            Fail(p, run, d);
+            return;
+        }
         var stage = d.Stages[run.Stage];
         var all = true;
         for (var k = 0; k < stage.Objectives.Count && k < run.Done.Length; k++)
@@ -591,7 +603,13 @@ public sealed partial class MissionBook
     /// <summary>The ids of every mission of the player's chain (file order) and its state: the test panel's list.</summary>
     public IReadOnlyList<(string Id, MissionState State)> States(int player) =>
         Enabled && player >= 0 && player < _players.Count
-            ? _players[player].Runs.Select(r => (r.Id, r.State)).ToList()
+            ? _players[player].Runs.Where(r => Def(r) is { } d && !InPool(d)).Select(r => (r.Id, r.State)).ToList()
+            : new List<(string, MissionState)>();
+
+    /// <summary>The player's side jobs from a pool (space jobs, in a game with a star system) and their state, file order.</summary>
+    public IReadOnlyList<(string Id, MissionState State)> PoolStates(int player) =>
+        Enabled && player >= 0 && player < _players.Count
+            ? _players[player].Runs.Where(r => Def(r) is { } d && InPool(d)).Select(r => (r.Id, r.State)).ToList()
             : new List<(string, MissionState)>();
 
     private MissionView View(int p, MissionRun run, MissionDef d)
@@ -758,6 +776,11 @@ public sealed partial class MissionBook
                         if (b.Body != null) h.Add(b.Body);
                         h.Add(b.Ship);
                     }
+                    if (b.Site != null) // space jobs only
+                    {
+                        h.Add("site");
+                        h.Add(b.Site);
+                    }
                 }
                 h.Add(r.Markers.Count);
                 foreach (var m in r.Markers)
@@ -775,6 +798,11 @@ public sealed partial class MissionBook
                         if (m.Body != null) h.Add(m.Body);
                         h.Add(m.Ship);
                         h.Add(m.Kind);
+                        if (m.SpaceSite != null)
+                        {
+                            h.Add("site");
+                            h.Add(m.SpaceSite);
+                        }
                     }
                 }
                 if (r.Marks.Count > 0)

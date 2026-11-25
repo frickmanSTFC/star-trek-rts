@@ -64,6 +64,9 @@ public sealed record SiteRow(string Label, string Value, string Tone = "");
 public sealed record SiteReport(string SiteId, SiteKind Kind, SiteKnowledge Knowledge, string Title, string Subtitle,
     FixVec2 Position, IReadOnlyList<SiteRow> Rows, IReadOnlyList<SiteAction> Actions, IReadOnlyList<string> Hazards);
 
+/// <summary>What a player has done at a site (StarSystemState.SiteWork).</summary>
+public sealed record SiteWorkState(bool Alongside, bool Powered, bool Logs, bool Boarded, bool Swept, int Finds, bool Recalled);
+
 /// <summary>A work action on a site card: Id (SiteWorkCommand.Action, or "scan", "course", "away_team"), Label, and
 /// Problem (null = can run now).</summary>
 public sealed record SiteAction(string Id, string Label, string? Problem);
@@ -104,6 +107,22 @@ public sealed partial class StarSystemState
 
     public const string UnknownContactName = "unknown contact";
 
+    /// <summary>What the player has done at a site (null when they have no record of it): alongside now, power restored,
+    /// logs recovered, boarded, swept (with finds taken), the away team recalled.</summary>
+    public SiteWorkState? SiteWork(int player, string siteId) =>
+        Record(player, siteId) is { } r ? new SiteWorkState(r.Alongside, r.Powered, r.Logs, r.Boarded, r.Swept, r.Finds, r.Recalled) : null;
+
+    /// <summary>A mission names a site to the player (at least Detected).</summary>
+    internal void MissionDetectSite(int player, string siteId) => SetKnowledge(player, siteId, SiteKnowledge.Detected);
+
+    /// <summary>A mission puts something in the hold (hold_add: patch_kit, medical, salvage:&lt;id&gt;).</summary>
+    internal void MissionHoldAdd(int player, string item, int count)
+    {
+        if (Status(player) is not { } st || count <= 0 || !KnownHoldItem(item)) return;
+        Add(st, item, count);
+        ShipLog(player, $"{count} × {ItemLabel(item)} aboard", "good");
+    }
+
     /// <summary>The kind's data (maps/sites.json), or null.</summary>
     public SiteKindDef? SiteKindOf(SpaceSite site) => SiteRules?.Kind(site.Kind);
 
@@ -118,6 +137,18 @@ public sealed partial class StarSystemState
         var ticks = TravelTicksFor(ship, ShipPosition(ship, Now), site.Position);
         return (int)((ticks + Simulation.TickRate - 1) / Simulation.TickRate);
     }
+
+    /// <summary>This ship's flight time to a site in ticks from where it is now (0 there, -1 without the site): what the
+    /// card shows before SET COURSE.</summary>
+    public long SiteTravelTicksFor(SystemShip ship, string siteId)
+    {
+        if (Site(siteId) is not { } site) return -1;
+        if (ship.AtSite == siteId) return 0;
+        return System.Math.Max(1L, TravelTicksFor(ship, ShipPosition(ship, Now), site.Position));
+    }
+
+    /// <summary>How close the player's flagship must be to scan (identify) a site: identify_range × the hull band's scan reach.</summary>
+    public Fix64 SiteScanRange(int player) => IdentifyRangeFor(player);
 
     // ---------------------------------------------------------------- generation
 

@@ -382,6 +382,17 @@ public sealed partial class GameData
         }
     }
 
+    /// <summary>A hold item a mission may name: patch_kit, medical, salvage:&lt;id&gt; (maps space_sites salvage), survivors
+    /// (any division) or survivors:&lt;division&gt;.</summary>
+    public bool ValidHoldItem(string? item)
+    {
+        if (item == null) return false;
+        if (item is StarSystemState.PatchKitItem or StarSystemState.MedicalItem or "survivors") return true;
+        if (item.StartsWith(StarSystemState.SalvagePrefix, StringComparison.Ordinal)) return SpaceSites?.SalvageItem(item[StarSystemState.SalvagePrefix.Length..]) != null;
+        if (item.StartsWith(StarSystemState.SurvivorsPrefix, StringComparison.Ordinal)) return FitOut?.DivisionIndex(item[StarSystemState.SurvivorsPrefix.Length..]) >= 0;
+        return false;
+    }
+
     /// <summary>The resource stations pay in and charge (latinum).</summary>
     public const string Latinum = "latinum";
 }
