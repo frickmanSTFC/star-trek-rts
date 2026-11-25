@@ -91,9 +91,9 @@ public sealed partial class MissionBook
         return MissionEval.No;
     }
 
-    /// <summary>A binding trigger's site: the lowest-numbered site of the kind (and variant) the player knows at least to
-    /// the asked state, not worked out, not bound by another of the player's missions, and for a colony ship within its
-    /// reach of the colony's body.</summary>
+    /// <summary>A binding trigger's site: the lowest-numbered site of the kind(s) (and variant(s)) the player knows at least
+    /// to the asked state, not worked out (unless spent: true), not bound by another of the player's offers or active jobs,
+    /// and for a colony ship within its reach of the colony's body.</summary>
     private SpaceSite? TriggerSite(int p, MissionCondDef c)
     {
         if (Sys is not { } sys) return null;
@@ -112,7 +112,9 @@ public sealed partial class MissionBook
             if (k < want || (k == SiteKnowledge.Spent && !spentOk)) continue;
             if (spentOk && (sys.SiteWork(p, s.Id) is { Towed: true } || sys.TowerOf(s.Id) is var tower and >= 0 && tower != p)) continue;
             if (k == SiteKnowledge.Spent && s.ExpireTick >= 0 && s.ExpireTick - Now < 60L * Simulation.TickRate) continue; // drifting off soon
-            if (Track(p).Runs.Any(r => r.State != MissionState.Locked && r.Bindings.Any(b => b.Site == s.Id))) continue;
+            // Not held by another of the player's offers or running jobs (one that ended lets the site go: a boarded wreck can
+            // still be towed in).
+            if (Track(p).Runs.Any(r => r.State is MissionState.Offered or MissionState.Active && r.Bindings.Any(b => b.Site == s.Id))) continue;
             if (!SpaceChain && !InColonyReach(sys, p, s)) continue;
             return s;
         }

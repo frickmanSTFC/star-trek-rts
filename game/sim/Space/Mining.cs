@@ -154,7 +154,7 @@ public sealed partial class StarSystemState
             return;
         }
         if (mn.Rockfall is { ChancePerMin: > 0 } rf && sim.Tick > w.Start && (sim.Tick - w.Start) % Simulation.TickRate == 0
-            && sim.Rng.NextInt(6000) < rf.ChancePerMin * 100)
+            && sim.Rng.NextInt(6000) < rf.ChancePerMin) // chance_per_min percent a minute = that many in 6000 a second
         {
             var hull = sim.Rng.NextInt(rf.HullMin, rf.HullMax + 1);
             Damage(sim, player, Fix64.FromInt(hull), $"a rock fall at {site.Name}");

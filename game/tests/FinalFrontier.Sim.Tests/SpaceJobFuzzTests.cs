@@ -9,13 +9,14 @@ namespace FinalFrontier.Sim.Tests;
 /// game, mixed with nonsense. Shared by CommandFuzzTests (a planet-only game: all refused) and the system-game fuzz below.</summary>
 internal static class SpaceFuzz
 {
-    private static readonly string[] Actions = { "alongside", "restore_power", "restore_power_kit", "recover_logs", "sweep", "dock", "stop", "mine", "", "fly" };
+    private static readonly string[] Actions = { "alongside", "restore_power", "restore_power_kit", "recover_logs", "sweep", "dock", "stop", "mine", "tow", "release", "mine", "tow", "", "fly" };
     private static readonly string[] Repairs = { "patch", "fix:sensors", "fix:engines", "fix:tractor", "fix:lifesupport", "fix:life_support", "dock", "fix:", "nope" };
-    private static readonly string[] HoldActions = { "sell", "drop", "jettison", "hire", "steal" };
+    private static readonly string[] HoldActions = { "sell", "drop", "jettison", "hire", "steal", "sell:1", "sell:4", "sell:x", "drop", "sell" };
     private static readonly string[] Items =
     {
         "patch_kit", "medical", "salvage:cargo_pod", "salvage:black_box", "salvage:data_core", "salvage:nope", "survivors", "survivors:science",
         "science", "engineering", "probe", "ssat", "post", "mass", "",
+        "ore:duranium_ore", "ore:tritanium_ore", "ore:deuterium", "ore:nope", "tow", "tow", "cutting_gear",
     };
 
     public static Command Next(DeterministicRng rng, Simulation sim)
@@ -115,6 +116,11 @@ public class SpaceJobFuzzTests
             Assert.True((ship.AtBody != null ? 1 : 0) + (ship.AtSite != null ? 1 : 0) + (ship.InFlight ? 1 : 0) == 1, "at a body, at a site or in flight");
             if (ship.AtSite != null) Assert.NotNull(sys.Site(ship.AtSite));
             if (ship.ToSite != null) Assert.NotNull(sys.Site(ship.ToSite));
+            if (sys.TowOf(p) is { } tow) // phase 2: a towed site sits where its ship is (as of the last tick)
+            {
+                Assert.NotNull(sys.Site(tow));
+                Assert.Equal(p, sys.TowerOf(tow));
+            }
             foreach (var s in sys.Sites) Assert.NotNull(sys.SiteKnowledgeOf(p, s.Id).ToString());
         }
         Assert.Equal(sys.Sites.Count, sys.Sites.Select(s => s.Id).Distinct().Count());
