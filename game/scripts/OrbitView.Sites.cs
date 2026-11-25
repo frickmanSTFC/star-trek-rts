@@ -85,7 +85,7 @@ public partial class OrbitView
         if (_shipHolder != null && _shipModel != null)
         {
             _shipHolder.Visible = true;
-            var local = new Transform3D(new Basis(Vector3.Up, 0.5f), new Vector3(SiteDrawSize * 0.78f, SiteDrawSize * 0.08f, SiteDrawSize * 0.28f));
+            var local = new Transform3D(new Basis(Vector3.Up, 0.5f), SiteShipSpot(site, delta)); // OrbitView.Events.cs: a storm's ring
             var t = _siteScene.GlobalTransform * local;
             _shipHolder.GlobalTransform = new Transform3D(t.Basis.Orthonormalized().Scaled(Vector3.One * (SiteShipLength / ShipDrawLength)), t.Origin);
             if (_shipFill != null)
@@ -96,6 +96,7 @@ public partial class OrbitView
             }
         }
         UpdateSiteWork(site.Id); // OrbitView.Mining.cs: the mining beam and ore, a wreck in tow
+        UpdateSiteEvent(site, delta); // OrbitView.Events.cs: comets, rogue rocks, lifepods, stranded ships, ion storms
     }
 
     /// <summary>From ApplyDisplay: at a site, the globe displays hide the planet, its air, clouds, moon and tracks.</summary>
@@ -125,6 +126,7 @@ public partial class OrbitView
         _siteRings.Clear();
         _siteBeacons.Clear();
         ClearSiteWork(); // OrbitView.Mining.cs
+        ClearEventFx(); // OrbitView.Events.cs
     }
 
     private void BuildSiteScene(SpaceSite site, string key)
@@ -134,7 +136,7 @@ public partial class OrbitView
         _siteScene = new Node3D { Name = "SiteScene", Visible = _siteMode };
         AddChild(_siteScene);
 
-        var model = SiteModels.Build(site.Kind, site.Variant, site.Seed);
+        var model = SiteModels.Build(site.Kind, site.Variant, site.Seed, site.Kind == SiteKind.Lifepods ? site.PodCount : -1);
         var box = SiteModels.Bounds(model);
         var size = Mathf.Max(1f, Mathf.Max(box.Size.X, Mathf.Max(box.Size.Y, box.Size.Z)));
         var holder = new Node3D { Name = "Model", Scale = Vector3.One * (SiteDrawSize / size) };

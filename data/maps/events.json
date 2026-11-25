@@ -1,0 +1,70 @@
+{
+  "_notes_space_events": "Space jobs, phase 3 (docs/space-jobs-contract.md \"Phase 3\"; game/sim/Space/SpaceEvents.cs): sites that arrive during the match, and anomalies. This file adds to the space_sites table of maps/sites.json (its kinds list is joined after that file's) and one away table to ship_status. events: after calm_seconds of game time a new event about every every_seconds [min, max] (the gap after each by the system's hash, never sim.Rng), at most max_live event sites in the system at once (a turn with too many is skipped); weights = which kind each event is (by the hash). An event is announced on every player's ship log and is Detected for everyone (a distress call or a sensor alert); identifying it still needs a scan. edge [min, max] = how far from the star moving things come in. generation.anomalies: count [min, max] anomalies rolled with the system after the asteroids (own salt: the other sites stay where they were), drifting drift map units over drift_seconds and then staying. Kinds: rogue_asteroid (rogue: comes in from the edge straight at a body over flight_seconds [min, max] and strikes it then; colony_chance percent of them head for the colony's body when someone has landed there (else a body by the hash, never a belt); push = hold alongside with the tractor for push_seconds [min, max] (by the rock's hash, ÷ the mining lever: Engineering), or an away team plants charges (ship_status table charges: an outcome with deflect turns it); turned aside it veers off veer map units out over veer_seconds and leaves; the ship that turned it gets reward latinum and research [min, max]; a living civilization's world it was heading for: awareness civ_awareness (they were saved quietly), a strike there: civ_strike_awareness; a strike on the colony's body: impact: a spot within spread hexes of a landed player's core (by the hash), every building within radius hexes loses damage [min, max] × (1 − distance ÷ (radius + 1)) condition and every vehicle that much integrity, the max_buildings / max_vehicles nearest only, never below 1 (nothing is destroyed or broken by it); elsewhere a log line). comet (comet: crosses the system from the edge to the far edge over cross_seconds [min, max], passing within pass [min, max] of the star; window [from, to] = the shares of its crossing when its tail is active: \"sample\" (at the comet, which the ship follows) for sample_seconds while the window is open: hull hull every hull_every_seconds, then research [min, max] and ice [min, max] containers of deuterium ore into the hold (what fits); once per player). lifepods (pods: count [min, max] pods round a point (near a debris field when there is one, near_debris map units off it), each with survivors [min, max] and air for air_seconds [min, max] from the call (by the hash); \"pickup\" (tractor) takes the pod with the least air left in pickup_seconds, then the next, until none is left; survivors join the crew while it is short, else ride in the hold (3 a container) to be dropped at a station or the colony; a pod whose air runs out is lost; the site is worked out when no pod is left). stranded_ship (stranded: a neutral ship adrift, variants by origin; its air lasts air_seconds [min, max] unless someone restores its power (alongside, then 60 s of Engineering or a patch kit); powered, \"escort\" makes it follow the flagship (flights × escort_flight) to its destination (a body by the hash, never a belt): arriving in orbit there rescues it: reward latinum and research [min, max]; bait percent of the calls (by the hash) are bait: arriving there springs an ambush: hull ambush_hull [min, max] and one of ambush_systems knocked out (sim.Rng), and the site is spent). anomaly (anomaly: an ion storm; \"record_outer\" / \"record_middle\" / \"record_inner\" holds at that ring (radius: map units from its centre, for the plot) and records: every every_seconds research by the ring, hull loss by the ring, and knock percent that one of systems is knocked out; at most research_cap research per player, then it is worked out; event anomalies last life_seconds [min, max] drifting drift map units, then leave). All numbers are placeholders.",
+  "space_sites": {
+    "generation": { "anomalies": { "count": [0, 1], "drift": 40, "drift_seconds": 3600 } },
+    "events": { "calm_seconds": 300, "every_seconds": [300, 420], "max_live": 3, "edge": [500, 560],
+      "weights": { "rogue_asteroid": 2, "comet": 2, "lifepods": 2, "stranded_ship": 2, "anomaly": 1 } },
+    "kinds": [
+      { "id": "rogue_asteroid", "name": "Rogue asteroid", "letter": "R", "scan_seconds": 15, "size": [2, 4],
+        "variants": { "stony": 2, "iron": 1 },
+        "origin": { "stony": "a stony rock on a collision course", "iron": "an iron rock on a collision course" }, "hazardous": true,
+        "hazards": ["Collision course", "Loose rock alongside"],
+        "alongside": { "seconds": 15, "chance": 20, "hull": [1, 3] },
+        "away_table": "charges", "research": [30, 60],
+        "rogue": { "flight_seconds": [360, 480], "colony_chance": 50, "push_seconds": [60, 120], "veer": 600, "veer_seconds": 90,
+          "reward": { "latinum": [20, 40], "research": [40, 80] }, "civ_awareness": -10, "civ_strike_awareness": 25,
+          "impact": { "spread": 6, "radius": 3, "damage": [20, 40], "max_buildings": 6, "max_vehicles": 4 } } },
+      { "id": "comet", "name": "Comet", "letter": "M", "scan_seconds": 15, "size": [3, 5], "variants": { "long_period": 1 },
+        "origin": { "long_period": "a long-period comet passing the star" }, "hazards": ["Dust in the tail"],
+        "comet": { "cross_seconds": [360, 540], "pass": [120, 260], "window": [0.25, 0.8], "sample_seconds": 30, "hull": 1, "hull_every_seconds": 10,
+          "research": [60, 120], "ice": [1, 2] } },
+      { "id": "lifepods", "name": "Lifepods", "letter": "P", "scan_seconds": 10, "size": [1, 2], "variants": { "freighter": 2, "liner": 1 },
+        "origin": { "freighter": "a freighter's lifepods, beacons calling", "liner": "a passenger liner's lifepods, beacons calling" },
+        "hazards": ["Air running out"],
+        "pods": { "count": [6, 12], "survivors": [1, 3], "air_seconds": [240, 600], "pickup_seconds": 5, "near_debris": 60 } },
+      { "id": "stranded_ship", "name": "Stranded ship", "letter": "T", "scan_seconds": 20, "size": [2, 3],
+        "variants": { "freighter": 2, "trader": 2, "science": 1 },
+        "origin": { "freighter": "a freighter adrift, calling for help", "trader": "a trader adrift, calling for help", "science": "a survey ship adrift, calling for help" },
+        "hazards": ["Life support failing", "Might be a trap"],
+        "alongside": { "seconds": 20, "chance": 0, "hull": [0, 0] },
+        "restore_power": { "seconds": 60, "kits": 1 },
+        "stranded": { "air_seconds": [600, 900], "escort_flight": 1.2, "bait": 20, "ambush_hull": [10, 20], "ambush_systems": ["sensors", "engines", "tractor"],
+          "reward": { "latinum": [30, 60], "research": [10, 30] } } },
+      { "id": "anomaly", "name": "Ion storm", "letter": "I", "scan_seconds": 20, "size": [3, 5], "variants": { "ion_storm": 1 },
+        "origin": { "ion_storm": "an ion storm: charged plasma drifting between the orbits" },
+        "hazards": ["Hull wear in the inner ring", "Systems knocked out in the inner ring"],
+        "anomaly": { "every_seconds": 10, "research_cap": 240, "systems": ["sensors", "engines"], "life_seconds": [900, 1500], "drift": 60,
+          "rings": [
+            { "id": "outer", "name": "Outer ring", "radius": 30, "research": 2, "hull": 0, "knock": 0 },
+            { "id": "middle", "name": "Middle ring", "radius": 20, "research": 4, "hull": 1, "knock": 0 },
+            { "id": "inner", "name": "Inner ring", "radius": 10, "research": 8, "hull": 2, "knock": 10, "hazardous": true } ] } }
+    ]
+  },
+  "ship_status": {
+    "away_team": {
+      "tables": {
+        "charges": {
+          "base": { "injury": 6, "loss": 1, "find": 40 },
+          "steps": [
+            { "title": "Where to set the charges", "choices": [
+              { "label": "In the deepest crack", "hint": "Most push for the blast; the crack may close on them.", "injury": 4, "loss": 1, "find": 0, "seconds": 0, "shift": { "turned": 10, "split": 4 } },
+              { "label": "On the surface, spaced out", "hint": "Safer footing, a gentler push.", "injury": 0, "loss": 0, "find": 0, "seconds": 0, "shift": { "fizzle": 8 } },
+              { "label": "Survey the mass first", "hint": "Science crew find its centre of mass. Takes longer.", "injury": 1, "loss": 0, "find": 10, "seconds": 30, "shift": { "turned": 6, "fizzle": -4 } } ] },
+            { "title": "How much to use", "choices": [
+              { "label": "Everything we brought", "hint": "It will move. It may break apart.", "injury": 2, "loss": 1, "find": -5, "seconds": 0, "shift": { "turned": 8, "split": 8, "fizzle": -10 } },
+              { "label": "A measured charge", "hint": "Enough, if the numbers are right.", "injury": 0, "loss": 0, "find": 0, "seconds": 0 },
+              { "label": "Two small ones, one after the other", "hint": "Slower and steadier.", "injury": 0, "loss": 0, "find": 5, "seconds": 20, "shift": { "split": -4 } } ] },
+            { "title": "Firing", "choices": [
+              { "label": "Fire from the ship", "hint": "Everyone back aboard first. Sensors record the blast.", "injury": 0, "loss": 0, "find": 5, "seconds": 10, "bring": { "research": true } },
+              { "label": "Fire on a timer, then run", "hint": "Quicker. Someone may not make it back in time.", "injury": 5, "loss": 2, "find": 0, "seconds": -10, "shift": { "turned": 5 }, "bring": { "research": true } } ] }
+          ],
+          "outcomes": [
+            { "id": "turned", "weight": 60, "text": "The rock turned aside", "deflect": true },
+            { "id": "split", "weight": 20, "text": "The rock split and both halves went wide", "deflect": true, "hull": 6, "injure": 1 },
+            { "id": "fizzle", "weight": 20, "text": "The charges barely moved it" }
+          ]
+        }
+      }
+    }
+  }
+}

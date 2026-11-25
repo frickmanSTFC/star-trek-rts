@@ -18,7 +18,7 @@ public class SpaceSiteTests
         var sites = a.System!.Sites;
         Assert.Equal(sites.Select(s => (s.Id, s.Kind, s.Variant, s.Name, s.Position, s.Size)), b.System!.Sites.Select(s => (s.Id, s.Kind, s.Variant, s.Name, s.Position, s.Size)));
         Assert.Single(sites, s => s.Kind == SiteKind.Station);
-        Assert.InRange(sites.Count(s => s.Kind is not (SiteKind.Station or SiteKind.Asteroid)), 0, rules.CountMax); // asteroids: phase 2, their own count
+        Assert.InRange(sites.Count(s => s.Kind is not (SiteKind.Station or SiteKind.Asteroid or SiteKind.Anomaly)), 0, rules.CountMax); // asteroids: phase 2, anomalies: phase 3, their own counts
         foreach (var s in sites)
         {
             Assert.All(a.System.Bodies, body => Assert.True(FixVec2.Distance(body.Position, s.Position) >= rules.ClearOfBody, $"{s.Id} too near {body.Id}"));
@@ -30,7 +30,7 @@ public class SpaceSiteTests
         for (ulong seed = 1; seed <= 40; seed++)
         {
             var g = Game(null, seed);
-            Assert.InRange(g.System!.Sites.Count(s => s.Kind is not (SiteKind.Station or SiteKind.Asteroid)), 0, rules.CountMax);
+            Assert.InRange(g.System!.Sites.Count(s => s.Kind is not (SiteKind.Station or SiteKind.Asteroid or SiteKind.Anomaly)), 0, rules.CountMax);
             foreach (var s in g.System.Sites) kinds.Add(s.Kind);
         }
         Assert.Superset(new HashSet<SiteKind> { SiteKind.Station, SiteKind.Derelict, SiteKind.KnownDerelict, SiteKind.Debris }, kinds);

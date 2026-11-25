@@ -52,6 +52,56 @@ public sealed record OreKindDef(string Id, string Name, Fix64 Latinum);
 /// distance from the star ± BeltSpread, Spacing from other sites.</summary>
 public sealed record AsteroidGenDef(int CountMin, int CountMax, int NearBelt, Fix64 BeltSpread, Fix64 Spacing);
 
+// ---------------------------------------------------------------- phase 3: events and anomalies (maps/events.json)
+
+/// <summary>Sites that arrive during the match (space_sites events): after CalmSeconds an event every EveryMin..EveryMax
+/// seconds (by the system's hash), at most MaxLive at once; the kind by Weights; moving things come in at EdgeMin..EdgeMax
+/// from the star.</summary>
+public sealed record SpaceEventRules(int CalmSeconds, int EveryMin, int EveryMax, int MaxLive, Fix64 EdgeMin, Fix64 EdgeMax, IReadOnlyList<Weighted> Weights);
+
+/// <summary>Anomalies rolled with the system (generation.anomalies): CountMin..Max, each drifting Drift map units over
+/// DriftSeconds, then staying.</summary>
+public sealed record AnomalyGenDef(int CountMin, int CountMax, Fix64 Drift, int DriftSeconds);
+
+/// <summary>A rogue asteroid striking the colony's body: a spot within Spread hexes of a landed player's core; buildings and
+/// vehicles within Radius hexes lose DamageMin..Max × (1 − distance ÷ (Radius + 1)), the MaxBuildings / MaxVehicles nearest
+/// only, never below 1.</summary>
+public sealed record RogueImpactDef(int Spread, int Radius, int DamageMin, int DamageMax, int MaxBuildings, int MaxVehicles);
+
+/// <summary>A rogue asteroid (kind rogue_asteroid "rogue"): flight to its body FlightMin..Max s; ColonyChance percent head for
+/// the colony's body; pushed aside in PushMin..Max s with the tractor; turned, it veers Veer map units out over VeerSeconds;
+/// the turner's reward latinum / research; a living civilization's awareness when saved (CivAwareness) or struck
+/// (CivStrikeAwareness).</summary>
+public sealed record SiteRogueDef(int FlightMin, int FlightMax, int ColonyChance, int PushMin, int PushMax, Fix64 Veer, int VeerSeconds,
+    int LatinumMin, int LatinumMax, int ResearchMin, int ResearchMax, int CivAwareness, int CivStrikeAwareness, RogueImpactDef Impact);
+
+/// <summary>A comet (kind comet "comet"): crosses in CrossMin..Max s passing PassMin..Max from the star; its tail can be
+/// sampled between the shares WindowFrom..WindowTo of the crossing, for SampleSeconds (hull Hull every HullEverySeconds):
+/// research and IceMin..Max containers of deuterium ore.</summary>
+public sealed record SiteCometDef(int CrossMin, int CrossMax, Fix64 PassMin, Fix64 PassMax, Fix64 WindowFrom, Fix64 WindowTo, int SampleSeconds,
+    int Hull, int HullEverySeconds, int ResearchMin, int ResearchMax, int IceMin, int IceMax);
+
+/// <summary>Lifepods (kind lifepods "pods"): CountMin..Max pods, SurvivorsMin..Max each, air AirMin..Max s from the call,
+/// PickupSeconds each with the tractor; placed NearDebris map units off a debris field when there is one.</summary>
+public sealed record SitePodsDef(int CountMin, int CountMax, int SurvivorsMin, int SurvivorsMax, int AirMin, int AirMax, int PickupSeconds, Fix64 NearDebris);
+
+/// <summary>A stranded ship (kind stranded_ship "stranded"): air AirMin..Max s unless powered; flights × EscortFlight while
+/// escorting; Bait percent are traps (hull AmbushHullMin..Max, one of AmbushSystems knocked out); rescue reward.</summary>
+public sealed record SiteStrandedDef(int AirMin, int AirMax, Fix64 EscortFlight, int Bait, int AmbushHullMin, int AmbushHullMax,
+    IReadOnlyList<string> AmbushSystems, int LatinumMin, int LatinumMax, int ResearchMin, int ResearchMax);
+
+/// <summary>A ring of an anomaly: Research every interval, Hull lost every interval, Knock percent a system goes down;
+/// Radius (map units) for the plot; Hazardous = not with a critical hull.</summary>
+public sealed record AnomalyRingDef(string Id, string Name, Fix64 Radius, int Research, int Hull, int Knock, bool Hazardous);
+
+/// <summary>An anomaly (kind anomaly "anomaly"): recording at a ring every EverySeconds, up to ResearchCap per player;
+/// Systems the inner ring can knock out; an event anomaly lasts LifeMin..Max s drifting Drift map units.</summary>
+public sealed record SiteAnomalyDef(int EverySeconds, int ResearchCap, IReadOnlyList<string> Systems, int LifeMin, int LifeMax, Fix64 Drift,
+    IReadOnlyList<AnomalyRingDef> Rings)
+{
+    public AnomalyRingDef? Ring(string? id) => id == null ? null : Rings.FirstOrDefault(r => r.Id == id);
+}
+
 /// <summary>One kind of space site (maps/sites.json kinds).</summary>
 public sealed record SiteKindDef(string Id, SiteKind Kind, string Name, string Letter, int ScanSeconds, int SizeMin, int SizeMax,
     IReadOnlyList<Weighted> Variants, IReadOnlyList<(string Variant, string Text)> Origin, bool Hazardous, IReadOnlyList<string> Hazards)
@@ -69,6 +119,12 @@ public sealed record SiteKindDef(string Id, SiteKind Kind, string Name, string L
     public SiteMiningDef? Mining { get; init; }
     public SiteTowDef? Tow { get; init; }
     public IReadOnlyList<(string Variant, string Table)> VariantAway { get; init; } = Array.Empty<(string, string)>();
+    /// <summary>Phase 3: the event kinds' rules (null on the others).</summary>
+    public SiteRogueDef? Rogue { get; init; }
+    public SiteCometDef? Comet { get; init; }
+    public SitePodsDef? Pods { get; init; }
+    public SiteStrandedDef? Stranded { get; init; }
+    public SiteAnomalyDef? Anomaly { get; init; }
 
     /// <summary>The away table a site of this variant boards with ("" = none).</summary>
     public string AwayTableFor(string variant)
@@ -111,6 +167,9 @@ public sealed record SpaceSiteRules(int CountMin, int CountMax, Fix64 OrbitMin, 
     public Fix64 TraderShare { get; init; } = Fix64.One;
     /// <summary>× a ship's flights while it tows something.</summary>
     public Fix64 TowFlight { get; init; } = Fix64.One;
+    /// <summary>Phase 3: events during the match (null = none) and anomalies rolled with the system (null = none).</summary>
+    public SpaceEventRules? Events { get; init; }
+    public AnomalyGenDef? Anomalies { get; init; }
 
     public OreKindDef? Ore(string? id) => id == null ? null : Ores.FirstOrDefault(o => o.Id == id);
 
@@ -163,7 +222,11 @@ public sealed record AwayStepDef(string Title, IReadOnlyList<AwayChoiceDef> Choi
 
 /// <summary>What can happen to a boarding (rolled once when the team is back).</summary>
 public sealed record AwayOutcomeDef(string Id, int Weight, string Text, bool Research, int Hull, string System, int Injure, Fix64 LossMult,
-    Fix64 FindMult, bool Quarantine);
+    Fix64 FindMult, bool Quarantine)
+{
+    /// <summary>Phase 3: the boarding turned a rogue asteroid aside (the charges table).</summary>
+    public bool Deflect { get; init; }
+}
 
 public sealed record AwayTableDef(string Id, int Injury, int Loss, int Find, int UnpoweredInjury, int UnpoweredLoss, int UnpoweredFind,
     IReadOnlyList<AwayStepDef> Steps, IReadOnlyList<AwayOutcomeDef> Outcomes);

@@ -2015,6 +2015,12 @@ public sealed partial class PlanetSurface
         AddLifeSupportToHash(ref h); // Domes worlds only (Habitability.cs)
         AddFabricationToHash(ref h); // Fabrication.cs
         AddExcavationToHash(ref h); // Excavation.cs: only on maps with ruins, sickness or finds
+        if (LastImpactTile >= 0) // Impacts.cs: only once a rogue asteroid struck (system games)
+        {
+            h.Add("impact");
+            h.Add(LastImpactTile);
+            h.Add(LastImpactTick);
+        }
         AddJackToHash(ref h); // Jack.cs: only once Jack is on or summoned
         AddLandingFieldToHash(ref h); // LandingField.cs: drop ships on the ground, once there has been one
         // Not hashed because they follow from what is hashed: _structureAt (each structure's Tile; the fuzz test checks

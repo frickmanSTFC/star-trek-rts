@@ -258,6 +258,8 @@ public partial class PlanetDriver
             _awayDoneSeen = true;
             if (events) _hud.PushEvent($"Away team back from {SiteTitle(ev.SiteId)}: {ev.Outcome ?? "done"}{(ev.Result is { Length: > 0 } r ? $". {r}" : "")}", OutcomeColour(ev.Outcome));
         }
+
+        SpaceEventAlerts(sys, events); // phase 3: a distress call / sensor alert sound (PlanetDriver.SpaceEvents.cs)
     }
 
     private bool _shipLogUsed;
@@ -324,6 +326,7 @@ public partial class PlanetDriver
         var sys = _sim.System!;
         if (report.Subtitle.Length > 0) rows.Add(new HelmRow("", report.Subtitle, report.Knowledge < SiteKnowledge.Identified ? DetectedGrey : HelmScreen.Lavender));
         foreach (var r in report.Rows) rows.Add(new HelmRow(r.Label, r.Value, ToneColour(r.Tone)));
+        EventSiteRows(report, rows); // phase 3: impact / tail / air bars (PlanetDriver.SpaceEvents.cs)
         if (report.Hazards.Count > 0) rows.Add(new HelmRow("HAZARDS", string.Join(" · ", report.Hazards), SpaceAmber));
         if (sys.SiteScanShare(LocalPlayer, report.SiteId) is { } scan)
             rows.Add(new HelmRow("SCAN", $"scanning {Mathf.RoundToInt(Mathf.Clamp(scan.ToFloat(), 0f, 1f) * 100)} % · stay in range", HelmScreen.Cyan, Mathf.Clamp(scan.ToFloat(), 0f, 1f)));
@@ -383,9 +386,9 @@ public partial class PlanetDriver
         "sweep" => "Fly through the field slowly and recover what is there",
         "mine" => "Cut ore out of the rock: a container into the hold every 30 s while the tractor works (rock falls scuff the hull)",
         "tow" => "Lock the tractor on and take it in tow: flights are slower; drop it at a station (latinum) or a colony ship's colony",
-        "release" => "Let the tow go here: it stays where it is",
+        "release" => "Let the tow go, or stop the escort: it stays where it is",
         "stop" => "Stop the work here",
-        _ => "",
+        _ => EventActionTip(id), // phase 3 (PlanetDriver.SpaceEvents.cs)
     };
 
     /// <summary>A site card / strip button ("site:act:&lt;site&gt;:&lt;action&gt;"): the order after the sim's check, or the
@@ -725,10 +728,11 @@ public partial class PlanetDriver
             foreach (var (action, label) in new[] { ("sell", "SELL"), ("drop", "DROP"), ("jettison", "JETTISON") })
                 if (sys.HoldProblem(LocalPlayer, action, h.Item, h.Count) == null)
                 {
-                    var shown = h.Item == StarSystemState.TowItem && action == "jettison" ? "RELEASE" : label;
+                    var shown = h.Item == StarSystemState.TowItem && action == "jettison" ? "RELEASE" : h.Item == StarSystemState.EscortItem ? "STOP ESCORT" : label;
                     var tip = h.Item.StartsWith(StarSystemState.OrePrefix) && action == "sell"
                         ? $"sell {h.Count} {h.Label.ToLowerInvariant()} for about {sys.OreValue(h.Item, h.Count, _system.FlagshipSite == null)} latinum"
                         : h.Item == StarSystemState.TowItem ? (action == "drop" ? "hand the tow over for its salvage" : "let the tow go here")
+                        : h.Item == StarSystemState.EscortItem ? "stop the escort: the ship stays adrift where we are"
                         : $"{label.ToLowerInvariant()} {h.Count} {h.Label}";
                     buttons.Add(new StatusButton($"hold:{action}:{h.Count}:{h.Item}", shown, true, tip, action == "jettison" ? HelmScreen.Red : HelmScreen.Peach));
                 }

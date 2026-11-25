@@ -215,6 +215,9 @@ public enum DebugSpaceField
     HoldItem,
     /// <summary>Finish the running away-team event now (Value = outcome index, -1 = roll).</summary>
     FinishAwayTeam,
+    /// <summary>Phase 3: an event of kind Id (rogue_asteroid, comet, lifepods, stranded_ship, anomaly) arrives now (Value =
+    /// variant index, -1 = by the hash).</summary>
+    SpawnEvent,
 }
 
 /// <summary>Test panel: a space-jobs edit (see <see cref="DebugSpaceField"/>).</summary>

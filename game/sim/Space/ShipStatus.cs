@@ -84,6 +84,9 @@ public sealed partial class StarSystemState
         public string Tow = "";
         public long TowTick = -1;
         public readonly List<(string Key, int Count)> Tally = new();
+        /// <summary>Phase 3: the stranded ship under escort ("" = none) and since when (SpaceEvents.cs).</summary>
+        public string Escort = "";
+        public long EscortTick = -1;
 
         // Not state: the crew factors cache (worked out from the crew above).
         public bool CrewDirty;
@@ -156,6 +159,12 @@ public sealed partial class StarSystemState
                     h.Add(n);
                 }
             }
+            if (Escort.Length > 0) // phase 3
+            {
+                h.Add("p3");
+                h.Add(Escort);
+                h.Add(EscortTick);
+            }
         }
     }
 
@@ -185,6 +194,10 @@ public sealed partial class StarSystemState
     /// <summary>Phase 2 hold items: ore by resource ("ore:duranium_ore", counted in units, ore.per_container a container),
     /// and the site in tow ("tow": a line of no containers while something is in tow).</summary>
     public const string OrePrefix = "ore:", TowItem = "tow";
+
+    /// <summary>Phase 3: the stranded ship under escort (a line of no containers while one follows the ship; jettison =
+    /// stop the escort).</summary>
+    public const string EscortItem = "escort";
 
     private static string SalvageItemId(string salvage) => SalvagePrefix + salvage;
 
@@ -300,6 +313,8 @@ public sealed partial class StarSystemState
         foreach (var (item, n) in st.Hold)
             if (n > 0) list.Add(new HoldLine(item, n, Containers(item, n), ItemLabel(item)));
         if (st.Tow.Length > 0 && Site(st.Tow) is { } towed) list.Add(new HoldLine(TowItem, 1, 0, $"In tow: {towed.Name}"));
+        if (st.Escort.Length > 0 && Site(st.Escort) is { } escorted)
+            list.Add(new HoldLine(EscortItem, 1, 0, $"Escorting: {escorted.Name} to {Body(escorted.TargetBody)?.Name ?? "port"}"));
         return list;
     }
 
@@ -422,6 +437,7 @@ public sealed partial class StarSystemState
             if (rules.System(d.System) is { } sys) f *= sys.Flight;
         if (st.CrewTotal * 2 < st.StartTotal) f *= rules.HalfCrewFlight;
         if (st.Tow.Length > 0 && SiteRules is { } sr) f *= sr.TowFlight; // phase 2: towing
+        if (st.Escort.Length > 0 && Site(st.Escort) is { } escorted && SiteKindOf(escorted)?.Stranded is { } sd) f *= sd.EscortFlight; // phase 3: escorting
         return f;
     }
 
@@ -532,6 +548,7 @@ public sealed partial class StarSystemState
         }
         if (st.Away is { Done: false }) RecallAwayTeam(sim, player, "the ship is crippled");
         if (st.Tow.Length > 0) ReleaseTow(player, "the tow line parted as the ship was crippled");
+        if (st.Escort.Length > 0) StopEscort(player, "it fell behind as the ship was crippled"); // SpaceEvents.cs
         ShipLog(player, "Hull at 0%: the ship is crippled and adrift", "bad");
         Version++;
     }
@@ -543,10 +560,10 @@ public sealed partial class StarSystemState
         st.Down.Add(new SystemDown(system, sim.Tick + (long)seconds * Simulation.TickRate));
         st.Down.Sort((a, b) => a.System.CompareTo(b.System));
         ShipLog(player, $"{StatusRules?.System(system)?.Name ?? system.ToString()} knocked out ({why}): back in {seconds} s", "bad");
-        if (system == ShipSystem.Tractor && st.Work is { Action: "sweep" or "mine" } w)
+        if (system == ShipSystem.Tractor && st.Work is { Action: "sweep" or "mine" or "push" or "pickup" } w)
         {
             st.Work = null;
-            ShipLog(player, $"{(w.Action == "mine" ? "Mining" : "Sweep")} stopped: the tractor is down", "warn");
+            ShipLog(player, $"{w.Action switch { "mine" => "Mining", "push" => "Pushing", "pickup" => "Picking up pods", _ => "Sweep" }} stopped: the tractor is down", "warn");
         }
         if (system == ShipSystem.Tractor && st.Tow.Length > 0) ReleaseTow(player, "the tractor went down");
         Version++;
@@ -699,6 +716,8 @@ public sealed partial class StarSystemState
         var atStation = ship.AtSite is { } sid && Site(sid) is { Kind: SiteKind.Station };
         if (SellerAction(ref action, out var buyer) is { } bad) return bad; // "sell:<ship id>": to a ship in orbit with us
         if (item == TowItem) return TowHoldProblem(player, st, ship, action); // Towing.cs
+        if (item == EscortItem) // phase 3: an escort isn't cargo; jettison stops it where the ship is
+            return action == "jettison" ? st.Escort.Length > 0 ? null : "not escorting anyone" : "bring the escorted ship to its destination, or stop the escort";
         if (item.StartsWith(OrePrefix, System.StringComparison.Ordinal)) return OreHoldProblem(player, st, ship, action, item, count, buyer, atStation); // Mining.cs
         if (buyer >= 0) return "only ore sells to a ship";
         switch (action)
@@ -771,6 +790,11 @@ public sealed partial class StarSystemState
         if (c.Item == TowItem)
         {
             ApplyTowHold(sim, p, st, ship, action); // Towing.cs
+            return;
+        }
+        if (c.Item == EscortItem)
+        {
+            StopEscort(p, "cast off"); // SpaceEvents.cs
             return;
         }
         if (c.Item.StartsWith(OrePrefix, System.StringComparison.Ordinal))

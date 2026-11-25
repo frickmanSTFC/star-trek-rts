@@ -104,7 +104,8 @@
       "maps/generator.json",
       "maps/system.json",
       "maps/sites.json",
-      "maps/ship_status.json"
+      "maps/ship_status.json",
+      "maps/events.json"
     ],
     "surfaces": [
       "surfaces/notes.json",

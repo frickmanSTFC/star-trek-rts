@@ -107,6 +107,7 @@ public sealed partial class StarSystemState
         if (ship.AtSite != siteId) return $"the ship must be at {SiteNameFor(player, siteId)}";
         if (SiteKnowledgeOf(player, siteId) < SiteKnowledge.Identified) return "scan it first";
         if (SiteKnowledgeOf(player, siteId) == SiteKnowledge.Spent) return $"{site.Name} is worked out";
+        if (site.Outcome.Length > 0) return $"too late: {OutcomeText(player, site)}"; // SpaceEvents.cs
         if (st.Crippled) return "the ship is crippled";
         if (def.Hazardous && !HazardousOk(st)) return "the hull is critical: no hazardous jobs until it is repaired";
         var r = Record(player, siteId);
@@ -399,7 +400,11 @@ public sealed partial class StarSystemState
         {
             RecordFor(player, site.Id).Boarded = true;
             ShipLog(player, $"Away team back from {siteName}: {run.Result}", fate.Contains(2) ? "bad" : fate.Contains(1) ? "warn" : "good");
-            if (site.Kind != SiteKind.Asteroid || AsteroidDone(player, site)) Spend(player, site, "boarded"); // a hollow asteroid: once its ore is mined too
+            if (site.Kind == SiteKind.RogueAsteroid) // phase 3: charges planted
+            {
+                if (outcome.Deflect) Deflect(sim, player, site, "the away team's charges"); // SpaceEvents.cs
+            }
+            else if (site.Kind != SiteKind.Asteroid || AsteroidDone(player, site)) Spend(player, site, "boarded"); // a hollow asteroid: once its ore is mined too
         }
     }
 

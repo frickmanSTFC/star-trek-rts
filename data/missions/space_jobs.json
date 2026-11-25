@@ -1,5 +1,5 @@
 {
-  "_notes_space_jobs": "Space jobs, phase 1 (docs/space-jobs-contract.md; design page docs/mockups/space-jobs): side jobs of the pool chain space_jobs (rules.json \"pool\": true), offered to every chain's players in a game with a star system, from the sites their long-range scans have found (a space_site trigger binds the site; a colony ship is offered only sites within maps space_sites colony_reach_seconds of its colony's body). At most rules.max_side_active side jobs at once (counted with the chain's own); an offer lapses after offer_seconds. A pool job fails when the ship is crippled or its away team is called back; failing costs only the reward (hull damage and crew lost stay). Rewards: a ship that never lands gets grants into its stock and research where observation research goes; a colony ship as its colony's missions. Phase 2 (asteroids, mining, selling, towing): pay_dirt (mine two containers of ore and sell 60), ice_run (60 deuterium from an ice asteroid, sold or dropped), tow_job (take a derelict, worked out or not, in tow and deliver it); declined or lapsed offers come back after the pool chain's return_seconds. All numbers are placeholders.",
+  "_notes_space_jobs": "Space jobs, phase 1 (docs/space-jobs-contract.md; design page docs/mockups/space-jobs): side jobs of the pool chain space_jobs (rules.json \"pool\": true), offered to every chain's players in a game with a star system, from the sites their long-range scans have found (a space_site trigger binds the site; a colony ship is offered only sites within maps space_sites colony_reach_seconds of its colony's body). At most rules.max_side_active side jobs at once (counted with the chain's own); an offer lapses after offer_seconds. A pool job fails when the ship is crippled or its away team is called back; failing costs only the reward (hull damage and crew lost stay). Rewards: a ship that never lands gets grants into its stock and research where observation research goes; a colony ship as its colony's missions. Phase 2 (asteroids, mining, selling, towing): pay_dirt (mine two containers of ore and sell 60), ice_run (60 deuterium from an ice asteroid, sold or dropped), tow_job (take a derelict, worked out or not, in tow and deliver it); declined or lapsed offers come back after the pool chain's return_seconds. Phase 3 (events, maps/events.json): rogue_rock (turn a rogue asteroid aside), catch_the_comet (sample a comet's tail while it is active), pods_in_the_dark (pick up 3 lifepods before their air runs out), dead_stick (power a stranded ship and escort it to its destination; some calls are bait), into_the_storm (record 60 research at an ion storm); such a job fails when its event can no longer be done (the rock struck, the comet left, too few pods left, the ship was bait or its crew died, the storm dispersed). All numbers are placeholders.",
   "missions": [
     { "id": "quiet_hulk", "chain": "space_jobs", "kind": "side", "title": "The Quiet Hulk", "giver": "science",
       "trigger": { "space_site": { "kind": "derelict", "variant": "unknown", "state": "detected", "bind": "hulk" } },
@@ -127,6 +127,99 @@
               "hint": "Fly to the station (or a colony ship's colony body) and DROP the tow from the hold." } ],
           "next": "complete" } ],
       "rewards": [ { "grant": { "latinum": 50 } }, { "hold_add": { "item": "patch_kit", "count": 1 } } ],
-      "debrief": "Okafor's already pricing the plating. Nice flying with a hulk on the line." }
+      "debrief": "Okafor's already pricing the plating. Nice flying with a hulk on the line." },
+
+    { "id": "rogue_rock", "chain": "space_jobs", "kind": "side", "title": "Rogue Rock", "giver": "control",
+      "trigger": { "space_site": { "kind": "rogue_asteroid", "state": "detected", "bind": "rock" } },
+      "briefing": "{rock} is on a collision course. Moreau wants it turned aside before it hits anything: lean on it with the tractor or let an away team plant charges.",
+      "stages": [
+        { "id": "identify", "title": "Find the rock",
+          "on_enter": [ { "marker": { "at": "rock", "label": "Rogue rock" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Catch up with {rock} and scan it", "cond": { "space_site": { "site": "rock", "state": "identified" } },
+              "hint": "It is moving: set course for it, then SCAN from within range. The card counts down to impact." } ],
+          "next": "turn" },
+        { "id": "turn", "title": "Turn it aside",
+          "objectives": [
+            { "id": "turned", "text": "Turn {rock} aside before it strikes", "cond": { "space_site": { "site": "rock", "state": "deflected" } },
+              "hint": "COME ALONGSIDE, then PUSH IT ASIDE with the tractor (60–120 s, quicker with Engineering), or send an AWAY TEAM to plant charges." } ],
+          "next": "complete" } ],
+      "rewards": [ { "grant": { "latinum": 40 } }, { "research": { "points": 40 } } ],
+      "debrief": "It'll miss by a comfortable margin now. Nobody down there will ever know how close it came." },
+
+    { "id": "catch_the_comet", "chain": "space_jobs", "kind": "side", "title": "Catch the Comet", "giver": "science",
+      "trigger": { "space_site": { "kind": "comet", "state": "detected", "bind": "comet" } },
+      "briefing": "{comet} is passing through the inner system. Reyes wants a sample of the tail while it's active: there won't be another chance for a very long time.",
+      "stages": [
+        { "id": "identify", "title": "Meet the comet",
+          "on_enter": [ { "marker": { "at": "comet", "label": "Comet" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Catch up with {comet} and scan it", "cond": { "space_site": { "site": "comet", "state": "identified" } },
+              "hint": "Set course for it and hold there: the ship keeps pace with it. SCAN from within range." } ],
+          "next": "sample" },
+        { "id": "sample", "title": "Sample the tail",
+          "objectives": [
+            { "id": "sampled", "text": "Sample the tail of {comet} while it is active", "cond": { "space_site": { "site": "comet", "state": "sampled" } },
+              "hint": "SAMPLE THE TAIL (30 s) once the card says the tail is active. The dust scuffs the hull; the ice comes aboard as deuterium." } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 80 } } ],
+      "debrief": "Primordial ice, older than the planets. Reyes is going to be insufferable for a week." },
+
+    { "id": "pods_in_the_dark", "chain": "space_jobs", "kind": "side", "title": "Pods in the Dark", "giver": "ops",
+      "trigger": { "space_site": { "kind": "lifepods", "state": "detected", "bind": "pods" } },
+      "briefing": "Lifepods, calling at {pods}. Every one of them has a clock on its air. Get there and bring people in.",
+      "stages": [
+        { "id": "identify", "title": "Find the pods",
+          "on_enter": [ { "marker": { "at": "pods", "label": "Lifepods" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Reach {pods} and scan the beacons", "cond": { "space_site": { "site": "pods", "state": "identified" } } } ],
+          "next": "pickup" },
+        { "id": "pickup", "title": "Bring them in",
+          "objectives": [
+            { "id": "picked", "text": "Pick up 3 lifepods before their air runs out", "cond": { "space_site": { "site": "pods", "state": "picked", "count": 3 } },
+              "hint": "PICK UP PODS: the tractor brings one in every few seconds, least air first. Survivors join the crew while it is short." } ],
+          "next": "complete" } ],
+      "rewards": [ { "grant": { "latinum": 30 } }, { "hold_add": { "item": "medical", "count": 1 } } ],
+      "debrief": "Cold, scared and alive. Okafor's found them bunks; a couple are asking about work." },
+
+    { "id": "dead_stick", "chain": "space_jobs", "kind": "side", "title": "Dead Stick", "giver": "ops",
+      "trigger": { "space_site": { "kind": "stranded_ship", "state": "detected", "bind": "ship" } },
+      "briefing": "{ship} has lost power and is calling for help. Get power back on and see her safely to where she's going. Moreau says watch yourself: not every call is honest.",
+      "stages": [
+        { "id": "identify", "title": "Answer the call",
+          "on_enter": [ { "marker": { "at": "ship", "label": "Distress call" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Reach {ship} and scan her", "cond": { "space_site": { "site": "ship", "state": "identified" } } } ],
+          "next": "power" },
+        { "id": "power", "title": "Restore power",
+          "objectives": [
+            { "id": "alongside", "text": "Come alongside", "cond": { "space_site": { "site": "ship", "state": "alongside" } } },
+            { "id": "powered", "text": "Restore her power", "cond": { "space_site": { "site": "ship", "state": "powered" } },
+              "hint": "60 s of Engineering work, or a hull patch kit at once. Her air stops running out once the power is back." } ],
+          "next": "escort" },
+        { "id": "escort", "title": "Bring her in",
+          "objectives": [
+            { "id": "escorted", "text": "Escort {ship} to her destination", "cond": { "space_site": { "site": "ship", "state": "escorted" } },
+              "hint": "ESCORT (the card names her destination), then set course for that body: she follows, and flights are a little slower." } ],
+          "next": "complete" } ],
+      "rewards": [ { "grant": { "latinum": 40 } }, { "research": { "points": 20 } } ],
+      "debrief": "Her master says to tell you that you didn't have to stop. We did, though." },
+
+    { "id": "into_the_storm", "chain": "space_jobs", "kind": "side", "title": "Into the Storm", "giver": "science",
+      "trigger": { "space_site": { "kind": "anomaly", "state": "detected", "bind": "storm" } },
+      "briefing": "An ion storm at {storm}. Reyes wants readings from inside it. The closer we go the more we learn, and the more it costs the hull.",
+      "stages": [
+        { "id": "identify", "title": "Find the storm",
+          "on_enter": [ { "marker": { "at": "storm", "label": "Ion storm" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Reach {storm} and scan it", "cond": { "space_site": { "site": "storm", "state": "identified" } } } ],
+          "next": "record" },
+        { "id": "record", "title": "Record it",
+          "objectives": [
+            { "id": "recorded", "text": "Record 60 research inside {storm}", "cond": { "space_site": { "site": "storm", "state": "recorded", "count": 60 } },
+              "hint": "RECORD at a ring: the outer ring is safe and slow, the inner ring fast but it wears the hull and can knock out sensors or engines." } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 60 } } ],
+      "debrief": "Reyes has the readings and the ship has a few new scorch marks. Fair trade, she says." }
   ]
 }

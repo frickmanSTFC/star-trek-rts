@@ -93,6 +93,14 @@ public sealed partial class GameData
                     VariantAway = JObj(k, "away_tables") is { ValueKind: JsonValueKind.Object } va
                         ? va.EnumerateObject().Select(x => (x.Name, x.Value.ValueKind == JsonValueKind.String ? x.Value.GetString()! : "")).ToList()
                         : new List<(string, string)>(),
+                    Rogue = JObj(k, "rogue") is { ValueKind: JsonValueKind.Object } ro ? ReadRogue(ro) : null,
+                    Comet = JObj(k, "comet") is { ValueKind: JsonValueKind.Object } co ? ReadComet(co) : null,
+                    Pods = JObj(k, "pods") is { ValueKind: JsonValueKind.Object } po
+                        ? new SitePodsDef(JPair(po, "count", 6, 12).Min, JPair(po, "count", 6, 12).Max, JPair(po, "survivors", 1, 3).Min, JPair(po, "survivors", 1, 3).Max,
+                            JPair(po, "air_seconds", 240, 600).Min, JPair(po, "air_seconds", 240, 600).Max, JInt(po, "pickup_seconds", 5), JFix(po, "near_debris", Fix64.FromInt(60)))
+                        : null,
+                    Stranded = JObj(k, "stranded") is { ValueKind: JsonValueKind.Object } sd ? ReadStranded(sd) : null,
+                    Anomaly = JObj(k, "anomaly") is { ValueKind: JsonValueKind.Object } an ? ReadAnomaly(an) : null,
                 };
                 kinds.Add(def);
             }
@@ -125,7 +133,55 @@ public sealed partial class GameData
             TraderRoles = JStrings(traders, "roles"),
             TraderShare = JFix(traders, "share", Fix64.One),
             TowFlight = JFix(JObj(s, "tow"), "flight", Fix64.One),
+            Events = JObj(s, "events") is { ValueKind: JsonValueKind.Object } ev
+                ? new SpaceEventRules(JInt(ev, "calm_seconds", 300), JPair(ev, "every_seconds", 300, 420).Min, JPair(ev, "every_seconds", 300, 420).Max,
+                    JInt(ev, "max_live", 3), JFixPair(ev, "edge", Fix64.FromInt(500), Fix64.FromInt(560)).Min, JFixPair(ev, "edge", Fix64.FromInt(500), Fix64.FromInt(560)).Max,
+                    JWeights(ev, "weights"))
+                : null,
+            Anomalies = JObj(gen, "anomalies") is { ValueKind: JsonValueKind.Object } am
+                ? new AnomalyGenDef(JPair(am, "count", 0, 0).Min, JPair(am, "count", 0, 0).Max, JFix(am, "drift", Fix64.Zero), JInt(am, "drift_seconds", 3600))
+                : null,
         };
+    }
+
+    private static SiteRogueDef ReadRogue(JsonElement ro)
+    {
+        var reward = JObj(ro, "reward");
+        var im = JObj(ro, "impact");
+        return new SiteRogueDef(JPair(ro, "flight_seconds", 360, 480).Min, JPair(ro, "flight_seconds", 360, 480).Max, JInt(ro, "colony_chance", 0),
+            JPair(ro, "push_seconds", 60, 120).Min, JPair(ro, "push_seconds", 60, 120).Max, JFix(ro, "veer", Fix64.FromInt(600)), JInt(ro, "veer_seconds", 90),
+            JPair(reward, "latinum", 0, 0).Min, JPair(reward, "latinum", 0, 0).Max, JPair(reward, "research", 0, 0).Min, JPair(reward, "research", 0, 0).Max,
+            JInt(ro, "civ_awareness", 0), JInt(ro, "civ_strike_awareness", 0),
+            new RogueImpactDef(JInt(im, "spread", 6), JInt(im, "radius", 3), JPair(im, "damage", 20, 40).Min, JPair(im, "damage", 20, 40).Max,
+                JInt(im, "max_buildings", 6), JInt(im, "max_vehicles", 4)));
+    }
+
+    private static SiteCometDef ReadComet(JsonElement co)
+    {
+        var window = JFixPair(co, "window", Fix64.Ratio(1, 4), Fix64.Ratio(4, 5));
+        var pass = JFixPair(co, "pass", Fix64.FromInt(120), Fix64.FromInt(260));
+        return new SiteCometDef(JPair(co, "cross_seconds", 360, 540).Min, JPair(co, "cross_seconds", 360, 540).Max, pass.Min, pass.Max, window.Min, window.Max,
+            JInt(co, "sample_seconds", 30), JInt(co, "hull", 0), JInt(co, "hull_every_seconds", 10), JPair(co, "research", 0, 0).Min, JPair(co, "research", 0, 0).Max,
+            JPair(co, "ice", 0, 0).Min, JPair(co, "ice", 0, 0).Max);
+    }
+
+    private static SiteStrandedDef ReadStranded(JsonElement sd)
+    {
+        var reward = JObj(sd, "reward");
+        return new SiteStrandedDef(JPair(sd, "air_seconds", 600, 900).Min, JPair(sd, "air_seconds", 600, 900).Max, JFix(sd, "escort_flight", Fix64.One),
+            JInt(sd, "bait", 0), JPair(sd, "ambush_hull", 0, 0).Min, JPair(sd, "ambush_hull", 0, 0).Max, JStrings(sd, "ambush_systems"),
+            JPair(reward, "latinum", 0, 0).Min, JPair(reward, "latinum", 0, 0).Max, JPair(reward, "research", 0, 0).Min, JPair(reward, "research", 0, 0).Max);
+    }
+
+    private static SiteAnomalyDef ReadAnomaly(JsonElement an)
+    {
+        var rings = new List<AnomalyRingDef>();
+        if (an.TryGetProperty("rings", out var rs) && rs.ValueKind == JsonValueKind.Array)
+            foreach (var r in rs.EnumerateArray())
+                rings.Add(new AnomalyRingDef(JStr(r, "id"), JStr(r, "name"), JFix(r, "radius", Fix64.FromInt(10)), JInt(r, "research", 0), JInt(r, "hull", 0),
+                    JInt(r, "knock", 0), JBool(r, "hazardous")));
+        return new SiteAnomalyDef(JInt(an, "every_seconds", 10), JInt(an, "research_cap", 0), JStrings(an, "systems"), JPair(an, "life_seconds", 900, 1500).Min,
+            JPair(an, "life_seconds", 900, 1500).Max, JFix(an, "drift", Fix64.Zero), rings);
     }
 
     private static SiteMiningDef ReadMining(JsonElement mn)
@@ -205,7 +261,7 @@ public sealed partial class GameData
                 if (tb.ValueKind == JsonValueKind.Object && tb.TryGetProperty("outcomes", out var os) && os.ValueKind == JsonValueKind.Array)
                     foreach (var o in os.EnumerateArray())
                         outcomes.Add(new AwayOutcomeDef(JStr(o, "id"), JInt(o, "weight", 0), JStr(o, "text"), JBool(o, "research"), JInt(o, "hull", 0), JStr(o, "system"),
-                            JInt(o, "injure", 0), JFix(o, "loss_mult", Fix64.One), JFix(o, "find_mult", Fix64.One), JBool(o, "quarantine")));
+                            JInt(o, "injure", 0), JFix(o, "loss_mult", Fix64.One), JFix(o, "find_mult", Fix64.One), JBool(o, "quarantine")) { Deflect = JBool(o, "deflect") });
                 tables.Add(new AwayTableDef(t.Name, JInt(bas, "injury", 0), JInt(bas, "loss", 0), JInt(bas, "find", 0), JInt(unp, "injury", 0), JInt(unp, "loss", 0),
                     JInt(unp, "find", 0), steps, outcomes));
             }
@@ -358,6 +414,7 @@ public sealed partial class GameData
                 if (ag.CountMax > 0 && r.Kind(SiteKind.Asteroid) == null) problems.Add($"{w}: generation asteroids needs an asteroid kind.");
             }
             if (r.Weights.Any(x => x.Id == "asteroid")) problems.Add($"{w}: asteroids are rolled by generation.asteroids, not by weight.");
+            ValidateSpaceEvents(r, problems); // GameData.SpaceEvents.cs (phase 3)
             if (r.OrePerContainer < 1 || r.OrePerContainer > 10000) problems.Add($"{w}: ore per_container must be 1..10000.");
             var oreIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var o in r.Ores)

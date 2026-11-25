@@ -57,7 +57,8 @@ public class AsteroidTests
             var sys = a.System!;
             // The other sites are exactly where they were without asteroids (their own salt, rolled first).
             var without = Game(null, seed, data: none).System!.Sites;
-            Assert.Equal(without.Select(s => (s.Id, s.Kind, s.Variant, s.Position)), sys.Sites.Where(s => s.Kind != SiteKind.Asteroid).Select(s => (s.Id, s.Kind, s.Variant, s.Position)));
+            Assert.Equal(without.Where(s => s.Kind != SiteKind.Anomaly).Select(s => (s.Id, s.Kind, s.Variant, s.Position)),
+                sys.Sites.Where(s => s.Kind is not (SiteKind.Asteroid or SiteKind.Anomaly)).Select(s => (s.Id, s.Kind, s.Variant, s.Position))); // anomalies (phase 3) come after
             var asteroids = sys.Sites.Where(s => s.Kind == SiteKind.Asteroid).ToList();
             Assert.InRange(asteroids.Count, 0, rules.CountMax);
             var belts = sys.Bodies.Where(b => Campaign.SystemGenerator!.IsBelt(b.ClassId)).ToList();
