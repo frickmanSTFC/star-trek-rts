@@ -100,6 +100,7 @@ public partial class SystemPlot : Node3D
             _courseStamp = courses;
             BuildCourses(source, ownerColour);
         }
+        PrepareSitePlot(source, alpha); // moving sites drawn between ticks (SystemPlot.Events.cs)
         MoveShips(source, alpha, ownerColour);
         UpdateSites(source); // space sites, the site-scan ring, course lines to sites (SystemPlot.Sites.cs)
         UpdateMarkers(source); // space-chain mission markers (SystemPlot.Markers.cs)

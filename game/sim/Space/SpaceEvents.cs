@@ -299,6 +299,18 @@ public sealed partial class StarSystemState
     public string? RecordingRing(int player) =>
         Status(player)?.Work is { } w && w.Action.StartsWith("record_", System.StringComparison.Ordinal) ? w.Action[7..] : null;
 
+    /// <summary>When the k-th pod of a lifepods site runs out of air (sim tick; -1 for any other site). No allocation: the
+    /// view reads it every frame.</summary>
+    public long PodAirTick(SpaceSite site, int k) => SiteKindOf(site)?.Pods is { } po && k >= 0 && k < site.PodCount ? PodAir(site, po, k) : -1;
+
+    /// <summary>The comet's tail window in ticks ((-1, -1) for any other site). No allocation.</summary>
+    public (long Start, long End) TailWindow(SpaceSite site) => SiteKindOf(site)?.Comet is { } co ? CometWindow(site, co) : (-1, -1);
+
+    /// <summary>The player's running work: its action id ("mine", "push", "record_inner"…) and site, or null. No allocation:
+    /// the view reads it every frame.</summary>
+    public string? WorkActionOf(int player) => Status(player)?.Work?.Action;
+    public string? WorkSiteOf(int player) => Status(player)?.Work?.Site;
+
     /// <summary>A comet's tail window (ticks): the window shares of its crossing.</summary>
     private static (long Start, long End) CometWindow(SpaceSite site, SiteCometDef co)
     {

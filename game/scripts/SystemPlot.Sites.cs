@@ -38,7 +38,7 @@ public partial class SystemPlot
         public SiteKnowledge Knowledge;
     }
 
-    private enum GlyphKind { Unknown, Wreck, Debris, Rock, Anomaly, Pods, Station, HollowRock }
+    private enum GlyphKind { Unknown, Wreck, Debris, Rock, Anomaly, Pods, Station, HollowRock, Comet }
 
     /// <summary>Asteroids by variant (phase 2): common amber, metal brass, ice pale blue, hollow amber with a hole.</summary>
     public static Color AsteroidColour(string variant) => variant switch
@@ -72,6 +72,7 @@ public partial class SystemPlot
 
     public static Color SiteColour(SiteKind kind, SiteKnowledge knowledge) => knowledge < SiteKnowledge.Identified ? SiteGrey : kind switch
     {
+        SiteKind.RogueAsteroid => SiteDanger, // phase 3: a rock on a collision course
         SiteKind.Derelict or SiteKind.KnownDerelict or SiteKind.Debris or SiteKind.StrandedShip or SiteKind.HiddenShip => SiteRust,
         SiteKind.Asteroid or SiteKind.RogueAsteroid or SiteKind.Comet => SiteAmber,
         SiteKind.Anomaly or SiteKind.AlienProbe => SiteLavender,
@@ -84,7 +85,8 @@ public partial class SystemPlot
     {
         SiteKind.Derelict or SiteKind.KnownDerelict or SiteKind.StrandedShip or SiteKind.HiddenShip => GlyphKind.Wreck,
         SiteKind.Debris => GlyphKind.Debris,
-        SiteKind.Asteroid or SiteKind.RogueAsteroid or SiteKind.Comet => GlyphKind.Rock,
+        SiteKind.Comet => GlyphKind.Comet,
+        SiteKind.Asteroid or SiteKind.RogueAsteroid => GlyphKind.Rock,
         SiteKind.Anomaly or SiteKind.AlienProbe => GlyphKind.Anomaly,
         SiteKind.Lifepods => GlyphKind.Pods,
         SiteKind.Station => GlyphKind.Station,
@@ -103,7 +105,6 @@ public partial class SystemPlot
         _ => kind.ToString().ToUpperInvariant(),
     };
 
-    private static Vector3 SitePlot(SpaceSite s) => new(s.Position.X.ToFloat() * MapScale, 0f, -s.Position.Y.ToFloat() * MapScale);
 
     /// <summary>Every frame from Refresh (after the ships moved): rebuild the glyphs if the known set changed, move them,
     /// the labels 4×/s, the scan ring round the flagship, the course lines to sites.</summary>
@@ -171,7 +172,9 @@ public partial class SystemPlot
                 else if (sys.SiteWorkProgress(source.Player, s.Id) is { } work) text += $" · {work.Label.ToUpperInvariant()} {Mathf.RoundToInt(Mathf.Clamp(work.Share.ToFloat(), 0f, 1f) * 100)} %";
                 else if (here == s.Id) text += " · HERE";
                 else if (sys.TowerOf(s.Id) == source.Player) text += " · IN TOW";
+                else if (sys.EscorterOf(s.Id) == source.Player) text += " · ESCORTING";
                 else if (bound == s.Id) text += " · COURSE";
+                text += EventTag(sys, source.Player, s, k); // phase 3: impact / tail / pods / air countdowns (SystemPlot.Events.cs)
                 if (text != node.Text)
                 {
                     node.Text = text;
@@ -192,6 +195,14 @@ public partial class SystemPlot
 
         UpdateScanRing(source, flagship);
         DrawSiteCourses(source);
+    }
+
+    /// <summary>The site's plot position: its sim position, or for a moving site (a rock, a comet, a drifting storm) its path
+    /// between this tick and the next (SystemPlot.Events.cs).</summary>
+    private Vector3 SitePlot(SpaceSite s)
+    {
+        var p = SiteMapPosition(s);
+        return new Vector3(p.X * MapScale, 0f, -p.Y * MapScale);
     }
 
     private void ClearSites()
@@ -308,6 +319,7 @@ public partial class SystemPlot
                 _siteCourseMesh.SurfaceAddVertex(a.Lerp(b, Mathf.Min(1f, (d + 1) / (float)n)));
             }
         }
+        DrawEventLines(source, ref started); // phase 3: rogue courses, comet paths, storm rings, escort lines (SystemPlot.Events.cs)
         // Tow lines (phase 2): from each ship to the wreck it has in tow, solid, ours sky blue.
         for (var p = 0; p < 8; p++)
         {
@@ -333,6 +345,7 @@ public partial class SystemPlot
     {
         shipAt = Vector3.Zero;
         var tower = sys.TowerOf(s.Id);
+        if (tower < 0) tower = sys.EscorterOf(s.Id); // phase 3: a stranded ship under escort follows the same way
         if (tower < 0 || sys.FlagshipOf(tower) is not { } ship || !_ships.TryGetValue(ship.Id, out var entry)) return null;
         shipAt = entry.Node.Position;
         var back = entry.Node.Basis.Z; // the chevrons point -Z
@@ -356,7 +369,7 @@ public partial class SystemPlot
     }
 
     /// <summary>Facing of a ship flying to a site: from where it is toward the site (Forward if unknown).</summary>
-    private static Vector3 SiteHeading(SystemSource source, SystemShip s, Vector3 at)
+    private Vector3 SiteHeading(SystemSource source, SystemShip s, Vector3 at)
     {
         if (source.SiteBoundOf(s) is not { } siteId || source.State?.Site(siteId) is not { } site) return Vector3.Forward;
         var d = SitePlot(site) - at;
@@ -406,6 +419,7 @@ public partial class SystemPlot
             GlyphKind.Anomaly => p => Mathf.Max(Stroke(Mathf.Abs(p.Length() - 10f * k), 1.6f) * 0.45f,
                 Mathf.Max(Stroke(Mathf.Abs(p.Length() - 6.5f * k), 1.6f) * 0.7f, Stroke(Mathf.Abs(p.Length() - 3f * k), 1.6f) * 0.95f)),
             GlyphKind.Pods => PodsAlpha,
+            GlyphKind.Comet => CometAlpha,
             _ => p => Mathf.Max(Stroke(Mathf.Abs(p.Length() - 8.5f * k), 2.4f), Mathf.Max(Disc(p, Vector2.Zero, 2.4f * k),
                 Mathf.Max(Stroke(SegmentDistance(p, new Vector2(-8.5f, 0) * k, new Vector2(8.5f, 0) * k), 1.2f), Stroke(SegmentDistance(p, new Vector2(0, -8.5f) * k, new Vector2(0, 8.5f) * k), 1.2f)))),
         };
@@ -479,6 +493,19 @@ public partial class SystemPlot
             if (Mathf.Abs(q.X) <= hw && Mathf.Abs(q.Y) <= hh) a = 1f;
         }
         return a;
+    }
+
+    /// <summary>A comet: a bright head up-left and a fan of tail down-right.</summary>
+    private static float CometAlpha(Vector2 p)
+    {
+        const float k = 2.6f;
+        var head = Disc(p, new Vector2(-5, -5) * k, 3.2f * k);
+        var axis = new Vector2(1, 1).Normalized();
+        var q = p - new Vector2(-5, -5) * k;
+        var along = q.Dot(axis);
+        var across = Mathf.Abs(q.Dot(new Vector2(-axis.Y, axis.X)));
+        var tail = along > 0f && along < 17f * k ? Mathf.Clamp(1f - across / (1.2f * k + along * 0.35f), 0f, 1f) * (1f - along / (17f * k)) : 0f;
+        return Mathf.Max(head, tail * 0.85f);
     }
 
     private static float PodsAlpha(Vector2 p)
