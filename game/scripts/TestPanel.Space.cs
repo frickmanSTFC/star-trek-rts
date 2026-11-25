@@ -62,6 +62,7 @@ public partial class TestPanel
         kindPick.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         spawnRow.AddChild(kindPick);
         var variantPick = MakeOption(new[] { "variant: random", "variant 0", "variant 1", "variant 2", "variant 3" }, _spaceVariant + 1, i => _spaceVariant = i - 1);
+        variantPick.TooltipText = "In the kind's data order. Asteroid: 0 common, 1 metal, 2 ice, 3 hollow. Known derelict: 0 earth, 1 trader, 2 native.";
         spawnRow.AddChild(variantPick);
         _content.AddChild(spawnRow);
         _content.AddChild(MakeButton("Spawn next to the flagship", Green, () =>
@@ -151,6 +152,7 @@ public partial class TestPanel
         if (status != null)
             foreach (var h in status.Hold)
             {
+                if (h.Item == StarSystemState.TowItem) continue; // a tow isn't a count (release or drop it from the status screen)
                 var item = h.Item;
                 var row = Row();
                 var name = Text($"{h.Label} ({item})", 13, Ink);
@@ -183,7 +185,15 @@ public partial class TestPanel
         setRow.AddChild(countField);
         setRow.AddChild(MakeButton("Set", Blue, () => SetHold(_spaceItem, _spaceCount, false), 50, 30));
         _content.AddChild(setRow);
-        _content.AddChild(Wrapped("Item ids as the hold lists them: patch_kit, probe, duranium_ore, salvage:<part>, survivors…", 12, Dim));
+        _content.AddChild(Wrapped("Item ids as the hold lists them: patch_kit, probe, ore:duranium_ore, salvage:<part>, survivors…", 12, Dim));
+        // Phase 2: ore by the container (30 a container).
+        var oreRow = Grid(3);
+        foreach (var (ore, label) in new[] { ("ore:duranium_ore", "+30 duranium ore"), ("ore:tritanium_ore", "+30 tritanium ore"), ("ore:deuterium", "+30 ice (deut.)") })
+        {
+            var item = ore;
+            oreRow.AddChild(MakeButton(label, Plain, () => SetHold(item, Sim.Data.SpaceSites?.OrePerContainer ?? 30, true), 0, 28));
+        }
+        _content.AddChild(oreRow);
 
         // ---- away team
         _content.AddChild(Section("AWAY TEAM"));

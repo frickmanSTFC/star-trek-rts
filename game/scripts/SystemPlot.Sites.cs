@@ -38,7 +38,19 @@ public partial class SystemPlot
         public SiteKnowledge Knowledge;
     }
 
-    private enum GlyphKind { Unknown, Wreck, Debris, Rock, Anomaly, Pods, Station }
+    private enum GlyphKind { Unknown, Wreck, Debris, Rock, Anomaly, Pods, Station, HollowRock }
+
+    /// <summary>Asteroids by variant (phase 2): common amber, metal brass, ice pale blue, hollow amber with a hole.</summary>
+    public static Color AsteroidColour(string variant) => variant switch
+    {
+        "metal" => Color.FromHtml("#d6b07a"),
+        "ice" => Color.FromHtml("#bfe4f2"),
+        _ => SiteAmber,
+    };
+
+    /// <summary>A site's plot colour by kind, variant and knowledge.</summary>
+    public static Color SiteColour(SpaceSite s, SiteKnowledge knowledge) =>
+        s.Kind == SiteKind.Asteroid && knowledge >= SiteKnowledge.Identified ? AsteroidColour(s.Variant) : SiteColour(s.Kind, knowledge);
 
     private static readonly Dictionary<GlyphKind, ImageTexture> GlyphTextures = new();
     private readonly Dictionary<string, SiteNode> _siteNodes = new();
@@ -148,7 +160,7 @@ public partial class SystemPlot
                 node = NewSiteNode(s, k);
                 _siteNodes[s.Id] = node;
             }
-            node.Node.Position = SitePlot(s) + Vector3.Up * 0.4f;
+            node.Node.Position = TowedPlot(sys, s, out _) ?? SitePlot(s) + Vector3.Up * 0.4f;
             if (labels)
             {
                 var report = sys.SiteReportFor(source.Player, s.Id);
@@ -158,6 +170,7 @@ public partial class SystemPlot
                 else if (sys.SiteScanShare(source.Player, s.Id) is { } share) text += $" · SCANNING {Mathf.RoundToInt(Mathf.Clamp(share.ToFloat(), 0f, 1f) * 100)} %";
                 else if (sys.SiteWorkProgress(source.Player, s.Id) is { } work) text += $" · {work.Label.ToUpperInvariant()} {Mathf.RoundToInt(Mathf.Clamp(work.Share.ToFloat(), 0f, 1f) * 100)} %";
                 else if (here == s.Id) text += " · HERE";
+                else if (sys.TowerOf(s.Id) == source.Player) text += " · IN TOW";
                 else if (bound == s.Id) text += " · COURSE";
                 if (text != node.Text)
                 {
@@ -190,7 +203,7 @@ public partial class SystemPlot
 
     private SiteNode NewSiteNode(SpaceSite s, SiteKnowledge k)
     {
-        var colour = SiteColour(s.Kind, k);
+        var colour = SiteColour(s, k);
         var spent = k == SiteKnowledge.Spent;
         var tint = spent ? colour.Darkened(0.45f) with { A = 0.7f } : colour;
         var node = new Node3D { Name = $"Site_{s.Id}" };
@@ -198,7 +211,7 @@ public partial class SystemPlot
         var glyph = new Sprite3D
         {
             Name = "Glyph",
-            Texture = GlyphTexture(GlyphOf(s.Kind, k)),
+            Texture = GlyphTexture(s.Kind == SiteKind.Asteroid && s.Variant == "hollow" && k >= SiteKnowledge.Identified ? GlyphKind.HollowRock : GlyphOf(s.Kind, k)),
             Modulate = tint,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             Shaded = false,
@@ -295,7 +308,37 @@ public partial class SystemPlot
                 _siteCourseMesh.SurfaceAddVertex(a.Lerp(b, Mathf.Min(1f, (d + 1) / (float)n)));
             }
         }
+        // Tow lines (phase 2): from each ship to the wreck it has in tow, solid, ours sky blue.
+        for (var p = 0; p < 8; p++)
+        {
+            if (source.State?.TowOf(p) is not { } towId || source.State.Site(towId) is not { } towed) continue;
+            if (TowedPlot(source.State, towed, out var shipAt) is not { } at) continue;
+            if (!started)
+            {
+                _siteCourseMesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
+                started = true;
+            }
+            var colour = p == source.Player ? SiteSky with { A = 0.95f } : Neutral with { A = 0.5f };
+            _siteCourseMesh.SurfaceSetColor(colour);
+            _siteCourseMesh.SurfaceAddVertex(shipAt with { Y = 0.6f });
+            _siteCourseMesh.SurfaceSetColor(colour);
+            _siteCourseMesh.SurfaceAddVertex(at with { Y = 0.6f });
+        }
         if (started) _siteCourseMesh.SurfaceEnd();
+    }
+
+    /// <summary>Where a site in tow is drawn: just behind its ship's chevron (the ship node is interpolated every frame,
+    /// the site's sim position only every tick); null when it isn't in tow or its ship isn't on the plot.</summary>
+    private Vector3? TowedPlot(StarSystemState sys, SpaceSite s, out Vector3 shipAt)
+    {
+        shipAt = Vector3.Zero;
+        var tower = sys.TowerOf(s.Id);
+        if (tower < 0 || sys.FlagshipOf(tower) is not { } ship || !_ships.TryGetValue(ship.Id, out var entry)) return null;
+        shipAt = entry.Node.Position;
+        var back = entry.Node.Basis.Z; // the chevrons point -Z
+        back.Y = 0f;
+        back = back.LengthSquared() < 1e-4f ? Vector3.Back : back.Normalized();
+        return shipAt + back * 3.2f + Vector3.Up * 0.4f;
     }
 
     /// <summary>Where a site parked ship sits: beside the site's glyph, a little apart from the others there.</summary>
@@ -359,6 +402,7 @@ public partial class SystemPlot
             GlyphKind.Wreck => p => Mathf.Max(PolyStroke(p, WreckHull, 1.9f), Stroke(SegmentDistance(p, new Vector2(-3, -6) * k, new Vector2(1, 4) * k), 1.1f)),
             GlyphKind.Debris => DebrisAlpha,
             GlyphKind.Rock => p => Inside(p, RockShape) ? 1f : Stroke(PolyDistance(p, RockShape), 1f),
+            GlyphKind.HollowRock => p => Inside(p, RockShape) ? 1f - Disc(p, new Vector2(1, 0) * k, 3.2f * k) : Stroke(PolyDistance(p, RockShape), 1f),
             GlyphKind.Anomaly => p => Mathf.Max(Stroke(Mathf.Abs(p.Length() - 10f * k), 1.6f) * 0.45f,
                 Mathf.Max(Stroke(Mathf.Abs(p.Length() - 6.5f * k), 1.6f) * 0.7f, Stroke(Mathf.Abs(p.Length() - 3f * k), 1.6f) * 0.95f)),
             GlyphKind.Pods => PodsAlpha,
