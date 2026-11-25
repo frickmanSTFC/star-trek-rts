@@ -89,7 +89,7 @@ public partial class PlanetDriver
     private void UpdateOrbitBody()
     {
         _orbit.SetOrbitBody(_system.OrbitBodyId, Seed);
-        var now = _system.FlagshipInFlight ? $"flight:{_system.Flagship?.ToBody}" : _system.OrbitBodyId;
+        var now = _system.FlagshipInFlight ? $"flight:{_system.Flagship?.ToBody ?? _system.FlagshipSiteBound}" : _system.FlagshipSite is { } atSite ? $"site:{atSite}" : _system.OrbitBodyId;
         if (now == _orbitBodySeen) return;
         var first = _orbitBodySeen == null;
         _orbitBodySeen = now;
@@ -104,6 +104,9 @@ public partial class PlanetDriver
         if (f == null) return;
         if (SystemSource.InFlight(f) && _system.Body(f.ToBody) is { } to)
             _hud.PushEvent($"{f.Name} under way to {_system.KnownName(to)}: arrives in {_system.SecondsToArrival(f)} s", HelmScreen.Peach);
+        else if (_system.FlagshipSiteBound is { } toSite)
+            _hud.PushEvent($"{f.Name} under way to {SiteTitle(toSite)}: arrives in {_system.SecondsToArrival(f)} s", HelmScreen.Peach);
+        else if (_system.FlagshipSite != null) { } // "holding at" comes from SpaceEvents (PlanetDriver.Sites.cs)
         else if (_system.Body(f.AtBody) is { } at)
             _hud.PushEvent($"{f.Name} in orbit of {_system.KnownName(at)}", HelmScreen.Peach);
     }
@@ -140,6 +143,9 @@ public partial class PlanetDriver
         var f = _system.Flagship;
         var delay = _sim.System?.CommsDelaySeconds(LocalPlayer) ?? 0;
         var signal = delay > 0 ? $" · SIGNAL DELAY {delay} S" : "";
+        if (f != null && _system.FlagshipSiteBound is { } toSite)
+            return $"UNDER WAY TO {SiteTitle(toSite).ToUpperInvariant()} · {_system.SecondsToArrival(f)} S{signal}";
+        if (f != null && _system.FlagshipSite is { } atSite) return $"HOLDING AT {SiteTitle(atSite).ToUpperInvariant()}{signal}";
         if (f == null || !SystemSource.InFlight(f))
             return (f?.SweepBody != null && _system.State is { } sys ? $"SENSOR SWEEP · {sys.SweepSecondsLeft(f)} S" : "STANDARD ORBIT") + signal;
         var to = _system.Body(f.ToBody);
@@ -354,6 +360,7 @@ public partial class PlanetDriver
         if (selected != null && _system.Known(selected.Id))
             sections.Add(new HelmSection(_system.KnownName(selected).ToUpperInvariant(), _system.Identified(selected.Id) ? HelmScreen.Peach : DetectedGrey, BodyRows(selected, true)));
         AddCargoSection(sections); // MISSION CARGO while the flagship carries any (PlanetDriver.ShipPick.cs)
+        AddSiteSections(sections); // SITES once any space site is known (PlanetDriver.Sites.cs)
         sections.Add(new HelmSection("BODIES", HelmScreen.Sky, bodies.Where(b => b.ParentId == null).Select(b => new HelmRow(
             b.Name.ToUpperInvariant(),
             b.Charted ? b.ClassName + (b.Live ? " · live" : "") : b.Identified ? $"{b.ClassName} · uncharted" : $"detected · size ~{b.Size}",
@@ -369,6 +376,7 @@ public partial class PlanetDriver
         var shipId = _mouseOverUi ? null : _orbit.PickShip(mouse);
         if (shipId is { } sid && _system.Ship(sid) is { } hovered)
             _helm.ShowReadout(hovered.Name.ToUpperInvariant(), $"{_system.ShipClassText(hovered)} · {HeadingText(hovered)}", hovered.Owner == LocalPlayer ? HelmScreen.Peach : HelmScreen.Lavender, mouse + new Vector2(18, 14));
+        else if (SiteReadout(mouse)) { } // a space site under the mouse (PlanetDriver.Sites.cs)
         else
         {
             var id = _mouseOverUi ? null : _orbit.PickBody(mouse);
@@ -382,6 +390,8 @@ public partial class PlanetDriver
     private string HeadingText(SystemShip s)
     {
         string Name(string? id) => _system.Body(id) is { } b ? _system.KnownName(b) : "?";
+        if (_system.SiteOf(s) is { } atSite) return $"holding at {SiteTitle(atSite)}";
+        if (_system.SiteBoundOf(s) is { } toSite) return $"→ {SiteTitle(toSite)} · {_system.SecondsToArrival(s)} s";
         if (!SystemSource.InFlight(s)) return s.AtBody != null ? $"in orbit of {Name(s.AtBody)}" : "holding position";
         return $"{Name(s.FromBody)} → {Name(s.ToBody)} · {_system.SecondsToArrival(s)} s";
     }
@@ -406,6 +416,11 @@ public partial class PlanetDriver
             }
             var (rows, buttons, colour) = ShipCard(ship);
             _helm.ShowCard(ship.Name, rows, buttons, at.Value, colour);
+            return;
+        }
+        if (_systemCard.StartsWith("site:"))
+        {
+            if (!ShowSiteCard(_systemCard[5..])) CloseSystemCard(); // a space site's card (PlanetDriver.Sites.cs)
             return;
         }
         var body = _system.Body(_systemCard.StartsWith("body:") ? _systemCard[5..] : null);
@@ -495,6 +510,7 @@ public partial class PlanetDriver
         _systemCard = null;
         _selectedShip = null;
         _orbit.HighlightShip(null);
+        _orbit.HighlightSite(null);
         if (_selectedBody != null) _orbit.HighlightBody(_selectedBody);
     }
 
@@ -515,6 +531,7 @@ public partial class PlanetDriver
             NoteShipInspected(shipId); // view-only achievement rule (PlanetDriver.Achievements.cs)
             return;
         }
+        if (SiteClick(mouse)) return; // a space site opens its card (PlanetDriver.Sites.cs)
         var body = _orbit.PickBody(mouse);
         if (body != null)
         {
@@ -524,6 +541,7 @@ public partial class PlanetDriver
         _systemCard = null;
         _selectedShip = null;
         _orbit.HighlightShip(null);
+        _orbit.HighlightSite(null);
         _orbit.HighlightBody(_selectedBody);
     }
 

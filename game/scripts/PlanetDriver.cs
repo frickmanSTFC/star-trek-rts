@@ -4,6 +4,7 @@ using System.Text;
 using FinalFrontier.Sim.Core;
 using FinalFrontier.Sim.Data;
 using FinalFrontier.Sim.Math;
+using FinalFrontier.Sim.Space;
 using FinalFrontier.Sim.Surface;
 using Godot;
 
@@ -237,6 +238,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         SetupAchievements(); // toast, screen, trophy chip (PlanetDriver.Achievements.cs)
         SetupParts(); // inventory screen, fabricator queue / workshop / inventory hooks (PlanetDriver.Parts.cs)
         SetupCiv(); // civilization dossier, Standing chip hooks (PlanetDriver.Civ.cs)
+        SetupSpace(); // space jobs: away-team panel, ship status screen (PlanetDriver.Sites.cs)
         SetupMissions(); // tracker, comms card, mission log; a campaign turns missions on before tick 0 (PlanetDriver.Missions.cs)
         SetupPing(); // Z / PING: find your vehicles, and the vehicle list (PlanetDriver.Ping.cs)
         SetupSky(); // day/night, seasons and weather from Climate (PlanetDriver.Sky.cs); before EnterOrbit changes the environment
@@ -489,6 +491,7 @@ public partial class PlanetDriver : Node3D, ITestHost
 
     private void OrbitKey(InputEventKey key)
     {
+        if (!(key.Keycode == Key.Escape && _chooser.IsOpen) && SpaceKey(key)) return; // U ship status; Esc closes the away-team picker / status first (PlanetDriver.Sites.cs)
         switch (key.Keycode)
         {
             case Key.O when Me.Phase == LandingPhase.Landed && !SpaceShip:
@@ -554,7 +557,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void OrbitHover(float delta)
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _satCard.IsOverUi(mouse) || _chooser.IsOverUi(mouse) || AchievementsBlockMouse(mouse) || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse) || MissionsBlockMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || _helm.IsOverUi(mouse) || _feed.IsOverUi(mouse) || _satCard.IsOverUi(mouse) || _chooser.IsOverUi(mouse) || AchievementsBlockMouse(mouse) || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse) || MissionsBlockMouse(mouse) || SpaceBlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false);
         if (_helm.ViewRect.Size.X > 32f && _helm.ViewRect.Size.Y > 32f) _orbit.SetViewRect(_helm.ViewRect, GetViewport().GetVisibleRect().Size);
         _orbitHover = _mouseOverUi ? -1 : _orbit.PickTile(mouse);
         SatelliteHover(mouse); // a satellite under the mouse takes the hover (PlanetDriver.Satellites.cs)
@@ -619,6 +622,8 @@ public partial class PlanetDriver : Node3D, ITestHost
         else if (id.StartsWith("body:")) SelectSystemBody(id[5..]); // rail: select it and open its card
         else if (id.StartsWith("sys:")) OnSystemAction(id); // body / ship card buttons (PlanetDriver.System.cs)
         else if (id.StartsWith("civ:")) OnCivAction(id); // the civilization dossier (PlanetDriver.Civ.cs)
+        else if (id.StartsWith("site:act:")) OnSiteAction(id); // a space site's card / strip buttons (PlanetDriver.Sites.cs)
+        else if (id == "space:status") ToggleShipStatus(); // the ship status screen: STATUS on the rail, the HULL chip (PlanetDriver.Sites.cs)
         else if (id.StartsWith("orbit:")) ArmOrbit(id);
         else if (id == "surface") LeaveOrbit();
         else if (id == "display:planet") SetOrbitDisplay(OrbitDisplay.Planet);
@@ -633,6 +638,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         _helm.SetDisplay(display);
         if (display != OrbitDisplay.System) _orbit.HighlightBody(null);
         else if (_selectedShip != null) _orbit.HighlightShip(_selectedShip);
+        else if (_systemCard?.StartsWith("site:") == true) _orbit.HighlightSite(_systemCard[5..]); // a space site's card (PlanetDriver.Sites.cs)
         else _orbit.HighlightBody(_selectedBody);
     }
 
@@ -738,11 +744,14 @@ public partial class PlanetDriver : Node3D, ITestHost
         if (display is OrbitDisplay.Planet or OrbitDisplay.Orbit) // the SATELLITES window (PlanetDriver.Satellites.cs)
             rail.Add(new HelmAction("sats", "", "SATS", Colour: _satPanelOpen ? HelmScreen.Cyan : null));
         AddShipRail(rail, display); // SHIP: the camera follows our ship's model (PlanetDriver.Ship.cs)
+        if (_system.State != null && _system.Flagship != null) // the ship status screen (PlanetDriver.Sites.cs)
+            rail.Add(new HelmAction("space:status", "U", "STATUS", Colour: _statusScreen.IsOpen ? HelmScreen.Cyan : _status is { Band: >= HullBand.Damaged } ? HelmScreen.Red : null, Tip: "Hull, systems, crew and hold (U)"));
         _helm.SetRail(rail);
 
         // Panel and title per display.
         var sections = new List<HelmSection>();
-        switch (display)
+        if (SiteDisplayHud(display, hint)) { } // holding at a space site: the globe displays show it (PlanetDriver.Sites.cs)
+        else switch (display)
         {
             case OrbitDisplay.System:
                 SystemDisplayHud(hint, mouse); // title, fogged panel, readout, body / ship card (PlanetDriver.System.cs)
@@ -818,11 +827,12 @@ public partial class PlanetDriver : Node3D, ITestHost
         }
         // Orbit-only bodies get no deployment cards (land, outpost, drop ships, beams are the colony's), but a
         // satellite can go up over any body the ship orbits: live data there (StarSystemState satellites).
-        if (!AtColony && _system.State != null && !_system.FlagshipInFlight && _system.OrbitBodyId is { } here)
+        if (!AtColony && _system.State != null && !_system.FlagshipInFlight && _system.FlagshipSite == null && _system.OrbitBodyId is { } here)
             actions.Add(new HelmAction($"sys:sat:{here}", "", _system.HasLive(here) ? "SATELLITE ✓" : "DEPLOY SATELLITE",
                 SatelliteProblem(here) == null, Colour: HelmScreen.Cyan));
-        if (!AtColony && _system.State != null && !_system.FlagshipInFlight && _system.OrbitBodyId is { } civHere)
+        if (!AtColony && _system.State != null && !_system.FlagshipInFlight && _system.FlagshipSite == null && _system.OrbitBodyId is { } civHere)
             AddCivStripActions(civHere, actions); // HIDDEN POST, DOSSIER [C] at a civilization's world (PlanetDriver.Civ.cs)
+        AddSiteStripActions(actions); // at a space site: its actions (PlanetDriver.Sites.cs)
         var cards = AtColony ? OrbitCards() : new List<(string Id, string Name)>();
         for (var i = 0; i < cards.Count; i++)
         {
@@ -1011,7 +1021,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         for (var owed = _test?.TakeSteps() ?? 0; owed > 0; owed--) DebugStep(); // step one tick, skip a minute
         if (_test != null)
         {
-            if (_inOrbit && _test.Visible) _test.Visible = false; // the panel works on the surface
+            if (_inOrbit && _test.Visible && !SpaceShip) _test.Visible = false; // the panel works on the surface (and in orbit for a ship that never lands)
             _view.SelectedUnits.RemoveWhere(id => Surface.FindUnit(id) == null); // removed by the panel
             _hud.SetTestMode(_sim.DebugEdits > 0 || _test.LocalEdits);
         }
@@ -1021,6 +1031,7 @@ public partial class PlanetDriver : Node3D, ITestHost
         DetectEvents();
         UpdateComms(); // PlanetDriver.Comms.cs: relayed colony reports, SIGNAL DELAY, sensor sweeps
         UpdateCiv(); // PlanetDriver.Civ.cs: Standing chips, civ event lines, the dossier
+        UpdateSpace(delta); // PlanetDriver.Sites.cs: space sites' event lines, hull chip, away team, ship status
         UpdateAchievements(); // new unlocks -> profile + toast; trophy chip (PlanetDriver.Achievements.cs)
         if (_selectedStructure != 0 && Surface.FindStructure(_selectedStructure) == null) _selectedStructure = 0;
         if (Me.Phase == LandingPhase.Landed && Surface.FindStructure(_selectedBase) == null)
@@ -1245,8 +1256,12 @@ public partial class PlanetDriver : Node3D, ITestHost
         {
             if (testKey.Keycode == Key.F9)
             {
-                if (_inOrbit) _hud.PushEvent("The test panel works on the surface: press O first", new Color(1f, 0.7f, 0.42f));
-                else _test.Visible = !_test.Visible;
+                if (_inOrbit && !SpaceShip) _hud.PushEvent("The test panel works on the surface: press O first", new Color(1f, 0.7f, 0.42f));
+                else
+                {
+                    _test.Visible = !_test.Visible;
+                    if (_test.Visible && _inOrbit) _test.ShowSpaceTab(); // a ship that never lands: the SPACE tab (TestPanel.Space.cs)
+                }
                 return;
             }
             if (testKey.Keycode == Key.Z && (testKey.CtrlPressed || testKey.MetaPressed))
@@ -1254,7 +1269,7 @@ public partial class PlanetDriver : Node3D, ITestHost
                 _test.Undo();
                 return;
             }
-            if (testKey.Keycode == Key.Space && _test.Visible && !_inOrbit)
+            if (testKey.Keycode == Key.Space && _test.Visible && (!_inOrbit || SpaceShip))
             {
                 _test.TogglePause();
                 return;
@@ -1761,7 +1776,7 @@ public partial class PlanetDriver : Node3D, ITestHost
     private void UpdateHover()
     {
         var mouse = GetViewport().GetMousePosition();
-        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse) || MissionsBlockMouse(mouse) || PingBlocksMouse(mouse);
+        _mouseOverUi = _hud.BlocksMouse(mouse) || (_test?.BlocksMouse(mouse) ?? false) || BuildMenuBlocksMouse(mouse) || AchievementsBlockMouse(mouse) || _inventory.IsOpen || CivBlocksMouse(mouse) || TutorialBlocksMouse(mouse) || MissionsBlockMouse(mouse) || PingBlocksMouse(mouse) || SpaceBlocksMouse(mouse);
         _hoverTile = -1;
         _view.HoveredUnit = 0;
         if (!_mouseOverUi)
