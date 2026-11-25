@@ -110,7 +110,7 @@ public sealed partial class MissionBook
                     if (id == data.PowerResource || !Has(data, id, out var r)) continue;
                     // A ship that never lands: into the player's stock (nothing to store it in); else the colony's storage.
                     Fix64 got;
-                    if (SpaceChain && Def(run) is { } gd && InPool(gd))
+                    if (SpaceChain) // phase 4: a space chain's main missions too
                     {
                         _sim.Players[p].Stock.Add(r, amount);
                         got = amount;
@@ -121,7 +121,7 @@ public sealed partial class MissionBook
                 return string.Join(", ", lines);
             }
             case "research":
-                if (SpaceChain && Def(run) is { } rd && InPool(rd) && Sys is { } sys) // a ship that never lands: where observation research goes
+                if (SpaceChain && Sys is { } sys) // a ship that never lands (pool jobs and, phase 4, the chain's own): where observation research goes
                     return sys.GiveSpaceResearch(_sim, p, a.N("points", Fix64.Zero) * _sim.FitOutFactor(p, FitOutRules.MissionResearch));
                 return s.MissionResearch(_sim, p, a.N("points", Fix64.Zero));
             case "reveal":

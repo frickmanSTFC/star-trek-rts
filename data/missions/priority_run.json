@@ -34,6 +34,28 @@
           "next": "complete" } ],
       "debrief": "Crates delivered and the crew are on the mend. That's what this ship is for." },
 
+    { "id": "tow_line", "chain": "priority_run", "kind": "main", "title": "Tow Line", "giver": "courier",
+      "briefing": "Lindqvist. Not cargo this time: the freighter {hauler} lost her engines, and her reactor is going. Her crew got off, her cargo didn't. Get a line on her and drag her to {port} before the reactor fails: the yard there can shut it down.",
+      "stages": [
+        { "id": "haul", "title": "Tow her in", "on_lost": "haul",
+          "on_enter": [
+            { "place_space_site": { "kind": "known_derelict", "variant": "earth", "bind": "hauler", "near": "ship", "min": 80, "max": 160, "again": true } },
+            { "bind_body": { "as": "port", "pick": "nearest_other", "near": "hauler" } },
+            { "marker": { "at": "hauler", "label": "Disabled freighter" } },
+            { "marker": { "at": "port", "label": "Tow her here" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Reach {hauler} and identify her", "cond": { "space_site": { "site": "hauler", "state": "identified" } },
+              "hint": "Set course for the freighter, then SCAN her from within range." },
+            { "id": "alongside", "text": "Come alongside", "cond": { "space_site": { "site": "hauler", "state": "alongside" } },
+              "hint": "COME ALONGSIDE: her reactor's clock starts once you are." },
+            { "id": "towing", "text": "Take her in tow", "cond": { "space_site": { "site": "hauler", "state": "towing" } },
+              "hint": "TAKE IN TOW (the tractor must work). Flights are slower with her on the line." },
+            { "id": "port", "text": "Tow her into orbit of {port} before her reactor fails", "cond": { "space_site": { "site": "hauler", "state": "delivered", "body": "port" } },
+              "hint": "Set course for {port} with her in tow. The card counts her reactor down." } ],
+          "next": "complete" } ],
+      "rewards": [ { "hand_over": { "site": "hauler" } }, { "grant": { "latinum": 50 } } ],
+      "debrief": "The yard crews cold-started her reactor with a minute to spare. Her owners want to know which courier tows ships for fun." },
+
     { "id": "mail_circuit", "chain": "priority_run", "kind": "main", "title": "Mail Circuit", "giver": "courier",
       "briefing": "Three parcels aboard for three bodies: {mail_a}, {mail_b} and {mail_c}. Any order you like, one timer for the lot.",
       "stages": [
@@ -50,6 +72,27 @@
               "hint": "Each parcel is delivered when you enter orbit of its body. Plan the shortest round." } ],
           "next": "complete" } ],
       "debrief": "Every parcel signed for. Half the system has letters from home tonight." },
+
+    { "id": "twelve_lifepods", "chain": "priority_run", "kind": "main", "title": "Twelve Lifepods", "giver": "courier",
+      "briefing": "Lindqvist, and this isn't a delivery. The liner {liner} broke up: twelve lifepods, each on its own air. The Armstrong's hold takes a few people at a time, so it will be runs to {station} and back. Go.",
+      "stages": [
+        { "id": "rescue", "title": "Bring them in", "on_lost": "rescue",
+          "on_enter": [
+            { "place_space_site": { "kind": "lifepods", "variant": "liner", "bind": "liner", "pods": 12, "hold_room": true, "again": true, "max": 100 } },
+            { "bind_site": { "as": "station", "kind": "station", "pick": "nearest" } },
+            { "marker": { "at": "liner", "label": "Lifepods" } },
+            { "marker": { "at": "station", "label": "Set them down here" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Reach {liner} and fix the beacons", "cond": { "space_site": { "site": "liner", "state": "identified" } },
+              "hint": "Set course for the pods and SCAN them." },
+            { "id": "picked", "text": "Pick up 6 of the lifepods", "cond": { "space_site": { "site": "liner", "state": "picked", "count": 6 } },
+              "hint": "PICK UP PODS (least air first). When the hold is full, fly to {station} and set the survivors down (ship status hold: DROP), then come back." },
+            { "id": "home", "text": "Set every survivor down at {station}", "cond": { "all": [ { "space_site": { "site": "liner", "state": "picked", "count": 6 } }, { "not": { "hold": { "item": "survivors", "count": 1 } } } ] },
+              "hint": "At {station}: ship status, hold, DROP the survivors." },
+            { "id": "all", "text": "Pick up all twelve", "cond": { "space_site": { "site": "liner", "state": "picked", "count": 12 } }, "optional": true } ],
+          "next": "complete" } ],
+      "rewards": [ { "grant": { "latinum": 60 } } ],
+      "debrief": "Every pod we reached is in, and the people in them are warm, fed and asking for us by name. Lindqvist says that's the run she'll remember." },
 
     { "id": "diplomatic_pouch", "chain": "priority_run", "kind": "main", "title": "Diplomatic Pouch", "giver": "courier",
       "briefing": "A sealed diplomatic pouch, for hand delivery only, to the station at {moon}, the outermost moon. Get there and hold orbit while they come up to collect it.",

@@ -102,6 +102,24 @@ public sealed record SiteAnomalyDef(int EverySeconds, int ResearchCap, IReadOnly
     public AnomalyRingDef? Ring(string? id) => id == null ? null : Rings.FirstOrDefault(r => r.Id == id);
 }
 
+// ---------------------------------------------------------------- phase 4: chain-only kinds (maps/sites.json)
+
+/// <summary>A ship hiding in a belt (kind hidden_ship "hidden", chain-only: placed by a mission, never rolled). Long-range
+/// scans don't detect it: each one taken within FixRange of it, from a spot at least Spacing from the player's earlier fixes,
+/// is a fix; Fixes fixes find it (Detected). Until then the player sees a search area of Area map units (radius) that
+/// shrinks with each fix. Once found, RunChance percent of them run (by its hash) RunDistance map units over RunSeconds,
+/// once. Then come alongside and "inspect" for InspectSeconds (× the alongside_time lever): the fine LatinumMin..Max and
+/// ResearchMin..Max (by its hash).</summary>
+public sealed record SiteHiddenDef(int Fixes, Fix64 FixRange, Fix64 Spacing, Fix64 Area, int InspectSeconds, int RunChance, Fix64 RunDistance,
+    int RunSeconds, int LatinumMin, int LatinumMax, int ResearchMin, int ResearchMax);
+
+/// <summary>An alien probe (kind alien_probe "probe", chain-only). It follows the flagship of the player whose mission placed
+/// it (Speed map units a second) until it is Keep map units from it, and holds while the ship holds at it. "decode" at it
+/// takes DecodeSeconds of Science work (× the study_time lever; progress kept); "answer" then starts the reply, a three-step
+/// event on the ship_status away table ReplyTable (no one leaves the ship). An outcome in Good is a good answer: that
+/// player's later first contacts have Shock points of culture-shock chance (negative = less).</summary>
+public sealed record SiteProbeDef(Fix64 Keep, Fix64 Speed, int DecodeSeconds, string ReplyTable, IReadOnlyList<string> Good, int Shock);
+
 /// <summary>One kind of space site (maps/sites.json kinds).</summary>
 public sealed record SiteKindDef(string Id, SiteKind Kind, string Name, string Letter, int ScanSeconds, int SizeMin, int SizeMax,
     IReadOnlyList<Weighted> Variants, IReadOnlyList<(string Variant, string Text)> Origin, bool Hazardous, IReadOnlyList<string> Hazards)
@@ -125,6 +143,9 @@ public sealed record SiteKindDef(string Id, SiteKind Kind, string Name, string L
     public SitePodsDef? Pods { get; init; }
     public SiteStrandedDef? Stranded { get; init; }
     public SiteAnomalyDef? Anomaly { get; init; }
+    /// <summary>Phase 4: the chain-only kinds' rules (null on the others).</summary>
+    public SiteHiddenDef? Hidden { get; init; }
+    public SiteProbeDef? Probe { get; init; }
 
     /// <summary>The away table a site of this variant boards with ("" = none).</summary>
     public string AwayTableFor(string variant)

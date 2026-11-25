@@ -420,6 +420,12 @@ public sealed partial class MissionBook
             return;
         }
         var stage = d.Stages[run.Stage];
+        if (!InPool(d) && StageLost(p, run) is { } lost) // MissionSpaceJobs.cs: a main mission's site state can't come true any more
+        {
+            Say(p, run, d.Giver, $"{d.Title}: {lost}.", "feed");
+            Goto(p, run, d, stage.OnLost.Length > 0 ? stage.OnLost : GameData.MissionFail);
+            return;
+        }
         var all = true;
         for (var k = 0; k < stage.Objectives.Count && k < run.Done.Length; k++)
         {

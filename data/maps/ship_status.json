@@ -107,6 +107,28 @@
             { "id": "gas", "weight": 10, "text": "A pocket of gas", "injure": 2 },
             { "id": "base", "weight": 5, "text": "The old base's systems woke", "hull": 6, "system": "sensors" }
           ]
+        },
+        "probe_reply": {
+          "base": { "injury": 0, "loss": 0, "find": 50 },
+          "steps": [
+            { "title": "How we answer", "choices": [
+              { "label": "Mirror its pattern back", "hint": "Show it we heard. Safe, says little.", "injury": 0, "loss": 0, "find": 5, "seconds": 0, "shift": { "understood": 4 } },
+              { "label": "Prime numbers", "hint": "The old idea: show it there's a mind here.", "injury": 0, "loss": 0, "find": 10, "seconds": 10, "shift": { "understood": 8, "confused": -4 } },
+              { "label": "Everything at once", "hint": "Music, images, language: a flood it may not follow.", "injury": 0, "loss": 0, "find": 15, "seconds": 0, "shift": { "confused": 10, "alarmed": 4 } } ] },
+            { "title": "What we tell it about us", "choices": [
+              { "label": "Who we are", "hint": "A picture of a person, the ship, Earth.", "injury": 0, "loss": 0, "find": 5, "seconds": 0, "shift": { "understood": 6 } },
+              { "label": "Where we are", "hint": "Our course and our home. Honest, maybe unwise.", "injury": 0, "loss": 0, "find": 10, "seconds": 0, "shift": { "alarmed": 6 } },
+              { "label": "Nothing yet: a question back", "hint": "Ask what it is. Science crew think it will answer.", "injury": 0, "loss": 0, "find": 15, "seconds": 20, "shift": { "understood": 4, "confused": 2 } } ] },
+            { "title": "How we sign off", "choices": [
+              { "label": "A greeting", "hint": "Keep it simple and warm.", "injury": 0, "loss": 0, "find": 0, "seconds": 0, "shift": { "understood": 6 }, "bring": { "research": true } },
+              { "label": "Ask it to carry our answer home", "hint": "It came from somewhere: ask it to take this there.", "injury": 0, "loss": 0, "find": 10, "seconds": 10, "shift": { "understood": 3, "alarmed": 3 }, "bring": { "research": true } },
+              { "label": "Copy its memory before it goes", "hint": "Research now; it may not take kindly to it.", "injury": 0, "loss": 0, "find": 25, "seconds": 20, "shift": { "alarmed": 10 }, "bring": { "research": true } } ] }
+          ],
+          "outcomes": [
+            { "id": "understood", "weight": 50, "text": "It understood: the pattern changed to ours" },
+            { "id": "confused", "weight": 30, "text": "It went quiet, then repeated the question" },
+            { "id": "alarmed", "weight": 20, "text": "It broke off and fell silent" }
+          ]
         }
       }
     }

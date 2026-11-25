@@ -44,7 +44,17 @@
                    "hollow": { "containers": [2, 4], "ores": { "duranium_ore": 1 } } },
           "rockfall": { "chance_per_min": 15, "hull": [2, 5], "tractor": 20 } },
         "alongside": { "seconds": 15, "chance": 0, "hull": [0, 0] },
-        "away_tables": { "hollow": "hollow" }, "research": [60, 120] }
+        "away_tables": { "hollow": "hollow" }, "research": [60, 120] },
+      { "id": "hidden_ship", "name": "Ship running dark", "letter": "H", "scan_seconds": 20, "size": [2, 3], "variants": { "smuggler": 1 },
+        "origin": { "smuggler": "a smuggler's freighter, running dark" },
+        "hazards": ["Running dark: long-range scans don't show her", "May run once found"],
+        "alongside": { "seconds": 20, "chance": 0, "hull": [0, 0] },
+        "hidden": { "fixes": 3, "fix_range": 200, "spacing": 50, "area": 150, "inspect_seconds": 30,
+          "run_chance": 50, "run_distance": 100, "run_seconds": 60, "reward": { "latinum": [40, 80], "research": [20, 40] } } },
+      { "id": "alien_probe", "name": "Alien probe", "letter": "Q", "scan_seconds": 15, "size": [1, 1], "variants": { "pattern": 1 },
+        "origin": { "pattern": "a probe of no known make, sending a repeating pattern" },
+        "hazards": [], "research": [40, 80],
+        "probe": { "keep": 50, "speed": 4, "decode_seconds": 90, "reply_table": "probe_reply", "good": ["understood"], "shock": -15 } }
     ],
     "salvage": [
       { "id": "cargo_pod", "name": "Cargo pod", "containers": 1, "latinum": 25, "research": 0 },

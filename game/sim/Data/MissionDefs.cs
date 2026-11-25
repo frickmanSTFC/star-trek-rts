@@ -51,7 +51,13 @@ public sealed record MissionChoiceDef(string Id, string Text, string Next);
 /// out, OnTimeout ("fail" by default, or a stage id / "complete") happens.</summary>
 public sealed record MissionStageDef(string Id, string Title, IReadOnlyList<MissionActionDef> OnEnter,
     IReadOnlyList<MissionObjectiveDef> Objectives, IReadOnlyList<MissionChoiceDef> Choices, string Next, int TimerSeconds,
-    string OnTimeout, string Hint);
+    string OnTimeout, string Hint)
+{
+    /// <summary>Space jobs, phase 4: where a main mission goes when a required objective's space-site state can no longer
+    /// come true (the rock struck, the pods ran out of air, the tow's reactor failed): a stage id (often the one that places
+    /// a fresh site), "complete" or "fail"; "" = fail. Side jobs from a pool fail as before.</summary>
+    public string OnLost { get; init; } = "";
+}
 
 /// <summary>
 /// One mission (data/missions/&lt;file&gt;.json "missions"). Chain = the chain id it belongs to (rules.json chains);

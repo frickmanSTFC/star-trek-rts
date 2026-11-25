@@ -44,6 +44,24 @@
           "next": "complete" } ],
       "debrief": "Manifest checks out: deuterium, ore and a crate of Andorian ale nobody declared. We let them off with a warning." },
 
+    { "id": "watch_rogue_rock", "chain": "watch_station", "kind": "main", "title": "Rogue Rock", "giver": "patrol",
+      "briefing": "Hale. Tracking has a rock on a collision course with {target}, and there are people there. Catch {rock}, come alongside and lean on it with the tractor until it misses. Charges are quicker, if you trust your boarding party with them.",
+      "stages": [
+        { "id": "turn", "title": "Turn it aside", "on_lost": "turn",
+          "on_enter": [
+            { "bind_body": { "as": "target", "pick": "civ" } },
+            { "place_space_site": { "kind": "rogue_asteroid", "bind": "rock", "target": "target", "again": true, "max": 100 } },
+            { "marker": { "at": "rock", "label": "Rogue rock" } },
+            { "marker": { "at": "target", "label": "In its path" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Catch {rock} and identify it", "cond": { "space_site": { "site": "rock", "state": "identified" } },
+              "hint": "It is moving: set course for it, then SCAN. The card counts down to impact." },
+            { "id": "turned", "text": "Turn {rock} aside before it strikes {target}", "cond": { "space_site": { "site": "rock", "state": "deflected" } },
+              "hint": "COME ALONGSIDE, then PUSH IT ASIDE with the tractor (quicker with Engineering), or send an AWAY TEAM to plant charges." } ],
+          "next": "complete" } ],
+      "rewards": [ { "grant": { "latinum": 40 } } ],
+      "debrief": "It will miss {target} by a comfortable margin now. Nobody down there will ever know how close it came, which is how Hale likes it." },
+
     { "id": "distress_call", "chain": "watch_station", "kind": "main", "title": "Distress Call", "giver": "patrol",
       "briefing": "Priority one: a distress beacon just lit up at {distress}. Get there before it is too late, then sweep the area for survivors.",
       "stages": [
@@ -75,6 +93,36 @@
               "hint": "The system plot marks where {convoy} is heading next: get there first and wait." } ],
           "next": "complete" } ],
       "debrief": "Freighter in safe and sound, and nothing on the lanes dared show itself with the Bastion waiting." },
+
+    { "id": "smugglers_belt", "chain": "watch_station", "kind": "main", "title": "The Smuggler's Belt", "giver": "patrol",
+      "briefing": "Hale. A freighter went dark in the belt and hasn't come out: transponder off, hiding among the rocks. Long-range scans from different rocks near her will give fixes, and three good fixes find her. Then go alongside and inspect her. She may run once she knows she's spotted.",
+      "stages": [
+        { "id": "hunt", "title": "Hunt her down",
+          "on_enter": [
+            { "place_space_site": { "kind": "hidden_ship", "bind": "smuggler", "near": "belt", "min": 30, "max": 90 } },
+            { "place_space_site": { "kind": "asteroid", "variant": "common", "bind": "rock_1", "near": "smuggler", "min": 60, "max": 130 } },
+            { "place_space_site": { "kind": "asteroid", "variant": "common", "bind": "rock_2", "near": "smuggler", "min": 60, "max": 130 } },
+            { "place_space_site": { "kind": "asteroid", "variant": "metal", "bind": "rock_3", "near": "smuggler", "min": 60, "max": 130 } },
+            { "marker": { "at": "smuggler", "label": "Search area" } },
+            { "marker": { "at": "rock_1", "label": "Scan from here" } },
+            { "marker": { "at": "rock_2", "label": "Scan from here" } },
+            { "marker": { "at": "rock_3", "label": "Scan from here" } } ],
+          "objectives": [
+            { "id": "found", "text": "Take three fixes on her from different rocks and find her", "cond": { "space_site": { "site": "smuggler", "state": "detected" } },
+              "hint": "Fly to a marked rock, run a LONG-RANGE SCAN, then move to another rock and scan again: each fix shrinks the search area." } ],
+          "next": "inspect" },
+        { "id": "inspect", "title": "Inspect her",
+          "on_enter": [ { "marker": { "at": "smuggler", "label": "Smuggler" } } ],
+          "objectives": [
+            { "id": "scan", "text": "Catch {smuggler} and identify her", "cond": { "space_site": { "site": "smuggler", "state": "identified" } },
+              "hint": "Set course for her (if she runs, follow) and SCAN her." },
+            { "id": "alongside", "text": "Come alongside", "cond": { "space_site": { "site": "smuggler", "state": "alongside" } },
+              "hint": "COME ALONGSIDE once she has stopped." },
+            { "id": "inspected", "text": "Inspect her", "cond": { "space_site": { "site": "smuggler", "state": "inspected" } },
+              "hint": "INSPECT HER: the boarding party goes through her holds." } ],
+          "next": "complete" } ],
+      "rewards": [ { "research": { "points": 30 } } ],
+      "debrief": "Undeclared weapons parts and a hold full of Orion spice. Her master paid the fine without a word, which tells Hale there's more out there." },
 
     { "id": "picket", "chain": "watch_station", "kind": "main", "title": "Picket", "giver": "patrol",
       "briefing": "Last duty of the watch: picket at {edge}, the outermost body. Hold orbit there for two minutes and keep the long-range scanners busy.",
