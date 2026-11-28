@@ -81,6 +81,33 @@ box, cylinder, empty, mesh_object, strut, link = BV["box"], BV["cylinder"], BV["
 zcyl, sphere, lathe, flat_path, pane_row, window_ring = OP["zcyl"], OP["sphere"], OP["lathe"], OP["flat_path"], OP["pane_row"], OP["window_ring"]
 torus = OP["torus"]
 
+def cycles_device(scene):
+    """CPU unless FF_CYCLES_DEVICE=GPU and a graphics card Cycles can use is found (tools/perf_bench.py sets it)."""
+    scene.render.engine = "CYCLES"
+    used = "CPU"
+    if os.environ.get("FF_CYCLES_DEVICE", "").upper() == "GPU":
+        try:
+            prefs = bpy.context.preferences.addons["cycles"].preferences
+            for kind in ("OPTIX", "CUDA", "HIP", "ONEAPI", "METAL"):
+                try:
+                    prefs.compute_device_type = kind
+                except TypeError:
+                    continue
+                prefs.get_devices()
+                cards = [d for d in prefs.devices if d.type == kind]
+                if cards:
+                    for d in prefs.devices:
+                        d.use = d.type == kind
+                    scene.cycles.device = "GPU"
+                    used = f"GPU {kind}: " + ", ".join(d.name for d in cards)
+                    break
+        except Exception as e:  # no Cycles preferences in this build
+            used = f"CPU (GPU not usable: {e})"
+    print("cycles device:", used, flush=True)
+    return used
+
+
+
 # ---------------------------------------------------------------- materials
 
 MT = {}
@@ -586,7 +613,7 @@ def bake_grime(root, separate, image_name, ground_z=0.3, soot=None):
     """Unwrap every joined piece into one shared atlas, bake the grime into it, then give every textured material
     Base Color = atlas x its own colour (exported as baseColorTexture x factor)."""
     scene = bpy.context.scene
-    scene.render.engine = "CYCLES"
+    cycles_device(scene)
     scene.cycles.samples = 8
     if CFG["threads"]:
         scene.render.threads_mode = "FIXED"
@@ -689,7 +716,7 @@ def preview(root, shots, night_lights=(), signs=None, rover_at=None, extras=None
         rover = BV["rover_mk1"](BV["palette"]())
         rover.location = (rover_at[0], rover_at[1], 0.0)
         rover.rotation_euler.z = math.radians(rover_at[2])
-    scene.render.engine = "CYCLES"
+    cycles_device(scene)
     scene.cycles.samples = CFG["samples"]
     scene.cycles.use_denoising = True
     if CFG["threads"]:
